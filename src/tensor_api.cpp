@@ -31,13 +31,13 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
-extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
+MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
 }
 
-extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w)
 {
 
@@ -48,7 +48,7 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
-extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                                                 miopenDataType_t dataType,
                                                                 miopenTensorLayout_t tensorLayout,
                                                                 const int* lens,
@@ -66,7 +66,7 @@ extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDesc
     });
 }
 
-extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                                         miopenDataType_t dataType,
                                                         int n,
                                                         int c,
@@ -85,7 +85,7 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t
     });
 }
 
-extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                       miopenDataType_t* dataType,
                                                       int* n,
                                                       int* c,
@@ -165,7 +165,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDesc
     });
 }
 
-extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                     miopenDataType_t dataType,
                                                     int nbDims,
                                                     const int* dimsA,
@@ -192,7 +192,7 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
-extern "C" miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                   size_t* numBytes)
 {
 
@@ -206,14 +206,14 @@ int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc)
     return miopen::deref(tensorDesc).GetElementSize();
 }
 
-extern "C" miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t tensorDesc,
                                                         int* size)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc, size);
     return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetSize(); });
 }
 
-extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                     miopenDataType_t* dataType,
                                                     int* dimsA,
                                                     int* stridesA)
@@ -240,7 +240,7 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
-extern "C" miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc)
+MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
@@ -287,7 +287,7 @@ static void LogCmdTensorOp(miopenTensorOp_t tensorOp,
     }
 }
 
-extern "C" miopenStatus_t miopenOpTensor(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenOpTensor(miopenHandle_t handle,
                                          miopenTensorOp_t tensorOp,
                                          const void* alpha1,
                                          const miopenTensorDescriptor_t aDesc,
@@ -317,7 +317,7 @@ extern "C" miopenStatus_t miopenOpTensor(miopenHandle_t handle,
     });
 }
 
-extern "C" miopenStatus_t miopenSetTensor(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenSetTensor(miopenHandle_t handle,
                                           const miopenTensorDescriptor_t yDesc,
                                           void* y,
                                           const void* alpha)
@@ -329,7 +329,7 @@ extern "C" miopenStatus_t miopenSetTensor(miopenHandle_t handle,
         [&] { SetTensor(miopen::deref(handle), miopen::deref(yDesc), DataCast(y), alpha); });
 }
 
-extern "C" miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
                                             const miopenTensorDescriptor_t yDesc,
                                             void* y,
                                             const void* alpha)
@@ -341,7 +341,7 @@ extern "C" miopenStatus_t miopenScaleTensor(miopenHandle_t handle,
         [&] { ScaleTensor(miopen::deref(handle), miopen::deref(yDesc), DataCast(y), alpha); });
 }
 
-extern "C" miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
                                                 const void* alpha,
                                                 const miopenTensorDescriptor_t xDesc,
                                                 const void* x,

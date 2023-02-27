@@ -213,13 +213,14 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 // Hidden C++ functions for MIGraphX.
-extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                             int findMode)
+MIOPEN_EXPORT miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
+                                                                int findMode)
 {
     return miopen::try_([&] {
         miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
     });
 }
+
 extern "C" miopenStatus_t miopenHiddenGetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
                                                              int* findMode)
 {
@@ -510,9 +511,9 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
     return ss.str();
 }
 
-namespace miopen {
-namespace debug {
+namespace miopen::debug {
 
+MIOPEN_EXPORT
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
@@ -528,6 +529,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
     }
 }
 
+MIOPEN_EXPORT
 void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
@@ -543,8 +545,7 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
     }
 }
 
-} // namespace debug
-} // namespace miopen
+} // namespace miopen::debug
 
 extern "C" miopenStatus_t
 miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,

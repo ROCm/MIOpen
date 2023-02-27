@@ -8,7 +8,10 @@ endif()
 
 function(add_speedtest_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
-    clang_tidy_check(${TEST_NAME})
+    target_compile_options(${TEST_NAME} PRIVATE ${__COMPILER_WARNINGS})
+    if(CLANG_TIDY_EXE)
+        clang_tidy_check(${TEST_NAME})
+    endif()
     target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
     # Cmake does not add flags correctly for gcc
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")

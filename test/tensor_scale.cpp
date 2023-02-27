@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -41,6 +40,10 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include "tensor_util.hpp"
+
+#if defined(__linux__)
+#include <sys/time.h>
+#endif
 
 template <typename T>
 struct scale_data_t

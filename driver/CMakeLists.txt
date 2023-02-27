@@ -23,20 +23,43 @@
 # SOFTWARE.
 # 
 ################################################################################
-cmake_minimum_required( VERSION 3.5)
-
-find_package(Threads REQUIRED)
+cmake_minimum_required( VERSION 3.11 )
 
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
-target_link_libraries(MIOpenDriver MIOpen)
-target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
-if(NOT MIOPEN_EMBED_DB STREQUAL "")
-target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
+
+if(WIN32 AND (CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+" OR CMAKE_C_COMPILER MATCHES ".*clang"))
+    # Refet to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpenDriver PRIVATE -U__LP64__)
 endif()
+
+target_link_libraries(MIOpenDriver PRIVATE MIOpen MIOpen_Static nlohmann_json::nlohmann_json
+    Threads::Threads ${MIOPEN_CK_LINK_FLAGS} hip::device)
+
+if(WIN32)
+    target_link_libraries(MIOpenDriver PRIVATE bzip2::bzip2)
+else()
+    target_include_directories(MIOpenDriver SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+    target_link_libraries(MIOpenDriver PRIVATE ${BZIP2_LIBRARIES})
+endif()
+
+if(MIOPEN_ENABLE_SQLITE)
+    target_link_libraries(MIOpenDriver PRIVATE sqlite3::sqlite3)
+endif()
+
+target_compile_options(MIOpenDriver PRIVATE ${__COMPILER_WARNINGS})
+
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+    target_link_libraries(MIOpenDriver PRIVATE miopen_data)
+endif()
+
 # Cmake does not add flags correctly for gcc
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
     set_target_properties(MIOpenDriver PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
 endif()
-install(TARGETS MIOpenDriver 
+
+target_include_directories(MIOpenDriver SYSTEM PRIVATE ${HALF_INCLUDE_DIR})
+target_include_directories(MIOpenDriver PRIVATE ${CMAKE_SOURCE_DIR}/src/include ${CMAKE_SOURCE_DIR}/include)
+
+install(TARGETS MIOpenDriver
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     DESTINATION ${CMAKE_INSTALL_BINDIR})

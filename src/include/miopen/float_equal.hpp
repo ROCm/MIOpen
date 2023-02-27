@@ -30,9 +30,6 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
-#ifdef _MSC_VER
-#include <iso646.h>
-#endif
 
 namespace miopen {
 
@@ -44,7 +41,9 @@ struct float_equal_fn
     template <class T>
     static bool apply(T x, T y)
     {
-        return std::isfinite(x) and std::isfinite(y) and
+		// WIN32: static_cast<double>(x) - temporary workaround, there's no implementation of
+		//        std::isfinite for other types then 'float' and 'double'.
+        return std::isfinite(static_cast<double>(x)) and std::isfinite(static_cast<double>(y)) and
                std::nextafter(x, std::numeric_limits<T>::lowest()) <= y and
                std::nextafter(x, std::numeric_limits<T>::max()) >= y;
     }

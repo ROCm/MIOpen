@@ -24,22 +24,13 @@
 #
 ################################################################################
 
-add_library(
-    sqlite_memvfs
-    OBJECT
-        memvfs.cpp
-)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-# using Clang
-set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS "-Wno-everything ")
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-# using GCC
-set_source_files_properties(memvfs.cpp PROPERTIES COMPILE_FLAGS "-w ")
-endif()
-target_include_directories(sqlite_memvfs SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-# set_target_properties(
-#     sqlite_memvfs
-#     PROPERTIES
-#          CXX_CLANG_TIDY ""
-# )
+add_library(sqlite_memvfs OBJECT memvfs.cpp)
+target_compile_features(sqlite_memvfs PRIVATE cxx_std_17)
+
+target_compile_options(sqlite_memvfs
+    PRIVATE
+        $<$<CXX_COMPILER_ID:Clang>:-Wno-everything>
+        $<$<CXX_COMPILER_ID:GNU>:-w>)
+
 set_property(TARGET sqlite_memvfs PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(sqlite_memvfs PRIVATE sqlite3::sqlite3)

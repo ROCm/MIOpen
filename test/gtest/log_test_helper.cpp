@@ -26,7 +26,7 @@
 #include "log_test_helper.hpp"
 
 #include <miopen/config.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"

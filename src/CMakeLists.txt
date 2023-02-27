@@ -27,7 +27,10 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
-add_subdirectory(sqlite)
+
+if (MIOPEN_ENABLE_SQLITE)
+    add_subdirectory(sqlite)
+endif()
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -53,21 +56,15 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINAR
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
 
-
 function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
-    set(INIT_KERNELS_LIST)
-    set(KERNELS_DECLS)
+    set(INIT_KERNELS_LIST "")
+    set(KERNELS_DECLS "")
     foreach(KERNEL_FILE ${KERNEL_FILES})
-        if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
-        else()
-            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
-        endif()
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
@@ -82,10 +79,7 @@ endfunction()
 
 set( MIOpen_Source
     activ/problem_description.cpp
-    activ_api.cpp
-    api/find2_0_commons.cpp
     batch_norm.cpp
-    batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
     check_numerics.cpp
@@ -97,47 +91,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-    conv_algo_name.cpp
-    convolution.cpp
-    convolution_api.cpp
-    ctc.cpp
-    ctc_api.cpp
-    db.cpp
-    db_record.cpp
-    dropout.cpp
-    dropout_api.cpp
-    execution_context.cpp
-    expanduser.cpp
-    find_controls.cpp
-    find_db.cpp
-    fused_api.cpp
-    fusion.cpp
-    generic_search.cpp
-    handle_api.cpp
-    invoker_cache.cpp
-    kernel_build_params.cpp
-    kernel_warnings.cpp
-    load_file.cpp
-    lock_file.cpp
-    logger.cpp
-    lrn_api.cpp
-    op_args.cpp
-    operator.cpp
-    performance_config.cpp
-    pooling/problem_description.cpp
-    pooling_api.cpp
-    problem_description.cpp
-    problem.cpp
-    ramdb.cpp
-    readonlyramdb.cpp
-    reducetensor.cpp
-    reducetensor_api.cpp
-    rnn.cpp
-    rnn_api.cpp
-    softmax_api.cpp
-    solution.cpp
     conv/solver_finders.cpp
-    solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
@@ -152,6 +106,10 @@ set( MIOpen_Source
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
+    solver/pooling/forward2d.cpp
+    solver/pooling/forwardNd.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -165,8 +123,8 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
@@ -204,14 +162,14 @@ set( MIOpen_Source
     solver/conv_mlir_igemm_wrw_xdlops.cpp
     solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_multipass_wino3x3WrW.cpp
+    solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
-    solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2Dfwd.cpp
-    solver/conv_ocl_dir2Dfwd_fused.cpp
-    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
+    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
@@ -220,15 +178,40 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
-    solver/pooling/forward2d.cpp
-    solver/pooling/forwardNd.cpp
-    solver/pooling/backward2d.cpp
-    solver/pooling/backwardNd.cpp
+    conv_algo_name.cpp
+    convolution.cpp
+    ctc.cpp
+    db.cpp
+    db_record.cpp
+    dropout.cpp
+    execution_context.cpp
+    expanduser.cpp
+    find_controls.cpp
+    find_db.cpp
+    fusion.cpp
+    generic_search.cpp
+    invoker_cache.cpp
+    kernel_build_params.cpp
+    kernel_warnings.cpp
+    load_file.cpp
+    lock_file.cpp
+    logger.cpp
+    op_args.cpp
+    operator.cpp
+    performance_config.cpp
+    pooling/problem_description.cpp
+    problem_description.cpp
+    problem.cpp
+    ramdb.cpp
+    readonlyramdb.cpp
+    reducetensor.cpp
+    rnn.cpp
+    solution.cpp
+    solver.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
-    tensor_api.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
@@ -579,7 +562,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_BATCH_ID 0)
 
     function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS MESSAGE_SUFFIX)
-        set(KERNELS_BATCH)
+        set(KERNELS_BATCH "")
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
         list(LENGTH KERNELS KERNELS_NUMBER)
@@ -603,7 +586,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
                 list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
 
-                set(KERNELS_BATCH)
+                set(KERNELS_BATCH "")
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
             endif()
         endforeach()
@@ -634,26 +617,89 @@ endif()
 
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
-        mlir_build.cpp
         solver/mlir_common.cpp
+        mlir_build.cpp
         conv/invokers/mlir_impl_gemm.cpp
         )
 endif()
 
+add_library(MIOpen_Static STATIC ${MIOpen_Source})
+
+if(WIN32 AND (CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+" OR CMAKE_C_COMPILER MATCHES ".*clang"))
+    # Refet to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpen_Static PRIVATE -U__LP64__)
+endif()
+
+target_link_libraries(MIOpen_Static
+    PUBLIC
+        nlohmann_json::nlohmann_json
+        Boost::any
+        Boost::container
+        Boost::date_time
+        Boost::filesystem
+        Boost::hof
+        Boost::interprocess
+        Boost::range
+        Boost::thread
+        Boost::variant)
+
+set_target_properties(MIOpen_Static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(WIN32)
+    target_link_libraries(MIOpen_Static PRIVATE bzip2::bzip2)
+else()
+    target_include_directories(MIOpen_Static SYSTEM PUBLIC ${BZIP2_INCLUDE_DIR})
+    target_link_libraries(MIOpen_Static PUBLIC ${BZIP2_LIBRARIES})
+endif()
+
+target_compile_options(MIOpen_Static
+    PUBLIC
+        ${__COMPILER_WARNINGS})
+
+
+target_include_directories(MIOpen_Static
+    PRIVATE
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>)
+
+
+target_include_directories(MIOpen_Static
+    SYSTEM PRIVATE
+        $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
+
+target_compile_definitions(MIOpen_Static
+    PRIVATE
+        -DMIOpen_EXPORTS)
+
 # build library
-add_library( MIOpen
-    ${MIOpen_Source}
-    $<TARGET_OBJECTS:sqlite_memvfs>
-    )
+add_library(MIOpen SHARED
+        activ_api.cpp
+        api/find2_0_commons.cpp
+        batch_norm_api.cpp
+        convolution_api.cpp
+        ctc_api.cpp
+        dropout_api.cpp
+        fused_api.cpp
+        handle_api.cpp
+        lrn_api.cpp
+        pooling_api.cpp
+        reducetensor_api.cpp
+        rnn_api.cpp
+        softmax_api.cpp
+        tensor_api.cpp
+        $<TARGET_OBJECTS:MIOpen_Static>
+        $<TARGET_OBJECTS:sqlite_memvfs>)
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
-clang_tidy_check(MIOpen)
+if(CLANG_TIDY_EXE)
+    clang_tidy_check(MIOpen)
+endif()
 
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
     set(PASS_ARGS debug optimized)
-    set(DEPS)
+    set(DEPS "")
     foreach(DEP ${ARGN})
         if(DEP IN_LIST PASS_ARGS)
             list(APPEND DEPS ${DEP})
@@ -664,18 +710,40 @@ function(target_internal_library TARGET)
     target_link_libraries(${TARGET} INTERFACE ${DEPS})
 endfunction()
 
-target_include_directories(MIOpen PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
-)
-
-set(MIOPEN_CK_LINK_FLAGS)
-if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
+if(WIN32)
+    target_link_libraries(MIOpen PRIVATE bzip2::bzip2)
+else()
+    target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+    target_link_libraries(MIOpen PRIVATE ${BZIP2_LIBRARIES})
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+target_compile_options(MIOpen PRIVATE ${__COMPILER_WARNINGS})
+
+target_include_directories(MIOpen
+    PRIVATE
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>)
+
+target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
+
+target_internal_library(MIOpen
+        Boost::any
+        Boost::container
+        Boost::date_time
+        Boost::filesystem
+        Boost::hof
+        Boost::interprocess
+        Boost::range
+        Boost::thread
+        Boost::variant)
+
+target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
+
+if(WIN32 AND (CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+" OR CMAKE_C_COMPILER MATCHES ".*clang"))
+    # Refet to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpen PRIVATE -U__LP64__)
+endif()
+
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
@@ -707,18 +775,16 @@ set(PACKAGE_STATIC_DEPENDS)
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
-    target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
-    target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
+    target_include_directories(MIOpen_Static SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
+    target_link_libraries(MIOpen_Static PUBLIC ${OPENCL_LIBRARIES})
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    target_link_libraries( MIOpen PRIVATE hip::device )
-    target_link_libraries( MIOpen INTERFACE hip::host )
+    target_link_libraries(MIOpen_Static PRIVATE hip::device hip::host hiprtc::hiprtc)
+    target_link_libraries(MIOpen PRIVATE hip::device hip::host hiprtc::hiprtc)
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions(MIOpen_Static PUBLIC -D__HIP_PLATFORM_HCC__=1)
     endif()
-    # This is helpful for the tests
-    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
 endif()
 
@@ -732,43 +798,39 @@ endif()
 
 if(MIOPEN_USE_COMGR)
     list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
-    target_internal_library(MIOpen amd_comgr)
+    target_link_libraries(MIOpen_Static PRIVATE amd_comgr)
+    target_link_libraries(MIOpen PRIVATE amd_comgr)
 endif()
 
 if(rocblas_FOUND)
-    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
-    target_link_libraries( MIOpen PRIVATE roc::rocblas )
+    target_link_libraries(MIOpen_Static PRIVATE roc::rocblas)
+    target_link_libraries(MIOpen PRIVATE roc::rocblas)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
 # MIOpen depends on miopentensile
 if(miopentensile_FOUND)
-    target_link_libraries(MIOpen PRIVATE MIOpenTensile)
+    target_link_libraries(MIOpen_Static PUBLIC MIOpenTensile)
 endif()
 
 # For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
+    target_link_libraries(MIOpen_Static PRIVATE ${LIBMLIRMIOPEN})
     target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
 # Build with package rocMLIR
 if(rocMLIR_FOUND)
+    target_link_libraries(MIOpen_Static PRIVATE rocMLIR::rockCompiler)
     target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
 endif()
 
-target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
-
-if(WIN32 AND NOT MSVC)
-    if(BUILD_DEV)
-        target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
-    endif()
-    target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+    target_link_libraries(MIOpen_Static PRIVATE composable_kernel::device_operations hip::host)
+    target_link_libraries(MIOpen PRIVATE composable_kernel::device_operations hip::host)
 endif()
 
-target_internal_library(MIOpen
-    Boost::filesystem
-)
 list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE Boost COMPONENTS filesystem)
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
@@ -793,13 +855,9 @@ local:
 endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
-    # MIOpen depends on SQLite
-    target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
-    target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
-    target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
-    target_compile_options(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_CFLAGS}>)
-    target_link_libraries(MIOpen PRIVATE ${SQLITE3_STATIC_LDFLAGS})
-    target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_LDFLAGS}>)
+    # MIOpen depend on SQLite
+    target_link_libraries(MIOpen_Static PRIVATE sqlite3::sqlite3)
+    target_link_libraries(MIOpen PRIVATE sqlite3::sqlite3)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
@@ -813,9 +871,9 @@ endif()
 
 ############################################################
 # Installation
-set(MIOPEN_CXX_HEADER_PATH)
+set(MIOPEN_CXX_HEADER_PATH "")
 if(MIOPEN_INSTALL_CXX_HEADERS)
-set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
+    set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
 endif()
 
 rocm_install_targets(

@@ -69,7 +69,7 @@ struct Find2Test : test_driver
             "workspace_limit",
             generate_data({
                 std::numeric_limits<std::size_t>::max(),
-                0ul,
+                0ull,
             }));
 
         add(tune, "tune", generate_data({0, 1}));

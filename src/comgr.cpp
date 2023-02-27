@@ -38,7 +38,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL
+#if !defined(WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL)
 #include <amd_comgr/amd_comgr.h>
 #else
 #include <amd_comgr.h>

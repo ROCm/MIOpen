@@ -27,5 +27,8 @@
 set(ADD_KERNELS_SOURCE include_inliner.cpp addkernels.cpp)
 
 add_executable(addkernels EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
+target_compile_options(addkernels PRIVATE ${__COMPILER_WARNINGS})
 
-clang_tidy_check(addkernels)
+if(CLANG_TIDY_EXE)
+    clang_tidy_check(addkernels)
+endif()

@@ -38,23 +38,17 @@ macro(set_var_to_condition var)
 endmacro()
 
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
+if( NOT MSVC AND NOT CMAKE_BUILD_TYPE )
     set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
-endif()
-
-# Default installation path
-if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
-else()
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
 project ( MIOpen C CXX )
 
 enable_testing()
 
-find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
+find_package(Threads REQUIRED)
+find_package(ROCM 0.7.3 REQUIRED)
 
 include(ROCMInstallTargets)
 include(ROCMPackageConfigHelpers)
@@ -68,13 +62,17 @@ set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI based heuristics")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
-if(MIOPEN_ENABLE_SQLITE)
-    # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+if(WIN32)
+    add_subdirectory(extern)
+else()
+    if(MIOPEN_ENABLE_SQLITE)
+        # MIOpen now depends on SQLite as well
+        find_package(PkgConfig)
+        pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    endif()
+    find_package(BZip2)
+    find_package(nlohmann_json 3.9.1 REQUIRED)
 endif()
-find_package(BZip2)
-find_package(nlohmann_json 3.9.1 REQUIRED)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
@@ -104,8 +102,10 @@ endif()
 
 
 ############################################################
-# require C++14
-add_compile_options(-std=c++17)
+# require C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -116,12 +116,6 @@ if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
-endif()
-
-if(WIN32 AND CMAKE_CROSSCOMPILING)
-    set(WINE_CMD "wine")
-else()
-    set(WINE_CMD)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
@@ -172,8 +166,8 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
-            /opt/rocm/llvm
-            ${CMAKE_INSTALL_PREFIX}/llvm
+            ${ROCM_PATH}
+            ${ROCM_PATH}/llvm
     )
     if(MIOPEN_HIP_COMPILER)
         message(STATUS "hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -197,9 +191,12 @@ endif()
 
 
 # HIP is always required
-find_package(hip REQUIRED PATHS /opt/rocm)
+find_package(hip REQUIRED)
 message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
+
+find_package(hiprtc REQUIRED)
+
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
@@ -250,8 +247,18 @@ option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MI
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
+add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}"
+        -D_MBCS
+        -DWIN32
+        -DWIN32_LEAN_AND_MEAN
+        -DNOMINMAX
+        -D_CRT_SECURE_NO_WARNINGS
+        -D_SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+        -D_WINDOWS
+        -D_WIN32_WINNT=0x0601
+        -DBOOST_USE_WINDOWS_H)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions -fms-compatibility")
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -302,12 +309,12 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # look for and register clang-offload-bundler
-if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS
-            /opt/rocm/llvm
-            ${CMAKE_INSTALL_PREFIX}/llvm
+            ${ROCM_PATH}
+            ${ROCM_PATH}/llvm
     )
 endif()
 if(MIOPEN_OFFLOADBUNDLER_BIN)
@@ -377,7 +384,7 @@ endif()
 if(MIOPEN_USE_MIOPENGEMM)
     find_package(miopengemm PATHS /opt/rocm)
     if(NOT miopengemm_FOUND)
-        set(MIOPEN_USE_MIOPENGEMM 0)
+        set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
     endif()
 endif()
 
@@ -404,11 +411,8 @@ if(MIOPEN_USE_HIPRTC)
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
-set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
-find_path(HALF_INCLUDE_DIR half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
@@ -498,7 +502,7 @@ function(install_kdb)
     if(PARSE_NAME)
         set(FILE_NAME ${PARSE_NAME})
     endif()
-    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
+    string(REPLACE - _ FILE_NAME "${ARCH_NAME}")
     file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
@@ -555,231 +559,233 @@ if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
-
 endif()
 
 include(ClangTidy)
-enable_clang_tidy(
-    CHECKS
-        *
-        -abseil-*
-        -altera-*
-        -android-cloexec-fopen
-        # This check is useless for us. Many objects (like tensors or problem descriptions)
-        # naturally have mutiple parameters of the same type.
-        -bugprone-easily-swappable-parameters
-        -bugprone-exception-escape
-        -bugprone-macro-parentheses
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cert-dcl37-c
-        -cert-dcl51-cpp
-        -cert-env33-c
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
-        -cert-msc32-c
-        -cert-msc50-cpp
-        -cert-msc51-cpp
-        -clang-analyzer-alpha.core.CastToStruct
-        -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-extern-c-compat
-        -clang-diagnostic-unused-command-line-argument
-        -cppcoreguidelines-avoid-c-arrays
-        -cppcoreguidelines-avoid-magic-numbers
-        -cppcoreguidelines-explicit-virtual-functions
-        -cppcoreguidelines-init-variables
-        -cppcoreguidelines-macro-usage
-        -cppcoreguidelines-narrowing-conversions
-        -cppcoreguidelines-non-private-member-variables-in-classes
-        -cppcoreguidelines-prefer-member-initializer
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay
-        -cppcoreguidelines-pro-bounds-constant-array-index
-        -cppcoreguidelines-pro-bounds-pointer-arithmetic
-        -cppcoreguidelines-pro-type-member-init
-        -cppcoreguidelines-pro-type-reinterpret-cast
-        -cppcoreguidelines-pro-type-union-access
-        -cppcoreguidelines-pro-type-vararg
-        -cppcoreguidelines-special-member-functions
-        -fuchsia-*
-        -google-explicit-constructor
-        -google-readability-braces-around-statements
-        -google-readability-todo
-        -google-runtime-int
-        -google-runtime-references
-        -hicpp-avoid-c-arrays
-        -hicpp-braces-around-statements
-        -hicpp-explicit-conversions
-        -hicpp-named-parameter
-        -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
-        -hicpp-signed-bitwise
-        -hicpp-special-member-functions
-        -hicpp-uppercase-literal-suffix
-        -hicpp-use-auto
-        -hicpp-use-equals-default
-        -hicpp-use-override
-        -hicpp-vararg
-        -llvm-else-after-return
-        -llvm-header-guard
-        -llvm-include-order
-        -llvmlibc-callee-namespace
-        -llvmlibc-implementation-in-namespace
-        -llvmlibc-restrict-system-libc-headers
-        -llvm-qualified-auto
-        # This one is extremely slow, and probably has lots of FPs.
-        -misc-confusable-identifiers
-        -misc-misplaced-const
-        -misc-non-private-member-variables-in-classes
-        -misc-no-recursion
-        -modernize-avoid-bind
-        -modernize-avoid-c-arrays
-        -modernize-pass-by-value
-        -modernize-use-auto
-        -modernize-use-default-member-init
-        -modernize-use-equals-default
-        -modernize-use-trailing-return-type
-        -modernize-use-transparent-functors
-        -modernize-use-nodiscard
-        -modernize-concat-nested-namespaces
-        -modernize-unary-static-assert
-        -performance-unnecessary-value-param
-        -readability-braces-around-statements
-        -readability-convert-member-functions-to-static
-        -readability-else-after-return
-        # TODO We are not ready to use it, but very useful.
-        -readability-function-cognitive-complexity
-        # We dont think this is a useful check. Disabled on migraphx.
-        -readability-identifier-length
-        -readability-isolate-declaration
-        -readability-magic-numbers
-        -readability-named-parameter
-        -readability-qualified-auto
-        -readability-redundant-string-init
-        # There are many FPs with this, let's disable it (ditto in MIGraphX)
-        -readability-suspicious-call-argument
-        -readability-uppercase-literal-suffix
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.1 update
-        ###################################################################
-        -cert-err33-c
-        -google-readability-casting
-        -hicpp-use-emplace
-        -modernize-use-emplace
-        -performance-unnecessary-copy-initialization
-        -readability-container-data-pointer
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.3 &&
-        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ###################################################################
-        -bugprone-use-after-move
-        -hicpp-invalid-access-moved
-        -modernize-use-nodiscard
-        -modernize-unary-static-assert
-        -modernize-macro-to-enum
-        -modernize-concat-nested-namespaces
-        -readability-redundant-declaration
-        -readability-simplify-boolean-expr
-        -hicpp-deprecated-headers
-        -hicpp-member-init
-        -performance-no-automatic-move
-        -clang-analyzer-cplusplus.NewDeleteLeaks
-        -modernize-deprecated-headers
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.4.2
-        ###################################################################
-        -misc-const-correctness
-        ${MIOPEN_TIDY_CHECKS}
-    ${MIOPEN_TIDY_ERRORS}
-    HEADER_FILTER
-        "\.hpp$"
-    EXTRA_ARGS
-        -DMIOPEN_USE_CLANG_TIDY
+if(CLANG_TIDY_EXE)
+    enable_clang_tidy(
+        CHECKS
+            *
+            -abseil-*
+            -altera-*
+            -android-cloexec-fopen
+            # This check is useless for us. Many objects (like tensors or problem descriptions)
+            # naturally have mutiple parameters of the same type.
+            -bugprone-easily-swappable-parameters
+            -bugprone-exception-escape
+            -bugprone-macro-parentheses
+            # too many narrowing conversions in our code
+            -bugprone-narrowing-conversions
+            -cert-dcl37-c
+            -cert-dcl51-cpp
+            -cert-env33-c
+            # Yea we shouldn't be using rand()
+            -cert-msc30-c
+            -cert-msc32-c
+            -cert-msc50-cpp
+            -cert-msc51-cpp
+            -clang-analyzer-alpha.core.CastToStruct
+            -clang-analyzer-optin.performance.Padding
+            -clang-diagnostic-extern-c-compat
+            -clang-diagnostic-unused-command-line-argument
+            -cppcoreguidelines-avoid-c-arrays
+            -cppcoreguidelines-avoid-magic-numbers
+            -cppcoreguidelines-explicit-virtual-functions
+            -cppcoreguidelines-init-variables
+            -cppcoreguidelines-macro-usage
+            -cppcoreguidelines-narrowing-conversions
+            -cppcoreguidelines-non-private-member-variables-in-classes
+            -cppcoreguidelines-prefer-member-initializer
+            -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+            -cppcoreguidelines-pro-bounds-constant-array-index
+            -cppcoreguidelines-pro-bounds-pointer-arithmetic
+            -cppcoreguidelines-pro-type-member-init
+            -cppcoreguidelines-pro-type-reinterpret-cast
+            -cppcoreguidelines-pro-type-union-access
+            -cppcoreguidelines-pro-type-vararg
+            -cppcoreguidelines-special-member-functions
+            -fuchsia-*
+            -google-explicit-constructor
+            -google-readability-braces-around-statements
+            -google-readability-todo
+            -google-runtime-int
+            -google-runtime-references
+            -hicpp-avoid-c-arrays
+            -hicpp-braces-around-statements
+            -hicpp-explicit-conversions
+            -hicpp-named-parameter
+            -hicpp-no-array-decay
+            # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
+            -hicpp-signed-bitwise
+            -hicpp-special-member-functions
+            -hicpp-uppercase-literal-suffix
+            -hicpp-use-auto
+            -hicpp-use-equals-default
+            -hicpp-use-override
+            -hicpp-vararg
+            -llvm-else-after-return
+            -llvm-header-guard
+            -llvm-include-order
+            -llvmlibc-callee-namespace
+            -llvmlibc-implementation-in-namespace
+            -llvmlibc-restrict-system-libc-headers
+            -llvm-qualified-auto
+            # This one is extremely slow, and probably has lots of FPs.
+            -misc-confusable-identifiers
+            -misc-misplaced-const
+            -misc-non-private-member-variables-in-classes
+            -misc-no-recursion
+            -modernize-avoid-bind
+            -modernize-avoid-c-arrays
+            -modernize-pass-by-value
+            -modernize-use-auto
+            -modernize-use-default-member-init
+            -modernize-use-equals-default
+            -modernize-use-trailing-return-type
+            -modernize-use-transparent-functors
+            -modernize-use-nodiscard
+            -modernize-concat-nested-namespaces
+            -modernize-unary-static-assert
+            -performance-unnecessary-value-param
+            -readability-braces-around-statements
+            -readability-convert-member-functions-to-static
+            -readability-else-after-return
+            # TODO We are not ready to use it, but very useful.
+            -readability-function-cognitive-complexity
+            # We dont think this is a useful check. Disabled on migraphx.
+            -readability-identifier-length
+            -readability-isolate-declaration
+            -readability-magic-numbers
+            -readability-named-parameter
+            -readability-qualified-auto
+            -readability-redundant-string-init
+            # There are many FPs with this, let's disable it (ditto in MIGraphX)
+            -readability-suspicious-call-argument
+            -readability-uppercase-literal-suffix
+            ###################################################################
+            # TODO Code Quality WORKAROUND ROCm 5.1 update
+            ###################################################################
+            -cert-err33-c
+            -google-readability-casting
+            -hicpp-use-emplace
+            -modernize-use-emplace
+            -performance-unnecessary-copy-initialization
+            -readability-container-data-pointer
+            ###################################################################
+            # TODO Code Quality WORKAROUND ROCm 5.3 &&
+            # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+            ###################################################################
+            -bugprone-use-after-move
+            -hicpp-invalid-access-moved
+            -modernize-use-nodiscard
+            -modernize-unary-static-assert
+            -modernize-macro-to-enum
+            -modernize-concat-nested-namespaces
+            -readability-redundant-declaration
+            -readability-simplify-boolean-expr
+            -hicpp-deprecated-headers
+            -hicpp-member-init
+            -performance-no-automatic-move
+            -clang-analyzer-cplusplus.NewDeleteLeaks
+            -modernize-deprecated-headers
+            ###################################################################
+            # TODO Code Quality WORKAROUND ROCm 5.4.2
+            ###################################################################
+            -misc-const-correctness
+            ${MIOPEN_TIDY_CHECKS}
+        ${MIOPEN_TIDY_ERRORS}
+        HEADER_FILTER
+            "\.hpp$"
+        EXTRA_ARGS
+            -DMIOPEN_USE_CLANG_TIDY
+    )
+endif()
 
-)
 include(CppCheck)
-enable_cppcheck(
-    CHECKS
-        warning
-        style
-        performance
-        portability
-    SUPPRESS
-        ConfigurationNotChecked
-        constStatement
-        # There is no ODR violation because of using separate executables,
-        # but cppcheck doesn't understand that as it assumes everything
-        # will be compiled together in one binary.
-        ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
-        # There are many FPs with this, let's disable this (ditto in MIGraphX)
-        ctuPointerArith:*test/*
-        duplicateCondition
-        noExplicitConstructor
-        passedByValue
-        # preprocessorErrorDirective
-        shadowVariable
-        unusedFunction
-        unusedPrivateFunction
-        unusedStructMember
-        # Ignore initializer lists in the tests
-        useInitializationList:*test/*.cpp
-        *:*src/sqlite/*.cpp
-        *:*.cl
-        *:*src/kernels/*.h
-        knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
-        redundantAssignment:*src/kernels/static_composable_kernel/*/*
-        unreadVariable:*src/kernels/static_composable_kernel/*/*
-        unusedScopedObject:*src/kernels/static_composable_kernel/*/*
-        wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
-        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
-        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
-        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
-        multiCondition:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/host/*/*
-        unreadVariable:*src/composable_kernel/external/*/*
-        unmatchedSuppression
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.3 &&
-        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ###################################################################
-        constParameter
-        constVariable
-        variableScope
-        missingReturn
-        cstyleCast
-        uselessCallsSubstr
-        uninitMemberVar
-        overlappingWriteUnion
-        operatorEqVarError
-        returnTempReference
-        objectIndex
-        integerOverflowCond
-        rethrowNoCurrentException
-        mismatchingContainers
-        unreadVariable
-        CastIntegerToAddressAtReturn
-        knownConditionTrueFalse
-        shadowFunction
-        moduloofone
-    FORCE
-    SOURCES
-        addkernels/
-        # driver/
-        include/
-        src/
-        test/
-    INCLUDE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_BINARY_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
-    DEFINE
-        CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
-        __linux__=1
-)
-
+if(CPPCHECK_EXE)
+    enable_cppcheck(
+        CHECKS
+            warning
+            style
+            performance
+            portability
+        SUPPRESS
+            ConfigurationNotChecked
+            constStatement
+            # There is no ODR violation because of using separate executables,
+            # but cppcheck doesn't understand that as it assumes everything
+            # will be compiled together in one binary.
+            ctuOneDefinitionRuleViolation:*test/*
+            ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
+            ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+            # There are many FPs with this, let's disable this (ditto in MIGraphX)
+            ctuPointerArith:*test/*
+            duplicateCondition
+            noExplicitConstructor
+            passedByValue
+            # preprocessorErrorDirective
+            shadowVariable
+            unusedFunction
+            unusedPrivateFunction
+            unusedStructMember
+            # Ignore initializer lists in the tests
+            useInitializationList:*test/*.cpp
+            *:*src/sqlite/*.cpp
+            *:*.cl
+            *:*src/kernels/*.h
+            knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+            redundantAssignment:*src/kernels/static_composable_kernel/*/*
+            unreadVariable:*src/kernels/static_composable_kernel/*/*
+            unusedScopedObject:*src/kernels/static_composable_kernel/*/*
+            wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
+            knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
+            identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
+            duplicateExpression:*src/composable_kernel/composable_kernel/*/*
+            multiCondition:*src/composable_kernel/composable_kernel/*/*
+            unreadVariable:*src/composable_kernel/composable_kernel/*/*
+            unreadVariable:*src/composable_kernel/host/*/*
+            unreadVariable:*src/composable_kernel/external/*/*
+            unmatchedSuppression
+            ###################################################################
+            # TODO Code Quality WORKAROUND ROCm 5.3 &&
+            # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+            ###################################################################
+            constParameter
+            constVariable
+            variableScope
+            missingReturn
+            cstyleCast
+            uselessCallsSubstr
+            uninitMemberVar
+            overlappingWriteUnion
+            operatorEqVarError
+            returnTempReference
+            objectIndex
+            integerOverflowCond
+            rethrowNoCurrentException
+            mismatchingContainers
+            unreadVariable
+            CastIntegerToAddressAtReturn
+            knownConditionTrueFalse
+            shadowFunction
+            moduloofone
+        FORCE
+        SOURCES
+            addkernels/
+            # driver/
+            include/
+            src/
+            test/
+        INCLUDE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_BINARY_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+        DEFINE
+            CPPCHECK=1
+            MIOPEN_USE_MIOPENGEMM=1
+            __linux__=1
+    )
+endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
@@ -790,9 +796,11 @@ add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
 endif()
-add_subdirectory(test)
-add_subdirectory(speedtests)
+if(BUILD_TESTING)
+    add_subdirectory(test)
+    add_subdirectory(speedtests)
+endif()
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
-add_subdirectory(fin)
+    add_subdirectory(fin)
 endif()

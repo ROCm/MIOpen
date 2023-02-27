@@ -8,7 +8,7 @@ function(cget_exec)
     endif()
 endfunction()
 
-set(ARGS)
+set(ARGS "")
 foreach(i RANGE 3 ${CMAKE_ARGC})
     list(APPEND ARGS ${CMAKE_ARGV${i}})
 endforeach()
@@ -17,7 +17,7 @@ include(CMakeParseArguments)
 
 set(options help --minimum)
 set(oneValueArgs --prefix)
-set(multiValueArgs)
+set(multiValueArgs "")
 
 cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGS})
 
@@ -68,8 +68,9 @@ virtualenv_install(cget)
 if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     find_program(CLANGXX clang++
         PATHS
-            /opt/rocm/llvm
-            /opt/rocm
+            ${ROCM_PATH}
+            ${ROCM_PATH}/hip
+            ${ROCM_PATH}/llvm
         PATH_SUFFIXES
             bin
     )
@@ -84,8 +85,9 @@ endif()
 if(NOT DEFINED ENV{CC} AND NOT DEFINED CMAKE_C_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) 
     find_program(CLANGC clang
         PATHS
-            /opt/rocm/llvm
-            /opt/rocm
+            ${ROCM_PATH}
+            ${ROCM_PATH}/hip
+            ${ROCM_PATH}/llvm
         PATH_SUFFIXES
             bin
     )
@@ -104,7 +106,7 @@ endfunction()
 # Skip clean since relative symlinks are incorrectly removed
 # cget(clean -y)
 
-set(TOOLCHAIN_FLAG)
+set(TOOLCHAIN_FLAG "")
 if(DEFINED CMAKE_TOOLCHAIN_FILE)
     set(TOOLCHAIN_FLAG -t ${CMAKE_TOOLCHAIN_FILE})
 endif()
