@@ -1035,7 +1035,7 @@ static Invoker PrepareInvoker(Handle& handle,
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+    auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
