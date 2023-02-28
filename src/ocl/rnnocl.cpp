@@ -59,6 +59,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         size_t workSpaceSize) const
 {
 
+#if MIOPEN_USE_GEMM
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
@@ -191,8 +192,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     }
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
-
-#if MIOPEN_USE_GEMM
 
     int wei_shift, prelayer_shift;
     int wei_len = 0;
@@ -1303,6 +1302,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 {
     (void)workSpace;
 
+#if MIOPEN_USE_GEMM
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
@@ -1441,8 +1441,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     }
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
-
-#if MIOPEN_USE_GEMM
 
     int wei_shift, prelayer_shift;
     int wei_len = 0;
@@ -2648,6 +2646,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dcyDesc;
     (void)dhyDesc;
     (void)wDesc;
+#if MIOPEN_USE_GEMM
 
     float ctime = 0.;
     // reset kernel timer
@@ -2781,8 +2780,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     hx_stride[0] = in_n.at(0) * uni_stride;
     hx_stride[1] = uni_stride;
-
-#if MIOPEN_USE_GEMM
 
     int prelayer_shift, pretime_shift, cur_time, cur_batch;
     int wei_len    = 0;
@@ -4183,6 +4180,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
+
+#if MIOPEN_USE_GEMM
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
@@ -4285,8 +4284,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_stride[0] = wei_stride;
     w_stride[1] = wei_stride;
     w_size[2]   = 1;
-
-#if MIOPEN_USE_GEMM
 
     int wei_len   = 0;
     int hid_off   = 0;
