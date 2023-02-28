@@ -129,17 +129,17 @@ template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedContainer
 {
     Context context; // Hold a copy make the object independent of the environment.
-    Problem problem;
-    bool spare; // Use spare set of perf configs. Those are usually slower than main set.
-                // Splitting the theoretically available set of perf configs to "main"
-                // and "spare" sets allows for acceleration of the auto-tune process:
-                // * If the "main" set is not empty, then skipping the "spare" set
-                //   avoids wasting time, because the latter is slower by definition.
-                // * Combining "spare" and "main" would lead to exponential growth of
-                //   the resulting container, and thus to exponential slowdown.
-                //
-                // Nevertheless, a Solver is free to either use or not use this capability
-                // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
+    Problem problem; //
+    bool spare;      // Use spare set of perf configs. Those are usually slower than main set.
+                     // Splitting the theoretically available set of perf configs to "main"
+                     // and "spare" sets allows for acceleration of the auto-tune process:
+                     // * If the "main" set is not empty, then skipping the "spare" set
+                     //   avoids wasting time, because the latter is slower by definition.
+                     // * Combining "spare" and "main" would lead to exponential growth of
+                     //   the resulting container, and thus to exponential slowdown.
+                     //
+                     // Nevertheless, a Solver is free to either use or not use this capability
+                     // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
 
     /// \note We do not add 'const' to keep the object assignable
     /// for the sake of flexibility. Nevertheless, all element accesses of
