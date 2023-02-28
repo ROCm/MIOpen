@@ -54,10 +54,7 @@ struct ConvolutionContext : ExecutionContext
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     explicit ConvolutionContext(const ProblemDescription& problem_) : problem_compat(problem_) {}
 #endif
-    explicit ConvolutionContext(const ExecutionContext& ctx)
-        : ExecutionContext(ctx)
-    {
-    }
+    explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
 
     void SetupFloats(const ProblemDescription& problem);
 
