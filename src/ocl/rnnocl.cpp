@@ -107,10 +107,27 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int hy_n  = hyDesc.GetLengths()[1];   // max batch size
     int hy_h  = hyDesc.GetLengths()[2];   // hidden size
     int out_h = yDesc[0].GetLengths()[1]; // output vector size
+    int bi    = dirMode != 0u ? 2 : 1;
 
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(out_h != (bi * hy_h))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
+    }
+
+    if(inputMode == miopenRNNskip)
+    {
+        if(in_h != hy_h)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
+        }
+        in_h = 0;
     }
 
     int batch_n = 0;
@@ -144,12 +161,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         in_n.push_back(batchval);
         batch_n += batchval;
     }
-
-    int bi = dirMode != 0u ? 2 : 1;
-    if(out_h != (bi * hy_h))
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
-    }
+    // input check end
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
@@ -157,17 +169,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
-
-    if(inputMode == miopenRNNskip)
-    {
-        if(in_h != hy_h)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The input tensor size must equal to the hidden "
-                         "state size of the network in SKIP_INPUT mode!");
-        }
-        in_h = 0;
-    }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
     size_t offset;
@@ -1363,10 +1364,27 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     int hy_n  = hyDesc.GetLengths()[1];   // max batch size
     int hy_h  = hyDesc.GetLengths()[2];   // hidden size
     int out_h = yDesc[0].GetLengths()[1]; // output vector size
+    int bi    = dirMode != 0u ? 2 : 1;
 
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(out_h != (bi * hy_h))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
+    }
+    
+    if(inputMode == miopenRNNskip)
+    {
+        if(in_h != hy_h)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
+        }
+        in_h = 0;
     }
 
     int batch_n = 0;
@@ -1400,31 +1418,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         in_n.push_back(batchval);
         batch_n += batchval;
     }
-
-    int bi = dirMode != 0u ? 2 : 1;
-    if(out_h != (bi * hy_h))
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
-    }
-
-
+    // input check end
+    
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
     int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
-
-    if(inputMode == miopenRNNskip)
-    {
-        if(in_h != hy_h)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "The input tensor size must equal to the hidden "
-                         "state size of the network in SKIP_INPUT mode!");
-        }
-        in_h = 0;
-    }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
     size_t offset;
