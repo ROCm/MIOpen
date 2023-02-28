@@ -87,17 +87,17 @@ inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
                                       const int OW,
                                       const int N)
 {
-    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
-    uint64_t o_N_stride      = o_K_stride * K;
-    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+    const uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    const uint64_t o_N_stride      = o_K_stride * K;
+    const uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
 
-    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
-    uint64_t d_N_stride    = d_C_stride * C;
-    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+    const uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    const uint64_t d_N_stride    = d_C_stride * C;
+    const uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
 
-    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
-                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+    const auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    const auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                            problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
@@ -162,8 +162,8 @@ float GetGranularityLoss(const ProblemDescription& problem,
                          const int OW,
                          const int N,
                          const int G,
-                         const unsigned int n_groups,
-                         const unsigned int cu_count)
+                         const int n_groups,
+                         const int cu_count)
 {
     const auto ostride_h = problem.kernel_stride_h;
     const auto ostride_w = problem.kernel_stride_w;
@@ -172,13 +172,13 @@ float GetGranularityLoss(const ProblemDescription& problem,
 
     // clang-format off
     const bool single_traverse_mode = ostride_h == 1 && dstride_h == 1 &&
-                                      ostride_w == 1 && dstride_w == 1 && S < Winofilter;
+                                      ostride_w == 1 && dstride_w == 1 && S <= Winofilter;
 
     const size_t granulated_S = single_traverse_mode
                                 ? RoundUpToMultiple(S, Winofilter)
                                 : RoundUpToMultiple(S, 2 * Winofilter);
 
-    const size_t granulated_R = (ostride_h == 1 && dstride_h == 1) || ((R % (2 * Winofilter)) == 1)
+    const size_t granulated_R = (ostride_h == 1 && dstride_h == 1) || (R % (2 * Winofilter) == 1)
                                 ? RoundUpToMultiple(R, Winofilter)
                                 : RoundUpToMultiple(R, 2 * Winofilter);
 
@@ -190,19 +190,20 @@ float GetGranularityLoss(const ProblemDescription& problem,
     const auto granulated_OW = RoundUpToMultiple(OW, Winodata * dstride_w);
     const auto NHW_tiles     = granulated_OH * granulated_OW * N / Winodata / Winodata;
 
-    const auto K_granularity         = ostride_h == 1 && ostride_w == 1 ? 32 : 16;
-    const auto NHW_tiles_granularity = ostride_h == 1 && ostride_w == 1 ? 32 : 64;
-    const auto NKHW_granularity      = K_granularity * NHW_tiles_granularity 
+    const size_t K_granularity         = dstride_h == 1 && dstride_w == 1 ? 32 : 16;
+    const size_t NHW_tiles_granularity = dstride_h == 1 && dstride_w == 1 ? 32 : 64;
+    const size_t NKHW_granularity      = K_granularity * NHW_tiles_granularity 
                                         * Winodata * Winodata
                                         / dstride_h / dstride_w;
     
     const auto n_works              = Ceil(K, K_granularity) * Ceil(NHW_tiles, NHW_tiles_granularity);
-    const auto granulated_n_works   = Ceil(n_works, n_groups) * Ceil(G * n_groups, cu_count) * cu_count;
+    const auto granulated_n_works   = Ceil(n_works, n_groups) * RoundUpToMultiple(static_cast<size_t>(G * n_groups), cu_count);
 
     const auto granulated_MACs  = granulated_n_works *  NKHW_granularity 
                                     * granulated_C * granulated_R * granulated_S;
     const auto direct_conv_MACs = static_cast<size_t>(N) * G * K * C 
-                                    * Ceil(OH * R, dstride_h) * Ceil(OW * S, dstride_w);
+                                    * Ceil(static_cast<size_t>(OH * R), dstride_h)
+                                    * Ceil(static_cast<size_t>(OW * S), dstride_w);
     // clang-format on
 
     const float granularity_loss =
