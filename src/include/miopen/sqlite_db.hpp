@@ -446,14 +446,22 @@ public:
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
             DbRecord ovr_rec;
             const auto solv_vals = SplitDelim(pdb_ovr, ':');
+            bool success         = true;
             for(const auto& solv_val : solv_vals)
             {
                 const auto vals = SplitDelim(solv_val, ';');
-                assert(vals.size() == 2);
+                if(vals.size() != 2)
+                {
+                    MIOPEN_LOG_W("Invalid value for MIOPEN_DEBUG_PERFDB_OVERRIDE. Format: "
+                                 "<solver1_name>;<params>:<solver2_name>;params");
+                    success = false;
+                    break;
+                }
                 MIOPEN_LOG_I2("Inserting Overriding PDB entry: " << vals[0] << ";" << vals[1]);
                 ovr_rec.SetValues(vals.at(0), vals.at(1));
             }
-            return {ovr_rec};
+            if(success)
+                return {ovr_rec};
         }
         std::string clause;
         std::vector<std::string> values;
