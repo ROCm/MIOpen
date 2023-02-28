@@ -344,9 +344,10 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     const auto conv_problem = actual.AsConvolution();
     const auto netcfg       = conv_problem.BuildConfKey();
+    const auto conv_prob = ProblemDescription{conv_problem};
     auto conv_ctx           = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats();
+    conv_ctx.SetupFloats(conv_prob);
 
     decltype(auto) db = GetDb(conv_ctx);
 
@@ -360,7 +361,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetPerfConfig(
-            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_ctx.problem, db));
+            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_prob, db));
         solution.SetProblem(*this);
         MIOPEN_LOG_I("Found solvution: " << solution.GetSolver().ToString() << " , "
                                          << solution.GetWorkspaceSize() << ", "

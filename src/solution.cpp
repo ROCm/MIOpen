@@ -161,13 +161,14 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
+    const auto conv_prob = ProblemDescription{conv_problem};
     auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats();
+    conv_ctx.SetupFloats(conv_prob);
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
-        conv_ctx, conv_ctx.problem, db, invoke_ctx, perf_cfg.value_or(""));
+        conv_ctx, conv_prob, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());

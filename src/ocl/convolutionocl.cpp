@@ -211,7 +211,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
 
     try
     {
@@ -247,7 +247,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
 
     try
     {
@@ -1011,7 +1011,7 @@ static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
                                                const FindDbKCacheKey& key)
 {
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
@@ -1031,7 +1031,7 @@ static Invoker PrepareInvoker(Handle& handle,
                               conv::Direction dir)
 {
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
@@ -1592,7 +1592,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
-            ctx.SetupFloats();
+            ctx.SetupFloats(problem);
             ctx.DetectRocm();
             const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,

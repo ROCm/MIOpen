@@ -731,7 +731,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 {
     ConvolutionContext transformed_ctx(transformed_problem);
     transformed_ctx.ExecutionContext::operator=(ctx);
-    transformed_ctx.SetupFloats();
+    transformed_ctx.SetupFloats(transformed_problem);
 
     return transformed_ctx;
 }

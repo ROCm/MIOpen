@@ -382,7 +382,7 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
     return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
-void miopen::ConvolutionContext::SetupFloats()
+void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem)
 {
     if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
     {

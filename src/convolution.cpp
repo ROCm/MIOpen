@@ -349,7 +349,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     auto ctx           = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
@@ -443,7 +443,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
@@ -762,7 +762,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
 
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 

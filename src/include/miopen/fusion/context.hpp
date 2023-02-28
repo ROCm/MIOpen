@@ -51,7 +51,7 @@ struct FusionContext : miopen::ExecutionContext
             auto ctx = ConvolutionContext{conv_prob.conv_problem, *this};
             ctx.SetStream(&this->GetStream());
             ctx.DetectRocm();
-            ctx.SetupFloats();
+            ctx.SetupFloats(conv_prob);
             return ctx;
         }
         else

@@ -26,6 +26,8 @@
 
 #pragma once
 
+#define MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API 1
+
 #include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
@@ -49,18 +51,22 @@ struct ConvolutionContext : ExecutionContext
 
     ConvolutionContext() = default;
 
-    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
+    explicit ConvolutionContext(const ProblemDescription& problem_) : problem_compat(problem_) {}
+#endif
     ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
-        : ExecutionContext(ctx), problem(problem_)
+        : ExecutionContext(ctx), problem_compat(problem_)
     {
     }
 
-    void SetupFloats();
+    void SetupFloats(const ProblemDescription& problem);
 
 public:
     bool is_for_generic_search = false;
 
-    ProblemDescription problem;
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
+    ProblemDescription problem_compat;
+#endif
 };
 
 } // namespace miopen

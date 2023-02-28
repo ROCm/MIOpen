@@ -317,7 +317,7 @@ struct mlo_construct_base
     }
 
     void detectRocm() { _ctx.DetectRocm(); }
-    void setupFloats() { _ctx.SetupFloats(); }
+    void setupFloats() { _ctx.SetupFloats(_problem); }
 
     miopen::PerformanceDb GetDb() const;
 
