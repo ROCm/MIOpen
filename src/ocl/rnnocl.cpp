@@ -36,6 +36,24 @@
 #include <numeric>
 #include <algorithm>
 
+inline void
+ProfilingBegin(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+{
+    start = miopen::make_hip_event();
+    stop  = miopen::make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline float
+ProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    return mS;
+}
+
 namespace miopen {
 
 // Assuming sequence length is set to > 0 otherwise throw exception.
@@ -60,6 +78,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 {
 
 #if MIOPEN_USE_GEMM
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+
+    ProfilingBegin(handle, start, stop);
+
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
@@ -1264,6 +1287,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     CopyTensor(handle, sp_desc, workSpace, y_desc, y, prelayer_shift, 0);
     // Update time
     profileRNNkernels(handle, 2, ctime);
+    
+    float eventTime_mS = ProfilingEnd(handle, start, stop);
+    std::cout << "RNN Inference eventTime_mS:" << eventTime_mS << std::endl;
 
 #else
     (void)hx;
@@ -1303,6 +1329,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     (void)workSpace;
 
 #if MIOPEN_USE_GEMM
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+
+    ProfilingBegin(handle, start, stop);
+
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
@@ -2595,6 +2626,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     // Update time
     profileRNNkernels(handle, 2, ctime);
 
+    float eventTime_mS = ProfilingEnd(handle, start, stop);
+    std::cout << "RNNForwardTrain eventTime_mS:" << eventTime_mS << std::endl;
+
 #else
     (void)bi_stride;
     (void)alpha;
@@ -2647,6 +2681,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dhyDesc;
     (void)wDesc;
 #if MIOPEN_USE_GEMM
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+
+    ProfilingBegin(handle, start, stop);
 
     float ctime = 0.;
     // reset kernel timer
@@ -4147,6 +4185,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         // Update time
         profileRNNkernels(handle, 2, ctime);
     }
+
+    float eventTime_mS = ProfilingEnd(handle, start, stop);
+    std::cout << "RNNBWDtrain eventTime_mS:" << eventTime_mS << std::endl;
 #else
     (void)wei_stride;
     (void)bi_stride;
@@ -4185,6 +4226,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
+
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+
+    ProfilingBegin(handle, start, stop);
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
@@ -4957,6 +5003,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
         }
     }
+    float eventTime_mS = ProfilingEnd(handle, start, stop);
+    std::cout << "RNN WRW eventTime_mS:" << eventTime_mS << std::endl;
+
 #else
     (void)in_stride;
     (void)alpha0;
