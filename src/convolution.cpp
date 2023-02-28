@@ -320,7 +320,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
 
     const auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    const auto ctx                  = ConvolutionContext{problem};
+    const auto ctx                  = ConvolutionContext{};
     decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, problem);
 
     if(!gemm_ws_sz_pairs.empty())
@@ -346,7 +346,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     MIOPEN_LOG_I2("");
 
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx           = ConvolutionContext{problem};
+    auto ctx           = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats(problem);
@@ -440,7 +440,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
     const auto problem =
         ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats(problem);
@@ -743,7 +743,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
     MIOPEN_LOG_I2("");
     const auto problem =
         ProblemDescription(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
-    auto ctx = ConvolutionContext(problem);
+    auto ctx = ConvolutionContext();
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         /// \ref ffind_gwss_why_not_0

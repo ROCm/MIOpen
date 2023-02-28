@@ -204,7 +204,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     const auto dir     = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, dir};
-    auto ctx           = ConvolutionContext{problem};
+    auto ctx           = ConvolutionContext{};
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -239,7 +239,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
     const auto dir     = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, dir};
-    auto ctx           = ConvolutionContext{problem};
+    auto ctx           = ConvolutionContext{};
 
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
@@ -480,7 +480,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     const ProblemDescription problem(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
 
     std::vector<PerfField> perf_db;
@@ -836,7 +836,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
@@ -915,7 +915,7 @@ void GetSolutions(Handle& handle,
     // ROCm version, specific features of GPU (like xnack) etc.
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
@@ -993,7 +993,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     if(!sol.MayNeedWorkspace())
         return 0;
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx           = ConvolutionContext{problem};
+    auto ctx           = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
@@ -1107,7 +1107,7 @@ void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx           = ConvolutionContext{problem};
+    auto ctx           = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
@@ -1135,7 +1135,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         const auto problem =
             ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        auto ctx = ConvolutionContext{problem};
+        auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
@@ -1188,7 +1188,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     bool use_immediate_solution = false;
     miopenConvSolution_t imm_sol;
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         size_t count;
@@ -1453,7 +1453,7 @@ void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
 
     const auto problem =
         ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
@@ -1475,7 +1475,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         return 0;
     const auto problem =
         ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
@@ -1512,7 +1512,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
         const auto problem =
             ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        auto ctx = ConvolutionContext{problem};
+        auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
@@ -1564,7 +1564,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
 
     std::vector<PerfField> perf_db;
     bool use_immediate_solution = false;
@@ -1813,7 +1813,7 @@ void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
     const auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
@@ -1835,7 +1835,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         return 0;
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
@@ -1870,7 +1870,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
         const auto problem =
             ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-        auto ctx = ConvolutionContext{problem};
+        auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))

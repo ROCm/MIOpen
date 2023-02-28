@@ -54,8 +54,8 @@ struct ConvolutionContext : ExecutionContext
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     explicit ConvolutionContext(const ProblemDescription& problem_) : problem_compat(problem_) {}
 #endif
-    ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
-        : ExecutionContext(ctx), problem_compat(problem_)
+    explicit ConvolutionContext(const ExecutionContext& ctx)
+        : ExecutionContext(ctx)
     {
     }
 

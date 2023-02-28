@@ -48,7 +48,7 @@ struct FusionContext : miopen::ExecutionContext
         const auto conv_prob = fusion_problem.GetConvProblem(idx, dir);
         if(dir == conv::Direction::Forward)
         {
-            auto ctx = ConvolutionContext{conv_prob.conv_problem, *this};
+            auto ctx = ConvolutionContext{*this};
             ctx.SetStream(&this->GetStream());
             ctx.DetectRocm();
             ctx.SetupFloats(conv_prob);

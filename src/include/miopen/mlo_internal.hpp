@@ -303,7 +303,6 @@ struct mlo_construct_base
         _problem.weights_sz        = 0; // bytes
         _problem.bias_sz           = 0; // bytes
         _problem.group_counts      = 1;
-        _ctx                       = miopen::ConvolutionContext(_problem);
     }
 
     mlo_construct_base(const miopen::TensorDescriptor& in,
@@ -312,7 +311,7 @@ struct mlo_construct_base
                        const miopen::ConvolutionDescriptor& conv,
                        miopen::conv::Direction dir,
                        bool do_bias = false)
-        : _problem(in, weights, out, conv, dir, (do_bias) ? 1 : 0), _ctx(_problem)
+        : _problem(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
     {
     }
 

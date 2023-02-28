@@ -49,7 +49,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
     const auto problem = miopen::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ConvolutionContext{problem};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.SetStream(&handle);
     ctx.DetectRocm();
