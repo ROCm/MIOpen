@@ -98,7 +98,8 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     }
 
     // Implements container's begin()
-    ComputedIterator(const Context& context, const Problem& problem, const bool spare) : v(spare), c(&context), p(&problem)
+    ComputedIterator(const Context& context, const Problem& problem, const bool spare)
+        : v(spare), c(&context), p(&problem)
     {
         if(!v.IsValid(*c, *p))
             Next();
@@ -129,16 +130,16 @@ class ComputedContainer
 {
     Context context; // Hold a copy make the object independent of the environment.
     Problem problem;
-    bool spare;      // Use spare set of perf configs. Those are usually slower than main set.
-                     // Splitting the theoretically available set of perf configs to "main"
-                     // and "spare" sets allows for acceleration of the auto-tune process:
-                     // * If the "main" set is not empty, then skipping the "spare" set
-                     //   avoids wasting time, because the latter is slower by definition.
-                     // * Combining "spare" and "main" would lead to exponential growth of
-                     //   the resulting container, and thus to exponential slowdown.
-                     //
-                     // Nevertheless, a Solver is free to either use or not use this capability
-                     // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
+    bool spare; // Use spare set of perf configs. Those are usually slower than main set.
+                // Splitting the theoretically available set of perf configs to "main"
+                // and "spare" sets allows for acceleration of the auto-tune process:
+                // * If the "main" set is not empty, then skipping the "spare" set
+                //   avoids wasting time, because the latter is slower by definition.
+                // * Combining "spare" and "main" would lead to exponential growth of
+                //   the resulting container, and thus to exponential slowdown.
+                //
+                // Nevertheless, a Solver is free to either use or not use this capability
+                // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
 
     /// \note We do not add 'const' to keep the object assignable
     /// for the sake of flexibility. Nevertheless, all element accesses of
@@ -254,7 +255,9 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context, class Problem>
 auto GetAllConfigs(const Solver s, const Context& context, const Problem& problem)
-    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, problem)), Context, Problem>
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, problem)),
+                         Context,
+                         Problem>
 {
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
 
@@ -273,7 +276,8 @@ auto GetAllConfigs(const Solver s, const Context& context, const Problem& proble
 }
 
 template <class Solver, class Context, class Problem>
-std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
+std::vector<ConvSolution>
+GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
 {
     auto context                  = context_;
     context.is_for_generic_search = true;
@@ -292,7 +296,10 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
 std::size_t GetTuningIterationsMax();
 
 template <class Solver, class Context, class Problem>
-auto GenericSearch(const Solver s, const Context& context_, const Problem& problem, const AnyInvokeParams& invoke_ctx_)
+auto GenericSearch(const Solver s,
+                   const Context& context_,
+                   const Problem& problem,
+                   const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_, problem))
 {
     static_assert(
@@ -305,8 +312,8 @@ auto GenericSearch(const Solver s, const Context& context_, const Problem& probl
 
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(
-        context, problem, s.GetDefaultPerformanceConfig(context, problem));
+    const auto default_solution =
+        s.GetSolution(context, problem, s.GetDefaultPerformanceConfig(context, problem));
     const auto invoke_ctx = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
