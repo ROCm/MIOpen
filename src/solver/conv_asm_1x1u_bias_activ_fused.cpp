@@ -117,7 +117,7 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     tensors.bias             = bias_buf.get();
     const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
-    return GenericSearch(*this, context, fused_invoke_ctx);
+    return GenericSearch(*this, context, problem, fused_invoke_ctx);
 }
 
 ConvSolution

@@ -71,14 +71,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 ///     For convolutions, Context represents a problem configuration.
 /// - operator==(const PerformanceConfig&)
 ///     Ordinary semantics.
-template <typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedContainer;
 
-template <typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedIterator : public std::iterator<std::input_iterator_tag, PerformanceConfig>
 {
     PerformanceConfig v;
-    const Context* p; // For Next().
+    const Context* c; // For Next().
+    const Problem* p; // For Next().
 
     ComputedIterator& Next()
     {
@@ -86,26 +87,26 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
         {
             do
             {
-                if(!v.SetNextValue(p->problem))
+                if(!v.SetNextValue(*p))
                 { // Wraparound, end reached. Iterator is useless from now.
                     p = nullptr;
                     break;
                 }
-            } while(!v.IsValid(*p, p->problem));
+            } while(!v.IsValid(*c, *p));
         }
         return *this;
     }
 
     // Implements container's begin()
-    ComputedIterator(const Context& problem, const bool spare) : v(spare), p(&problem)
+    ComputedIterator(const Context& context, const Problem& problem, const bool spare) : v(spare), c(&context), p(&problem)
     {
-        if(!v.IsValid(*p, p->problem))
+        if(!v.IsValid(*c, *p))
             Next();
     }
 
 public:
     // STL-like iterator shall be default contructible. Also implements container's end()
-    ComputedIterator() : v(), p(nullptr) {}
+    ComputedIterator() : v(), c(nullptr), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
 
     ComputedIterator& operator++() { return Next(); }
@@ -120,13 +121,14 @@ public:
     }
     bool operator==(ComputedIterator const& other) const { return !(*this != other); }
 
-    friend class ComputedContainer<PerformanceConfig, Context>;
+    friend class ComputedContainer<PerformanceConfig, Context, Problem>;
 };
 
-template <typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedContainer
 {
-    Context problem; // Hold a copy make the object independent of the environment.
+    Context context; // Hold a copy make the object independent of the environment.
+    Problem problem;
     bool spare;      // Use spare set of perf configs. Those are usually slower than main set.
                      // Splitting the theoretically available set of perf configs to "main"
                      // and "spare" sets allows for acceleration of the auto-tune process:
@@ -143,13 +145,13 @@ class ComputedContainer
     /// the "computed container" shall be const.
 
 public:
-    using const_iterator = ComputedIterator<PerformanceConfig, Context>;
+    using const_iterator = ComputedIterator<PerformanceConfig, Context, Problem>;
 
-    ComputedContainer(const Context& problem_, const bool spare_ = false)
-        : problem(problem_), spare(spare_)
+    ComputedContainer(const Context& context_, const Problem& problem_, const bool spare_ = false)
+        : context(context_), problem(problem_), spare(spare_)
     {
     }
-    const_iterator begin() const { return {problem, spare}; }
+    const_iterator begin() const { return {context, problem, spare}; }
     const_iterator end() const { return {}; }
 };
 
@@ -250,19 +252,19 @@ using RunAndMeasure_t =
                                                           std::declval<ConvSolution>(),
                                                           std::declval<float&>()));
 
-template <class Solver, class Context>
-auto GetAllConfigs(const Solver s, const Context& context)
-    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, context.problem)), Context>
+template <class Solver, class Context, class Problem>
+auto GetAllConfigs(const Solver s, const Context& context, const Problem& problem)
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, problem)), Context, Problem>
 {
-    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, context.problem));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
 
-    ComputedContainer<PerformanceConfig, Context> primary(context);
+    ComputedContainer<PerformanceConfig, Context, Problem> primary(context, problem);
     const int primary_size = std::distance(primary.begin(), primary.end());
-    ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    ComputedContainer<PerformanceConfig, Context, Problem> spare(context, problem, true);
     const int spare_size = std::distance(spare.begin(), spare.end());
     const bool useSpare  = (primary_size == 0);
 
-    ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : primary;
+    ComputedContainer<PerformanceConfig, Context, Problem> all_configs = useSpare ? spare : primary;
     const int n_runs_total = useSpare ? spare_size : primary_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
@@ -270,38 +272,28 @@ auto GetAllConfigs(const Solver s, const Context& context)
     return all_configs;
 }
 
-template <class Solver, class Context>
-std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_)
+template <class Solver, class Context, class Problem>
+std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
 {
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    auto all_configs = GetAllConfigs(s, context);
+    auto all_configs = GetAllConfigs(s, context, problem);
 
     std::vector<ConvSolution> solutions;
     for(const auto& current_config : all_configs)
     {
-        ConvSolution current_solution = s.GetSolution(context, context.problem, current_config);
+        ConvSolution current_solution = s.GetSolution(context, problem, current_config);
         solutions.push_back(current_solution);
     }
     return solutions;
 }
 
-template <class Solver, class Context, class Problem>
-auto GenericSearch(const Solver s,
-                   const Context& ctx,
-                   const Problem& problem,
-                   const AnyInvokeParams& invoke_ctx)
-{
-    std::ignore = problem;
-    return GenericSearch(s, ctx, invoke_ctx);
-}
-
 std::size_t GetTuningIterationsMax();
 
-template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetDefaultPerformanceConfig(context_, context_.problem))
+template <class Solver, class Context, class Problem>
+auto GenericSearch(const Solver s, const Context& context_, const Problem& problem, const AnyInvokeParams& invoke_ctx_)
+    -> decltype(s.GetDefaultPerformanceConfig(context_, problem))
 {
     static_assert(
         !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
@@ -311,10 +303,10 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, context.problem));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
     PerformanceConfig best_config;
     const auto default_solution = s.GetSolution(
-        context, context.problem, s.GetDefaultPerformanceConfig(context, context.problem));
+        context, problem, s.GetDefaultPerformanceConfig(context, problem));
     const auto invoke_ctx = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
@@ -324,7 +316,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    auto all_configs = GetAllConfigs(s, context);
+    auto all_configs = GetAllConfigs(s, context, problem);
     const std::size_t n_runs_total =
         std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
                  GetTuningIterationsMax());
@@ -344,7 +336,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         {
             if(n_current >= n_runs_total)
                 break;
-            ConvSolution current_solution = s.GetSolution(context, context.problem, current_config);
+            ConvSolution current_solution = s.GetSolution(context, problem, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -374,7 +366,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, context.problem, current_config);
+                current_solution = s.GetSolution(context, problem, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;

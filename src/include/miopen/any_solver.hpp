@@ -270,11 +270,11 @@ struct AnySolver
 
         // tunable solver, not legacy
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx,
-                                                  const ProblemDescription&,
+                                                  const ProblemDescription& problem,
                                                   std::true_type,
                                                   std::false_type) const
         {
-            return miopen::solver::GetAllSolutions(value, ctx);
+            return miopen::solver::GetAllSolutions(value, ctx, problem);
         }
 
         // non tunable solver
