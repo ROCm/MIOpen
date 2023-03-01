@@ -40,8 +40,7 @@ namespace solver {
 
 namespace pooling {
 
-using PoolingSolver = NonTunableSolverBase<ExecutionContext,
-                                           miopen::pooling::ProblemDescription>;
+using PoolingSolver = NonTunableSolverBase<ExecutionContext, miopen::pooling::ProblemDescription>;
 
 struct PoolingForward2d final : PoolingSolver
 {

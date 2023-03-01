@@ -193,8 +193,7 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
 using ConvSolver = NonTunableSolverBase<ConvolutionContext, ProblemDescription>;
 
 /// Base class for tunable solvers
-struct ConvTunableSolverBase
-    : SolverMixin<ConvolutionContext, ProblemDescription>
+struct ConvTunableSolverBase : SolverMixin<ConvolutionContext, ProblemDescription>
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution

@@ -40,8 +40,7 @@ namespace solver {
 
 namespace activ {
 
-using ActivSolver = NonTunableSolverBase<ExecutionContext,
-                                         miopen::activ::ProblemDescription>;
+using ActivSolver = NonTunableSolverBase<ExecutionContext, miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver
 {

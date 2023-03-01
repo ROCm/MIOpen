@@ -44,8 +44,8 @@ namespace solver {
 
 namespace batchnorm {
 
-using BatchnormSolver = NonTunableSolverBase<ExecutionContext,
-                                             miopen::batchnorm::ProblemDescription>;
+using BatchnormSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::batchnorm::ProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {
