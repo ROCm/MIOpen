@@ -94,7 +94,7 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     conv_problem.bias    = 1;
     conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
                            ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
-    const auto conv_ctx  = context.GetConvContext(conv_problem);
+    const auto conv_ctx = context.GetConvContext(conv_problem);
 
     if(!conv_problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");

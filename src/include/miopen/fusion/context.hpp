@@ -30,13 +30,9 @@ namespace miopen {
 
 struct FusionContext : miopen::ExecutionContext
 {
-    explicit FusionContext(Handle& handle)
-        : ExecutionContext(&handle)
-    {
-    }
+    explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
 
-    ConvolutionContext
-    GetConvContext(const miopen::ProblemDescription& conv_problem) const
+    ConvolutionContext GetConvContext(const miopen::ProblemDescription& conv_problem) const
     {
         auto ctx = ConvolutionContext{*this};
         ctx.SetStream(&this->GetStream());
