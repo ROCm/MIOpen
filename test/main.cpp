@@ -268,7 +268,7 @@ struct conv_forward : output_tensor_fixture
 
         std::thread([&] {
             miopenHandle_t handle2{};
-            miopenCreate(&handle2);
+            STATUS(miopenCreate(&handle2));
 
             STATUS(miopenFindConvolutionForwardAlgorithm(
                 handle2,
@@ -301,7 +301,7 @@ struct conv_forward : output_tensor_fixture
                                             sz_fwd_workspace));
 
             STATUS(miopenGetKernelTime(handle2, &time));
-            miopenDestroy(handle2);
+            STATUS(miopenDestroy(handle2));
         }).join();
 
         if(Profile)
