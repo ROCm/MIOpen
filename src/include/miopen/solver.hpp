@@ -150,10 +150,11 @@ private:
     }
 };
 
-// TODO TODO remove OldStyleProblemDesc
-template <class OldStyleProblemDesc, class Context, class Problem>
+template <class Context, class Problem>
 struct SolverMixin : SolverBase
 {
+    // TODO TODO add static assert that classes derived from ExecutionContext
+    // and ProblemDescriptionBase
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
     virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
@@ -180,9 +181,8 @@ struct SolverMixin : SolverBase
 };
 
 /// Base class for non tunable solvers
-// TODO TODO remove OldStyleProblemDesc
-template <class OldStyleProblemDesc, class Context, class Problem>
-struct NonTunableSolverBase : SolverMixin<OldStyleProblemDesc, Context, Problem>
+template <class Context, class Problem>
+struct NonTunableSolverBase : SolverMixin<Context, Problem>
 {
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
@@ -190,11 +190,11 @@ struct NonTunableSolverBase : SolverMixin<OldStyleProblemDesc, Context, Problem>
 };
 
 /// Typedef for convolution solvers
-using ConvSolver = NonTunableSolverBase<ConvolutionContext, ConvolutionContext, ProblemDescription>;
+using ConvSolver = NonTunableSolverBase<ConvolutionContext, ProblemDescription>;
 
 /// Base class for tunable solvers
 struct ConvTunableSolverBase
-    : SolverMixin<ConvolutionContext, ConvolutionContext, ProblemDescription>
+    : SolverMixin<ConvolutionContext, ProblemDescription>
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution

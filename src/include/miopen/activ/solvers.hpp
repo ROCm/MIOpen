@@ -27,7 +27,6 @@
 #pragma once
 
 #include <miopen/solver.hpp>
-#include <miopen/activ/problem_description.hpp> // TODO TODO remove
 
 #include <utility>
 
@@ -41,14 +40,7 @@ namespace solver {
 
 namespace activ {
 
-// TODO TODO remove
-struct OldStyleProblemDescription : ExecutionContext
-{
-    miopen::activ::ProblemDescription problem;
-};
-
-using ActivSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                         ExecutionContext,
+using ActivSolver = NonTunableSolverBase<ExecutionContext,
                                          miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver

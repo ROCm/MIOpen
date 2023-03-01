@@ -40,14 +40,7 @@ namespace solver {
 
 namespace pooling {
 
-// TODO TODO remove
-struct OldStyleProblemDescription : ExecutionContext
-{
-    miopen::pooling::ProblemDescription problem;
-};
-
-using PoolingSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                           ExecutionContext,
+using PoolingSolver = NonTunableSolverBase<ExecutionContext,
                                            miopen::pooling::ProblemDescription>;
 
 struct PoolingForward2d final : PoolingSolver

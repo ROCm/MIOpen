@@ -38,11 +38,9 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-using OldStyleFusionDesc = FusionContext;
+using FusionSolverBase = NonTunableSolverBase<FusionContext, FusionDescription>;
 
-using FusionSolverBase = NonTunableSolverBase<OldStyleFusionDesc, FusionContext, FusionDescription>;
-
-struct FusionTunableSolverBase : SolverMixin<OldStyleFusionDesc, FusionContext, FusionDescription>
+struct FusionTunableSolverBase : SolverMixin<FusionContext, FusionDescription>
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution

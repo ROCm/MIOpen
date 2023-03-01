@@ -27,7 +27,6 @@
 #pragma once
 
 #include <miopen/solver.hpp>
-#include <miopen/batchnorm/problem_description.hpp> // TODO TODO remove
 
 #include <utility>
 
@@ -45,14 +44,7 @@ namespace solver {
 
 namespace batchnorm {
 
-// TODO TODO remove
-struct OldStyleProblemDescription : ExecutionContext
-{
-    miopen::batchnorm::ProblemDescription problem;
-};
-
-using BatchnormSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                             ExecutionContext,
+using BatchnormSolver = NonTunableSolverBase<ExecutionContext,
                                              miopen::batchnorm::ProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
