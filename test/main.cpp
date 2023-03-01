@@ -264,12 +264,19 @@ struct conv_forward : output_tensor_fixture
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
+#if MIOPEN_BUILD_DEV
             miopenHandle_t handle2{};
             STATUS(miopenCreate(&handle2));
-            STATUS(miopenEnableProfiling(handle2, Profile));
+
+            miopenHandle_t& used_handle = handle2;
+#else
+            miopenHandle_t& used_handle = handle;
+#endif
+
+            STATUS(miopenEnableProfiling(used_handle, Profile));
 
             STATUS(miopenFindConvolutionForwardAlgorithm(
-                handle2,
+                used_handle,
                 inputTensor,
                 in_dev,
                 convFilter,
@@ -284,7 +291,7 @@ struct conv_forward : output_tensor_fixture
                 sz_fwd_workspace,
                 0)); // MD: Not performing exhaustiveSearch by default for now
 
-            STATUS(miopenConvolutionForward(handle2,
+            STATUS(miopenConvolutionForward(used_handle,
                                             &alpha,
                                             inputTensor,
                                             in_dev,
@@ -300,8 +307,8 @@ struct conv_forward : output_tensor_fixture
 
             float time;
 
-            STATUS(miopenGetKernelTime(handle2, &time));
-            STATUS(miopenDestroy(handle2));
+            STATUS(miopenGetKernelTime(used_handle, &time));
+            STATUS(miopenDestroy(used_handle));
 
             if(Profile)
             {
