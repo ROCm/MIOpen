@@ -169,7 +169,6 @@ struct conv_forward : output_tensor_fixture
 {
     void run()
     {
-        STATUS(miopenEnableProfiling(handle, Profile));
         float alpha = 1, beta = 0;
 
         // Setup OpenCL buffers
@@ -261,14 +260,13 @@ struct conv_forward : output_tensor_fixture
 
         STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
-        int ret_algo_count;
-        miopenConvAlgoPerf_t perf;
-
-        float time;
-
         std::thread([&] {
+            int ret_algo_count;
+            miopenConvAlgoPerf_t perf;
+
             miopenHandle_t handle2{};
             STATUS(miopenCreate(&handle2));
+            STATUS(miopenEnableProfiling(handle2, Profile));
 
             STATUS(miopenFindConvolutionForwardAlgorithm(
                 handle2,
@@ -300,18 +298,20 @@ struct conv_forward : output_tensor_fixture
                                             fwd_workspace_dev,
                                             sz_fwd_workspace));
 
+            float time;
+
             STATUS(miopenGetKernelTime(handle2, &time));
             STATUS(miopenDestroy(handle2));
-        }).join();
 
-        if(Profile)
-        {
-            CHECK(time > 0.0);
-        }
-        else
-        {
-            CHECK(time == 0.0);
-        }
+            if(Profile)
+            {
+                CHECK(time > 0.0);
+            }
+            else
+            {
+                CHECK(time == 0.0);
+            }
+        }).join();
 
 // Potential memory leak free memory at end of function
 #if MIOPEN_BACKEND_OPENCL
