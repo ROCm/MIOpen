@@ -421,7 +421,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
-    auto fusion_ctx       = FusionContext{this, handle};
+    auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
     const auto tmp_sols = solvers.SearchForAllSolutions(

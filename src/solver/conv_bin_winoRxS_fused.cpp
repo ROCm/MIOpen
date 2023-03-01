@@ -65,8 +65,8 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     if(!WinoCommonIsApplicable(context, problem))
         return false;
 
-    const auto conv_ctx     = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
@@ -142,8 +142,8 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
 ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
                                                   const FusionDescription& problem) const
 {
-    const auto conv_ctx     = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
     ConvSolution result;
     KernelInfo kernel;
 

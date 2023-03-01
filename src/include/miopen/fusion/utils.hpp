@@ -77,8 +77,8 @@ inline bool WinoCommonIsApplicable(const FusionContext& context, const FusionDes
             return false;
     }
 
-    const auto conv_ctx     = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     if(!conv_problem.Is2d())
         return false;

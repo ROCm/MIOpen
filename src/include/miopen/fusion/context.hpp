@@ -30,35 +30,21 @@ namespace miopen {
 
 struct FusionContext : miopen::ExecutionContext
 {
-    FusionDescription problem;
-    FusionContext(FusionPlanDescriptor* ptr_desc, Handle& handle)
-        : ExecutionContext(&handle), problem(ptr_desc)
-    {
-    }
-
-    // TODO TODO remove
-    explicit FusionContext(const FusionDescription& problem_, Handle& handle)
-        : ExecutionContext(&handle), problem(problem_)
+    explicit FusionContext(Handle& handle)
+        : ExecutionContext(&handle)
     {
     }
 
     ConvolutionContext
-    GetConvContext(size_t idx, conv::Direction dir, const FusionDescription& fusion_problem) const
+    GetConvContext(const miopen::ProblemDescription& conv_problem) const
     {
-        const auto conv_prob = fusion_problem.GetConvProblem(idx, dir);
-        if(dir == conv::Direction::Forward)
-        {
-            auto ctx = ConvolutionContext{*this};
-            ctx.SetStream(&this->GetStream());
-            ctx.DetectRocm();
-            ctx.SetupFloats(conv_prob);
-            return ctx;
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusNotImplemented);
-        }
+        auto ctx = ConvolutionContext{*this};
+        ctx.SetStream(&this->GetStream());
+        ctx.DetectRocm();
+        ctx.SetupFloats(conv_problem);
+        return ctx;
     }
+
     bool is_for_generic_search = false;
 };
 

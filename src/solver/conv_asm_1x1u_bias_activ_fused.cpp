@@ -90,11 +90,12 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
                                                                    const FusionDescription& problem,
                                                                    const AnyInvokeParams&) const
 {
-    const auto conv_ctx  = context.GetConvContext(0, conv::Direction::Forward, problem);
     auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
     conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
                            ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
+    const auto conv_ctx  = context.GetConvContext(conv_problem);
+
     if(!conv_problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
@@ -125,8 +126,8 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto conv_ctx     = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
     ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(conv_ctx, conv_problem, config);
@@ -261,8 +262,8 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     }
 
     ConvAsm1x1U sol{};
-    const auto conv_ctx     = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     if(conv_problem.pad_h != conv_problem.pad_w)
         return false;
