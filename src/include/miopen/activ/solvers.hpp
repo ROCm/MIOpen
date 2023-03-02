@@ -27,14 +27,11 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/activ/problem_description.hpp>
 
 #include <utility>
 
 namespace miopen {
-
-namespace activ {
-struct ProblemDescription;
-} // namespace activ
 
 namespace solver {
 

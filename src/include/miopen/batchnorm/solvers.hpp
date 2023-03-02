@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 
 #include <utility>
 
@@ -35,10 +36,6 @@
 #define WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR 1
 
 namespace miopen {
-
-namespace batchnorm {
-struct ProblemDescription;
-} // namespace batchnorm
 
 namespace solver {
 

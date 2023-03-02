@@ -27,8 +27,6 @@
 #ifndef GUARD_MIOPEN_SOLVER_HPP_
 #define GUARD_MIOPEN_SOLVER_HPP_
 
-#define SOLVERS_FUNCTIONS_USE_BOOST_ANY 0 // TODO TODO remove
-
 #include <miopen/config.h>
 
 #include <miopen/conv_solution.hpp>
@@ -41,9 +39,7 @@
 #include <miopen/buffer_info.hpp>
 #include <miopen/performance_config.hpp>
 
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
 #include <boost/any.hpp>
-#endif
 
 #include <memory>
 #include <string>
@@ -102,9 +98,7 @@ struct SolverBase
     /// GetDefaultPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    virtual bool IsApplicable(const boost::any& ctx) const = 0;
-#endif
+    virtual bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
@@ -118,14 +112,10 @@ struct SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    virtual float GetWti(const boost::any& ctx) const = 0;
-#endif
+    virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
     // Returns the workspace size required by the solver for a given ConvolutionContext
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    virtual size_t GetWorkspaceSize(const boost::any& ctx) const = 0;
-#endif
+    virtual size_t GetWorkspaceSize(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
     // Must return true if a Solver has its own implementation of GetWorkspaceSize().
     virtual bool MayNeedWorkspace() const { return false; }
@@ -153,31 +143,26 @@ private:
 template <class Context, class Problem>
 struct SolverMixin : SolverBase
 {
-    // TODO TODO add static assert that classes derived from ExecutionContext
-    // and ProblemDescriptionBase
+    static_assert(std::is_base_of<ExecutionContext, Context>{}, "Context must be derived of ExecutionContext");
+
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
     virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    bool IsApplicable(const boost::any& ctx) const final
+    bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
     {
-        const auto& old_ctx = boost::any_cast<const OldStyleProblemDesc&>(ctx);
-        return IsApplicable(old_ctx, old_ctx.problem);
+        return IsApplicable(dynamic_cast<const Context&>(ctx), boost::any_cast<const Problem&>(problem));
     }
 
-    float GetWti(const boost::any& ctx) const final
+    float GetWti(const ExecutionContext& ctx, const boost::any& problem) const final
     {
-        const auto& old_ctx = boost::any_cast<const OldStyleProblemDesc&>(ctx);
-        return GetWti(old_ctx, old_ctx.problem);
+        return GetWti(dynamic_cast<const Context&>(ctx), boost::any_cast<const Problem&>(problem));
     }
 
-    size_t GetWorkspaceSize(const boost::any& ctx) const final
+    size_t GetWorkspaceSize(const ExecutionContext& ctx, const boost::any& problem) const final
     {
-        const auto& old_ctx = boost::any_cast<const OldStyleProblemDesc&>(ctx);
-        return GetWorkspaceSize(old_ctx, old_ctx.problem);
+        return GetWorkspaceSize(dynamic_cast<const Context&>(ctx), boost::any_cast<const Problem&>(problem));
     }
-#endif
 };
 
 /// Base class for non tunable solvers
@@ -204,37 +189,33 @@ struct ConvTunableSolverBase : SolverMixin<ConvolutionContext, ProblemDescriptio
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    virtual boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, int) const = 0;
-#endif
+    virtual boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem, int) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                          const boost::any& config) const = 0;
-#endif
+                                          const ProblemDescription& problem,
+                                          const PerfConfig& config) const = 0;
 
     /// Search
     ///
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual boost::any
-    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
-#endif
+    Search(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx, int) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual ConvSolution GetSolution(const ConvolutionContext& ctx,
-                                     const boost::any& config) const = 0;
-#endif
+                                     const ProblemDescription& problem,
+                                     const PerfConfig& config) const = 0;
 };
 
 template <class PerformanceConfig>
 struct ConvTunableSolver : ConvTunableSolverBase
 {
+    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{}, "PerformanceConfig must be derived of PerfConfig");
+
     virtual PerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
                                                           const ProblemDescription&) const = 0;
     virtual bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -246,30 +227,29 @@ struct ConvTunableSolver : ConvTunableSolverBase
                                      const ProblemDescription&,
                                      const PerformanceConfig&) const                           = 0;
 
-#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
-    boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, int) const final
+    boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem, int) const final
     {
-        return GetDefaultPerformanceConfig(ctx, ctx.problem);
+        return GetDefaultPerformanceConfig(ctx, problem);
     }
 
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const boost::any& config) const final
+                                  const ProblemDescription& problem,
+                                  const PerfConfig& config) const final
     {
         return IsValidPerformanceConfig(
-            ctx, ctx.problem, boost::any_cast<const PerformanceConfig&>(config));
+            ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
     }
 
     boost::any
-    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const final
+    Search(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx, int) const final
     {
-        return Search(ctx, ctx.problem, invoke_ctx);
+        return Search(ctx, problem, invoke_ctx);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const boost::any& config) const final
+    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem, const PerfConfig& config) const final
     {
-        return GetSolution(ctx, ctx.problem, boost::any_cast<const PerformanceConfig&>(config));
+        return GetSolution(ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
     }
-#endif
 };
 
 struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
