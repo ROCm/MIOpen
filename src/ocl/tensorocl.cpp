@@ -2123,27 +2123,25 @@ void CastTensor(const Handle& handle,
     }
 }
 
-static void find_permutation(const std::string& src_layout, const std::string& dst_layout,
-                     int* permutation)
+static void
+find_permutation(const std::string& src_layout, const std::string& dst_layout, int* permutation)
 {
     std::map<char, std::pair<int, int>> permMap;
-    for (int i = 0; i < src_layout.length(); i++)
+    for(int i = 0; i < src_layout.length(); i++)
         permMap[src_layout[i]].first = i;
-    for (int i = 0; i < dst_layout.length(); i++)
+    for(int i = 0; i < dst_layout.length(); i++)
         permMap[dst_layout[i]].second = i;
 
-    std::vector<std::pair<int, int> > permVec;
-    for (const auto &kv : permMap)
+    std::vector<std::pair<int, int>> permVec;
+    for(const auto& kv : permMap)
         permVec.push_back(kv.second);
-    std::sort(permVec.begin(), permVec.end(),
-        [](const auto & a, const auto & b) -> bool
-        {
-            return a.first > b.first;
-        });
+    std::sort(permVec.begin(), permVec.end(), [](const auto& a, const auto& b) -> bool {
+        return a.first > b.first;
+    });
 
     printf("Permutation for %s -> %s: ");
-    for (int i = 0; i < permVec.size(); i++)
-	    printf("%d ", permVec[i]);
+    for(int i = 0; i < permVec.size(); i++)
+        printf("%d ", permVec[i]);
     printf("\n");
 }
 
