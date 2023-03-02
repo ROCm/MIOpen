@@ -52,17 +52,23 @@ struct ConvolutionContext : ExecutionContext
     ConvolutionContext() = default;
 
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-    explicit ConvolutionContext(const ProblemDescription& problem_) : problem_compat(problem_) {}
+    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
 #endif
     explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
 
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
+    void SetupFloats()
+    {
+        SetupFloats(problem);
+    }
+#endif
     void SetupFloats(const ProblemDescription& problem);
 
 public:
     bool is_for_generic_search = false;
 
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-    ProblemDescription problem_compat;
+    ProblemDescription problem;
 #endif
 };
 

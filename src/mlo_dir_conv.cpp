@@ -382,18 +382,18 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
     return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
-void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem)
+void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem_)
 {
-    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
+    if(problem_.IsFp32() || problem_.IsFp16() || problem_.IsBfp16() || problem_.IsInt8())
     {
-        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
+        general_compile_options += GetDataTypeKernelParams(problem_.in_data_type);
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.out_data_type));
+                     << miopen::GetDataTypeName(problem_.in_data_type) << "x"
+                     << miopen::GetDataTypeName(problem_.weights_data_type) << "x"
+                     << miopen::GetDataTypeName(problem_.out_data_type));
     }
 }
 

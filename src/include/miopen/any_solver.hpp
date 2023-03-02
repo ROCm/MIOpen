@@ -49,7 +49,7 @@ struct AnySolver
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
-        return IsApplicable(ctx, ctx.problem_compat);
+        return IsApplicable(ctx, ctx.problem);
     }
 #endif
     bool IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
@@ -65,7 +65,7 @@ struct AnySolver
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string& params) const
     {
-        return TestPerfCfgParams(ctx, ctx.problem_compat, params);
+        return TestPerfCfgParams(ctx, ctx.problem, params);
     }
 #endif
     bool TestPerfCfgParams(const ConvolutionContext& ctx,
@@ -78,7 +78,7 @@ struct AnySolver
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const
     {
-        return GetAllSolutions(ctx, ctx.problem_compat);
+        return GetAllSolutions(ctx, ctx.problem);
     }
 #endif
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx,
@@ -109,7 +109,7 @@ struct AnySolver
                               const miopen::AnyInvokeParams& invoke_ctx,
                               const std::string& perf_cfg = "") const
     {
-        return FindSolution(ctx, ctx.problem_compat, db, invoke_ctx, perf_cfg);
+        return FindSolution(ctx, ctx.problem, db, invoke_ctx, perf_cfg);
     }
 #endif
     ConvSolution FindSolution(const ConvolutionContext& ctx,
@@ -124,7 +124,7 @@ struct AnySolver
 #if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     std::string GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db) const
     {
-        return GetPerfCfgParams(ctx, ctx.problem_compat, db);
+        return GetPerfCfgParams(ctx, ctx.problem, db);
     }
 #endif
     std::string GetPerfCfgParams(const ConvolutionContext& ctx,
