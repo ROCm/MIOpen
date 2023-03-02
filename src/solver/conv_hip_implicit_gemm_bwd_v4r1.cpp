@@ -759,6 +759,10 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
+
     int gemm_m = 0;
     int gemm_n = 0;
 

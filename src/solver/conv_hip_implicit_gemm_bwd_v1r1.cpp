@@ -651,6 +651,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(problem.group_counts != 1)
         return false;
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
         return false;
