@@ -3,7 +3,7 @@
 
 Full documentation for MIOpen is available at [https://rocmsoftwareplatform.github.io/MIOpen/doc/html/](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/)
 
-## (Unreleased) MIOpen-2.19.0 for ROCm 5.5.0
+## MIOpen-2.19.0 for ROCm 5.5.0
 ### Added
 - ROCm 5.5 support for gfx1101 (Navi32)
 ### Changed
