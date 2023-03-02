@@ -51,7 +51,9 @@ struct FusionTunableSolverBase : SolverMixin<FusionContext, FusionDescription>
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-    virtual boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, const FusionDescription& problem, int) const = 0;
+    virtual boost::any GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                                   const FusionDescription& problem,
+                                                   int) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
@@ -64,8 +66,10 @@ struct FusionTunableSolverBase : SolverMixin<FusionContext, FusionDescription>
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-    virtual boost::any
-    Search(const FusionContext& ctx, const FusionDescription& problem, const AnyInvokeParams& invoke_ctx, int) const = 0;
+    virtual boost::any Search(const FusionContext& ctx,
+                              const FusionDescription& problem,
+                              const AnyInvokeParams& invoke_ctx,
+                              int) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution GetSolution(const FusionContext& ctx,
@@ -76,7 +80,8 @@ struct FusionTunableSolverBase : SolverMixin<FusionContext, FusionDescription>
 template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
-    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{}, "PerformanceConfig must be derived of PerfConfig");
+    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{},
+                  "PerformanceConfig must be derived of PerfConfig");
 
     virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&,
                                                           const FusionDescription&) const = 0;
@@ -88,24 +93,32 @@ struct FusionTunableSolver : FusionTunableSolverBase
     virtual ConvSolution
     GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
 
-    boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, const FusionDescription& problem, int) const final
+    boost::any GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                           const FusionDescription& problem,
+                                           int) const final
     {
         return GetDefaultPerformanceConfig(ctx, problem);
     }
 
-    bool IsValidPerformanceConfig(const FusionContext& ctx, const FusionDescription& problem, const PerfConfig& config) const final
+    bool IsValidPerformanceConfig(const FusionContext& ctx,
+                                  const FusionDescription& problem,
+                                  const PerfConfig& config) const final
     {
         return IsValidPerformanceConfig(
             ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
     }
 
-    boost::any
-    Search(const FusionContext& ctx, const FusionDescription& problem, const AnyInvokeParams& invoke_ctx, int) const final
+    boost::any Search(const FusionContext& ctx,
+                      const FusionDescription& problem,
+                      const AnyInvokeParams& invoke_ctx,
+                      int) const final
     {
         return Search(ctx, problem, invoke_ctx);
     }
 
-    ConvSolution GetSolution(const FusionContext& ctx, const FusionDescription& problem, const PerfConfig& config) const final
+    ConvSolution GetSolution(const FusionContext& ctx,
+                             const FusionDescription& problem,
+                             const PerfConfig& config) const final
     {
         return GetSolution(ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
     }
