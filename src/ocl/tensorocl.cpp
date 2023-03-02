@@ -2136,10 +2136,10 @@ find_permutation(const std::string& src_layout, const std::string& dst_layout, i
     for(const auto& kv : permMap)
         permVec.push_back(kv.second);
     std::sort(permVec.begin(), permVec.end(), [](const auto& a, const auto& b) -> bool {
-        return a.first > b.first;
+        return a.first < b.first;
     });
 
-    printf("Permutation for %s -> %s: ");
+    printf("Permutation for %s -> %s: ", src_layout.c_str(), dst_layout.c_str());
     for(int i = 0; i < permVec.size(); i++)
         printf("%d ", permVec[i]);
     printf("\n");
