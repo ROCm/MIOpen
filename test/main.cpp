@@ -260,6 +260,8 @@ struct conv_forward : output_tensor_fixture
 
         STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
+        float time;
+
         std::thread([&] {
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
@@ -305,20 +307,21 @@ struct conv_forward : output_tensor_fixture
                                             fwd_workspace_dev,
                                             sz_fwd_workspace));
 
-            float time;
-
             STATUS(miopenGetKernelTime(used_handle, &time));
-            STATUS(miopenDestroy(used_handle));
 
-            if(Profile)
-            {
-                CHECK(time > 0.0);
-            }
-            else
-            {
-                CHECK(time == 0.0);
-            }
+#if MIOPEN_BUILD_DEV
+            STATUS(miopenDestroy(handle2));
+#endif
         }).join();
+
+        if(Profile)
+        {
+            CHECK(time > 0.0);
+        }
+        else
+        {
+            CHECK(time == 0.0);
+        }
 
 // Potential memory leak free memory at end of function
 #if MIOPEN_BACKEND_OPENCL
