@@ -2067,8 +2067,11 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1 GFX103X_ENABLED TEST
       ${TEST_CONV_VERBOSE_B} --input 32 128 32 32 --weights 12 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+# MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in Jenkinsfile,
+# which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
 add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R1Fwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 256 32 27 27 --weights 128 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
