@@ -8,7 +8,7 @@ import shutil
 
 from rocm_docs import ROCmDocs
 
-docs_core = ROCmDocs("ROCm Documentation")
+docs_core = ROCmDocs("MIOpen Documentation")
 docs_core.run_doxygen()
 docs_core.setup()
 
