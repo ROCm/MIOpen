@@ -34,6 +34,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_forward.hpp>
 #endif
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
@@ -182,12 +183,13 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
-void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigHipImplicitGemmFwdXdlops& config)
 {
     const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
@@ -224,6 +226,8 @@ void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ProblemDescription& problem)
@@ -343,6 +347,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
     if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
