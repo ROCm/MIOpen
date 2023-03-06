@@ -38,6 +38,7 @@
 #include <miopen/timer.hpp>
 #include <miopen/type_traits.hpp>
 #include <miopen/mt_queue.hpp>
+#include <miopen/generic_search_controls.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -50,8 +51,6 @@
 
 namespace miopen {
 namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
@@ -307,17 +306,15 @@ template <typename PerformanceConfig, typename Solver, typename Context>
 void CompileAgent(size_t thread_index,
                   size_t total_threads,
                   const Solver& s,
-                  const Context& context_,
+                  const Context& context,
                   std::vector<PerformanceConfig>& data,
                   ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
 {
     const auto start_time =
         std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
-    const auto data_size          = data.size();
-    const auto time_budget        = GetTuningTimeMax();
-    auto context                  = context_; // Not sure if context is thread safe
-    context.is_for_generic_search = true;
-    const auto& profile_h         = context.GetStream();
+    const auto data_size   = data.size();
+    const auto time_budget = GetTuningTimeMax();
+    const auto& profile_h  = context.GetStream();
     // start the counter
     for(auto idx = thread_index; idx < data_size; idx += total_threads)
     {
@@ -326,7 +323,7 @@ void CompileAgent(size_t thread_index,
             std::chrono::steady_clock::now());
         if(current_time - start_time > time_budget)
         {
-            MIOPEN_LOG_I2("Thread: " << thread_index << " Done");
+            MIOPEN_LOG_I2("Thread: " << thread_index << " Done, exhausted time budget");
             auto tmp = std::make_tuple<PerformanceConfig, ConvSolution, bool>({}, {}, true);
             comp_queue.push(std::move(tmp));
             break;
@@ -343,6 +340,7 @@ void CompileAgent(size_t thread_index,
             std::move(current_config), std::move(current_solution), false);
         comp_queue.push(std::move(tup));
     }
+    MIOPEN_LOG_I2("Thread: " << thread_index << " Done, completed tuning");
 }
 
 template <class Solver, class Context>
@@ -411,7 +409,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             if(n_current >= n_runs_total)
                 break;
             MIOPEN_LOG_I2("Waiting for item in queue");
-            const auto kinder     = solution_queue.front();
+            const auto kinder     = solution_queue.pop();
             auto current_config   = std::get<0>(kinder);
             auto current_solution = std::get<1>(kinder);
 
@@ -525,7 +523,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                               n_runs_total,
                               current_config);
             ++n_current;
-            solution_queue.pop();
         }
     }
     else

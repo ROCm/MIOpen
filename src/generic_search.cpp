@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/generic_search_controls.hpp>
 
 #include <cstddef>
 #include <limits>
@@ -33,10 +33,6 @@
 
 namespace miopen {
 namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TUNING_TIME_MS_MAX)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
 
 std::size_t GetTuningIterationsMax()
 {

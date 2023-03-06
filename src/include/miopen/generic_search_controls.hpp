@@ -25,42 +25,15 @@
  *******************************************************************************/
 
 #pragma once
+#include <miopen/env.hpp>
 
-#include <queue>
-#include <condition_variable>
-#include <mutex>
+namespace miopen {
+namespace solver {
 
-template <typename T>
-class ThreadSafeQueue
-{
-    std::mutex mutex;
-    std::condition_variable cond_var;
-    std::queue<T> queue;
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_TUNING_TIME_MS_MAX)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
-public:
-    void push(T&& item)
-    {
-
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            queue.push(item);
-        }
-
-        cond_var.notify_one();
-    }
-#if 0
-    T& front()
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        cond_var.wait(lock, [&] { return !queue.empty(); });
-        return queue.front();
-    }
-#endif
-    T pop()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        T ret = queue.front();
-        queue.pop();
-        return ret;
-    }
-};
+} // namespace solver
+} // namespace miopen

@@ -65,9 +65,9 @@ TEST(UtilMultiThreadQueue, Basic)
 
     for(auto idx = 0; idx < data_len; ++idx)
     {
-        std::cerr << comp_queue.front() << std::endl;
+        auto res = comp_queue.pop();
+        std::cerr << res << std::endl;
         num_cons++;
-        comp_queue.pop();
     }
 
     for(auto& prod : producers)
