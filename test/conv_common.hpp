@@ -301,6 +301,9 @@ struct conv_base
     bool enable_fdb{};
     int conv_spatial_dims{};
     conv_stats* stats{}; // Denotes an object after object construction (never nullptr).
+    bool preallocate;
+
+    conv_base(bool preallocate_) : preallocate(preallocate_) {}
 
     void fail(float = 0) const
     {
@@ -321,10 +324,22 @@ protected:
         auto solutions = std::vector<miopenSolution_t>{};
         solutions.resize(find_limit);
 
-        EXPECT_EQUAL(
-            miopenStatusSuccess,
-            miopenFindSolutions(
-                handle, problem, MakeOptions().get(), solutions.data(), &found, solutions.size()));
+        {
+            const auto options = MakeOptions();
+
+            if(preallocate)
+            {
+                for(auto i = 0; i < 3; ++i)
+                    miopenSetFindOptionPreallocatedTensor(
+                        options.get(), arguments[i].id, arguments[i].buffer);
+            }
+
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenFindSolutions(
+                    handle, problem, options.get(), solutions.data(), &found, solutions.size()));
+        }
+
         EXPECT_OP(found, >=, 0);
 
         solutions.resize(found);
@@ -447,9 +462,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                         const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
+                        bool preallocate_,
                         int pbias,
                         int psearch,
                         bool pvect)
+        : conv_base<T, Tout>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -972,8 +989,10 @@ struct verify_backward_conv : conv_base<T>
                          const tensor<T>& pout,
                          const miopen::ConvolutionDescriptor& pfilter,
                          conv_stats& pstats,
+                         bool preallocate_,
                          int pbias,
                          int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1375,8 +1394,10 @@ struct verify_backward_weights_conv : conv_base<T>
                                  const tensor<T>& pout,
                                  const miopen::ConvolutionDescriptor& pfilter,
                                  conv_stats& pstats,
+                                 bool preallocate_,
                                  int pbias,
                                  int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1891,6 +1912,7 @@ struct conv_driver : test_driver
     std::string output_type  = "";
     bool int8_vectorize      = false;
     bool deterministic       = false;
+    bool preallocate         = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -2022,10 +2044,11 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
-        if(api == ConvApi::Immediate)
-        {
+
+        if constexpr(api == ConvApi::Immediate)
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
-        }
+        else if constexpr(api == ConvApi::Find_2_0)
+            add(preallocate, "preallocate", generate_data({false, true}));
     }
 
     void run()
@@ -2468,6 +2491,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, float>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2480,6 +2504,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2492,6 +2517,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int8_t>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2500,14 +2526,14 @@ struct conv_driver : test_driver
                     else
                     {
                         verify(verify_forward_conv<api, T>{
-                            input, weights, output, filter, stats, 0, search, false});
+                            input, weights, output, filter, stats, preallocate, 0, search, false});
                     }
                 }
 
                 if(do_backward_data && !skip_backward_data)
                 {
                     verify(verify_backward_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
 
                 if(do_backward_weights && !skip_backward_weights)
@@ -2515,7 +2541,7 @@ struct conv_driver : test_driver
                     output.generate(gen_sign_value);
 
                     verify(verify_backward_weights_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
             }
         }

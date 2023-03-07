@@ -31,14 +31,24 @@
 #include <miopen/object.hpp>
 
 #include <limits>
+#include <unordered_map>
+#include <optional>
 
 namespace miopen {
 
 struct FindOptions : miopenFindOptions
 {
+    struct Workspace
+    {
+        Data_t buffer;
+        std::size_t size;
+    };
+
     bool exhaustive_search                 = false;
     miopenFindResultsOrder_t results_order = miopenFindResultsOrderByTime;
     std::size_t workspace_limit            = std::numeric_limits<std::size_t>::max();
+    std::unordered_map<miopenTensorArgumentId_t, Data_t> preallocated_tensors;
+    std::optional<Workspace> preallocated_workspace;
 };
 
 } // namespace miopen
