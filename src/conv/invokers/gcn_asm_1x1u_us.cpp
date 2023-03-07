@@ -55,7 +55,7 @@ InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
             if(workSpaceSize < workspace_sz)
                 MIOPEN_THROW("Not enough workspace has been provided for SubSample.");
 
-            int unused       = 0;
+            const int unused = 0;
             int* return_addr = nullptr;
             handle.Run(kernel)(N,
                                C,
