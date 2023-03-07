@@ -112,6 +112,29 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
     });
 }
 
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size)
+{
+    MIOPEN_LOG_FUNCTION(options, buffer, size);
+
+    return miopen::try_([&] {
+        auto& options_deref                  = miopen::deref(options);
+        options_deref.preallocated_workspace = {DataCast(buffer), size};
+    });
+}
+
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer)
+{
+    MIOPEN_LOG_FUNCTION(options, id, buffer);
+
+    return miopen::try_([&] {
+        auto& options_deref = miopen::deref(options);
+        options_deref.preallocated_tensors.emplace(id, DataCast(buffer));
+    });
+}
+
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
                                    miopenFindOptions_t options,
@@ -220,7 +243,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 
@@ -244,7 +267,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 
