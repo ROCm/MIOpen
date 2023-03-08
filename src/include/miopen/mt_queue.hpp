@@ -48,17 +48,10 @@ public:
 
         cond_var.notify_one();
     }
-#if 0
-    T& front()
+    T pop()
     {
         std::unique_lock<std::mutex> lock(mutex);
         cond_var.wait(lock, [&] { return !queue.empty(); });
-        return queue.front();
-    }
-#endif
-    T pop()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
         T ret = queue.front();
         queue.pop();
         return ret;
