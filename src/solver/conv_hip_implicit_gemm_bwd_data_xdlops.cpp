@@ -34,6 +34,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_backward_data.hpp>
 #endif
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
@@ -366,6 +367,8 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
     if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
