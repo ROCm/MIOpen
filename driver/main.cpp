@@ -40,7 +40,8 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
-#include "miopen/config.h"
+#include <miopen/config.h>
+#include <miopen/stringutils.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -199,10 +200,9 @@ int main(int argc, char* argv[])
         return rc;
     }
 
-    int fargval       = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
-                            ? drv->GetInputFlags().GetValueInt("forw")
-                            : 1;
-    bool bnFwdInVer   = (fargval == 2 && (base_arg == "bnorm"));
+    int fargval =
+        !miopen::StartsWith(base_arg, "CBAInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
+    bool bnFwdInVer   = (fargval == 2 && miopen::StartsWith(base_arg, "bnorm"));
     bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
     int cumulative_rc = 0; // Do not stop running tests in case of errors.
 
