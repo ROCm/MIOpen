@@ -240,7 +240,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     std::size_t workspace_size;
     Allocator::ManageDataPtr owned_workspace;
     Data_t workspace;
-    
+
     if(options.preallocated_workspace)
     {
         workspace      = options.preallocated_workspace->buffer;
@@ -249,9 +249,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     else
     {
         const auto workspace_max = conv_desc.GetWorkSpaceSize({&handle}, conv_problem);
-        workspace_size  = std::min(options.workspace_limit, workspace_max);
-        owned_workspace = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
-        workspace       = owned_workspace.get();
+        workspace_size           = std::min(options.workspace_limit, workspace_max);
+        owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
+        workspace                = owned_workspace.get();
     }
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
