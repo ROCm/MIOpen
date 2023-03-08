@@ -29,7 +29,7 @@ macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
     else()
-        set(${name} FALSE)
+        set(${var} FALSE)
     endif()
 endmacro()
 
