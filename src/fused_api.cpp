@@ -507,7 +507,6 @@ miopenConvolutionBiasActivationForward(miopenHandle_t handle,
     return try_res;
 }
 
-
 extern "C" miopenStatus_t miopenGemmFusion(miopenHandle_t handle,
                                            const miopenGemmDescriptor_t gemmDesc,
                                            const miopenTensorDescriptor_t ADesc,
