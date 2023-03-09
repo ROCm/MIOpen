@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,8 +45,107 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
+#define IS3X2 (Winodata == 3 && Winofilter == 2)
+
+static inline size_t Ceil(const size_t v, const size_t m)
+{
+    assert(m > 0);
+    return (v + m - 1) / m;
+}
+
 namespace miopen {
 namespace solver {
+
+namespace {
+
+// Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
+// v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
+// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+template <int Winodata, int Winofilter>
+inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
+{
+    return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
+           !(IS3X2 && problem.kernel_stride_w == 2);
+}
+
+inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
+{
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
+    // clang-format on
+}
+
+inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
+{
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && H * W < std::pow(2, 29)
+        && K * R * S < std::pow(2, 28)
+        && (C + 1) * H * W < std::pow(2, 30)
+        && (C + 1) * R * S < std::pow(2, 22)
+        && (K + 1) * OH * OW < std::pow(2, 30);
+    // clang-format on
+}
+
+} // namespace
+
 namespace fusion {
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
@@ -56,22 +155,44 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
         return false;
     if(!WinoCommonIsApplicable(context))
         return false;
+
     const miopen::ConvolutionContext conv_ctx =
         context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const std::string name = conv_ctx.GetStream().GetDeviceName();
-    if(name == "gfx900" || name == "gfx906" || name == "gfx908" || name == "gfx90a" ||
-       name == "gfx1011" || name == "gfx1012" || name == "gfx1030" || name == "gfx1031")
-    {
-        const auto oH = conv_ctx.problem.conv_problem.GetOutHeight();
-        const auto oW = conv_ctx.problem.conv_problem.GetOutWidth();
-        if(oH * oW > std::pow(2, 23))
-            return false;
-    }
-    else
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
-    if(conv_ctx.problem.kernel_stride_h > 2)
+
+    if(conv_ctx.problem.IsFp16() &&
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
+         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
+         StartsWith(name, "gfx11")))
         return false;
-    return true;
+
+    // clang-format off
+    if (!((conv_ctx.problem.kernel_stride_w == 1 || conv_ctx.problem.kernel_stride_w == 2)
+        && conv_ctx.problem.kernel_stride_w == conv_ctx.problem.kernel_stride_h
+        && conv_ctx.problem.kernel_dilation_w == 1
+        && conv_ctx.problem.kernel_dilation_h == 1))
+        return false;
+    // clang-format on
+
+    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
+    if(group_count != 1)
+        return false;
+
+    const auto W  = conv_ctx.problem.conv_problem.GetInWidth();
+    const auto H  = conv_ctx.problem.conv_problem.GetInHeight();
+    const auto C  = conv_ctx.problem.conv_problem.GetInChannels();
+    const auto N  = conv_ctx.problem.conv_problem.GetInBatchSize();
+    const auto K  = conv_ctx.problem.conv_problem.GetOutChannels();
+    const auto R  = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto S  = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto OH = conv_ctx.problem.conv_problem.GetOutHeight();
+    const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
+
+    return IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem)
+               ? IsShaderConstraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderConstraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
@@ -82,10 +203,11 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
 
     const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
 
-    const auto n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
+    const int n_groups  = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
+    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -99,29 +221,43 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
         {"ROCM_METADATA_VERSION", 5},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    if(!is_gfx9)
-        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
-    const auto kernel_postfix = "_fp32_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
-    kernel.kernel_file        = "Conv_Winograd_v21_1_3" + kernel_postfix + ".s";
-    const std::string family  = [&]() {
-        if(is_gfx9)
-            return "gfx9";
-        else if(is_gfx10)
-            return "gfx10";
-        return "";
-    }();
-    kernel.kernel_name = "miopenSp3AsmConv_v21_1_3_" + family + kernel_postfix;
+    kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
+    kernel.kernel_file               = "Conv_Winograd" + kernel_version;
+    kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
+    const auto kernel_postfix =
+        "_fp32_f2x3_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
+
+    if(is_gfx9)
+    {
+        kernel.kernel_name += "_gfx9";
+    }
+    else if(is_gfx10)
+    {
+        kernel.kernel_name += "_gfx10";
+    }
+    else // if (is_gfx11)
+    {
+        kernel.kernel_name += "_gfx11";
+    }
+
+    kernel.kernel_name += kernel_postfix;
+    kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
+
     const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
     const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
+
     if(x == 3 && y == 3)
         result.weight = 100;
     else
         result.weight = 5;
+
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
-    int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+    int N, C, H, W, K, unused, out_H, out_W, R, S, pad_H, pad_W;
     GetCompiledInParameters(context,
                             conv_ctx.problem,
                             &N,
@@ -129,7 +265,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                             &H,
                             &W,
                             &K,
-                            &n_groups_,
+                            &unused,
                             &out_H,
                             &out_W,
                             &R,
@@ -138,13 +274,18 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                             &pad_W);
     const int zero = 0;
     int flags      = [&]() {
-        if(bias_idx != -1 && activ_idx != -1)
-            return (1 << 7) + (1 << 8);
-        else if(bias_idx != -1)
-            return (1 << 7);
-        else
-            return zero;
+        constexpr int L_F_BIAS       = 1 << 7;
+        constexpr int L_F_LEAKY_RELU = 1 << 8;
+        int flag                     = 0;
+
+        if(bias_idx != -1)
+            flag |= L_F_BIAS;
+        if(activ_idx != -1)
+            flag |= L_F_LEAKY_RELU;
+
+        return flag;
     }();
+
     const miopenActivationMode_t activ_mode = [&]() {
         if(activ_idx != -1)
         {
@@ -175,6 +316,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                 else
                     return static_cast<ConstData_t>(nullptr);
             }();
+
             float activ_alpha = [&]() {
                 if(activ_idx != -1)
                 {
@@ -185,15 +327,16 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                 }
                 return static_cast<float>(0.0);
             }();
+
             auto zero_u64 = static_cast<uint64_t>(0);
             launch_kernel(N,
                           C,
                           H,
                           W,
                           K,
-                          n_groups_, // Not related to group convolutions
-                          flags,     // flags
-                          zero,      // reserved
+                          n_groups, // Not related to group convolutions
+                          flags,    // flags
+                          zero,     // reserved
                           bot_buf,
                           wei_buf,
                           top_buf,
@@ -211,22 +354,22 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                           zero_u64,    // f_offset", Other, zero_uint64),
                           zero_u64,    // o_offset", Other, zero_uint64),
                           zero_u64,    // b_offset", Other, zero_uint64),
-                          zero,        // d_byte_stride_nk", InputTensorDesc, zero_int),
-                          zero,        // d_byte_stride_c", InputTensorDesc, zero_int),
-                          zero,        // d_byte_stride_h", InputTensorDesc, zero_int),
-                          zero,        // d_byte_stride_w", InputTensorDesc, zero_int),
-                          zero,        // f_byte_stride_nk", OpAttr, zero_int),
-                          zero,        // f_byte_stride_c", OpAttr, zero_int),
-                          zero,        // f_byte_stride_h", OpAttr, zero_int),
-                          zero,        // f_byte_stride_w", OpAttr, zero_int),
-                          zero,        // o_byte_stride_nk", OutputTensorDesc, zero_int),
-                          zero,        // o_byte_stride_c", OutputTensorDesc, zero_int),
-                          zero,        // o_byte_stride_h", OutputTensorDesc, zero_int),
-                          zero,        // o_byte_stride_w", OutputTensorDesc, zero_int),
+                          zero,        // d_stride_nk", InputTensorDesc, zero_int),
+                          zero,        // d_stride_c", InputTensorDesc, zero_int),
+                          zero,        // d_stride_h", InputTensorDesc, zero_int),
+                          zero,        // d_stride_w", InputTensorDesc, zero_int),
+                          zero,        // f_stride_nk", OpAttr, zero_int),
+                          zero,        // f_stride_c", OpAttr, zero_int),
+                          zero,        // f_stride_h", OpAttr, zero_int),
+                          zero,        // f_stride_w", OpAttr, zero_int),
+                          zero,        // o_stride_nk", OutputTensorDesc, zero_int),
+                          zero,        // o_stride_c", OutputTensorDesc, zero_int),
+                          zero,        // o_stride_h", OutputTensorDesc, zero_int),
+                          zero,        // o_stride_w", OutputTensorDesc, zero_int),
                           zero,        // group_count", OpAttr, zero_int),
-                          zero,        // d_byte_stride_g", Other, zero_int),
-                          zero,        // f_byte_stride_g", Other, zero_int),
-                          zero         // o_byte_stride_g", Other, zero_int),
+                          zero,        // d_stride_g", Other, zero_int),
+                          zero,        // f_stride_g", Other, zero_int),
+                          zero         // o_stride_g", Other, zero_int),
             );
         };
     };
