@@ -149,8 +149,8 @@ struct Handle : miopenHandle
     std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
-        std::size_t num_cu = this->GetMaxComputeUnits();
-        std::string name   = this->GetDeviceName();
+        const std::size_t num_cu = this->GetMaxComputeUnits();
+        const std::string name   = this->GetDeviceName();
         return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
     }
 

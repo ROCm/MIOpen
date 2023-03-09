@@ -68,10 +68,10 @@ TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
 
-INSTANTIATE_TEST_CASE_P(BNActivInferFloatSuite,
-                        BNActivInferFloat,
-                        testing::Combine(testing::Values(miopenActivationRELU),
-                                         testing::ValuesIn(Network1())));
+INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
+                         BNActivInferFloat,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(Network1())));
 TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 {
     const auto plan_params = miopen::fusion::FusionInvokeParams(
@@ -80,7 +80,7 @@ TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
 
-INSTANTIATE_TEST_CASE_P(BNActivInferHalfSuite,
-                        BNActivInferHalf,
-                        testing::Combine(testing::Values(miopenActivationRELU),
-                                         testing::ValuesIn(Network1())));
+INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
+                         BNActivInferHalf,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(Network1())));

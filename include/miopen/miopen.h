@@ -592,7 +592,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  *
  * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
  *
- * @param tensorDesc Tensor descriptor type (output)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -606,7 +606,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 /*! @brief Set shape of ND tensor with specific layout
  *
  * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
- * @param tensorDesc   Tensor descriptor type (output)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
  * @param lens         Tensor dimensions (input)
@@ -617,13 +617,13 @@ MIOPEN_EXPORT miopenStatus_t
 miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       miopenDataType_t dataType,
                                       miopenTensorLayout_t tensorLayout,
-                                      int* lens,
+                                      const int* lens,
                                       int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
  * Interface for setting 4-D tensor shape and stride.
  *
- * @param tensorDesc Tensor descriptor type (output)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -650,8 +650,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescripto
  *
  * Interface to query the 4-D tensor shape.
  *
- * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   MIOpen datatype (input)
+ * @param tensorDesc Tensor descriptor (input)
+ * @param dataType   MIOpen datatype (output)
  * @param n          Mini-batch size (output)
  * @param c          Number of channels (output)
  * @param h          Data height dimension size (output)
@@ -677,7 +677,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
  *
  * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
- * @param tensorDesc   Tensor descriptor type (input)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
  * @param dimsA        Array containing the size of dimensions (input)
@@ -687,14 +687,14 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                        miopenDataType_t dataType,
                                                        int nbDims,
-                                                       int* dimsA,
-                                                       int* stridesA);
+                                                       const int* dimsA,
+                                                       const int* stridesA);
 
 /*! @brief Get size of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
- * @param tensorDesc   Tensor descriptor type (input)
+ * @param tensorDesc   Tensor descriptor (input)
  * @param size         number of elements in tensor described by the descriptor (output)
  * @return             miopenStatus_t
  */
@@ -703,8 +703,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescripto
 
 /*! @brief Get the details of the N-dimensional tensor descriptor.
  *
- * @param tensorDesc Tensor descriptor type (input)
- * @param dataType   MIOpen datatype (input)
+ * @param tensorDesc Tensor descriptor (input)
+ * @param dataType   MIOpen datatype (output)
  * @param dimsA      Array containing the size of dimensions (output)
  * @param stridesA   Array containing the size of stride (output)
  * @return           miopenStatus_t
@@ -716,7 +716,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Destroys the tensor descriptor
  *
- * @param tensorDesc Tensor descriptor type (input)
+ * @param tensorDesc Tensor descriptor (input)
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
@@ -4833,7 +4833,7 @@ miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 /*! @brief Sets the tuning find option. Default value is zero.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Value of zero means no tuning, value of one means tuning enabled
  * @return           miopenStatus_t
  */
@@ -4841,7 +4841,7 @@ miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
 
 /*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies what order should find results have
  * @return           miopenStatus_t
  */
@@ -4850,12 +4850,34 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies the workspace limit for find call. All solvers exceeding the limit
  * would be ignored.
  * @return           miopenStatus_t
  */
 miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
+
+/*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
+ *
+ * @param options    Options object to update
+ * @param buffer     Specifies the workspace for find call
+ * @param size       Specifies the size of the buffer passed
+ * @return           miopenStatus_t
+ */
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+
+/*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
+ * MIOpen internally, which is not recommended.
+ *
+ * @param options    Options object to update
+ * @param id         Specifies the id of the tensor passed
+ * @param buffer     Specifies the tensor for find call
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer);
 
 /*! @brief The miopenSolution object describes a prepared solution.
  */
