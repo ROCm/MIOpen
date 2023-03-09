@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
 #include <random>
 
@@ -41,23 +40,7 @@
 
 #include "../driver/tensor_driver.hpp"
 
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
 //a[m, k] * b[k,n] = c[m, n]
-
 struct GemmTestCase
 {
     int M;
@@ -85,12 +68,6 @@ struct GemmTestCase
     std::vector<int> GetA(){ return {M, K};}
     std::vector<int> GetB(){ return {K, N};}
     std::vector<int> GetC(){ return {M, N};}
-
-    miopen::GemmNewDescriptor GetGemm()
-    {
-        return miopen::GemmNewDescriptor{M, N, K, StrideA, StrideB, StrideC, dataType};
-    }
-    
 };
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -112,7 +89,7 @@ std::vector<GemmTestCase> GetTestData()
 
     return {
         // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
-        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf}
+        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf} // remove miopenHalf
        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
         /*
         { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
@@ -123,15 +100,13 @@ std::vector<GemmTestCase> GetTestData()
 }
 
 template <typename T = half_float::half>
-struct GemmTest
-    : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
+struct GemmAPIFusionTest
+    : public ::testing::TestWithParam<std::tuple<GemmTestCase>>
 {
 protected:
     void SetUp() override
     {
-        //  we need stride too.
-        test_skipped                         = false;
-        std::tie(gemm_config, tensor_layout) = GetParam();
+        std::tie(gemm_config)                = GetParam();
         A_tensor                             = tensor<T>(gemm_config.GetA());
         B_tensor                             = tensor<T>(gemm_config.GetB());
         C_tensor                             = tensor<T>(gemm_config.GetC());
@@ -142,7 +117,10 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
-        gemm_desc  = gemm_config.GetGemm();
+        miopenCreateGemmDescriptor(&gemm_desc);
+        miopenInitGemmDescriptor(gemm_desc, gemm_config.M, gemm_config.N, 
+                                 gemm_config.K,  gemm_config.StrideA,  
+                                 gemm_config.StrideB, gemm_config.StrideC, gemm_config.dataType);
 
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
@@ -151,20 +129,9 @@ protected:
         b_dev  = handle.Write(B_tensor.data);
         c_dev  = handle.Write(C_tensor.data);
 
-
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
-        // Create gemm Operation. This operation will be part of fusion plan.
-        auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
-        // Add Operation Gemm as part of fusion plan.
-        EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
-        // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
-        // prepared when we call RunTunableSolver.
-        gemmOp->SetArgs(params, b_dev.get());
     }
     void TearDown() override
     {
-        if(test_skipped)
-            return;
         ref_out = tensor<T>(gemm_config.GetC());
         std::cout << "start host gemm\n";
         gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, 
@@ -185,22 +152,40 @@ protected:
             << "Non finite number found in the CPU data";
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        miopenDestroyGemmDescriptor(gemm_desc);
     }
 
     GemmTestCase gemm_config;
-    miopen::GemmNewDescriptor gemm_desc;
+    miopenGemmDescriptor_t gemm_desc;
     tensor<T> A_tensor;
     tensor<T> B_tensor;
     tensor<T> C_tensor;
     tensor<T> ref_out;
     miopen::Allocator::ManageDataPtr a_dev;
     miopen::Allocator::ManageDataPtr b_dev;
-    miopen::Allocator::ManageDataPtr c_dev; // output
-    bool test_skipped = false;
-    miopen::FusionPlanDescriptor fusePlanDesc;
-    miopen::OperatorArgs params;
-    const float alpha       = static_cast<float>(1.0f);
-    const float beta        = static_cast<float>(0);
-
-    miopenTensorLayout_t tensor_layout;
+    miopen::Allocator::ManageDataPtr c_dev; 
 };
+
+struct GemmAPIFusionTestHalf : GemmAPIFusionTest<half_float::half>
+{
+};
+
+
+TEST_P(GemmAPIFusionTestHalf, GEMMAPI)
+{
+    const auto status = miopenGemmFusion(&get_handle(),
+                                        gemm_desc,
+                                        &A_tensor.desc,
+                                        a_dev.get(), 
+                                        &B_tensor.desc,
+                                        b_dev.get(), 
+                                        &C_tensor.desc,
+                                        c_dev.get());
+
+    EXPECT_EQ(status, miopenStatusSuccess);
+}
+
+
+INSTANTIATE_TEST_SUITE_P(GEMMAPITest,
+                         GemmAPIFusionTestHalf,
+                         testing::Combine(testing::ValuesIn(GetTestData())));

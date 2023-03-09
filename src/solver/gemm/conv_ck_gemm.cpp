@@ -88,7 +88,6 @@ struct CKArgs
 {
     CKArgs(const miopen::gemm::ProblemDescription& problem)
     {
-        // convert problem's NHWC to MNK .. here we do the conversion
         M = problem.GetGemmDescriptor().GetM();
         N = problem.GetGemmDescriptor().GetN();
         K = problem.GetGemmDescriptor().GetK();
@@ -362,6 +361,12 @@ bool CKIgemm::IsApplicable(const FusionContext& ctx) const
     std::ignore = ctx;
     return false;
 #else
+    const auto& fp_desc = *ctx.problem.fusion_plan_desc;
+    if(fp_desc.op_map[0]->kind() != miopenFusionOpGEMM)
+    {
+        return false;
+    }
+
     const auto& problem = ctx.problem.GetGemmProblem(0);
     if(miopen::IsDisabled(MIOPEN_DEBUG_CK_IGEMM{}))
     {
@@ -376,8 +381,6 @@ bool CKIgemm::IsApplicable(const FusionContext& ctx) const
     if(arch != "gfx908" && arch != "gfx90a"){
         return false;
     }
-    //if(!problem.IsLayoutNHWC())
-    //    return false;
 
     switch(problem.GetADataType())
     {

@@ -39,6 +39,21 @@ extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gem
     return miopen::try_([&] { miopen::deref(gemmDesc) = new miopen::GemmNewDescriptor(); });
 }
 
+extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
+                                                   int m_,
+                                                   int n_, 
+                                                   int k_,
+                                                   long long int strideA_,
+                                                   long long int strideB_,
+                                                   long long int strideC_,
+                                                   miopenDataType_t dataType_)
+{
+    MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, strideA_, strideB_, strideC_);
+    return miopen::try_([&] {
+        miopen::deref(gemmDesc) = miopen::GemmNewDescriptor{m_, n_, k_, strideA_, strideB_, strideC_, dataType_};
+    });
+}
+
 static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
                        const miopenTensorDescriptor_t BDesc,
                        const miopenGemmDescriptor_t gemmDesc)

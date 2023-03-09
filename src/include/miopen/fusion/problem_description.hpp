@@ -64,6 +64,12 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
                     GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
                 net_config << prob.MakeNetworkConfig().ToString();
             }
+            else if(op->kind() == miopenFusionOpGEMM)
+            {
+                const auto prob =
+                    GetGemmProblem(op->GetIdx());
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
             else
             {
                 op->GetNetworkConfig(net_config, handle);
@@ -71,13 +77,24 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         MIOPEN_LOG_I2(net_config.str());
     }
+    
     static std::string table_name() { return "config"; } // revisit this
+    
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
-        ProblemDescription::Visit(conv_prob, f);
+        if(self.fusion_plan_desc->conv_fwd_algo){
+            auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
+            ProblemDescription::Visit(conv_prob, f);
+        }
+        else
+        {
+            // Once we tune gemm kernels we will not ignore.
+            std::ignore = self;
+            std::ignore = f;
+        }
     }
+    
     // This and the following method should be moved to the Ops once the return type can be unified
     miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
     {
@@ -104,6 +121,7 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
     {
         const auto& gemm_op =
             dynamic_cast<GemmOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+        
         TensorDescriptor out_desc;
         gemm_op.GetOutputDesc(out_desc);
         

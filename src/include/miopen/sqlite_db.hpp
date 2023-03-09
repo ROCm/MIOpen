@@ -441,6 +441,11 @@ public:
         std::string clause;
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
+        if(clause.empty() || values.empty()) 
+        {    
+            MIOPEN_LOG_I("Problem config does not support perfdb");
+            return {};
+        }
         // clang-format off
         auto select_query =
             "SELECT solver, params "

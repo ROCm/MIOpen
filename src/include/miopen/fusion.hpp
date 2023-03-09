@@ -218,7 +218,7 @@ struct GemmOpDescriptor : FusionOpDescriptor
     miopenStatus_t SetArgs(OperatorArgs& args, ConstData_t B);
     miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     bool isASMApplicable(Handle& handle);
-    miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; }; // make this gemm
+    miopenFusionOp_t kind() const override { return miopenFusionOpGEMM; };
 
     
     GemmNewDescriptor gemm_descriptor;
@@ -273,6 +273,15 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const ActivationDescriptor& activationDesc,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
+
+miopenStatus_t GemmFusion(Handle& handle,
+                        GemmNewDescriptor gemm_desc,
+                        const TensorDescriptor& ADesc,
+                        ConstData_t A_data,
+                        const TensorDescriptor& BDesc,
+                        ConstData_t B_data,
+                        const TensorDescriptor& CDesc,
+                        Data_t C_data);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);

@@ -29,7 +29,7 @@
 #include <miopen/gemm.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/problem_description_base.hpp>
-
+#include <miopen/sqlite_db.hpp>
 #include <cassert>
 #include <string>
 
@@ -40,6 +40,11 @@ struct NetworkConfig;
 namespace gemm {
 
 struct ProblemDescription : ProblemDescriptionBase
+#if MIOPEN_ENABLE_SQLITE
+    ,
+                            SQLiteSerializable<ProblemDescription>
+#endif
+
 {
     ProblemDescription(){}
     ProblemDescription(const GemmNewDescriptor& gemmDesc_,
@@ -70,6 +75,22 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         obj.Serialize(os);
         return os;
+    }
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(int, std::string)> f)
+    {
+        // Once we tune gemm kernels we will not ignore.
+        std::ignore = self;
+        std::ignore = f;
+    }
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    {
+        // Once we tune gemm kernels we will not ignore.
+        std::ignore = self;
+        std::ignore = f;
     }
 
     private:

@@ -44,6 +44,7 @@ enum miopenFusionOp_t
     miopenFusionOpBatchNormFwdTrain  = 4,
     miopenFusionOpBatchNormBwdTrain  = 5,
     miopenFusionOpActivBackward      = 6,
+    miopenFusionOpGEMM               = 7,
 };
 
 enum MDGraph_op_t

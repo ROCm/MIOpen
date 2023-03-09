@@ -108,6 +108,31 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t GemmFusion(Handle& handle,
+                        GemmNewDescriptor gemm_desc,
+                        const TensorDescriptor& ADesc,
+                        ConstData_t A_data,
+                        const TensorDescriptor& BDesc,
+                        ConstData_t B_data,
+                        const TensorDescriptor& CDesc,
+                        Data_t C_data)
+{
+    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, ADesc};
+    OperatorArgs fusionArgs;
+    // Create gemm Operation. This operation will be part of fusion plan.
+    auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, BDesc);
+    // Add Operation Gemm as part of fusion plan.
+    MIOPEN_CHECK(fusePlanDesc.AddOp(gemmOp));
+    // compile fusion solver
+    MIOPEN_CHECK(fusePlanDesc.Compile(handle));
+    // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
+    // prepared when we call RunTunableSolver.
+    gemmOp->SetArgs(fusionArgs, B_data);
+    // execute fusion solver
+    MIOPEN_CHECK(fusePlanDesc.Execute(handle, ADesc, A_data, CDesc, C_data, fusionArgs));
+    return miopenStatusSuccess;
+}
+
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),
@@ -235,7 +260,9 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
 
 miopenStatus_t GemmOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
-    output_desc = input_desc;
+    std::vector<int> lens_in = {gemm_descriptor.GetM(),gemm_descriptor.GetN()};
+    TensorDescriptor temp(input_desc.GetType(), input_desc.GetLayout_t(), lens_in);
+    output_desc = temp;
     return miopenStatusSuccess;
 }
 
@@ -414,7 +441,9 @@ static auto GetFusedSolvers()
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
-                                   solver::fusion::BnBwdTrgActivationFused>{};
+                                   //solver::fusion::BnBwdTrgActivationFused>{};
+                                   solver::fusion::BnBwdTrgActivationFused,
+                                   solver::fusion::CKIgemm>{};
 }
 
 static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
@@ -505,6 +534,11 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     }
 
     const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
+    if(!invoker)
+    {
+        MIOPEN_THROW(miopenStatusNotInitialized, "The Fusion Plan could not find invoker.");
+    }
+    
     const auto plan_params =
         fusion::FusionInvokeParams{op_args, inputDesc, input, outputDesc, output, false};
     (*invoker)(handle, plan_params);
