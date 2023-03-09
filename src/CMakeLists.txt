@@ -834,6 +834,10 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
+if(MIOPEN_BACKEND_HIP)
+target_link_libraries(MIOpen PRIVATE gputt)
+endif()
+
 ############################################################
 # Installation
 set(MIOPEN_CXX_HEADER_PATH)
