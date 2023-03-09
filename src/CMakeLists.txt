@@ -143,7 +143,6 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
-    solver/gemm/gemm_solver.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
@@ -482,7 +481,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
-        ocl/gemm_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
@@ -514,8 +512,7 @@ endif()
 if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS OR MIOPEN_USE_MIOPENTENSILE)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
-        miopengemm.cpp
-        gemm_rocblas.cpp       
+        miopengemm.cpp      
     )
 endif()
 

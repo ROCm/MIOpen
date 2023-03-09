@@ -83,16 +83,6 @@ struct GemmNewDescriptor : miopenGemmDescriptor
 
     void SetIsColMajor(bool);
 
-    miopenStatus_t CallGemm(Handle& handle,
-                            const void* alpha_,
-                            const TensorDescriptor& ADesc,
-                            ConstData_t A,
-                            const void* BOOST_CONCEPT_ASSERT_FN,
-                            const TensorDescriptor& BDesc,
-                            ConstData_t B,
-                            const TensorDescriptor& CDesc,
-                            Data_t C);
-
     // stream out operator overloading for MIOpen log functions
     friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
