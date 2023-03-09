@@ -93,12 +93,12 @@ TEST_P(GemmTestHalf, CKGEMM)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, A_tensor.desc, a_dev.get(), C_tensor.desc, c_dev.get(), false);
-    
+
     RunTunableSolver<miopen::solver::fusion::CKGEMM>(
         fusePlanDesc, plan_params, gemm_config, test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(GemmSolverTest,
                          GemmTestHalf,
-                         testing::Combine(testing::ValuesIn(GetTestData()), 
+                         testing::Combine(testing::ValuesIn(GetTestData()),
                                           testing::Values(miopenTensorNCHW)));

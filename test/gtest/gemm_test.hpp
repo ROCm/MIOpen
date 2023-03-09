@@ -56,7 +56,7 @@ miopenDataType_t GetDataType<half_float::half>()
     return miopenHalf;
 }
 
-//a[m, k] * b[k,n] = c[m, n]
+// a[m, k] * b[k,n] = c[m, n]
 
 struct GemmTestCase
 {
@@ -72,25 +72,21 @@ struct GemmTestCase
 
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
-        return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K 
-                  << ", A(" << tc.M << "," << tc.K << ")"
+        return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K << ", A(" << tc.M << ","
+                  << tc.K << ")"
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
-                  << " StrideA: " << tc.StrideA
-                  << " StrideB: " << tc.StrideB
-                  << " StrideC: " << tc.StrideC
-                  << " dataType: " << tc.dataType
-                  << " )";
+                  << " StrideA: " << tc.StrideA << " StrideB: " << tc.StrideB
+                  << " StrideC: " << tc.StrideC << " dataType: " << tc.dataType << " )";
     }
-    std::vector<int> GetA(){ return {M, K};}
-    std::vector<int> GetB(){ return {K, N};}
-    std::vector<int> GetC(){ return {M, N};}
+    std::vector<int> GetA() { return {M, K}; }
+    std::vector<int> GetB() { return {K, N}; }
+    std::vector<int> GetC() { return {M, N}; }
 
     miopen::GemmNewDescriptor GetGemm()
     {
         return miopen::GemmNewDescriptor{M, N, K, StrideA, StrideB, StrideC, dataType};
     }
-    
 };
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -109,11 +105,10 @@ std::vector<GemmTestCase> GetTestData()
 {
     // A(M, K)  B(K, N), C(M, N)
 
-
     return {
         // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
-        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf}
-       // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
+        {960, 2048, 1024, 1024, 2048, 2048, miopenHalf}
+        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
         /*
         { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
         { 1024, 1024, 1024, 1024, 1024, 1024, miopenHalf},
@@ -123,8 +118,7 @@ std::vector<GemmTestCase> GetTestData()
 }
 
 template <typename T = half_float::half>
-struct GemmTest
-    : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
+struct GemmTest : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -142,19 +136,19 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
-        gemm_desc  = gemm_config.GetGemm();
+        gemm_desc = gemm_config.GetGemm();
 
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
 
-        a_dev  = handle.Write(A_tensor.data); 
-        b_dev  = handle.Write(B_tensor.data);
-        c_dev  = handle.Write(C_tensor.data);
+        a_dev = handle.Write(A_tensor.data);
+        b_dev = handle.Write(B_tensor.data);
+        c_dev = handle.Write(C_tensor.data);
 
-
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
+        fusePlanDesc = miopen::FusionPlanDescriptor(
+            miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
         // Create gemm Operation. This operation will be part of fusion plan.
-        auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
+        auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
         // Add Operation Gemm as part of fusion plan.
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
         // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
@@ -167,13 +161,12 @@ protected:
             return;
         ref_out = tensor<T>(gemm_config.GetC());
         std::cout << "start host gemm\n";
-        gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, 
-                       A_tensor, B_tensor, ref_out);
+        gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, A_tensor, B_tensor, ref_out);
         std::cout << "end  host gemm\n";
 
         auto&& handle = get_handle();
-        
-        C_tensor.data   = handle.Read<T>(c_dev, C_tensor.data.size());
+
+        C_tensor.data = handle.Read<T>(c_dev, C_tensor.data.size());
 
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(C_tensor)) << "GPU data is all zeros";
@@ -199,8 +192,8 @@ protected:
     bool test_skipped = false;
     miopen::FusionPlanDescriptor fusePlanDesc;
     miopen::OperatorArgs params;
-    const float alpha       = static_cast<float>(1.0f);
-    const float beta        = static_cast<float>(0);
+    const float alpha = static_cast<float>(1.0f);
+    const float beta  = static_cast<float>(0);
 
     miopenTensorLayout_t tensor_layout;
 };

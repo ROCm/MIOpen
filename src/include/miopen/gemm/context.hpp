@@ -50,9 +50,9 @@ struct GemmContext : ExecutionContext
 
     GemmContext() = default;
     GemmContext(const GemmNewDescriptor& gemm_desc,
-                       const TensorDescriptor& a_desc,
-                       const TensorDescriptor& b_desc,
-                       const TensorDescriptor& c_desc)
+                const TensorDescriptor& a_desc,
+                const TensorDescriptor& b_desc,
+                const TensorDescriptor& c_desc)
         : problem(gemm_desc, a_desc, b_desc, c_desc)
     {
     }

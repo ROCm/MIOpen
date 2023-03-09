@@ -293,10 +293,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              solver::fusion::ConvOclDirectFwdFused{}.SolverDbId(),
              miopenConvolutionAlgoDirect);
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             solver::fusion::CKGEMM{}.SolverDbId());
+    Register(registry, ++id, Primitive::Fusion, solver::fusion::CKGEMM{}.SolverDbId());
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvBinWinograd3x3U{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxS{}, miopenConvolutionAlgoWinograd);

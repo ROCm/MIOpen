@@ -100,20 +100,20 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 }
-#endif    
+#endif
 
 miopenStatus_t CallGemmRocblas(const Handle& handle,
-                                GemmNewDescriptor gemm_desc,
-                                ConstData_t A,
-                                int a_offset,
-                                ConstData_t B,
-                                int b_offset,
-                                Data_t C,
-                                int c_offset)
+                               GemmNewDescriptor gemm_desc,
+                               ConstData_t A,
+                               int a_offset,
+                               ConstData_t B,
+                               int b_offset,
+                               Data_t C,
+                               int c_offset)
 {
 
 #if MIOPEN_USE_ROCBLAS
-    
+
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     if(!gemm_desc.GetIsColMajor())
@@ -207,8 +207,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
             rocblas_datatype::rocblas_datatype_f32_r,
             rocblas_gemm_algo::rocblas_gemm_algo_standard,
             0,
-            0
-        );
+            0);
     }
     break;
 
@@ -278,8 +277,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
     break;
 
     case miopenDouble: {
-        MIOPEN_THROW(miopenStatusBadParm,
-                        "miopenDouble data type not supported by MIOpenGEMM.");
+        MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by MIOpenGEMM.");
     };
     break;
     }
@@ -287,12 +285,15 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
     if(handle.IsProfilingEnabled())
         ProfilingRecordStop(handle, start, stop);
 
-    if(rb_status != rocblas_status::rocblas_status_success){
+    if(rb_status != rocblas_status::rocblas_status_success)
+    {
         MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
-    } else{
+    }
+    else
+    {
         return miopenStatusSuccess;
     }
-    return miopenStatusUnknownError;  
+    return miopenStatusUnknownError;
 #else
     std::ignore = handle;
     std::ignore = gemm_desc;
@@ -306,4 +307,4 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
 #endif
 }
 
-} //namespace miopen
+} // namespace miopen

@@ -109,18 +109,18 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 }
 
 miopenStatus_t GemmFusion(Handle& handle,
-                        GemmNewDescriptor gemm_desc,
-                        const TensorDescriptor& ADesc,
-                        ConstData_t A_data,
-                        const TensorDescriptor& BDesc,
-                        ConstData_t B_data,
-                        const TensorDescriptor& CDesc,
-                        Data_t C_data)
+                          GemmNewDescriptor gemm_desc,
+                          const TensorDescriptor& ADesc,
+                          ConstData_t A_data,
+                          const TensorDescriptor& BDesc,
+                          ConstData_t B_data,
+                          const TensorDescriptor& CDesc,
+                          Data_t C_data)
 {
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, ADesc};
     OperatorArgs fusionArgs;
     // Create gemm Operation. This operation will be part of fusion plan.
-    auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, BDesc);
+    auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, BDesc);
     // Add Operation Gemm as part of fusion plan.
     MIOPEN_CHECK(fusePlanDesc.AddOp(gemmOp));
     // compile fusion solver
@@ -260,14 +260,13 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
 
 miopenStatus_t GemmOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
-    std::vector<int> lens_in = {gemm_descriptor.GetM(),gemm_descriptor.GetN()};
+    std::vector<int> lens_in = {gemm_descriptor.GetM(), gemm_descriptor.GetN()};
     TensorDescriptor temp(input_desc.GetType(), input_desc.GetLayout_t(), lens_in);
     output_desc = temp;
     return miopenStatusSuccess;
 }
 
-miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args,
-                                                ConstData_t b_data_)
+miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args, ConstData_t b_data_)
 {
     auto op_args = std::make_unique<fusion::GemmOpInvokeParam>(b_data_);
     args.SetArg(GetIdx(), std::move(op_args));
@@ -441,7 +440,7 @@ static auto GetFusedSolvers()
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
-                                   //solver::fusion::BnBwdTrgActivationFused>{};
+                                   // solver::fusion::BnBwdTrgActivationFused>{};
                                    solver::fusion::BnBwdTrgActivationFused,
                                    solver::fusion::CKGEMM>{};
 }
@@ -538,7 +537,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusNotInitialized, "The Fusion Plan could not find invoker.");
     }
-    
+
     const auto plan_params =
         fusion::FusionInvokeParams{op_args, inputDesc, input, outputDesc, output, false};
     (*invoker)(handle, plan_params);

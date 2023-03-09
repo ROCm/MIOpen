@@ -41,7 +41,7 @@ extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gem
 
 extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
                                                    int m_,
-                                                   int n_, 
+                                                   int n_,
                                                    int k_,
                                                    long long int strideA_,
                                                    long long int strideB_,
@@ -50,7 +50,8 @@ extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDe
 {
     MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, strideA_, strideB_, strideC_);
     return miopen::try_([&] {
-        miopen::deref(gemmDesc) = miopen::GemmNewDescriptor{m_, n_, k_, strideA_, strideB_, strideC_, dataType_};
+        miopen::deref(gemmDesc) =
+            miopen::GemmNewDescriptor{m_, n_, k_, strideA_, strideB_, strideC_, dataType_};
     });
 }
 
@@ -58,7 +59,7 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
                        const miopenTensorDescriptor_t BDesc,
                        const miopenGemmDescriptor_t gemmDesc)
 {
-    
+
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
@@ -70,13 +71,11 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
         {
             ss << "gemm";
         }
-        ss << " -n " << miopen::deref(ADesc).GetLengths()[0]
-           << " -c " << miopen::deref(ADesc).GetLengths()[1]
-           << " -M " << miopen::deref(ADesc).GetLengths()[2]
-           << " -K " << miopen::deref(ADesc).GetLengths()[3]
-           << " -N " << miopen::deref(BDesc).GetLengths()[3]
-           << " -alpha "<< miopen::deref(gemmDesc).GetAlpha()
-           << " -beta " << miopen::deref(gemmDesc).GetBeta();
+        ss << " -n " << miopen::deref(ADesc).GetLengths()[0] << " -c "
+           << miopen::deref(ADesc).GetLengths()[1] << " -M " << miopen::deref(ADesc).GetLengths()[2]
+           << " -K " << miopen::deref(ADesc).GetLengths()[3] << " -N "
+           << miopen::deref(BDesc).GetLengths()[3] << " -alpha "
+           << miopen::deref(gemmDesc).GetAlpha() << " -beta " << miopen::deref(gemmDesc).GetBeta();
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
@@ -88,7 +87,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
                                      const void* A,
                                      const void* beta,
                                      const miopenTensorDescriptor_t BDesc,
-                                     const void* B,                                                     
+                                     const void* B,
                                      const miopenTensorDescriptor_t CDesc,
                                      void* C)
 {
@@ -110,7 +109,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
                                          DataCast(A),
                                          beta,
                                          miopen::deref(BDesc),
-                                         DataCast(B),                                        
+                                         DataCast(B),
                                          miopen::deref(CDesc),
                                          DataCast(C));
     });

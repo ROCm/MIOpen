@@ -51,13 +51,13 @@ using AElementOp = ck::tensor_operation::element_wise::PassThrough;
 using BElementOp = ck::tensor_operation::element_wise::PassThrough;
 using CElementOp = ck::tensor_operation::element_wise::PassThrough;
 
-using Row = ck::tensor_layout::gemm::RowMajor;
-using Col = ck::tensor_layout::gemm::ColumnMajor;
+using Row     = ck::tensor_layout::gemm::RowMajor;
+using Col     = ck::tensor_layout::gemm::ColumnMajor;
 using ALayout = Row;
 using BLayout = Row;
 using CLayout = Row;
 
-using F16   = ck::half_t;
+using F16 = ck::half_t;
 
 using ADataType = F16;
 using BDataType = F16;
@@ -66,7 +66,7 @@ using CDataType = F16;
 const auto a_element_op = AElementOp{};
 const auto b_element_op = BElementOp{};
 const auto c_element_op = CElementOp{};
-#endif 
+#endif
 
 namespace miopen {
 namespace solver {
@@ -82,7 +82,6 @@ using DeviceOp = ck::tensor_operation::device::DeviceGemm<ALayout,
                                                           AElementOp,
                                                           BElementOp,
                                                           CElementOp>;
-
 
 struct CKArgs
 {
@@ -104,13 +103,12 @@ struct CKArgs
     int StrideA;
     int StrideB;
     int StrideC;
- 
 };
 
 template <typename DataType>
 void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& problem)
 {
-    const auto& args = CKArgs{problem};
+    const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
     assert(!gemm_ptrs.empty());
@@ -146,7 +144,7 @@ template <typename DataType>
 bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
     const miopen::gemm::ProblemDescription& problem) const
 {
-    const auto& args = CKArgs{problem};
+    const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
     int i = 0;
@@ -163,24 +161,24 @@ bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
     }
 
     auto argument_ptr = gemm_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    args.M,
-                                                    args.N,
-                                                    args.K,
-                                                    args.StrideA,
-                                                    args.StrideB,
-                                                    args.StrideC,
-                                                    a_element_op,
-                                                    b_element_op,
-                                                    c_element_op);
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.M,
+                                                          args.N,
+                                                          args.K,
+                                                          args.StrideA,
+                                                          args.StrideB,
+                                                          args.StrideC,
+                                                          a_element_op,
+                                                          b_element_op,
+                                                          c_element_op);
     return gemm_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
 bool CKGEMM::CheckCKApplicability(const miopen::gemm::ProblemDescription& problem) const
 {
-    const auto& args = CKArgs{problem};
+    const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
     for(const auto& it : gemm_ptrs)
@@ -197,7 +195,8 @@ bool CKGEMM::CheckCKApplicability(const miopen::gemm::ProblemDescription& proble
                                                     a_element_op,
                                                     b_element_op,
                                                     c_element_op);
-        if(it->IsSupportedArgument(argument_ptr.get())){
+        if(it->IsSupportedArgument(argument_ptr.get()))
+        {
             return true;
         }
     }
@@ -210,7 +209,7 @@ void RunCKSolution(const Handle& handle,
                    const miopen::gemm::ProblemDescription& problem,
                    const PerformanceConfigCKGEMM& config)
 {
-    const auto& args = CKArgs{problem};
+    const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
 
@@ -233,10 +232,10 @@ void RunCKSolution(const Handle& handle,
 
     auto argument_ptr = gemm_ck->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            static_cast<const void*>(invoke_ctx.in)), // 
-        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(invoke_ctx.in)), //
+        const_cast<void*>(                    // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(b_buf)), // b
-        invoke_ctx.out, // c
+        invoke_ctx.out,                       // c
         args.M,
         args.N,
         args.K,
@@ -246,12 +245,11 @@ void RunCKSolution(const Handle& handle,
         a_element_op,
         b_element_op,
         c_element_op);
-                                                    
+
     auto invoker_ptr            = gemm_ck->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    
 
     if(enable_profiling)
     {
@@ -330,27 +328,25 @@ bool PerformanceConfigCKGEMM::IsValid(const FusionContext& ctx) const
 #endif
 }
 
-bool PerformanceConfigCKGEMM::operator==(
-    const PerformanceConfigCKGEMM& other) const
+bool PerformanceConfigCKGEMM::operator==(const PerformanceConfigCKGEMM& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
-PerformanceConfigCKGEMM
-CKGEMM::GetDefaultPerformanceConfig(const FusionContext& ctx) const
+PerformanceConfigCKGEMM CKGEMM::GetDefaultPerformanceConfig(const FusionContext& ctx) const
 {
     PerformanceConfigCKGEMM pp;
     pp.HeuristicInit(ctx);
     return pp;
 }
 
-bool CKGEMM::IsValidPerformanceConfig(
-    const FusionContext& ctx, const PerformanceConfigCKGEMM& config) const
+bool CKGEMM::IsValidPerformanceConfig(const FusionContext& ctx,
+                                      const PerformanceConfigCKGEMM& config) const
 {
     return config.IsValid(ctx);
 }
 
-PerformanceConfigCKGEMM
-CKGEMM::Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigCKGEMM CKGEMM::Search(const FusionContext& ctx,
+                                       const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
@@ -374,11 +370,12 @@ bool CKGEMM::IsApplicable(const FusionContext& ctx) const
     }
     if(problem.GetADataType() != problem.GetBDataType() ||
        problem.GetADataType() != problem.GetCDataType())
-       {
+    {
         return false;
-       }
+    }
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a"){
+    if(arch != "gfx908" && arch != "gfx90a")
+    {
         return false;
     }
 
@@ -396,9 +393,8 @@ bool CKGEMM::IsApplicable(const FusionContext& ctx) const
 #endif
 }
 
-ConvSolution
-CKGEMM::GetSolution(const FusionContext& ctx,
-                                     const PerformanceConfigCKGEMM& config) const
+ConvSolution CKGEMM::GetSolution(const FusionContext& ctx,
+                                 const PerformanceConfigCKGEMM& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;

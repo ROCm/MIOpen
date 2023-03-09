@@ -40,7 +40,7 @@
 
 #include "../driver/tensor_driver.hpp"
 
-//a[m, k] * b[k,n] = c[m, n]
+// a[m, k] * b[k,n] = c[m, n]
 struct GemmTestCase
 {
     int M;
@@ -55,19 +55,16 @@ struct GemmTestCase
 
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
-        return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K 
-                  << ", A(" << tc.M << "," << tc.K << ")"
+        return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K << ", A(" << tc.M << ","
+                  << tc.K << ")"
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
-                  << " StrideA: " << tc.StrideA
-                  << " StrideB: " << tc.StrideB
-                  << " StrideC: " << tc.StrideC
-                  << " dataType: " << tc.dataType
-                  << " )";
+                  << " StrideA: " << tc.StrideA << " StrideB: " << tc.StrideB
+                  << " StrideC: " << tc.StrideC << " dataType: " << tc.dataType << " )";
     }
-    std::vector<int> GetA(){ return {M, K};}
-    std::vector<int> GetB(){ return {K, N};}
-    std::vector<int> GetC(){ return {M, N};}
+    std::vector<int> GetA() { return {M, K}; }
+    std::vector<int> GetB() { return {K, N}; }
+    std::vector<int> GetC() { return {M, N}; }
 };
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -86,11 +83,10 @@ std::vector<GemmTestCase> GetTestData()
 {
     // A(M, K)  B(K, N), C(M, N)
 
-
     return {
         // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
-        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf} // remove miopenHalf
-       // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
+        {960, 2048, 1024, 1024, 2048, 2048, miopenHalf} // remove miopenHalf
+        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
         /*
         { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
         { 1024, 1024, 1024, 1024, 1024, 1024, miopenHalf},
@@ -100,16 +96,15 @@ std::vector<GemmTestCase> GetTestData()
 }
 
 template <typename T = half_float::half>
-struct GemmAPIFusionTest
-    : public ::testing::TestWithParam<std::tuple<GemmTestCase>>
+struct GemmAPIFusionTest : public ::testing::TestWithParam<std::tuple<GemmTestCase>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(gemm_config)                = GetParam();
-        A_tensor                             = tensor<T>(gemm_config.GetA());
-        B_tensor                             = tensor<T>(gemm_config.GetB());
-        C_tensor                             = tensor<T>(gemm_config.GetC());
+        std::tie(gemm_config) = GetParam();
+        A_tensor              = tensor<T>(gemm_config.GetA());
+        B_tensor              = tensor<T>(gemm_config.GetB());
+        C_tensor              = tensor<T>(gemm_config.GetC());
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -118,29 +113,32 @@ protected:
         B_tensor.generate(gen_value);
 
         miopenCreateGemmDescriptor(&gemm_desc);
-        miopenInitGemmDescriptor(gemm_desc, gemm_config.M, gemm_config.N, 
-                                 gemm_config.K,  gemm_config.StrideA,  
-                                 gemm_config.StrideB, gemm_config.StrideC, gemm_config.dataType);
+        miopenInitGemmDescriptor(gemm_desc,
+                                 gemm_config.M,
+                                 gemm_config.N,
+                                 gemm_config.K,
+                                 gemm_config.StrideA,
+                                 gemm_config.StrideB,
+                                 gemm_config.StrideC,
+                                 gemm_config.dataType);
 
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
 
-        a_dev  = handle.Write(A_tensor.data); 
-        b_dev  = handle.Write(B_tensor.data);
-        c_dev  = handle.Write(C_tensor.data);
-
+        a_dev = handle.Write(A_tensor.data);
+        b_dev = handle.Write(B_tensor.data);
+        c_dev = handle.Write(C_tensor.data);
     }
     void TearDown() override
     {
         ref_out = tensor<T>(gemm_config.GetC());
         std::cout << "start host gemm\n";
-        gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, 
-                       A_tensor, B_tensor, ref_out);
+        gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, A_tensor, B_tensor, ref_out);
         std::cout << "end  host gemm\n";
 
         auto&& handle = get_handle();
-        
-        C_tensor.data   = handle.Read<T>(c_dev, C_tensor.data.size());
+
+        C_tensor.data = handle.Read<T>(c_dev, C_tensor.data.size());
 
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(C_tensor)) << "GPU data is all zeros";
@@ -163,28 +161,26 @@ protected:
     tensor<T> ref_out;
     miopen::Allocator::ManageDataPtr a_dev;
     miopen::Allocator::ManageDataPtr b_dev;
-    miopen::Allocator::ManageDataPtr c_dev; 
+    miopen::Allocator::ManageDataPtr c_dev;
 };
 
 struct GemmAPIFusionTestHalf : GemmAPIFusionTest<half_float::half>
 {
 };
 
-
 TEST_P(GemmAPIFusionTestHalf, GEMMAPI)
 {
     const auto status = miopenGemmFusion(&get_handle(),
-                                        gemm_desc,
-                                        &A_tensor.desc,
-                                        a_dev.get(), 
-                                        &B_tensor.desc,
-                                        b_dev.get(), 
-                                        &C_tensor.desc,
-                                        c_dev.get());
+                                         gemm_desc,
+                                         &A_tensor.desc,
+                                         a_dev.get(),
+                                         &B_tensor.desc,
+                                         b_dev.get(),
+                                         &C_tensor.desc,
+                                         c_dev.get());
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
-
 
 INSTANTIATE_TEST_SUITE_P(GEMMAPITest,
                          GemmAPIFusionTestHalf,

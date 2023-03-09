@@ -66,8 +66,7 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
             }
             else if(op->kind() == miopenFusionOpGEMM)
             {
-                const auto prob =
-                    GetGemmProblem(op->GetIdx());
+                const auto prob = GetGemmProblem(op->GetIdx());
                 net_config << prob.MakeNetworkConfig().ToString();
             }
             else
@@ -77,13 +76,14 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         MIOPEN_LOG_I2(net_config.str());
     }
-    
+
     static std::string table_name() { return "config"; } // revisit this
-    
+
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        if(self.fusion_plan_desc->conv_fwd_algo){
+        if(self.fusion_plan_desc->conv_fwd_algo)
+        {
             auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
             ProblemDescription::Visit(conv_prob, f);
         }
@@ -94,7 +94,7 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
             std::ignore = f;
         }
     }
-    
+
     // This and the following method should be moved to the Ops once the return type can be unified
     miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
     {
@@ -119,16 +119,13 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
 
     miopen::gemm::ProblemDescription GetGemmProblem(size_t idx) const
     {
-        const auto& gemm_op =
-            dynamic_cast<GemmOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
-        
+        const auto& gemm_op = dynamic_cast<GemmOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+
         TensorDescriptor out_desc;
         gemm_op.GetOutputDesc(out_desc);
-        
-        return miopen::gemm::ProblemDescription{gemm_op.gemm_descriptor,
-                                          gemm_op.input_desc,
-                                          gemm_op.B_desc,
-                                          out_desc};
+
+        return miopen::gemm::ProblemDescription{
+            gemm_op.gemm_descriptor, gemm_op.input_desc, gemm_op.B_desc, out_desc};
     }
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,

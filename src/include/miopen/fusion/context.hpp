@@ -55,11 +55,10 @@ struct FusionContext : miopen::ExecutionContext
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }
-    GemmContext
-    GetGemmContext(size_t idx, const FusionDescription& fusion_problem) const
+    GemmContext GetGemmContext(size_t idx, const FusionDescription& fusion_problem) const
     {
         const auto gemm_problem = fusion_problem.GetGemmProblem(idx);
-        auto ctx = GemmContext{gemm_problem, *this};
+        auto ctx                = GemmContext{gemm_problem, *this};
         ctx.SetStream(&this->GetStream());
         ctx.DetectRocm();
         ctx.SetupFloats();

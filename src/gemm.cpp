@@ -31,52 +31,49 @@ namespace miopen {
 
 GemmNewDescriptor::GemmNewDescriptor() {}
 
-GemmNewDescriptor::GemmNewDescriptor(
-                    int m_,
-                    int n_, 
-                    int k_,
-                    long long int strideA_,
-                    long long int strideB_,
-                    long long int strideC_,
-                    miopenDataType_t dataType_
-                    )
+GemmNewDescriptor::GemmNewDescriptor(int m_,
+                                     int n_,
+                                     int k_,
+                                     long long int strideA_,
+                                     long long int strideB_,
+                                     long long int strideC_,
+                                     miopenDataType_t dataType_)
 {
-      this->isColMajor = true;
-      this->transA = false;
-      this->transB = false;
-      this->m = m_;
-      this->n = n_;
-      this->k = k_;
-      this->lda = 1;
-      this->ldb = 1;
-      this->ldc = 1;
-      this->strideA = strideA_;
-      this->strideB = strideB_;
-      this->strideC = strideC_;
-      this->alpha = 1;
-      this->beta = 1;
-      this->batch_count = 1;
-      this->dataType = dataType_; 
+    this->isColMajor  = true;
+    this->transA      = false;
+    this->transB      = false;
+    this->m           = m_;
+    this->n           = n_;
+    this->k           = k_;
+    this->lda         = 1;
+    this->ldb         = 1;
+    this->ldc         = 1;
+    this->strideA     = strideA_;
+    this->strideB     = strideB_;
+    this->strideC     = strideC_;
+    this->alpha       = 1;
+    this->beta        = 1;
+    this->batch_count = 1;
+    this->dataType    = dataType_;
 }
 
-GemmNewDescriptor::GemmNewDescriptor(
-                   bool isColMajor_,
-                   bool transA_,
-                   bool transB_,
-                   int m_,
-                   int n_, 
-                   int k_,
-                   int lda_,
-                   int ldb_,
-                   int ldc_,
-                   long long int strideA_,
-                   long long int strideB_,
-                   long long int strideC_,
-                   double alpha_,
-                   double beta_,
-                   int batch_count_,
-                   miopenDataType_t dataType_)
-    :isColMajor(isColMajor_),
+GemmNewDescriptor::GemmNewDescriptor(bool isColMajor_,
+                                     bool transA_,
+                                     bool transB_,
+                                     int m_,
+                                     int n_,
+                                     int k_,
+                                     int lda_,
+                                     int ldb_,
+                                     int ldc_,
+                                     long long int strideA_,
+                                     long long int strideB_,
+                                     long long int strideC_,
+                                     double alpha_,
+                                     double beta_,
+                                     int batch_count_,
+                                     miopenDataType_t dataType_)
+    : isColMajor(isColMajor_),
       transA(transA_),
       transB(transB_),
       m(m_),
@@ -127,7 +124,7 @@ int GemmNewDescriptor::GetBatchCount() const { return this->batch_count; }
 
 miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
 
-void GemmNewDescriptor::SetIsColMajor(bool icm){ this->isColMajor = icm; }
+void GemmNewDescriptor::SetIsColMajor(bool icm) { this->isColMajor = icm; }
 
 std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& gemm_desc)
 {

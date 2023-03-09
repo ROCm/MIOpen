@@ -64,7 +64,7 @@
  * @defgroup TensorReduce
  * @defgroup find2
  * @defgroup gemm
- *  
+ *
  */
 
 /*! Constructs type name from a struct */
@@ -2709,18 +2709,16 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
  * @param gemmDesc Pointer to an gemm tensor descriptor type
  * @return          miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
 
-MIOPEN_EXPORT miopenStatus_t
-miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
-                                                   int m_,
-                                                   int n_, 
-                                                   int k_,
-                                                   long long int strideA_,
-                                                   long long int strideB_,
-                                                   long long int strideC_,
-                                                   miopenDataType_t dataType_);
+MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
+                                                      int m_,
+                                                      int n_,
+                                                      int k_,
+                                                      long long int strideA_,
+                                                      long long int strideB_,
+                                                      long long int strideC_,
+                                                      miopenDataType_t dataType_);
 
 /*! @brief Execute a gemm fusion layer
  *
@@ -2735,21 +2733,20 @@ miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGemmFusion(miopenHandle_t handle,
-                                        const miopenGemmDescriptor_t gemmDesc,
-                                        const miopenTensorDescriptor_t ADesc,
-                                        const void* A,
-                                        const miopenTensorDescriptor_t BDesc,
-                                        const void* B,                                                     
-                                        const miopenTensorDescriptor_t CDesc,
-                                        void* C);
+                                              const miopenGemmDescriptor_t gemmDesc,
+                                              const miopenTensorDescriptor_t ADesc,
+                                              const void* A,
+                                              const miopenTensorDescriptor_t BDesc,
+                                              const void* B,
+                                              const miopenTensorDescriptor_t CDesc,
+                                              void* C);
 
 /*! @brief Destroys the gemm descriptor object
  *
  * @param gemmDesc   Gemm tensor descriptor type (input)
  * @return            miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
 
 /** @} */
 // CLOSEOUT GEMM DOXYGEN GROUP

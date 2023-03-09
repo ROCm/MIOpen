@@ -41,13 +41,12 @@
 /// and vice versa. This independency could be important, because, for example, the driver
 /// implements its own cache of verification data and change or GET_RAND() would break it.
 
-//namespace test{ // add this
+// namespace test{ // add this
 
 static inline int GET_RAND()
 {
     return rand(); // NOLINT (concurrency-mt-unsafe)
 }
-
 
 // template <typename T>
 // static T RAN_GEN(T A, T B)
@@ -56,6 +55,6 @@ static inline int GET_RAND()
 //    return r;
 //}
 
-//} // namespace test 
+//} // namespace test
 
 #endif

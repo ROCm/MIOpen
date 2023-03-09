@@ -316,20 +316,14 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
-struct PerformanceConfigCKGEMM
-    : PerfConfigBase<PerformanceConfigCKGEMM>
+struct PerformanceConfigCKGEMM : PerfConfigBase<PerformanceConfigCKGEMM>
 {
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigCKGEMM(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id)
-    {
-    }
+    PerformanceConfigCKGEMM(int idx, std::string kernl_id) : index(idx), kernel_id(kernl_id) {}
     PerformanceConfigCKGEMM() : PerformanceConfigCKGEMM(0, "") {}
-    PerformanceConfigCKGEMM(bool) : PerformanceConfigCKGEMM(0, "")
-    {
-    }
+    PerformanceConfigCKGEMM(bool) : PerformanceConfigCKGEMM(0, "") {}
     void HeuristicInit(const FusionContext& ctx);
     bool SetNextValue(const FusionContext& ctx);
     bool IsValidValue() const;
@@ -351,18 +345,13 @@ private:
 
 struct CKGEMM final : FusionTunableSolver<PerformanceConfigCKGEMM>
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<CKGEMM>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMM>(); }
 
-    PerformanceConfigCKGEMM
-    GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
-    bool
-    IsValidPerformanceConfig(const FusionContext& ctx,
-                             const PerformanceConfigCKGEMM& config) const override;
-    PerformanceConfigCKGEMM
-    Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const override;
+    PerformanceConfigCKGEMM GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    bool IsValidPerformanceConfig(const FusionContext& ctx,
+                                  const PerformanceConfigCKGEMM& config) const override;
+    PerformanceConfigCKGEMM Search(const FusionContext& ctx,
+                                   const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const FusionContext& ctx) const override;
     ConvSolution GetSolution(const FusionContext& ctx,
                              const PerformanceConfigCKGEMM& config) const override;

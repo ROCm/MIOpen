@@ -29,14 +29,15 @@
 #include "ford.hpp"
 #include <miopen/returns.hpp>
 
-template<class CF, class T>
-void setC( CF& c, int i, int j, T value)
+template <class CF, class T>
+void setC(CF& c, int i, int j, T value)
 {
-    if constexpr (std::is_same_v<CF, tensor<T>>)
+    if constexpr(std::is_same_v<CF, tensor<T>>)
     {
-       c[c.desc.GetIndex(i, j)] = value;
+        c[c.desc.GetIndex(i, j)] = value;
     }
-    else{
+    else
+    {
         c(i, j, value);
     }
 }

@@ -48,7 +48,7 @@ miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::stringstream& /*network
 }
 
 miopenStatus_t GemmOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
-                                                            Handle& /*handle*/)
+                                                  Handle& /*handle*/)
 {
     network_config << "Gemm";
     return miopenStatusSuccess;

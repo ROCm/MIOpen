@@ -36,14 +36,13 @@ struct TensorDescriptor;
 struct GemmNewDescriptor;
 
 miopenStatus_t CallGemmRocblas(const Handle& handle,
-                                GemmNewDescriptor gemm_desc,
-                                ConstData_t A,
-                                int a_offset,
-                                ConstData_t B,
-                                int b_offset,
-                                Data_t C,
-                                int c_offset);
-
+                               GemmNewDescriptor gemm_desc,
+                               ConstData_t A,
+                               int a_offset,
+                               ConstData_t B,
+                               int b_offset,
+                               Data_t C,
+                               int c_offset);
 
 } // namespace miopen
 
