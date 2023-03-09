@@ -61,7 +61,7 @@ struct OCLSetKernelArg
     template <class I, class T>
     void operator()(cl_kernel kernel, I i, const T& x) const
     {
-        cl_int status =
+        const cl_int status =
             clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x)); // NOLINT
         if(status != CL_SUCCESS)
         {
