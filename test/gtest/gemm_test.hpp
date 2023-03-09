@@ -108,7 +108,7 @@ std::vector<GemmTestCase> GetTestData()
     return {
         // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
         {960, 2048, 1024, 1024, 2048, 2048, miopenHalf}
-        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
+        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} /////
         /*
         { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
         { 1024, 1024, 1024, 1024, 1024, 1024, miopenHalf},
@@ -160,10 +160,7 @@ protected:
         if(test_skipped)
             return;
         ref_out = tensor<T>(gemm_config.GetC());
-        std::cout << "start host gemm\n";
         gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, A_tensor, B_tensor, ref_out);
-        std::cout << "end  host gemm\n";
-
         auto&& handle = get_handle();
 
         C_tensor.data = handle.Read<T>(c_dev, C_tensor.data.size());

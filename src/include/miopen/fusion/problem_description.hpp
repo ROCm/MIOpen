@@ -120,7 +120,6 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
     miopen::gemm::ProblemDescription GetGemmProblem(size_t idx) const
     {
         const auto& gemm_op = dynamic_cast<GemmOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
-
         TensorDescriptor out_desc;
         gemm_op.GetOutputDesc(out_desc);
 
