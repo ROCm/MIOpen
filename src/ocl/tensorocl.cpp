@@ -36,7 +36,6 @@
 #include <cassert>
 #include <numeric>
 #include <boost/range/combine.hpp>
-#define __HIPCC__
 #include <gputt.h>
 
 #define MIO_TENSOROCL_DEBUG 0
