@@ -2172,7 +2172,7 @@ void TransformTensor(const Handle& handle,
         MIOPEN_THROW("Tensor dimension must be the same");
     }
 
-#if 0
+#if MIOPEN_BACKEND_HIP
     // Prepare to perform Y_perm(i0, i1, ...) = alpha * X{i0,i1,...} + beta * Y_perm(i0,i1,...)
     // using gpuTT library.
     auto xLayout = xDesc.GetLayout_str();
