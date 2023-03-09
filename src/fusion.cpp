@@ -443,7 +443,7 @@ static auto GetFusedSolvers()
                                    solver::fusion::BnFwdTrgActivationFused,
                                    //solver::fusion::BnBwdTrgActivationFused>{};
                                    solver::fusion::BnBwdTrgActivationFused,
-                                   solver::fusion::CKIgemm>{};
+                                   solver::fusion::CKGEMM>{};
 }
 
 static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,

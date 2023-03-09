@@ -89,12 +89,12 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     handle.Finish();
 }
 
-TEST_P(GemmTestHalf, CKIgemm)
+TEST_P(GemmTestHalf, CKGEMM)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, A_tensor.desc, a_dev.get(), C_tensor.desc, c_dev.get(), false);
     
-    RunTunableSolver<miopen::solver::fusion::CKIgemm>(
+    RunTunableSolver<miopen::solver::fusion::CKGEMM>(
         fusePlanDesc, plan_params, gemm_config, test_skipped);
 }
 
