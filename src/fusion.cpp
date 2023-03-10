@@ -397,7 +397,8 @@ static auto GetFusedSolvers()
     return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
                                    solver::fusion::ConvOclDirectFwdFused,
                                    solver::fusion::ConvBinWinogradRxSFused,
-                                   solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
+                                   solver::fusion::ConvBinWinogradRxSg1Fused<2, 3>,
+                                   solver::fusion::ConvBinWinogradRxSg1Fused<3, 2>,
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
                                    solver::fusion::BnBwdTrgActivationFused>{};

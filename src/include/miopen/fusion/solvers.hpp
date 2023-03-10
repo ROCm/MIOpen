@@ -222,13 +222,19 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
-struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
+template <int Winodata, int Winofilter>
+struct ConvBinWinogradRxSg1Fused final : FusionSolverBase
 {
     using FusionSolverBase::IsApplicable;
 
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
+        static const std::string dbId = std::string("ConvBinWinogradRxSf")
+                                            .append(std::to_string(Winodata))
+                                            .append("x")
+                                            .append(std::to_string(Winofilter))
+                                            .append("g1Fused");
+        return dbId;
     }
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
@@ -245,6 +251,19 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
+
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
+extern template struct ConvBinWinogradRxSg1Fused<2, 3>;
+extern template struct ConvBinWinogradRxSg1Fused<3, 2>;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 struct BnFwdInferActivationFused final : FusionSolverBase
 {

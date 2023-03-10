@@ -36,7 +36,8 @@ bool IsWinograd(const std::vector<solver::AnySolver>& ss)
 {
     assert(ss.size() == 1);
     auto solverId = ss[0].GetSolverDbId();
-    return (solverId == "ConvBinWinogradRxSFused" || solverId == "ConvBinWinogradRxSf2x3g1Fused");
+    return (solverId == "ConvBinWinogradRxSFused" || solverId == "ConvBinWinogradRxSf2x3g1Fused" ||
+            solverId == "ConvBinWinogradRxSf3x2g1Fused");
 }
 
 } // namespace fusion
