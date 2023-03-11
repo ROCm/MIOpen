@@ -23,6 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
+
+#if MIOPEN_BACKEND_HIP
 #include "log_test_helper.hpp"
 
 TEST(LOG_TEST, AssertLogCmdOutput)
@@ -34,3 +37,4 @@ TEST(LOG_TEST, AssertLogFindCmdOutput)
 {
     TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, true);
 }
+#endif
