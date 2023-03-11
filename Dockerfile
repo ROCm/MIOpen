@@ -1,8 +1,6 @@
 FROM ubuntu:20.04 as miopen
 ARG DEBIAN_FRONTEND=noninteractive
 
-ARG USE_MLIR="OFF"
-
 # Support multiarch
 RUN dpkg --add-architecture i386
 
@@ -27,8 +25,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     ./amdgpu-install_5.4.50403-1_all.deb
 
 # Add rocm repository
-# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
-# unless MLIR library is incompatible with current ROCm.
 RUN export ROCM_APT_VER=5.4.3;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu focal main > /etc/apt/sources.list.d/rocm.list'
