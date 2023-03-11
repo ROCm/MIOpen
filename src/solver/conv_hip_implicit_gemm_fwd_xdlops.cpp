@@ -295,7 +295,8 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -303,6 +304,7 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescripti
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -315,12 +317,6 @@ ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
-}
-
-size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
-{
-    std::ignore = ctx;
-    return 0;
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,

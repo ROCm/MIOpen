@@ -602,8 +602,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(
-    const ConvolutionContext& /*config*/)
+bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {
@@ -756,6 +755,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {

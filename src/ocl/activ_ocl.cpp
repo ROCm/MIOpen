@@ -29,7 +29,6 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/activ/invoke_params.hpp>
-#include <miopen/activ/problem_description.hpp>
 #include <miopen/activ/solvers.hpp>
 #include <miopen/find_solution.hpp>
 

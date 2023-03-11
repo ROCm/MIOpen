@@ -27,7 +27,6 @@
 #include <miopen/batchnorm/solvers.hpp>
 
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>

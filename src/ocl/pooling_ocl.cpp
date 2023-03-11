@@ -27,7 +27,6 @@
 #include <miopen/pooling.hpp>
 
 #include <miopen/pooling/invoke_params.hpp>
-#include <miopen/pooling/problem_description.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/datatype.hpp>
