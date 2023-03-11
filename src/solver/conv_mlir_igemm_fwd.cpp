@@ -109,7 +109,7 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx,
 #endif
 }
 
-bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConvMlirIgemm::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
         return false;
@@ -136,9 +136,9 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                              const ProblemDescription&) const
 {
-    std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 

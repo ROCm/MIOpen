@@ -562,7 +562,7 @@ void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -607,7 +607,8 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&,
+                                                        const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -779,7 +780,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     std::tie(GemmCThreadCopyDstDataPerWrite_GemmN1, std::ignore) =
         config.CalculateGemmCThreadCopyPerformanceParameters(problem);
 
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     // clang-format off
     construction_parameters.comp_options =

@@ -88,7 +88,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ProblemDescription&)
 {
     do
     {
@@ -815,7 +815,9 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext&
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
     return config.IsReallyValid(problem);
 }

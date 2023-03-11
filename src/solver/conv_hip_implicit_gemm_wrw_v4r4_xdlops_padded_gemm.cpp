@@ -94,8 +94,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(const ProblemDescription&)
 {
     do
     {
@@ -1099,7 +1098,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
             }
         };
     };
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
     return result;
 }
 
@@ -1193,7 +1192,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& c
 }
 
 std::size_t ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(
-    const ProblemDescription& problem) const
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;

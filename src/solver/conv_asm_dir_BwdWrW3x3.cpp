@@ -62,7 +62,7 @@ inline static bool Inc_1_2_4_8(int& v)
 
 inline static bool Is_1_2_4_8(const int& v) { return v == 1 || v == 2 || v == 4 || v == 8; }
 
-bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do

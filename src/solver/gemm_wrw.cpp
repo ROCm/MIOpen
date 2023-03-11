@@ -128,12 +128,6 @@ float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 #endif
 }
 
-size_t GemmWrw1x1_stride1::GetWorkspaceSize(const ExecutionContext&,
-                                            const conv::ProblemDescription&) const
-{
-    return 0;
-}
-
 bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
                                       const conv::ProblemDescription& problem) const
 {
