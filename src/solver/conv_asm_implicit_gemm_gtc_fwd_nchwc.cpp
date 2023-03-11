@@ -430,8 +430,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
     find_with_gemm_k_pad();
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {
@@ -518,7 +517,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
 
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
-    const ProblemDescription& problem) const
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC pp;
     pp.HeuristicInit(problem);
@@ -527,6 +526,7 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {

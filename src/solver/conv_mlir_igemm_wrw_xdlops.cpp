@@ -63,9 +63,9 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                    const ProblemDescription&) const
 {
-    std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
