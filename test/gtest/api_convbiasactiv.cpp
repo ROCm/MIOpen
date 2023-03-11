@@ -23,6 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
+
+#if MIOPEN_BACKEND_HIP
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -194,3 +197,4 @@ INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
                                                           miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetTestValues())));
+#endif
