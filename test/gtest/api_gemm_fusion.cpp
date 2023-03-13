@@ -178,10 +178,30 @@ TEST_P(GemmAPIFusionTestHalf, GEMMAPI)
                                          b_dev.get(),
                                          &C_tensor.desc,
                                          c_dev.get());
-
     EXPECT_EQ(status, miopenStatusSuccess);
+}
+
+void GatherGemmTestCase(std::vector<GemmTestCase>& cba_test_cases)
+{
+    std::string arch = get_handle().GetDeviceName();
+    if(miopen::StartsWith(arch, "gfx908") || miopen::StartsWith(arch, "gfx90a"))
+    {
+        cba_test_cases.push_back(GemmTestCase{960, 2048, 1024, 1024, 2048, 2048, miopenHalf});
+    }
+    else
+    {
+        GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
+    }
+}
+
+// Extra layer of indirection introduced since GTEST_SKIP() cannot be called from non-void function.
+std::vector<GemmTestCase> GetTestValues()
+{
+    std::vector<GemmTestCase> cba_test_cases;
+    GatherGemmTestCase(cba_test_cases);
+    return cba_test_cases;
 }
 
 INSTANTIATE_TEST_SUITE_P(GEMMAPITest,
                          GemmAPIFusionTestHalf,
-                         testing::Combine(testing::ValuesIn(GetTestData())));
+                         testing::Combine(testing::ValuesIn(GetTestValues())));

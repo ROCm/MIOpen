@@ -486,6 +486,14 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
         sols = tmp_sols;
+
+    // If sols.empty() and fuson Opration type is GEMM,
+    // in that case we return miopenStatusGpuOperationsSkipped.
+    if(sols.empty() && op_map[0]->kind() == miopen::miopenFusionOpGEMM)
+    {
+        return miopenStatusGpuOperationsSkipped;
+    }
+
     if(sols.empty())
         return miopenStatusUnsupportedOp;
     else
