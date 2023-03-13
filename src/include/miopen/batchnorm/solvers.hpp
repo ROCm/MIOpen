@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 
 #include <utility>
 
@@ -36,38 +37,12 @@
 
 namespace miopen {
 
-namespace batchnorm {
-struct ProblemDescription;
-} // namespace batchnorm
-
 namespace solver {
 
 namespace batchnorm {
 
-using OldStyleProblemDescription =
-    std::tuple<const ExecutionContext*, const miopen::batchnorm::ProblemDescription*>;
-
-struct BatchnormSolver : SolverMixin<OldStyleProblemDescription>
-{
-    // To suppress -Woverloaded-virtual
-    using SolverMixin::IsApplicable;
-
-    bool IsApplicable(const OldStyleProblemDescription& problem) const final
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::batchnorm::ProblemDescription& problem) const = 0;
-    virtual ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::batchnorm::ProblemDescription& problem) const = 0;
-};
+using BatchnormSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::batchnorm::ProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {

@@ -36,46 +36,11 @@
 
 namespace miopen {
 
-namespace pooling {
-struct ProblemDescription;
-} // namespace pooling
-
 namespace solver {
 
 namespace pooling {
 
-using OldStyleProblemDescription =
-    std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
-
-struct PoolingSolver : SolverMixin<OldStyleProblemDescription>
-{
-    // To suppress -Woverloaded-virtual
-    using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
-    using SolverMixin<OldStyleProblemDescription>::IsApplicable;
-
-    bool IsApplicable(const OldStyleProblemDescription& problem) const final
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
-    {
-        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::pooling::ProblemDescription& problem) const        = 0;
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::pooling::ProblemDescription& problem) const = 0;
-    virtual std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::pooling::ProblemDescription& problem) const = 0;
-};
+using PoolingSolver = NonTunableSolverBase<ExecutionContext, miopen::pooling::ProblemDescription>;
 
 struct PoolingForward2d final : PoolingSolver
 {
