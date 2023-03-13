@@ -40,6 +40,21 @@
 
 #include "../driver/tensor_driver.hpp"
 
+template <typename T>
+miopenDataType_t GetDataType();
+
+template <>
+miopenDataType_t GetDataType<float>()
+{
+    return miopenFloat;
+}
+
+template <>
+miopenDataType_t GetDataType<half_float::half>()
+{
+    return miopenHalf;
+}
+
 // a[m, k] * b[k,n] = c[m, n]
 struct GemmTestCase
 {
@@ -51,8 +66,6 @@ struct GemmTestCase
     long long int StrideB;
     long long int StrideC;
 
-    miopenDataType_t dataType;
-
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
         return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K << ", A(" << tc.M << ","
@@ -60,40 +73,12 @@ struct GemmTestCase
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
                   << " StrideA: " << tc.StrideA << " StrideB: " << tc.StrideB
-                  << " StrideC: " << tc.StrideC << " dataType: " << tc.dataType << " )";
+                  << " StrideC: " << tc.StrideC << " )";
     }
     std::vector<int> GetA() { return {M, K}; }
     std::vector<int> GetB() { return {K, N}; }
     std::vector<int> GetC() { return {M, N}; }
 };
-
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
-
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
-}
-
-std::vector<GemmTestCase> GetTestData()
-{
-    // A(M, K)  B(K, N), C(M, N)
-
-    return {
-        // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
-        {960, 2048, 1024, 1024, 2048, 2048, miopenHalf} // remove miopenHalf
-        // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} does not work
-        /*
-        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
-        { 1024, 1024, 1024, 1024, 1024, 1024, miopenHalf},
-        { 960, 2048, 2048, 2048, 2048, 2048, miopenHalf},
-        { 1024, 1024, 1024, 1088, 1088, 1088, miopenHalf},*/
-    };
-}
 
 template <typename T = half_float::half>
 struct GemmAPIFusionTest : public ::testing::TestWithParam<std::tuple<GemmTestCase>>
@@ -120,7 +105,7 @@ protected:
                                  gemm_config.StrideA,
                                  gemm_config.StrideB,
                                  gemm_config.StrideC,
-                                 gemm_config.dataType);
+                                 GetDataType<T>());
 
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
@@ -186,7 +171,7 @@ void GatherGemmTestCase(std::vector<GemmTestCase>& cba_test_cases)
     std::string arch = get_handle().GetDeviceName();
     if(miopen::StartsWith(arch, "gfx908") || miopen::StartsWith(arch, "gfx90a"))
     {
-        cba_test_cases.push_back(GemmTestCase{960, 2048, 1024, 1024, 2048, 2048, miopenHalf});
+        cba_test_cases.push_back(GemmTestCase{960, 2048, 1024, 1024, 2048, 2048});
     }
     else
     {

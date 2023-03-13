@@ -57,12 +57,6 @@ using ALayout = Row;
 using BLayout = Row;
 using CLayout = Row;
 
-using F16 = ck::half_t;
-
-using ADataType = F16;
-using BDataType = F16;
-using CDataType = F16;
-
 const auto a_element_op = AElementOp{};
 const auto b_element_op = BElementOp{};
 const auto c_element_op = CElementOp{};
@@ -73,15 +67,21 @@ namespace solver {
 namespace fusion {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-using DeviceOp = ck::tensor_operation::device::DeviceGemm<ALayout,
+template <typename DataType>
+using DeviceOpGEMM = ck::tensor_operation::device::DeviceGemm<ALayout,
                                                           BLayout,
                                                           CLayout,
-                                                          ADataType,
-                                                          BDataType,
-                                                          CDataType,
+                                                          DataType,
+                                                          DataType,
+                                                          DataType,
                                                           AElementOp,
                                                           BElementOp,
                                                           CElementOp>;
+
+template <typename DataType>
+using DeviceOpGEMMPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGEMM<DataType>>;
+
 
 struct CKArgs
 {
@@ -109,8 +109,7 @@ template <typename DataType>
 void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& problem)
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
     assert(!gemm_ptrs.empty());
     // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
@@ -145,8 +144,7 @@ bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
     const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
     int i = 0;
     for(; i < gemm_ptrs.size(); i++)
     {
@@ -179,8 +177,7 @@ template <typename DataType>
 bool CKGEMM::CheckCKApplicability(const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
     for(const auto& it : gemm_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
@@ -210,8 +207,7 @@ void RunCKSolution(const Handle& handle,
                    const PerformanceConfigCKGEMM& config)
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
 
     // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
