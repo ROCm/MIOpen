@@ -74,13 +74,11 @@ struct GemmTestCase
                   << tc.K << ")"
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
-                  << " ldA: " << tc.ldA << " ldB: " << tc.ldB
-                  << " ldC: " << tc.ldC << " )";
+                  << " ldA: " << tc.ldA << " ldB: " << tc.ldB << " ldC: " << tc.ldC << " )";
     }
     std::vector<int> GetA() { return {M, K}; }
     std::vector<int> GetB() { return {K, N}; }
     std::vector<int> GetC() { return {M, N}; }
-
 };
 
 std::vector<GemmTestCase> GetTestData()
@@ -89,33 +87,32 @@ std::vector<GemmTestCase> GetTestData()
         // A(M, K)  B(K, N), C(M, N)
 
         // M, N, K, ldA (K), ldB (N), ldC (N)
-        {960, 2048, 1024, 1024, 2048, 2048}
-        { 1024, 1024, 1024, 1088, 1088, 1088}
-        { 1024, 1024, 1024, 1024, 1024, 1024},
-        { 960, 2048, 2048, 2048, 2048, 2048},
-        { 1024, 1024, 1024, 1088, 1088, 1088},
+        {960, 2048, 1024, 1024, 2048, 2048},
+        {1024, 1024, 1024, 1088, 1088, 1088},
+        {1024, 1024, 1024, 1024, 1024, 1024},
+        {960, 2048, 2048, 2048, 2048, 2048},
+        {1024, 1024, 1024, 1088, 1088, 1088},
     };
 }
 
 // Fast GeLU
 // https://paperswithcode.com/method/gelu
 // y = 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
-template<typename T>
+template <typename T>
 void RunHostFastGeLU(tensor<T>& ref_out)
 {
-    T one = T(1);
-    T two = T(2);
+    T one        = T(1);
+    T two        = T(2);
     T point_five = T(0.5);
-    T const_1  = T(0.035677);
-    T const_2  = T(0.797885);
-    for(auto& val : ref_out.data){
+    T const_1    = T(0.035677);
+    T const_2    = T(0.797885);
+    for(auto& val : ref_out.data)
+    {
         const T u   = two * val * (const_1 * val * val + const_2);
         const T emu = exp(-u);
         const T cdf = point_five + point_five * (two / (one + emu) - one);
-        T tmp_val = val * cdf;
-        val = tmp_val;
+        val         = val * cdf;
     }
-    
 }
 
 template <typename T = half_float::half>
@@ -137,9 +134,13 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
-        gemm_desc = miopen::GemmDesc{gemm_config.M, gemm_config.N, gemm_config.K, 
-                                            gemm_config.ldA, gemm_config.ldB, gemm_config.ldC, 
-                                            GetDataType<T>()};
+        gemm_desc = miopen::GemmDesc{gemm_config.M,
+                                     gemm_config.N,
+                                     gemm_config.K,
+                                     gemm_config.ldA,
+                                     gemm_config.ldB,
+                                     gemm_config.ldC,
+                                     GetDataType<T>()};
 
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());

@@ -2733,13 +2733,13 @@ MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gem
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGemmActivFusion(miopenHandle_t handle,
-                                              const miopenGemmDescriptor_t gemmDesc,
-                                              const miopenTensorDescriptor_t ADesc,
-                                              const void* A,
-                                              const miopenTensorDescriptor_t BDesc,
-                                              const void* B,
-                                              const miopenTensorDescriptor_t CDesc,
-                                              void* C);
+                                                   const miopenGemmDescriptor_t gemmDesc,
+                                                   const miopenTensorDescriptor_t ADesc,
+                                                   const void* A,
+                                                   const miopenTensorDescriptor_t BDesc,
+                                                   const void* B,
+                                                   const miopenTensorDescriptor_t CDesc,
+                                                   void* C);
 
 /*! @brief Destroys the gemm descriptor object
  *

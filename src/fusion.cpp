@@ -109,13 +109,13 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 }
 
 miopenStatus_t GemmActivFusion(Handle& handle,
-                          GemmDesc gemm_desc,
-                          const TensorDescriptor& ADesc,
-                          ConstData_t A_data,
-                          const TensorDescriptor& BDesc,
-                          ConstData_t B_data,
-                          const TensorDescriptor& CDesc,
-                          Data_t C_data)
+                               GemmDesc gemm_desc,
+                               const TensorDescriptor& ADesc,
+                               ConstData_t A_data,
+                               const TensorDescriptor& BDesc,
+                               ConstData_t B_data,
+                               const TensorDescriptor& CDesc,
+                               Data_t C_data)
 {
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, ADesc};
     OperatorArgs fusionArgs;

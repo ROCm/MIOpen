@@ -347,11 +347,12 @@ struct CKGEMMActiv final : FusionTunableSolver<PerformanceConfigCKGEMActiv>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMMActiv>(); }
 
-    PerformanceConfigCKGEMActiv GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    PerformanceConfigCKGEMActiv
+    GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
     bool IsValidPerformanceConfig(const FusionContext& ctx,
                                   const PerformanceConfigCKGEMActiv& config) const override;
     PerformanceConfigCKGEMActiv Search(const FusionContext& ctx,
-                                   const AnyInvokeParams& invoke_ctx) const override;
+                                       const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const FusionContext& ctx) const override;
     ConvSolution GetSolution(const FusionContext& ctx,
                              const PerformanceConfigCKGEMActiv& config) const override;

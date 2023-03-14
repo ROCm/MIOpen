@@ -40,29 +40,29 @@ struct GemmDesc : miopenGemmDescriptor
 {
     GemmDesc();
     GemmDesc(int m_,
-                      int n_,
-                      int k_,
-                      long long int lda_,
-                      long long int ldb_,
-                      long long int ldc_,
-                      miopenDataType_t dataType_);
+             int n_,
+             int k_,
+             long long int lda_,
+             long long int ldb_,
+             long long int ldc_,
+             miopenDataType_t dataType_);
 
     GemmDesc(bool isColMajor_,
-                      bool transA_,
-                      bool transB_,
-                      int m_,
-                      int n_,
-                      int k_,
-                      int lda_,
-                      int ldb_,
-                      int ldc_,
-                      long long int strideA_,
-                      long long int strideB_,
-                      long long int strideC_,
-                      double alpha_,
-                      double beta_,
-                      int batch_count_,
-                      miopenDataType_t dataType_);
+             bool transA_,
+             bool transB_,
+             int m_,
+             int n_,
+             int k_,
+             int lda_,
+             int ldb_,
+             int ldc_,
+             long long int strideA_,
+             long long int strideB_,
+             long long int strideC_,
+             double alpha_,
+             double beta_,
+             int batch_count_,
+             miopenDataType_t dataType_);
 
     bool GetIsColMajor() const;
     bool GetTransA() const;
@@ -90,7 +90,7 @@ struct GemmDesc : miopenGemmDescriptor
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
-    int ldA, ldB, ldC; // leading dimension 
+    int ldA, ldB, ldC; // leading dimension
     long long int strideA, strideB, strideC;
     double alpha, beta;
     int batch_count;

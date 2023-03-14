@@ -508,26 +508,26 @@ miopenConvolutionBiasActivationForward(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t miopenGemmActivFusion(miopenHandle_t handle,
-                                           const miopenGemmDescriptor_t gemmDesc,
-                                           const miopenTensorDescriptor_t ADesc,
-                                           const void* A_data,
-                                           const miopenTensorDescriptor_t BDesc,
-                                           const void* B_data,
-                                           const miopenTensorDescriptor_t CDesc,
-                                           void* C_data)
+                                                const miopenGemmDescriptor_t gemmDesc,
+                                                const miopenTensorDescriptor_t ADesc,
+                                                const void* A_data,
+                                                const miopenTensorDescriptor_t BDesc,
+                                                const void* B_data,
+                                                const miopenTensorDescriptor_t CDesc,
+                                                void* C_data)
 {
 
     MIOPEN_LOG_FUNCTION(handle, gemmDesc, ADesc, A_data, BDesc, B_data, CDesc, C_data);
     miopenStatus_t res = miopenStatusUnknownError;
     const auto try_res = miopen::try_([&] {
         res = GemmActivFusion(miopen::deref(handle),
-                         miopen::deref(gemmDesc),
-                         miopen::deref(ADesc),
-                         DataCast(A_data),
-                         miopen::deref(BDesc),
-                         DataCast(B_data),
-                         miopen::deref(CDesc),
-                         DataCast(C_data));
+                              miopen::deref(gemmDesc),
+                              miopen::deref(ADesc),
+                              DataCast(A_data),
+                              miopen::deref(BDesc),
+                              DataCast(B_data),
+                              miopen::deref(CDesc),
+                              DataCast(C_data));
     });
     if(try_res == miopenStatusSuccess)
         return res;

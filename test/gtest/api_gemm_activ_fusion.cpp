@@ -72,8 +72,7 @@ struct GemmTestCase
                   << tc.K << ")"
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
-                  << " ldA: " << tc.ldA << " ldB: " << tc.ldB
-                  << " ldC: " << tc.ldC << " )";
+                  << " ldA: " << tc.ldA << " ldB: " << tc.ldB << " ldC: " << tc.ldC << " )";
     }
     std::vector<int> GetA() { return {M, K}; }
     std::vector<int> GetB() { return {K, N}; }
@@ -83,22 +82,21 @@ struct GemmTestCase
 // Fast GeLU
 // https://paperswithcode.com/method/gelu
 // y = 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
-template<typename T>
+template <typename T>
 void RunHostFastGeLU(tensor<T>& ref_out)
 {
-    T one = T(1);
-    T two = T(2);
+    T one        = T(1);
+    T two        = T(2);
     T point_five = T(0.5);
-    T const_1  = T(0.035677);
-    T const_2  = T(0.797885);
-    for(auto& val : ref_out.data){
+    T const_1    = T(0.035677);
+    T const_2    = T(0.797885);
+    for(auto& val : ref_out.data)
+    {
         const T u   = two * val * (const_1 * val * val + const_2);
         const T emu = exp(-u);
         const T cdf = point_five + point_five * (two / (one + emu) - one);
-        T tmp_val = val * cdf;
-        val = tmp_val;
+        val         = val * cdf;
     }
-    
 }
 
 template <typename T = half_float::half>
@@ -176,13 +174,13 @@ struct GemmAPIFusionTestHalf : GemmAPIFusionTest<half_float::half>
 TEST_P(GemmAPIFusionTestHalf, GEMMAPI)
 {
     const auto status = miopenGemmActivFusion(&get_handle(),
-                                         gemm_desc,
-                                         &A_tensor.desc,
-                                         a_dev.get(),
-                                         &B_tensor.desc,
-                                         b_dev.get(),
-                                         &C_tensor.desc,
-                                         c_dev.get());
+                                              gemm_desc,
+                                              &A_tensor.desc,
+                                              a_dev.get(),
+                                              &B_tensor.desc,
+                                              b_dev.get(),
+                                              &C_tensor.desc,
+                                              c_dev.get());
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
@@ -192,7 +190,7 @@ void GatherGemmTestCase(std::vector<GemmTestCase>& cba_test_cases)
     if(miopen::StartsWith(arch, "gfx908") || miopen::StartsWith(arch, "gfx90a"))
     {
         // A(M, K)  B(K, N), C(M, N)
-        
+
         // M, N, K, ldA (K), ldB (N), ldC (N)
         cba_test_cases.push_back(GemmTestCase{960, 2048, 1024, 1024, 2048, 2048});
         cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1088, 1088, 1088});

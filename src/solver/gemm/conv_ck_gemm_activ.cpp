@@ -69,22 +69,21 @@ namespace fusion {
 
 template <typename DataType>
 using DeviceOp = ck::tensor_operation::device::DeviceGemmMultipleD<
-                    ALayout,
-                    BLayout,
-                    ck::Tuple<>,
-                    CLayout,
-                    DataType,
-                    DataType,
-                    ck::Tuple<>,
-                    DataType,
-                    ck::tensor_operation::element_wise::PassThrough,
-                    ck::tensor_operation::element_wise::PassThrough,
-                    ck::tensor_operation::element_wise::FastGelu>;
+    ALayout,
+    BLayout,
+    ck::Tuple<>,
+    CLayout,
+    DataType,
+    DataType,
+    ck::Tuple<>,
+    DataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::FastGelu>;
 
 template <typename DataType>
 using DeviceOpGEMMActivPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
-
 
 struct CKArgs
 {
@@ -147,7 +146,7 @@ bool PerformanceConfigCKGEMActiv::CheckIsSupportCKArgs(
 {
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
-    int i = 0;
+    int i                = 0;
     for(; i < gemm_ptrs.size(); i++)
     {
         if(gemm_ptrs[i]->GetTypeString() + "_" + std::to_string(i) == this->kernel_id)
@@ -161,19 +160,19 @@ bool PerformanceConfigCKGEMActiv::CheckIsSupportCKArgs(
     }
 
     auto argument_ptr = gemm_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                    nullptr,
-                                                    std::array<const void*, 0>{},
-                                                    nullptr,
-                                                    args.M,
-                                                    args.N,
-                                                    args.K,
-                                                    args.ldA,
-                                                    args.ldB,
-                                                    std::array<ck::index_t, 0>{},
-                                                    args.ldC,
-                                                    a_element_op,
-                                                    b_element_op,
-                                                    cde_element_op);
+                                                          nullptr,
+                                                          std::array<const void*, 0>{},
+                                                          nullptr,
+                                                          args.M,
+                                                          args.N,
+                                                          args.K,
+                                                          args.ldA,
+                                                          args.ldB,
+                                                          std::array<ck::index_t, 0>{},
+                                                          args.ldC,
+                                                          a_element_op,
+                                                          b_element_op,
+                                                          cde_element_op);
     return gemm_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
@@ -218,8 +217,7 @@ void RunCKSolution(const Handle& handle,
     int id = 0;
     for(; id < gemm_ptrs.size(); id++)
     {
-        if(gemm_ptrs[id]->GetTypeString() ==
-           config.kernel_id)
+        if(gemm_ptrs[id]->GetTypeString() == config.kernel_id)
         {
             break;
         }
@@ -237,7 +235,7 @@ void RunCKSolution(const Handle& handle,
         const_cast<void*>(                    // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(b_buf)), // b
         std::array<const void*, 0>{},
-        invoke_ctx.out,                       // c
+        invoke_ctx.out, // c
         args.M,
         args.N,
         args.K,
@@ -343,13 +341,13 @@ PerformanceConfigCKGEMActiv CKGEMMActiv::GetDefaultPerformanceConfig(const Fusio
 }
 
 bool CKGEMMActiv::IsValidPerformanceConfig(const FusionContext& ctx,
-                                      const PerformanceConfigCKGEMActiv& config) const
+                                           const PerformanceConfigCKGEMActiv& config) const
 {
     return config.IsValid(ctx);
 }
 
 PerformanceConfigCKGEMActiv CKGEMMActiv::Search(const FusionContext& ctx,
-                                       const AnyInvokeParams& invoke_ctx) const
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
@@ -397,7 +395,7 @@ bool CKGEMMActiv::IsApplicable(const FusionContext& ctx) const
 }
 
 ConvSolution CKGEMMActiv::GetSolution(const FusionContext& ctx,
-                                 const PerformanceConfigCKGEMActiv& config) const
+                                      const PerformanceConfigCKGEMActiv& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;

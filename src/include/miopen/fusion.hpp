@@ -210,8 +210,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
 
 struct GemmOpDescriptor : FusionOpDescriptor
 {
-    GemmOpDescriptor(const GemmDesc& gemm_descriptor_,
-                     const TensorDescriptor& B_descriptor_)
+    GemmOpDescriptor(const GemmDesc& gemm_descriptor_, const TensorDescriptor& B_descriptor_)
         : gemm_descriptor(gemm_descriptor_), B_desc(B_descriptor_){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     // args :
@@ -273,13 +272,13 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    Data_t y);
 
 miopenStatus_t GemmActivFusion(Handle& handle,
-                          GemmDesc gemm_desc,
-                          const TensorDescriptor& ADesc,
-                          ConstData_t A_data,
-                          const TensorDescriptor& BDesc,
-                          ConstData_t B_data,
-                          const TensorDescriptor& CDesc,
-                          Data_t C_data);
+                               GemmDesc gemm_desc,
+                               const TensorDescriptor& ADesc,
+                               ConstData_t A_data,
+                               const TensorDescriptor& BDesc,
+                               ConstData_t B_data,
+                               const TensorDescriptor& CDesc,
+                               Data_t C_data);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);

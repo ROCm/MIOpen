@@ -32,12 +32,12 @@ namespace miopen {
 GemmDesc::GemmDesc() {}
 
 GemmDesc::GemmDesc(int m_,
-                                     int n_,
-                                     int k_,
-                                     long long int lda_,
-                                     long long int ldb_,
-                                     long long int ldc_,
-                                     miopenDataType_t dataType_)
+                   int n_,
+                   int k_,
+                   long long int lda_,
+                   long long int ldb_,
+                   long long int ldc_,
+                   miopenDataType_t dataType_)
 {
     this->isColMajor  = false;
     this->transA      = false;
@@ -58,21 +58,21 @@ GemmDesc::GemmDesc(int m_,
 }
 
 GemmDesc::GemmDesc(bool isColMajor_,
-                                     bool transA_,
-                                     bool transB_,
-                                     int m_,
-                                     int n_,
-                                     int k_,
-                                     int lda_,
-                                     int ldb_,
-                                     int ldc_,
-                                     long long int strideA_,
-                                     long long int strideB_,
-                                     long long int strideC_,
-                                     double alpha_,
-                                     double beta_,
-                                     int batch_count_,
-                                     miopenDataType_t dataType_)
+                   bool transA_,
+                   bool transB_,
+                   int m_,
+                   int n_,
+                   int k_,
+                   int lda_,
+                   int ldb_,
+                   int ldc_,
+                   long long int strideA_,
+                   long long int strideB_,
+                   long long int strideC_,
+                   double alpha_,
+                   double beta_,
+                   int batch_count_,
+                   miopenDataType_t dataType_)
     : isColMajor(isColMajor_),
       transA(transA_),
       transB(transB_),

@@ -50,8 +50,7 @@ extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDe
 {
     MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, ldA_, ldB_, ldC_);
     return miopen::try_([&] {
-        miopen::deref(gemmDesc) =
-            miopen::GemmDesc{m_, n_, k_, ldA_, ldB_, ldC_, dataType_};
+        miopen::deref(gemmDesc) = miopen::GemmDesc{m_, n_, k_, ldA_, ldB_, ldC_, dataType_};
     });
 }
 
