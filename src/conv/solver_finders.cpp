@@ -57,12 +57,13 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return ctx.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
-                   ? FindAllDirectSolutions(ctx, invoke_ctx)
-                   : FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
+        return problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+                   ? FindAllDirectSolutions(ctx, problem, invoke_ctx)
+                   : FindAllBwdWrW2DSolutions(ctx, problem, invoke_ctx);
     }
 };
 
@@ -82,12 +83,13 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return ctx.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
-                   ? FindAllImplicitGemmSolutions(ctx, invoke_ctx)
-                   : FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
+        return problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+                   ? FindAllImplicitGemmSolutions(ctx, problem, invoke_ctx)
+                   : FindImplicitGemmWrWAllSolutions(ctx, problem, invoke_ctx);
     }
 };
 
@@ -109,10 +111,11 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return FindAllFFTSolutions(ctx, invoke_ctx);
+        return FindAllFFTSolutions(ctx, problem, invoke_ctx);
     }
 };
 
@@ -132,10 +135,11 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return FindAllGemmSolutions(ctx, invoke_ctx);
+        return FindAllGemmSolutions(ctx, problem, invoke_ctx);
     }
 };
 
@@ -155,6 +159,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool use_winograd_only) const override
     {
@@ -162,8 +167,8 @@ protected:
         if(use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
         return ctx_copy.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
-                   ? FindAllWinogradSolutions(ctx_copy, invoke_ctx)
-                   : FindWinogradWrWAllSolutions(ctx_copy, invoke_ctx);
+                   ? FindAllWinogradSolutions(ctx_copy, problem, invoke_ctx)
+                   : FindWinogradWrWAllSolutions(ctx_copy, problem, invoke_ctx);
     }
 };
 
@@ -267,6 +272,7 @@ static void EvaluateInvokers(Handle& handle,
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
                   const ConvolutionContext& ctx,
+                  const ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders)
 {
@@ -277,7 +283,7 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
             return std::make_pair(f->GetAlgorithmName(ctx),
-                                  f->Find(ctx, invoke_ctx, use_winograd_only));
+                                  f->Find(ctx, problem, invoke_ctx, use_winograd_only));
         });
 
     // Precompile

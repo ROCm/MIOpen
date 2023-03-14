@@ -45,6 +45,7 @@ public:
     virtual AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const = 0;
 
     inline std::vector<solver::ConvSolution> Find(const ConvolutionContext& ctx,
+                                                  const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx,
                                                   bool use_winograd_only) const
     {
@@ -57,7 +58,7 @@ public:
         try
         {
             MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(ctx).ToString());
-            return FindImpl(ctx, invoke_ctx, use_winograd_only);
+            return FindImpl(ctx, problem, invoke_ctx, use_winograd_only);
         }
         catch(Exception& ex)
         {
@@ -69,6 +70,7 @@ public:
 protected:
     virtual bool IsEnabled(const ConvolutionContext& ctx, bool use_winograd_only) const = 0;
     virtual std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+                                                       const ProblemDescription& problem,
                                                        const AnyInvokeParams& invoke_ctx,
                                                        bool use_winograd_only) const    = 0;
 };
@@ -78,6 +80,7 @@ const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
                   const ConvolutionContext& ctx,
+                  const ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders);
 

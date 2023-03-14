@@ -117,11 +117,14 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
-    const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
-    auto solution = solver.FindSolution({ctx, problem}, db, {}); // auto tune is not expected here
-    auto& handle  = ctx.GetStream();
-    auto invoker  = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    const auto legacy_ctx     = ConvolutionContext{ctx};
+    const auto legacy_problem = ProblemDescription{problem};
+    const auto solver         = solver_id.GetSolver();
+    auto db                   = GetDb(ctx);
+    auto solution =
+        solver.FindSolution(legacy_ctx, legacy_problem, db, {}); // auto tune is not expected here
+    auto& handle = ctx.GetStream();
+    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
 
     handle.RegisterInvoker(invoker, config, solver_id.ToString(), algo);
@@ -180,12 +183,14 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-            auto conv_ctx                       = ConvolutionContext{ctx, problem};
+            auto conv_ctx                       = ConvolutionContext{ctx};
             conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+            auto legacy_problem                 = ProblemDescription(problem);
 
             ConvFindCore(invoke_ctx,
                          record,
                          conv_ctx,
+                         legacy_problem,
                          conv.IsWinograd3x3SupportedAndFast(conv_ctx),
                          GetConvSolverFinders());
         });
@@ -504,7 +509,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx = ConvolutionContext{exec_ctx, problem};
+    const auto ctx        = ConvolutionContext{exec_ctx};
+    const auto legacy_ctx = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -539,8 +545,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
         if(wti < 0.0f) // Skip unknown WTIs.
             continue;
 
-        interim.emplace_back(
-            miopenConvSolution_t{wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo});
+        interim.emplace_back(miopenConvSolution_t{
+            wti2time(wti), s.GetWorkspaceSize(ctx, legacy_ctx), solver_id.Value(), algo});
     }
 
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -582,9 +588,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     // ROCm version, specific features of GPU (like xnack) etc.
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
-    const auto ctx = ConvolutionContext{exec_ctx, problem};
-    auto ctx = ConvolutionContext{};
-    ctx.SetStream(&handle);
+    auto ctx = ConvolutionContext{exec_ctx};
     ctx.DetectRocm();
 
     for(const auto& pair : fdb_record)

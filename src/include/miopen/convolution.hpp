@@ -170,6 +170,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
+    bool IsWinograd3x3SupportedAndFast(const ConvolutionContext& ctx) const;
     bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const;
 

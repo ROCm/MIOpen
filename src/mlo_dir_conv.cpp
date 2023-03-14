@@ -382,12 +382,6 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
     return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
-void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem_)
-{
-    problem_.conv_problem.SetupFloats(*this);
-    return *this;
-}
-
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
     if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)

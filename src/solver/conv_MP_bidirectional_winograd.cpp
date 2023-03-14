@@ -730,7 +730,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
                               const ProblemDescription& transformed_problem) const
 {
     auto transformed_ctx = ConvolutionContext{static_cast<const ExecutionContext&>(ctx)};
-    transformed_ctx.SetupFloats(transformed_problem);
+    transformed_problem.conv_problem.SetupFloats(transformed_ctx);
 
     return transformed_ctx;
 }
