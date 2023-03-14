@@ -35,7 +35,7 @@
 #include <string>
 
 namespace miopen {
-struct GemmNewDescriptor;
+struct GemmDesc;
 struct Handle;
 struct TensorDescriptor;
 
@@ -49,7 +49,7 @@ struct GemmContext : ExecutionContext
     std::string general_compile_options;
 
     GemmContext() = default;
-    GemmContext(const GemmNewDescriptor& gemm_desc,
+    GemmContext(const GemmDesc& gemm_desc,
                 const TensorDescriptor& a_desc,
                 const TensorDescriptor& b_desc,
                 const TensorDescriptor& c_desc)

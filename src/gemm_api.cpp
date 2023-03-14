@@ -36,22 +36,22 @@ extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gem
 {
 
     MIOPEN_LOG_FUNCTION(gemmDesc);
-    return miopen::try_([&] { miopen::deref(gemmDesc) = new miopen::GemmNewDescriptor(); });
+    return miopen::try_([&] { miopen::deref(gemmDesc) = new miopen::GemmDesc(); });
 }
 
 extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
                                                    int m_,
                                                    int n_,
                                                    int k_,
-                                                   long long int strideA_,
-                                                   long long int strideB_,
-                                                   long long int strideC_,
+                                                   long long int ldA_,
+                                                   long long int ldB_,
+                                                   long long int ldC_,
                                                    miopenDataType_t dataType_)
 {
-    MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, strideA_, strideB_, strideC_);
+    MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, ldA_, ldB_, ldC_);
     return miopen::try_([&] {
         miopen::deref(gemmDesc) =
-            miopen::GemmNewDescriptor{m_, n_, k_, strideA_, strideB_, strideC_, dataType_};
+            miopen::GemmDesc{m_, n_, k_, ldA_, ldB_, ldC_, dataType_};
     });
 }
 

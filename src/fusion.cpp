@@ -109,7 +109,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 }
 
 miopenStatus_t GemmActivFusion(Handle& handle,
-                          GemmNewDescriptor gemm_desc,
+                          GemmDesc gemm_desc,
                           const TensorDescriptor& ADesc,
                           ConstData_t A_data,
                           const TensorDescriptor& BDesc,

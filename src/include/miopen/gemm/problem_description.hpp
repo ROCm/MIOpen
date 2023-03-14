@@ -47,7 +47,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
 {
     ProblemDescription() {}
-    ProblemDescription(const GemmNewDescriptor& gemmDesc_,
+    ProblemDescription(const GemmDesc& gemmDesc_,
                        const TensorDescriptor& ADesc_,
                        const TensorDescriptor& BDesc_,
                        const TensorDescriptor& CDesc_)
@@ -55,7 +55,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
-    const GemmNewDescriptor& GetGemmDescriptor() const { return gemmDesc; }
+    const GemmDesc& GetGemmDescriptor() const { return gemmDesc; }
     const TensorDescriptor& GetADesc() const { return ADesc; }
     const TensorDescriptor& GetBDesc() const { return BDesc; }
     const TensorDescriptor& GetCDesc() const { return CDesc; }
@@ -91,7 +91,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
 private:
-    GemmNewDescriptor gemmDesc;
+    GemmDesc gemmDesc;
     TensorDescriptor ADesc;
     TensorDescriptor BDesc;
     TensorDescriptor CDesc;

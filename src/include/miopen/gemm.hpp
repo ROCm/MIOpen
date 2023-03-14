@@ -36,18 +36,18 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct GemmNewDescriptor : miopenGemmDescriptor
+struct GemmDesc : miopenGemmDescriptor
 {
-    GemmNewDescriptor();
-    GemmNewDescriptor(int m_,
+    GemmDesc();
+    GemmDesc(int m_,
                       int n_,
                       int k_,
-                      long long int strideA_,
-                      long long int strideB_,
-                      long long int strideC_,
+                      long long int lda_,
+                      long long int ldb_,
+                      long long int ldc_,
                       miopenDataType_t dataType_);
 
-    GemmNewDescriptor(bool isColMajor_,
+    GemmDesc(bool isColMajor_,
                       bool transA_,
                       bool transB_,
                       int m_,
@@ -70,9 +70,9 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     int GetM() const;
     int GetN() const;
     int GetK() const;
-    int Getlda() const;
-    int Getldb() const;
-    int Getldc() const;
+    int GetldA() const;
+    int GetldB() const;
+    int GetldC() const;
     long long int GetStrideA() const;
     long long int GetStrideB() const;
     long long int GetStrideC() const;
@@ -84,13 +84,13 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     void SetIsColMajor(bool);
 
     // stream out operator overloading for MIOpen log functions
-    friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const GemmDesc& x);
 
     // private:
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
-    int lda, ldb, ldc;
+    int ldA, ldB, ldC; // leading dimension 
     long long int strideA, strideB, strideC;
     double alpha, beta;
     int batch_count;
@@ -98,5 +98,5 @@ struct GemmNewDescriptor : miopenGemmDescriptor
 };
 
 } // namespace miopen
-MIOPEN_DEFINE_OBJECT(miopenGemmDescriptor, miopen::GemmNewDescriptor);
+MIOPEN_DEFINE_OBJECT(miopenGemmDescriptor, miopen::GemmDesc);
 #endif // _MIOPEN_GEMM_HPP_

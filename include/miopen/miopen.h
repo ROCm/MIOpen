@@ -2715,9 +2715,9 @@ MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gem
                                                       int m_,
                                                       int n_,
                                                       int k_,
-                                                      long long int strideA_,
-                                                      long long int strideB_,
-                                                      long long int strideC_,
+                                                      long long int ldA_,
+                                                      long long int ldB_,
+                                                      long long int ldC_,
                                                       miopenDataType_t dataType_);
 
 /*! @brief Execute a gemm fusion layer

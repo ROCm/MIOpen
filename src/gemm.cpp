@@ -29,35 +29,35 @@
 
 namespace miopen {
 
-GemmNewDescriptor::GemmNewDescriptor() {}
+GemmDesc::GemmDesc() {}
 
-GemmNewDescriptor::GemmNewDescriptor(int m_,
+GemmDesc::GemmDesc(int m_,
                                      int n_,
                                      int k_,
-                                     long long int strideA_,
-                                     long long int strideB_,
-                                     long long int strideC_,
+                                     long long int lda_,
+                                     long long int ldb_,
+                                     long long int ldc_,
                                      miopenDataType_t dataType_)
 {
-    this->isColMajor  = true;
+    this->isColMajor  = false;
     this->transA      = false;
     this->transB      = false;
     this->m           = m_;
     this->n           = n_;
     this->k           = k_;
-    this->lda         = 1;
-    this->ldb         = 1;
-    this->ldc         = 1;
-    this->strideA     = strideA_;
-    this->strideB     = strideB_;
-    this->strideC     = strideC_;
-    this->alpha       = 1;
-    this->beta        = 1;
-    this->batch_count = 1;
+    this->ldA         = lda_;
+    this->ldB         = ldb_;
+    this->ldC         = ldc_;
+    this->strideA     = -1;
+    this->strideB     = -1;
+    this->strideC     = -1;
+    this->alpha       = -1;
+    this->beta        = -1;
+    this->batch_count = -1;
     this->dataType    = dataType_;
 }
 
-GemmNewDescriptor::GemmNewDescriptor(bool isColMajor_,
+GemmDesc::GemmDesc(bool isColMajor_,
                                      bool transA_,
                                      bool transB_,
                                      int m_,
@@ -79,9 +79,9 @@ GemmNewDescriptor::GemmNewDescriptor(bool isColMajor_,
       m(m_),
       n(n_),
       k(k_),
-      lda(lda_),
-      ldb(ldb_),
-      ldc(ldc_),
+      ldA(lda_),
+      ldB(ldb_),
+      ldC(ldc_),
       strideA(strideA_),
       strideB(strideB_),
       strideC(strideC_),
@@ -92,41 +92,41 @@ GemmNewDescriptor::GemmNewDescriptor(bool isColMajor_,
 {
 }
 
-bool GemmNewDescriptor::GetIsColMajor() const { return this->isColMajor; }
+bool GemmDesc::GetIsColMajor() const { return this->isColMajor; }
 
-bool GemmNewDescriptor::GetTransA() const { return this->transA; }
+bool GemmDesc::GetTransA() const { return this->transA; }
 
-bool GemmNewDescriptor::GetTransB() const { return this->transB; }
+bool GemmDesc::GetTransB() const { return this->transB; }
 
-int GemmNewDescriptor::GetM() const { return this->m; }
+int GemmDesc::GetM() const { return this->m; }
 
-int GemmNewDescriptor::GetN() const { return this->n; }
+int GemmDesc::GetN() const { return this->n; }
 
-int GemmNewDescriptor::GetK() const { return this->k; }
+int GemmDesc::GetK() const { return this->k; }
 
-int GemmNewDescriptor::Getlda() const { return this->lda; }
+int GemmDesc::GetldA() const { return this->ldA; }
 
-int GemmNewDescriptor::Getldb() const { return this->ldb; }
+int GemmDesc::GetldB() const { return this->ldB; }
 
-int GemmNewDescriptor::Getldc() const { return this->ldc; }
+int GemmDesc::GetldC() const { return this->ldC; }
 
-long long int GemmNewDescriptor::GetStrideA() const { return this->strideA; }
+long long int GemmDesc::GetStrideA() const { return this->strideA; }
 
-long long int GemmNewDescriptor::GetStrideB() const { return this->strideB; }
+long long int GemmDesc::GetStrideB() const { return this->strideB; }
 
-long long int GemmNewDescriptor::GetStrideC() const { return this->strideC; }
+long long int GemmDesc::GetStrideC() const { return this->strideC; }
 
-double GemmNewDescriptor::GetAlpha() const { return this->alpha; }
+double GemmDesc::GetAlpha() const { return this->alpha; }
 
-double GemmNewDescriptor::GetBeta() const { return this->beta; }
+double GemmDesc::GetBeta() const { return this->beta; }
 
-int GemmNewDescriptor::GetBatchCount() const { return this->batch_count; }
+int GemmDesc::GetBatchCount() const { return this->batch_count; }
 
-miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
+miopenDataType_t GemmDesc::GetMIOpenDataType() const { return this->dataType; }
 
-void GemmNewDescriptor::SetIsColMajor(bool icm) { this->isColMajor = icm; }
+void GemmDesc::SetIsColMajor(bool icm) { this->isColMajor = icm; }
 
-std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& gemm_desc)
+std::ostream& operator<<(std::ostream& stream, const GemmDesc& gemm_desc)
 {
     return stream << "{"
                   << "isColMajor " << gemm_desc.isColMajor << ", "
@@ -135,9 +135,9 @@ std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& gemm_des
                   << "m " << gemm_desc.m << ", "
                   << "n " << gemm_desc.n << ", "
                   << "k " << gemm_desc.k << ", "
-                  << "lda " << gemm_desc.lda << ", "
-                  << "ldb " << gemm_desc.ldb << ", "
-                  << "ldc " << gemm_desc.ldc << ", "
+                  << "ldA " << gemm_desc.ldA << ", "
+                  << "ldB " << gemm_desc.ldB << ", "
+                  << "ldC " << gemm_desc.ldC << ", "
                   << "batch_count " << gemm_desc.batch_count << ", "
                   << "strideA " << gemm_desc.strideA << ", "
                   << "strideB " << gemm_desc.strideB << ", "

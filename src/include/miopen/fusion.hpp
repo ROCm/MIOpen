@@ -210,7 +210,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
 
 struct GemmOpDescriptor : FusionOpDescriptor
 {
-    GemmOpDescriptor(const GemmNewDescriptor& gemm_descriptor_,
+    GemmOpDescriptor(const GemmDesc& gemm_descriptor_,
                      const TensorDescriptor& B_descriptor_)
         : gemm_descriptor(gemm_descriptor_), B_desc(B_descriptor_){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
@@ -220,7 +220,7 @@ struct GemmOpDescriptor : FusionOpDescriptor
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpGEMM; };
 
-    GemmNewDescriptor gemm_descriptor;
+    GemmDesc gemm_descriptor;
     TensorDescriptor B_desc;
 };
 
@@ -273,7 +273,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    Data_t y);
 
 miopenStatus_t GemmActivFusion(Handle& handle,
-                          GemmNewDescriptor gemm_desc,
+                          GemmDesc gemm_desc,
                           const TensorDescriptor& ADesc,
                           ConstData_t A_data,
                           const TensorDescriptor& BDesc,

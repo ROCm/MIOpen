@@ -64,9 +64,9 @@ struct GemmTestCase
     int N;
     int K;
 
-    long long int StrideA;
-    long long int StrideB;
-    long long int StrideC;
+    long long int ldA; // leading dimension
+    long long int ldB;
+    long long int ldC;
 
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
@@ -74,8 +74,8 @@ struct GemmTestCase
                   << tc.K << ")"
                   << ", B(" << tc.K << "," << tc.N << ")"
                   << ", C(" << tc.M << "," << tc.N << ")"
-                  << " StrideA: " << tc.StrideA << " StrideB: " << tc.StrideB
-                  << " StrideC: " << tc.StrideC << " )";
+                  << " ldA: " << tc.ldA << " ldB: " << tc.ldB
+                  << " ldC: " << tc.ldC << " )";
     }
     std::vector<int> GetA() { return {M, K}; }
     std::vector<int> GetB() { return {K, N}; }
@@ -88,7 +88,7 @@ std::vector<GemmTestCase> GetTestData()
     // A(M, K)  B(K, N), C(M, N)
 
     return {
-        // M,    N,    K,   StrideA (K), StrideB (N), StrideC (N)
+        // M,    N,    K,   ldA (K), ldB (N), ldC (N)
         {960, 2048, 1024, 1024, 2048, 2048}
         // { 1024, 1024, 1024,   1088,        1088,        1088, miopenHalf} /////
         /*
@@ -139,8 +139,8 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
-        gemm_desc = miopen::GemmNewDescriptor{gemm_config.M, gemm_config.N, gemm_config.K, 
-                                            gemm_config.StrideA, gemm_config.StrideB, gemm_config.StrideC, 
+        gemm_desc = miopen::GemmDesc{gemm_config.M, gemm_config.N, gemm_config.K, 
+                                            gemm_config.ldA, gemm_config.ldB, gemm_config.ldC, 
                                             GetDataType<T>()};
 
         auto&& handle = get_handle();
@@ -184,7 +184,7 @@ protected:
     }
 
     GemmTestCase gemm_config;
-    miopen::GemmNewDescriptor gemm_desc;
+    miopen::GemmDesc gemm_desc;
     tensor<T> A_tensor;
     tensor<T> B_tensor;
     tensor<T> C_tensor;

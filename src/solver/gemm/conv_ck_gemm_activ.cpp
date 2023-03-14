@@ -94,18 +94,18 @@ struct CKArgs
         N = problem.GetGemmDescriptor().GetN();
         K = problem.GetGemmDescriptor().GetK();
 
-        StrideA = problem.GetGemmDescriptor().GetStrideA();
-        StrideB = problem.GetGemmDescriptor().GetStrideB();
-        StrideC = problem.GetGemmDescriptor().GetStrideC();
+        ldA = problem.GetGemmDescriptor().GetldA();
+        ldB = problem.GetGemmDescriptor().GetldB();
+        ldC = problem.GetGemmDescriptor().GetldC();
     }
 
     int M;
     int N;
     int K;
 
-    int StrideA;
-    int StrideB;
-    int StrideC;
+    int ldA;
+    int ldB;
+    int ldC;
 };
 
 template <typename DataType>
@@ -125,10 +125,10 @@ void PerformanceConfigCKGEMActiv::Init(const miopen::gemm::ProblemDescription& p
                                                     args.M,
                                                     args.N,
                                                     args.K,
-                                                    args.StrideA,
-                                                    args.StrideB,
+                                                    args.ldA,
+                                                    args.ldB,
                                                     std::array<ck::index_t, 0>{},
-                                                    args.StrideC,
+                                                    args.ldC,
                                                     a_element_op,
                                                     b_element_op,
                                                     cde_element_op);
@@ -170,10 +170,10 @@ bool PerformanceConfigCKGEMActiv::CheckIsSupportCKArgs(
                                                     args.M,
                                                     args.N,
                                                     args.K,
-                                                    args.StrideA,
-                                                    args.StrideB,
+                                                    args.ldA,
+                                                    args.ldB,
                                                     std::array<ck::index_t, 0>{},
-                                                    args.StrideC,
+                                                    args.ldC,
                                                     a_element_op,
                                                     b_element_op,
                                                     cde_element_op);
@@ -194,10 +194,10 @@ bool CKGEMMActiv::CheckCKApplicability(const miopen::gemm::ProblemDescription& p
                                                     args.M,
                                                     args.N,
                                                     args.K,
-                                                    args.StrideA,
-                                                    args.StrideB,
+                                                    args.ldA,
+                                                    args.ldB,
                                                     std::array<ck::index_t, 0>{},
-                                                    args.StrideC,
+                                                    args.ldC,
                                                     a_element_op,
                                                     b_element_op,
                                                     cde_element_op);
@@ -245,10 +245,10 @@ void RunCKSolution(const Handle& handle,
         args.M,
         args.N,
         args.K,
-        args.StrideA,
-        args.StrideB,
+        args.ldA,
+        args.ldB,
         std::array<ck::index_t, 0>{},
-        args.StrideC,
+        args.ldC,
         a_element_op,
         b_element_op,
         cde_element_op);
