@@ -99,6 +99,27 @@ std::vector<GemmTestCase> GetTestData()
     };
 }
 
+// Fast GeLU
+// https://paperswithcode.com/method/gelu
+// y = 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
+template<typename T>
+void RunHostFastGeLU(tensor<T>& ref_out)
+{
+    T one = T(1);
+    T two = T(2);
+    T point_five = T(0.5);
+    T const_1  = T(0.035677);
+    T const_2  = T(0.797885);
+    for(auto& val : ref_out.data){
+        const T u   = two * val * (const_1 * val * val + const_2);
+        const T emu = exp(-u);
+        const T cdf = point_five + point_five * (two / (one + emu) - one);
+        T tmp_val = val * cdf;
+        val = tmp_val;
+    }
+    
+}
+
 template <typename T = half_float::half>
 struct GemmTest : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
 {
@@ -145,6 +166,7 @@ protected:
             return;
         ref_out = tensor<T>(gemm_config.GetC());
         gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, A_tensor, B_tensor, ref_out);
+        RunHostFastGeLU(ref_out);
         auto&& handle = get_handle();
 
         C_tensor.data = handle.Read<T>(c_dev, C_tensor.data.size());

@@ -38,10 +38,11 @@
 #include <miopen/gemm/problem_description.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include "ck/ck.hpp"
-#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
-#include "ck/library/tensor_operation_instance/gpu/gemm.hpp"
-#include "ck/tensor_operation/gpu/device/device_gemm.hpp"
+//#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/library/tensor_operation_instance/gpu/gemm_fastgelu.hpp"
+//#include "ck/tensor_operation/gpu/device/device_gemm.hpp"
 #include "ck/utility/data_type.hpp"
+#include "ck/utility/tuple.hpp"
 #include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_IGEMM)
@@ -49,17 +50,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_IGEMM)
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 using AElementOp = ck::tensor_operation::element_wise::PassThrough;
 using BElementOp = ck::tensor_operation::element_wise::PassThrough;
-using CElementOp = ck::tensor_operation::element_wise::PassThrough;
+using FastGelu   = ck::tensor_operation::element_wise::FastGelu;
+
+using CDEElementOp = FastGelu;
 
 using Row     = ck::tensor_layout::gemm::RowMajor;
-using Col     = ck::tensor_layout::gemm::ColumnMajor;
 using ALayout = Row;
 using BLayout = Row;
 using CLayout = Row;
 
-const auto a_element_op = AElementOp{};
-const auto b_element_op = BElementOp{};
-const auto c_element_op = CElementOp{};
+const auto a_element_op   = AElementOp{};
+const auto b_element_op   = BElementOp{};
+const auto cde_element_op = CDEElementOp{};
 #endif
 
 namespace miopen {
@@ -68,19 +70,22 @@ namespace fusion {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 template <typename DataType>
-using DeviceOpGEMM = ck::tensor_operation::device::DeviceGemm<ALayout,
-                                                          BLayout,
-                                                          CLayout,
-                                                          DataType,
-                                                          DataType,
-                                                          DataType,
-                                                          AElementOp,
-                                                          BElementOp,
-                                                          CElementOp>;
+using DeviceOp = ck::tensor_operation::device::DeviceGemmMultipleD<
+                    ALayout,
+                    BLayout,
+                    ck::Tuple<>,
+                    CLayout,
+                    DataType,
+                    DataType,
+                    ck::Tuple<>,
+                    DataType,
+                    ck::tensor_operation::element_wise::PassThrough,
+                    ck::tensor_operation::element_wise::PassThrough,
+                    ck::tensor_operation::element_wise::FastGelu>;
 
 template <typename DataType>
-using DeviceOpGEMMPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGEMM<DataType>>;
+using DeviceOpGEMMActivPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
 
 
 struct CKArgs
@@ -109,7 +114,7 @@ template <typename DataType>
 void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& problem)
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
     assert(!gemm_ptrs.empty());
     // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
@@ -117,16 +122,18 @@ void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& probl
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
                                                     nullptr,
+                                                    std::array<const void*, 0>{},
                                                     nullptr,
                                                     args.M,
                                                     args.N,
                                                     args.K,
                                                     args.StrideA,
                                                     args.StrideB,
+                                                    std::array<ck::index_t, 0>{},
                                                     args.StrideC,
                                                     a_element_op,
                                                     b_element_op,
-                                                    c_element_op);
+                                                    cde_element_op);
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
             valid_kernels.push_back(it->GetTypeString() + "_" + std::to_string(unique_id));
@@ -144,7 +151,7 @@ bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
     const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
     int i = 0;
     for(; i < gemm_ptrs.size(); i++)
     {
@@ -159,17 +166,19 @@ bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
     }
 
     auto argument_ptr = gemm_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          args.M,
-                                                          args.N,
-                                                          args.K,
-                                                          args.StrideA,
-                                                          args.StrideB,
-                                                          args.StrideC,
-                                                          a_element_op,
-                                                          b_element_op,
-                                                          c_element_op);
+                                                    nullptr,
+                                                    std::array<const void*, 0>{},
+                                                    nullptr,
+                                                    args.M,
+                                                    args.N,
+                                                    args.K,
+                                                    args.StrideA,
+                                                    args.StrideB,
+                                                    std::array<ck::index_t, 0>{},
+                                                    args.StrideC,
+                                                    a_element_op,
+                                                    b_element_op,
+                                                    cde_element_op);
     return gemm_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
@@ -177,21 +186,23 @@ template <typename DataType>
 bool CKGEMM::CheckCKApplicability(const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
     for(const auto& it : gemm_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
                                                     nullptr,
+                                                    std::array<const void*, 0>{},
                                                     nullptr,
                                                     args.M,
                                                     args.N,
                                                     args.K,
                                                     args.StrideA,
                                                     args.StrideB,
+                                                    std::array<ck::index_t, 0>{},
                                                     args.StrideC,
                                                     a_element_op,
                                                     b_element_op,
-                                                    c_element_op);
+                                                    cde_element_op);
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
             return true;
@@ -207,7 +218,7 @@ void RunCKSolution(const Handle& handle,
                    const PerformanceConfigCKGEMM& config)
 {
     const auto& args     = CKArgs{problem};
-    const auto gemm_ptrs = DeviceOpGEMMPtrs<DataType>::GetInstances();
+    const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
 
     // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
@@ -228,19 +239,21 @@ void RunCKSolution(const Handle& handle,
 
     auto argument_ptr = gemm_ck->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            static_cast<const void*>(invoke_ctx.in)), //
+            static_cast<const void*>(invoke_ctx.in)), // a
         const_cast<void*>(                    // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(b_buf)), // b
+        std::array<const void*, 0>{},
         invoke_ctx.out,                       // c
         args.M,
         args.N,
         args.K,
         args.StrideA,
         args.StrideB,
+        std::array<ck::index_t, 0>{},
         args.StrideC,
         a_element_op,
         b_element_op,
-        c_element_op);
+        cde_element_op);
 
     auto invoker_ptr            = gemm_ck->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
