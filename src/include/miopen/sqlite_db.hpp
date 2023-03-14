@@ -58,6 +58,7 @@ class path;
 
 namespace miopen {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
 #if MIOPEN_ENABLE_SQLITE_BACKOFF
@@ -438,6 +439,30 @@ public:
     {
         if(dbInvalid)
             return boost::none;
+
+        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
+        if(pdb_ovr != nullptr)
+        {
+            MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
+            DbRecord ovr_rec;
+            const auto solv_vals = SplitDelim(pdb_ovr, ':');
+            bool success         = true;
+            for(const auto& solv_val : solv_vals)
+            {
+                const auto vals = SplitDelim(solv_val, ';');
+                if(vals.size() != 2)
+                {
+                    MIOPEN_LOG_W("Invalid value for MIOPEN_DEBUG_PERFDB_OVERRIDE. Format: "
+                                 "<solver1_name>;<params>:<solver2_name>;params");
+                    success = false;
+                    break;
+                }
+                MIOPEN_LOG_I2("Inserting Overriding PDB entry: " << vals[0] << ";" << vals[1]);
+                ovr_rec.SetValues(vals.at(0), vals.at(1));
+            }
+            if(success)
+                return {ovr_rec};
+        }
         std::string clause;
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
