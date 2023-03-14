@@ -75,7 +75,7 @@ template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedContainer;
 
 template <typename PerformanceConfig, typename Context, typename Problem>
-class ComputedIterator :
+class ComputedIterator
 {
     PerformanceConfig v;
     const Context* c; // For Next().
