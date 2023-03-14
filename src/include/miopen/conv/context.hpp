@@ -26,6 +26,8 @@
 
 #pragma once
 
+#define MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API 1
+
 #include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
@@ -45,32 +47,22 @@ struct TensorDescriptor;
 struct ConvolutionContext : ExecutionContext
 {
     ConvolutionContext() = default;
-    ConvolutionContext(conv::Direction dir) : problem(dir) {}
-    ConvolutionContext(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       conv::Direction dir,
-                       int bias_ = 0)
-        : problem(in, weights, out, conv, dir, bias_)
-    {
-    }
-    ConvolutionContext(const ExecutionContext& exec_ctx, const ProblemDescription& problem_)
-        : ExecutionContext(exec_ctx), problem(problem_)
-    {
-    }
-    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
-    ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
-        : ExecutionContext(ctx), problem(problem_)
-    {
-    }
 
-    ConvolutionContext& SetupFloats();
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
+    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
+#endif
+    explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
+
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
+    void SetupFloats() { problem.SetupFloats(*this); }
+#endif
 
 public:
     bool is_for_generic_search = false;
 
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
     ProblemDescription problem;
+#endif
 };
 
 } // namespace miopen

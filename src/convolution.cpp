@@ -377,8 +377,15 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 /// for some related host-side optimizations.
 ///
 /// These optimizations are kind of cutting corners, but advantages are quite high.
+#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
     const miopen::ConvolutionContext& ctx) const
+{
+    return IsWinograd3x3SupportedAndFast(ctx, ctx.problem);
+}
+#endif
+bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return false;
@@ -389,10 +396,10 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(ctx.problem.n_outputs >= 16 && ctx.problem.n_outputs % 2 == 0))
+    if(!(problem.n_outputs >= 16 && problem.n_outputs % 2 == 0))
         return false;
 
-    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
+    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
 }
 
 std::size_t
@@ -404,9 +411,10 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         return 0;
 
-    const auto ctx =
-        ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+    const auto problem =
+        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    const auto ctx                  = ConvolutionContext{};
+    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, problem);
 
     if(!gemm_ws_sz_pairs.empty())
     {

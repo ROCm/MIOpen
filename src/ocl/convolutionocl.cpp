@@ -412,10 +412,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
 
-        auto ctx =
-            ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
-        ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto problem =
+            ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        const auto network_config = problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -535,7 +534,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
         if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx))
             continue;
 
-        const auto wti = s.GetWti(ctx);
+        const auto wti = s.GetWti(ctx, problem);
         MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
         if(wti < 0.0f) // Skip unknown WTIs.
             continue;
@@ -584,6 +583,9 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
     const auto ctx = ConvolutionContext{exec_ctx, problem};
+    auto ctx = ConvolutionContext{};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
 
     for(const auto& pair : fdb_record)
     {
@@ -601,7 +603,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
             continue;
         }
 
-        if(solver_id.GetSolver().IsApplicable(ctx))
+        if(solver_id.GetSolver().IsApplicable(ctx, problem))
             interim.emplace_back(miopenConvSolution_t{
                 pair.second.time, pair.second.workspace, solver_id.Value(), algo});
     }
@@ -644,11 +646,12 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     auto sol = solver_id.GetSolver();
     if(!sol.MayNeedWorkspace())
         return 0;
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto ctx           = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    if(sol.IsApplicable(ctx))
-        return sol.GetWorkspaceSize(ctx);
+    if(sol.IsApplicable(ctx, problem))
+        return sol.GetWorkspaceSize(ctx, problem);
     MIOPEN_THROW(miopenStatusBadParm,
                  "The supplied solution id: " + solver_id.ToString() +
                      " is not applicable to the current problem");
@@ -837,9 +840,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto problem =
+            ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        const auto network_config = problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -864,11 +867,13 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     auto sol = solver_id.GetSolver();
     if(!sol.MayNeedWorkspace())
         return 0;
-    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    const auto problem =
+        ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    if(sol.IsApplicable(ctx))
-        return sol.GetWorkspaceSize(ctx);
+    if(sol.IsApplicable(ctx, problem))
+        return sol.GetWorkspaceSize(ctx, problem);
     else
         MIOPEN_THROW(miopenStatusBadParm,
                      "The supplied solution id: " + solver_id.ToString() +
@@ -1077,11 +1082,11 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         return 0;
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{problem};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    if(sol.IsApplicable(ctx))
-        return sol.GetWorkspaceSize(ctx);
+    if(sol.IsApplicable(ctx, problem))
+        return sol.GetWorkspaceSize(ctx, problem);
     else
         MIOPEN_THROW(miopenStatusBadParm,
                      "The supplied solution id: " + solver_id.ToString() +

@@ -170,7 +170,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
-    bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx) const;
+    bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
+                                       const ProblemDescription& problem) const;
 
     std::size_t WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
                                              const TensorDescriptor& xDesc,
@@ -194,6 +195,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               bool exhaustiveSearch) const;
 
     std::vector<miopen::solver::ConvSolution>
+    FindWinogradSolutions(const ConvolutionContext& ctx,
+                          const ProblemDescription& problem,
+                          const AnyInvokeParams& invoke_ctx) const;
+
+    std::vector<miopen::solver::ConvSolution>
     FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
@@ -209,7 +215,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindFftSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+    FindFftSolutions(const ConvolutionContext& ctx,
+                     const ProblemDescription& problem,
+                     const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

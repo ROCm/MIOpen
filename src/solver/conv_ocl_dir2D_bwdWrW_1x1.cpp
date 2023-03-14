@@ -90,7 +90,8 @@ static inline int GetNPasses(const ProblemDescription& problem)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+                                          const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
     if(((problem.n_inputs & 0xF) == 0 && (problem.n_outputs & 0xF) == 0) &&
@@ -390,7 +391,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             result.construction_params.push_back(kernel);
         }
 
-        const auto ws_sz    = GetWorkspaceSize(problem);
+        const auto ws_sz    = GetWorkspaceSize(ctx, problem);
         result.workspace_sz = ws_sz;
 
         {

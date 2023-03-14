@@ -81,16 +81,17 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        auto ctx = miopen::ConvolutionContext{
+        const auto problem = miopen::ProblemDescription{
             xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        auto ctx                    = miopen::ConvolutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
-        ctx.SetupFloats();
+        ctx.SetupFloats(problem);
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx, {}).empty())
+        if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
     }
     return true;
@@ -105,18 +106,19 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    auto ctx = miopen::ConvolutionContext{
+    const auto problem = miopen::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx, {}).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
 }
 #endif
 
@@ -130,26 +132,25 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    auto ctx =
-        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem =
+        miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
-           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
-           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
-           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
-           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
-           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
-           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
-           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
-           ctx.problem.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
+           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.group_counts == 1 &&
+           problem.batch_sz == 1 && problem.n_inputs == 192 && problem.in_height == 28 &&
+           problem.in_width == 28 && problem.n_outputs == 1 && problem.kernel_size_h == 3 &&
+           problem.kernel_size_w == 3 && problem.pad_w == 1 && problem.pad_h == 1 &&
+           problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1 &&
+           problem.kernel_dilation_w == 1 && problem.kernel_dilation_h == 1;
 }
 #endif
 

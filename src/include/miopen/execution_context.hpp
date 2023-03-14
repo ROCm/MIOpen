@@ -94,6 +94,7 @@ struct ExecutionContext
 
     ExecutionContext() = default;
     ExecutionContext(Handle* stream_) : stream(stream_) {}
+    virtual ~ExecutionContext() = default;
 
     ExecutionContext& DetectRocm();
 
