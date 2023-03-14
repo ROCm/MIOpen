@@ -272,7 +272,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
 
-miopenStatus_t GemmFusion(Handle& handle,
+miopenStatus_t GemmActivFusion(Handle& handle,
                           GemmNewDescriptor gemm_desc,
                           const TensorDescriptor& ADesc,
                           ConstData_t A_data,

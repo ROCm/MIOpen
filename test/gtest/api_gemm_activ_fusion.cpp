@@ -175,7 +175,7 @@ struct GemmAPIFusionTestHalf : GemmAPIFusionTest<half_float::half>
 
 TEST_P(GemmAPIFusionTestHalf, GEMMAPI)
 {
-    const auto status = miopenGemmFusion(&get_handle(),
+    const auto status = miopenGemmActivFusion(&get_handle(),
                                          gemm_desc,
                                          &A_tensor.desc,
                                          a_dev.get(),

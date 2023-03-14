@@ -316,14 +316,14 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
-struct PerformanceConfigCKGEMM : PerfConfigBase<PerformanceConfigCKGEMM>
+struct PerformanceConfigCKGEMActiv : PerfConfigBase<PerformanceConfigCKGEMActiv>
 {
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigCKGEMM(int idx, std::string kernl_id) : index(idx), kernel_id(kernl_id) {}
-    PerformanceConfigCKGEMM() : PerformanceConfigCKGEMM(0, "") {}
-    PerformanceConfigCKGEMM(bool) : PerformanceConfigCKGEMM(0, "") {}
+    PerformanceConfigCKGEMActiv(int idx, std::string kernl_id) : index(idx), kernel_id(kernl_id) {}
+    PerformanceConfigCKGEMActiv() : PerformanceConfigCKGEMActiv(0, "") {}
+    PerformanceConfigCKGEMActiv(bool) : PerformanceConfigCKGEMActiv(0, "") {}
     void HeuristicInit(const FusionContext& ctx);
     bool SetNextValue(const FusionContext& ctx);
     bool IsValidValue() const;
@@ -334,7 +334,7 @@ struct PerformanceConfigCKGEMM : PerfConfigBase<PerformanceConfigCKGEMM>
     {
         f(s.kernel_id, "kernel_id");
     }
-    bool operator==(const PerformanceConfigCKGEMM& other) const;
+    bool operator==(const PerformanceConfigCKGEMActiv& other) const;
 
 private:
     template <typename DataType>
@@ -343,18 +343,18 @@ private:
     bool CheckIsSupportCKArgs(const gemm::ProblemDescription&) const;
 };
 
-struct CKGEMM final : FusionTunableSolver<PerformanceConfigCKGEMM>
+struct CKGEMMActiv final : FusionTunableSolver<PerformanceConfigCKGEMActiv>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMM>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMMActiv>(); }
 
-    PerformanceConfigCKGEMM GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    PerformanceConfigCKGEMActiv GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
     bool IsValidPerformanceConfig(const FusionContext& ctx,
-                                  const PerformanceConfigCKGEMM& config) const override;
-    PerformanceConfigCKGEMM Search(const FusionContext& ctx,
+                                  const PerformanceConfigCKGEMActiv& config) const override;
+    PerformanceConfigCKGEMActiv Search(const FusionContext& ctx,
                                    const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const FusionContext& ctx) const override;
     ConvSolution GetSolution(const FusionContext& ctx,
-                             const PerformanceConfigCKGEMM& config) const override;
+                             const PerformanceConfigCKGEMActiv& config) const override;
 
 private:
     template <typename DataType>

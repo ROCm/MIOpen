@@ -108,7 +108,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t GemmFusion(Handle& handle,
+miopenStatus_t GemmActivFusion(Handle& handle,
                           GemmNewDescriptor gemm_desc,
                           const TensorDescriptor& ADesc,
                           ConstData_t A_data,
@@ -442,7 +442,7 @@ static auto GetFusedSolvers()
                                    solver::fusion::BnFwdTrgActivationFused,
                                    // solver::fusion::BnBwdTrgActivationFused>{};
                                    solver::fusion::BnBwdTrgActivationFused,
-                                   solver::fusion::CKGEMM>{};
+                                   solver::fusion::CKGEMMActiv>{};
 }
 
 static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,

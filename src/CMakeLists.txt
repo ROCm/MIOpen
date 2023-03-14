@@ -224,7 +224,7 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
-    solver/gemm/conv_ck_gemm.cpp
+    solver/gemm/conv_ck_gemm_activ.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp

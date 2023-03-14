@@ -2732,7 +2732,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gem
  * @param C             Data tensor C (output)
  * @return              miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGemmFusion(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenGemmActivFusion(miopenHandle_t handle,
                                               const miopenGemmDescriptor_t gemmDesc,
                                               const miopenTensorDescriptor_t ADesc,
                                               const void* A,

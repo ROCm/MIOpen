@@ -41,30 +41,6 @@ struct GemmTestHalf : GemmTest<half_float::half>
 };
 //
 
-template <typename Solver, typename TestCase>
-void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
-               const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
-               const TestCase& gemm_config,
-               bool& test_skipped)
-{
-    auto& handle = get_handle();
-    Solver solv{};
-    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
-    fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << gemm_config;
-    }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx);
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, *(plan_params.get()));
-    handle.Finish();
-}
-
 template <typename Solver>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                       const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
@@ -89,12 +65,12 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     handle.Finish();
 }
 
-TEST_P(GemmTestHalf, CKGEMM)
+TEST_P(GemmTestHalf, CKGEMMActiv)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, A_tensor.desc, a_dev.get(), C_tensor.desc, c_dev.get(), false);
 
-    RunTunableSolver<miopen::solver::fusion::CKGEMM>(
+    RunTunableSolver<miopen::solver::fusion::CKGEMMActiv>(
         fusePlanDesc, plan_params, gemm_config, test_skipped);
 }
 

@@ -507,7 +507,7 @@ miopenConvolutionBiasActivationForward(miopenHandle_t handle,
     return try_res;
 }
 
-extern "C" miopenStatus_t miopenGemmFusion(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenGemmActivFusion(miopenHandle_t handle,
                                            const miopenGemmDescriptor_t gemmDesc,
                                            const miopenTensorDescriptor_t ADesc,
                                            const void* A_data,
@@ -520,7 +520,7 @@ extern "C" miopenStatus_t miopenGemmFusion(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, gemmDesc, ADesc, A_data, BDesc, B_data, CDesc, C_data);
     miopenStatus_t res = miopenStatusUnknownError;
     const auto try_res = miopen::try_([&] {
-        res = GemmFusion(miopen::deref(handle),
+        res = GemmActivFusion(miopen::deref(handle),
                          miopen::deref(gemmDesc),
                          miopen::deref(ADesc),
                          DataCast(A_data),

@@ -38,9 +38,7 @@
 #include <miopen/gemm/problem_description.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include "ck/ck.hpp"
-//#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
 #include "ck/library/tensor_operation_instance/gpu/gemm_fastgelu.hpp"
-//#include "ck/tensor_operation/gpu/device/device_gemm.hpp"
 #include "ck/utility/data_type.hpp"
 #include "ck/utility/tuple.hpp"
 #include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
@@ -111,7 +109,7 @@ struct CKArgs
 };
 
 template <typename DataType>
-void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& problem)
+void PerformanceConfigCKGEMActiv::Init(const miopen::gemm::ProblemDescription& problem)
 {
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
@@ -147,7 +145,7 @@ void PerformanceConfigCKGEMM::Init(const miopen::gemm::ProblemDescription& probl
 }
 
 template <typename DataType>
-bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
+bool PerformanceConfigCKGEMActiv::CheckIsSupportCKArgs(
     const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
@@ -183,7 +181,7 @@ bool PerformanceConfigCKGEMM::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool CKGEMM::CheckCKApplicability(const miopen::gemm::ProblemDescription& problem) const
+bool CKGEMMActiv::CheckCKApplicability(const miopen::gemm::ProblemDescription& problem) const
 {
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
@@ -215,7 +213,7 @@ template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
                    const miopen::gemm::ProblemDescription& problem,
-                   const PerformanceConfigCKGEMM& config)
+                   const PerformanceConfigCKGEMActiv& config)
 {
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
@@ -268,7 +266,7 @@ void RunCKSolution(const Handle& handle,
 }
 #endif
 
-void PerformanceConfigCKGEMM::HeuristicInit(const FusionContext& ctx)
+void PerformanceConfigCKGEMActiv::HeuristicInit(const FusionContext& ctx)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -287,7 +285,7 @@ void PerformanceConfigCKGEMM::HeuristicInit(const FusionContext& ctx)
 #endif
 }
 
-bool PerformanceConfigCKGEMM::SetNextValue(const FusionContext& ctx)
+bool PerformanceConfigCKGEMActiv::SetNextValue(const FusionContext& ctx)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -310,12 +308,12 @@ bool PerformanceConfigCKGEMM::SetNextValue(const FusionContext& ctx)
 #endif
 }
 
-bool PerformanceConfigCKGEMM::IsValidValue() const
+bool PerformanceConfigCKGEMActiv::IsValidValue() const
 {
     return this->index >= 0 && this->index < valid_kernels.size();
 }
 
-bool PerformanceConfigCKGEMM::IsValid(const FusionContext& ctx) const
+bool PerformanceConfigCKGEMActiv::IsValid(const FusionContext& ctx) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -337,30 +335,30 @@ bool PerformanceConfigCKGEMM::IsValid(const FusionContext& ctx) const
 #endif
 }
 
-bool PerformanceConfigCKGEMM::operator==(const PerformanceConfigCKGEMM& other) const
+bool PerformanceConfigCKGEMActiv::operator==(const PerformanceConfigCKGEMActiv& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
-PerformanceConfigCKGEMM CKGEMM::GetDefaultPerformanceConfig(const FusionContext& ctx) const
+PerformanceConfigCKGEMActiv CKGEMMActiv::GetDefaultPerformanceConfig(const FusionContext& ctx) const
 {
-    PerformanceConfigCKGEMM pp;
+    PerformanceConfigCKGEMActiv pp;
     pp.HeuristicInit(ctx);
     return pp;
 }
 
-bool CKGEMM::IsValidPerformanceConfig(const FusionContext& ctx,
-                                      const PerformanceConfigCKGEMM& config) const
+bool CKGEMMActiv::IsValidPerformanceConfig(const FusionContext& ctx,
+                                      const PerformanceConfigCKGEMActiv& config) const
 {
     return config.IsValid(ctx);
 }
 
-PerformanceConfigCKGEMM CKGEMM::Search(const FusionContext& ctx,
+PerformanceConfigCKGEMActiv CKGEMMActiv::Search(const FusionContext& ctx,
                                        const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-bool CKGEMM::IsApplicable(const FusionContext& ctx) const
+bool CKGEMMActiv::IsApplicable(const FusionContext& ctx) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -402,8 +400,8 @@ bool CKGEMM::IsApplicable(const FusionContext& ctx) const
 #endif
 }
 
-ConvSolution CKGEMM::GetSolution(const FusionContext& ctx,
-                                 const PerformanceConfigCKGEMM& config) const
+ConvSolution CKGEMMActiv::GetSolution(const FusionContext& ctx,
+                                 const PerformanceConfigCKGEMActiv& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
