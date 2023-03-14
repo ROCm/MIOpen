@@ -191,7 +191,14 @@ void GatherGemmTestCase(std::vector<GemmTestCase>& cba_test_cases)
     std::string arch = get_handle().GetDeviceName();
     if(miopen::StartsWith(arch, "gfx908") || miopen::StartsWith(arch, "gfx90a"))
     {
+        // A(M, K)  B(K, N), C(M, N)
+        
+        // M, N, K, ldA (K), ldB (N), ldC (N)
         cba_test_cases.push_back(GemmTestCase{960, 2048, 1024, 1024, 2048, 2048});
+        cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1088, 1088, 1088});
+        cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1024, 1024, 1024});
+        cba_test_cases.push_back(GemmTestCase{960, 2048, 2048, 2048, 2048, 2048});
+        cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1088, 1088, 1088});
     }
     else
     {

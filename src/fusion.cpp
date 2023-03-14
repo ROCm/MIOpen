@@ -125,8 +125,7 @@ miopenStatus_t GemmActivFusion(Handle& handle,
     MIOPEN_CHECK(fusePlanDesc.AddOp(gemmOp));
     // compile fusion solver
     MIOPEN_CHECK(fusePlanDesc.Compile(handle));
-    // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
-    // prepared when we call RunTunableSolver.
+    // Here for fusion we set up the B matrix space (b_dev).
     gemmOp->SetArgs(fusionArgs, B_data);
     // execute fusion solver
     MIOPEN_CHECK(fusePlanDesc.Execute(handle, ADesc, A_data, CDesc, C_data, fusionArgs));
