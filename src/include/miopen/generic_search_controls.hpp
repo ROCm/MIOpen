@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,16 @@
  *
  *******************************************************************************/
 
-#include <miopen/generic_search.hpp>
-#include <miopen/generic_search_controls.hpp>
-
-#include <cstddef>
-#include <limits>
-#include <chrono>
+#pragma once
+#include <miopen/env.hpp>
 
 namespace miopen {
 namespace solver {
 
-std::size_t GetTuningIterationsMax()
-{
-    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
-}
-
-std::chrono::milliseconds GetTuningTimeMax()
-{
-    static const auto fallback =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
-    static const auto res =
-        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
-    return res;
-}
-
-std::size_t GetTuningThreadsMax()
-{
-#if MIOPEN_USE_COMGR
-    const auto def_max = 1; // COMGR is not parallelizable
-#else
-    const int def_max = std::thread::hardware_concurrency() / 2;
-#endif
-    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);
-}
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_TUNING_TIME_MS_MAX)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
 } // namespace solver
 } // namespace miopen
