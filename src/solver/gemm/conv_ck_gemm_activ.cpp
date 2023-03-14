@@ -114,8 +114,6 @@ void PerformanceConfigCKGEMActiv::Init(const miopen::gemm::ProblemDescription& p
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
     assert(!gemm_ptrs.empty());
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
-    int unique_id = 0;
     for(const auto& it : gemm_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
@@ -134,9 +132,8 @@ void PerformanceConfigCKGEMActiv::Init(const miopen::gemm::ProblemDescription& p
                                                     cde_element_op);
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
-            valid_kernels.push_back(it->GetTypeString() + "_" + std::to_string(unique_id));
+            valid_kernels.push_back(it->GetTypeString());
         }
-        ++unique_id;
     }
 
     assert(!valid_kernels.empty());
@@ -218,19 +215,18 @@ void RunCKSolution(const Handle& handle,
     const auto& args     = CKArgs{problem};
     const auto gemm_ptrs = DeviceOpGEMMActivPtrs<DataType>::GetInstances();
 
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
-    int unique_id = 0;
-    for(; unique_id < gemm_ptrs.size(); unique_id++)
+    int id = 0;
+    for(; id < gemm_ptrs.size(); id++)
     {
-        if(gemm_ptrs[unique_id]->GetTypeString() + "_" + std::to_string(unique_id) ==
+        if(gemm_ptrs[id]->GetTypeString() ==
            config.kernel_id)
         {
             break;
         }
     }
 
-    assert(unique_id < gemm_ptrs.size());
-    auto& gemm_ck          = gemm_ptrs.at(unique_id);
+    assert(id < gemm_ptrs.size());
+    auto& gemm_ck          = gemm_ptrs.at(id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& b_buf =
         dynamic_cast<miopen::fusion::GemmOpInvokeParam&>(*invoke_ctx.op_args.params[0]).B_data;
