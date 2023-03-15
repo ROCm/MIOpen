@@ -196,7 +196,6 @@ void GatherGemmTestCase(std::vector<GemmTestCase>& cba_test_cases)
         cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1088, 1088, 1088});
         cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1024, 1024, 1024});
         cba_test_cases.push_back(GemmTestCase{960, 2048, 2048, 2048, 2048, 2048});
-        cba_test_cases.push_back(GemmTestCase{1024, 1024, 1024, 1088, 1088, 1088});
     }
     else
     {
