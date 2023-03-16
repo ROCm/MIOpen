@@ -35,6 +35,24 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 
+enum class ConvDirection
+{
+    Fwd = 1,
+    Bwd = 2,
+    WrW = 4
+};
+
+namespace miopen {
+namespace debug {
+void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
+                       const miopenTensorDescriptor_t& wDesc,
+                       const miopenConvolutionDescriptor_t& convDesc,
+                       const miopenTensorDescriptor_t& yDesc,
+                       const ConvDirection& conv_dir,
+                       bool is_immediate);
+}
+}
+
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
 //		set up the place descriptor with expected input and ouput edges.
@@ -136,6 +154,9 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                                                      miopen::deref(wDesc));
         miopen::deref(convOp) = fod.get();
         res                   = miopen::deref(fusePlanDesc).AddOp(fod);
+
+        miopen::debug::LogCmdConvolution(&miopen::deref(fusePlanDesc).input_desc, 
+        wDesc, convDesc, &miopen::deref(fusePlanDesc).output_desc, ConvDirection::Fwd, true);
     });
     return res;
 }

@@ -229,7 +229,7 @@ struct TensorDescriptor : miopenTensorDescriptor
             if(labels.size() != strides.size())
             {
                 MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+                    "Invalid labels size. Layout labels size must be equivalent to stride size");
             }
 
             // Copy construct the result string from labels. This allocates the space at one go
@@ -245,7 +245,7 @@ struct TensorDescriptor : miopenTensorDescriptor
             if(base_label.size() != strides.size())
             {
                 MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+                    "Invalid labels size. Layout labels size must be equivalent to stride size");
             }
             auto result = base_label;
             auto p      = find_permutation(lens, strides);
