@@ -89,7 +89,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
-        ctx.SetupFloats(problem);
+        problem.conv_problem.SetupFloats(ctx);
         ctx.DetectRocm();
         if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
@@ -115,7 +115,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats(problem);
+    problem.conv_problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
     return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
@@ -141,7 +141,7 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats(problem);
+    problem.conv_problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
     return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
