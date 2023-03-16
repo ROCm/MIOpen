@@ -51,7 +51,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const ConvDirection& conv_dir,
                        bool is_immediate);
 }
-}
+} // namespace miopen
 
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
@@ -155,8 +155,12 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
         miopen::deref(convOp) = fod.get();
         res                   = miopen::deref(fusePlanDesc).AddOp(fod);
 
-        miopen::debug::LogCmdConvolution(&miopen::deref(fusePlanDesc).input_desc, 
-        wDesc, convDesc, &miopen::deref(fusePlanDesc).output_desc, ConvDirection::Fwd, true);
+        miopen::debug::LogCmdConvolution(&miopen::deref(fusePlanDesc).input_desc,
+                                         wDesc,
+                                         convDesc,
+                                         &miopen::deref(fusePlanDesc).output_desc,
+                                         ConvDirection::Fwd,
+                                         true);
     });
     return res;
 }
