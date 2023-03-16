@@ -26,7 +26,7 @@
 
 #pragma once
 
-#define MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API 1
+#define MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API 0
 
 #include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
