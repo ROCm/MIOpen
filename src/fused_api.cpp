@@ -50,7 +50,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& yDesc,
                        const ConvDirection& conv_dir,
                        bool is_immediate);
-}
+} // namespace debug
 } // namespace miopen
 
 // Return an error code that is "NotImplemented", if it exists then return success
