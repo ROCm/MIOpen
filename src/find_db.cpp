@@ -222,22 +222,6 @@ std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
 #endif
 }
 
-bool CheckInvokerSupport(const std::string& algo)
-{
-    return algo == "miopenConvolutionFwdAlgoDirect" ||
-           algo == "miopenConvolutionBwdDataAlgoDirect" ||
-           algo == "miopenConvolutionBwdWeightsAlgoDirect" ||
-           algo == "miopenConvolutionFwdAlgoWinograd" ||
-           algo == "miopenConvolutionBwdDataAlgoWinograd" ||
-           algo == "miopenConvolutionBwdWeightsAlgoWinograd" ||
-           algo == "miopenConvolutionFwdAlgoImplicitGEMM" ||
-           algo == "miopenConvolutionBwdDataAlgoImplicitGEMM" ||
-           algo == "miopenConvolutionBwdWeightsAlgoImplicitGEMM" ||
-           algo == "miopenConvolutionFwdAlgoFFT" || algo == "miopenConvolutionBwdDataAlgoFFT" ||
-           algo == "miopenConvolutionFwdAlgoGEMM" || algo == "miopenConvolutionBwdDataAlgoGEMM" ||
-           algo == "miopenConvolutionBwdWeightsAlgoGEMM";
-}
-
 template <class TDb>
 bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) const
 {
@@ -248,20 +232,17 @@ bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) 
     {
         if(in_sync)
         {
-            if(CheckInvokerSupport(pair.second.algorithm))
+            if(!handle.GetInvoker(config, {{pair.first}}))
             {
-                if(!handle.GetInvoker(config, {{pair.first}}))
-                {
-                    unbuilt = true;
-                    // This is not an logged as error because no error was detected.
-                    // Find wasn't executed yet and invokers were not prepared.
-                    LogFindDbItem(pair);
-                    break;
-                }
-
-                any = true;
-                continue;
+                unbuilt = true;
+                // This is not an logged as error because no error was detected.
+                // Find wasn't executed yet and invokers were not prepared.
+                LogFindDbItem(pair);
+                break;
             }
+
+            any = true;
+            continue;
         }
     }
 

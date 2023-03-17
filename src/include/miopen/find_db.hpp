@@ -72,8 +72,6 @@ testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 
 } // namespace debug
 
-bool CheckInvokerSupport(const std::string& algo);
-
 template <class TDb>
 class FindDbRecord_t
 {

@@ -1017,12 +1017,6 @@ Invoker LoadOrPrepareInvoker(Handle& handle,
     return PrepareInvoker(handle, ctx, problem, config, solver_id, dir);
 }
 
-static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
-{
-    const auto& algo = solver_id.GetAlgo(dir);
-    return CheckInvokerSupport(algo);
-}
-
 static void CompileSolution(Handle& handle,
                             const solver::Id solver_id,
                             ConvolutionContext& ctx,
@@ -1032,12 +1026,8 @@ static void CompileSolution(Handle& handle,
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
 
-    if(CheckInvokerSupport(solver_id, dir))
-    {
-        LoadOrPrepareInvoker(handle, ctx, problem, solver_id, dir);
-        return;
-    }
-    MIOPEN_THROW(miopenStatusNotImplemented);
+    LoadOrPrepareInvoker(handle, ctx, problem, solver_id, dir);
+    return;
 }
 
 void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
@@ -1079,12 +1069,6 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
             ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
-
-        if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
-        {
-            const auto algo_name = solver_id.GetAlgo(conv::Direction::Forward);
-            MIOPEN_THROW("Conv forward algorithm " + algo_name + " must implement invokers.");
-        }
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::Forward);
@@ -1457,12 +1441,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
 
-        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
-        {
-            const auto algo_name = solver_id.GetAlgo(conv::Direction::BackwardData);
-            MIOPEN_THROW("Conv backward algorithm " + algo_name + " must implement invokers.");
-        }
-
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::BackwardData);
         const auto invoke_ctx = conv::DataInvokeParams{
@@ -1814,12 +1792,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
             ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         auto ctx = ConvolutionContext{};
         ctx.SetStream(&handle);
-
-        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
-        {
-            MIOPEN_THROW("Solver " + solver_id.ToString() +
-                         " requested in immediate WrW, which is not supported.");
-        }
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::BackwardWeights);
