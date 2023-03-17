@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -100,15 +100,13 @@ struct CKArgs
 };
 
 template <typename DataType>
-void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& problem)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
     assert(!conv_ptrs.empty());
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
-    int unique_id = 0;
     for(const auto& it : conv_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
@@ -130,9 +128,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
                                                     {});
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
-            valid_kernels.push_back(it->GetTypeString() + "_" + std::to_string(unique_id));
+            valid_kernels.push_back(it->GetTypeString());
         }
-        ++unique_id;
     }
 
     assert(!valid_kernels.empty());
@@ -141,7 +138,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
 }
 
 template <typename DataType>
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
     const auto& args = CKArgs{problem};
@@ -182,7 +179,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& problem) const
+bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const ProblemDescription& problem) const
 {
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
@@ -218,25 +215,23 @@ template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
                    const ProblemDescription& problem,
-                   const PerformanceConfigConvCKIgemmFwdBiasActiv& config)
+                   const PerformanceConfigConvCKIgemmFwdBiasActivFused& config)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
 
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
-    int unique_id = 0;
-    for(; unique_id < conv_ptrs.size(); unique_id++)
+    int id = 0;
+    for(; id < conv_ptrs.size(); id++)
     {
-        if(conv_ptrs[unique_id]->GetTypeString() + "_" + std::to_string(unique_id) ==
-           config.kernel_id)
+        if(conv_ptrs[id]->GetTypeString() == config.kernel_id)
         {
             break;
         }
     }
-    assert(unique_id < conv_ptrs.size());
-    auto& conv_ck          = conv_ptrs.at(unique_id);
+    assert(id < conv_ptrs.size());
+    auto& conv_ck          = conv_ptrs.at(id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& wei_buf =
         dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0])
@@ -278,7 +273,7 @@ void RunCKSolution(const Handle& handle,
 }
 #endif
 
-void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext& ctx)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(const FusionContext& ctx)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -292,12 +287,14 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenDouble: break;
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
     }
+
 #endif
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext& ctx)
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::SetNextValue(const FusionContext& ctx)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -320,12 +317,12 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
 #endif
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValidValue() const
 {
     return this->index >= 0 && this->index < valid_kernels.size();
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx) const
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(const FusionContext& ctx) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -341,38 +338,40 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx)
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenDouble: break;
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
 #endif
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::operator==(
-    const PerformanceConfigConvCKIgemmFwdBiasActiv& other) const
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::operator==(
+    const PerformanceConfigConvCKIgemmFwdBiasActivFused& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
-PerformanceConfigConvCKIgemmFwdBiasActiv
-ConvCKIgemmFwdBiasActiv::GetDefaultPerformanceConfig(const FusionContext& ctx) const
+PerformanceConfigConvCKIgemmFwdBiasActivFused
+ConvCKIgemmFwdBiasActivFused::GetDefaultPerformanceConfig(const FusionContext& ctx) const
 {
-    PerformanceConfigConvCKIgemmFwdBiasActiv pp;
+    PerformanceConfigConvCKIgemmFwdBiasActivFused pp;
     pp.HeuristicInit(ctx);
     return pp;
 }
 
-bool ConvCKIgemmFwdBiasActiv::IsValidPerformanceConfig(
-    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
+bool ConvCKIgemmFwdBiasActivFused::IsValidPerformanceConfig(
+    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
 {
     return config.IsValid(ctx);
 }
 
-PerformanceConfigConvCKIgemmFwdBiasActiv
-ConvCKIgemmFwdBiasActiv::Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigConvCKIgemmFwdBiasActivFused
+ConvCKIgemmFwdBiasActivFused::Search(const FusionContext& ctx,
+                                     const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-bool ConvCKIgemmFwdBiasActiv::IsApplicable(const FusionContext& ctx) const
+bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -402,15 +401,15 @@ bool ConvCKIgemmFwdBiasActiv::IsApplicable(const FusionContext& ctx) const
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenDouble: break;
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
 #endif
 }
 
-ConvSolution
-ConvCKIgemmFwdBiasActiv::GetSolution(const FusionContext& ctx,
-                                     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
+ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
+    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -432,7 +431,8 @@ ConvCKIgemmFwdBiasActiv::GetSolution(const FusionContext& ctx,
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:
-            case miopenDouble: break;
+            case miopenDouble:
+            default: MIOPEN_THROW("Unsupported datatype");
             }
         };
     };

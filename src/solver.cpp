@@ -536,7 +536,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Fusion,
-             solver::fusion::ConvCKIgemmFwdBiasActiv{}.SolverDbId(),
+             solver::fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
     Register(registry,
              ++id,

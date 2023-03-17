@@ -198,18 +198,22 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
-struct PerformanceConfigConvCKIgemmFwdBiasActiv
-    : PerfConfigBase<PerformanceConfigConvCKIgemmFwdBiasActiv>
+struct PerformanceConfigConvCKIgemmFwdBiasActivFused
+    : PerfConfigBase<PerformanceConfigConvCKIgemmFwdBiasActivFused>
 {
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigConvCKIgemmFwdBiasActiv(int idx, std::string kernl_id)
+    PerformanceConfigConvCKIgemmFwdBiasActivFused(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigConvCKIgemmFwdBiasActiv() : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "") {}
-    PerformanceConfigConvCKIgemmFwdBiasActiv(bool) : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "")
+    PerformanceConfigConvCKIgemmFwdBiasActivFused()
+        : PerformanceConfigConvCKIgemmFwdBiasActivFused(0, "")
+    {
+    }
+    PerformanceConfigConvCKIgemmFwdBiasActivFused(bool)
+        : PerformanceConfigConvCKIgemmFwdBiasActivFused(0, "")
     {
     }
     void HeuristicInit(const FusionContext& ctx);
@@ -222,7 +226,7 @@ struct PerformanceConfigConvCKIgemmFwdBiasActiv
     {
         f(s.kernel_id, "kernel_id");
     }
-    bool operator==(const PerformanceConfigConvCKIgemmFwdBiasActiv& other) const;
+    bool operator==(const PerformanceConfigConvCKIgemmFwdBiasActivFused& other) const;
 
 private:
     template <typename DataType>
@@ -231,23 +235,25 @@ private:
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
 };
 
-struct ConvCKIgemmFwdBiasActiv final : FusionTunableSolver<PerformanceConfigConvCKIgemmFwdBiasActiv>
+struct ConvCKIgemmFwdBiasActivFused final
+    : FusionTunableSolver<PerformanceConfigConvCKIgemmFwdBiasActivFused>
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvCKIgemmFwdBiasActiv>();
+        return GetSolverDbId<ConvCKIgemmFwdBiasActivFused>();
     }
 
-    PerformanceConfigConvCKIgemmFwdBiasActiv
+    PerformanceConfigConvCKIgemmFwdBiasActivFused
     GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
-    bool
-    IsValidPerformanceConfig(const FusionContext& ctx,
-                             const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const override;
-    PerformanceConfigConvCKIgemmFwdBiasActiv
+    bool IsValidPerformanceConfig(
+        const FusionContext& ctx,
+        const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
+    PerformanceConfigConvCKIgemmFwdBiasActivFused
     Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const FusionContext& ctx) const override;
-    ConvSolution GetSolution(const FusionContext& ctx,
-                             const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const override;
+    ConvSolution
+    GetSolution(const FusionContext& ctx,
+                const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
 
 private:
     template <typename DataType>

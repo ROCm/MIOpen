@@ -116,18 +116,6 @@ std::vector<ConvTestCase> GetNetwork1()
             {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1}};
 }
 
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
-
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
-}
-
 template <typename T = float>
 struct ConvBiasActivInferTest
     : public ::testing::TestWithParam<
@@ -140,8 +128,6 @@ protected:
         std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        SetTensorLayout(input.desc);
-        SetTensorLayout(weights.desc);
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -153,8 +139,7 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(output.desc);
-        bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
+        bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
         auto&& handle = get_handle();
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
