@@ -245,6 +245,8 @@ ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
     }
 }
 
+/// Register invoker only for the best solution within algorithm.
+/// Add all solutions to the find-db record.
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -253,7 +255,6 @@ static void EvaluateInvokers(Handle& handle,
                              const InvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
     {
@@ -291,6 +292,8 @@ static void EvaluateInvokers(Handle& handle,
         {
             invoker(handle, invoke_ctx);
             const auto elapsed = handle.GetKernelTime();
+            record.SetValues(sol.solver_id,
+                             FindDbData{elapsed, sol.workspace_sz, algorithm_name.ToString()});
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
@@ -311,8 +314,6 @@ static void EvaluateInvokers(Handle& handle,
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
         MIOPEN_LOG_I("Selected: " << selected << ": " << best
                                   << ", workspace_sz = " << selected.workspace_sz);
-        record.SetValues(algorithm_name,
-                         FindDbData{selected.solver_id, best, selected.workspace_sz});
     }
 }
 
@@ -415,6 +416,23 @@ static void DirConvFindCore(Handle& handle,
                      record);
 }
 
+/// Keep only the best within algorithm, remove all others.
+static void ShrinkToFind10Results(std::vector<PerfField>& found)
+{
+    std::vector<PerfField> out;
+    std::sort(begin(found), end(found));
+    for(const auto& f : found)
+    {
+        // If an algo already resides in out, then skip solver.
+        if(std::find_if(out.begin(), out.end(), [&](const auto& o) {
+               return o.algorithm == f.algorithm;
+           }) != out.end())
+            continue;
+        out.emplace_back(f);
+    }
+    found = out;
+}
+
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
@@ -498,7 +516,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     if(found.empty())
         MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
 
-    std::sort(begin(found), end(found));
+    ShrinkToFind10Results(found);
 
     for(const auto& entry : found)
         MIOPEN_LOG_I(entry.algorithm << "\t" << entry.time << "\t" << entry.workspace);
@@ -883,17 +901,17 @@ void GetSolutions(Handle& handle,
 
     for(const auto& pair : fdb_record)
     {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
+        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.second.algorithm));
         if(IsAlgorithmDisabled(algo))
             continue;
 
-        const auto solver_id = solver::Id{pair.second.solver_id};
+        const auto solver_id = solver::Id{pair.first};
         // Wrong IDs can't be used to call IsApplicable(), so let's
         // ignore obsolete or invalid IDs read from find-db first.
         if(!solver_id.IsValid())
         {
             // Do not disturb users with warnings unless detailed log is enabled.
-            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
+            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
             continue;
         }
 
@@ -1126,9 +1144,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         CompileBackwardSolution(handle, dyDesc, wDesc, dxDesc, imm_sol.solution_id);
         const auto id = solver::Id(imm_sol.solution_id);
         found.push_back({id.GetAlgo(conv::Direction::BackwardData),
-                           id.ToString(),
-                           imm_sol.time,
-                           imm_sol.workspace_size});
+                         id.ToString(),
+                         imm_sol.time,
+                         imm_sol.workspace_size});
     }
     else
     {
@@ -1224,7 +1242,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusUnknownError,
                      "Backward Data Convolution cannot be executed due to incorrect params");
 
-    std::sort(begin(found), end(found));
+    ShrinkToFind10Results(found);
 
     for(const auto& entry : found)
         MIOPEN_LOG_I(entry.algorithm << "\t" << entry.time << "\t" << entry.workspace);
@@ -1506,9 +1524,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         CompileWrwSolution(handle, dyDesc, xDesc, dwDesc, imm_sol.solution_id);
         const auto id = solver::Id(imm_sol.solution_id);
         found.push_back({id.GetAlgo(conv::Direction::BackwardWeights),
-                           id.ToString(),
-                           imm_sol.time,
-                           imm_sol.workspace_size});
+                         id.ToString(),
+                         imm_sol.time,
+                         imm_sol.workspace_size});
     }
     else
     {
@@ -1587,7 +1605,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     if(found.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
-    std::sort(begin(found), end(found));
+    ShrinkToFind10Results(found);
 
     for(const auto& entry : found)
         MIOPEN_LOG_I(entry.algorithm << "\t" << entry.time << "\t" << entry.workspace);

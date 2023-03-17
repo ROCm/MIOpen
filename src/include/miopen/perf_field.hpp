@@ -46,23 +46,23 @@ struct PerfField
 
 struct FindDbData : solver::Serializable<FindDbData>
 {
-    std::string solver_id;
     float time;
     std::size_t workspace;
+    std::string algorithm;
 
-    FindDbData() : solver_id("<invalid>"), time(-1), workspace(-1) {}
+    FindDbData() : time(-1), workspace(-1), algorithm("<invalid>") {}
 
-    FindDbData(const std::string& solver_id_, float time_, std::size_t workspace_)
-        : solver_id(solver_id_), time(time_), workspace(workspace_)
+    FindDbData(float time_, std::size_t workspace_, const std::string& algorithm_)
+        : time(time_), workspace(workspace_), algorithm(algorithm_)
     {
     }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        f(self.solver_id, "solver_id");
         f(self.time, "time");
         f(self.workspace, "workspace");
+        f(self.algorithm, "algorithm");
     }
 };
 

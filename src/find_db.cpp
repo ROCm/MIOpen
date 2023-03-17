@@ -248,9 +248,9 @@ bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) 
     {
         if(in_sync)
         {
-            if(CheckInvokerSupport(pair.first))
+            if(CheckInvokerSupport(pair.second.algorithm))
             {
-                if(!handle.GetInvoker(config, {{pair.second.solver_id}}))
+                if(!handle.GetInvoker(config, {{pair.first}}))
                 {
                     unbuilt = true;
                     // This is not an logged as error because no error was detected.
@@ -274,7 +274,7 @@ void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
     const auto range = content->As<FindDbData>();
     std::transform(range.begin(), range.end(), std::back_inserter(to), [](const auto& pair) {
         return PerfField{
-            pair.first, pair.second.solver_id, pair.second.time, pair.second.workspace};
+            pair.second.algorithm, pair.first, pair.second.time, pair.second.workspace};
     });
 }
 
@@ -286,12 +286,12 @@ void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>
 
     MIOPEN_LOG(log_level,
                "Kernel cache entry not found for solver <"
-                   << pair.first << "::" << pair.second.solver_id
+                   << pair.second.algorithm << "::" << pair.first
                    << "> at network config: " << content->GetKey());
 
     for(const auto& pair2 : content->As<FindDbData>())
         MIOPEN_LOG(log_level,
-                   "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
+                   "Find-db record content: <" << pair2.second.algorithm << "::" << pair2.first
                                                << '>');
 }
 
