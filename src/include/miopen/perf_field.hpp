@@ -36,7 +36,7 @@ namespace miopen {
 
 struct PerfField
 {
-    std::string name;
+    std::string algorithm;
     std::string solver_id;
     float time;
     std::size_t workspace;
