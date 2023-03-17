@@ -260,20 +260,13 @@ void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
 }
 
 template <class TDb>
-void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>& pair,
-                                        bool log_as_error) const
+void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>& item) const
 {
-    const auto log_level = log_as_error ? LoggingLevel::Error : LoggingLevel::Info2;
-
-    MIOPEN_LOG(log_level,
-               "Kernel cache entry not found for solver <"
-                   << pair.second.algorithm << "::" << pair.first
-                   << "> at network config: " << content->GetKey());
+    MIOPEN_LOG_I2("Kernel cache entry not found for solver: "
+                  << item.first << " at network config: " << content->GetKey());
 
     for(const auto& pair2 : content->As<FindDbData>())
-        MIOPEN_LOG(log_level,
-                   "Find-db record content: <" << pair2.second.algorithm << "::" << pair2.first
-                                               << '>');
+        MIOPEN_LOG_I2("Find-db record content: " << pair2.first << ':' << pair2.second);
 }
 
 template class FindDbRecord_t<FindDb>;

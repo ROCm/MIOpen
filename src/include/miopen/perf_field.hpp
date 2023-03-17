@@ -30,6 +30,7 @@
 #include <miopen/serializable.hpp>
 
 #include <cstddef>
+#include <ostream>
 #include <string>
 
 namespace miopen {
@@ -63,6 +64,12 @@ struct FindDbData : solver::Serializable<FindDbData>
         f(self.time, "time");
         f(self.workspace, "workspace");
         f(self.algorithm, "algorithm");
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const FindDbData& obj)
+    {
+        obj.Serialize(os);
+        return os;
     }
 };
 

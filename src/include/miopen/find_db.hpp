@@ -179,8 +179,7 @@ private:
     bool Validate(Handle& handle, const NetworkConfig& config) const;
     void CopyTo(std::vector<PerfField>& to) const;
 
-    void LogFindDbItem(const std::pair<std::string, FindDbData>& pair,
-                       bool log_as_error = false) const;
+    void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;
 };
 
 extern template class FindDbRecord_t<FindDb>;
