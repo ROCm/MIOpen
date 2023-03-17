@@ -53,7 +53,7 @@ namespace fusion {
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& context)
 {
     PerformanceConfigConvAsm1x1U::HeuristicInit(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem).problem);
+        context.GetConvContext(0, conv::Direction::Forward, context.problem));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& context)

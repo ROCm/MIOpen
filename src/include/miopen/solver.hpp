@@ -356,7 +356,8 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void HeuristicInit(const ProblemDescription&);
+    void HeuristicInit(const ConvolutionContext&);
+    bool TryToken(int index, int value, const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
@@ -377,10 +378,8 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     PerformanceConfigConvAsm1x1U
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
-    {
-        return GetDefaultPerformanceConfig(ctx.problem);
-    }
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override;
+
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceConfigConvAsm1x1U& config) const override
     {
