@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,36 @@
  *
  *******************************************************************************/
 
-#include <miopen/generic_search.hpp>
-#include <miopen/generic_search_controls.hpp>
+#pragma once
 
-#include <cstddef>
-#include <limits>
-#include <chrono>
+#include <queue>
+#include <condition_variable>
+#include <mutex>
 
-namespace miopen {
-namespace solver {
-
-std::size_t GetTuningIterationsMax()
+template <typename T>
+class ThreadSafeQueue
 {
-    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
-}
+    std::mutex mutex;
+    std::condition_variable cond_var;
+    std::queue<T> queue;
 
-std::chrono::milliseconds GetTuningTimeMax()
-{
-    static const auto fallback =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
-    static const auto res =
-        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
-    return res;
-}
+public:
+    void push(T&& item)
+    {
 
-std::size_t GetTuningThreadsMax()
-{
-#if MIOPEN_USE_COMGR
-    const auto def_max = 1; // COMGR is not parallelizable
-#else
-    const int def_max = std::thread::hardware_concurrency() / 2;
-#endif
-    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);
-}
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            queue.push(item);
+        }
 
-} // namespace solver
-} // namespace miopen
+        cond_var.notify_one();
+    }
+    T pop()
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        cond_var.wait(lock, [&] { return !queue.empty(); });
+        T ret = queue.front();
+        queue.pop();
+        return ret;
+    }
+};
