@@ -108,8 +108,9 @@ struct verify_forward_train_bn_per_activation
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(test::GET_RAND() % 100);
-                runVar[i]  = 1e-3 * U(test::GET_RAND() % 100);
+                runMean[i] =
+                    (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(test::GET_RAND() % 100);
+                runVar[i] = 1e-3 * U(test::GET_RAND() % 100);
             }
         }
 
@@ -232,8 +233,9 @@ struct verify_forward_train_bn_per_activation
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(test::GET_RAND() % 100);
-                runVar[i]  = 1e-3 * U(test::GET_RAND() % 100);
+                runMean[i] =
+                    (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(test::GET_RAND() % 100);
+                runVar[i] = 1e-3 * U(test::GET_RAND() % 100);
             }
         }
 
@@ -990,12 +992,15 @@ struct batch_norm_per_activation_driver : test_driver
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(test::GET_RAND() % 100);
-                shift[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(test::GET_RAND() % 100);
+                scale[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 *
+                           PREC_TYPE(test::GET_RAND() % 100);
+                shift[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 *
+                           PREC_TYPE(test::GET_RAND() % 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * (1e-4 * T(test::GET_RAND() % 100));
+                input[i] =
+                    (((test::GET_RAND() % 2) == 1) ? -1 : 1) * (1e-4 * T(test::GET_RAND() % 100));
             }
         }
 

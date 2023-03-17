@@ -3064,7 +3064,8 @@ struct lstm_basic_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(test::GET_RAND() % 100);
+            weights[i] =
+                (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(test::GET_RAND() % 100);
         }
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
