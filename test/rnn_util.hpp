@@ -98,7 +98,7 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
     {
         if(i > 0)
         {
-            int nvalue = currentval - GET_RAND() % modval;
+            int nvalue = currentval - test::GET_RAND() % modval;
             currentval = (nvalue < 1) ? 1 : nvalue;
             // printf("current value: %d\n", currentval);
         }

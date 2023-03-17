@@ -37,8 +37,6 @@
 #include "get_handle.hpp"
 #include "conv_common.hpp"
 
-#include "../driver/tensor_driver.hpp"
-
 template <typename T>
 miopenDataType_t GetDataType();
 

@@ -254,7 +254,7 @@ static int gen_rand_integer()
         std::srand(std::time(nullptr));
         inited = 1;
     }
-    return GET_RAND();
+    return test::GET_RAND();
 }
 
 template <typename T>

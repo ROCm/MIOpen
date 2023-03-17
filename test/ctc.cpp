@@ -721,10 +721,10 @@ struct ctc_driver : test_driver
         std::vector<int> labelLengths(batchSize, labelLen);
 
         for(int i = 0; i < batchSize; i++)
-            inputLengths[i] = GET_RAND() % inputLen + 1;
+            inputLengths[i] = test::GET_RAND() % inputLen + 1;
 
         for(int i = 0; i < batchSize; i++)
-            labelLengths[i] = GET_RAND() % labelLen + 1;
+            labelLengths[i] = test::GET_RAND() % labelLen + 1;
 
         for(int i = 0; i < batchSize; i++)
             if(inputLengths[i] < labelLengths[i] * 2 + 1)
@@ -762,7 +762,7 @@ struct ctc_driver : test_driver
         int blank_lb = ctcLossDesc.blank_label_id;
         for(size_t i = 0; i < labels_sz; i++)
         {
-            labels[i] = static_cast<int>(GET_RAND() % numClass + 1);
+            labels[i] = static_cast<int>(test::GET_RAND() % numClass + 1);
             if(blank_lb > numClass)
                 labels[i] = labels[i] == numClass ? numClass - 1 : labels[i];
             else if(blank_lb < 0)

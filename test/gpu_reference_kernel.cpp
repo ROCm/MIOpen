@@ -74,7 +74,7 @@ static int gen_rand_integer()
         return true;
     }();
     std::ignore = once;
-    return GET_RAND();
+    return test::GET_RAND();
 }
 
 struct gpu_reference_kernel_base

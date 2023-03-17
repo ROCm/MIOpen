@@ -313,7 +313,7 @@ struct dropout_driver : test_driver
             srand(0);
             for(size_t i = 0; i < in.desc.GetElementSize(); i++)
                 reserveSpace[i] =
-                    static_cast<unsigned char>(float(GET_RAND()) / float(RAND_MAX) > dropout_rate);
+                    static_cast<unsigned char>(float(test::GET_RAND()) / float(RAND_MAX) > dropout_rate);
         }
 
         DropoutDesc.dropout          = dropout_rate;

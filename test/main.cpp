@@ -199,11 +199,11 @@ struct conv_forward : output_tensor_fixture
 
         for(size_t i = 0; i < sz_in; i++)
         {
-            in[i] = GET_RAND() * (1.0 / RAND_MAX);
+            in[i] = test::GET_RAND() * (1.0 / RAND_MAX);
         }
         for(size_t i = 0; i < sz_wei; i++)
         {
-            wei[i] = static_cast<double>(GET_RAND() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+            wei[i] = static_cast<double>(test::GET_RAND() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }
 
 #if MIOPEN_BACKEND_OPENCL
