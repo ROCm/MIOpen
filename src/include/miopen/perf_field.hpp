@@ -27,7 +27,6 @@
 #define GUARD_MIOPEN_PERF_FIELD_HPP_
 
 #include <miopen/errors.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
 #include <miopen/serializable.hpp>
 
 #include <cstddef>
@@ -50,21 +49,12 @@ struct FindDbData : solver::Serializable<FindDbData>
     std::string solver_id;
     float time;
     std::size_t workspace;
-    /// kcache_key may have a special value <unused> in network_config. It means that the particular
-    /// solver doesn't use kernel cache and doesn't require a validation of built kernel existence.
-    // Todo: remove when all finds will support invokers
-    FindDbKCacheKey kcache_key;
 
     FindDbData() : solver_id("<invalid>"), time(-1), workspace(-1) {}
 
-    FindDbData(const std::string& solver_id_,
-               float time_,
-               std::size_t workspace_,
-               const FindDbKCacheKey& kcache_key_)
-        : solver_id(solver_id_), time(time_), workspace(workspace_), kcache_key(kcache_key_)
+    FindDbData(const std::string& solver_id_, float time_, std::size_t workspace_)
+        : solver_id(solver_id_), time(time_), workspace(workspace_)
     {
-        if(!kcache_key.IsValid())
-            MIOPEN_THROW("Invalid kernel cache key: " + kcache_key.algorithm_name);
     }
 
     template <class Self, class F>
@@ -73,7 +63,6 @@ struct FindDbData : solver::Serializable<FindDbData>
         f(self.solver_id, "solver_id");
         f(self.time, "time");
         f(self.workspace, "workspace");
-        f(self.kcache_key.algorithm_name, "kcache_key::algorithm_name");
     }
 };
 

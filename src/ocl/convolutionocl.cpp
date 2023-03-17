@@ -32,7 +32,6 @@
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_db.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/invoker.hpp>
@@ -313,10 +312,7 @@ static void EvaluateInvokers(Handle& handle,
         MIOPEN_LOG_I("Selected: " << selected << ": " << best
                                   << ", workspace_sz = " << selected.workspace_sz);
         record.SetValues(algorithm_name,
-                         FindDbData{selected.solver_id,
-                                    best,
-                                    selected.workspace_sz,
-                                    FindDbKCacheKey::MakeUnused(algorithm_name)});
+                         FindDbData{selected.solver_id, best, selected.workspace_sz});
     }
 }
 

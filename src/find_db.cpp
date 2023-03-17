@@ -27,7 +27,6 @@
 #include <miopen/find_db.hpp>
 
 #include <miopen/handle.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/perf_field.hpp>
 #if MIOPEN_EMBED_DB
@@ -288,14 +287,12 @@ void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>
     MIOPEN_LOG(log_level,
                "Kernel cache entry not found for solver <"
                    << pair.first << "::" << pair.second.solver_id
-                   << "> at network config: " << content->GetKey()
-                   << " and kernel cache key: " << pair.second.kcache_key.algorithm_name);
+                   << "> at network config: " << content->GetKey());
 
     for(const auto& pair2 : content->As<FindDbData>())
         MIOPEN_LOG(log_level,
-                   "Find-db record content: <"
-                       << pair2.first << "::" << pair2.second.solver_id
-                       << "> algorithm name: " << pair2.second.kcache_key.algorithm_name);
+                   "Find-db record content: <" << pair2.first << "::" << pair2.second.solver_id
+                                               << '>');
 }
 
 template class FindDbRecord_t<FindDb>;
