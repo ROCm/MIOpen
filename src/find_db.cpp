@@ -263,21 +263,6 @@ bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) 
                 any = true;
                 continue;
             }
-
-            // Todo: remove when all finds will use invokers
-            if(!pair.second.kcache_key.IsUnused())
-            {
-                const auto is_valid = pair.second.kcache_key.IsValid();
-
-                if(!is_valid || !HasKernel(handle, pair.second.kcache_key))
-                {
-                    unbuilt = true;
-                    LogFindDbItem(pair, !is_valid);
-                    break;
-                }
-
-                any = true;
-            }
         }
     }
 
@@ -304,21 +289,13 @@ void FindDbRecord_t<TDb>::LogFindDbItem(const std::pair<std::string, FindDbData>
                "Kernel cache entry not found for solver <"
                    << pair.first << "::" << pair.second.solver_id
                    << "> at network config: " << content->GetKey()
-                   << " and kernel cache key: " << pair.second.kcache_key.algorithm_name << ", "
-                   << pair.second.kcache_key.network_config);
+                   << " and kernel cache key: " << pair.second.kcache_key.algorithm_name);
 
     for(const auto& pair2 : content->As<FindDbData>())
         MIOPEN_LOG(log_level,
                    "Find-db record content: <"
                        << pair2.first << "::" << pair2.second.solver_id
-                       << "> at network config: " << pair2.second.kcache_key.network_config
-                       << " and algorithm name: " << pair2.second.kcache_key.algorithm_name);
-}
-
-template <class TDb>
-bool FindDbRecord_t<TDb>::HasKernel(Handle& handle, const FindDbKCacheKey& key)
-{
-    return handle.HasKernel(key.algorithm_name, key.network_config);
+                       << "> algorithm name: " << pair2.second.kcache_key.algorithm_name);
 }
 
 template class FindDbRecord_t<FindDb>;

@@ -357,11 +357,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
     return factory(built);
 }
 
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
-}
-
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
 {
 

@@ -71,40 +71,6 @@ size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kern
 
 size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.ldims[dim]; }
 
-static inline void AddKernels(const Handle& handle,
-                              const std::string& algorithm_name,
-                              const std::string& network_config,
-                              const miopen::solver::ConvSolution& s,
-                              std::vector<KernelInvoke>* const kernels)
-{
-    if(!algorithm_name.empty() && !network_config.empty())
-    {
-        handle.ClearKernels(algorithm_name, network_config);
-    }
-    else
-    {
-        assert(algorithm_name.empty() && network_config.empty());
-    }
-    int i = 0;
-    for(auto& k : s.construction_params)
-    {
-        MIOPEN_LOG_I2(k.kernel_name);
-        auto kernel = handle.AddKernel(algorithm_name,
-                                       network_config,
-                                       k.kernel_file,
-                                       k.kernel_name,
-                                       k.l_wk,
-                                       k.g_wk,
-                                       k.comp_options,
-                                       i);
-        if(kernels != nullptr)
-        {
-            kernels->push_back(kernel);
-        }
-        ++i;
-    }
-}
-
 static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
@@ -1003,26 +969,6 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
                      " is not applicable to the current problem");
 }
 
-// Todo: remove when all immediate mode calls will support invokers
-static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
-                                               ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
-                                               solver::Id solver_id,
-                                               const FindDbKCacheKey& key)
-{
-    ctx.DetectRocm();
-    ctx.SetupFloats(problem);
-
-    const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
-    const auto solution =
-        solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-
-    std::vector<KernelInvoke> kernels;
-    AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
-    return kernels;
-}
-
 static Invoker PrepareInvoker(Handle& handle,
                               ConvolutionContext& ctx,
                               const ProblemDescription& problem,
@@ -1077,24 +1023,6 @@ static void CompileSolution(Handle& handle,
         LoadOrPrepareInvoker(handle, ctx, problem, solver_id, dir);
         return;
     }
-
-    const FindDbRecord fdb_record{handle, problem};
-    for(const auto& pair : fdb_record)
-    {
-        if(solver::Id{pair.second.solver_id} != solver_id)
-            continue;
-
-        const auto&& kernels = handle.GetKernels(pair.second.kcache_key.algorithm_name,
-                                                 pair.second.kcache_key.network_config);
-
-        if(!kernels.empty())
-            return;
-
-        CompileSolver(handle, ctx, problem, solver_id, pair.second.kcache_key);
-        return;
-    }
-
-    // Todo: solver not found in find-db.
     MIOPEN_THROW(miopenStatusNotImplemented);
 }
 

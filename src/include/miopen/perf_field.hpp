@@ -64,8 +64,7 @@ struct FindDbData : solver::Serializable<FindDbData>
         : solver_id(solver_id_), time(time_), workspace(workspace_), kcache_key(kcache_key_)
     {
         if(!kcache_key.IsValid())
-            MIOPEN_THROW("Invalid kernel cache key: " + kcache_key.algorithm_name + ", " +
-                         kcache_key.network_config);
+            MIOPEN_THROW("Invalid kernel cache key: " + kcache_key.algorithm_name);
     }
 
     template <class Self, class F>
@@ -75,7 +74,6 @@ struct FindDbData : solver::Serializable<FindDbData>
         f(self.time, "time");
         f(self.workspace, "workspace");
         f(self.kcache_key.algorithm_name, "kcache_key::algorithm_name");
-        f(self.kcache_key.network_config, "kcache_key::network_confing");
     }
 };
 

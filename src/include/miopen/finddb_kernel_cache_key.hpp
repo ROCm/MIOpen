@@ -36,27 +36,18 @@ namespace miopen {
 struct FindDbKCacheKey
 {
     std::string algorithm_name = {};
-    std::string network_config = {};
 
     FindDbKCacheKey() = default;
 
-    FindDbKCacheKey(std::string algorithm_name_, std::string network_config_)
-        : algorithm_name(algorithm_name_), network_config(network_config_)
+    FindDbKCacheKey(std::string algorithm_name_) : algorithm_name(algorithm_name_)
     {
         if(!IsValid())
-            MIOPEN_THROW("Invalid kernel cache key: " + algorithm_name + ", " + network_config);
+            MIOPEN_THROW("Invalid kernel cache key: " + algorithm_name);
     }
 
-    bool IsValid() const { return !algorithm_name.empty() && !network_config.empty(); }
-    bool IsUnused() const { return network_config == GetUnusedNetworkConfig(); }
+    bool IsValid() const { return !algorithm_name.empty(); }
 
-    static FindDbKCacheKey MakeUnused(const std::string& algo_name)
-    {
-        return {algo_name, GetUnusedNetworkConfig()};
-    }
-
-private:
-    static const char* GetUnusedNetworkConfig() { return "<unused>"; }
+    static FindDbKCacheKey MakeUnused(const std::string& algo_name) { return {algo_name}; }
 };
 
 } // namespace miopen

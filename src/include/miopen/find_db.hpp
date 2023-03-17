@@ -172,8 +172,6 @@ private:
     boost::optional<DbRecord> content{boost::none};
     bool in_sync = false;
 
-    static bool HasKernel(Handle& handle, const FindDbKCacheKey& key);
-
     static std::string GetInstalledPath(Handle& handle);
     static std::string GetInstalledPathEmbed(Handle& handle);
     static std::string GetInstalledPathFile(Handle& handle);
