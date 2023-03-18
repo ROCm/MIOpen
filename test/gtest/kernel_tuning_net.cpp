@@ -33,7 +33,7 @@ void Test_908_ConvAsm1x1U(void)
                                           conv_desc,
                                           miopen::conv::Direction::Forward);
 
-        miopen::ConvolutionContext forward(forward_pd);
+    miopen::ConvolutionContext forward(forward_pd);
 
     auto&& handle = get_handle();
     forward.SetStream(&handle);
@@ -47,7 +47,7 @@ void Test_908_ConvAsm1x1U(void)
                                            conv_desc,
                                            miopen::conv::Direction::BackwardData);
 
-        miopen::ConvolutionContext backward(backward_pd);
+    miopen::ConvolutionContext backward(backward_pd);
 
     backward.SetStream(&handle);
     backward.DetectRocm();

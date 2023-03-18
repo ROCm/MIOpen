@@ -394,7 +394,8 @@ std::vector<float> TransformFeatures(const ProblemDescription& problem,
     return features;
 }
 
-void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
+                                                 const ProblemDescription& problem)
 {
     if(problem.in_data_type == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");

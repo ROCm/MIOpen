@@ -50,10 +50,11 @@ namespace solver {
 
 namespace fusion {
 
-void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx, const FusionDescription& problem)
+void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx,
+                                                          const FusionDescription& problem)
 {
     auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
-    auto conv_ctx = ctx.GetConvContext(conv_problem);
+    auto conv_ctx     = ctx.GetConvContext(conv_problem);
     PerformanceConfigConvAsm1x1U::HeuristicInit(conv_ctx, conv_problem);
 }
 
