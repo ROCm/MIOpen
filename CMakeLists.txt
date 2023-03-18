@@ -60,7 +60,7 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-
+set(MIOPEN_ENABLE_AI_HEUR On CACHE BOOL "Enable AI based heuristics")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")

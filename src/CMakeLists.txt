@@ -661,6 +661,20 @@ target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
+
+if(MIOPEN_ENABLE_AI_HEUR)
+    find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
+    find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
+    target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
+    target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+    file(GLOB MODEL_FILES kernels/*.model)
+    install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+    foreach(MODEL_FILE ${MODEL_FILES})
+        get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+        configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
+
 set(PACKAGE_DEPENDS)
 set(PACKAGE_STATIC_DEPENDS)
 ############################################################

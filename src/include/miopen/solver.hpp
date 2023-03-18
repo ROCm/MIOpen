@@ -361,7 +361,8 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void HeuristicInit(const ProblemDescription&);
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
+    bool TryToken(int, int, const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
