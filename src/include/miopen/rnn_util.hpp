@@ -33,6 +33,40 @@
 
 namespace miopen {
 
+inline void
+RNNProfilingBegin(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+{
+    start = miopen::make_hip_event();
+    stop  = miopen::make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline float
+RNNProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    return mS;
+}
+
+inline miopen::HipEventPtr make_hip_fast_event()
+{
+    hipEvent_t result = nullptr;
+    hipEventCreateWithFlags(&result, hipEventDisableTiming);
+    return miopen::HipEventPtr{result};
+}
+
+auto create_stream()
+{
+    hipStream_t result;
+    auto status = hipStreamCreate(&result);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
+    return result;
+}
+
 void LSTMForwardHiddenStateUpdate(const Handle& handle,
                                   miopenDataType_t rnn_data_type,
                                   bool is_inference,

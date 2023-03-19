@@ -206,9 +206,8 @@ struct RNNDescriptor : miopenRNNDescriptor
                             size_t workSpaceSize,
                             Data_t reserveSpace,
                             size_t reserveSpaceSize) const;
-
-    void RNNForwardTraining_MS(const RNNDescriptor& rnn_desc,
-                            Handle& handle,
+    
+    void RNNForwardTraining_MS(Handle& handle,
                             std::vector<int>& seqLen_array,
                             const TensorDescriptor& xDesc,
                             ConstData_t x,
@@ -226,7 +225,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             size_t workSpaceSize,
                             Data_t reserveSpace,
                             size_t reserveSpaceSize) const;
-
+    
     void RNNForwardInference(Handle& handle,
                              int seqLen,
                              c_array_view<const miopenTensorDescriptor_t> xDesc,
