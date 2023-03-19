@@ -38,23 +38,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
 
-inline void
-ProfilingBegin(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
-{
-    start = miopen::make_hip_event();
-    stop  = miopen::make_hip_event();
-    hipEventRecord(start.get(), handle.GetStream());
-}
 
-inline float
-ProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
-{
-    hipEventRecord(stop.get(), handle.GetStream());
-    hipEventSynchronize(stop.get());
-    float mS = 0;
-    hipEventElapsedTime(&mS, start.get(), stop.get());
-    return mS;
-}
 
 namespace miopen {
 
