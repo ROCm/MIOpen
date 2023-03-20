@@ -82,8 +82,8 @@ struct Handle : miopenHandle
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
-    void SetStreamFromPull(int streamID) const;
-    void ReserveExtraStreamsAtPull(int cnt) const;
+    void SetStreamFromPool(int streamID) const;
+    void ReserveExtraStreamsAtPool(int cnt) const;
 
     void SetAllocator(miopenAllocatorFunction allocator,
                       miopenDeallocatorFunction deallocator,

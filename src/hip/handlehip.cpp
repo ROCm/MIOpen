@@ -161,10 +161,8 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    using StreamPullPtr =
-        std::shared_ptr<typename std::remove_pointer<std::vector<StreamPtr>>::type>;
-    using RocblasHandlePullPtr =
-        std::shared_ptr<typename std::remove_pointer<std::vector<rocblas_handle_ptr>>::type>;
+    using StreamPoolPtr        = std::shared_ptr<std::vector<StreamPtr>>;
+    using RocblasHandlePoolPtr = std::shared_ptr<std::vector<rocblas_handle_ptr>>;
 
     HandleImpl() { hipInit(0); }
 
@@ -206,20 +204,19 @@ struct HandleImpl
         return name; // NOLINT (performance-no-automatic-move)
     }
 
-    unsigned int used_pull_id = 0;
+    unsigned int current_stream_id = 0;
     // the main stream and main rocblas_handle rhandle_
-    StreamPtr main_stream = nullptr;
-    StreamPullPtr stream_pull;
-    std::map<miopenAcceleratorQueue_t, StreamPullPtr> extra_stream_map;
+    StreamPtr root_stream = nullptr;
+    StreamPoolPtr stream_pool;
+    std::map<miopenAcceleratorQueue_t, StreamPoolPtr> extra_stream_map;
 
 #if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr rhandle_;
-    RocblasHandlePullPtr rhandle_pull;
-    std::map<miopenAcceleratorQueue_t, RocblasHandlePullPtr> extra_rhandle_map;
+    RocblasHandlePoolPtr rhandle_pool;
+    std::map<miopenAcceleratorQueue_t, RocblasHandlePoolPtr> extra_rhandle_map;
 #endif
 
-    bool enable_profiling = false;
-
+    bool enable_profiling  = false;
     float profiling_result = 0.0;
     int device             = -1;
     Allocator allocator{};
@@ -232,23 +229,26 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
     this->impl->device = get_device_id();
 
     if(stream == nullptr)
-        this->impl->main_stream = HandleImpl::reference_stream(nullptr);
+        this->impl->root_stream = HandleImpl::reference_stream(nullptr);
     else
-        this->impl->main_stream = HandleImpl::reference_stream(stream);
+        this->impl->root_stream = HandleImpl::reference_stream(stream);
 
-    this->impl->extra_stream_map.emplace(stream, new std::vector<HandleImpl::StreamPtr>{});
+    this->impl->extra_stream_map.emplace(
+        stream,
+        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
 
-    this->impl->stream_pull = this->impl->extra_stream_map.begin()->second;
+    this->impl->stream_pool = this->impl->extra_stream_map.begin()->second;
 
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle();
 
-    this->impl->extra_rhandle_map.insert(
-        std::make_pair(stream, new std::vector<rocblas_handle_ptr>));
+    this->impl->extra_rhandle_map.emplace(
+        stream,
+        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
 
-    this->impl->rhandle_pull = this->impl->extra_rhandle_map.begin()->second;
+    this->impl->rhandle_pool = this->impl->extra_rhandle_map.begin()->second;
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -258,26 +258,28 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
 {
 #if MIOPEN_BUILD_DEV
     this->impl->device      = set_default_device();
-    this->impl->main_stream = impl->create_stream();
+    this->impl->root_stream = impl->create_stream();
 #else
     this->impl->device = get_device_id();
-    this->impl->main_stream = HandleImpl::reference_stream(nullptr);
+    this->impl->root_stream = HandleImpl::reference_stream(nullptr);
 #endif
 
-    this->impl->extra_stream_map.emplace(this->impl->main_stream.get(),
-                                         new std::vector<HandleImpl::StreamPtr>);
+    this->impl->extra_stream_map.emplace(
+        this->impl->root_stream.get(),
+        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
 
-    this->impl->stream_pull = this->impl->extra_stream_map.begin()->second;
+    this->impl->stream_pool = this->impl->extra_stream_map.begin()->second;
 
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle();
 
-    this->impl->extra_rhandle_map.emplace(this->impl->main_stream.get(),
-                                          new std::vector<rocblas_handle_ptr>);
+    this->impl->extra_rhandle_map.emplace(
+        this->impl->root_stream.get(),
+        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
 
-    this->impl->rhandle_pull = this->impl->extra_rhandle_map.begin()->second;
+    this->impl->rhandle_pool = this->impl->extra_rhandle_map.begin()->second;
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -287,47 +289,49 @@ Handle::~Handle() {}
 
 void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 {
-    this->impl->used_pull_id = 0;
-    this->impl->main_stream  = HandleImpl::reference_stream(streamID);
+    this->impl->current_stream_id = 0;
+    this->impl->root_stream       = HandleImpl::reference_stream(streamID);
 
-    if(this->impl->extra_stream_map.count(streamID) == 0)
-        this->impl->extra_stream_map.emplace(streamID, new std::vector<HandleImpl::StreamPtr>);
-    this->impl->stream_pull = this->impl->extra_stream_map[streamID];
+    this->impl->extra_stream_map.emplace(
+        streamID,
+        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
+    this->impl->stream_pool = this->impl->extra_stream_map[streamID];
 
 #if MIOPEN_USE_ROCBLAS
     rocblas_set_stream(this->rhandle().get(), this->GetStream());
 
-    if(this->impl->extra_rhandle_map.count(streamID) == 0)
-        this->impl->extra_rhandle_map.emplace(streamID, new std::vector<rocblas_handle_ptr>);
-    this->impl->rhandle_pull = this->impl->extra_rhandle_map[streamID];
+    this->impl->extra_rhandle_map.emplace(
+        streamID,
+        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
+    this->impl->rhandle_pool = this->impl->extra_rhandle_map[streamID];
 
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
-void Handle::SetStreamFromPull(int streamID) const { this->impl->used_pull_id = streamID; }
+void Handle::SetStreamFromPool(int streamID) const { this->impl->current_stream_id = streamID; }
 
-void Handle::ReserveExtraStreamsAtPull(int cnt) const
+void Handle::ReserveExtraStreamsAtPool(int cnt) const
 {
-    int save_pull_id = this->impl->used_pull_id;
-    if(this->impl->stream_pull->size() < cnt)
-        for(int stream_id = this->impl->stream_pull->size(); stream_id < cnt; stream_id++)
+    int save_pull_id = this->impl->current_stream_id;
+    if(this->impl->stream_pool->size() < cnt)
+        for(int stream_id = this->impl->stream_pool->size(); stream_id < cnt; stream_id++)
         {
-            this->impl->stream_pull->push_back(this->impl->create_stream());
-            this->impl->used_pull_id = stream_id + 1;
+            this->impl->stream_pool->push_back(this->impl->create_stream());
+            this->impl->current_stream_id = stream_id + 1;
 #if MIOPEN_USE_ROCBLAS
-            this->impl->rhandle_pull->push_back(CreateRocblasHandle());
+            this->impl->rhandle_pool->push_back(CreateRocblasHandle());
 #endif
         }
-    this->impl->used_pull_id = save_pull_id;
+    this->impl->current_stream_id = save_pull_id;
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const
 {
-    return (this->impl->used_pull_id == 0)
-               ? impl->main_stream.get()
-               : this->impl->stream_pull->at(this->impl->used_pull_id - 1).get();
+    return (this->impl->current_stream_id == 0)
+               ? impl->root_stream.get()
+               : this->impl->stream_pool->at(this->impl->current_stream_id - 1).get();
 }
 
 void Handle::SetAllocator(miopenAllocatorFunction allocator,
@@ -660,9 +664,9 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
 const rocblas_handle_ptr& Handle::rhandle() const
 {
 
-    return (this->impl->used_pull_id == 0)
+    return (this->impl->current_stream_id == 0)
                ? this->impl->rhandle_
-               : this->impl->rhandle_pull->at(this->impl->used_pull_id - 1);
+               : this->impl->rhandle_pool->at(this->impl->current_stream_id - 1);
 }
 
 rocblas_handle_ptr Handle::CreateRocblasHandle() const
