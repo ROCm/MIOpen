@@ -48,9 +48,18 @@ static const mapFwd_t& FwdAlgoMap()
     return data;
 }
 
+template <typename T>
+typename T::mapped_type ToConvolutionAlgo(const std::string& s, const T& map)
+{
+    const auto it = map.find(s);
+    if(it == map.end())
+      MIOPEN_THROW(miopenStatusInternalError, "Bad algorithm: " + s);
+    return it->second;
+}
+
 miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
 {
-    return FwdAlgoMap().at(s);
+    return ToConvolutionAlgo(s, FwdAlgoMap());
 }
 
 static const mapBwd_t& BwdAlgoMap()
@@ -68,7 +77,7 @@ static const mapBwd_t& BwdAlgoMap()
 
 miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s)
 {
-    return BwdAlgoMap().at(s);
+    return ToConvolutionAlgo(s, BwdAlgoMap());
 }
 
 static const mapWrw_t& WrwAlgoMap()
@@ -85,7 +94,7 @@ static const mapWrw_t& WrwAlgoMap()
 
 miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s)
 {
-    return WrwAlgoMap().at(s);
+    return ToConvolutionAlgo(s, WrwAlgoMap());
 }
 
 bool IsValidConvolutionDirAlgo(const std::string& s)
