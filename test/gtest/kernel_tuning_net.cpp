@@ -12,6 +12,7 @@
 
 void Test_908_ConvAsm1x1U(void)
 {
+#if MIOPEN_ENABLE_AI_HEUR
     tensor<float> test_inputs_f  = tensor<float>(miopenHalf, miopenTensorNCHW, 256, 2048, 7, 7);
     tensor<float> test_weights_f = tensor<float>(miopenHalf, miopenTensorNCHW, 512, 2048, 1, 1);
     tensor<float> test_outputs_f = tensor<float>(miopenHalf, miopenTensorNCHW, 256, 512, 7, 7);
@@ -61,6 +62,7 @@ void Test_908_ConvAsm1x1U(void)
     EXPECT_EQ(config_backward.ToString(), "1,16,1,64,2,2,1,4")
         << "Backward fp32 test case failed, model predicted: " << config_backward.ToString()
         << " but should have predicted: 1,16,1,64,2,2,1,4";
+#endif
 }
 
 TEST(KERNEL_TUNING_NET_TESTS, Test_908_ConvAsm1x1U) { Test_908_ConvAsm1x1U(); }

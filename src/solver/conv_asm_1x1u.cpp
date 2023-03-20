@@ -371,8 +371,10 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
+#if MIOPEN_ENABLE_AI_HEUR
     if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.kernel_stride_h == 1)
         return true;
+#endif
     return false;
 }
 
