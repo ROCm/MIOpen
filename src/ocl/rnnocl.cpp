@@ -70,9 +70,13 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
+    handle.ReserveExtraStreamsAtPull(1);
+
     std::vector<hipStream_t> stream_pull;
     stream_pull.push_back(handle.GetStream());
-    stream_pull.push_back(create_stream());
+    handle.SetStreamFromPull(1);
+    stream_pull.push_back(handle.GetStream());
+    handle.SetStreamFromPull(0);
 
     int total_batch_size = 0;
     std::vector<int> bacc_per_time(seq_len + 1);
@@ -661,7 +665,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                     time_chunk_sz,
                                     seq_len](int layer_id) {
         auto stream_id = layer_stream_id[layer_id];
-        handle.SetStream(stream_pull[stream_id]);
+        handle.SetStreamFromPull(stream_id);
 
         const int chunk_id   = layer_upd_cur_time[layer_id] / time_chunk_sz;
         const int chunk_time = std::min(time_chunk_sz, seq_len - chunk_id * time_chunk_sz);
@@ -697,14 +701,14 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         const auto stream_id       = layer_stream_id[first_layer_id]; // 0
         const auto extra_stream_id = 1;
 
-        handle.SetStream(stream_pull[stream_id]);
+        handle.SetStreamFromPull(stream_id);
 
         if(biasMode != 0u)
             call_bias_add(first_layer_id);
 
         call_next_chunk_compute(first_layer_id);
 
-        handle.SetStream(stream_pull[extra_stream_id]);
+        handle.SetStreamFromPull(extra_stream_id);
 
         if(biasMode != 0u)
             for(int layer_id = 1; layer_id < nLayers; layer_id++)
@@ -722,7 +726,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     {
 
         const auto main_stream_id = 0;
-        handle.SetStream(stream_pull[main_stream_id]);
+        handle.SetStreamFromPull(main_stream_id);
 
         // check for wich stream was assigned this layer. If it differs from current - set stream
         // wait event
@@ -760,14 +764,14 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                 call_next_chunk_compute(extra_compute_layer);
         }
 
-        handle.SetStream(stream_pull[main_stream_id]);
+        handle.SetStreamFromPull(main_stream_id);
         // update hy, cy
         call_hy_cy_update(layer_id);
     }
 
     hipStreamWaitEvent(stream_pull[0], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
 
-    handle.SetStream(stream_pull[0]);
+    handle.SetStreamFromPull(0);
     // output tensor copy
     {
         const std::vector<int> y_copy_size{1, total_batch_size, out_vec};

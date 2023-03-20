@@ -286,6 +286,15 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
     MIOPEN_LOG_NQI(*this);
 }
 
+void Handle::SetStreamFromPull(int streamID) const
+{
+    MIOPEN_THROW("Error streamPull unsupported at OCl");
+}
+void Handle::ReserveExtraStreamsAtPull(int cnt) const
+{
+    MIOPEN_THROW("Error streamPull unsupported at OCl");
+}
+
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
 
 void Handle::SetAllocator(miopenAllocatorFunction allocator,

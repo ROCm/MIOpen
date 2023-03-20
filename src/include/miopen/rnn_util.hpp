@@ -59,15 +59,6 @@ inline miopen::HipEventPtr make_hip_fast_event()
     return miopen::HipEventPtr{result};
 }
 
-auto create_stream()
-{
-    hipStream_t result;
-    auto status = hipStreamCreate(&result);
-    if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
-    return result;
-}
-
 void LSTMForwardHiddenStateUpdate(const Handle& handle,
                                   miopenDataType_t rnn_data_type,
                                   bool is_inference,
