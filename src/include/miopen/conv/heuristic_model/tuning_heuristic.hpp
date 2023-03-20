@@ -42,11 +42,11 @@
 namespace miopen {
 
 inline bool model_set_params(const fdeep::model& encoder,
-                      const fdeep::model& decoder,
-                      const nlohmann::json& metadata,
-                      solver::PerformanceConfigConvAsm1x1U& config,
-                      const ProblemDescription& problem,
-                      std::vector<float>& features)
+                             const fdeep::model& decoder,
+                             const nlohmann::json& metadata,
+                             solver::PerformanceConfigConvAsm1x1U& config,
+                             const ProblemDescription& problem,
+                             std::vector<float>& features)
 {
     MIOPEN_LOG_I2("KernelTuningNet setting tuning parameters");
 
