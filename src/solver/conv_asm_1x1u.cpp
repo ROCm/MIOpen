@@ -365,6 +365,7 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
     case 5: c_mult = value; break;
     case 6: waves_c_in_group = value; break;
     case 7: waves_k_in_group = value; break;
+    default: return false;
     }
     return this->IsValid(problem);
 }
@@ -381,7 +382,7 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
 std::vector<float> TransformFeatures(const ProblemDescription& problem,
                                      const nlohmann::json& metadata)
 {
-    int n = metadata["num_conv_params"].get<int>() + 1;
+    unsigned long n = metadata["num_conv_params"].get<unsigned long>() + 1;
     std::vector<float> features(n * n, 0.0);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;

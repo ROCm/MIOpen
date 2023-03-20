@@ -41,7 +41,7 @@
 
 namespace miopen {
 
-bool model_set_params(const fdeep::model& encoder,
+inline bool model_set_params(const fdeep::model& encoder,
                       const fdeep::model& decoder,
                       const nlohmann::json& metadata,
                       solver::PerformanceConfigConvAsm1x1U& config,
