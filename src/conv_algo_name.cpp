@@ -53,7 +53,7 @@ typename T::mapped_type ToConvolutionAlgo(const std::string& s, const T& map)
 {
     const auto it = map.find(s);
     if(it == map.end())
-      MIOPEN_THROW(miopenStatusInternalError, "Bad algorithm: " + s);
+        MIOPEN_THROW(miopenStatusInternalError, "Bad algorithm: " + s);
     return it->second;
 }
 
