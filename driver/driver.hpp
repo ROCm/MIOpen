@@ -58,7 +58,7 @@ using float16 = half_float::half;
 // Use values which are distinctively greater then miopenStatus_t,
 // so that these can be ORed with any miopen status code
 // without loss of information.
-typedef enum
+typedef enum // NOLINT
 {
     // These four codes could be returned together, ORed:
     EC_VerifyFwd     = 0x100,
@@ -77,17 +77,17 @@ struct GPUMem
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
 
-    int ToGPU(cl_command_queue& q, void* p)
+    int ToGPU(cl_command_queue& q, void* p) const
     {
         return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
-    int FromGPU(cl_command_queue& q, void* p)
+    int FromGPU(cl_command_queue& q, void* p) const
     {
         return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
 
-    cl_mem GetMem() { return buf; }
-    size_t GetSize() { return sz * data_sz; }
+    cl_mem GetMem() const { return buf; }
+    size_t GetSize() const { return sz * data_sz; }
 
     ~GPUMem() { clReleaseMemObject(buf); }
 

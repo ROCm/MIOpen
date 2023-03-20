@@ -62,7 +62,7 @@ inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<in
     for(int index : indices)
     {
         assert(0 <= index && index < lens.size());
-        out_lens.push_back(std::move(lens[index]));
+        out_lens.push_back(std::move(lens[index])); // NOLINT
     }
     lens = std::move(out_lens);
 }
@@ -199,12 +199,12 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    if(layout.size() != len.size() && layout.find("c") == std::string::npos)
+    if(layout.size() != len.size() && layout.find('c') == std::string::npos)
     {
         MIOPEN_THROW("unmatched layout and dimension size");
     }
 
-    if(layout.find("c") != std::string::npos)
+    if(layout.find('c') != std::string::npos)
     {
         return SetTensorNdVector(t, len, StringToLayoutType(layout), data_type);
     }
