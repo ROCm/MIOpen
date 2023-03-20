@@ -62,25 +62,52 @@ struct ConvHeur
     {
         const auto& conv_problem = problem.conv_problem;
         if(!conv_problem.Is2d())
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem not 2D (failed)");
             return false;
+        }
         if(conv_problem.GetGroupCount() != 1)
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Group count not 1 (failed)");
             return false;
+        }
         if(conv_problem.GetInLayout() != "NCHW" && conv_problem.GetInLayout() != "NCDHW")
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Layout not supported (failed)");
             return false;
+        }
         if(conv_problem.GetWeightsHeight() != conv_problem.GetWeightsWidth())
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Filters must be square (fil_h == fil_w) (failed)");
             return false;
+        }
         if(conv_problem.GetPadH() != conv_problem.GetPadW())
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Padding must be equal along all axes (failed)");
             return false;
+        }
         if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Stride must be equal along all axes (failed)");
             return false;
+        }
         if(conv_problem.GetDilationH() != 1 || conv_problem.GetDilationW() != 1)
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Dilation must be 1 (failed)");
             return false;
+        }
         const auto& data_type = conv_problem.GetInDataType();
         if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Unsupported precision (failed)");
             return false;
+        }
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: GPU not supported (failed)");
             return false;
+        }
         const auto& solver_map    = GetSolverMap(arch);
         size_t applicable_solvers = 0;
         // check for outlier configurations where no solver the Heuristic predicts is applicable
@@ -95,7 +122,10 @@ struct ConvHeur
             }
         }
         if(applicable_solvers == 0)
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: No solver the heuristic may predict applies (failed)");
             return false;
+        }
         MIOPEN_LOG_I2("Heuristic is applicable");
         return true;
     }
@@ -161,49 +191,7 @@ struct ConvHeur
             static_cast<float>(GetDirectionMap(problem.GetDirection(), arch)),
             static_cast<float>(problem.GetGroupCount())};
 
-        //std::vector<float> features = {
-        //    static_cast<float>(problem.GetInChannels()),
-        //    static_cast<float>(problem.GetInDepth()),
-        //    static_cast<float>(problem.GetInHeight()),
-        //    static_cast<float>(problem.GetInWidth()),
-        //    static_cast<float>(problem.GetWeightsDepth()),
-        //    static_cast<float>(problem.GetWeightsHeight()),
-        //    static_cast<float>(problem.GetWeightsWidth()),
-        //    static_cast<float>(problem.GetOutChannels()),
-        //    static_cast<float>(problem.GetOutDepth()),
-        //    static_cast<float>(problem.GetOutHeight()),
-        //    static_cast<float>(problem.GetOutWidth()),
-        //    static_cast<float>(problem.GetOutBatchSize()),
-        //    static_cast<float>(problem.GetPadD()),
-        //    static_cast<float>(problem.GetPadH()),
-        //    static_cast<float>(problem.GetPadW()),
-        //    static_cast<float>(problem.GetKernelStrideD()),
-        //    static_cast<float>(problem.GetKernelStrideH()),
-        //    static_cast<float>(problem.GetKernelStrideW()),
-        //    static_cast<float>(problem.GetDilationH()),
-        //    static_cast<float>(problem.GetDilationW()),
-        //    static_cast<float>(GetLayoutMap(problem.GetInLayout(), arch)),
-        //    static_cast<float>(GetPrecisionMap(problem.GetInDataType(), arch)),
-        //    static_cast<float>(GetDirectionMap(problem.GetDirection(), arch)),
-        //    static_cast<float>(problem.GetGroupCount())};
-
-        std::cout << "\n==========================TEMP LOG #1 STRT==========================\n";
-        std::vector<std::string> names = {"InChannels", "InDepth", "InHeight", "InWidth",
-                                          "FilterDim0", "FilterDim1", "FilterDim2", "OutChannels",
-                                          "OutDepth", "OutHeight", "OutWidth", "BatchSize",
-                                          "Padding0", "Padding1", "Padding2", "Stride0",
-                                          "Stride1", "Stride2", "Dilation1", "Dilation2", "Layout",
-                                          "Precision", "Direction", "GroupSize"};
-        for(size_t i = 0; i < names.size(); ++i)
-            std::cout << i << ". " << names[i] << ": " << features[i] << "    ";
-        std::cout << "\n==========================TEMP LOG #1 END==========================\n\n";
-
-
         TransformFeatures(features, arch);
-        std::cout << "\n==========================TEMP LOG #1 STRT==========================\n";
-        for(size_t i = 0; i < names.size(); ++i)
-            std::cout << i << ". " << names[i] << ": " << features[i] << "    ";
-        std::cout << "\n==========================TEMP LOG #1 END==========================\n\n";
         std::vector<float> res     = CallModel(features, arch);
         static const auto& solvers = GetSolverMap(arch);
 
