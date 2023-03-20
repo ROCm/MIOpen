@@ -69,15 +69,15 @@ struct FindDbTest : test_driver
     Allocator::ManageDataPtr x_dev;
     Allocator::ManageDataPtr w_dev;
     Allocator::ManageDataPtr y_dev;
-    // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
+    // --input 100,25,32,32 --weights 300,25,3,3 --filter 0,0,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
-        2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
+        2, miopenConvolution, miopenPaddingDefault, {0, 0}, {1, 1}, {1, 1}};
 
     FindDbTest()
     {
-        filter.findMode.Set(FindMode::Values::Normal);
-        x = {16, 192, 28, 28};
-        w = {32, 192, 5, 5};
+        filter.findMode.Set(FindMode::Values::Hybrid);
+        x = {100, 25, 32, 32};
+        w = {300, 25, 3, 3};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
     }
 
