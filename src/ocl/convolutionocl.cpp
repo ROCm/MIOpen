@@ -537,7 +537,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
             continue;
         const auto& s = solver_id.GetSolver();
         // Let's allow non-dynamic later, if necessary.
-        if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx))
+        if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
             continue;
 
         const auto wti = s.GetWti(ctx, problem);
