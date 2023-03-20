@@ -33,8 +33,9 @@
 
 namespace miopen {
 
-inline void
-RNNProfilingBegin(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+inline void RNNProfilingBegin(const miopen::Handle& handle,
+                              miopen::HipEventPtr& start,
+                              miopen::HipEventPtr& stop)
 {
     start = miopen::make_hip_event();
     stop  = miopen::make_hip_event();

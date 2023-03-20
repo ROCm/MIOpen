@@ -38,34 +38,31 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
 
-
-
 namespace miopen {
 
-//#if MIOPEN_USE_GEMM
-void RNNDescriptor::RNNForwardTraining_MS(
-                                            Handle& handle,
-                                            std::vector<int>& seq_array,
-                                            const TensorDescriptor& xDesc,
-                                            ConstData_t x,
-                                            const TensorDescriptor& hxDesc,
-                                            ConstData_t hx,
-                                            const TensorDescriptor& ,
-                                            ConstData_t cx,
-                                            const TensorDescriptor& wDesc,
-                                            ConstData_t w,
-                                            const TensorDescriptor& yDesc,
-                                            Data_t y,
-                                            Data_t hy,
-                                            Data_t cy,
-                                            Data_t ,
-                                            size_t ,
-                                            Data_t reserveSpace,
-                                            size_t reserveSpaceSize) const
+void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
+                                          std::vector<int>& seq_array,
+                                          const TensorDescriptor& xDesc,
+                                          ConstData_t x,
+                                          const TensorDescriptor& hxDesc,
+                                          ConstData_t hx,
+                                          const TensorDescriptor&,
+                                          ConstData_t cx,
+                                          const TensorDescriptor& wDesc,
+                                          ConstData_t w,
+                                          const TensorDescriptor& yDesc,
+                                          Data_t y,
+                                          Data_t hy,
+                                          Data_t cy,
+                                          Data_t,
+                                          size_t,
+                                          Data_t reserveSpace,
+                                          size_t reserveSpaceSize) const
 {
+#if MIOPEN_USE_GEMM
     std::vector<int> in_n;
-    int in_vec  =  xDesc.GetLengths()[1]; // input vector size
-    int out_vec  = yDesc.GetLengths()[1]; // output vector size
+    int in_vec  = xDesc.GetLengths()[1]; // input vector size
+    int out_vec = yDesc.GetLengths()[1]; // output vector size
 
     int seq_len   = seq_array.size();
     int max_batch = seq_array[0];
@@ -76,11 +73,10 @@ void RNNDescriptor::RNNForwardTraining_MS(
     std::vector<hipStream_t> stream_pull;
     stream_pull.push_back(handle.GetStream());
     stream_pull.push_back(create_stream());
-    
 
     int total_batch_size = 0;
-    std::vector<int> bacc_per_time(seq_len+1);
-    
+    std::vector<int> bacc_per_time(seq_len + 1);
+
     for(int i = 0; i < seq_len; i++)
     {
         bacc_per_time[i] = total_batch_size;
@@ -89,17 +85,13 @@ void RNNDescriptor::RNNForwardTraining_MS(
     }
     bacc_per_time[seq_len] = total_batch_size;
 
-    //auto hidden_layers_cnt = nLayers;
-
     const struct
     {
         int batch;
     } InBuff_strides{in_vec};
-    
-    auto get_HxBuff_offset = [&](int layer_id) {
-        return layer_id * (hidden_size * max_batch);
-    };
-    
+
+    auto get_HxBuff_offset = [&](int layer_id) { return layer_id * (hidden_size * max_batch); };
+
     int gates_cnt       = 4;
     int save_points_cnt = 6;
 
@@ -112,7 +104,7 @@ void RNNDescriptor::RNNForwardTraining_MS(
                 return hidden_sz;
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
         }
-        
+
         int matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz, int gates) const
         {
             return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz * gates;
@@ -124,8 +116,8 @@ void RNNDescriptor::RNNForwardTraining_MS(
                                int bidirect_mode) const
         {
             if(bidirect_mode == 0)
-                return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates) + 
-                (hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) * hidden_vec_sz *
+                return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates) +
+                       (hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) * hidden_vec_sz *
                            (layers_cnt - 1) * gates;
 
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
@@ -140,12 +132,12 @@ void RNNDescriptor::RNNForwardTraining_MS(
               layers(layers_cnt),
               gates_cnt(gates),
               bias_cnt(bias_mode),
-              matrix_normal_start_off(
-                  matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates)),
-              bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, gates, 0))
-        {    
+              matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates)),
+              bias_start_off(
+                  bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, gates, 0))
+        {
         }
-        
+
         const int in_vec, h_vec;
         const int x_in_vec; // for bidirect TODO
 
@@ -158,8 +150,10 @@ void RNNDescriptor::RNNForwardTraining_MS(
         const int bias_start_off;
 
     public:
-
-        auto get_matrix_x_size(int layer_id) const { return (layer_id > 0 ? x_in_vec : in_vec) * h_vec; }
+        auto get_matrix_x_size(int layer_id) const
+        {
+            return (layer_id > 0 ? x_in_vec : in_vec) * h_vec;
+        }
         auto get_matrix_h_size() const { return h_vec * h_vec; }
         auto get_matrix_layer_size(int layer_id) const
         {
@@ -186,9 +180,7 @@ void RNNDescriptor::RNNForwardTraining_MS(
         int bias_vector_mul_gate() const { return bias_vector_size() * gates_cnt; }
         int bias_stride() const { return bias_vector_mul_gate(); }
 
-
-
-        int bias_relative_offset(int layer_id, int bias_id) const 
+        int bias_relative_offset(int layer_id, int bias_id) const
         {
             return (layer_id * bias_cnt + bias_id) * gates_cnt * h_vec;
         }
@@ -197,18 +189,18 @@ void RNNDescriptor::RNNForwardTraining_MS(
         {
             return bias_start_off + bias_relative_offset(layer_id, bias_id);
         }
-    
-    } WeiBuf(in_vec, hidden_size, nLayers, biasMode*2, gates_cnt);
-    
+
+    } WeiBuf(in_vec, hidden_size, nLayers, biasMode * 2, gates_cnt);
+
     struct ReserveBufferHelper
     {
-        
+
         struct RBuffHelper
         {
             int element, save_point, batch, layer;
         };
 
-        private:
+    private:
         auto Reserve_Buffer_strides(int save_point_sz,
                                     int batches_per_layer,
                                     int save_points,
@@ -219,14 +211,11 @@ void RNNDescriptor::RNNForwardTraining_MS(
             auto batch_st      = save_point_st * save_points;
             auto layer_st      = batch_st * batches_per_layer;
             if(bidirect_mode == 0)
-                return RBuffHelper{element_st,
-                                   save_point_st,
-                                   batch_st,
-                                   layer_st};
+                return RBuffHelper{element_st, save_point_st, batch_st, layer_st};
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
         }
 
-        public:
+    public:
         enum save_point
         {
             F  = 1,
@@ -265,7 +254,7 @@ void RNNDescriptor::RNNForwardTraining_MS(
         auto layer_offset(int layer) { return layer * strides.layer; }
         auto layer_stride() { return strides.layer; }
 
-        auto gemm_write_size() { return h_vec * gates;}
+        auto gemm_write_size() { return h_vec * gates; }
         auto gemm_write_stride() { return strides.batch; } // save_point_size * save_points_cnt
 
         auto gemm_write_relative_offset(int batch_id) { return gemm_write_stride() * batch_id; }
@@ -287,9 +276,10 @@ void RNNDescriptor::RNNForwardTraining_MS(
                    ht_relative_offset();
         }
 
-        auto extra_save_point_offset(int layer_id, int batch_id) { 
-            return (batches * layers * gemm_write_stride()) // all data offset 
-                + (layer_id * batches) * h_vec + batch_id * h_vec;
+        auto extra_save_point_offset(int layer_id, int batch_id)
+        {
+            return (batches * layers * gemm_write_stride()) // all data offset
+                   + (layer_id * batches) * h_vec + batch_id * h_vec;
         }
 
     } RBuff(hidden_size, hidden_size, nLayers, total_batch_size, save_points_cnt, gates_cnt);
@@ -301,8 +291,8 @@ void RNNDescriptor::RNNForwardTraining_MS(
                         &handle,
                         &xDesc,
                         reserveSpace,
-                                                    x,
-                                                    w,
+                        x,
+                        w,
                         hidden_size,
                         in_vec](int layer, int start_time, int time_cnt, float beta_t = 1) {
         auto start_b  = bacc_per_time[start_time];
@@ -310,96 +300,96 @@ void RNNDescriptor::RNNForwardTraining_MS(
 
         const int m = batch_sz, n = RBuff.gemm_write_size(), k = layer > 0 ? hidden_size : in_vec;
         const int lda = layer > 0 ? RBuff.gemm_write_stride() : InBuff_strides.batch, ldb = k,
-                ldc = RBuff.gemm_write_stride();
-            
-            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                              false,
-                                                              true,
-                                                              m,
-                                                              n,
-                                                              k,
-                                                              lda,
-                                                              ldb,
-                                                              ldc,
+                  ldc = RBuff.gemm_write_stride();
+
+        miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                          false,
+                                                          true,
+                                                          m,
+                                                          n,
+                                                          k,
+                                                          lda,
+                                                          ldb,
+                                                          ldc,
                                                           1,      // batch count
                                                           0,      // Stride A
                                                           0,      // Stride B
                                                           0,      // Stride C
                                                           1,      // alpha
                                                           beta_t, // beta
-                                                              xDesc.GetType(),
-                                                              false};
+                                                          xDesc.GetType(),
+                                                          false};
 
         const auto wx_off     = WeiBuf.get_matrix_x_off(layer);
         const auto out_offset = RBuff.gemm_write_offset(layer, start_b);
-        
+
         const auto x_in_offset =
             layer > 0 ? RBuff.ht_offset(layer - 1, start_b) : start_b * InBuff_strides.batch;
         const auto in_ptr = layer > 0 ? reserveSpace : x;
 
-            miopenStatus_t gemm_status = CallGemm(handle,
-                                                  gemm_desc,
+        miopenStatus_t gemm_status = CallGemm(handle,
+                                              gemm_desc,
                                               in_ptr,
                                               x_in_offset,
-                                                  w,
+                                              w,
                                               wx_off,
-                                                  reserveSpace,
+                                              reserveSpace,
                                               out_offset,
-                                                  nullptr,
-                                                  GemmBackend_t::miopengemm);
-            if(gemm_status != miopenStatusSuccess)
-                MIOPEN_THROW("GEMM execution failure");
+                                              nullptr,
+                                              GemmBackend_t::miopengemm);
+        if(gemm_status != miopenStatusSuccess)
+            MIOPEN_THROW("GEMM execution failure");
     };
 
     auto call_bias_add = [&RBuff, &WeiBuf, &handle, &wDesc, reserveSpace, w](int layer,
                                                                              float beta_t = 0) {
-            float alpha0           = 1;
-            float alpha1           = 1;
-            const auto bias_stride = WeiBuf.bias_stride();
+        float alpha0           = 1;
+        float alpha1           = 1;
+        const auto bias_stride = WeiBuf.bias_stride();
 
         const auto bias_desc =
             miopen::TensorDescriptor(wDesc.GetType(),
-                std::vector<int>{1, 1, WeiBuf.bias_vector_mul_gate()},
-                                         std::vector<int>{bias_stride, bias_stride, 1});
+                                     std::vector<int>{1, 1, WeiBuf.bias_vector_mul_gate()},
+                                     std::vector<int>{bias_stride, bias_stride, 1});
 
-            const auto hidden_interim_desc = miopen::TensorDescriptor(
-                wDesc.GetType(),
-                std::vector<int>{1, RBuff.batches, WeiBuf.bias_vector_mul_gate()},
-                std::vector<int>{
+        const auto hidden_interim_desc = miopen::TensorDescriptor(
+            wDesc.GetType(),
+            std::vector<int>{1, RBuff.batches, WeiBuf.bias_vector_mul_gate()},
+            std::vector<int>{
                 RBuff.batches * RBuff.gemm_write_stride(), RBuff.gemm_write_stride(), 1});
 
         const int RB_layer_out_off = RBuff.layer_offset(layer);
         int w_bias_layer_start_off = WeiBuf.get_bias_off(layer, 0);
 
-            OpTensor(handle,
-                     miopenTensorOpAdd,
-                     &alpha0,
-                     hidden_interim_desc,
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 hidden_interim_desc,
                  reserveSpace, // A
-                     &alpha1,
-                     bias_desc,
+                 &alpha1,
+                 bias_desc,
                  w, // B
-                     &beta_t,
-                     hidden_interim_desc,
+                 &beta_t,
+                 hidden_interim_desc,
                  reserveSpace,           // C
                  RB_layer_out_off,       // A offset
                  w_bias_layer_start_off, // B offset
                  RB_layer_out_off);      // C offset
 
-            OpTensor(handle,
-                     miopenTensorOpAdd,
-                     &alpha0,
-                     hidden_interim_desc,
-                     reserveSpace,
-                     &alpha1,
-                     bias_desc,
-                     w,
-                     &beta_t,
-                     hidden_interim_desc,
-                     reserveSpace,
-                     RB_layer_out_off,
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 hidden_interim_desc,
+                 reserveSpace,
+                 &alpha1,
+                 bias_desc,
+                 w,
+                 &beta_t,
+                 hidden_interim_desc,
+                 reserveSpace,
+                 RB_layer_out_off,
                  w_bias_layer_start_off + bias_stride,
-                     RB_layer_out_off);
+                 RB_layer_out_off);
     };
 
     auto call_hx_gemm = [&RBuff,
@@ -414,64 +404,63 @@ void RNNDescriptor::RNNForwardTraining_MS(
                          w,
                          hidden_size](int layer, int cur_time) {
         const int m = in_n.at(cur_time), n = RBuff.gemm_write_size(), k = hidden_size;
-                   
+
         int lda = RBuff.gemm_write_stride(), ldb = hidden_size, ldc = RBuff.gemm_write_stride();
-            
+
         size_t hx_ptr_offset = RBuff.ht_offset(layer, bacc_per_time[cur_time - 1]);
 
         if(cur_time == 0)
+        {
+            if(hx != nullptr)
             {
-                if(hx != nullptr)
-                {
                 hx_ptr_offset = get_HxBuff_offset(layer);
 
                 lda = hidden_size;
                 ldb = hidden_size;
-                                ldc = RBuff.gemm_write_stride();
-                }
+                ldc = RBuff.gemm_write_stride();
+            }
             else
             {
                 return;
             }
         }
-                        
-                miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
-                                                                    false,
-                                                                    true,
-                                                                    m,
-                                                                    n,
-                                                                    k,
-                                                                    lda,
-                                                                    ldb,
-                                                                    ldc,
-                                                                    1, // batch count
-                                                                    0, // Stride A
-                                                                    0, // Stride B
-                                                                    0, // Stride C
-                                                                    1, // alpha
-                                                                    1, // beta
-                                                                    xDesc.GetType(),
-                                                                    false};
+
+        miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
+                                                             false,
+                                                             true,
+                                                             m,
+                                                             n,
+                                                             k,
+                                                             lda,
+                                                             ldb,
+                                                             ldc,
+                                                             1, // batch count
+                                                             0, // Stride A
+                                                             0, // Stride B
+                                                             0, // Stride C
+                                                             1, // alpha
+                                                             1, // beta
+                                                             xDesc.GetType(),
+                                                             false};
 
         auto RB_layer_save_points_off = RBuff.gemm_write_offset(layer, bacc_per_time[cur_time]);
 
         const auto hx_ptr = cur_time > 0 ? reserveSpace : hx;
 
         miopenStatus_t gemm_status = CallGemm(handle,
-                            gemm_desc_hx,
+                                              gemm_desc_hx,
                                               hx_ptr,
                                               hx_ptr_offset,
-                            w,
+                                              w,
                                               WeiBuf.get_matrix_h_off(layer),
-                            reserveSpace,
-                            RB_layer_save_points_off,
-                            nullptr,
-                            GemmBackend_t::miopengemm);
+                                              reserveSpace,
+                                              RB_layer_save_points_off,
+                                              nullptr,
+                                              GemmBackend_t::miopengemm);
 
-                if(gemm_status != miopenStatusSuccess)
-                    MIOPEN_THROW("GEMM execution failure");
+        if(gemm_status != miopenStatusSuccess)
+            MIOPEN_THROW("GEMM execution failure");
     };
-                        
 
     auto call_hidden_state_update = [&RBuff,
                                      &get_HxBuff_offset,
@@ -486,54 +475,54 @@ void RNNDescriptor::RNNForwardTraining_MS(
         auto RB_layer_save_points_off =
             RBuff.layer_offset(layer_id) + RBuff.gemm_write_relative_offset(bacc_per_time[time_id]);
         auto is_seq_begin = time_id == 0;
-                int direction     = 0;
+        int direction     = 0;
         int cur_batch = in_n.at(time_id), use_batch = in_n.at(time_id);
 
         int hy_stride = RBuff.gemm_write_stride(), wei_len = RBuff.gemm_write_size(),
             wei_stride   = RBuff.gemm_write_size();
-                size_t cx_offset = get_HxBuff_offset(layer_id);
+        size_t cx_offset = get_HxBuff_offset(layer_id);
 
         std::size_t i_offset = RB_layer_save_points_off + RBuff.get_gate_relative_offset(0),
                     f_offset = RB_layer_save_points_off + RBuff.get_gate_relative_offset(1),
                     o_offset = RB_layer_save_points_off + RBuff.get_gate_relative_offset(2),
                     c_offset = RB_layer_save_points_off + RBuff.get_gate_relative_offset(3);
-                
+
         std::size_t cell_offset   = RB_layer_save_points_off + RBuff.ct_relative_offset(),
                     hidden_offset = RB_layer_save_points_off + RBuff.ht_relative_offset();
 
-                std::size_t cell_offset_pre =
+        std::size_t cell_offset_pre =
             (time_id == 0) ? 0
                            : RBuff.layer_offset(layer_id) +
                                  RBuff.gemm_write_relative_offset(bacc_per_time[time_id - 1]) +
-                              RBuff.ct_relative_offset();
-                
+                                 RBuff.ct_relative_offset();
+
         std::size_t activ_cell_offset =
             RBuff.extra_save_point_offset(layer_id, bacc_per_time[time_id]);
-                    
-        LSTMForwardHiddenStateUpdate(handle,
-                    wDesc.GetType(),
-                    false,
-                    is_seq_begin,
-                    direction,
-                    max_batch,
-                    cur_batch,
-                    use_batch,
 
-                    hidden_size,
-                    hy_stride,
-                    wei_len,
-                    wei_stride,
-                    cx,
-                    cx_offset,
-                    reserveSpace,
-                    i_offset,
-                    f_offset,
-                    o_offset,
-                    c_offset,
-                    cell_offset,
-                    cell_offset_pre,
-                    activ_cell_offset,
-                    hidden_offset);
+        LSTMForwardHiddenStateUpdate(handle,
+                                     wDesc.GetType(),
+                                     false,
+                                     is_seq_begin,
+                                     direction,
+                                     max_batch,
+                                     cur_batch,
+                                     use_batch,
+
+                                     hidden_size,
+                                     hy_stride,
+                                     wei_len,
+                                     wei_stride,
+                                     cx,
+                                     cx_offset,
+                                     reserveSpace,
+                                     i_offset,
+                                     f_offset,
+                                     o_offset,
+                                     c_offset,
+                                     cell_offset,
+                                     cell_offset_pre,
+                                     activ_cell_offset,
+                                     hidden_offset);
     };
 
     auto call_hy_cy_update = [&RBuff,
@@ -551,7 +540,7 @@ void RNNDescriptor::RNNForwardTraining_MS(
         if(hy != nullptr || (cy != nullptr))
         {
             auto hcy_layer_offset = get_HxBuff_offset(layer_id);
-            
+
             const std::vector<int> hcy_src_stride{
                 RBuff.layer_stride(), RBuff.gemm_write_stride(), 1};
             const std::vector<int> hcy_dst_stride{hidden_size * max_batch, hidden_size, 1};
@@ -561,7 +550,7 @@ void RNNDescriptor::RNNForwardTraining_MS(
                 auto copy_batch = (time_i == seq_len - 1) ? in_n.at(time_i)
                                                           : in_n.at(time_i) - in_n.at(time_i + 1);
                 if(copy_batch > 0)
-                {   
+                {
                     auto batch_id_relative = in_n.at(time_i) - copy_batch;
                     auto batch_id_abs      = bacc_per_time[time_i] + batch_id_relative;
 
@@ -603,26 +592,24 @@ void RNNDescriptor::RNNForwardTraining_MS(
         }
     };
 
-    auto call_sync_all_stream_pull_to_x = [&handle, &stream_pull](int stream_x) 
-    {
+    auto call_sync_all_stream_pull_to_x = [&stream_pull](int stream_x) {
         miopen::HipEventPtr main_event = make_hip_fast_event();
         hipEventRecord(main_event.get(), stream_pull[stream_x]);
 
-        for(int i = 0; i < stream_pull.size(); i++) {
+        for(int i = 0; i < stream_pull.size(); i++)
+        {
             if(i != stream_x)
                 hipStreamWaitEvent(stream_pull[i], main_event.get(), 0);
         }
     };
 
-
     const int try_chunks_cnt = 16;
     const int time_chunk_sz  = ((seq_len + try_chunks_cnt - 1) / try_chunks_cnt);
     const int chunks_cnt     = (seq_len + time_chunk_sz - 1) / time_chunk_sz;
-    
+
     std::vector<int> layer_inx_cur_time(nLayers, 0);
     std::vector<int> layer_hx_cur_time(nLayers, 0);
     std::vector<int> layer_upd_cur_time(nLayers, 0);
-
 
     std::vector<std::vector<miopen::HipEventPtr>> layer_chunk_end_event;
 
@@ -636,21 +623,21 @@ void RNNDescriptor::RNNForwardTraining_MS(
 
     std::vector<int> layer_stream_id(nLayers, 1);
     layer_stream_id[0] = 0;
-    
+
     auto call_inx_next_chunk_preload = [&](int layer_id) {
         auto start_time = layer_inx_cur_time[layer_id];
-        auto time_cnt = std::min(time_chunk_sz, seq_len - start_time);
+        auto time_cnt   = std::min(time_chunk_sz, seq_len - start_time);
 
         call_x_gemm(layer_id, start_time, time_cnt);
         layer_inx_cur_time[layer_id] += time_chunk_sz;
     };
 
-    auto call_hx_next_gemm = [&](int layer_id) { 
+    auto call_hx_next_gemm = [&](int layer_id) {
         auto cur_time = layer_hx_cur_time[layer_id];
         if(cur_time < seq_len)
         {
             call_hx_gemm(layer_id, cur_time);
-            layer_hx_cur_time[layer_id] ++;
+            layer_hx_cur_time[layer_id]++;
         }
     };
 
@@ -675,7 +662,8 @@ void RNNDescriptor::RNNForwardTraining_MS(
                                     seq_len](int layer_id) {
         auto stream_id = layer_stream_id[layer_id];
         handle.SetStream(stream_pull[stream_id]);
-        const int chunk_id  = layer_upd_cur_time[layer_id] / time_chunk_sz;
+
+        const int chunk_id   = layer_upd_cur_time[layer_id] / time_chunk_sz;
         const int chunk_time = std::min(time_chunk_sz, seq_len - chunk_id * time_chunk_sz);
 
         if(layer_id > 0 && layer_stream_id[layer_id - 1] != stream_id)
@@ -694,22 +682,21 @@ void RNNDescriptor::RNNForwardTraining_MS(
         }
         hipEventRecord(layer_chunk_end_event[layer_id][chunk_id].get(), stream_pull[stream_id]);
     };
-        
-    
+
     { // reserveSpace clean set 0
         const int fill_val = 0;
         // if(biasMode == 0u) req
         hipMemsetAsync(reserveSpace, fill_val, reserveSpaceSize, handle.GetStream());
     }
 
-    //stage 0 bias and input preload
+    // stage 0 bias and input preload
     // stage 0.2 first chunk compute and preload
     {
         call_sync_all_stream_pull_to_x(0);
-        const auto first_layer_id = 0;
-        const auto stream_id      = layer_stream_id[first_layer_id]; // 0
+        const auto first_layer_id  = 0;
+        const auto stream_id       = layer_stream_id[first_layer_id]; // 0
         const auto extra_stream_id = 1;
-        
+
         handle.SetStream(stream_pull[stream_id]);
 
         if(biasMode != 0u)
@@ -724,8 +711,8 @@ void RNNDescriptor::RNNForwardTraining_MS(
                 call_bias_add(layer_id);
 
         call_inx_next_chunk_preload(first_layer_id);
-        
-        //sync first to second stream
+
+        // sync first to second stream
         miopen::HipEventPtr next_chunk_inx = make_hip_fast_event();
         hipEventRecord(next_chunk_inx.get(), stream_pull[extra_stream_id]);
         hipStreamWaitEvent(stream_pull[stream_id], next_chunk_inx.get(), 0);
@@ -734,35 +721,35 @@ void RNNDescriptor::RNNForwardTraining_MS(
     for(int layer_id = 0; layer_id < nLayers; layer_id++)
     {
 
-        const auto main_stream_id = 0; 
+        const auto main_stream_id = 0;
         handle.SetStream(stream_pull[main_stream_id]);
-        
-        //check for wich stream was assigned this layer. If it differs from current - set stream wait event
+
+        // check for wich stream was assigned this layer. If it differs from current - set stream
+        // wait event
         if(layer_stream_id[layer_id] != main_stream_id)
         {
             auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
             if(chunk_id > 0)
                 hipStreamWaitEvent(stream_pull[main_stream_id],
-                                   layer_chunk_end_event[layer_id][chunk_id-1].get(),
+                                   layer_chunk_end_event[layer_id][chunk_id - 1].get(),
                                    0);
 
             layer_stream_id[layer_id] = main_stream_id;
-            }
+        }
 
         const int start_chunk = layer_upd_cur_time[layer_id] / time_chunk_sz;
-        
+
         const int extra_layer_max_chunks =
             start_chunk +
             ((layer_id + 1 < nLayers - 1) ? (chunks_cnt - start_chunk) / 2 : chunks_cnt);
 
-        for(int chunk_id = start_chunk; chunk_id < chunks_cnt;
-            chunk_id++)
+        for(int chunk_id = start_chunk; chunk_id < chunks_cnt; chunk_id++)
         {
-            
+
             call_next_chunk_compute(layer_id);
 
             int extra_compute_layer = layer_id + 1;
-            for(extra_compute_layer; extra_compute_layer < nLayers; extra_compute_layer++)
+            for(; extra_compute_layer < nLayers; extra_compute_layer++)
             {
                 auto extra_chunk_id = layer_upd_cur_time[extra_compute_layer] / time_chunk_sz;
                 if(extra_chunk_id < extra_layer_max_chunks && extra_chunk_id <= chunk_id)
@@ -777,11 +764,11 @@ void RNNDescriptor::RNNForwardTraining_MS(
         // update hy, cy
         call_hy_cy_update(layer_id);
     }
-    
-    hipStreamWaitEvent(stream_pull[0], layer_chunk_end_event[nLayers - 1][chunks_cnt-1].get(), 0);
+
+    hipStreamWaitEvent(stream_pull[0], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
 
     handle.SetStream(stream_pull[0]);
-    //output tensor copy
+    // output tensor copy
     {
         const std::vector<int> y_copy_size{1, total_batch_size, out_vec};
 
@@ -795,10 +782,27 @@ void RNNDescriptor::RNNForwardTraining_MS(
         CopyTensor(
             handle, src_desc, reserveSpace, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
+#else
+    (void)handle;
+    (void)seq_array;
+    (void)xDesc;
+    (void)x;
+    (void)hxDesc;
+    (void)hx;
+    (void)cx;
+    (void)wDesc;
+    (void)w;
+    (void)yDesc;
+    (void)y;
+    (void)hy;
+    (void)cy;
+    (void)reserveSpace;
+    (void)reserveSpaceSize;
+
+    MIOPEN_THROW("GEMM is not supported");
+#endif
 }
-//#endif
- 
- 
+
 // Assuming sequence length is set to > 0 otherwise throw exception.
 void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         const int seqLen,
@@ -821,10 +825,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 {
 
 #if MIOPEN_USE_GEMM
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-
-    RNNProfilingBegin(handle, start, stop);
 
     float ctime = 0.;
     // reset kernel timer
@@ -2031,9 +2031,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     CopyTensor(handle, sp_desc, workSpace, y_desc, y, prelayer_shift, 0);
     // Update time
     profileRNNkernels(handle, 2, ctime);
-    
-    float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-    std::cout << "RNN Inference eventTime_mS:" << eventTime_mS << std::endl;
 
 #else
     (void)hx;
@@ -2073,14 +2070,16 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     (void)workSpace;
 
 #if MIOPEN_USE_GEMM
+
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
 
-    RNNProfilingBegin(handle, start, stop);
-
-    float ctime = 0.;
-    // reset kernel timer
-    profileRNNkernels(handle, 0, ctime);
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
 
     if(x == nullptr || w == nullptr || y == nullptr)
     {
@@ -2116,7 +2115,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
-    
+
     if(inputMode == miopenRNNskip)
     {
         if(in_h != hy_h)
@@ -2133,7 +2132,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     for(int i = 0; i < seqLen; i++)
     {
         int batchval, batchvalout;
-        std::tie(batchval, std::ignore)  = miopen::tien<2>(xDesc[i].GetLengths());
+        std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
         std::tie(batchvalout, std::ignore) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
@@ -2161,10 +2160,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         batch_n += batchval;
     }
     // input check end
-    
+
     if(rnnMode == miopenLSTM && nLayers > 1 && dirMode == miopenRNNunidirection &&
-       inputMode != miopenRNNskip &&
-       (miopen::IsEnabled(MIOPEN_RNNFWD_exp{}) ))
+       inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
     {
         RNNForwardTraining_MS(handle,
                               in_n,
@@ -2184,9 +2182,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                               workSpaceSize,
                               reserveSpace,
                               reserveSpaceSize);
-        
-        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-        std::cout << "RNNForwardTrain eventTime_mS:" << eventTime_mS << std::endl;
+
+        if(is_profiling)
+        {
+            float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+            handle.EnableProfiling(true);
+            handle.ResetKernelTime();
+            handle.AccumKernelTime(eventTime_mS);
+        }
         return;
     }
 
@@ -2211,8 +2214,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     sp_stride[1] = sp_size[2];
     sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
     SetTensor(handle, sp_desc, reserveSpace, &beta);
-    // Update time
-    profileRNNkernels(handle, 1, ctime);
+
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
     sp_size[2]   = 1;
@@ -2231,14 +2233,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         if(hy != nullptr)
         {
             SetTensor(handle, hx_desc, hy, &beta);
-            // Update time
-            profileRNNkernels(handle, 1, ctime);
         }
         if(rnnMode == miopenLSTM && cy != nullptr)
         {
             SetTensor(handle, hx_desc, cy, &beta);
-            // Update time
-            profileRNNkernels(handle, 1, ctime);
         }
     }
     hx_stride[0] = in_n.at(0) * uni_stride;
@@ -2301,8 +2299,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
                 {
                     CopyTensor(handle, x_desc, x, sp_desc, reserveSpace, 0, gi * hy_h);
-                    // Update time
-                    profileRNNkernels(handle, 1, ctime);
                 }
             }
             else
@@ -2347,8 +2343,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         MIOPEN_LOG_E("GEMM failed");
                     }
                 }
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
             }
         }
         else
@@ -2395,8 +2389,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     drop_in_offset,
                                     drop_out_offset,
                                     drop_rsv_offset);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
 
                 prelayer_shift = drop_out_offset;
             }
@@ -2441,8 +2433,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     MIOPEN_LOG_E("GEMM failed");
                 }
             }
-            // Update time
-            profileRNNkernels(handle, 1, ctime);
         }
 
         if(biasMode != 0u)
@@ -2472,8 +2462,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                      hid_shift,
                      wei_shift_bias_temp,
                      hid_shift);
-            // Update time
-            profileRNNkernels(handle, 1, ctime);
         }
 
         if(rnnMode == miopenGRU)
@@ -2494,8 +2482,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                            reserveSpace,
                            hid_shift + bs * wei_len + 2 * hy_h,
                            hid_shift + hid_off + bs * hy_h);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
 
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -2511,8 +2497,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hid_shift + bs * wei_len + 2 * hy_h,
                          hid_shift + bs * wei_len + 2 * hy_h,
                          hid_shift + bs * wei_len + 2 * hy_h);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
             }
         }
 
@@ -2544,8 +2528,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hid_shift,
                          wei_shift_bias_temp,
                          hid_shift);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
             }
             else
             {
@@ -2570,8 +2552,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                          hid_shift + in_n.at(0) * hy_stride,
                          wei_shift_bias_temp,
                          hid_shift + in_n.at(0) * hy_stride);
-                // Update time
-                profileRNNkernels(handle, 1, ctime);
 
                 if(dirMode != 0u)
                 {
@@ -2591,8 +2571,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  hid_shift + wei_len,
                                  wei_shift_bias_temp + wei_len,
                                  hid_shift + wei_len);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
                     }
                     else
                     {
@@ -2622,8 +2600,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          static_cast<int>(offset) + wei_len,
                                          wei_shift_bias_temp + wei_len,
                                          static_cast<int>(offset) + wei_len);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
                             }
                             cur_batch += in_n.at(ti);
                         }
@@ -2702,8 +2678,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     MIOPEN_LOG_E("GEMM failed");
                                 }
                             }
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                         }
                     }
                     else
@@ -2753,8 +2727,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     MIOPEN_LOG_E("GEMM failed");
                                 }
                             }
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                         }
 
                         if(in_n.at(use_time) > 0)
@@ -2800,8 +2772,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     MIOPEN_LOG_E("GEMM failed");
                                 }
                             }
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                         }
                     }
 
@@ -2822,8 +2792,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                           offset + static_cast<size_t>(ri) * wei_len,
                                           offset + static_cast<size_t>(ri) * wei_len +
                                               static_cast<size_t>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
                     }
                     else if(rnnMode == miopenLSTM)
                     {
@@ -2859,8 +2827,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                     nLayers * batch_n * hy_stride,
                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
 
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                             continue;
                         }
 
@@ -2878,8 +2844,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         offset + static_cast<size_t>(ri) * wei_len,
                                         offset + static_cast<size_t>(ri) * wei_len +
                                             static_cast<size_t>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // active gate c
                         sp_size[2] = hy_h;
@@ -2897,8 +2861,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset + 3 * static_cast<size_t>(hy_h) +
                                              static_cast<size_t>(ri) * wei_len +
                                              nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // update cell state
                         alpha0 = 1;
@@ -2923,8 +2885,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                  offset + static_cast<size_t>(bi) * wei_len +
                                      static_cast<size_t>(ri) * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         if(ti == 0)
                         {
@@ -2951,8 +2911,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          hx_shift + ri * hy_n * hy_h,
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
                             }
                         }
                         else
@@ -2986,8 +2944,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h +
                                              static_cast<size_t>(in_n.at(use_time)) * hy_stride);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc =
@@ -3020,8 +2976,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              static_cast<size_t>(ri) * hy_h,
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
 
                                 if(in_n.at(use_time) != in_n.at(cur_time))
                                 {
@@ -3045,8 +2999,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h +
                                              nLayers * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // update hidden state
                         OpTensor(handle,
@@ -3067,8 +3019,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      static_cast<size_t>(ri) * hy_h +
                                      static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                  offset + hid_off + static_cast<size_t>(ri) * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
                     }
                     else if(rnnMode == miopenGRU)
                     {
@@ -3086,8 +3036,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         offset + static_cast<size_t>(ri) * wei_len,
                                         offset + static_cast<size_t>(ri) * wei_len +
                                             static_cast<size_t>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // calculate c gate
                         sp_size[2] = hy_h;
@@ -3101,8 +3049,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    static_cast<int>(offset) + 2 * hy_h + ri * wei_len,
                                    static_cast<int>(offset) + hid_off + ri * hy_h +
                                        static_cast<int>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -3125,8 +3071,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      static_cast<size_t>(ri) * wei_len,
                                  offset + 2 * static_cast<size_t>(hy_h) +
                                      static_cast<size_t>(ri) * wei_len);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         OpTensor(handle,
                                  miopenTensorOpAdd,
@@ -3144,8 +3088,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  offset + hid_off + static_cast<size_t>(ri) * hy_h,
                                  offset + 2 * static_cast<size_t>(hy_h) +
                                      static_cast<size_t>(ri) * wei_len);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // active c gate
                         tanhDesc.Forward(handle,
@@ -3160,8 +3102,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          offset + 2 * static_cast<size_t>(hy_h) +
                                              static_cast<size_t>(ri) * wei_len +
                                              static_cast<size_t>(nLayers) * batch_n * hy_stride);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         // calculate hidden state
                         alpha0 = -1;
@@ -3185,8 +3125,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      static_cast<size_t>(ri) * wei_len +
                                      static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                  offset + hid_off + static_cast<size_t>(ri) * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -3208,8 +3146,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                      static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                  offset + hid_off + static_cast<size_t>(ri) * hy_h,
                                  offset + hid_off + static_cast<size_t>(ri) * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, 1, ctime);
 
                         alpha0 = 1;
                         alpha1 = 1;
@@ -3239,8 +3175,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h,
                                          offset + hid_off + static_cast<size_t>(ri) * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
                             }
                         }
                         else
@@ -3273,8 +3207,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
                                          offset + hid_off + static_cast<size_t>(ri) * hy_h +
                                              static_cast<size_t>(in_n.at(use_time)) * hy_stride);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc =
@@ -3305,8 +3237,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                              static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          pretime_shift + hid_off + ri * hy_h,
                                          offset + hid_off + static_cast<size_t>(ri) * hy_h);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
                             }
                         }
                     }
@@ -3359,8 +3289,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        static_cast<int>(offset) + hid_off + ri * hy_h +
                                            use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                         }
 
                         if(rnnMode == miopenLSTM && cy != nullptr)
@@ -3373,8 +3301,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        static_cast<int>(offset) + bi * wei_len + ri * hy_h +
                                            use_batch * hy_stride,
                                        hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
                         }
                     }
                 }
@@ -3394,11 +3320,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
 
     CopyTensor(handle, sp_desc, reserveSpace, y_desc, y, prelayer_shift, 0);
-    // Update time
-    profileRNNkernels(handle, 2, ctime);
 
-    float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-    std::cout << "RNNForwardTrain eventTime_mS:" << eventTime_mS << std::endl;
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
 
 #else
     (void)bi_stride;
@@ -3452,10 +3381,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dhyDesc;
     (void)wDesc;
 #if MIOPEN_USE_GEMM
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-
-    RNNProfilingBegin(handle, start, stop);
 
     float ctime = 0.;
     // reset kernel timer
@@ -4957,8 +4882,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         profileRNNkernels(handle, 2, ctime);
     }
 
-    float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-    std::cout << "RNNBWDtrain eventTime_mS:" << eventTime_mS << std::endl;
 #else
     (void)wei_stride;
     (void)bi_stride;
@@ -4997,11 +4920,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
-
-    HipEventPtr start = nullptr;
-    HipEventPtr stop  = nullptr;
-
-    RNNProfilingBegin(handle, start, stop);
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
@@ -5774,8 +5692,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
         }
     }
-    float eventTime_mS = RNNProfilingEnd(handle, start, stop);
-    std::cout << "RNN WRW eventTime_mS:" << eventTime_mS << std::endl;
 
 #else
     (void)in_stride;
