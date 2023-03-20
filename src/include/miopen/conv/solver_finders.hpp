@@ -57,7 +57,8 @@ public:
 
         try
         {
-            MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(problem.conv_problem).ToString());
+            MIOPEN_LOG_I2("Starting find for "
+                          << GetAlgorithmName(problem.conv_problem).ToString());
             return FindImpl(ctx, problem, invoke_ctx, use_winograd_only);
         }
         catch(Exception& ex)
@@ -68,11 +69,13 @@ public:
     }
 
 protected:
-    virtual bool IsEnabled(const ConvolutionContext& ctx, const conv::ProblemDescription& problem, bool use_winograd_only) const = 0;
+    virtual bool IsEnabled(const ConvolutionContext& ctx,
+                           const conv::ProblemDescription& problem,
+                           bool use_winograd_only) const                             = 0;
     virtual std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
                                                        const ProblemDescription& problem,
                                                        const AnyInvokeParams& invoke_ctx,
-                                                       bool use_winograd_only) const    = 0;
+                                                       bool use_winograd_only) const = 0;
 };
 
 const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();

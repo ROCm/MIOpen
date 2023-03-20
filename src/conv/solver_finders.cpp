@@ -46,12 +46,14 @@ class DirectSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
     {
-        return AlgorithmName{ConvolutionAlgoToDirectionalString(
-            miopenConvolutionAlgoDirect, problem.GetDirection())};
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoDirect,
+                                                                problem.GetDirection())};
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/, const conv::ProblemDescription& /*problem*/, bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+                   const conv::ProblemDescription& /*problem*/,
+                   bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
     }
@@ -72,12 +74,14 @@ class ImplicitGemmSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
     {
-        return AlgorithmName{ConvolutionAlgoToDirectionalString(
-            miopenConvolutionAlgoImplicitGEMM, problem.GetDirection())};
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoImplicitGEMM,
+                                                                problem.GetDirection())};
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/, const conv::ProblemDescription& /*problem*/, bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+                   const conv::ProblemDescription& /*problem*/,
+                   bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
     }
@@ -98,15 +102,16 @@ class FftSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
     {
-        return AlgorithmName{ConvolutionAlgoToDirectionalString(
-            miopenConvolutionAlgoFFT, problem.GetDirection())};
+        return AlgorithmName{
+            ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoFFT, problem.GetDirection())};
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/, const conv::ProblemDescription& problem, bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+                   const conv::ProblemDescription& problem,
+                   bool use_winograd_only) const override
     {
-        return !use_winograd_only &&
-               problem.GetDirection() != conv::Direction::BackwardWeights &&
+        return !use_winograd_only && problem.GetDirection() != conv::Direction::BackwardWeights &&
                !IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
     }
 
@@ -124,12 +129,14 @@ class GemmSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
     {
-        return AlgorithmName{ConvolutionAlgoToDirectionalString(
-            miopenConvolutionAlgoGEMM, problem.GetDirection())};
+        return AlgorithmName{
+            ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoGEMM, problem.GetDirection())};
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/, const conv::ProblemDescription& /*problem*/, bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+                   const conv::ProblemDescription& /*problem*/,
+                   bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
     }
@@ -148,12 +155,14 @@ class WinogradSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
     {
-        return AlgorithmName{ConvolutionAlgoToDirectionalString(
-            miopenConvolutionAlgoWinograd, problem.GetDirection())};
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoWinograd,
+                                                                problem.GetDirection())};
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/, const conv::ProblemDescription& /*problem*/, bool /*use_winograd_only*/) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+                   const conv::ProblemDescription& /*problem*/,
+                   bool /*use_winograd_only*/) const override
     {
         return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
     }
