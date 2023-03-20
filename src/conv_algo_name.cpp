@@ -32,9 +32,9 @@
 #include <unordered_map>
 namespace miopen {
 
-typedef std::unordered_map<std::string, miopenConvFwdAlgorithm_t> mapFwd_t;
-typedef std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t> mapBwd_t;
-typedef std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t> mapWrw_t;
+using mapFwd_t = std::unordered_map<std::string, miopenConvFwdAlgorithm_t>;
+using mapBwd_t = std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t>;
+using mapWrw_t = std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t>;
 
 static const mapFwd_t& FwdAlgoMap()
 {

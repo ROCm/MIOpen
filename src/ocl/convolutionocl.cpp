@@ -1027,7 +1027,6 @@ static void CompileSolution(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
 
     LoadOrPrepareInvoker(handle, ctx, problem, solver_id, dir);
-    return;
 }
 
 void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,

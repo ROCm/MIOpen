@@ -141,9 +141,8 @@ bool DbRecord::ParseContents(std::istream& contents)
 
 #if WORKAROUND_ISSUE_1987
         // Detect legacy find-db item (v.1.0 ID:VALUES) and transform it to the current format.
-        // *Only* legacy find-db VALUES begin with convolution algorithm string so far,
-        // so if the 1st value is a valid algorithm, then we can safely assume that the item
-        // is in legacy format.
+        // For now, *only* legacy find-db record use convolution algorithm as ID, so if ID is
+        // a valid algorithm, then we can safely assume that the item is in legacy format.
         if(IsValidConvolutionDirAlgo(id))
         {
             if(!TransformFindDbItem10to20(id, values))
