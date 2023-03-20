@@ -126,23 +126,32 @@ struct ConvHeur
         }
         MIOPEN_LOG_I2("Evaluating Heuristic");
 
+        auto dir = problem.GetDirection();
         std::vector<float> features = {
-            static_cast<float>(problem.GetInChannels()),
-            static_cast<float>(problem.GetInDepth()),
-            static_cast<float>(problem.GetInHeight()),
-            static_cast<float>(problem.GetInWidth()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInChannels() :
+                                                                 problem.GetOutChannels()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInDepth() :
+                                                                 problem.GetOutDepth()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInHeight() :
+                                                                 problem.GetOutHeight()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInWidth() :
+                                                                 problem.GetOutWidth()),
             static_cast<float>(problem.GetWeightsDepth()),
             static_cast<float>(problem.GetWeightsHeight()),
             static_cast<float>(problem.GetWeightsWidth()),
-            static_cast<float>(problem.GetOutChannels()),
-            static_cast<float>(problem.GetOutDepth()),
-            static_cast<float>(problem.GetOutHeight()),
-            static_cast<float>(problem.GetOutWidth()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutChannels() :
+                                                                 problem.GetInChannels()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutDepth() :
+                                                                 problem.GetInDepth()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutHeight() :
+                                                                 problem.GetInHeight()),
+            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutWidth() :
+                                                                 problem.GetInWidth()),
             static_cast<float>(problem.GetOutBatchSize()),
-            static_cast<float>(problem.GetPadD()),
+            static_cast<float>(1), // TODO this is temp fix. should be problem.GetPad()
             static_cast<float>(problem.GetPadH()),
             static_cast<float>(problem.GetPadW()),
-            static_cast<float>(problem.GetKernelStrideD()),
+            static_cast<float>(1), // TODO this is temp fix. should be problem.GetKernelStrideD()
             static_cast<float>(problem.GetKernelStrideH()),
             static_cast<float>(problem.GetKernelStrideW()),
             static_cast<float>(problem.GetDilationH()),
@@ -152,7 +161,49 @@ struct ConvHeur
             static_cast<float>(GetDirectionMap(problem.GetDirection(), arch)),
             static_cast<float>(problem.GetGroupCount())};
 
+        //std::vector<float> features = {
+        //    static_cast<float>(problem.GetInChannels()),
+        //    static_cast<float>(problem.GetInDepth()),
+        //    static_cast<float>(problem.GetInHeight()),
+        //    static_cast<float>(problem.GetInWidth()),
+        //    static_cast<float>(problem.GetWeightsDepth()),
+        //    static_cast<float>(problem.GetWeightsHeight()),
+        //    static_cast<float>(problem.GetWeightsWidth()),
+        //    static_cast<float>(problem.GetOutChannels()),
+        //    static_cast<float>(problem.GetOutDepth()),
+        //    static_cast<float>(problem.GetOutHeight()),
+        //    static_cast<float>(problem.GetOutWidth()),
+        //    static_cast<float>(problem.GetOutBatchSize()),
+        //    static_cast<float>(problem.GetPadD()),
+        //    static_cast<float>(problem.GetPadH()),
+        //    static_cast<float>(problem.GetPadW()),
+        //    static_cast<float>(problem.GetKernelStrideD()),
+        //    static_cast<float>(problem.GetKernelStrideH()),
+        //    static_cast<float>(problem.GetKernelStrideW()),
+        //    static_cast<float>(problem.GetDilationH()),
+        //    static_cast<float>(problem.GetDilationW()),
+        //    static_cast<float>(GetLayoutMap(problem.GetInLayout(), arch)),
+        //    static_cast<float>(GetPrecisionMap(problem.GetInDataType(), arch)),
+        //    static_cast<float>(GetDirectionMap(problem.GetDirection(), arch)),
+        //    static_cast<float>(problem.GetGroupCount())};
+
+        std::cout << "\n==========================TEMP LOG #1 STRT==========================\n";
+        std::vector<std::string> names = {"InChannels", "InDepth", "InHeight", "InWidth",
+                                          "FilterDim0", "FilterDim1", "FilterDim2", "OutChannels",
+                                          "OutDepth", "OutHeight", "OutWidth", "BatchSize",
+                                          "Padding0", "Padding1", "Padding2", "Stride0",
+                                          "Stride1", "Stride2", "Dilation1", "Dilation2", "Layout",
+                                          "Precision", "Direction", "GroupSize"};
+        for(size_t i = 0; i < names.size(); ++i)
+            std::cout << i << ". " << names[i] << ": " << features[i] << "    ";
+        std::cout << "\n==========================TEMP LOG #1 END==========================\n\n";
+
+
         TransformFeatures(features, arch);
+        std::cout << "\n==========================TEMP LOG #1 STRT==========================\n";
+        for(size_t i = 0; i < names.size(); ++i)
+            std::cout << i << ". " << names[i] << ": " << features[i] << "    ";
+        std::cout << "\n==========================TEMP LOG #1 END==========================\n\n";
         std::vector<float> res     = CallModel(features, arch);
         static const auto& solvers = GetSolverMap(arch);
 
