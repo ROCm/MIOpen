@@ -2220,7 +2220,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     }
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
 
-    int in_stride  = in_h;
+    int in_stride  = xDesc[0].GetLengths()[1];
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
     int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
