@@ -295,7 +295,7 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
 
 const rocblas_handle_ptr& Handle::rhandle() const { return this->impl->rhandle_; }
 
-rocblas_handle_ptr Handle::CreateRocblasHandle() const
+rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const
 {
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);

@@ -268,7 +268,7 @@ public:
     const rocblas_handle_ptr& rhandle() const;
 
 private:
-    rocblas_handle_ptr CreateRocblasHandle() const;
+    rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
 #else
 private:
 #endif
