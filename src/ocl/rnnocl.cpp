@@ -920,7 +920,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     }
     // input check end
 
-    int in_stride  = in_h;
+    int in_stride  = xDesc[0].GetLengths()[1];
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
     int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
@@ -2193,8 +2193,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
 
-    if(rnnMode == miopenLSTM && !use_dropout && nLayers > 1 && dirMode == miopenRNNunidirection &&
-       inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
+    if(rnnMode == miopenLSTM && algoMode == miopenRNNdefault && !use_dropout && nLayers > 1 &&
+       dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
+       !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
     {
         RNNForwardTraining_MS(handle,
                               in_n,
