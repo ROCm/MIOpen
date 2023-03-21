@@ -479,7 +479,15 @@ function(unpack_db db_bzip2_file)
         execute_process(
             COMMAND bunzip2 -k ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
+            RESULT_VARIABLE ret
             )
+        if(NOT ret EQUAL "0")
+            message(WARNING "(${db_file} could not be extracted, file is empty!")
+            execute_process(
+                COMMAND touch ${db_file}
+                WORKING_DIRECTORY ${KERNELS_DIR}
+                )
+        endif()
     endif()
 endfunction()
 
