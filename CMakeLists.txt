@@ -468,6 +468,23 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+
+# Unpack KDB files
+file(GLOB PERF_DB_BZIP_FILES kernels/*.kdb.bzip2)
+foreach(PERF_DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    STRING(REPLACE '.bz2' '' PERF_DB_FILE "${PERF_DB_BZIP_FILE}")
+    set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+
+    add_custom_command(
+        OUTPUT ${PERF_DB_FILE}
+        WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
+        DEPENDS "${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
+        COMMAND ${WINE_CMD} -E tar xjf ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}
+        COMMENT "Unpacking ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
+        VERBATIM
+        )
+endforeach()
+
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
