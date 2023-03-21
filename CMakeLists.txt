@@ -472,11 +472,14 @@ endif()
 # Unpack KDB files
 function(unpack_kdb kdb_file)
     set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
-    message(STATUS "bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
-    execute_process(
-        COMMAND bunzip2 ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2
-        WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
-        )
+    if(EXISTS "${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb")
+    else(EXISTS "${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
+        message(STATUS "bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
+        execute_process(
+            COMMAND bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2
+            WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
+            )
+    endif()
 endfunction()
 
 # Begin KDB component install 
