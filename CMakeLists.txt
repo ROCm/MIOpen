@@ -469,18 +469,26 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-# Unpack KDB files
-function(unpack_kdb kdb_file)
-    set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
-    if(EXISTS "${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb")
-    else(EXISTS "${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
-        message(STATUS "bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
+# Unpack DB files
+function(unpack_db db_bzip2_file)
+    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    if(EXISTS "${db_file}")
+    else(EXISTS "${db_bzip2_file}")
+        message(STATUS "bunzip2 -k ${db_bzip2_file}")
         execute_process(
-            COMMAND bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2
-            WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
+            COMMAND bunzip2 -k ${db_bzip2_file}
+            WORKING_DIRECTORY ${KERNELS_DIR}
             )
     endif()
 endfunction()
+
+file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+file(GLOB KERNEL_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.kdb.bz2")
+list(APPEND PERF_DB_BZIP_FILES ${KERNEL_DB_BZIP_FILES})
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
 
 # Begin KDB component install 
 function(install_kdb)
@@ -491,8 +499,6 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    unpack_kdb("${FILE_NAME}")
-
     file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")

@@ -794,23 +794,6 @@ rocm_export_targets(
     ${PACKAGE_STATIC_DEPENDS}
 )
 
-# Unpack db files
-file(GLOB PERF_DB_BZIP_FILES kernels/*.db.bzip2)
-foreach(PERF_DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
-    STRING(REPLACE '.bz2' '' PERF_DB_FILE "${PERF_DB_BZIP_FILE}")
-    set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
-
-    add_custom_command(
-        OUTPUT ${PERF_DB_FILE}
-        WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
-        DEPENDS "${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
-        COMMAND ${WINE_CMD} -E tar xjf ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}
-        COMMENT "Unpacking ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
-        VERBATIM
-        )
-endforeach()
-
-
 # Install db files
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
