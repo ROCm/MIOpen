@@ -56,8 +56,52 @@ struct ConvHeur
         return supported_archs;
     }
 
+    static std::vector<float> ToFeatures(const std::string& arch,
+                                                const conv::ProblemDescription& conv_problem)
+    {
+        const bool isFwd = conv_problem.GetDirection() == conv::Direction::Forward;
+        std::vector<float> features = {
+            static_cast<float>(isFwd ? conv_problem.GetInChannels() :
+                                       conv_problem.GetOutChannels()),
+            static_cast<float>(isFwd ? conv_problem.GetInDepth() :
+                                       conv_problem.GetOutDepth()),
+            static_cast<float>(isFwd ? conv_problem.GetInHeight() :
+                                       conv_problem.GetOutHeight()),
+            static_cast<float>(isFwd ? conv_problem.GetInWidth() :
+                                       conv_problem.GetOutWidth()),
+            static_cast<float>(conv_problem.GetWeightsDepth()),
+            static_cast<float>(conv_problem.GetWeightsHeight()),
+            static_cast<float>(conv_problem.GetWeightsWidth()),
+            static_cast<float>(isFwd ? conv_problem.GetOutChannels() :
+                                       conv_problem.GetInChannels()),
+            static_cast<float>(isFwd ? conv_problem.GetOutDepth() :
+                                       conv_problem.GetInDepth()),
+            static_cast<float>(isFwd ? conv_problem.GetOutHeight() :
+                                       conv_problem.GetInHeight()),
+            static_cast<float>(isFwd ? conv_problem.GetOutWidth() :
+                                       conv_problem.GetInWidth()),
+            static_cast<float>(conv_problem.GetOutBatchSize()),
+            static_cast<float>(1), // TunaNet was trained on a dataset of 2D
+	   	 		                   // problems where PadD was incorrectly set to 1 
+            static_cast<float>(conv_problem.GetPadH()),
+            static_cast<float>(conv_problem.GetPadW()),
+            static_cast<float>(1), // TunaNet was trained on a dataset of 2D
+	   	 		                   // problems where StrideD was incorrectly set to 1 
+            static_cast<float>(conv_problem.GetKernelStrideH()),
+            static_cast<float>(conv_problem.GetKernelStrideW()),
+            static_cast<float>(conv_problem.GetDilationH()),
+            static_cast<float>(conv_problem.GetDilationW()),
+            static_cast<float>(GetLayoutMap(conv_problem.GetInLayout(), arch)),
+            static_cast<float>(GetPrecisionMap(conv_problem.GetInDataType(), arch)),
+            static_cast<float>(GetDirectionMap(conv_problem.GetDirection(), arch)),
+            static_cast<float>(conv_problem.GetGroupCount())
+        };
+        return features;
+    }
+
     static bool IsHeurApplicable(const std::string& arch,
                                  const ProblemDescription& problem,
+                                 const std::vector<float>& features,
                                  const ConvolutionContext& ctx)
     {
         const auto& conv_problem = problem.conv_problem;
@@ -108,9 +152,10 @@ struct ConvHeur
             MIOPEN_LOG_I2("Heuristic Inapplicable: GPU not supported (failed)");
             return false;
         }
+
+        // check for outlier configurations where no solver the Heuristic predicts is applicable
         const auto& solver_map    = GetSolverMap(arch);
         size_t applicable_solvers = 0;
-        // check for outlier configurations where no solver the Heuristic predicts is applicable
         for(const auto& solver_name : solver_map)
         {
             auto solver_id = solver::Id{solver_name.second};
@@ -126,12 +171,34 @@ struct ConvHeur
             MIOPEN_LOG_I2("Heuristic Inapplicable: No solver the heuristic may predict applies (failed)");
             return false;
         }
+
+        // The given problem must be within 3 st. deviations of average problem that the
+        // heuristic was trained/evaluated on. Otherwise, the problem is substantially
+        // different from the problems the heuristic was trained to handle
+        const static std::vector<std::string> feature_names = GetFeatureNames(arch);
+        const static std::vector<float> centroids = GetStat("mean", arch);
+        const static std::vector<float> deviations = GetStat("std", arch);
+        for(size_t i = 0; i < features.size(); ++i) {
+            if ((features[i] > centroids[i] + 3 * deviations[i]) ||
+                (features[i] < centroids[i] - 3 * deviations[i]))
+            {
+                std::cout << feature_names[i] << ": ";
+                std::cout << centroids[i] - 3 * deviations[i] << " < " << features[i] << " < " << centroids[i] + 3 * deviations[i];
+                std::cout << "\n";
+                MIOPEN_LOG_I2("Heuristic Inapplicable: Problem is out-of-distribution. (failed)");
+                return false;
+            }
+        }
+
         MIOPEN_LOG_I2("Heuristic is applicable");
         return true;
     }
 
     std::vector<uint64_t>
-    Estimate(const std::string& arch, const conv::ProblemDescription& problem, bool& cached)
+    Estimate(const std::string& arch,
+             const conv::ProblemDescription& problem,
+             std::vector<float>& features,
+             bool& cached)
     {
         std::string est_name = ":memory:" + arch;
         auto& db             = AnyRamDb::GetCached(est_name);
@@ -155,41 +222,6 @@ struct ConvHeur
             return db_sol;
         }
         MIOPEN_LOG_I2("Evaluating Heuristic");
-
-        auto dir = problem.GetDirection();
-        std::vector<float> features = {
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInChannels() :
-                                                                 problem.GetOutChannels()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInDepth() :
-                                                                 problem.GetOutDepth()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInHeight() :
-                                                                 problem.GetOutHeight()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetInWidth() :
-                                                                 problem.GetOutWidth()),
-            static_cast<float>(problem.GetWeightsDepth()),
-            static_cast<float>(problem.GetWeightsHeight()),
-            static_cast<float>(problem.GetWeightsWidth()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutChannels() :
-                                                                 problem.GetInChannels()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutDepth() :
-                                                                 problem.GetInDepth()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutHeight() :
-                                                                 problem.GetInHeight()),
-            static_cast<float>(dir == conv::Direction::Forward ? problem.GetOutWidth() :
-                                                                 problem.GetInWidth()),
-            static_cast<float>(problem.GetOutBatchSize()),
-            static_cast<float>(1), // TODO this is temp fix. should be problem.GetPad()
-            static_cast<float>(problem.GetPadH()),
-            static_cast<float>(problem.GetPadW()),
-            static_cast<float>(1), // TODO this is temp fix. should be problem.GetKernelStrideD()
-            static_cast<float>(problem.GetKernelStrideH()),
-            static_cast<float>(problem.GetKernelStrideW()),
-            static_cast<float>(problem.GetDilationH()),
-            static_cast<float>(problem.GetDilationW()),
-            static_cast<float>(GetLayoutMap(problem.GetInLayout(), arch)),
-            static_cast<float>(GetPrecisionMap(problem.GetInDataType(), arch)),
-            static_cast<float>(GetDirectionMap(problem.GetDirection(), arch)),
-            static_cast<float>(problem.GetGroupCount())};
 
         TransformFeatures(features, arch);
         std::vector<float> res     = CallModel(features, arch);

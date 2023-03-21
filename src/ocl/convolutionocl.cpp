@@ -829,7 +829,10 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.DetectRocm();
 
     // AI based Heuristic fallback mechanism
-    if(MIOPEN_ENABLE_AI_HEUR && ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, ctx) &&
+    std::vector<float> features = ConvHeur::ToFeatures(handle.GetDeviceName(), 
+                                                       problem.conv_problem);
+    if(MIOPEN_ENABLE_AI_HEUR &&
+       ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, features, ctx) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}))
     {
         const auto ai_time = [](const int& idx) {
@@ -838,7 +841,10 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
         int idx        = 1;
         bool is_cached = false;
-        auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(), problem.conv_problem, is_cached);
+        auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(),
+                                           problem.conv_problem,
+                                           features,
+                                           is_cached);
         for(const auto kinder : solvers)
         {
             const auto solver_id = solver::Id{kinder};

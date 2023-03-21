@@ -34,14 +34,11 @@
 
 namespace miopen {
 
-const std::vector<std::string>& GetFeatureNames()
+const std::vector<std::string>& GetFeatureNames(const std::string& arch)
 {
-    static const std::vector<std::string> gfx908_feature_names = {
-        "InChannels", "InDepth",     "InHeight", "InWidth",   "FilterDim0", "FilterDim1",
-        "FilterDim2", "OutChannels", "OutDepth", "OutHeight", "OutWidth",   "BatchSize",
-        "Padding0",   "Padding1",    "Padding2", "Stride0",   "Stride1",    "Stride2",
-        "Dilation1",  "Dilation2",   "Layout",   "Precision", "Direction",  "GroupSize"};
-    return gfx908_feature_names;
+    static const auto& metadata = ConvHeur::GetMetadata(arch);
+    static const std::vector<std::string> feature_names = metadata["conv_params_used_as_features"];
+    return feature_names;
 }
 
 const std::unordered_map<size_t, std::string>& GetSolverMap(const std::string& arch)
@@ -101,7 +98,7 @@ std::vector<float> GetStat(const std::string& stat, const std::string& arch)
     std::unordered_map<std::string, float> stat_map =
         metadata["stats"]["overall"]["features"][stat];
     // holds feature names in proper order for input vector to the model
-    std::vector<std::string> features = GetFeatureNames();
+    std::vector<std::string> features = GetFeatureNames(arch);
     std::vector<float> stats(features.size());
     for(size_t idx = 0; idx < stats.size(); idx++)
     {
@@ -127,6 +124,38 @@ size_t GetOffset(const std::string& arch)
     static const auto& metadata = ConvHeur::GetMetadata(arch);
     size_t offset               = metadata["num_algos"];
     return offset + 1;
+}
+
+bool IsProblemInDistributionL1(std::vector<float>& features, const std::string& arch)
+{
+	const static std::vector<float> centroids = GetStat("mean", arch);
+	const static std::vector<float> deviations = GetStat("std", arch);
+	for(size_t i = 0; i < features.size(); ++i) {
+		if ((features[i] > centroids[i] + 3 * deviations[i]) ||
+			(features[i] < centroids[i] - 3 * deviations[i]))
+			return false;
+	}
+	return true;
+}
+
+bool IsProblemInDistributionL2(std::vector<float>& features, const std::string& arch)
+{
+    static const auto& metadata = ConvHeur::GetMetadata(arch);
+	static const float problem_distance_from_mean_avg = metadata["problem_distance_from_mean_avg"];
+	static const float problem_distance_from_mean_std = metadata["problem_distance_from_mean_std"];
+
+	static const float upper_bound =  problem_distance_from_mean_avg + 2 * problem_distance_from_mean_std;
+	static const float lower_bound =  problem_distance_from_mean_avg - 2 * problem_distance_from_mean_std;
+
+	static const std::vector<float> centroid = GetStat("mean", arch);
+	float squared_sum = 0;
+	for(size_t i = 0; i < features.size(); ++i)
+	{
+		squared_sum += std::pow(features[i] - centroid[i], 2);
+	}
+	const float distance = std::sqrt(squared_sum);
+
+	return distance > lower_bound && distance < upper_bound;
 }
 
 std::vector<float> CallModel(std::vector<float>& features, const std::string& arch)
