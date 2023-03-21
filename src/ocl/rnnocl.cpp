@@ -2184,9 +2184,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         batch_n += batchval;
     }
     // input check end
-
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
-    if(rnnMode == miopenLSTM && nLayers > 1 && dirMode == miopenRNNunidirection &&
+
+    if(rnnMode == miopenLSTM && !use_dropout && nLayers > 1 && dirMode == miopenRNNunidirection &&
        inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
     {
         RNNForwardTraining_MS(handle,
@@ -2385,7 +2386,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
             if(use_dropout)
             {
                 std::vector<int> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
