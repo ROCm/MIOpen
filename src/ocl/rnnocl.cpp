@@ -2065,7 +2065,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     (void)workSpace;
 
 #if MIOPEN_USE_GEMM
-    
+
 #if MIOPEN_BACKEND_HIP
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;
@@ -2077,7 +2077,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         RNNProfilingBegin(handle, start, stop);
     }
 #endif
-    
+
     // OCL legacy
     float ctime = 0.;
     // reset kernel timer
