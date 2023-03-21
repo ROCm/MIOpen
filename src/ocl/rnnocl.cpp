@@ -70,7 +70,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    handle.ReserveExtraStreamsAtPool(1);
+    handle.ReserveExtraStreamsInPool(1);
 
     std::vector<hipStream_t> stream_pull;
     stream_pull.push_back(handle.GetStream());

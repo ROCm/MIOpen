@@ -70,8 +70,8 @@ Handle::~Handle() {}
 
 void Handle::SetStream(miopenAcceleratorQueue_t /* streamID */) const {}
 
-void Handle::SetStreamFromPull(int) const {}
-void Handle::ReserveExtraStreamsAtPull(int) const {}
+void Handle::SetStreamFromPool(int) const {}
+void Handle::ReserveExtraStreamsInPool(int) const {}
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return {}; }
 

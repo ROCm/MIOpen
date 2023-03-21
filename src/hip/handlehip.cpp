@@ -312,7 +312,7 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
 void Handle::SetStreamFromPool(int streamID) const { this->impl->current_stream_id = streamID; }
 
-void Handle::ReserveExtraStreamsAtPool(int cnt) const
+void Handle::ReserveExtraStreamsInPool(int cnt) const
 {
     int save_pull_id = this->impl->current_stream_id;
     if(this->impl->stream_pool->size() < cnt)
