@@ -46,7 +46,6 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                           ConstData_t x,
                                           const TensorDescriptor& hxDesc,
                                           ConstData_t hx,
-                                          const TensorDescriptor&,
                                           ConstData_t cx,
                                           const TensorDescriptor& wDesc,
                                           ConstData_t w,
@@ -54,8 +53,6 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                           Data_t y,
                                           Data_t hy,
                                           Data_t cy,
-                                          Data_t,
-                                          size_t,
                                           Data_t reserveSpace,
                                           size_t reserveSpaceSize) const
 {
@@ -111,7 +108,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
         }
 
-        size_t matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz, int gates) const
+        auto matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz, int gates) const
         {
             return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz * gates;
         }
@@ -123,8 +120,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         {
             if(bidirect_mode == 0)
                 return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates) +
-                       (hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) * hidden_vec_sz *
-                           (layers_cnt - 1) * gates;
+                       static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
+                           hidden_vec_sz * static_cast<size_t>(layers_cnt - 1) * gates;
 
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
         }
@@ -169,7 +166,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         size_t get_matrix_x_off(int layer_id) const
         {
             if(layer_id > 0)
-                return matrix_normal_start_off + (layer_id - 1) * get_matrix_layer_size(layer_id);
+                return matrix_normal_start_off +
+                       static_cast<size_t>(layer_id - 1) * get_matrix_layer_size(layer_id);
             else
                 return 0;
         };
@@ -177,9 +175,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         size_t get_matrix_h_off(int layer_id) const
         {
             if(layer_id > 0)
-                return get_matrix_x_off(layer_id) + h_vec * x_in_vec * gates_cnt;
+                return get_matrix_x_off(layer_id) +
+                       static_cast<size_t>(h_vec * x_in_vec * gates_cnt);
             else
-                return get_matrix_x_off(layer_id) + h_vec * in_vec * gates_cnt;
+                return get_matrix_x_off(layer_id) + static_cast<size_t>(h_vec * in_vec) * gates_cnt;
         };
 
         int bias_vector_size() const { return h_vec; }
@@ -188,7 +187,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
 
         size_t bias_relative_off(int layer_id, int bias_id) const
         {
-            return (layer_id * bias_cnt + bias_id) * gates_cnt * h_vec;
+            return static_cast<size_t>(layer_id * bias_cnt + bias_id) * gates_cnt * h_vec;
         }
 
         size_t get_bias_off(int layer_id, int bias_id) const
@@ -202,7 +201,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     {
         struct RBuffHelper
         {
-            int element, save_point, batch, layer;
+            int element, save_point, batch;
+            size_t layer;
         };
 
     private:
@@ -214,7 +214,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             const auto element_st    = 1;
             const auto save_point_st = element_st * save_point_sz;
             const auto batch_st      = save_point_st * save_points;
-            const auto layer_st      = batch_st * batches_per_layer;
+            const auto layer_st      = static_cast<size_t>(batch_st) * batches_per_layer;
             if(bidirect_mode == 0)
                 return RBuffHelper{element_st, save_point_st, batch_st, layer_st};
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
@@ -256,7 +256,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         const int gates;
         const RBuffHelper strides;
 
-        size_t layer_offset(int layer) const { return layer * strides.layer; }
+        size_t layer_offset(int layer) const { return static_cast<size_t>(layer) * strides.layer; }
         auto layer_stride() const { return strides.layer; }
 
         auto gemm_write_size() const { return h_vec * gates; }
@@ -267,12 +267,12 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
 
         size_t gemm_write_relative_offset(int batch_id) const
         {
-            return gemm_write_stride() * batch_id;
+            return static_cast<size_t>(gemm_write_stride()) * batch_id;
         }
 
         size_t gemm_write_offset(int layer, int batch_id) const
         {
-            return layer_offset(layer) + gemm_write_stride() * batch_id;
+            return layer_offset(layer) + static_cast<size_t>(gemm_write_stride()) * batch_id;
         }
 
         auto ht_relative_offset() const { return save_point::Ht * save_point_size; }
@@ -290,7 +290,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         size_t extra_save_point_offset(int layer_id, int batch_id) const
         {
             return (static_cast<size_t>(batches) * layers * gemm_write_stride()) // all data offset
-                   + (layer_id * batches) * h_vec + batch_id * h_vec;
+                   + (static_cast<size_t>(batches) * layer_id) * h_vec +
+                   static_cast<size_t>(batch_id * h_vec);
         }
 
     } RBuff(hidden_size, hidden_size, nLayers, total_batch_size, save_points_cnt, gates_cnt);
@@ -334,9 +335,9 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         const auto wx_off     = WeiBuf.get_matrix_x_off(layer);
         const auto out_offset = RBuff.gemm_write_offset(layer, start_b);
 
-        const auto x_in_offset =
-            layer > 0 ? RBuff.ht_offset(layer - 1, start_b) : start_b * InBuff_strides.batch;
-        const auto in_ptr = layer > 0 ? reserveSpace : x;
+        const auto x_in_offset = layer > 0 ? RBuff.ht_offset(layer - 1, start_b)
+                                           : static_cast<size_t>(start_b * InBuff_strides.batch);
+        const auto in_ptr      = layer > 0 ? reserveSpace : x;
 
         const miopenStatus_t gemm_status = CallGemm(handle,
                                                     gemm_desc,
@@ -547,9 +548,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         {
             auto hcy_layer_offset = get_HxBuff_offset(layer_id);
 
-            const std::vector<int> hcy_src_stride{
-                RBuff.layer_stride(), RBuff.gemm_write_stride(), 1};
-            const std::vector<int> hcy_dst_stride{hidden_size * max_batch, hidden_size, 1};
+            const std::vector<size_t> hcy_src_stride{
+                RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
+            const std::vector<size_t> hcy_dst_stride{
+                static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
 
             for(int time_i = seq_len - 1; time_i >= 0; time_i--)
             {
@@ -565,7 +567,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                     auto src_batch_offset = RBuff.layer_offset(layer_id) +
                                             RBuff.gemm_write_relative_offset(batch_id_abs);
 
-                    const std::vector<int> hcy_copy_size{1, copy_batch, hidden_size};
+                    const std::vector<size_t> hcy_copy_size{
+                        1, static_cast<size_t>(copy_batch), static_cast<size_t>(hidden_size)};
 
                     auto src_desc =
                         miopen::TensorDescriptor(wDesc.GetType(), hcy_copy_size, hcy_src_stride);
@@ -779,11 +782,14 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     handle.SetStreamFromPool(0);
     // output tensor copy
     {
-        const std::vector<int> y_copy_size{1, total_batch_size, out_vec};
+        const std::vector<size_t> y_copy_size{
+            1, static_cast<size_t>(total_batch_size), static_cast<size_t>(out_vec)};
 
-        const std::vector<int> y_src_stride{RBuff.layer_stride(), RBuff.gemm_write_stride(), 1};
+        const std::vector<size_t> y_src_stride{
+            RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
 
-        const std::vector<int> y_dst_stride{out_vec * total_batch_size, out_vec, 1};
+        const std::vector<size_t> y_dst_stride{
+            static_cast<size_t>(out_vec * total_batch_size), static_cast<size_t>(out_vec), 1};
 
         auto src_desc   = miopen::TensorDescriptor(wDesc.GetType(), y_copy_size, y_src_stride);
         auto y_dst_desc = miopen::TensorDescriptor(wDesc.GetType(), y_copy_size, y_dst_stride);
@@ -2196,7 +2202,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                               x,
                               hxDesc,
                               hx,
-                              cxDesc,
                               cx,
                               wDesc,
                               w,
@@ -2204,8 +2209,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                               y,
                               hy,
                               cy,
-                              workSpace,
-                              workSpaceSize,
                               reserveSpace,
                               reserveSpaceSize);
 
