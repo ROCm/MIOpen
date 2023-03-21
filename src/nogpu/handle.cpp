@@ -294,6 +294,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle() const
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
+    rocblas_initialize();
     return result;
 }
 #endif

@@ -593,6 +593,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle() const
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     rocblas_set_stream(result.get(), GetStream());
+    rocblas_initialize();
     return result;
 }
 #endif
