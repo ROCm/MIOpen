@@ -470,20 +470,14 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
 endif()
 
 # Unpack KDB files
-file(GLOB PERF_DB_BZIP_FILES kernels/*.kdb.bzip2)
-foreach(PERF_DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
-    STRING(REPLACE '.bz2' '' PERF_DB_FILE "${PERF_DB_BZIP_FILE}")
+function(unpack_kdb kdb_file)
     set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
-
-    add_custom_command(
-        OUTPUT ${PERF_DB_FILE}
+    message(STATUS "bunzip2 -k ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2")
+    execute_process(
+        COMMAND bunzip2 ${MIOPEN_BINCACHE_PATH}/${kdb_file}.kdb.bz2
         WORKING_DIRECTORY ${MIOPEN_BINCACHE_PATH}
-        DEPENDS "${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
-        COMMAND ${WINE_CMD} -E tar xjf ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}
-        COMMENT "Unpacking ${MIOPEN_BINCACHE_PATH}/${PERF_DB_BZIP_FILE}"
-        VERBATIM
         )
-endforeach()
+endfunction()
 
 # Begin KDB component install 
 function(install_kdb)
@@ -494,6 +488,8 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
+    unpack_kdb("${FILE_NAME}")
+
     file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
