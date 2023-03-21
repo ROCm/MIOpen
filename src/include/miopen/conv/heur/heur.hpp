@@ -172,22 +172,13 @@ struct ConvHeur
             return false;
         }
 
-        // The given problem must be within 3 st. deviations of average problem that the
-        // heuristic was trained/evaluated on. Otherwise, the problem is substantially
-        // different from the problems the heuristic was trained to handle
-        const static std::vector<std::string> feature_names = GetFeatureNames(arch);
-        const static std::vector<float> centroids = GetStat("mean", arch);
-        const static std::vector<float> deviations = GetStat("std", arch);
-        for(size_t i = 0; i < features.size(); ++i) {
-            if ((features[i] > centroids[i] + 3 * deviations[i]) ||
-                (features[i] < centroids[i] - 3 * deviations[i]))
-            {
-                std::cout << feature_names[i] << ": ";
-                std::cout << centroids[i] - 3 * deviations[i] << " < " << features[i] << " < " << centroids[i] + 3 * deviations[i];
-                std::cout << "\n";
-                MIOPEN_LOG_I2("Heuristic Inapplicable: Problem is out-of-distribution. (failed)");
-                return false;
-            }
+        // The given problem must be within 2 standard deviations (on avg.) of problems that the
+        // heuristic was trained/evaluated on. Otherwise, the problem is substantially different
+        // from the problems the heuristic was trained to handle
+        if (!IsProblemInDistributionL2(features, arch, 2))
+        {
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem is out-of-distribution. (failed)");
+            return false;
         }
 
         MIOPEN_LOG_I2("Heuristic is applicable");
@@ -223,7 +214,6 @@ struct ConvHeur
         }
         MIOPEN_LOG_I2("Evaluating Heuristic");
 
-        TransformFeatures(features, arch);
         std::vector<float> res     = CallModel(features, arch);
         static const auto& solvers = GetSolverMap(arch);
 

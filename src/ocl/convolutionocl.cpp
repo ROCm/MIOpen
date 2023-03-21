@@ -831,6 +831,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     // AI based Heuristic fallback mechanism
     std::vector<float> features = ConvHeur::ToFeatures(handle.GetDeviceName(), 
                                                        problem.conv_problem);
+    TransformFeatures(features, handle.GetDeviceName());
     if(MIOPEN_ENABLE_AI_HEUR &&
        ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, features, ctx) &&
        !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}))

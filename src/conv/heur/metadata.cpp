@@ -126,33 +126,30 @@ size_t GetOffset(const std::string& arch)
     return offset + 1;
 }
 
-bool IsProblemInDistributionL1(std::vector<float>& features, const std::string& arch)
+bool IsProblemInDistributionL1(const std::vector<float>& features,
+                               const float threshold)
 {
-	const static std::vector<float> centroids = GetStat("mean", arch);
-	const static std::vector<float> deviations = GetStat("std", arch);
 	for(size_t i = 0; i < features.size(); ++i) {
-		if ((features[i] > centroids[i] + 3 * deviations[i]) ||
-			(features[i] < centroids[i] - 3 * deviations[i]))
+		if ((features[i] > threshold) || (features[i] < -threshold))
 			return false;
 	}
 	return true;
 }
 
-bool IsProblemInDistributionL2(std::vector<float>& features, const std::string& arch)
+bool IsProblemInDistributionL2(const std::vector<float>& features,
+                               const std::string& arch,
+                               const float threshold)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
-	static const float problem_distance_from_mean_avg = metadata["problem_distance_from_mean_avg"];
-	static const float problem_distance_from_mean_std = metadata["problem_distance_from_mean_std"];
+	static const float dist_from_mean_avg = metadata["problem_distance_from_mean_avg"];
+	static const float dist_from_mean_std = metadata["problem_distance_from_mean_std"];
 
-	static const float upper_bound =  problem_distance_from_mean_avg + 2 * problem_distance_from_mean_std;
-	static const float lower_bound =  problem_distance_from_mean_avg - 2 * problem_distance_from_mean_std;
+	static const float upper_bound =  dist_from_mean_avg + threshold * dist_from_mean_std;
+	static const float lower_bound =  dist_from_mean_avg - threshold * dist_from_mean_std;
 
-	static const std::vector<float> centroid = GetStat("mean", arch);
 	float squared_sum = 0;
 	for(size_t i = 0; i < features.size(); ++i)
-	{
-		squared_sum += std::pow(features[i] - centroid[i], 2);
-	}
+		squared_sum += std::pow(features[i], 2);
 	const float distance = std::sqrt(squared_sum);
 
 	return distance > lower_bound && distance < upper_bound;

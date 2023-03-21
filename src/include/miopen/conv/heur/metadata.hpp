@@ -45,6 +45,11 @@ size_t GetDirectionMap(miopen::conv::Direction dir, const std::string& arch);
 size_t GetPrecisionMap(miopenDataType_t data_type, const std::string& arch);
 size_t GetLayoutMap(const std::string& layout, const std::string& arch);
 std::vector<float> GetStat(const std::string& stat, const std::string& arch);
+bool IsProblemInDistributionL1(const std::vector<float>& features,
+                               const float threshold);
+bool IsProblemInDistributionL2(const std::vector<float>& features,
+                               const std::string& arch,
+                               const float threshold);
 std::vector<float> CallModel(std::vector<float>& features, const std::string& arch);
 } // namespace miopen
 #endif

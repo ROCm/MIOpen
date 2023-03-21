@@ -13,8 +13,8 @@
     ],
     "num_algos": 8,
     "num_solvers": 9,
-    "problem_distance_from_mean_avg": 538.2426563035286,
-    "problem_distance_from_mean_std": 439.7134669463700,
+    "problem_distance_from_mean_avg": 3.3452934424511804,
+    "problem_distance_from_mean_std": 3.5789650414385910,
     "conv_params_all": [
         "InChannels",
         "InDepth",
