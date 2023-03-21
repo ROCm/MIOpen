@@ -293,7 +293,7 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
 
 #if MIOPEN_USE_ROCBLAS
 
-const rocblas_handle_ptr& Handle::rhandle() const {}
+const rocblas_handle_ptr& Handle::rhandle() const { return this->impl->rhandle_; }
 
 rocblas_handle_ptr Handle::CreateRocblasHandle() const
 {
