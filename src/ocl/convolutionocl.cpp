@@ -888,7 +888,7 @@ void GetSolutions(Handle& handle,
     }
 
     std::vector<SolutionSortWrapper> interim;
-    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
+    interim.reserve(20); // Heuristic for speed.
 
     // Individual Solvers can be enabled/disabled by environment settings.
     // Applicability is also affected by presence of external tools (e.g. assembler)
@@ -914,19 +914,26 @@ void GetSolutions(Handle& handle,
             MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
             continue;
         }
-
-        if(solver_id.GetSolver().IsApplicable(ctx, problem))
-            interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
+        interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
     }
     std::sort(begin(interim), end(interim));
 
+    // Let's avoid checks of solvers that reside beyond maxSolutionCount,
+    // i.e. those that unnecessary anyway. This optimization is important
+    // because applicability check may involve running MIIR compiler
+    // (for MLIR solvers), which can be very slow.
     auto i = std::size_t{0};
     for(const auto& entry : interim)
     {
         if(i >= maxSolutionCount)
             break;
-        solutions[i] = entry;
-        ++i;
+
+        const auto solver_id = solver::Id{entry.solution_id};
+        if(solver_id.GetSolver().IsApplicable(ctx, problem))
+        {
+            solutions[i] = entry;
+            ++i;
+        }
     }
     *solutionCount = i;
 }
