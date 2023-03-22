@@ -197,7 +197,8 @@ private:
 
         const auto time0   = Duration(func);
         const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
-        MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
+        MIOPEN_LOG_I(
+            "Find(), 1st call (populating kcache in RAM, updating find-db): " << time0ms.count());
 
         debug::testing_find_db_enabled = false;
         const auto time1               = Duration(func);
@@ -221,7 +222,8 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    setenv("MIOPEN_LOG_LEVEL", "6", 1);              // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1); // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
     test_drive<miopen::FindDbTest>(argc, argv);
 }
