@@ -76,8 +76,8 @@ inline bool model_set_params(const fdeep::model& encoder,
         while(!pq.empty())
         {
             int value = pq.top().second;
-            int token = std::stoi(metadata["decodings"]["tunings"][std::to_string(value)]
-                                      .get<std::string>()); // convert index to tuning value
+            int token = metadata["decodings"]["tunings"][std::to_string(value)]
+                            .get<int>(); // convert index to tuning value
             pq.pop();
             if(config.TryToken(i, token, problem))
             {
