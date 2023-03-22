@@ -511,7 +511,7 @@ function(install_kdb)
     if(FILE_CONTENTS STREQUAL "version")
         set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
     else()
-        unpack_db(${FILE_NAME}.kdb.bz2)
+        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
         rocm_install(FILES
             src/kernels/${FILE_NAME}.kdb
