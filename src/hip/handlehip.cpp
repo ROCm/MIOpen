@@ -158,8 +158,8 @@ int set_default_device()
 
 } // namespace
 
-static thread_local unsigned int meopenHandle_current_stream_id =
-    0; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+static thread_local unsigned int meopenHandle_current_stream_id = 0;
 struct HandleImpl
 {
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
