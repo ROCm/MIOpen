@@ -474,7 +474,8 @@ function(unpack_db db_bzip2_file)
     set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
     STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
     if(EXISTS "${db_file}")
-    else(EXISTS "${db_bzip2_file}")
+        # message(WARNING "${db_file} already exists")
+    elseif(EXISTS "${db_bzip2_file}")
         message(STATUS "bunzip2 -k ${db_bzip2_file}")
         execute_process(
             COMMAND bunzip2 -k ${db_bzip2_file}
@@ -482,7 +483,7 @@ function(unpack_db db_bzip2_file)
             RESULT_VARIABLE ret
             )
         if(NOT ret EQUAL "0")
-            message(WARNING "(${db_file} could not be extracted, file is empty!")
+            message(WARNING "${db_file} could not be extracted, file is empty!")
             execute_process(
                 COMMAND touch ${db_file}
                 WORKING_DIRECTORY ${KERNELS_DIR}
