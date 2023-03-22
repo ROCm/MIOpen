@@ -114,8 +114,9 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                    const TensorParams& params,
                                    bool check_skip)
 {
-    if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC || params.nbDims != 4 || params.dimsA == nullptr ||
-       params.stridesA == nullptr || params.use_strides == false)
+    if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC ||
+       params.nbDims != 4 || params.dimsA == nullptr || params.stridesA == nullptr ||
+       params.use_strides == false)
         return TestStatus::Skipped;
 
     if(check_skip)
@@ -143,7 +144,8 @@ TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
 {
     if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC)
         return TestStatus::Skipped;
-    if(!params.use_strides && (params.tensorLayout != miopenTensorNCHW && params.tensorLayout != miopenTensorNCDHW))
+    if(!params.use_strides &&
+       (params.tensorLayout != miopenTensorNCHW && params.tensorLayout != miopenTensorNCDHW))
         return TestStatus::Skipped;
     if(params.stridesA == nullptr && params.use_strides)
         return TestStatus::Skipped;
@@ -175,17 +177,27 @@ TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tens
         return TestStatus::Skipped;
 
     if(params.dimsA == nullptr || (params.stridesA == nullptr && params.use_strides))
-        return TestStatus::Failed;// internal error
+        return TestStatus::Failed; // internal error
 
     miopenStatus_t status;
     miopenDataType_t dataType;
     int dims[4], strides[4];
 
-    status = miopenGet4dTensorDescriptor(tensorDesc, &dataType, dims, dims+1, dims+2, dims+3, strides, strides+1, strides+2, strides+3);
+    status = miopenGet4dTensorDescriptor(tensorDesc,
+                                         &dataType,
+                                         dims,
+                                         dims + 1,
+                                         dims + 2,
+                                         dims + 3,
+                                         strides,
+                                         strides + 1,
+                                         strides + 2,
+                                         strides + 3);
     if(status != miopenStatusSuccess)
         return TestStatus::Failed;
 
-    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) || (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
+    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) ||
+       (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
         return TestStatus::Failed;
 
     return TestStatus::Passed;
@@ -194,7 +206,7 @@ TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tens
 TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const TensorParams& params)
 {
     if(params.dimsA == nullptr || (params.stridesA == nullptr && params.use_strides))
-        return TestStatus::Failed;// internal error
+        return TestStatus::Failed; // internal error
 
     miopenStatus_t status;
     int size;
@@ -202,7 +214,7 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
     status = miopenGetTensorDescriptorSize(tensorDesc, &size);
     if(status != miopenStatusSuccess || size < 0 || size != params.nbDims)
         return TestStatus::Failed;
-    
+
     miopenDataType_t dataType;
     std::vector<int> dims(size);
     std::vector<int> strides(size);
@@ -211,14 +223,14 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
     if(status != miopenStatusSuccess)
         return TestStatus::Failed;
 
-    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) || (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
+    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) ||
+       (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
         return TestStatus::Failed;
 
     return TestStatus::Passed;
 }
 
-const auto get_tensor_descr_funcs = {Get4dTensorDescriptor,
-                                     GetTensorDescriptor};
+const auto get_tensor_descr_funcs = {Get4dTensorDescriptor, GetTensorDescriptor};
 
 // Generate test data
 void GenerateValidTestConfigs(std::vector<TestConfig>& configs, bool use_strides)
