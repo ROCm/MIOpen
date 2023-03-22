@@ -57,6 +57,17 @@ struct TestConfig
     bool valid;
 };
 
+template <class L1, class L2>
+bool CompareLengths(const L1 l1, const L2 l2, int size)
+{
+    for(int i = 0; i < size; i++)
+    {
+        if(l1[i] != l2[i])
+            return false;
+    }
+    return true;
+}
+
 // Set tensor descriptor
 TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                  const TensorParams& params,
@@ -103,7 +114,7 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                    const TensorParams& params,
                                    bool check_skip)
 {
-    if(params.tensorLayout != miopenTensorNCHW || params.nbDims != 4 || params.dimsA == nullptr ||
+    if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC || params.nbDims != 4 || params.dimsA == nullptr ||
        params.stridesA == nullptr || params.use_strides == false)
         return TestStatus::Skipped;
 
@@ -130,8 +141,11 @@ TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                const TensorParams& params,
                                bool check_skip)
 {
-    if(params.tensorLayout != miopenTensorNCHW ||
-       (params.stridesA == nullptr && params.use_strides))
+    if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC)
+        return TestStatus::Skipped;
+    if(!params.use_strides && (params.tensorLayout != miopenTensorNCHW && params.tensorLayout != miopenTensorNCDHW))
+        return TestStatus::Skipped;
+    if(params.stridesA == nullptr && params.use_strides)
         return TestStatus::Skipped;
 
     if(check_skip)
@@ -153,6 +167,58 @@ const auto set_tensor_descr_funcs = {Set4dTensorDescriptor,
                                      SetNdTensorDescriptorWithLayout,
                                      Set4dTensorDescriptorEx,
                                      SetTensorDescriptor};
+
+// Get tensor descriptor
+TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const TensorParams& params)
+{
+    if(params.nbDims != 4 || (!params.use_strides && params.tensorLayout != miopenTensorNCHW))
+        return TestStatus::Skipped;
+
+    if(params.dimsA == nullptr || (params.stridesA == nullptr && params.use_strides))
+        return TestStatus::Failed;// internal error
+
+    miopenStatus_t status;
+    miopenDataType_t dataType;
+    int dims[4], strides[4];
+
+    status = miopenGet4dTensorDescriptor(tensorDesc, &dataType, dims, dims+1, dims+2, dims+3, strides, strides+1, strides+2, strides+3);
+    if(status != miopenStatusSuccess)
+        return TestStatus::Failed;
+
+    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) || (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
+        return TestStatus::Failed;
+
+    return TestStatus::Passed;
+}
+
+TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const TensorParams& params)
+{
+    if(params.dimsA == nullptr || (params.stridesA == nullptr && params.use_strides))
+        return TestStatus::Failed;// internal error
+
+    miopenStatus_t status;
+    int size;
+
+    status = miopenGetTensorDescriptorSize(tensorDesc, &size);
+    if(status != miopenStatusSuccess || size < 0 || size != params.nbDims)
+        return TestStatus::Failed;
+    
+    miopenDataType_t dataType;
+    std::vector<int> dims(size);
+    std::vector<int> strides(size);
+
+    status = miopenGetTensorDescriptor(tensorDesc, &dataType, dims.data(), strides.data());
+    if(status != miopenStatusSuccess)
+        return TestStatus::Failed;
+
+    if(params.dataType != dataType || !CompareLengths(params.dimsA, dims, 4) || (params.use_strides && !CompareLengths(params.stridesA, strides, 4)))
+        return TestStatus::Failed;
+
+    return TestStatus::Passed;
+}
+
+const auto get_tensor_descr_funcs = {Get4dTensorDescriptor,
+                                     GetTensorDescriptor};
 
 // Generate test data
 void GenerateValidTestConfigs(std::vector<TestConfig>& configs, bool use_strides)
@@ -310,6 +376,15 @@ protected:
             else
                 ASSERT_NE(test_status, TestStatus::Passed);
 
+            if(config.valid)
+            {
+                for(const auto get_tensor_descr_func : get_tensor_descr_funcs)
+                {
+                    test_status = get_tensor_descr_func(desc, config.params);
+                    ASSERT_NE(test_status, TestStatus::Failed);
+                }
+            }
+
             if(!config.null_tensor_descriptor)
             {
                 status = miopenDestroyTensorDescriptor(desc);
@@ -331,8 +406,3 @@ protected:
 TEST_F(TestTensorApi, SetTensor) { RunTests(valid_configs); }
 
 TEST_F(TestTensorApi, SetWrongTensor) { RunTests(wrong_configs); }
-
-TEST_F(TestTensorApi, GetTensor)
-{
-    // TODO
-}
