@@ -323,11 +323,8 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 
     if(miopen::EndsWith(filename, ".cpp"))
     {
-        // WORKAROUND: TODO: -Wno-unused-parameter -Wno-extra-semi-stmt bypasses issues with
-        // hipRTC_header.h
 #if MIOPEN_BUILD_DEV
-        params +=
-            " -Werror -Wno-unused-parameter -Wno-extra-semi-stmt " + HipKernelWarningsString();
+        params += " -Werror" + HipKernelWarningsString();
 #else
         params += " -Wno-everything";
 #endif
@@ -335,8 +332,8 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     else if(miopen::EndsWith(filename, ".cl"))
     {
 #if MIOPEN_BUILD_DEV
-        params += " -Werror -Wno-unused-parameter -Wno-extra-semi-stmt " +
-                  (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+        params +=
+            " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
 #else
         params += " -Wno-everything";
 #endif
