@@ -379,11 +379,10 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
     return false;
 }
 
-std::vector<float> TransformFeatures(const ProblemDescription& problem,
-                                     const nlohmann::json& metadata)
+std::vector<float> TransformFeatures(const ProblemDescription& problem, const int& n)
 {
-    unsigned long n = metadata["num_conv_params"].get<unsigned long>() + 1;
-    std::vector<float> features(n * n, 0.0);
+    unsigned long m = n * n;
+    std::vector<float> features(m, 0.0);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
@@ -411,11 +410,15 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
             fdeep::load_model(base_file_path + "encoder.model", true, fdeep::dev_null_logger);
         static const fdeep::model decoder =
             fdeep::load_model(base_file_path + "decoder.model", true, fdeep::dev_null_logger);
-        static const nlohmann::json metadata =
-            nlohmann::json::parse(std::ifstream(base_file_path + "metadata.model"));
-        std::vector<float> features = TransformFeatures(problem, metadata);
-        if(model_set_params(encoder, decoder, metadata, *this, problem, features))
-            return;
+        static const auto num_params = get_num_params("ConvAsm1x1U");
+        static const auto decodings  = get_decodings("ConvAsm1x1U");
+        if(num_params.first && !decodings.empty())
+        {
+            std::vector<float> features = TransformFeatures(problem, num_params.first + 1);
+            if(model_set_params(
+                   encoder, decoder, num_params.second, decodings, *this, problem, features))
+                return;
+        }
     }
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
