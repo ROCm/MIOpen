@@ -29,6 +29,7 @@
 #include <miopen/config.h>
 
 #include <string>
+#include <cmath>
 #include <ostream>
 #include <tuple>
 #include <vector>
@@ -250,19 +251,25 @@ static inline int igemm_split_batch_size(const int hi,
     if(image_size >= max_tensor_size)
         return 0;
 
+    // Round up splits: we must find the largest multiple of n, max_n, s.t. 
+    // max_n * image_size <= max_tensor_size
     size_t max_n = max_tensor_size / image_size;
-
-    // Round up splits, we must match
-    // 1. max_n * image_size < max_tensor_size
-    // 2. n % max_n == 0
-    // if(max_n >= n)
-    //     return 1;
-    while(max_n > 1)
+    if(max_n > n)
+        max_n = n % max_n;
+    else if(max_n < n)
     {
-        if(n % max_n == 0)
-            break;
-        max_n--;
+        // find the smallest multiple k of n such that (n / k) * image_size <= max_tensor_size.
+        // once k is known, (n / k) == max_n
+        size_t k = std::ceil(n / max_n); // (n / k) <= max_n   =>   k >= n/max_n
+        while (n % max_n != 0)
+        {
+            if (n % k == 0)
+                max_n = n / k;
+            else
+                k += 1;
+        }
     }
+
     return n / max_n;
 }
 
