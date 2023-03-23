@@ -57,7 +57,7 @@ struct ConvHeur
     }
 
     static std::vector<float> ToFeatures(const std::string& arch,
-                                                const conv::ProblemDescription& conv_problem)
+                                         const conv::ProblemDescription& conv_problem)
     {
         const bool isFwd = conv_problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
@@ -107,49 +107,49 @@ struct ConvHeur
         const auto& conv_problem = problem.conv_problem;
         if(!conv_problem.Is2d())
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem not 2D (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem not 2D");
             return false;
         }
         if(conv_problem.GetGroupCount() != 1)
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Group count not 1 (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Group count not 1");
             return false;
         }
         if(conv_problem.GetInLayout() != "NCHW" && conv_problem.GetInLayout() != "NCDHW")
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Layout not supported (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Layout not supported");
             return false;
         }
         if(conv_problem.GetWeightsHeight() != conv_problem.GetWeightsWidth())
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Filters must be square (fil_h == fil_w) (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Filters must be square (fil_h == fil_w)");
             return false;
         }
         if(conv_problem.GetPadH() != conv_problem.GetPadW())
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Padding must be equal along all axes (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Padding must be equal along all axes");
             return false;
         }
         if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Stride must be equal along all axes (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Stride must be equal along all axes");
             return false;
         }
         if(conv_problem.GetDilationH() != 1 || conv_problem.GetDilationW() != 1)
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Dilation must be 1 (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Dilation must be 1");
             return false;
         }
         const auto& data_type = conv_problem.GetInDataType();
         if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Unsupported precision (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Unsupported precision");
             return false;
         }
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: GPU not supported (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: GPU not supported");
             return false;
         }
 
@@ -168,7 +168,7 @@ struct ConvHeur
         }
         if(applicable_solvers == 0)
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: No solver the heuristic may predict applies (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: No solver the heuristic may predict applies");
             return false;
         }
 
@@ -177,7 +177,7 @@ struct ConvHeur
         // from the problems the heuristic was trained to handle
         if (!IsProblemInDistributionL2(features, arch, 2))
         {
-            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem is out-of-distribution. (failed)");
+            MIOPEN_LOG_I2("Heuristic Inapplicable: Problem is out-of-distribution.");
             return false;
         }
 

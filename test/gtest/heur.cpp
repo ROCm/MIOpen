@@ -35,6 +35,66 @@
 #include <miopen/conv/heur/metadata.hpp>
 #include "get_handle.hpp"
 
+void TestToFeatures(void)
+{
+    tensor<float> in = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 224, 224);
+    tensor<float> weights = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 7, 7);
+    tensor<float> out = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 64, 112, 112);
+    tensor<float> in_3D = tensor<float>(8, 2, 16, 16, 16);
+    tensor<float> weights_3D = tensor<float>(16, 2, 5, 5, 5);
+    tensor<float> out_3D = tensor<float>(8, 16, 12, 12, 12);
+
+    miopen::ConvolutionDescriptor conv_desc{};
+    miopen::ConvolutionDescriptor conv_desc_3D(3,
+                                               miopenConvolution,
+                                               miopenPaddingDefault,
+                                               std::vector<int>{5, 2, 2},
+                                               std::vector<int>{7, 3, 3},
+                                               std::vector<int>{2, 2, 2},
+                                               std::vector<int>{0, 0, 0});
+
+    miopen::ProblemDescription prob_desc_fwd(in.desc,
+                                             weights.desc,
+                                             out.desc,
+                                             conv_desc,
+                                             miopen::conv::Direction::Forward);
+    miopen::ProblemDescription prob_desc_bwd(in.desc,
+                                             weights.desc,
+                                             out.desc,
+                                             conv_desc,
+                                             miopen::conv::Direction::BackwardData);
+    miopen::ProblemDescription prob_desc_wrw(in.desc,
+                                             weights.desc,
+                                             out.desc,
+                                             conv_desc,
+                                             miopen::conv::Direction::BackwardWeights);
+    miopen::ProblemDescription prob_desc_3D(in_3D.desc,
+                                            weights_3D.desc,
+                                            out_3D.desc,
+                                            conv_desc_3D,
+                                            miopen::conv::Direction::Forward);
+
+    
+    // Features Order: (PadDepth, StrideDepth always get hardcoded to 1)
+    // InChannels, InDepth, InHeight, InWidth, FilterDepth, FilterHeight, FilterWidth, 
+    // OutChannels, OutDepth, OutHeight, OutWidth, BatchSize, PadDepth(=1), PadHeight, 
+    // PadWidth, StrideDepth(=1), StrideHeight, StrideWidth, DilationHeight, DilationWidth, 
+    // EncodedLayout, EncodedPrecision, EncodedDirection, GroupSize,
+    std::vector<float> features_fwd {3, 1, 224, 224, 1, 7, 7, 64, 1, 112, 112, 64, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 2, 1};
+    std::vector<float> features_bwd {3, 1, 224, 224, 1, 7, 7, 64, 1, 112, 112, 64, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1};
+    std::vector<float> features_wrw {3, 1, 224, 224, 1, 7, 7, 64, 1, 112, 112, 64, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1};
+    std::vector<float> features_3D {2, 16, 16, 16, 5, 5, 5, 16, 12, 12, 12, 8, 1, 2, 2, 1, 3, 3, 2, 2, 1, 0, 2, 1 };
+
+    EXPECT_EQ(miopen::ConvHeur::ToFeatures("gfx908", prob_desc_fwd.conv_problem), features_fwd)
+        << "ToFeatures() is not converting the FWD problems correctly" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::ToFeatures("gfx908", prob_desc_bwd.conv_problem), features_bwd)
+        << "ToFeatures() is not converting the BWD problems correctly" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::ToFeatures("gfx908", prob_desc_wrw.conv_problem), features_wrw)
+        << "ToFeatures() is not converting the WRW problems correctly" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::ToFeatures("gfx908", prob_desc_3D.conv_problem), features_3D)
+        << "ToFeatures() is not converting the 3D problems correctly" << std::endl;
+}
+
 void TestIsHeurApplicable(void)
 {
     tensor<float> test_in = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 224, 224);
@@ -103,11 +163,11 @@ void TestIsHeurApplicable(void)
                                                               conv_desc,
                                                               miopen::conv::Direction::Forward);
 
-    miopen::ProblemDescription conv_prob_desc_mimatch_pads(test_in.desc,
-                                                           test_weights.desc,
-                                                           test_out.desc,
-                                                           conv_desc_mismatch_pads,
-                                                           miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_mismatch_pads(test_in.desc,
+                                                            test_weights.desc,
+                                                            test_out.desc,
+                                                            conv_desc_mismatch_pads,
+                                                            miopen::conv::Direction::Forward);
 
     miopen::ProblemDescription conv_prob_desc_mismatch_stride(test_in.desc,
                                                               test_weights.desc,
@@ -136,25 +196,64 @@ void TestIsHeurApplicable(void)
     bad_ctx.SetStream(&handle);
     bad_ctx.DetectRocm();
 
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_type, ctx), false)
-        << "IsHeurApplicable not catching bad type" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_layout, ctx), false)
-        << "IsHeurApplicable not catching bad layout" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_height, ctx),
-              false)
-        << "IsHeurApplicable not catching mismatch kernel heights" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mimatch_pads, ctx), false)
-        << "IsHeurApplicable not mismatch padding" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_stride, ctx),
-              false)
-        << "IsHeurApplicable not catching mismatch strides" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_dilation, ctx), false)
-        << "IsHeurApplicable not catching bad dilation" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx906", conv_prob_desc, ctx), false)
-        << "IsHeurApplicable not catching un supported arch" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_tensor, bad_ctx),
-              false)
-        << "IsHeurApplicable not catching unsupported tensor" << std::endl;
+    std::vector<float> features_bad_type = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_bad_type.conv_problem);
+    std::vector<float> features_bad_layout = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_bad_layout.conv_problem);
+    std::vector<float> features_mismatch_height = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_mismatch_height.conv_problem);
+    std::vector<float> features_mismatch_pads = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_mismatch_pads.conv_problem);
+    std::vector<float> features_mismatch_stride = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_mismatch_stride.conv_problem);
+    std::vector<float> features_bad_dilation = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_bad_dilation.conv_problem);
+    std::vector<float> features = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc.conv_problem);
+    std::vector<float> features_bad_tensor = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc_bad_tensor.conv_problem);
+
+    miopen::TransformFeatures(features_bad_type, "gfx908");
+    miopen::TransformFeatures(features_bad_layout, "gfx908");
+    miopen::TransformFeatures(features_mismatch_height, "gfx908");
+    miopen::TransformFeatures(features_mismatch_pads, "gfx908");
+    miopen::TransformFeatures(features_mismatch_stride, "gfx908");
+    miopen::TransformFeatures(features_bad_dilation, "gfx908");
+    miopen::TransformFeatures(features, "gfx908");
+    miopen::TransformFeatures(features_bad_tensor, "gfx908");
+
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_bad_type, 
+                                                 features_bad_type, 
+                                                 ctx), 
+              false) << "IsHeurApplicable not catching bad type" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_bad_layout, 
+                                                 features_bad_layout,
+                                                 ctx), 
+              false) << "IsHeurApplicable not catching bad layout" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_mismatch_height, 
+                                                 features_mismatch_height,
+                                                 ctx),
+              false) << "IsHeurApplicable not catching mismatch kernel heights" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_mismatch_pads, 
+                                                 features_mismatch_pads,
+                                                 ctx), 
+              false) << "IsHeurApplicable not catching mismatch padding" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_mismatch_stride,
+                                                 features_mismatch_stride,
+                                                 ctx),
+              false) << "IsHeurApplicable not catching mismatch strides" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_bad_dilation,
+                                                 features_bad_dilation,
+                                                 ctx), 
+              false) << "IsHeurApplicable not catching bad dilation" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx906", 
+                                                 conv_prob_desc, 
+                                                 features,
+                                                 ctx), 
+              false) << "IsHeurApplicable not catching unsupported archs" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc_bad_tensor, 
+                                                 features_bad_tensor,
+                                                 bad_ctx),
+              false) << "IsHeurApplicable not catching unsupported tensor" << std::endl;
 }
 
 void TestEstimateCaching(void)
@@ -172,13 +271,27 @@ void TestEstimateCaching(void)
     auto ctx      = miopen::ConvolutionContext{conv_prob_desc};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    ASSERT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc, ctx), true)
+
+    std::vector<float> features = miopen::ConvHeur::ToFeatures("gfx908", conv_prob_desc.conv_problem);
+    miopen::TransformFeatures(features, "gfx908");
+    ASSERT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", 
+                                                 conv_prob_desc, 
+                                                 features,
+                                                 ctx), 
+              true)
         << "Problem description or arch is not applicable" << std::endl;
+    
     bool is_cached = false;
-    auto solvers   = miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc.conv_problem, is_cached);
+    auto solvers   = miopen::ConvHeur{}.Estimate("gfx908", 
+                                                 conv_prob_desc.conv_problem, 
+                                                 features,
+                                                 is_cached);
     ASSERT_EQ(is_cached, false);
     auto solvers_cached =
-        miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc.conv_problem, is_cached);
+        miopen::ConvHeur{}.Estimate("gfx908", 
+                                    conv_prob_desc.conv_problem,
+                                    features,
+                                    is_cached);
     ASSERT_EQ(is_cached, true);
     for(int i = 0; i < solvers.size(); i++)
     {
@@ -344,9 +457,7 @@ void TestModelAccuracy(void)
     }
 }
 
-TEST(HEUR_TEST, TestEstimateCaching) { TestEstimateCaching(); }
-
-TEST(HEUR_TEST, TestIsHeurApplicable) { TestIsHeurApplicable(); }
+TEST(HEUR_TEST, TestToFeatures) { TestToFeatures(); }
 
 TEST(HEUR_TEST, TestMetadata)
 {
@@ -356,6 +467,10 @@ TEST(HEUR_TEST, TestMetadata)
     TestGetPrecisionMap();
     TestGetLayoutMap();
 }
+
+TEST(HEUR_TEST, TestEstimateCaching) { TestEstimateCaching(); }
+
+TEST(HEUR_TEST, TestIsHeurApplicable) { TestIsHeurApplicable(); }
 
 TEST(HEUR_TEST, TestModelAccuracy) { TestModelAccuracy(); }
 #endif
