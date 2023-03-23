@@ -78,7 +78,10 @@ inline bool model_set_params(const fdeep::model& encoder,
         while(!pq.empty())
         {
             int value = pq.top().second;
-            int token = decodings.at(value);
+            auto it = decodings.find(value);
+            if(it == decodings.end())
+                return false;
+            int token = it->second;
             pq.pop();
             if(config.TryToken(i, token, problem))
             {
@@ -87,8 +90,6 @@ inline bool model_set_params(const fdeep::model& encoder,
                 break;
             }
         }
-        if(output_token_index < 0)
-            return false;
         decoder_input_tensor =
             fdeep::tensor(fdeep::tensor_shape(1), std::vector<float>(1, float(output_token_index)));
         decoder_input = {decoder_input_tensor,
