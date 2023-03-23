@@ -34,6 +34,8 @@
 
 #include <cstddef>
 
+#define WORKAROUND_ISSUE_2038 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
 
@@ -61,9 +63,19 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
+
+#if WORKAROUND_ISSUE_2038
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
+        if(problem.IsBfp16())
+            // Explicitly enable all currently known GPUs except xDLOPs ones, which also means that
+            // all new GPUs will be disabled by default.
+            if(!(device_name == "gfx803" || device_name == "gfx900" || device_name == "gfx906" ||
+                 StartsWith(device_name, "gfx103")))
+                return false;
+#endif
 
     std::size_t n         = problem.batch_sz;
     std::size_t k         = problem.n_outputs / problem.group_counts;
