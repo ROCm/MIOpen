@@ -78,7 +78,7 @@ inline bool model_set_params(const fdeep::model& encoder,
         while(!pq.empty())
         {
             int value = pq.top().second;
-            auto it = decodings.find(value);
+            auto it   = decodings.find(value);
             if(it == decodings.end())
                 return false;
             int token = it->second;
