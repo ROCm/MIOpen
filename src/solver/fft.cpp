@@ -196,13 +196,14 @@ size_t fft::GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescrip
     return sizeof(float) * 2 * 2 * N * temp_size;
 }
 
-ConvSolution fft::GetSolution(const ExecutionContext& ctx, const conv::ProblemDescription& problem) const
+ConvSolution fft::GetSolution(const ExecutionContext& ctx,
+                              const conv::ProblemDescription& problem) const
 {
     std::ignore = ctx;
 
-    const int in_n = problem.GetInBatchSize();
-    const int in_c = problem.GetInChannels();
-    const int in_h = problem.GetInHeight();
+    const int in_n  = problem.GetInBatchSize();
+    const int in_c  = problem.GetInChannels();
+    const int in_h  = problem.GetInHeight();
     const int in_w  = problem.GetInWidth();
     const int out_n = problem.GetOutBatchSize();
     const int out_c = problem.GetOutChannels();
