@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 
-inline std::pair<int, int> get_num_params(std::string solver_name)
+inline std::pair<int, int> get_num_params(const std::string& solver_name)
 {
     if(solver_name == "ConvAsm1x1U")
     {
@@ -13,7 +13,7 @@ inline std::pair<int, int> get_num_params(std::string solver_name)
     return std::make_pair(0, 0);
 }
 
-inline std::unordered_map<int, int> get_decodings(std::string solver_name)
+inline std::unordered_map<int, int> get_decodings(const std::string& solver_name)
 {
     if(solver_name == "ConvAsm1x1U")
     {
