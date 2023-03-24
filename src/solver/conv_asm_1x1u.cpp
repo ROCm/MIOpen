@@ -381,8 +381,7 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
 
 std::vector<float> TransformFeatures(const ProblemDescription& problem, const int& n)
 {
-    unsigned long m = (unsigned long)(n * n);
-    std::vector<float> features(m, 0.0);
+    std::vector<float> features(static_cast<unsigned long>(n * n), 0.0);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
