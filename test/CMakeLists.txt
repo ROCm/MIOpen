@@ -2069,7 +2069,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1 GFX103X_ENABLED TEST
 
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in Jenkinsfile,
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32_fp16 GFX103X_ENABLED HALF_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32 GFX103X_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
@@ -2086,9 +2086,9 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENA
 
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in Jenkinsfile,
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
-# smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16 and FP32+FP16 tests because of
-# WORKAROUND_ISSUE_2038, which disables GFX908 and GFX90A for BF16.  
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_bf16 GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED FLOAT_DISABLED BF16_ENABLED TEST_TUNING
+# smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to FP16+BF16 and FP32 tests because of
+# WORKAROUND_ISSUE_2038, which disables GFX908 and GFX90A for FP16 and BF16.  
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
