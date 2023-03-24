@@ -1,6 +1,6 @@
 GENERATE_LATEX = YES 
 GENERATE_XML = YES 
-INPUT = ../../include 
+INPUT = ../../include/miopen
 MACRO_EXPANSION = YES 
 OUTPUT_DIRECTORY = docBin 
 RECURSIVE = YES 
