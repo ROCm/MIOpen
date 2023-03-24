@@ -2283,7 +2283,7 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     bool IsDynamic() const override { return true; }
@@ -2291,7 +2291,7 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2299,7 +2299,7 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     // kernel_file_name for solver identification
@@ -2323,21 +2323,21 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
 
     static int GetGroupCountMult() { return 4; }
 
-    static int GetSolverWinoXformHWSize(const ProblemDescription& problem, int id)
+    static int GetSolverWinoXformHWSize(const conv::ProblemDescription& problem, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.kernel_stride_h);
+            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.GetKernelStrideH());
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.kernel_stride_w);
+            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.GetKernelStrideW());
     }
 
 private:
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 
     InvokerFactory PrepareInvokerFactory(const ExecutionContext&,
-                                         const ProblemDescription&,
+                                         const conv::ProblemDescription&,
                                          std::size_t ws_sz) const;
 };
 

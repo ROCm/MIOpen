@@ -68,21 +68,21 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
                 GetSolverWinoXformHWSize(problem, 1);
 
 #define DEFINE_SHADER_ALIASES(problem)           \
-    const auto& C     = (problem).batch_sz;      \
-    const auto& N     = (problem).n_outputs;     \
-    const auto& K     = (problem).n_inputs;      \
-    const auto& out_H = (problem).kernel_size_h; \
-    const auto& out_W = (problem).kernel_size_w; \
-    const auto& R     = (problem).in_height;     \
-    const auto& S     = (problem).in_width;      \
-    const auto& H     = (problem).out_height;    \
-    const auto& W     = (problem).out_width;     \
+    const auto& C     = (problem).GetInBatchSize();      \
+    const auto& N     = (problem).GetOutChannels();     \
+    const auto& K     = (problem).GetInChannels();      \
+    const auto& out_H = (problem).GetWeightsHeight(); \
+    const auto& out_W = (problem).GetWeightsWidth(); \
+    const auto& R     = (problem).GetInHeight();     \
+    const auto& S     = (problem).GetInWidth();      \
+    const auto& H     = (problem).GetOutHeight();    \
+    const auto& W     = (problem).GetOutWidth();     \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 struct InTransform
 {
-    static bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
+    static bool IsApplicable(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
@@ -95,7 +95,7 @@ struct InTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -120,12 +120,12 @@ struct InTransform
                 && wino_info.buff_info.size.c < (1<<30)
                 && N < u16limit
                 && chw_step < u16limit
-                && problem.pad_h <= 3
-                && problem.pad_w <= 3;
+                && problem.GetPadH() <= 3
+                && problem.GetPadW() <= 3;
         // clang-format on
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
     {
         DEFINE_GETXFORMHWSIZE(problem)
 
@@ -148,8 +148,8 @@ struct InTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
 
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
 
@@ -164,7 +164,7 @@ struct InTransform
         };
     }
 
-    static size_t GetBufferSize(const ProblemDescription& problem)
+    static size_t GetBufferSize(const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
         const WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW> in_transform_info(
@@ -176,7 +176,7 @@ struct InTransform
             R,
             S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -189,7 +189,7 @@ struct InTransform
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 struct FilterTransform
 {
-    static bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
+    static bool IsApplicable(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
@@ -202,7 +202,7 @@ struct FilterTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWCN),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w);
@@ -226,12 +226,12 @@ struct FilterTransform
                 && wino_info.buff_info.size.c < (1<<30)
                 && K < u16limit
                 && chw_step < u16limit
-                && problem.pad_h <= 3
-                && problem.pad_w <= 3;
+                && problem.GetPadH() <= 3
+                && problem.GetPadW() <= 3;
         // clang-format on
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
     {
         DEFINE_GETXFORMHWSIZE(problem)
 
@@ -256,8 +256,8 @@ struct FilterTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
         return KernelInfo{
             options.str(),
             l_wk,
@@ -269,7 +269,7 @@ struct FilterTransform
         };
     }
 
-    static size_t GetBufferSize(const ProblemDescription& problem)
+    static size_t GetBufferSize(const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
@@ -282,7 +282,7 @@ struct FilterTransform
                                   R,
                                   S,
                                   MemLayout_t::HWNC,
-                                  GetTypeSize(problem.in_data_type),
+                                  GetTypeSize(problem.GetInDataType()),
                                   ConvWinoBuffType::Weight,
                                   wino_xform_h,
                                   wino_xform_w);
@@ -295,12 +295,12 @@ struct FilterTransform
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 struct OutTransform
 {
-    static bool IsApplicable(const ProblemDescription& problem)
+    static bool IsApplicable(const conv::ProblemDescription& problem)
     {
         return (problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()) && problem.Is2d();
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
@@ -331,8 +331,8 @@ struct OutTransform
         GenerateClangDefsym(options, "xformy_d_size", wino_xform_h);
         GenerateClangDefsym(options, "xformx_f_size", WinoFilterW);
         GenerateClangDefsym(options, "xformy_f_size", WinoFilterH);
-        GenerateClangDefsym(options, "fdilation_w", problem.kernel_stride_w);
-        GenerateClangDefsym(options, "fdilation_h", problem.kernel_stride_h);
+        GenerateClangDefsym(options, "fdilation_w", problem.GetKernelStrideW());
+        GenerateClangDefsym(options, "fdilation_h", problem.GetKernelStrideH());
 
         return KernelInfo{
             options.str(),
@@ -345,7 +345,7 @@ struct OutTransform
         };
     }
 
-    static size_t GetBufferSize(const ProblemDescription& problem)
+    static size_t GetBufferSize(const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
@@ -358,7 +358,7 @@ struct OutTransform
             R,
             S,
             GetSwappedNCLayout(MemLayout_t::HWNC),
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w);
@@ -370,7 +370,7 @@ struct OutTransform
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ExecutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
@@ -381,11 +381,11 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(wino_data_tile == 3 && wino_filter_tile == 2)
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2{}) ||
-           problem.kernel_stride_h == 1)
+           problem.GetKernelStrideH() == 1)
             return false;
     if(wino_data_tile == 3 && wino_filter_tile == 3)
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
-           problem.kernel_stride_h == 1)
+           problem.GetKernelStrideH() == 1)
             return false;
 
     const std::string name = ctx.GetStream().GetDeviceName();
@@ -434,7 +434,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(problem.GetDirection() != conv::Direction::BackwardWeights)
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
@@ -455,7 +455,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     {
@@ -483,9 +483,9 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // int offset for Workspace buffers.
     if((InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) /
-            GetTypeSize(problem.in_data_type) +
+            GetTypeSize(problem.GetInDataType()) +
         OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) /
-            GetTypeSize(problem.in_data_type)) >= (1LL << 31))
+            GetTypeSize(problem.GetInDataType())) >= (1LL << 31))
     {
         return false;
     }
@@ -496,29 +496,29 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const long input_line_size = 4L * problem.in_width;
-        const long input_feature_map_size = input_line_size * problem.in_height;
-        const long input_stack_size = input_feature_map_size * problem.n_inputs;
+        const long input_line_size = 4L * problem.GetInWidth();
+        const long input_feature_map_size = input_line_size * problem.GetInHeight();
+        const long input_stack_size = input_feature_map_size * problem.GetInChannels();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     bool ok = (
-           (problem.kernel_size_w == WinoDataW && problem.kernel_size_h == WinoDataH)
-        && (problem.kernel_stride_w == 1
+           (problem.GetWeightsWidth() == WinoDataW && problem.GetWeightsHeight() == WinoDataH)
+        && (problem.GetKernelStrideW() == 1
             ||
-            (problem.kernel_stride_w == 2 && problem.kernel_size_h == 3 && problem.kernel_size_w == 3)
+            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight() == 3 && problem.GetWeightsWidth() == 3)
             )
-        && problem.kernel_stride_h == problem.kernel_stride_w
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.batch_sz < std::pow(2, 24)
-        && problem.n_inputs < std::pow(2, 24)
-        && problem.n_outputs < std::pow(2, 24)
-        && problem.in_height < std::pow(2, 24)
-        && problem.in_width < std::pow(2, 24)
-        && problem.bias == 0
-        && problem.in_layout == "NCHW"
-        && problem.group_counts == 1);
+        && problem.GetKernelStrideH() == problem.GetKernelStrideW()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetInBatchSize() < std::pow(2, 24)
+        && problem.GetInChannels() < std::pow(2, 24)
+        && problem.GetOutChannels() < std::pow(2, 24)
+        && problem.GetInHeight() < std::pow(2, 24)
+        && problem.GetInWidth() < std::pow(2, 24)
+        && problem.GetBias() == 0
+        && problem.GetInLayout() == "NCHW"
+        && problem.GetGroupCount() == 1);
     // clang-format on
     return ok;
 #else
@@ -531,7 +531,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
     return InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
            OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
@@ -541,7 +541,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ExecutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     ConvSolution result;
     result.workspace_sz = GetWorkspaceSize(ctx, problem);
@@ -561,7 +561,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 InvokerFactory
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
-    const ExecutionContext& ctx, const ProblemDescription& problem, std::size_t ws_sz) const
+    const ExecutionContext& ctx, const conv::ProblemDescription& problem, std::size_t ws_sz) const
 {
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     int flags         = 0;
@@ -575,18 +575,18 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     // clang-format off
     BuffInfo
         in_buff_info(
-            GetSwappedNCLayout(GetMemLayout_t(problem.in_layout)),
+            GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())),
             N, C, H, W,
-            GetTypeSize(problem.in_data_type)),
+            GetTypeSize(problem.GetInDataType())),
         out_buff_info(
-            GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)),
+            GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())),
             N, K, out_H, out_W,
-            GetTypeSize(problem.out_data_type)),
+            GetTypeSize(problem.GetOutDataType())),
         weights_buff_info(
-            // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(problem.weights_layout))
+            // weights_layout unsupported ... GetSwappedNCLayout(GetMemLayout_t(problem.GetWeightsLayout()))
             GetSwappedNCLayout(MemLayout_t::NCHW),
             K, C, R, S,
-            GetTypeSize(problem.weights_data_type));
+            GetTypeSize(problem.GetWeightsDataType()));
 
     int wino_xform_h = GetSolverWinoXformHWSize(problem, 0),
         wino_xform_w = GetSolverWinoXformHWSize(problem, 1);
@@ -594,21 +594,21 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
         // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.in_data_type),
+            GetTypeSize(problem.GetInDataType()),
             ConvWinoBuffType::Input,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_out(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.out_data_type),
+            GetTypeSize(problem.GetOutDataType()),
             ConvWinoBuffType::Output,
             wino_xform_h,
             wino_xform_w),
         // cppcheck-suppress unreadVariable
         wino_wei(N,K,C,out_H,out_W,R,S,
             MemLayout_t::HWNC,
-            GetTypeSize(problem.weights_data_type),
+            GetTypeSize(problem.GetWeightsDataType()),
             ConvWinoBuffType::Weight,
             wino_xform_h,
             wino_xform_w);
@@ -617,9 +617,9 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     const size_t wino_in_offset = 0, wino_out_offset = wino_in.buff_info.total_byte_size,
                  wino_wei_offset = wino_out_offset + wino_out.buff_info.total_byte_size;
 
-    const auto in_data_type = problem.in_data_type;
-    const auto pad_H        = problem.pad_h;
-    const auto pad_W        = problem.pad_w;
+    const auto in_data_type = problem.GetInDataType();
+    const auto pad_H        = problem.GetPadH();
+    const auto pad_W        = problem.GetPadW();
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -676,7 +676,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                                        strideC,alpha,beta,in_data_type, problem.conv_problem.GetConv().attribute.deterministic};
+                                        strideC,alpha,beta,in_data_type, problem.GetConv().attribute.deterministic};
 
                     CallGemmStridedBatched(handle,
                                         wino_gemm_desc,
