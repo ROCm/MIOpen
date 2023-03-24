@@ -2701,13 +2701,13 @@ struct fft final : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2715,13 +2715,13 @@ struct fft final : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
 private:
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops>

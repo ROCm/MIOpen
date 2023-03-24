@@ -33,8 +33,6 @@
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 
-#include <boost/any.hpp>
-
 namespace miopen {
 namespace solver {
 
@@ -107,12 +105,12 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool fft::IsApplicable(const ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     std::ignore = ctx;
 
     // disable running any FFT based convolutions by checking this env variable
-    if(problem.direction.IsBackwardWrW() || !problem.conv_problem.IsFp32())
+    if(problem.GetDirection() == conv::Direction::BackwardWeights || !problem.IsFp32())
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -120,11 +118,11 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
         return false;
     }
 
-    const auto is_fwd    = problem.direction.IsForward();
-    decltype(auto) conv  = problem.conv_problem.GetConv();
-    decltype(auto) xDesc = is_fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc = is_fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
-    decltype(auto) wDesc = problem.conv_problem.GetWeights();
+    const auto is_fwd    = (problem.GetDirection() == conv::Direction::Forward);
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = is_fwd ? problem.GetIn() : problem.GetOut();
+    decltype(auto) yDesc = is_fwd ? problem.GetOut() : problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
 
     if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
        !miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
@@ -158,12 +156,12 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
-size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
+size_t fft::GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
-    const auto fwd       = problem.direction.IsForward();
-    decltype(auto) xDesc = fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc = fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
-    decltype(auto) wDesc = problem.conv_problem.GetWeights();
+    const auto fwd       = (problem.GetDirection() == conv::Direction::Forward);
+    decltype(auto) xDesc = fwd ? problem.GetIn() : problem.GetOut();
+    decltype(auto) yDesc = fwd ? problem.GetOut() : problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
@@ -198,13 +196,16 @@ size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& 
     return sizeof(float) * 2 * 2 * N * temp_size;
 }
 
-ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution fft::GetSolution(const ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     std::ignore = ctx;
 
-    int in_n = problem.batch_sz, in_c = problem.n_inputs, in_h = problem.in_height,
-        in_w  = problem.in_width;
-    int out_n = problem.batch_sz, out_c = problem.n_outputs;
+    const int in_n = problem.GetInBatchSize();
+    const int in_c = problem.GetInChannels();
+    const int in_h = problem.GetInHeight();
+    const int in_w  = problem.GetInWidth();
+    const int out_n = problem.GetOutBatchSize();
+    const int out_c = problem.GetOutChannels();
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -363,7 +364,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (sizeof(float) * 2 * 2));
 
-    if(!problem.direction.IsForward())
+    if(problem.GetDirection() != conv::Direction::Forward)
     {
         parms += " -DCFF_BACKWARD";
     }
