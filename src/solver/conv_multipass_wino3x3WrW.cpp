@@ -67,16 +67,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)           \
-    const auto& C     = (problem).GetInBatchSize();      \
-    const auto& N     = (problem).GetOutChannels();     \
-    const auto& K     = (problem).GetInChannels();      \
+#define DEFINE_SHADER_ALIASES(problem)                \
+    const auto& C     = (problem).GetInBatchSize();   \
+    const auto& N     = (problem).GetOutChannels();   \
+    const auto& K     = (problem).GetInChannels();    \
     const auto& out_H = (problem).GetWeightsHeight(); \
-    const auto& out_W = (problem).GetWeightsWidth(); \
-    const auto& R     = (problem).GetInHeight();     \
-    const auto& S     = (problem).GetInWidth();      \
-    const auto& H     = (problem).GetOutHeight();    \
-    const auto& W     = (problem).GetOutWidth();     \
+    const auto& out_W = (problem).GetWeightsWidth();  \
+    const auto& R     = (problem).GetInHeight();      \
+    const auto& S     = (problem).GetInWidth();       \
+    const auto& H     = (problem).GetOutHeight();     \
+    const auto& W     = (problem).GetOutWidth();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -125,7 +125,8 @@ struct InTransform
         // clang-format on
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx,
+                                const conv::ProblemDescription& problem)
     {
         DEFINE_GETXFORMHWSIZE(problem)
 
@@ -231,7 +232,8 @@ struct FilterTransform
         // clang-format on
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx,
+                                const conv::ProblemDescription& problem)
     {
         DEFINE_GETXFORMHWSIZE(problem)
 
@@ -300,7 +302,8 @@ struct OutTransform
         return (problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()) && problem.Is2d();
     }
 
-    static KernelInfo GetKernel(const ExecutionContext& ctx, const conv::ProblemDescription& problem)
+    static KernelInfo GetKernel(const ExecutionContext& ctx,
+                                const conv::ProblemDescription& problem)
     {
         DEFINE_SHADER_ALIASES(problem)
 
