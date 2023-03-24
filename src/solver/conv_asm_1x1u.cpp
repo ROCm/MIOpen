@@ -381,7 +381,7 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
 
 std::vector<float> TransformFeatures(const ProblemDescription& problem, const int& n)
 {
-    unsigned long m = n * n;
+    unsigned long m = (unsigned long)(n * n);
     std::vector<float> features(m, 0.0);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
@@ -412,7 +412,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
             fdeep::load_model(base_file_path + "decoder.model", true, fdeep::dev_null_logger);
         static const auto num_params = get_num_params("ConvAsm1x1U");
         static const auto decodings  = get_decodings("ConvAsm1x1U");
-        if(num_params.first && !decodings.empty())
+        if(num_params.first != 0 && !decodings.empty())
         {
             std::vector<float> features = TransformFeatures(problem, num_params.first + 1);
             if(model_set_params(
