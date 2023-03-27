@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <cmath>
+#include <miopen/config.h>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
 #include <miopen/logger.hpp>
@@ -35,6 +36,13 @@
 #define WG_SIZE 256
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
+
+// When Im3d2Col is built with latest code object version (currently 5)
+// and run like this:
+// global_work_dim = { 128, 1, 1 }, local_work_dim = { 256, 1, 1 }
+// the kernel hangs. This is UB from the OpenCL point of view.
+// Using code object version 4 works for now.
+#define WORKAROUND_ISSUE_2047 (HIP_PACKAGE_VERSION_FLAT >= 5005023091ULL)
 
 namespace miopen {
 
@@ -362,6 +370,9 @@ float Im3d2ColGPU(const Handle& handle,
     else
     {
         std::string params = GetDataTypeKernelParams(type);
+#if WORKAROUND_ISSUE_2047
+        params += " -mcode-object-version=4";
+#endif
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = std::min(
