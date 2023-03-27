@@ -1534,7 +1534,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
 
 #if WORKAROUND_SWDEV_306318
     if((problem.kernel_size_h == 1) && (problem.kernel_size_w == 1) && (problem.n_inputs % 8 != 0))
-        return false;
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+            return false;
 #endif
 
     const auto target = ctx.GetStream().GetTargetProperties();
