@@ -165,9 +165,6 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    using StreamPoolPtr        = std::shared_ptr<std::vector<StreamPtr>>;
-    using RocblasHandlePoolPtr = std::shared_ptr<std::vector<rocblas_handle_ptr>>;
-
     HandleImpl() { hipInit(0); }
 
     StreamPtr create_stream()
@@ -210,20 +207,38 @@ struct HandleImpl
 
     std::shared_timed_mutex stream_pool_mutex;
     // the main stream and main rocblas_handle rhandle_
-    StreamPtr root_stream = nullptr;
-    //  stream_pool used as cache for parallel streams created by MIOpen.
-    StreamPoolPtr stream_pool;
-    std::map<miopenAcceleratorQueue_t, StreamPoolPtr> extra_stream_map;
 
 #if MIOPEN_USE_ROCBLAS
-    //  (rocBLAS doc):rocBLAS handle contains allocated device memory that must not be shared by
-    //  multiple
-    //  asynchronous streams at the same time.
-    //  Each parallel thread must use its own rocblas_handle.
     rocblas_handle_ptr rhandle_;
-    RocblasHandlePoolPtr rhandle_pool;
-    std::map<miopenAcceleratorQueue_t, RocblasHandlePoolPtr> extra_rhandle_map;
+    using RocblasHandlePtrPool = std::vector<rocblas_handle_ptr>;
 #endif
+
+    StreamPtr root_stream = nullptr;
+
+    using StreamPtrPool = std::vector<StreamPtr>;
+    struct MultiStreamResourses
+    {
+
+#if MIOPEN_USE_ROCBLAS
+        //  (rocBLAS doc):rocBLAS handle contains allocated device memory that must not be shared by
+        //  multiple
+        //  asynchronous streams at the same time.
+        //  Each parallel thread must use its own rocblas_handle.
+        RocblasHandlePtrPool rhandle_pool;
+        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
+        {
+            stream_pool.push_back(std::move(s_ptr));
+            rhandle_pool.push_back(std::move(r_ptr));
+        }
+#else
+        void add_stream(StreamPtr& s_ptr) { stream_pool.push_back(s_ptr); }
+#endif
+        //  stream_pool used as cache for parallel streams created by MIOpen.
+        StreamPtrPool stream_pool;
+    };
+
+    MultiStreamResourses* ms_resourse_ptr;
+    std::map<miopenAcceleratorQueue_t, MultiStreamResourses> extra_stream_map;
 
     bool enable_profiling  = false;
     float profiling_result = 0.0;
@@ -243,22 +258,14 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
     else
         this->impl->root_stream = HandleImpl::reference_stream(stream);
 
-    this->impl->extra_stream_map.emplace(
-        stream,
-        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
+    this->impl->extra_stream_map.emplace(stream, HandleImpl::MultiStreamResourses());
 
-    this->impl->stream_pool = this->impl->extra_stream_map.begin()->second;
+    this->impl->ms_resourse_ptr = &(this->impl->extra_stream_map.begin()->second);
 
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(stream);
-
-    this->impl->extra_rhandle_map.emplace(
-        stream,
-        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
-
-    this->impl->rhandle_pool = this->impl->extra_rhandle_map.begin()->second;
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -275,22 +282,14 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     this->impl->root_stream = HandleImpl::reference_stream(nullptr);
 #endif
     auto root_stream = this->impl->root_stream.get();
-    this->impl->extra_stream_map.emplace(
-        root_stream,
-        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
+    this->impl->extra_stream_map.emplace(root_stream, HandleImpl::MultiStreamResourses());
 
-    this->impl->stream_pool = this->impl->extra_stream_map.begin()->second;
+    this->impl->ms_resourse_ptr = &(this->impl->extra_stream_map.begin()->second);
 
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(root_stream);
-
-    this->impl->extra_rhandle_map.emplace(
-        root_stream,
-        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
-
-    this->impl->rhandle_pool = this->impl->extra_rhandle_map.begin()->second;
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -305,19 +304,12 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
     this->impl->root_stream = HandleImpl::reference_stream(streamID);
 
-    this->impl->extra_stream_map.emplace(
-        streamID,
-        std::make_shared<std::vector<HandleImpl::StreamPtr>>(std::vector<HandleImpl::StreamPtr>()));
-    this->impl->stream_pool = this->impl->extra_stream_map[streamID];
+    this->impl->extra_stream_map.emplace(streamID, HandleImpl::MultiStreamResourses());
+
+    this->impl->ms_resourse_ptr = &(this->impl->extra_stream_map[streamID]);
 
 #if MIOPEN_USE_ROCBLAS
     rocblas_set_stream(this->rhandle().get(), this->GetStream());
-
-    this->impl->extra_rhandle_map.emplace(
-        streamID,
-        std::make_shared<std::vector<rocblas_handle_ptr>>(std::vector<rocblas_handle_ptr>()));
-    this->impl->rhandle_pool = this->impl->extra_rhandle_map[streamID];
-
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -329,13 +321,17 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
 {
     std::unique_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
 
-    if(this->impl->stream_pool->size() < cnt)
-        for(int stream_id = this->impl->stream_pool->size(); stream_id < cnt; stream_id++)
+    int last_stream_id = this->impl->ms_resourse_ptr->stream_pool.size();
+
+    if(last_stream_id < cnt)
+        for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream();
-            this->impl->stream_pool->push_back(new_stream);
 #if MIOPEN_USE_ROCBLAS
-            this->impl->rhandle_pool->push_back(CreateRocblasHandle(new_stream.get()));
+            auto new_rhandle = CreateRocblasHandle(new_stream.get());
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
+#else
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream));
 #endif
         }
 }
@@ -346,7 +342,7 @@ miopenAcceleratorQueue_t Handle::GetStream() const
         return impl->root_stream.get();
     // locking only if handle in multistream mode
     std::shared_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
-    return this->impl->stream_pool->at(meopenHandle_current_stream_id - 1).get();
+    return this->impl->ms_resourse_ptr->stream_pool.at(meopenHandle_current_stream_id - 1).get();
 }
 
 void Handle::SetAllocator(miopenAllocatorFunction allocator,
@@ -682,7 +678,7 @@ const rocblas_handle_ptr& Handle::rhandle() const
         return this->impl->rhandle_;
     // locking only if handle in multistream mode
     std::shared_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
-    return this->impl->rhandle_pool->at(meopenHandle_current_stream_id - 1);
+    return this->impl->ms_resourse_ptr->rhandle_pool.at(meopenHandle_current_stream_id - 1);
 }
 
 rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) const
