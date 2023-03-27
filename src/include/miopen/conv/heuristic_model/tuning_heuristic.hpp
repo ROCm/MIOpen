@@ -33,7 +33,6 @@
 #include <fdeep/tensor_shape.hpp>
 #endif
 #include <miopen/conv/context.hpp>
-#include <miopen/conv/heuristic_model/tuning_metadata.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
 #include <queue>
@@ -44,8 +43,7 @@ namespace miopen {
 
 inline bool model_set_params(const fdeep::model& encoder,
                              const fdeep::model& decoder,
-                             const int num_tuning_params,
-                             const std::unordered_map<int, int> decodings,
+                             const nlohmann::json& metadata,
                              solver::PerformanceConfigConvAsm1x1U& config,
                              const ProblemDescription& problem,
                              std::vector<float>& features)
@@ -65,7 +63,7 @@ inline bool model_set_params(const fdeep::model& encoder,
         hidden_states[2],
         hidden_states[3]}; // pass in SOS token and hidden states
 
-    for(int i = 0; i < num_tuning_params; i++)
+    for(int i = 0; i < metadata["num_tuning_params"].get<int>(); i++)
     {
         auto output        = decoder.predict({decoder_input});
         auto output_vector = output[0].to_vector();
@@ -77,16 +75,16 @@ inline bool model_set_params(const fdeep::model& encoder,
         int output_token_index = -1;
         while(!pq.empty())
         {
-            int value = pq.top().second;
-            auto it   = decodings.find(value);
-            if(it == decodings.end())
-                return false;
-            int token = it->second;
+            int token = pq.top().second;
+            int value = metadata["decodings"]["tunings"][std::to_string(token)]
+                            .get<int>(); // convert index to tuning value
             pq.pop();
-            if(config.TryToken(i, token, problem))
+            if(value < 0)
+                return false;
+            if(config.TryToken(i, value, problem))
             {
                 output_token_index =
-                    value; // index with largest value that is valid = predicted index
+                    token; // index with largest value that is valid = predicted index
                 break;
             }
         }
