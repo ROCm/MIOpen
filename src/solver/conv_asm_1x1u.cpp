@@ -244,40 +244,47 @@ bool PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U
 
 bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 {
-    bool is_valid_value = true;
     if(read_size != -1)
     {
-        is_valid_value = is_valid_value && IsLinear<1, 4>(read_size);
+        if(!IsLinear<1, 4>(read_size))
+            return false;
     }
     if(k_mult != -1)
     {
-        is_valid_value = is_valid_value && Is_1_4_8_12_to_32(k_mult);
+        if(!Is_1_4_8_12_to_32(k_mult))
+            return false;
     }
     if(chunks_per_wave != -1)
     {
-        is_valid_value = is_valid_value && IsLinear<1, 16>(chunks_per_wave);
+        if(!IsLinear<1, 16>(chunks_per_wave))
+            return false;
     }
     if(chunk_size != -1)
     {
-        is_valid_value = is_valid_value && IsTwoPower<1, 64>(chunk_size);
+        if(!IsTwoPower<1, 64>(chunk_size))
+            return false;
     }
     if(n_mult != -1)
     {
-        is_valid_value = is_valid_value && IsLinear<1, 8>(n_mult);
+        if(!IsLinear<1, 8>(n_mult))
+            return false;
     }
     if(c_mult != -1)
     {
-        is_valid_value = is_valid_value && IsTwoPower<1, 32>(c_mult);
+        if(!IsTwoPower<1, 32>(c_mult))
+            return false;
     }
     if(waves_c_in_group != -1)
     {
-        is_valid_value = is_valid_value && IsLinear<1, 8>(waves_c_in_group);
+        if(!IsLinear<1, 8>(waves_c_in_group))
+            return false;
     }
     if(waves_k_in_group != -1)
     {
-        is_valid_value = is_valid_value && IsTwoPower<1, 8>(waves_k_in_group);
+        if(!IsTwoPower<1, 8>(waves_k_in_group))
+            return false;
     }
-    return is_valid_value;
+    return true;
 }
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ProblemDescription& problem) const
