@@ -270,6 +270,9 @@ std::vector<TestConfig> GenerateValidTestConfigs()
     return configs;
 }
 
+#if defined(__clang__)
+__attribute__((no_sanitize("enum")))
+#endif
 void GenerateWrongTestConfigs(const TestConfig& valid_config,
                               std::vector<TestConfig>& wrong_configs)
 {
