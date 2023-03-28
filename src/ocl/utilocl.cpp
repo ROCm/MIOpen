@@ -363,12 +363,13 @@ float Im3d2ColGPU(const Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = std::min(
             256 * static_cast<std::size_t>(out_d * out_h * out_w * im_c * wei_d * wei_h * wei_w) /
                 8,
             static_cast<std::size_t>(256) * 1024);
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const size_t local_threads = std::min(global_threads, static_cast<std::size_t>(256));
+        const std::vector<size_t> vld{local_threads, 1, 1};
 
         handle.AddKernel(
             "miopenIm3d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
