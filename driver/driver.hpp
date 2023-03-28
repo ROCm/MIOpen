@@ -58,7 +58,7 @@ using float16 = half_float::half;
 // Use values which are distinctively greater then miopenStatus_t,
 // so that these can be ORed with any miopen status code
 // without loss of information.
-typedef enum // NOLINT
+typedef enum
 {
     // These four codes could be returned together, ORed:
     EC_VerifyFwd     = 0x100,

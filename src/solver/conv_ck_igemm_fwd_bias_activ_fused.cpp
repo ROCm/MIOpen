@@ -273,12 +273,13 @@ void RunCKSolution(const Handle& handle,
 }
 #endif
 
-void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(const FusionContext& ctx)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
+    const FusionDescription& fdesc_problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
 #else
-    const auto& conv_prob = ctx.problem.GetConvProblem(0, conv::Direction::Forward).conv_problem;
+    const auto& conv_prob = fdesc_problem.GetConvProblem(0, conv::Direction::Forward).conv_problem;
     switch(conv_prob.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_prob); break;
@@ -294,15 +295,16 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(const FusionCo
 #endif
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActivFused::SetNextValue(const FusionContext& ctx)
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::SetNextValue(
+    const FusionDescription& fdesc_problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
     if(this->valid_kernels.empty())
     {
-        this->HeuristicInit(ctx);
+        this->HeuristicInit(fdesc_problem);
         assert(!valid_kernels.empty());
         return true;
     }
@@ -322,14 +324,15 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValidValue() const
     return this->index >= 0 && this->index < valid_kernels.size();
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(const FusionContext& ctx) const
+bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
+    const FusionContext&, const FusionDescription& fdesc_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
     // Extract convolution problem from the fusion context.
-    const auto& problem = ctx.problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
@@ -351,33 +354,40 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::operator==(
     return this->kernel_id == other.kernel_id;
 }
 PerformanceConfigConvCKIgemmFwdBiasActivFused
-ConvCKIgemmFwdBiasActivFused::GetDefaultPerformanceConfig(const FusionContext& ctx) const
+ConvCKIgemmFwdBiasActivFused::GetDefaultPerformanceConfig(
+    const FusionContext&, const FusionDescription& fdesc_problem) const
 {
     PerformanceConfigConvCKIgemmFwdBiasActivFused pp;
-    pp.HeuristicInit(ctx);
+    pp.HeuristicInit(fdesc_problem);
+    MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvCKIgemmFwdBiasActivFused::IsValidPerformanceConfig(
-    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
+    const FusionContext& ctx,
+    const FusionDescription& fdesc_problem,
+    const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
 {
-    return config.IsValid(ctx);
+    return config.IsValid(ctx, fdesc_problem);
 }
 
 PerformanceConfigConvCKIgemmFwdBiasActivFused
 ConvCKIgemmFwdBiasActivFused::Search(const FusionContext& ctx,
+                                     const FusionDescription& fdesc_problem,
                                      const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, fdesc_problem, invoke_ctx);
 }
 
-bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx) const
+bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
+                                                const FusionDescription& fdesc_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
-    const auto& problem = ctx.problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
@@ -409,14 +419,17 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx) const
 }
 
 ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
-    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
+    const FusionContext&,
+    const FusionDescription& fdesc_problem,
+    const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
+    std::ignore = fdesc_problem;
     std::ignore = config;
     return {};
 #else
-    const auto& problem = ctx.problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;

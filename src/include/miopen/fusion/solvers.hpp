@@ -202,10 +202,10 @@ struct PerformanceConfigConvCKIgemmFwdBiasActivFused
         : PerformanceConfigConvCKIgemmFwdBiasActivFused(0, "")
     {
     }
-    void HeuristicInit(const FusionContext& ctx);
-    bool SetNextValue(const FusionContext& ctx);
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
     bool IsValidValue() const;
-    bool IsValid(const FusionContext& ctx) const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
 
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
@@ -230,15 +230,21 @@ struct ConvCKIgemmFwdBiasActivFused final
     }
 
     PerformanceConfigConvCKIgemmFwdBiasActivFused
-    GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
     bool IsValidPerformanceConfig(
         const FusionContext& ctx,
+        const FusionDescription& fdesc_problem,
         const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
     PerformanceConfigConvCKIgemmFwdBiasActivFused
-    Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const FusionContext& ctx) const override;
+    Search(const FusionContext& ctx,
+           const FusionDescription& fdesc_problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
     ConvSolution
     GetSolution(const FusionContext& ctx,
+                const FusionDescription& fdesc_problem,
                 const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
 
 private:
@@ -254,9 +260,9 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     }
 
     bool IsApplicable(const FusionContext& context,
-                      const FusionDescription& problem) const override;
+                      const FusionDescription& fdesc_problem) const override;
     ConvSolution GetSolution(const FusionContext& context,
-                             const FusionDescription& problem) const override;
+                             const FusionDescription& fdesc_problem) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase

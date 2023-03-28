@@ -188,7 +188,7 @@ static int gen_rand_integer()
         return 1;
     }();
     std::ignore = inited;
-    return test::GET_RAND();
+    return GET_RAND();
 }
 
 template <typename T>

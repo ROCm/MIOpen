@@ -535,11 +535,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Fusion,
-             solver::fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
-             miopenConvolutionAlgoImplicitGEMM);
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
              solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
     Register(registry,
@@ -555,7 +550,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Fusion, solver::fusion::BnFwdTrgActivationFused{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Fusion, solver::fusion::BnBwdTrgActivationFused{}.SolverDbId());
-
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

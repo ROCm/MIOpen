@@ -40,14 +40,12 @@
 /// But we want this functionality to be independent, so changes in tests won't affect the driver
 /// and vice versa. This independency could be important, because, for example, the driver
 /// implements its own cache of verification data and change or GET_RAND() would break it.
-namespace test {
 
 static int GET_RAND()
 {
     return rand(); // NOLINT (concurrency-mt-unsafe)
 }
 
-} // namespace test
 // template <typename T>
 // static T RAN_GEN(T A, T B)
 //{

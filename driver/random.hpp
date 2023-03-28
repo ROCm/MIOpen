@@ -6,11 +6,11 @@
 template <typename T>
 inline T FRAND()
 {
-    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX))); // NOLINT
+    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
     return static_cast<T>(d);
 }
 
-inline int GET_RAND() { return rand(); } // NOLINT
+inline int GET_RAND() { return rand(); }
 
 template <typename T>
 inline T RAN_GEN(T A, T B)

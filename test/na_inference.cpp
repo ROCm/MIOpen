@@ -267,17 +267,14 @@ struct na_fusion_driver : test_driver
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
 
-            scale[i] =
-                (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(test::GET_RAND() % 100);
-            shift[i] =
-                (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(test::GET_RAND() % 100);
-            estMean[i] =
-                (((test::GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(test::GET_RAND() % 100);
-            estVariance[i] = (1e-2 * (PREC_TYPE(test::GET_RAND() % 100) + 1));
+            scale[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            shift[i]   = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            estMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-2 * PREC_TYPE(GET_RAND() % 100);
+            estVariance[i] = (1e-2 * (PREC_TYPE(GET_RAND() % 100) + 1));
         }
         for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = 1e-2 * (((test::GET_RAND() % 2) == 1) ? -1 : 1) * T(test::GET_RAND() % 100);
+            input[i] = 1e-2 * (((GET_RAND() % 2) == 1) ? -1 : 1) * T(GET_RAND() % 100);
         }
 
         auto&& handle = get_handle();

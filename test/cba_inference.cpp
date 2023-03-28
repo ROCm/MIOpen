@@ -387,8 +387,7 @@ struct cba_fusion_driver : test_driver
                     srand(0);
                     for(std::size_t i = 0; i < bias.desc.GetElementSize(); i++)
                     {
-                        bias[i] = (((test::GET_RAND() % 2) == 1) ? -1 : 1) *
-                                  (0.1 * T(test::GET_RAND() % 100));
+                        bias[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (0.1 * T(GET_RAND() % 100));
                     }
                 }
 

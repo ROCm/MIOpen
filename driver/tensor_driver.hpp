@@ -62,7 +62,7 @@ inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<in
     for(int index : indices)
     {
         assert(0 <= index && index < lens.size());
-        out_lens.push_back(std::move(lens[index])); // NOLINT
+        out_lens.push_back(std::move(lens[index]));
     }
     lens = std::move(out_lens);
 }

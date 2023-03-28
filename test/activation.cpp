@@ -178,7 +178,7 @@ struct scalar_gen_random_float
 
     double operator()() const
     {
-        return min_val + (max_val - min_val) * double(test::GET_RAND()) / RAND_MAX;
+        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
     }
 };
 

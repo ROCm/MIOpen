@@ -35,7 +35,6 @@
 #include <miopen/bfloat16.hpp>
 
 #include "serialize.hpp"
-#include "../driver/tensor_driver.hpp"
 
 #include <half.hpp>
 #include <iomanip>
@@ -139,9 +138,6 @@ struct tensor
     tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
         : desc(t, layout, dims), data(desc.GetElementSpace())
     {
-        std::vector<std::size_t> lens = desc.GetLengths();
-        std::vector<int> int_lens(lens.begin(), lens.end());
-        SetTensorNd(&desc, int_lens, desc.GetLayout_str(), desc.GetType());
     }
 
     template <class X>
@@ -152,9 +148,6 @@ struct tensor
         : desc(t, layout, dims, strides), data(desc.GetElementSpace())
     {
         assert(dims.size() == strides.size());
-        std::vector<std::size_t> lens = desc.GetLengths();
-        std::vector<int> int_lens(lens.begin(), lens.end());
-        SetTensorNd(&desc, int_lens, desc.GetLayout_str(), desc.GetType());
     }
 
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
@@ -170,9 +163,6 @@ struct tensor
            std::size_t w)
         : desc(t, layout, {n, c, h, w}), data(desc.GetElementSpace())
     {
-        std::vector<std::size_t> lens = desc.GetLengths();
-        std::vector<int> int_lens(lens.begin(), lens.end());
-        SetTensorNd(&desc, int_lens, desc.GetLayout_str(), desc.GetType());
     }
 
     tensor(std::size_t n, std::size_t c, std::size_t d, std::size_t h, std::size_t w)
