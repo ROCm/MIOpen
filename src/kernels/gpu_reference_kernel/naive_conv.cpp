@@ -36,7 +36,9 @@
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef float float_t;
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <limits> // std::numeric_limits
+#endif
 
 #else
 #include <cstdint> // int8_t, int16_t
