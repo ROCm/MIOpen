@@ -410,18 +410,18 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
 
     if(IsModelApplicable(ctx, problem))
     {
-        std::string base_file_path =
-            GetSystemDbPath() + "/" + ctx.GetStream().GetDeviceName() + "_ConvAsm1x1U_";
-        static const fdeep::model encoder =
-            fdeep::load_model(base_file_path + "encoder.model", true, fdeep::dev_null_logger);
-        static const fdeep::model decoder =
-            fdeep::load_model(base_file_path + "decoder.model", true, fdeep::dev_null_logger);
-        static const nlohmann::json metadata =
-            nlohmann::json::parse(std::ifstream(base_file_path + "metadata.model"));
+        static const std::string& arch  = ctx.GetStream().GetDeviceName();
+        static const std::string solver = "ConvAsm1x1U";
+        static const auto encoder       = ai::get_model(arch, solver, "encoder");
+        static const auto decoder       = ai::get_model(arch, solver, "decoder");
+        static const auto metadata      = ai::get_metadata(arch, solver);
         std::vector<float> features =
             TransformFeatures(problem, metadata["num_conv_params"].get<int>() + 1);
-        if(model_set_params(encoder, decoder, metadata, *this, problem, features))
+        if(ai::model_set_params(encoder, decoder, metadata, *this, problem, features))
+        {
+            MIOPEN_LOG_I(ToString());
             return;
+        }
     }
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
