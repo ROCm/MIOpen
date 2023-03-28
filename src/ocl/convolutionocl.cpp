@@ -191,7 +191,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
                          record,
                          conv_ctx,
                          legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx),
+                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
                          GetConvSolverFinders());
         });
     }

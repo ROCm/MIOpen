@@ -469,7 +469,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
 
     if(problem.GetDirection() != conv::Direction::BackwardWeights)
     {
-        if(IsWinograd3x3SupportedAndFast(conv_ctx))
+        if(IsWinograd3x3SupportedAndFast(conv_ctx, problem))
         {
             conv_ctx.use_dynamic_solutions_only = true;
             workspace_size                      = GetWorkSpaceSizeWinograd(conv_ctx, problem);
