@@ -32,7 +32,7 @@
 
 #include <boost/range/adaptors.hpp>
 
-#define WG_SIZE 256
+#define WG_SIZE (static_cast<size_t>(256))
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
 
@@ -463,9 +463,9 @@ float Col2Im2dGPU(const Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = static_cast<size_t>(in_c) * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -575,9 +575,9 @@ float Col2Im3dGPU(const Handle& handle,
 
         params += use_64_bit_index ? " -DMIOPEN_USE_64BIT_INDEX=1" : " -DMIOPEN_USE_64BIT_INDEX=0";
 
-        const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im3d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -781,14 +781,14 @@ float transpose_NCHW2CNHW(const Handle& handle,
     {
         kernel_name += "_V1";
 
-        int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
-        int HW_RD        = (h_in * w_in) / RD_BLCK;
-        size_t MAP_RD    = static_cast<size_t>(HW_RD) * c;
-        size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+        int RD_BLCK   = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_in * w_in) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        const std::vector<size_t> vld{lcl_size0, 1, 1};
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
         if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
@@ -826,10 +826,9 @@ float transpose_NCHW2CNHW(const Handle& handle,
         const int hw_in  = h_in * w_in;
         const int hw_out = h_out * w_out;
 
-        size_t ld0 = WG_SIZE;
         size_t gd0 = static_cast<size_t>(h_out) * w_out;
-        const std::vector<size_t> vld{ld0, 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
 
 // disable 3D_WG kernel due to idx calc overhead
 #if 0
@@ -920,14 +919,14 @@ float transpose_CNHW2NCHW(const Handle& handle,
     {
         kernel_name += "_V1";
 
-        int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
-        int HW_RD        = (h_out * w_out) / RD_BLCK;
-        size_t MAP_RD    = static_cast<size_t>(HW_RD) * c;
-        size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+        int RD_BLCK   = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_out * w_out) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
-        const std::vector<size_t> vld{lcl_size0, 1, 1};
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
         if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
@@ -961,9 +960,8 @@ float transpose_CNHW2NCHW(const Handle& handle,
     {
         kernel_name += "_V2";
 
-        size_t ld0 = WG_SIZE;
         size_t gd0 = static_cast<size_t>(h_out) * w_out;
-        const std::vector<size_t> vld{ld0, 1, 1};
+        const std::vector<size_t> vld{std::min(gd0, WG_SIZE), 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
 // disable 3D_WG kernel due to idx calc overhead
@@ -1078,9 +1076,6 @@ float transpose_NCHW2Vec(const Handle& handle,
 
         std::string kernel_name = "transpose_NCHW2Vec";
 
-        const std::vector<size_t> vld{WG_SIZE, 1, 1};
-        std::vector<size_t> vgd{1, 1, 1};
-
         int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
                                                      : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
@@ -1127,22 +1122,25 @@ float transpose_NCHW2Vec(const Handle& handle,
         if(!float_equal(beta_fp, 0))
             params += " -DUSE_BETA=1";
 
-        vgd[0] = MAP_RD;
-
-        uint gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
+        const size_t gd0 = MAP_RD;
+        size_t gd1;
 
         /// disable iteration of n due to perf degrade
         /// \to-do fix the perf issue
-        // if(vgd[0] < MAX_ACTIVE_THREADS)
+        // if(gd0 < MAX_ACTIVE_THREADS)
         {
-            vgd[1] = gd1;
+            gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
             params += " -DIS_2D_WG=1";
         }
         // else
         //{
+        // gd1 = 1;
         // params += " -DIS_2D_WG=0";
         // params += " -DGD_1=" + std::to_string(gd1);
         //}
+
+        const std::vector<size_t> vgd{gd0, gd1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
 
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
             in, out, alpha_fp, beta_fp);
@@ -1182,9 +1180,8 @@ float transpose_packed_MN2NM(const Handle& handle,
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }
 
-    size_t ld0 = WG_SIZE;
     size_t gd0 = static_cast<size_t>(m) * n;
-    const std::vector<size_t> vld{ld0, 1, 1};
+    const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
     std::vector<size_t> vgd{gd0, 1, 1};
 
     if(!kernels.empty())
