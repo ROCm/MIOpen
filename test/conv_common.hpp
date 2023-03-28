@@ -77,16 +77,17 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        auto ctx = miopen::ConvolutionContext{
+        const auto problem = miopen::ProblemDescription{
             xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        auto ctx                    = miopen::ConvolutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
-        ctx.SetupFloats();
+        ctx.SetupFloats(problem);
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx, {}).empty())
+        if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
     }
     return true;
@@ -101,18 +102,19 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    auto ctx = miopen::ConvolutionContext{
+    const auto problem = miopen::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx, {}).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
 }
 #endif
 
@@ -126,26 +128,25 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    auto ctx =
-        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem =
+        miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    ctx.SetupFloats(problem);
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
-           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
-           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
-           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
-           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
-           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
-           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
-           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
-           ctx.problem.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
+           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.group_counts == 1 &&
+           problem.batch_sz == 1 && problem.n_inputs == 192 && problem.in_height == 28 &&
+           problem.in_width == 28 && problem.n_outputs == 1 && problem.kernel_size_h == 3 &&
+           problem.kernel_size_w == 3 && problem.pad_w == 1 && problem.pad_h == 1 &&
+           problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1 &&
+           problem.kernel_dilation_w == 1 && problem.kernel_dilation_h == 1;
 }
 #endif
 
@@ -300,6 +301,9 @@ struct conv_base
     bool enable_fdb{};
     int conv_spatial_dims{};
     conv_stats* stats{}; // Denotes an object after object construction (never nullptr).
+    bool preallocate;
+
+    conv_base(bool preallocate_) : preallocate(preallocate_) {}
 
     void fail(float = 0) const
     {
@@ -320,10 +324,22 @@ protected:
         auto solutions = std::vector<miopenSolution_t>{};
         solutions.resize(find_limit);
 
-        EXPECT_EQUAL(
-            miopenStatusSuccess,
-            miopenFindSolutions(
-                handle, problem, MakeOptions().get(), solutions.data(), &found, solutions.size()));
+        {
+            const auto options = MakeOptions();
+
+            if(preallocate)
+            {
+                for(auto i = 0; i < 3; ++i)
+                    miopenSetFindOptionPreallocatedTensor(
+                        options.get(), arguments[i].id, arguments[i].buffer);
+            }
+
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenFindSolutions(
+                    handle, problem, options.get(), solutions.data(), &found, solutions.size()));
+        }
+
         EXPECT_OP(found, >=, 0);
 
         solutions.resize(found);
@@ -446,9 +462,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                         const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
+                        bool preallocate_,
                         int pbias,
                         int psearch,
                         bool pvect)
+        : conv_base<T, Tout>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -971,8 +989,10 @@ struct verify_backward_conv : conv_base<T>
                          const tensor<T>& pout,
                          const miopen::ConvolutionDescriptor& pfilter,
                          conv_stats& pstats,
+                         bool preallocate_,
                          int pbias,
                          int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1374,8 +1394,10 @@ struct verify_backward_weights_conv : conv_base<T>
                                  const tensor<T>& pout,
                                  const miopen::ConvolutionDescriptor& pfilter,
                                  conv_stats& pstats,
+                                 bool preallocate_,
                                  int pbias,
                                  int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1890,6 +1912,7 @@ struct conv_driver : test_driver
     std::string output_type  = "";
     bool int8_vectorize      = false;
     bool deterministic       = false;
+    bool preallocate         = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -2021,10 +2044,11 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
-        if(api == ConvApi::Immediate)
-        {
+
+        if constexpr(api == ConvApi::Immediate)
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
-        }
+        else if constexpr(api == ConvApi::Find_2_0)
+            add(preallocate, "preallocate", generate_data({false, true}));
     }
 
     void run()
@@ -2342,13 +2366,6 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                auto ctx = miopen::ConvolutionContext(input.desc,
-                                                      weights.desc,
-                                                      output.desc,
-                                                      filter,
-                                                      miopen::conv::Direction::Forward);
-                ctx.SetStream(&get_handle());
-
                 bool skip_forward = false;
 
                 bool skip_backward_data    = is_int8;
@@ -2474,6 +2491,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, float>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2486,6 +2504,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2498,6 +2517,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int8_t>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2506,14 +2526,14 @@ struct conv_driver : test_driver
                     else
                     {
                         verify(verify_forward_conv<api, T>{
-                            input, weights, output, filter, stats, 0, search, false});
+                            input, weights, output, filter, stats, preallocate, 0, search, false});
                     }
                 }
 
                 if(do_backward_data && !skip_backward_data)
                 {
                     verify(verify_backward_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
 
                 if(do_backward_weights && !skip_backward_weights)
@@ -2521,7 +2541,7 @@ struct conv_driver : test_driver
                     output.generate(gen_sign_value);
 
                     verify(verify_backward_weights_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
             }
         }

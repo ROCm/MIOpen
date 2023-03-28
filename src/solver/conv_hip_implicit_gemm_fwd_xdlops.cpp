@@ -34,6 +34,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_forward.hpp>
 #endif
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
@@ -294,7 +295,8 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -302,6 +304,7 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescripti
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -314,12 +317,6 @@ ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
-}
-
-size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
-{
-    std::ignore = ctx;
-    return 0;
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
@@ -346,6 +343,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
     if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutNHWC())
         return false;

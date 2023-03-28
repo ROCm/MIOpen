@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,8 +45,107 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
+#define IS3X2 (Winodata == 3 && Winofilter == 2)
+
+static inline size_t Ceil(const size_t v, const size_t m)
+{
+    assert(m > 0);
+    return (v + m - 1) / m;
+}
+
 namespace miopen {
 namespace solver {
+
+namespace {
+
+// Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
+// v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
+// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+template <int Winodata, int Winofilter>
+inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
+{
+    return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
+           !(IS3X2 && problem.kernel_stride_w == 2);
+}
+
+inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
+{
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
+    // clang-format on
+}
+
+inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
+{
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && H * W < std::pow(2, 29)
+        && K * R * S < std::pow(2, 28)
+        && (C + 1) * H * W < std::pow(2, 30)
+        && (C + 1) * R * S < std::pow(2, 22)
+        && (K + 1) * OH * OW < std::pow(2, 30);
+    // clang-format on
+}
+
+} // namespace
+
 namespace fusion {
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
@@ -54,61 +153,47 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-    if(!WinoCommonIsApplicable(context))
+    if(!WinoCommonIsApplicable(context, problem))
         return false;
 
-    const miopen::ConvolutionContext conv_ctx =
-        context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
 
-    if(conv_ctx.problem.IsFp16() &&
+    if(conv_problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
          StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
          StartsWith(name, "gfx11")))
         return false;
 
     // clang-format off
-    if (!((conv_ctx.problem.kernel_stride_w == 1 || conv_ctx.problem.kernel_stride_w == 2)
-        && conv_ctx.problem.kernel_stride_w == conv_ctx.problem.kernel_stride_h
-        && conv_ctx.problem.kernel_dilation_w == 1
-        && conv_ctx.problem.kernel_dilation_h == 1))
+    if (!((conv_problem.kernel_stride_w == 1 || conv_problem.kernel_stride_w == 2)
+        && conv_problem.kernel_stride_w == conv_problem.kernel_stride_h
+        && conv_problem.kernel_dilation_w == 1
+        && conv_problem.kernel_dilation_h == 1))
         return false;
     // clang-format on
 
-    const auto W           = conv_ctx.problem.conv_problem.GetInWidth();
-    const auto H           = conv_ctx.problem.conv_problem.GetInHeight();
-    const auto C           = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto N           = conv_ctx.problem.conv_problem.GetInBatchSize();
-    const auto K           = conv_ctx.problem.conv_problem.GetOutChannels();
-    const auto R           = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    const auto S           = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto OH          = conv_ctx.problem.conv_problem.GetOutHeight();
-    const auto OW          = conv_ctx.problem.conv_problem.GetOutWidth();
-    const auto pad_h       = conv_ctx.problem.conv_problem.GetPadH();
-    const auto pad_w       = conv_ctx.problem.conv_problem.GetPadW();
-    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
+    const auto group_count = conv_problem.conv_problem.GetGroupCount();
+    if(group_count != 1)
+        return false;
 
-    // clang-format off
-    return N < std::pow(2, 16)
-        && C < std::pow(2, 16)
-        && H < std::pow(2, 16)
-        && W < std::pow(2, 16)
-        && K < std::pow(2, 16)
-        && R < std::pow(2, 16)
-        && S < std::pow(2, 16)
-        && OH < std::pow(2, 16)
-        && OW < std::pow(2, 16)
-        && pad_h < std::pow(2, 16)
-        && pad_w < std::pow(2, 16)
-        && H * W < std::pow(2, 29)
-        && K * R * S < std::pow(2, 28)
-        && (C + 1) *  H *  W < std::pow(2, 30)
-        && (C + 1) *  R *  S < std::pow(2, 22)
-        && (K + 1) * OH * OW < std::pow(2, 30)
-        && group_count == 1;
-    // clang-format on
+    const auto W  = conv_problem.conv_problem.GetInWidth();
+    const auto H  = conv_problem.conv_problem.GetInHeight();
+    const auto C  = conv_problem.conv_problem.GetInChannels();
+    const auto N  = conv_problem.conv_problem.GetInBatchSize();
+    const auto K  = conv_problem.conv_problem.GetOutChannels();
+    const auto R  = conv_problem.conv_problem.GetWeightsHeight();
+    const auto S  = conv_problem.conv_problem.GetWeightsWidth();
+    const auto OH = conv_problem.conv_problem.GetOutHeight();
+    const auto OW = conv_problem.conv_problem.GetOutWidth();
+
+    return IsWinogradV21Preferred<2, 3>(name, conv_problem)
+               ? IsShaderConstraintsMetV21(conv_problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderConstraintsMetV30(conv_problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
@@ -117,12 +202,14 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     const int n_groups  = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
+    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -138,10 +225,10 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    kernel.kernel_file = "Conv_Winograd_v30_2_6";
-    kernel.kernel_name = "miopenSp3AsmConv_v30_2_6";
-    const auto kernel_postfix =
-        "_fp32_f2x3_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
+    kernel.kernel_file               = "Conv_Winograd" + kernel_version;
+    kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
+    const auto kernel_postfix = "_fp32_f2x3_stride" + std::to_string(conv_problem.kernel_stride_h);
 
     if(is_gfx9)
     {
@@ -160,8 +247,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto x = conv_problem.conv_problem.GetWeightsWidth();
+    const auto y = conv_problem.conv_problem.GetWeightsHeight();
 
     if(x == 3 && y == 3)
         result.weight = 100;
@@ -172,20 +259,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, unused, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(context,
-                            conv_ctx.problem,
-                            &N,
-                            &C,
-                            &H,
-                            &W,
-                            &K,
-                            &unused,
-                            &out_H,
-                            &out_W,
-                            &R,
-                            &S,
-                            &pad_H,
-                            &pad_W);
+    GetCompiledInParameters(
+        context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
     const int zero = 0;
     int flags      = [&]() {
         constexpr int L_F_BIAS       = 1 << 7;

@@ -148,7 +148,7 @@ inline static bool Next_1_4(int& v)
     return false;
 }
 
-bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do
@@ -356,7 +356,8 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ProblemDescription& probl
 }
 
 PerformanceConfigConvAsm1x1U
-ConvAsm1x1U::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                         const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1U pp;
     pp.HeuristicInit(problem);
@@ -364,7 +365,8 @@ ConvAsm1x1U::GetDefaultPerformanceConfig(const ProblemDescription& problem) cons
     return pp;
 }
 
-bool ConvAsm1x1U::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm1x1U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
@@ -463,7 +465,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-size_t ConvAsm1x1U::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&,
+                                     const ProblemDescription& problem) const
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {
@@ -543,7 +546,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
 
         ss_us_kernel.comp_options = subsample_kernel_compilation_options;
     }
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);

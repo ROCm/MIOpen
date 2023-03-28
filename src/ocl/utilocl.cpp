@@ -509,7 +509,7 @@ float Col2Im3dGPU(const Handle& handle,
                   const int in_h,
                   const int in_w,
                   Data_t im,
-                  int im_offset,
+                  std::size_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
@@ -565,7 +565,14 @@ float Col2Im3dGPU(const Handle& handle,
     }
     else
     {
+        std::size_t index_size = static_cast<size_t>(in_c) * out_d * out_h * out_w * wei_d * wei_w *
+                                 wei_h * sizeof(ConstData_t);
+
+        const bool use_64_bit_index = index_size > 0xffffffffULL;
+
         std::string params = GetDataTypeKernelParams(type);
+
+        params += use_64_bit_index ? " -DMIOPEN_USE_64BIT_INDEX=1" : " -DMIOPEN_USE_64BIT_INDEX=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
