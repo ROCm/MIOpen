@@ -385,13 +385,6 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 /// for some related host-side optimizations.
 ///
 /// These optimizations are kind of cutting corners, but advantages are quite high.
-#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
-    const miopen::ConvolutionContext& ctx) const
-{
-    return IsWinograd3x3SupportedAndFast(ctx, ctx.problem);
-}
-#endif
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {

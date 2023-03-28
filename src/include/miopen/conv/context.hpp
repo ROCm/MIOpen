@@ -26,43 +26,23 @@
 
 #pragma once
 
-#define MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API 1
-
-#include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/miopen.h>
 
 #include <string>
 
 namespace miopen {
-struct ConvolutionDescriptor;
-struct Handle;
-struct TensorDescriptor;
-
-/// A leftover of the legacy design, houses problem config,
+/// A leftover of the legacy design, houses
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
-/// TODO: These three entities should be made separate.
+/// TODO: These two entities should be made separate.
 struct ConvolutionContext : ExecutionContext
 {
     ConvolutionContext() = default;
-
-#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
-#endif
     explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
-
-#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-    void SetupFloats() { problem.conv_problem.SetupFloats(*this); }
-#endif
 
 public:
     bool is_for_generic_search = false;
-
-#if MIOPEN_CONV_CONTEXT_USE_FIN_COMPAT_API
-    ProblemDescription problem;
-#endif
 };
 
 } // namespace miopen
