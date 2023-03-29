@@ -39,6 +39,7 @@
 #include <string>
 #include <unordered_map>
 #include <boost/optional/optional.hpp>
+
 namespace miopen {
 
 // Tensor Helper APIs
@@ -381,51 +382,48 @@ struct UnifiedDescriptionConv2d
     // strd := U/V             -u/v convolution stride (output stride) kernel_stride
     // idil := input dilation  (n/a except transposed convolutions)    ?
 
-    UnifiedDescriptionConv2d(const ProblemDescription& problem)
+    UnifiedDescriptionConv2d(const conv::ProblemDescription& problem)
     {
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
-        if(!problem.direction.IsKnown())
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "UnifiedDescriptionConv2d needs to know direction.");
 
-        const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts;
-        const auto n_outputs_per_group = problem.n_outputs / problem.group_counts;
-        if(!problem.direction.IsBackwardWrW())
+        const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount();
+        const auto n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
+        if(problem.GetDirection() != conv::Direction::BackwardWeights)
         {
-            R     = problem.kernel_size_h;
-            S     = problem.kernel_size_w;
-            U     = problem.direction.IsForward() ? problem.kernel_stride_h : 1;
-            V     = problem.direction.IsForward() ? problem.kernel_stride_w : 1;
+            R     = problem.GetWeightsHeight();
+            S     = problem.GetWeightsWidth();
+            U     = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideH() : 1;
+            V     = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideW() : 1;
             C     = n_inputs_per_group;  // Bwd: C and K is reversed in ProblemDescription.
             K     = n_outputs_per_group; // Ditto.
-            out_h = problem.out_height;  // Bwd: height/width is reversed in ProblemDescription.
-            out_w = problem.out_width;   // Ditto.
-            N     = problem.batch_sz;
-            pad_h = problem.direction.IsForward() ? problem.pad_h : problem.GetBackwardPadH();
-            pad_w = problem.direction.IsForward() ? problem.pad_w : problem.GetBackwardPadW();
-            input_stride_h  = problem.direction.IsForward() ? 1 : problem.kernel_stride_h;
-            input_stride_w  = problem.direction.IsForward() ? 1 : problem.kernel_stride_w;
-            filter_stride_h = problem.kernel_dilation_h;
-            filter_stride_w = problem.kernel_dilation_w;
+            out_h = problem.GetOutHeight();  // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.GetOutWidth();   // Ditto.
+            N     = problem.GetInBatchSize();
+            pad_h = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadH() : problem.GetBackwardPadH();
+            pad_w = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadW() : problem.GetBackwardPadW();
+            input_stride_h  = (problem.GetDirection() == conv::Direction::Forward) ? 1 : problem.GetKernelStrideH();
+            input_stride_w  = (problem.GetDirection() == conv::Direction::Forward) ? 1 : problem.GetKernelStrideW();
+            filter_stride_h = problem.GetDilationH();
+            filter_stride_w = problem.GetDilationW();
         }
         else
         { // WrW
-            R               = problem.in_height;
-            S               = problem.in_width;
-            U               = problem.kernel_dilation_h;
-            V               = problem.kernel_dilation_w;
-            C               = problem.batch_sz;
+            R               = problem.GetInHeight();
+            S               = problem.GetInWidth();
+            U               = problem.GetDilationH();
+            V               = problem.GetDilationW();
+            C               = problem.GetInBatchSize();
             K               = n_inputs_per_group;
-            out_h           = problem.kernel_size_h;
-            out_w           = problem.kernel_size_w;
+            out_h           = problem.GetWeightsHeight();
+            out_w           = problem.GetWeightsWidth();
             N               = n_outputs_per_group;
-            pad_h           = problem.pad_h;
-            pad_w           = problem.pad_w;
+            pad_h           = problem.GetPadH();
+            pad_w           = problem.GetPadW();
             input_stride_h  = 1;
             input_stride_w  = 1;
-            filter_stride_h = problem.kernel_stride_h;
-            filter_stride_w = problem.kernel_stride_w;
+            filter_stride_h = problem.GetKernelStrideH();
+            filter_stride_w = problem.GetKernelStrideW();
         }
     }
 };

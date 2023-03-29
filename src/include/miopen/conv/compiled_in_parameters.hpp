@@ -55,6 +55,24 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const conv::ProblemDescription& problem,
+                                    int* const N,
+                                    int* const C,
+                                    int* const H,
+                                    int* const W,
+                                    int* const K,
+                                    int* const n_groups)
+{
+    assert(N && C && H && W && K && n_groups);
+    *N        = problem.GetInBatchSize();
+    *C        = problem.GetInChannels();
+    *H        = problem.GetInHeight();
+    *W        = problem.GetInWidth();
+    *K        = problem.GetOutChannels();
+    *n_groups = ctx.GetStream().GetMaxComputeUnits();
+}
+
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
                                     const ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
@@ -69,6 +87,23 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
     assert(out_H && out_W);
     *out_H = problem.out_height;
     *out_W = problem.out_width;
+}
+
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const conv::ProblemDescription& problem,
+                                    int* const N,
+                                    int* const C,
+                                    int* const H,
+                                    int* const W,
+                                    int* const K,
+                                    int* const n_groups,
+                                    int* const out_H,
+                                    int* const out_W)
+{
+    GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups);
+    assert(out_H && out_W);
+    *out_H = problem.GetOutHeight();
+    *out_W = problem.GetOutWidth();
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
@@ -92,6 +127,29 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
     *filter_size_W = problem.kernel_size_w;
     *pad_H         = problem.direction.IsForward() ? problem.pad_h : problem.GetBackwardPadH();
     *pad_W         = problem.direction.IsForward() ? problem.pad_w : problem.GetBackwardPadW();
+}
+
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const conv::ProblemDescription& problem,
+                                    int* const N,
+                                    int* const C,
+                                    int* const H,
+                                    int* const W,
+                                    int* const K,
+                                    int* const n_groups,
+                                    int* const out_H,
+                                    int* const out_W,
+                                    int* const filter_size_H,
+                                    int* const filter_size_W,
+                                    int* const pad_H,
+                                    int* const pad_W)
+{
+    GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups, out_H, out_W);
+    assert(filter_size_H && filter_size_W && pad_H && pad_W);
+    *filter_size_H = problem.GetWeightsHeight();
+    *filter_size_W = problem.GetWeightsWidth();
+    *pad_H         = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadH() : problem.GetBackwardPadH();
+    *pad_W         = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadW() : problem.GetBackwardPadW();
 }
 
 } // namespace miopen
