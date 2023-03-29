@@ -49,8 +49,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
 
 static boost::filesystem::path ComputeSysCachePath()
 {
-    std::string cache_dir = GetSystemDbPath();
-    auto p                = boost::filesystem::path{miopen::ExpandUser(cache_dir)};
+    const std::string cache_dir = GetSystemDbPath();
+    auto p                      = boost::filesystem::path{miopen::ExpandUser(cache_dir)};
     if(!boost::filesystem::exists(p))
         return {};
     else
@@ -134,7 +134,7 @@ boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& args,
                                      bool is_kernel_str)
 {
-    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    const std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;
 }
 
@@ -162,7 +162,7 @@ std::string LoadBinary(const TargetProperties& target,
     auto db = GetDb(target, num_cu);
 
     const std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
-    KernelConfig cfg{filename, args, ""};
+    const KernelConfig cfg{filename, args, ""};
 
     const auto verbose_name = GetFilenameForInfo2Logging(is_kernel_str, filename, name);
     MIOPEN_LOG_I2("Loading binary for: " << verbose_name << "; args: " << args);
@@ -191,7 +191,7 @@ void SaveBinary(const std::string& hsaco,
 
     auto db = GetDb(target, num_cu);
 
-    std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
+    const std::string filename = (is_kernel_str ? miopen::md5(name) : name) + ".o";
     KernelConfig cfg{filename, args, hsaco};
 
     const auto verbose_name = GetFilenameForInfo2Logging(is_kernel_str, filename, name);

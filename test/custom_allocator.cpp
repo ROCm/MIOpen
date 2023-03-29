@@ -48,6 +48,7 @@ struct test_allocator : allocator_fixture
             nullptr,
             nullptr);
         miopen::Allocator::ManageDataPtr p = nullptr;
+        // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
         CHECK(throws([&] { p = h.Create(size); }));
     }
 };
@@ -64,6 +65,7 @@ struct test_null_allocator : allocator_fixture
             nullptr,
             nullptr);
         miopen::Allocator::ManageDataPtr p = nullptr;
+        // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
         CHECK(throws([&] { p = h.Create(size); }));
     }
 };
