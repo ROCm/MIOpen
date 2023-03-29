@@ -8,6 +8,24 @@ MIOpen supports two programming models -
 1. [HIP](https://github.com/ROCm-Developer-Tools/HIP) (Primary Support).
 2. OpenCL.
 
+## Documentation
+
+For a detailed description of the **hipBLAS** library, its implemented routines, the installation process and user guide, see the [**hipBLAS** Documentation](https://hipblas.readthedocs.io/en/latest/).
+
+hipBLAS requires either **rocBLAS** + **rocSOLVER** or **cuBLAS** APIs for BLAS implementation. For more information dependent **roc*** libraries see [rocBLAS documentation](https://rocblas.readthedocs.io/en/latest/), and [rocSolver documentation](https://rocsolver.readthedocs.io/en/latest/).
+
+### How to build documentation
+
+Run the steps below to build documentation locally.
+
+```
+cd docs
+
+pip3 install -r .sphinx/requirements.txt
+
+python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
+```
+
 ## Prerequisites
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
@@ -330,4 +348,3 @@ MIOpen's paper is freely available and can be accessed on arXiv:
 The [porting
 guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
 highlights the key differences between the current cuDNN and MIOpen APIs.
-

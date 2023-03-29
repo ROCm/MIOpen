@@ -4,8 +4,6 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import shutil
-
 from rocm_docs import ROCmDocs
 
 docs_core = ROCmDocs("MIOpen Documentation")
