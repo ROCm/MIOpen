@@ -138,7 +138,8 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     {
         return false;
     }
-    const bool is_dilated_stride_2 = (problem.GetDirection() == miopen::conv::Direction::BackwardData && S_stride != 1);
+    const bool is_dilated_stride_2 =
+        (problem.GetDirection() == miopen::conv::Direction::BackwardData && S_stride != 1);
     if(fp16)
     {
         if(is_dilated_stride_2)
@@ -175,7 +176,8 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
             return false;
     }
     // Padding for bwd data shall not be negative.
-    if(problem.GetDirection() == miopen::conv::Direction::BackwardData || problem.GetDirection() == miopen::conv::Direction::BackwardWeights)
+    if(problem.GetDirection() == miopen::conv::Direction::BackwardData ||
+       problem.GetDirection() == miopen::conv::Direction::BackwardWeights)
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -226,7 +228,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1))
+        if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 &&
+             problem.GetKernelStrideH() == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
@@ -284,7 +287,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                      problem.GetDilationH(),
                                      problem.GetDilationW(),
                                      problem.GetInBatchSize(), // N
-                                     problem.GetInChannels(), // K
+                                     problem.GetInChannels(),  // K
                                      problem.GetOutHeight(),
                                      problem.GetOutWidth(),
                                      problem.GetWeightsHeight(),
@@ -303,7 +306,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                      problem.GetKernelStrideW(),
                                      problem.GetInChannels(),  // C
                                      problem.GetOutChannels(), // K
-                                     problem.GetInHeight(), // HxW
+                                     problem.GetInHeight(),    // HxW
                                      problem.GetInWidth(),
                                      problem.GetOutHeight(), // OHxOW
                                      problem.GetOutWidth(),
