@@ -184,7 +184,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx,
                                                 const miopen::ProblemDescription& problem) const;
 
-    bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx) const;
     bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const;
 
