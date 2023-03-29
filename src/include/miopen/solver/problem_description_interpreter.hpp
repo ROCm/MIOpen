@@ -195,16 +195,16 @@ struct ProblemInterpreter
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const ProblemDescription& problem)
     {
-        int di              = GetInputDepthDi(problem);
-        int dout            = GetOutputDepthDo(problem);
-        int z               = GetFilterDepthZ(problem);
-        int conv_stride_d   = GetAdjustedConvolutionStrideD(problem);
-        int conv_dilation_d = GetAdjustedConvolutionDilationD(problem);
-        int in_left_pad_d   = GetInputLeftPadD(problem);
+        const int di              = GetInputDepthDi(problem);
+        const int dout            = GetOutputDepthDo(problem);
+        const int z               = GetFilterDepthZ(problem);
+        const int conv_stride_d   = GetAdjustedConvolutionStrideD(problem);
+        const int conv_dilation_d = GetAdjustedConvolutionDilationD(problem);
+        const int in_left_pad_d   = GetInputLeftPadD(problem);
 
-        int di_padded = 1 + (z - 1) * conv_dilation_d + (dout - 1) * conv_stride_d;
+        const int di_padded = 1 + (z - 1) * conv_dilation_d + (dout - 1) * conv_stride_d;
 
-        int in_right_pad_d =
+        const int in_right_pad_d =
             di_padded > (in_left_pad_d + di) ? di_padded - (in_left_pad_d + di) : 0;
 
         return in_right_pad_d;
@@ -213,16 +213,16 @@ struct ProblemInterpreter
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadH(const ProblemDescription& problem)
     {
-        int hi              = GetInputHeightHi(problem);
-        int ho              = GetOutputHeightHo(problem);
-        int y               = GetFilterHeightY(problem);
-        int conv_stride_h   = GetAdjustedConvolutionStrideH(problem);
-        int conv_dilation_h = GetAdjustedConvolutionDilationH(problem);
-        int in_left_pad_h   = GetInputLeftPadH(problem);
+        const int hi              = GetInputHeightHi(problem);
+        const int ho              = GetOutputHeightHo(problem);
+        const int y               = GetFilterHeightY(problem);
+        const int conv_stride_h   = GetAdjustedConvolutionStrideH(problem);
+        const int conv_dilation_h = GetAdjustedConvolutionDilationH(problem);
+        const int in_left_pad_h   = GetInputLeftPadH(problem);
 
-        int hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
+        const int hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
 
-        int in_right_pad_h =
+        const int in_right_pad_h =
             hi_padded > (in_left_pad_h + hi) ? hi_padded - (in_left_pad_h + hi) : 0;
 
         return in_right_pad_h;
@@ -231,16 +231,16 @@ struct ProblemInterpreter
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadW(const ProblemDescription& problem)
     {
-        int wi              = GetInputWidthWi(problem);
-        int wo              = GetOutputWidthWo(problem);
-        int x               = GetFilterWidthX(problem);
-        int conv_stride_w   = GetAdjustedConvolutionStrideW(problem);
-        int conv_dilation_w = GetAdjustedConvolutionDilationW(problem);
-        int in_left_pad_w   = GetInputLeftPadW(problem);
+        const int wi              = GetInputWidthWi(problem);
+        const int wo              = GetOutputWidthWo(problem);
+        const int x               = GetFilterWidthX(problem);
+        const int conv_stride_w   = GetAdjustedConvolutionStrideW(problem);
+        const int conv_dilation_w = GetAdjustedConvolutionDilationW(problem);
+        const int in_left_pad_w   = GetInputLeftPadW(problem);
 
-        int wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
+        const int wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
 
-        int in_right_pad_w =
+        const int in_right_pad_w =
             wi_padded > (in_left_pad_w + wi) ? wi_padded - (in_left_pad_w + wi) : 0;
 
         return in_right_pad_w;
