@@ -69,9 +69,13 @@ bool CompareLengths(const L1 l1, const L2 l2, int size)
 }
 
 // Set tensor descriptor
-TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
-                                 const TensorParams& params,
-                                 bool check_skip)
+#if defined(__clang__)
+__attribute__((no_sanitize("enum")))
+#endif
+TestStatus
+Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+                      const TensorParams& params,
+                      bool check_skip)
 {
     if(params.tensorLayout != miopenTensorNCHW || params.nbDims != 4 || params.dimsA == nullptr ||
        params.use_strides)
@@ -92,9 +96,13 @@ TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
-                                           const TensorParams& params,
-                                           bool check_skip)
+#if defined(__clang__)
+__attribute__((no_sanitize("enum")))
+#endif
+TestStatus
+SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                const TensorParams& params,
+                                bool check_skip)
 {
     if(params.use_strides)
         return TestStatus::Skipped;
@@ -110,9 +118,13 @@ TestStatus SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
-                                   const TensorParams& params,
-                                   bool check_skip)
+#if defined(__clang__)
+__attribute__((no_sanitize("enum")))
+#endif
+TestStatus
+Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+                        const TensorParams& params,
+                        bool check_skip)
 {
     if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC ||
        params.nbDims != 4 || params.dimsA == nullptr || params.stridesA == nullptr ||
@@ -138,9 +150,13 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
-                               const TensorParams& params,
-                               bool check_skip)
+#if defined(__clang__)
+__attribute__((no_sanitize("enum")))
+#endif
+TestStatus
+SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+                    const TensorParams& params,
+                    bool check_skip)
 {
     if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC)
         return TestStatus::Skipped;
