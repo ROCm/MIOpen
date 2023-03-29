@@ -317,8 +317,8 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.GetInWidth(),
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
-                                      problem.GetInBatchSize(),   // N
-                                      n_inputs_per_group, // K
+                                      problem.GetInBatchSize(), // N
+                                      n_inputs_per_group,       // K
                                       problem.GetWeightsHeight(),
                                       problem.GetWeightsWidth(),
                                       problem.GetPadW(),
@@ -337,9 +337,9 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.GetWeightsWidth(),
                                       problem.GetKernelStrideH(),
                                       problem.GetKernelStrideW(),
-                                      n_inputs_per_group,  // C
-                                      n_outputs_per_group, // K
-                                      problem.GetOutHeight(),  // OHxOW
+                                      n_inputs_per_group,     // C
+                                      n_outputs_per_group,    // K
+                                      problem.GetOutHeight(), // OHxOW
                                       problem.GetOutWidth(),
                                       problem.GetPadW(),
                                       problem.GetPadH(),
@@ -422,12 +422,12 @@ public:
           n_groups(ctx.GetStream()
                        .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
           out_of_model_scope(!(problem.GetGroupCount() == 1) || //
-                             !(U == 1) ||                    //
-                             !(V == 1) ||                    //
-                             !(input_stride_h == 1) ||       //
-                             !(input_stride_w == 1) ||       //
-                             !(filter_stride_h == 1) ||      //
-                             !(filter_stride_w == 1) ||      //
+                             !(U == 1) ||                       //
+                             !(V == 1) ||                       //
+                             !(input_stride_h == 1) ||          //
+                             !(input_stride_w == 1) ||          //
+                             !(filter_stride_h == 1) ||         //
+                             !(filter_stride_w == 1) ||         //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -580,8 +580,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const conv::ProblemD
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
                                                             problem.GetInHeight(),
                                                             problem.GetInWidth(),
-                                                            problem.GetInBatchSize(),   // N
-                                                            n_inputs_per_group, // K
+                                                            problem.GetInBatchSize(), // N
+                                                            n_inputs_per_group,       // K
                                                             problem.GetOutHeight(),
                                                             problem.GetOutWidth(),
                                                             problem.GetWeightsHeight(),
@@ -594,9 +594,9 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const conv::ProblemD
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
                                                             problem.GetWeightsHeight(), // RxS
                                                             problem.GetWeightsWidth(),
-                                                            n_inputs_per_group,  // C
-                                                            n_outputs_per_group, // K
-                                                            problem.GetInHeight(),   // HxW
+                                                            n_inputs_per_group,    // C
+                                                            n_outputs_per_group,   // K
+                                                            problem.GetInHeight(), // HxW
                                                             problem.GetInWidth(),
                                                             problem.GetOutHeight(), // OHxOW
                                                             problem.GetOutWidth(),
@@ -606,15 +606,16 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const conv::ProblemD
 }
 
 template <int Winodata, int Winofilter>
-bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
-                                                        const conv::ProblemDescription& problem) const
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(
+    const ConvolutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     if(IS2X3)
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(problem.GetGroupCount() == 1 && problem.GetDirection() != conv::Direction::BackwardWeights)
+        if(problem.GetGroupCount() == 1 &&
+           problem.GetDirection() != conv::Direction::BackwardWeights)
             return false;
 #endif
     }
@@ -748,7 +749,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_postfix += "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && problem.GetDirection() != conv::Direction::BackwardData)
+    else if(problem.GetKernelStrideW() == 2 &&
+            problem.GetDirection() != conv::Direction::BackwardData)
     {
         kernel_postfix += "_stride2";
     }
@@ -912,7 +914,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
             W,
             group_cnt,
             GetTypeSize(problem.GetInDataType())),
-            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())), false),
+            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())),
+                                     false),
                   N,
                   K,
                   out_H,

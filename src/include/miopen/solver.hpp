@@ -2054,11 +2054,11 @@ template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId(); }
 
@@ -2078,8 +2078,7 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
         return GetDefaultPerformanceConfig(ctx, problem.conv_problem);
     }
     PerformanceConfigConvBinWinogradRxS
-    GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                const conv::ProblemDescription&) const;
+    GetDefaultPerformanceConfig(const ConvolutionContext&, const conv::ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const ProblemDescription& problem,
                                   const PerformanceConfigConvBinWinogradRxS& config) const override
@@ -2092,7 +2091,8 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
     {
         return Search(ctx, problem.conv_problem, invoke_ctx);
     }
-    bool IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    bool IsApplicable(const ConvolutionContext& ctx,
+                      const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
@@ -2139,15 +2139,16 @@ extern template struct ConvBinWinoRxS<3, 2>;
 struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1>();
     }
 
-    bool IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    bool IsApplicable(const ConvolutionContext& ctx,
+                      const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
@@ -2156,7 +2157,8 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
     {
         return GetWti(ctx, problem.conv_problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(ctx, problem.conv_problem);
     }

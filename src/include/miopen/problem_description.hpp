@@ -391,19 +391,29 @@ struct UnifiedDescriptionConv2d
         const auto n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
         if(problem.GetDirection() != conv::Direction::BackwardWeights)
         {
-            R     = problem.GetWeightsHeight();
-            S     = problem.GetWeightsWidth();
-            U     = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideH() : 1;
-            V     = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideW() : 1;
-            C     = n_inputs_per_group;  // Bwd: C and K is reversed in ProblemDescription.
-            K     = n_outputs_per_group; // Ditto.
-            out_h = problem.GetOutHeight();  // Bwd: height/width is reversed in ProblemDescription.
-            out_w = problem.GetOutWidth();   // Ditto.
+            R = problem.GetWeightsHeight();
+            S = problem.GetWeightsWidth();
+            U = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideH()
+                                                                     : 1;
+            V = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetKernelStrideW()
+                                                                     : 1;
+            C = n_inputs_per_group;         // Bwd: C and K is reversed in ProblemDescription.
+            K = n_outputs_per_group;        // Ditto.
+            out_h = problem.GetOutHeight(); // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.GetOutWidth();  // Ditto.
             N     = problem.GetInBatchSize();
-            pad_h = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadH() : problem.GetBackwardPadH();
-            pad_w = (problem.GetDirection() == conv::Direction::Forward) ? problem.GetPadW() : problem.GetBackwardPadW();
-            input_stride_h  = (problem.GetDirection() == conv::Direction::Forward) ? 1 : problem.GetKernelStrideH();
-            input_stride_w  = (problem.GetDirection() == conv::Direction::Forward) ? 1 : problem.GetKernelStrideW();
+            pad_h = (problem.GetDirection() == conv::Direction::Forward)
+                        ? problem.GetPadH()
+                        : problem.GetBackwardPadH();
+            pad_w = (problem.GetDirection() == conv::Direction::Forward)
+                        ? problem.GetPadW()
+                        : problem.GetBackwardPadW();
+            input_stride_h  = (problem.GetDirection() == conv::Direction::Forward)
+                                  ? 1
+                                  : problem.GetKernelStrideH();
+            input_stride_w  = (problem.GetDirection() == conv::Direction::Forward)
+                                  ? 1
+                                  : problem.GetKernelStrideW();
             filter_stride_h = problem.GetDilationH();
             filter_stride_w = problem.GetDilationW();
         }
