@@ -212,14 +212,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         packed = true;
         this->CalculateStrides();
     }
-    if(lens.size() >= 4)
+    if(lens.size() >= 4 && GetLayout_str().find("NCHW") == std::string::npos)
     {
         std::vector<size_t> new_strides;
-        if("NCHW" != GetLayout_str())
-        {
-            tensor_layout_to_strides(lens, "NCHW", GetLayout_str(), new_strides);
-            strides = new_strides;
-        }
+        tensor_layout_to_strides(lens, "NCHW", GetLayout_str(), new_strides);
+        strides = new_strides;
     }
 }
 
