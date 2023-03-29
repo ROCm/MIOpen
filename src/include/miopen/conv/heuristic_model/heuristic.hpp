@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
-#define GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
+#ifndef GAURD_MIOPEN_HEURISTIC_HPP_
+#define GAURD_MIOPEN_HEURISTIC_HPP_
 
 #if MIOPEN_ENABLE_AI_HEUR
 #include <fdeep/fdeep.hpp>
@@ -42,9 +42,18 @@
 namespace miopen {
 namespace ai {
 
+namespace tn {
+inline nlohmann::json get_metadata(const std::string& arch)
+{
+    std::string file_path = GetSystemDbPath() + "/" + arch + "_metadata.tn.model";
+    return nlohmann::json::parse(std::ifstream(file_path));
+}
+}
+
+namespace ktn {
 inline nlohmann::json get_metadata(const std::string& arch, const std::string& solver)
 {
-    std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.model";
+    std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model";
     return nlohmann::json::parse(std::ifstream(file_path));
 }
 
@@ -52,7 +61,7 @@ inline fdeep::model
 get_model(const std::string& arch, const std::string& solver, const std::string& model_type)
 {
     std::string file_path =
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".model";
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".ktn.model";
     return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
 }
 
@@ -114,6 +123,7 @@ inline bool model_set_params(const fdeep::model& encoder,
     }
     return true;
 }
+} // namespace ktn
 } // namespace ai
 } // namespace miopen
 #endif

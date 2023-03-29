@@ -38,7 +38,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <miopen/conv/heuristic_model/heuristic.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
@@ -412,12 +412,12 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     {
         static const std::string& arch  = ctx.GetStream().GetDeviceName();
         static const std::string solver = "ConvAsm1x1U";
-        static const auto encoder       = ai::get_model(arch, solver, "encoder");
-        static const auto decoder       = ai::get_model(arch, solver, "decoder");
-        static const auto metadata      = ai::get_metadata(arch, solver);
+        static const auto encoder       = ai::ktn::get_model(arch, solver, "encoder");
+        static const auto decoder       = ai::ktn::get_model(arch, solver, "decoder");
+        static const auto metadata      = ai::ktn::get_metadata(arch, solver);
         std::vector<float> features =
             TransformFeatures(problem, metadata["num_conv_params"].get<int>() + 1);
-        if(ai::model_set_params(encoder, decoder, metadata, *this, problem, features))
+        if(ai::ktn::model_set_params(encoder, decoder, metadata, *this, problem, features))
         {
             MIOPEN_LOG_I(ToString());
             return;
