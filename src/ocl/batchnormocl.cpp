@@ -38,7 +38,6 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/find_solution.hpp>
 

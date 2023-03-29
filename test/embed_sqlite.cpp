@@ -64,8 +64,9 @@ struct EmbedSQLite : test_driver
     void run()
     {
         // create a context/problem decriptor
-        miopen::ConvolutionContext ctx{
+        const auto problem = miopen::ProblemDescription{
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
+        miopen::ConvolutionContext ctx{};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
         // Check PerfDb
@@ -78,12 +79,12 @@ struct EmbedSQLite : test_driver
             // find all the entries in perf db
             // Assert result is non-empty
             auto pdb = GetDb(ctx);
-            EXPECT(pdb.FindRecord(ctx.problem));
+            EXPECT(pdb.FindRecord(problem));
         }
         // Check FindDb
         {
             // FindDb will throw if the file is not present
-            FindDbRecord rec{handle, ctx.problem};
+            FindDbRecord rec{handle, problem};
             EXPECT(!rec.empty());
         }
     }

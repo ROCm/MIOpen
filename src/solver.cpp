@@ -45,8 +45,6 @@
 namespace miopen {
 namespace solver {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
-
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
     os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
@@ -65,7 +63,8 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
                         programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
