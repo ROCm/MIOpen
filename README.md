@@ -10,9 +10,7 @@ MIOpen supports two programming models -
 
 ## Documentation
 
-For a detailed description of the **hipBLAS** library, its implemented routines, the installation process and user guide, see the [**hipBLAS** Documentation](https://hipblas.readthedocs.io/en/latest/).
-
-hipBLAS requires either **rocBLAS** + **rocSOLVER** or **cuBLAS** APIs for BLAS implementation. For more information dependent **roc*** libraries see [rocBLAS documentation](https://rocblas.readthedocs.io/en/latest/), and [rocSolver documentation](https://rocsolver.readthedocs.io/en/latest/).
+For a detailed description of the **MIOpen** library see the [Documentation](https://rocmdocs.amd.com/projects/MIOpen/en/latest/).
 
 ### How to build documentation
 
