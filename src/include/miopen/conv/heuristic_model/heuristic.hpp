@@ -27,16 +27,12 @@
 #ifndef GAURD_MIOPEN_HEURISTIC_HPP_
 #define GAURD_MIOPEN_HEURISTIC_HPP_
 
-//#if MIOPEN_ENABLE_AI_HEUR
-//#include <fdeep/fdeep.hpp>
-//#endif
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
 #include <queue>
 #include <typeinfo>
 #include <string>
-#include <miopen/conv/heuristic_model/fdeep_header.hpp>
 
 namespace miopen {
 namespace ai {
