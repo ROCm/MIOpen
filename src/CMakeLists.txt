@@ -229,6 +229,9 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     )
+if(MIOPEN_ENABLE_AI_HEUR)
+    list(APPEND MIOpen_Source conv/heuristic_model/heuristic.cpp)
+endif()
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
@@ -664,7 +667,6 @@ generate_export_header(MIOpen
 )
 
 if(MIOPEN_ENABLE_AI_HEUR)
-    list(APPEND MIOpen_Source conv/heuristic_model/heuristic.cpp)
     find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
     find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
     target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
