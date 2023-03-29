@@ -175,13 +175,13 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
         if(k * l * C < 18)
             return false;
     }
-    // Padding for bwd data shall not be negative.
+
     if(problem.GetDirection() == miopen::conv::Direction::BackwardData ||
        problem.GetDirection() == miopen::conv::Direction::BackwardWeights)
     {
-        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
