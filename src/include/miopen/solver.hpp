@@ -1999,7 +1999,7 @@ struct ConvBinWinogradRxS final : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
     bool IsDynamic() const override { return true; }
@@ -2007,12 +2007,12 @@ struct ConvBinWinogradRxS final : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
 private:
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
 struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigConvBinWinogradRxS>
