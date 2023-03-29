@@ -38,7 +38,6 @@
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
 #include <miopen/performance_config.hpp>
-#include <fdeep/fdeep.hpp>
 
 #include <boost/any.hpp>
 

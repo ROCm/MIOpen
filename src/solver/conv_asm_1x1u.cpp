@@ -412,12 +412,14 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     {
         static const std::string& arch  = ctx.GetStream().GetDeviceName();
         static const std::string solver = "ConvAsm1x1U";
-        static const auto encoder       = ai::ktn::get_model(arch, solver, "encoder");
-        static const auto decoder       = ai::ktn::get_model(arch, solver, "decoder");
+        static const std::string encoder_path =
+            GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+        static const std::string decoder_path =
+            GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
         static const auto metadata      = ai::ktn::get_metadata(arch, solver);
         std::vector<float> features =
             TransformFeatures(problem, metadata["num_conv_params"].get<int>() + 1);
-        if(ai::ktn::model_set_params(encoder, decoder, metadata, *this, problem, features))
+        if(ai::ktn::model_set_params(encoder_path, decoder_path, metadata, *this, problem, features))
         {
             MIOPEN_LOG_I(ToString());
             return;
