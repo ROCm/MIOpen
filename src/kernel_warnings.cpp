@@ -96,9 +96,9 @@ static std::string MakeKernelWarningsString(const std::vector<std::string>& kern
 const std::string& MiopengemmWarningsString()
 {
 #if MIOPEN_BACKEND_OPENCL
-    std::string prefix = " -Wf,";
+    const std::string prefix = " -Wf,";
 #else
-    std::string prefix = " ";
+    const std::string prefix = " ";
 #endif
 
     static const std::string result = MakeKernelWarningsString(OclKernelWarnings(true), prefix);
@@ -108,9 +108,9 @@ const std::string& MiopengemmWarningsString()
 const std::string& OclKernelWarningsString()
 {
 #if MIOPEN_BACKEND_OPENCL
-    std::string prefix = " -Wf,";
+    const std::string prefix = " -Wf,";
 #else
-    std::string prefix = " ";
+    const std::string prefix = " ";
 #endif
 
     static const std::string result = MakeKernelWarningsString(OclKernelWarnings(false), prefix);
@@ -119,7 +119,7 @@ const std::string& OclKernelWarningsString()
 
 const std::string& HipKernelWarningsString()
 {
-    std::string prefix = " ";
+    const std::string prefix = " ";
 
     static const std::string result = MakeKernelWarningsString(HipKernelWarnings(), prefix);
     return result;
