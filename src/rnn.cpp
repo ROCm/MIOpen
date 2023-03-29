@@ -56,8 +56,6 @@ void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
         {
             handle.ResetKernelTime();
             ctime = 0.;
-            ktime = handle.GetKernelTime();
-            ctime = ktime;
 
 #if(MIO_RNN_CPP_PROF == 1)
             printf("init ktime: %f\n", ktime);
@@ -98,7 +96,6 @@ void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
             printf("Final time: %f\n", ktime + ctime);
             handle.AccumKernelTime(ctime);
 #else
-            handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
 #endif
         }
