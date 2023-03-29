@@ -424,7 +424,6 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
     const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
     std::ignore = fdesc_problem;
     std::ignore = config;
     return {};
