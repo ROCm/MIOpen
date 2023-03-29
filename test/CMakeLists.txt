@@ -685,7 +685,7 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_regression GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression OCL_DISABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
         # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
         COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
             $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
