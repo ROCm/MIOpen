@@ -25,6 +25,7 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
 ```
 
 ## Prerequisites
+
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
 * Base software stack, which includes:
@@ -220,27 +221,6 @@ cmake --build . --config Release --target test_tensor
 ./bin/test_tensor
 ```
 
-## Building the documentation
-
-HTML and PDF documentation can be built using:
-
-`cmake --build . --config Release --target doc` **OR** `make doc`
-
-This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.
-
-Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately.
-
-HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme).
-
-Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:
-
-```
-pip install -r ./requirements.txt
-```
-
-
-Depending on your setup `sudo` may be required for the pip install.
-
 ## Formatting the code
 
 All the code is formatted using clang-format. To format a file, use:
@@ -289,7 +269,6 @@ git commit -m "the message"
 git push
 ```
 
-
 ## Installing the dependencies manually
 
 If Ubuntu v16 is used then the `Boost` packages can also be installed by:
@@ -307,7 +286,6 @@ however, this is not recommended.
 
 The `half` header needs to be installed from [here](http://half.sourceforge.net/). 
 
-
 ## Using docker
 
 The easiest way is to use docker. You can build the top-level docker file:
@@ -324,10 +302,8 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 
 ## Citing MIOpen
 
-
 MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
-
 
 ### Citation BibTeX
 ```

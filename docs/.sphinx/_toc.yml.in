@@ -1,167 +1,20 @@
-# Anywhere {branch} is used, the branch name will be substituted.
-# These comments will also be removed.
 defaults:
   numbered: False
   maxdepth: 6
 root: index
 subtrees:
-- entries:
-  - file: release
-    subtrees:
-      - entries:
-          - file: release/gpu_os_support
-          - file: release/licensing
-          - url: https://github.com/RadeonOpenCompute/ROCm/labels/Verified%20Issue
-            title: Known Issues
-          - file: release/compatibility
-            subtrees:
-              - entries:
-                - file: reference/framework_compatiblity/framework_compatiblity
-                - file: reference/kernel_userspace_compatibility/kernel_userspace_comp
-
-- entries:
-  - file: deploy
-    subtrees:
-      - entries:    
-          - file: quick_start
-          - file: hip_sdk_install_win/hip_sdk_install_win
-          - file: deploy/docker
-          - file: deploy/install
-          - file: deploy/multi
-          - file: deploy/spack
-          - file: deploy/build_source
-
-
-- caption: APIs and Reference
-  entries:
-    - file: reference/hip
-      subtrees:
-        - entries:
-            - title: HIP Runtime API
-              url: https://advanced-micro-devices-hip-saad.readthedocs-hosted.com/en/wip-sphinx/
-            - title: HIPify - Port Your Code
-              url: https://advanced-micro-devices-demo--737.com.readthedocs.build/projects/HIPIFY/en/737/
-            - file: reference/gpu_libraries/math
-              title: Math Libraries
-              subtrees:
-                - entries:
-                  - file: reference/gpu_libraries/blas
-                    subtrees:
-                    - entries: 
-                      - title: rocBLAS
-                        url: https://rocmdocs.amd.com/projects/rocBLAS/en/{branch}/
-                      - title: hipBLAS
-                        url: https://rocmdocs.amd.com/projects/hipBLAS/en/{branch}/
-                      - title: rocWMMA
-                        url: https://rocmdocs.amd.com/projects/rocWMMA/en/{branch}/
-                  - file: reference/gpu_libraries/fft
-                    subtrees:
-                    - entries: 
-                      - title: rocFFT
-                        url: https://rocmdocs.amd.com/projects/rocFFT/en/{branch}/
-                      - title: hipFFT
-                        url: https://rocmdocs.amd.com/projects/hipFFT/en/{branch}/
-                  - file: reference/gpu_libraries/rand
-                    subtrees:
-                    - entries: 
-                      - title: rocRAND
-                        url: https://rocmdocs.amd.com/projects/rocRAND/en/{branch}/
-                      - title: hipRAND
-                        url: https://rocmdocs.amd.com/projects/hipRAND/en/{branch}/
-                  - file: reference/gpu_libraries/solver
-                    subtrees:
-                    - entries: 
-                      - title: rocSOLVER
-                        url: https://rocmdocs.amd.com/projects/rocSOLVER/en/{branch}/
-                      - title: hipSOLVER
-                        url: https://rocmdocs.amd.com/projects/hipSOLVER/en/{branch}/
-                  - file: reference/gpu_libraries/sparse
-                    subtrees:
-                    - entries: 
-                      - title: rocSPARSE
-                        url: https://rocmdocs.amd.com/projects/rocSPARSE/en/{branch}/
-                      - title: hipSPARSE
-                        url: https://rocmdocs.amd.com/projects/hipSPARSE/en/{branch}/
-            - file: reference/gpu_libraries/c++_primitives
-              title: C++ Primitives
-              subtrees:
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/rocPRIM/en/{branch}/
-                    title: rocPRIM
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/hipCUB/en/{branch}/
-                    title: hipCUB 
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/rocThrust/en/{branch}/
-                    title: rocThrust
-            - file: reference/gpu_libraries/communication
-              title: Communication Libraries
-              subtrees:
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/RCCL/en/{branch}/
-                    title: RCCL
-            - url: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/releasenotes.html
-              title: MIOpen - Machine Intelligence
-            - url: https://rocmsoftwareplatform.github.io/AMDMIGraphX/doc/html/
-              title: MIGraphX- Graph Optimization
-            - file: reference/computer_vision
-              subtrees:
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/MIVisionX/en/{branch}/
-                    title: MIVisionX
-                - entries:
-                  - url: https://rocmdocs.amd.com/projects/rocAL/en/{branch}/
-                    title: rocAL 
-    - file: reference/openmp/openmp
-      title: OpenMP
-    - file: reference/compilers
-      title: Compilers and Tools
-      subtrees:
-        - entries:
-          - file: reference/rocmcc/rocmcc
-            title: ROCmCC
-          - url: http://profiler
-            title: ROCGDB
-          - url: http://profiler
-            title: rocprof
-          - url: http://profiler
-            title: roctracer
-          - url: http://profiler
-            title: ROCdbgapi             
-    - file: reference/management_tools
-      title: Management Tools
-      subtrees:
-        - entries:
-          - url: http://smi
-            title: rocmsmi
-    - file: reference/gpu_arch
-- caption: Understand ROCm
-  entries:
-    - title: Compiler Disambiguation
-      file: understand/compiler_disabiguation
-    - file: isv_deployment_win
-    - file: understand/deep_learning/deep_learning
-    - file: understand/cmake_packages
-
-- caption: How to Guides
-  entries:
-    - file: how_to/docker_gpu_isolation
-    - file: how_to/magma_install/magma_install
-    - file: how_to/pytorch_install/pytorch_install
-    - file: how_to/tensorflow_install/tensorflow_install
-    - file: how_to/system_debugging
-
-- caption: Examples
-  entries:
-    - title: rocm-examples
-      url: https://github.com/
-    - file: examples/ai_ml_inferencing
-      title: AI/ML/Inferencing
-      subtrees:
-        - entries:
-            - file: examples/inception_casestudy/inception_casestudy
-            - file: examples/inception_casestudy_migraphx/inception_casestudy_migraphx
-
-- caption: About 
-  entries:
-    - file: about
+  - entries:
+    - file: releasenotes
+    - file: citation
+    - file: install
+    - file: embed
+    - file: driver
+    - file: DebugAndLogging
+    - file: cache
+    - file: perfdatabase
+    - file: finddb
+    - file: find_and_immediate
+    - file: Getting_Started_FusionAPI
+    - file: MI200AlternateImplementation
+    - file: MIOpen_Porting_Guide
+    - file: apireference
