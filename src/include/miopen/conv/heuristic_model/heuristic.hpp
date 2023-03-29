@@ -29,8 +29,6 @@
 
 #if MIOPEN_ENABLE_AI_HEUR
 #include <fdeep/fdeep.hpp>
-#include <fdeep/tensor.hpp>
-#include <fdeep/tensor_shape.hpp>
 #endif
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
@@ -41,14 +39,76 @@
 
 namespace miopen {
 namespace ai {
-
 namespace tn {
-inline nlohmann::json get_metadata(const std::string& arch)
+inline nlohmann::json GetMetadata(const std::string& arch)
 {
-    std::string file_path = GetSystemDbPath() + "/" + arch + "_metadata.tn.model";
-    return nlohmann::json::parse(std::ifstream(file_path));
+    if (arch == "gfx908")
+    {
+        static const std::string file_path = GetSystemDbPath() + "/" + arch + "_metadata.tn.model";
+        static const nlohmann::json metadata = nlohmann::json::parse(std::ifstream(file_path));
+        return metadata;
+    }
+    throw std::invalid_argument("TunaNet not supported for " + arch);
 }
+
+inline const std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata)
+{
+    static const std::vector<std::string> feature_names = metadata["conv_params_used_as_features"];
+    return feature_names;
 }
+
+inline const std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata)
+{
+    static std::unordered_map<size_t, std::string> solver_map{};
+    if(solver_map.empty())
+    {
+        std::unordered_map<std::string, size_t> solver_map_rev = metadata["encodings"]["solver"];
+        for(auto& it : solver_map_rev)
+            solver_map.emplace(make_pair(it.second, it.first));
+    }
+    return solver_map;
+}
+
+inline const size_t GetNumSolvers(const nlohmann::json& metadata)
+{
+    static const size_t num_solvers = metadata["num_solvers"];
+    return num_solvers;
+}
+
+inline const size_t GetDirectionCode(const miopen::conv::Direction dir, const nlohmann::json& metadata)
+{
+    if(dir == conv::Direction::BackwardWeights)
+        return metadata["encodings"]["Direction"]["W"];
+    else if(dir == conv::Direction::BackwardData)
+        return metadata["encodings"]["Direction"]["B"];
+    else if(dir == conv::Direction::Forward)
+        return metadata["encodings"]["Direction"]["F"];
+    else
+        throw std::invalid_argument("Invalid direction");
+}
+
+inline const size_t GetPrecisionCode(const miopenDataType_t data_type, const nlohmann::json& metadata)
+{
+    if(data_type == miopenBFloat16)
+        return metadata["encodings"]["Precision"]["BF16"];
+    else if(data_type == miopenHalf)
+        return metadata["encodings"]["Precision"]["FP16"];
+    else if(data_type == miopenFloat)
+        return metadata["encodings"]["Precision"]["FP32"];
+    else
+        throw std::invalid_argument("TunaNet doesn't support this precision");
+}
+
+inline const size_t GetLayoutCode(const std::string& layout, const nlohmann::json& metadata)
+{
+    if(layout == "NCDHW")
+        return metadata["encodings"]["Layout"]["NCDHW"];
+    else if(layout == "NCHW")
+        return metadata["encodings"]["Layout"]["NCHW"];
+    else
+        throw std::invalid_argument("TunaNet doesn't support this layout");
+}
+} // namespace tn
 
 namespace ktn {
 inline nlohmann::json get_metadata(const std::string& arch, const std::string& solver)

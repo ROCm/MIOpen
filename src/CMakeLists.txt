@@ -130,6 +130,7 @@ set( MIOpen_Source
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    anyramdb.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     rnn.cpp
