@@ -60,7 +60,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 
 miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
-    return {db_path(), _search_params.GetUserPerfDbPath()};
+    return {db_path(), _ctx.GetUserPerfDbPath()};
 }
 
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
@@ -76,8 +76,8 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
     auto db = this->GetDb();
     for(auto& solver : solvers)
     {
-        solution = solver.FindSolution(_search_params, db, invoke_ctx);
-        if(solution.Succeeded() && solver.IsApplicable(_search_params))
+        solution = solver.FindSolution(_ctx, _problem, db, invoke_ctx);
+        if(solution.Succeeded() && solver.IsApplicable(_ctx, _problem))
         {
             solver_id = solver.GetSolverDbId();
             break;
@@ -148,6 +148,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvHipImplicitGemmFwdXdlops,
+        miopen::solver::ConvHipImplicitGemmBwdXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
@@ -224,174 +225,192 @@ static auto GetBwdWrW2DSolvers()
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
 
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx)
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem)
 {
-    return GetGemmSolvers().IsAnySolverApplicable(ctx);
+    return GetGemmSolvers().IsAnySolverApplicable(ctx, problem);
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem,
                      const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetGemmSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
-AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx)
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem)
 {
-    return GetGemmSolvers().GetWorkspaceSizes(ctx);
+    return GetGemmSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
+                       const miopen::ProblemDescription& problem,
                        const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetDirectSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetDirectSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                          const miopen::ProblemDescription& problem)
 {
-    return GetDirectSolvers().GetWorkspaceSizes(ctx);
+    return GetDirectSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
 std::vector<std::pair<std::string, size_t>>
-FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx)
+FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem)
 {
-    return GetWindogradSolvers().GetWorkspaceSizes(ctx);
+    return GetWindogradSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
 std::vector<std::pair<std::string, size_t>>
-FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx)
+FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem)
 {
-    return GetWindogradWrWSolvers().GetWorkspaceSizes(ctx);
+    return GetWindogradWrWSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
 std::vector<std::pair<std::string, size_t>>
-FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx)
+FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx);
+        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem);
     else
-        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, 1);
+        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem, 1);
 #else
-    return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx);
+    return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, problem);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
+                             const miopen::ProblemDescription& problem,
                              const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(
+            ctx, problem, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetWindogradSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetWindogradSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                            const miopen::ProblemDescription& problem,
                             const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetWindogradWrWSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                               const miopen::ProblemDescription& problem)
 {
-    return GetBwdWrW2DSolvers().GetWorkspaceSizes(ctx);
+    return GetBwdWrW2DSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
 std::vector<std::pair<std::string, size_t>>
-FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx)
+FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx);
+        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem);
     else
-        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, 1);
+        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem, 1);
 #else
-    return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx);
+    return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, problem);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                                const miopen::ProblemDescription& problem,
                                 const miopen::AnyInvokeParams& invoke_ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
+            ctx, problem, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx, 1);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
+            ctx, problem, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 #endif
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetBwdWrW2DSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
 FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
+                    const miopen::ProblemDescription& problem,
                     const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetFFTSolvers().SearchForAllSolutions(ctx, GetDb(ctx), invoke_ctx);
+    return GetFFTSolvers().SearchForAllSolutions(ctx, problem, GetDb(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
-AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                       const miopen::ProblemDescription& problem)
 {
-    return GetFFTSolvers().GetWorkspaceSizes(ctx);
+    return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
-void miopen::ConvolutionContext::SetupFloats()
+void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem_)
 {
-    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
+    if(problem_.IsFp32() || problem_.IsFp16() || problem_.IsBfp16() || problem_.IsInt8())
     {
-        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
+        general_compile_options += GetDataTypeKernelParams(problem_.in_data_type);
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.out_data_type));
+                     << miopen::GetDataTypeName(problem_.in_data_type) << "x"
+                     << miopen::GetDataTypeName(problem_.weights_data_type) << "x"
+                     << miopen::GetDataTypeName(problem_.out_data_type));
     }
 }
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_search_params.problem.in_data_type == miopenFloat &&
-       _search_params.problem.out_data_type == miopenFloat)
+    if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        _ctx.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.problem.in_data_type == miopenHalf &&
-            _search_params.problem.out_data_type == miopenHalf)
+    else if(_problem.in_data_type == miopenHalf && _problem.out_data_type == miopenHalf)
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+        _ctx.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_search_params.problem.out_data_type));
+                     << miopen::GetDataTypeName(_problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(_problem.out_data_type));
     }
 }

@@ -28,8 +28,6 @@
 template <class T>
 struct conv3d_bias_driver : public conv_bias_driver<T>
 {
-    std::string conv_dim_type;
-
     conv3d_bias_driver()
     {
         auto gen_value = [](auto... is) {

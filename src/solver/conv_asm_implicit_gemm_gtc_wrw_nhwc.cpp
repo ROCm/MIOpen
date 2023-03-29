@@ -685,8 +685,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {
@@ -801,6 +800,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetDefaultPerformanceConfig(
     return pp;
 }
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const
 {
@@ -819,8 +819,14 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
         return false;
+
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
+
+#if WORKAROUND_ISSUE_1979
+    if(problem.group_counts > 1)
+        return false;
+#endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))
@@ -1165,7 +1171,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 if(workSpace == nullptr || workSpaceSize < required_workspace_size)
                     MIOPEN_THROW("Not enough workspace has been provided for "
-                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
+                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC with fp16 and atomic "
                                  "add.");
                 auto trans_input_buf =
                     trans_input_size == 0

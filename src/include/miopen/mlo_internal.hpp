@@ -209,83 +209,100 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
     return x.FindAllSolutions();
 }
 
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx);
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem,
                      const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<std::pair<std::string, size_t>>
-AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx);
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                          const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx);
+FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx);
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                               const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                       const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
+                       const miopen::ProblemDescription& problem,
                        const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
+                             const miopen::ProblemDescription& problem,
                              const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllWinogradSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                            const miopen::ProblemDescription& problem,
                             const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
+                                const miopen::ProblemDescription& problem,
                                 const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllBwdWrW2DSolutions(const miopen::ConvolutionContext& ctx,
+                         const miopen::ProblemDescription& problem,
                          const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
+                    const miopen::ProblemDescription& problem,
                     const miopen::AnyInvokeParams& invoke_ctx);
 
 struct mlo_construct_base
 {
-    mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _search_params(dir)
+    mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _problem(dir)
     {
-        _search_params.problem.bias              = (do_bias) ? 1 : 0;
-        _search_params.problem.pad_w             = 1;
-        _search_params.problem.pad_h             = 1;
-        _search_params.problem.kernel_size_d     = 3;
-        _search_params.problem.kernel_size_w     = 3;
-        _search_params.problem.kernel_size_h     = 3;
-        _search_params.problem.kernel_stride_w   = 1;
-        _search_params.problem.kernel_stride_h   = 1;
-        _search_params.problem.kernel_dilation_w = 1;
-        _search_params.problem.kernel_dilation_h = 1;
-        _search_params.problem.bot_sz            = 0; // bytes
-        _search_params.problem.top_sz            = 0; // bytes
-        _search_params.problem.weights_sz        = 0; // bytes
-        _search_params.problem.bias_sz           = 0; // bytes
-        _search_params.problem.group_counts      = 1;
+        _problem.bias              = (do_bias) ? 1 : 0;
+        _problem.pad_w             = 1;
+        _problem.pad_h             = 1;
+        _problem.kernel_size_d     = 3;
+        _problem.kernel_size_w     = 3;
+        _problem.kernel_size_h     = 3;
+        _problem.kernel_stride_w   = 1;
+        _problem.kernel_stride_h   = 1;
+        _problem.kernel_dilation_w = 1;
+        _problem.kernel_dilation_h = 1;
+        _problem.bot_sz            = 0; // bytes
+        _problem.top_sz            = 0; // bytes
+        _problem.weights_sz        = 0; // bytes
+        _problem.bias_sz           = 0; // bytes
+        _problem.group_counts      = 1;
     }
 
     mlo_construct_base(const miopen::TensorDescriptor& in,
@@ -294,12 +311,12 @@ struct mlo_construct_base
                        const miopen::ConvolutionDescriptor& conv,
                        miopen::conv::Direction dir,
                        bool do_bias = false)
-        : _search_params(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
+        : _problem(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
     {
     }
 
-    void detectRocm() { _search_params.DetectRocm(); }
-    void setupFloats() { _search_params.SetupFloats(); }
+    void detectRocm() { _ctx.DetectRocm(); }
+    void setupFloats() { _ctx.SetupFloats(_problem); }
 
     miopen::PerformanceDb GetDb() const;
 
@@ -308,7 +325,7 @@ struct mlo_construct_base
      */
     inline const std::string& getGeneralCompOptions() const
     {
-        return (_search_params.general_compile_options);
+        return (_ctx.general_compile_options);
     }
 
     /*
@@ -316,30 +333,27 @@ struct mlo_construct_base
      */
     inline bool isForwardDirection() const
     {
-        if(!_search_params.problem.direction.IsKnown())
-            MIOPEN_THROW("!_search_params.problem.direction.IsKnown()");
-        return _search_params.problem.direction
-            .IsForward(); // convolutions: backward data OR wrw otherwise
+        if(!_problem.direction.IsKnown())
+            MIOPEN_THROW("!_problem.direction.IsKnown()");
+        return _problem.direction.IsForward(); // convolutions: backward data OR wrw otherwise
     }
 
     /*
      * set library stream
      */
-    inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
+    inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
 
     // MD: Hack to get the key outside of mlo_internal
     int mloBuildConf_Key(std::string& conf_key) const
     {
-        return _search_params.problem.mloBuildConf_Key(conf_key);
+        return _problem.mloBuildConf_Key(conf_key);
     }
 
-    std::string db_path() const
-    {
-        return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
-    }
+    std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
 
 protected:
-    miopen::ConvolutionContext _search_params;
+    miopen::ProblemDescription _problem;
+    miopen::ConvolutionContext _ctx;
 
     const char* _db_path = nullptr;
 };
@@ -409,17 +423,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int stride,
                      int w_stride)
     {
-        _search_params.problem.setTopDescr(layout,
-                                           data_type,
-                                           batch,
-                                           channels,
-                                           depth,
-                                           height,
-                                           width,
-                                           batch_stride,
-                                           channel_stride,
-                                           stride,
-                                           w_stride);
+        _problem.setTopDescr(layout,
+                             data_type,
+                             batch,
+                             channels,
+                             depth,
+                             height,
+                             width,
+                             batch_stride,
+                             channel_stride,
+                             stride,
+                             w_stride);
     }
 
     /*
@@ -437,17 +451,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int stride,
                      int w_stride)
     {
-        _search_params.problem.setBotDescr(layout,
-                                           data_type,
-                                           batch,
-                                           channels,
-                                           depth,
-                                           height,
-                                           width,
-                                           batch_stride,
-                                           channel_stride,
-                                           stride,
-                                           w_stride);
+        _problem.setBotDescr(layout,
+                             data_type,
+                             batch,
+                             channels,
+                             depth,
+                             height,
+                             width,
+                             batch_stride,
+                             channel_stride,
+                             stride,
+                             w_stride);
     }
 
     /*
@@ -465,17 +479,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int stride,
                        int w_stride)
     {
-        _search_params.problem.setTopDfDescr(layout,
-                                             data_type,
-                                             batch,
-                                             channels,
-                                             depth,
-                                             height,
-                                             width,
-                                             batch_stride,
-                                             channel_stride,
-                                             stride,
-                                             w_stride);
+        _problem.setTopDfDescr(layout,
+                               data_type,
+                               batch,
+                               channels,
+                               depth,
+                               height,
+                               width,
+                               batch_stride,
+                               channel_stride,
+                               stride,
+                               w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
@@ -507,17 +521,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int stride,
                        int w_stride)
     {
-        _search_params.problem.setBotDfDescr(layout,
-                                             data_type,
-                                             batch,
-                                             channels,
-                                             depth,
-                                             height,
-                                             width,
-                                             batch_stride,
-                                             channel_stride,
-                                             stride,
-                                             w_stride);
+        _problem.setBotDfDescr(layout,
+                               data_type,
+                               batch,
+                               channels,
+                               depth,
+                               height,
+                               width,
+                               batch_stride,
+                               channel_stride,
+                               stride,
+                               w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
@@ -536,22 +550,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
+        return miopen::setTopDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
+        return miopen::setBotDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     /*
@@ -633,40 +647,4 @@ protected:
     double _normK     = 0.0;
 };
 
-struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
-{
-    mlo_construct_neuron(miopen::conv::Direction dir) : mlo_construct_activ_lrn_pooling_common(dir)
-    {
-        _neuron_type = 0;
-        _gamma       = 0;
-        _beta        = 1;
-        _alpha       = 0;
-    }
-
-    inline void setNeuronDescr(int neuron_type, double gamma, double beta, double alpha)
-    {
-        _neuron_type = neuron_type;
-        _gamma       = gamma;
-        _beta        = beta;
-        _alpha       = alpha;
-    }
-
-    inline void getNeuronDescr(int& neuron_type, double& gamma, double& beta, double& alpha) const
-    {
-        neuron_type = _neuron_type;
-        gamma       = _gamma;
-        beta        = _beta;
-        alpha       = _alpha;
-    }
-
-    void mloConstruct();
-
-protected:
-    int mloConstructFwd();
-    int mloConstructBwd();
-    int _neuron_type;
-    double _gamma;
-    double _beta;
-    double _alpha;
-};
 #endif

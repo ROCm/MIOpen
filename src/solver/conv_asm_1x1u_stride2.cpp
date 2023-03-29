@@ -99,6 +99,13 @@ inline static bool IsLinear(const int v)
     return L <= v && v <= H;
 }
 
+static inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
+{
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
 enum class MemLayout : int
 {
     NCHW = 0,
@@ -187,7 +194,7 @@ struct buff_info
     }
 };
 
-bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do
@@ -451,7 +458,8 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ProblemDescription& pro
 }
 
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
     pp.HeuristicInit(problem);
@@ -459,7 +467,8 @@ ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ProblemDescription& problem) co
     return pp;
 }
 
-bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext&,
+                                             const ProblemDescription& problem,
                                              const PerformanceConfigConvAsm1x1UV2& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
@@ -496,9 +505,6 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
-
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
-        return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
     // clang-format off

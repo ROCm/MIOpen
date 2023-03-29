@@ -578,7 +578,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ProblemDescription&)
 {
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -837,7 +837,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!IsApplicableXdlops(ctx))
+    if(!IsApplicableXdlops(ctx, problem))
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
@@ -870,7 +870,9 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsReallyValid(problem);
@@ -968,7 +970,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
             // clang-format on
 
-            // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
+            // TODO: add fp16 calculation by GetWorkspaceSize();
             result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;

@@ -100,7 +100,7 @@ private:
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Allocator::ManageDataPtr>;
+    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,

@@ -451,4 +451,10 @@ struct cba_fusion_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<cba_fusion_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    for(auto idx = 0; idx < argc; ++idx)
+        std::cout << argv[idx] << " ";
+    std::cout << std::endl;
+    test_drive<cba_fusion_driver>(argc, argv);
+}

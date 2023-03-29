@@ -93,8 +93,6 @@ inline void expect_op(const TLeft& left,
 #define EXPECT_EQUAL(LEFT, RIGHT) EXPECT_OP(LEFT, ==, RIGHT)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
-#define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
-
 template <class F>
 bool throws(F f)
 {

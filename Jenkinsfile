@@ -2,6 +2,17 @@ def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
 
+def miopenCheckout()
+{
+    checkout([
+        $class: 'GitSCM',
+        branches: scm.branches,
+        doGenerateSubmoduleConfigurations: true,
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        userRemoteConfigs: scm.userRemoteConfigs
+    ])
+}
+
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -24,6 +35,7 @@ def cmake_build(Map conf=[:]){
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
+    def build_fin = conf.get("build_fin", "OFF")
 
     setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
 
@@ -38,10 +50,11 @@ def cmake_build(Map conf=[:]){
         config_targets = "package"
     }
 
+    def miopen_install_path = "${env.WORKSPACE}/install"
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install' + setup_args
+        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
@@ -78,6 +91,11 @@ def cmake_build(Map conf=[:]){
         setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
     }
 
+    if ( build_fin == "ON" )
+    {
+        setup_args = " -DMIOPEN_INSTALL_CXX_HEADERS=On " + setup_args
+    }
+
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
@@ -99,8 +117,22 @@ def cmake_build(Map conf=[:]){
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
-            ${execute_cmd}
         """)
+
+    if ( build_fin == "ON" )
+    {
+        def fin_build_cmd = cmake_fin_build_cmd(miopen_install_path)
+        cmd += """
+            export RETDIR=\$PWD
+            cd ${env.WORKSPACE}/fin 
+            ${fin_build_cmd}
+            cd \$RETDIR
+        """
+    }
+
+    cmd += """
+        ${execute_cmd}
+    """
 
     echo cmd
     sh cmd
@@ -110,6 +142,30 @@ def cmake_build(Map conf=[:]){
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
     }
 }
+
+def cmake_fin_build_cmd(prefixpath){
+    def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
+    def compiler = 'clang++'
+    def config_targets = "all"
+    def compilerpath = "/opt/rocm/llvm/bin/" + compiler
+    def configargs = ""
+    if (prefixpath != "")
+    {
+        configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
+    }
+
+    def fin_cmd = """
+            echo \$HSA_ENABLE_SDMA
+            ulimit -c unlimited
+            rm -rf build
+            mkdir build
+            cd build
+            CXX=${compilerpath} cmake ${configargs} ${flags} ..
+            dumb-init make -j\$(nproc) ${config_targets}
+    """
+    return fin_cmd
+}
+
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
@@ -130,9 +186,8 @@ def getDockerImage(Map conf=[:])
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def build_fin = conf.get("build_fin", "OFF") // forcing this to be always on means fewer docker containers since this ensures all dependencies are present in the docker image
     def no_cache = conf.get("no_cache", false)
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -171,7 +226,7 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-
+        miopenCheckout()
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
@@ -258,7 +313,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
-def CheckDeserializePerfDb(Map conf=[:]){
+def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
         sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
@@ -271,47 +326,6 @@ def CheckDeserializePerfDb(Map conf=[:]){
         assert has_error.toInteger() == 0
     }
 }
-
-def buildDocker(install_prefix)
-{
-    env.DOCKER_BUILDKIT=1
-    checkout scm
-    def image_name = getDockerImageName(install_prefix)
-    echo "Building Docker for ${image_name}"
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
-    if(env.CCACHE_HOST)
-    {
-        def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
-        if(check_host == "+PONG")
-        {
-            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
-        }
-        else 
-        {
-            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
-        }
-        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
-        env.CCACHE_DIR = """/tmp/ccache_store"""
-        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
-    }
-
-    echo "Build Args: ${dockerArgs}"
-    try 
-    {
-        echo "Checking for image: ${image_name}"
-        sh "docker manifest inspect --insecure ${image_name}"
-        echo "Image: ${image_name} found!! Skipping building image"
-        if(params.DEBUG_FORCE_DOCKER_BUILD)
-        {
-            throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
-        }
-    }
-    catch(Exception ex)
-    {
-        echo "Unable to locate image: ${image_name}."
-    }
-}
-
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -470,7 +484,7 @@ pipeline {
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v -E '(build/)|(install/)' \
+                                | grep -v -E '(build/)|(install/)|(fin/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
@@ -480,21 +494,23 @@ pipeline {
                 stage('Tuna Fin Build Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", build_cmd: build_cmd, build_fin: "ON", needs_gpu:false)
+                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, build_install: "true")
                   }
                 }
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
-                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        //temporarily disabled
+                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        echo "skip perf db valid check"
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {

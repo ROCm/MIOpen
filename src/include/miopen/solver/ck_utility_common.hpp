@@ -53,8 +53,11 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx906") ||
            StartsWith(handle.GetDeviceName(), "gfx908") ||
            StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           StartsWith(handle.GetDeviceName(), "gfx1030") ||
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
-           StartsWith(handle.GetDeviceName(), "gfx1030");
+           StartsWith(handle.GetDeviceName(), "gfx1100") ||
+           StartsWith(handle.GetDeviceName(), "gfx1101") ||
+           StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
@@ -86,6 +89,12 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
     else if(StartsWith(device_name, "gfx1031"))
         compiler_flag << " -DCK_AMD_GPU_GFX1031";
+    else if(StartsWith(device_name, "gfx1100"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1100";
+    else if(StartsWith(device_name, "gfx1101"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1101";
+    else if(StartsWith(device_name, "gfx1102"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1102";
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="

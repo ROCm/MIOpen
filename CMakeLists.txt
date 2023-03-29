@@ -29,7 +29,7 @@ macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
     else()
-        set(${name} FALSE)
+        set(${var} FALSE)
     endif()
 endmacro()
 
@@ -60,9 +60,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-
-set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 set(MIOPEN_ENABLE_AI_HEUR On CACHE BOOL "Enable AI based heuristics")
+set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
 if(MIOPEN_ENABLE_SQLITE)
@@ -329,6 +328,7 @@ endif()
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
+set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
@@ -346,10 +346,14 @@ if(MIOPEN_USE_MLIR)
             Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+            set(rocMLIR_VERSION_MAJOR 0)
+            set(rocMLIR_VERSION_MINOR 0)
+            set(rocMLIR_VERSION_PATCH 1)
         endif()
     else()
         message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
+    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -464,6 +468,35 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+
+# Unpack DB files
+function(unpack_db db_bzip2_file)
+    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    if(EXISTS "${db_file}")
+        # message(WARNING "${db_file} already exists")
+    elseif(EXISTS "${db_bzip2_file}")
+        message(STATUS "bunzip2 -k ${db_bzip2_file}")
+        execute_process(
+            COMMAND bunzip2 -k ${db_bzip2_file}
+            WORKING_DIRECTORY ${KERNELS_DIR}
+            RESULT_VARIABLE ret
+            )
+        if(NOT ret EQUAL "0")
+            message(WARNING "${db_file} could not be extracted, file is empty!")
+            execute_process(
+                COMMAND touch ${db_file}
+                WORKING_DIRECTORY ${KERNELS_DIR}
+                )
+        endif()
+    endif()
+endfunction()
+
+file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
@@ -473,11 +506,12 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
     else()
+        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
         rocm_install(FILES
             src/kernels/${FILE_NAME}.kdb
@@ -507,9 +541,10 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 endif()
 
-set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation
 
 rocm_create_package(
@@ -554,7 +589,6 @@ enable_clang_tidy(
         -cert-msc51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-avoid-c-arrays
@@ -652,7 +686,6 @@ enable_clang_tidy(
         -modernize-concat-nested-namespaces
         -readability-redundant-declaration
         -readability-simplify-boolean-expr
-        -clang-diagnostic-deprecated
         -hicpp-deprecated-headers
         -hicpp-member-init
         -performance-no-automatic-move
