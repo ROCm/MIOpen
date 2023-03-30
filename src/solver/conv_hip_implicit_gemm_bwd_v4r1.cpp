@@ -580,7 +580,7 @@ void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV4R1::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -789,7 +789,9 @@ ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionCon
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValidValue() && config.IsValid(problem);

@@ -355,7 +355,7 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxS::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvBinWinogradRxS::SetNextValue(const ProblemDescription&)
 {
     return !PerfFieldRules().Next(*this);
 }
@@ -394,7 +394,9 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceConfigConvBinWinogradRxS& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription&,
+    const PerformanceConfigConvBinWinogradRxS& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx);
 }
@@ -839,8 +841,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                     << " d_H_stride=" << d_strides.h   << " d_W_stride=" << d_strides.w
                     << " f_K_stride=" << f_strides.nk  << " f_C_stride=" << f_strides.c
                     << " f_R_stride=" << f_strides.h   << " f_S_stride=" << f_strides.w
-                    << " o_N_stride=" << f_strides.nk  << " o_K_stride=" << f_strides.c
-                    << " o_H_stride=" << f_strides.h   << " o_W_stride=" << f_strides.w
+                    << " o_N_stride=" << o_strides.nk  << " o_K_stride=" << o_strides.c
+                    << " o_H_stride=" << o_strides.h   << " o_W_stride=" << o_strides.w
                     << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
                     << " o_G_stride=" << o_strides.g);
                 // clang-format on
@@ -944,8 +946,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                     << " d_H_stride=" << d_strides.h   << " d_W_stride=" << d_strides.w
                     << " f_K_stride=" << f_strides.nk  << " f_C_stride=" << f_strides.c
                     << " f_R_stride=" << f_strides.h   << " f_S_stride=" << f_strides.w
-                    << " o_N_stride=" << f_strides.nk  << " o_K_stride=" << f_strides.c
-                    << " o_H_stride=" << f_strides.h   << " o_W_stride=" << f_strides.w
+                    << " o_N_stride=" << o_strides.nk  << " o_K_stride=" << o_strides.c
+                    << " o_H_stride=" << o_strides.h   << " o_W_stride=" << o_strides.w
                     << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
                     << " o_G_stride=" << o_strides.g);
                 // clang-format on

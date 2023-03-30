@@ -211,8 +211,8 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
-                               StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a");
+    const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
+                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a");
     return is_xdlops_supported && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
 }
 
@@ -307,25 +307,27 @@ static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
         return false;
 
     // check M, N and K
-    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {// std::make_tuple(128, 128, 1),
-                                                                std::make_tuple(128, 64, 1),
-                                                                // std::make_tuple(128, 32, 1),
-                                                                // std::make_tuple(128, 16, 1),
-                                                                std::make_tuple(64, 128, 1),
-                                                                std::make_tuple(64, 64, 1),
-                                                                std::make_tuple(64, 32, 1),
-                                                                std::make_tuple(64, 16, 1),
-                                                                // std::make_tuple(32, 128, 1),
-                                                                std::make_tuple(32, 64, 1),
-                                                                std::make_tuple(32, 32, 2),
-                                                                // std::make_tuple(16, 128, 1),
-                                                                std::make_tuple(16, 64, 1),
-                                                                std::make_tuple(16, 16, 4),
-                                                                // std::make_tuple(8, 128, 1),
-                                                                std::make_tuple(8, 64, 1),
-                                                                // std::make_tuple(4, 128, 1),
-                                                                std::make_tuple(4, 64, 1)};
+    const std::vector<std::tuple<int, int, int>> validWaveGemmSize = {
+        // std::make_tuple(128, 128, 1),
+        std::make_tuple(128, 64, 1),
+        // std::make_tuple(128, 32, 1),
+        // std::make_tuple(128, 16, 1),
+        std::make_tuple(64, 128, 1),
+        std::make_tuple(64, 64, 1),
+        std::make_tuple(64, 32, 1),
+        std::make_tuple(64, 16, 1),
+        // std::make_tuple(32, 128, 1),
+        std::make_tuple(32, 64, 1),
+        std::make_tuple(32, 32, 2),
+        // std::make_tuple(16, 128, 1),
+        std::make_tuple(16, 64, 1),
+        std::make_tuple(16, 16, 4),
+        // std::make_tuple(8, 128, 1),
+        std::make_tuple(8, 64, 1),
+        // std::make_tuple(4, 128, 1),
+        std::make_tuple(4, 64, 1)};
 
+    // NOLINTBEGIN(bugprone-assignment-in-if-condition)
     if(!std::any_of(validWaveGemmSize.cbegin(),
                     validWaveGemmSize.cend(),
                     [GemmMPerWave, GemmNPerWave, GemmKPerBlock](const auto it) noexcept -> bool {
@@ -335,6 +337,7 @@ static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
                                (GemmKPerBlock % validKPerWave == 0);
                     }))
         return false;
+    // NOLINTEND(bugprone-assignment-in-if-condition)
 
     const auto WaveSize = 64;
     const auto BlockSize =
@@ -366,13 +369,13 @@ static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n  = ProblemInterpreter::GetBatchN(problem);
-    std::size_t k  = ProblemInterpreter::GetOutputChannelK(problem) / problem.group_counts;
-    std::size_t c  = ProblemInterpreter::GetInputChannelC(problem) / problem.group_counts;
-    std::size_t y  = ProblemInterpreter::GetFilterHeightY(problem);
-    std::size_t x  = ProblemInterpreter::GetFilterWidthX(problem);
-    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(problem);
-    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(problem);
+    const std::size_t n  = ProblemInterpreter::GetBatchN(problem);
+    const std::size_t k  = ProblemInterpreter::GetOutputChannelK(problem) / problem.group_counts;
+    const std::size_t c  = ProblemInterpreter::GetInputChannelC(problem) / problem.group_counts;
+    const std::size_t y  = ProblemInterpreter::GetFilterHeightY(problem);
+    const std::size_t x  = ProblemInterpreter::GetFilterWidthX(problem);
+    const std::size_t ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    const std::size_t wo = ProblemInterpreter::GetOutputWidthWo(problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward

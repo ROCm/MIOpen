@@ -46,9 +46,10 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
                               const FusionDescription& problem,
                               const AnyInvokeParams& invoke_params) const
 {
-    const auto& conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
-    const auto legacy    = ConvOclDirectFwd{};
-    return legacy.Search(conv_ctx, invoke_params);
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    const auto legacy       = ConvOclDirectFwd{};
+    return legacy.Search(conv_ctx, conv_problem, invoke_params);
 }
 
 bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
@@ -83,11 +84,12 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
         if(!(prim == miopenFusionOpActivForward))
             return false;
     }
-    const auto conv_prob = problem.GetConvProblem(0, conv::Direction::Forward);
-    if(!conv_prob.IsFp32())
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    if(!conv_problem.IsFp32())
         return false;
-    const auto base = ConvOclDirectFwd{};
-    return base.IsApplicable(context.GetConvContext(0, conv::Direction::Forward, problem));
+    const auto base     = ConvOclDirectFwd{};
+    const auto conv_ctx = context.GetConvContext(conv_problem);
+    return base.IsApplicable(conv_ctx, conv_problem);
 }
 
 ConvSolution
@@ -95,8 +97,9 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const FusionDescription& problem,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
-    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
-    ConvSolution result = ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_ctx.problem, config);
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    ConvSolution result     = ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_problem, config);
 
     if(result.construction_params.size() != 1)
         MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");
@@ -213,20 +216,25 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
 }
 
 PerformanceConfigConvOclDirectFwdFused
-ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context) const
+ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context,
+                                                   const FusionDescription& problem) const
 {
-
     const auto base = ConvOclDirectFwd{};
     MIOPEN_LOG_I("Using Unfused class to initialize performance config");
-    return base.GetDefaultPerformanceConfig(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem));
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    return base.GetDefaultPerformanceConfig(conv_ctx, conv_problem);
 }
+
 bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
-    const FusionContext& context, const PerformanceConfigConvOclDirectFwdFused& c) const
+    const FusionContext& context,
+    const FusionDescription& problem,
+    const PerformanceConfigConvOclDirectFwdFused& c) const
 {
-    const auto base = ConvOclDirectFwd{};
-    return base.IsValidPerformanceConfig(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem), c);
+    const auto base         = ConvOclDirectFwd{};
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    return base.IsValidPerformanceConfig(conv_ctx, conv_problem, c);
 }
 
 } // namespace fusion

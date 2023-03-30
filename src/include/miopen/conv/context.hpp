@@ -26,50 +26,28 @@
 
 #pragma once
 
-#include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/miopen.h>
 
 #include <string>
 
 namespace miopen {
-struct ConvolutionDescriptor;
-struct Handle;
-struct TensorDescriptor;
-
-/// A leftover of the legacy design, houses problem config,
+/// A leftover of the legacy design, houses
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
-/// TODO: These three entities should be made separate.
+/// TODO: These two entities should be made separate.
 struct ConvolutionContext : ExecutionContext
 {
     // Solution-specific
     std::string general_compile_options;
 
     ConvolutionContext() = default;
-    ConvolutionContext(conv::Direction dir) : problem(dir) {}
-    ConvolutionContext(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       conv::Direction dir,
-                       int bias_ = 0)
-        : problem(in, weights, out, conv, dir, bias_)
-    {
-    }
-    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
-    ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
-        : ExecutionContext(ctx), problem(problem_)
-    {
-    }
+    explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
 
-    void SetupFloats();
+    void SetupFloats(const ProblemDescription& problem);
 
 public:
     bool is_for_generic_search = false;
-
-    ProblemDescription problem;
 };
 
 } // namespace miopen

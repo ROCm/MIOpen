@@ -60,7 +60,7 @@ auto PerfFieldRules()
 
 } // namespace
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm3x3U::SetNextValue(const ProblemDescription&)
 {
     return !PerfFieldRules().Next(*this);
 }
@@ -149,7 +149,8 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
 }
 
 PerformanceConfigConvAsm3x3U
-ConvAsm3x3U::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                         const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm3x3U pp;
     pp.HeuristicInit(problem);
@@ -157,7 +158,8 @@ ConvAsm3x3U::GetDefaultPerformanceConfig(const ProblemDescription& problem) cons
     return pp;
 }
 
-bool ConvAsm3x3U::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm3x3U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
