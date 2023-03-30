@@ -76,7 +76,7 @@ template <typename PerformanceConfig, typename Context, typename Problem>
 class ComputedContainer;
 
 template <typename PerformanceConfig, typename Context, typename Problem>
-class ComputedIterator : public std::iterator<std::input_iterator_tag, PerformanceConfig>
+class ComputedIterator
 {
     PerformanceConfig v;
     const Context* c; // For Next().
@@ -107,6 +107,11 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     }
 
 public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type        = PerformanceConfig;
+    using difference_type   = int;
+    using pointer           = PerformanceConfig*;
+    using reference         = PerformanceConfig&;
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), c(nullptr), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
@@ -262,9 +267,9 @@ auto GetAllConfigs(const Solver s, const Context& context, const Problem& proble
 {
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
 
-    ComputedContainer<PerformanceConfig, Context, Problem> primary(context, problem);
+    const ComputedContainer<PerformanceConfig, Context, Problem> primary(context, problem);
     const int primary_size = std::distance(primary.begin(), primary.end());
-    ComputedContainer<PerformanceConfig, Context, Problem> spare(context, problem, true);
+    const ComputedContainer<PerformanceConfig, Context, Problem> spare(context, problem, true);
     const int spare_size = std::distance(spare.begin(), spare.end());
     const bool useSpare  = (primary_size == 0);
 
@@ -366,7 +371,7 @@ auto GenericSearch(const Solver s,
     }();
 
     auto& profile_h = context.GetStream();
-    AutoEnableProfiling enableProfiling{profile_h};
+    const AutoEnableProfiling enableProfiling{profile_h};
 
     auto tmp_all_configs = GetAllConfigs(s, context, problem);
     // For random access

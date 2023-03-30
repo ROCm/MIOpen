@@ -170,7 +170,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            const boost::filesystem::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
