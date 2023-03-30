@@ -31,7 +31,6 @@
 #include <fdeep/fdeep.hpp>
 #include <fdeep/tensor.hpp>
 #include <fdeep/tensor_shape.hpp>
-#endif
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
@@ -116,4 +115,5 @@ inline bool model_set_params(const fdeep::model& encoder,
 }
 } // namespace ai
 } // namespace miopen
+#endif
 #endif

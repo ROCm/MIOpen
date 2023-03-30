@@ -43,6 +43,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_ASM_1X1U_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -244,6 +245,19 @@ bool PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U
 
 bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 {
+    // clang-format off
+    return IsLinear<1,4>(read_size)
+        && Is_1_4_8_12_to_32(k_mult)
+        && IsLinear<1,16>(chunks_per_wave)
+        && IsTwoPower<1,64>(chunk_size)
+        && IsLinear<1,8>(n_mult)
+        && IsTwoPower<1,32>(c_mult)
+        && IsLinear<1,8>(waves_c_in_group)
+        && IsTwoPower<1,8>(waves_k_in_group); // clang-format on
+}
+
+bool PerformanceConfigConvAsm1x1U::IsValidValueDynamic() const
+{
     if(read_size != -1)
     {
         if(!IsLinear<1, 4>(read_size))
@@ -290,8 +304,61 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 bool PerformanceConfigConvAsm1x1U::IsValid(const ProblemDescription& problem) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
-    const auto img_hw            = problem.out_height * problem.out_width;
+
     if(!IsValidValue())
+        return false;
+    if(!(read_size * elements_in_dword <= chunks_per_wave))
+        return false;
+    if(!(waves_c_in_group <= problem.n_inputs))
+        return false;
+    if(!(k_mult * waves_k_in_group <= problem.n_outputs))
+        return false;
+    if(!(waves_c_in_group * waves_k_in_group <= 16))
+        return false;
+    if((c_mult % elements_in_dword) != 0)
+        return false;
+    if((k_mult % elements_in_dword) != 0)
+        return false;
+    if(chunks_per_wave % elements_in_dword != 0)
+        return false;
+    const auto in_gprs =
+        (chunks_per_wave * n_mult * c_mult + elements_in_dword - 1) / elements_in_dword;
+    const auto acc_gprs = chunks_per_wave * n_mult * k_mult;
+    const auto img_hw   = problem.out_height * problem.out_width;
+    // TODO last vgpr only for old card.
+    // ADD if(option.machine_version_major == 9)
+    // vgprs  = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1: 0);
+    // else
+    const auto vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
+    if(!(vgprs < 256))
+        return false;
+    const auto max_waves_per_CU = (256 / vgprs) * 4;
+    if(!(max_waves_per_CU >= waves_c_in_group * waves_k_in_group))
+        return false;
+    const auto sgprs = 25 + 2 * k_mult * c_mult;
+    if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
+        return false;
+    const int total_n_blocks = (problem.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
+    if(!(n_mult <= total_n_blocks))
+        return false;
+
+    const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
+    if(!(chunks_per_wave <= total_chunks))
+        return false;
+
+    const int c_per_wave      = (problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
+    const int c_per_last_wave = problem.n_inputs - (c_per_wave * (waves_c_in_group - 1));
+
+    if(problem.direction.IsBackwardData() && !(problem.n_outputs % k_mult == 0))
+        return false;
+    return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
+}
+
+bool PerformanceConfigConvAsm1x1U::IsValidDynamic(const ProblemDescription& problem) const
+{
+    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
+    const auto img_hw            = problem.out_height * problem.out_width;
+    if(!IsValidValueDynamic())
         return false;
     if(k_mult != -1)
     {
@@ -374,16 +441,23 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
     case 7: waves_k_in_group = value; break;
     default: return false;
     }
-    return this->IsValid(problem);
+    return this->IsValidDynamic(problem);
 }
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
 #if MIOPEN_ENABLE_AI_HEUR
-    if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.kernel_stride_h == 1)
-        return true;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_ASM_1X1U_HEUR{}))
+        return false;
+    if(ctx.GetStream().GetDeviceName() != "gfx908")
+        return false;
+    if(problem.kernel_stride_h != 1)
+        return false;
+#else
+    std::ignore = ctx;
+    std::ignore = problem;
 #endif
-    return false;
+    return true;
 }
 
 std::vector<float> TransformFeatures(const ProblemDescription& problem, const int& n)
