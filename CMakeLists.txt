@@ -87,7 +87,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.19.0)
+rocm_setup_version(VERSION 2.20.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -468,6 +468,35 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+
+# Unpack DB files
+function(unpack_db db_bzip2_file)
+    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    if(EXISTS "${db_file}")
+        # message(WARNING "${db_file} already exists")
+    elseif(EXISTS "${db_bzip2_file}")
+        message(STATUS "bunzip2 -k ${db_bzip2_file}")
+        execute_process(
+            COMMAND bunzip2 -k ${db_bzip2_file}
+            WORKING_DIRECTORY ${KERNELS_DIR}
+            RESULT_VARIABLE ret
+            )
+        if(NOT ret EQUAL "0")
+            message(WARNING "${db_file} could not be extracted, file is empty!")
+            execute_process(
+                COMMAND touch ${db_file}
+                WORKING_DIRECTORY ${KERNELS_DIR}
+                )
+        endif()
+    endif()
+endfunction()
+
+file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
@@ -477,11 +506,12 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
     else()
+        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
         rocm_install(FILES
             src/kernels/${FILE_NAME}.kdb
@@ -661,6 +691,10 @@ enable_clang_tidy(
         -performance-no-automatic-move
         -clang-analyzer-cplusplus.NewDeleteLeaks
         -modernize-deprecated-headers
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.4.2
+        ###################################################################
+        -misc-const-correctness
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER

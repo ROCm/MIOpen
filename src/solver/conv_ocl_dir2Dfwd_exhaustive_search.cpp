@@ -148,7 +148,7 @@ static int MeasurePerfConfig(const Handle& handle,
             {
                 if(s.IsApplicable(ctx, problem))
                 {
-                    if(s.IsValidPerformanceConfig(problem, config))
+                    if(s.IsValidPerformanceConfig(ctx, problem, config))
                     {
                         kernel_search_result = s.GetSolution(ctx, problem, config);
                     }

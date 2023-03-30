@@ -45,6 +45,8 @@ Currently both the backends cannot be installed on the same system simultaneousl
 
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
 
+Note that all compiled kernels are locally cached in the folder `$HOME/.cache/miopen/`, so precompiled kernels reduce the startup latency only for the first execution of a neural network. Precompiled kernels do not reduce startup time on subsequent runs.
+
 To install the kernels package for your GPU architecture, use the following command:
 
 ```
@@ -62,6 +64,8 @@ The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen aut
 ```
 
 The above script depends on the __rocminfo__ package to query the GPU architecture.
+
+More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
 
 ## Installing the dependencies
 
