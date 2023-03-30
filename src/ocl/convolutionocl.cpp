@@ -841,56 +841,110 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    const auto wti2time = [](const float& wti) {
-        assert(wti != 0.0f);
-        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
-            return wti;
-        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
-    };
+    // AI based Heuristic fallback mechanism
+    static const nlohmann::json metadata = ai::tn::GetMetadata(handle.GetDeviceName());
+    std::vector<float> features = ai::tn::ToFeatures(problem.conv_problem,
+                                                     metadata,
+                                                     true);
+    //if(MIOPEN_ENABLE_AI_HEUR &&
+    //   ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, features, ctx) &&
+    //   !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}))
+    //{
+    //    const auto ai_time = [](const int& idx) {
+    //        return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
+    //    };
 
-    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+    //    int idx        = 1;
+    //    bool is_cached = false;
+    //    auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(),
+    //                                       problem.conv_problem,
+    //                                       features,
+    //                                       is_cached);
+    //    for(const auto kinder : solvers)
+    //    {
+    //        const auto solver_id = solver::Id{kinder};
+    //        const auto sol       = solver_id.GetSolver();
+    //        if(!sol.IsDynamic())
+    //            continue; // branch should never be taken
+    //        if(!sol.IsApplicable(ctx))
+    //            continue;
+    //        const auto algo = solver_id.GetAlgo();
+    //        if(IsAlgorithmDisabled(algo))
+    //            continue;
+    //        interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+    //        ++idx;
+    //    }
+    //    auto i = std::size_t{0};
+    //    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+    //                                        << ", available = " << interim.size());
+    //    for(const auto& s : interim)
+    //        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+    //                             << ", time: " << s.time << " ms, ws: " << s.workspace_size
+    //                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+
+    //    for(const auto& entry : interim)
+    //    {
+    //        if(i >= maxSolutionCount)
+    //            break;
+    //        if(solutions != nullptr)
+    //            solutions[i] = entry;
+    //        ++i;
+    //    }
+    //    *solutionCount = i;
+    //}
+    //else
     {
-        // solver_id is always valid here, because taken from registry.
-        // Validity check is not required.
-        const auto algo = solver_id.GetAlgo();
-        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
-            continue;
-        const auto& s = solver_id.GetSolver();
-        if(s.IsEmpty())
-            continue;
-        if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
-            continue;
-        if(!s.IsApplicable(ctx, problem))
-            continue;
+        const auto wti2time = [](const float& wti) {
+            assert(wti != 0.0f);
+            if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+                return wti;
+            return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+        };
 
-        const auto wti = s.GetWti(ctx, problem);
-        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
-        if(wti < 0.0f) // Skip unknown WTIs.
-            continue;
+        for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+        {
+            // solver_id is always valid here, because taken from registry.
+            // Validity check is not required.
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+                continue;
+            const auto& s = solver_id.GetSolver();
+            if(s.IsEmpty())
+                continue;
+            if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
+                continue;
+            if(!s.IsApplicable(ctx, problem))
+                continue;
 
-        interim.emplace_back(
-            wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+            const auto wti = s.GetWti(ctx, problem);
+            MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
+            if(wti < 0.0f) // Skip unknown WTIs.
+                continue;
+
+            interim.emplace_back(
+                wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+        }
+
+        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+        for(const auto& s : interim)
+            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                                << " ms, ws: " << s.workspace_size
+                                << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+        // Dual purpose variable:
+        // * Used as index for writing into output array (solutions).
+        // * Counts the number of entries written, yielding value for solutionsCount.
+        auto i = std::size_t{0};
+        std::sort(begin(interim), end(interim));
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            if(solutions != nullptr)
+                solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
     }
-
-    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
-    for(const auto& s : interim)
-        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: " << s.workspace_size
-                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-    std::sort(begin(interim), end(interim));
-    for(const auto& entry : interim)
-    {
-        if(i >= maxSolutionCount)
-            break;
-        if(solutions != nullptr)
-            solutions[i] = entry;
-        ++i;
-    }
-    *solutionCount = i;
 }
 
 void GetSolutions(Handle& handle,

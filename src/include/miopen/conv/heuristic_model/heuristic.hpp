@@ -30,27 +30,40 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
+#include <set>
 #include <queue>
 #include <typeinfo>
 #include <string>
+#include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
 namespace miopen {
 namespace ai {
 namespace tn {
+std::set<std::string> GetSupportedArchs();
 nlohmann::json GetMetadata(const std::string& arch);
-const std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata);
-const std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata);
-const size_t GetNumSolvers(const nlohmann::json& metadata);
-const size_t GetDirectionCode(const miopen::conv::Direction dir, const nlohmann::json& metadata);
-const size_t GetPrecisionCode(const miopenDataType_t data_type, const nlohmann::json& metadata);
-const size_t GetLayoutCode(const std::string& layout, const nlohmann::json& metadata);
+std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata);
+std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata);
+size_t GetNumSolvers(const nlohmann::json& metadata);
+size_t GetDirectionCode(const miopen::conv::Direction& dir, const nlohmann::json& metadata);
+size_t GetPrecisionCode(const miopenDataType_t& data_type, const nlohmann::json& metadata);
+size_t GetLayoutCode(const std::string& layout, const nlohmann::json& metadata);
+std::vector<float> GetFeaturesMean(const nlohmann::json& metadata);
+std::vector<float> GetFeaturesStd(const nlohmann::json& metadata);
+std::vector<float> ToFeatures(const conv::ProblemDescription& conv_problem,
+                              const nlohmann::json& metadata,
+                              const bool normalize);
+bool IsProblemInDistributionL1(const std::vector<float>& features,
+                               const float threshold);
+bool IsProblemInDistributionL2(const std::vector<float>& features,
+                               const float threshold,
+                               const nlohmann::json& metadata);
 } // namespace tn
 
 namespace ktn {
 nlohmann::json get_metadata(const std::string& arch, const std::string& solver);
-bool model_set_params(const std::string encoder_path,
-                      const std::string decoder_path,
+bool model_set_params(const std::string& encoder_path,
+                      const std::string& decoder_path,
                       const nlohmann::json& metadata,
                       solver::PerformanceConfigConvAsm1x1U& config,
                       const ProblemDescription& problem,
