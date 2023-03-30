@@ -29,6 +29,7 @@
 
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/any_solver.hpp>
 #include <unordered_map>
 #include <set>
 #include <queue>
@@ -40,8 +41,8 @@
 namespace miopen {
 namespace ai {
 namespace tn {
-std::set<std::string> GetSupportedArchs();
-nlohmann::json GetMetadata(const std::string& arch);
+bool IsDeviceSupported(const std::string& device);
+nlohmann::json GetMetadata(const std::string& device);
 std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata);
 std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata);
 size_t GetNumSolvers(const nlohmann::json& metadata);
@@ -50,14 +51,17 @@ size_t GetPrecisionCode(const miopenDataType_t& data_type, const nlohmann::json&
 size_t GetLayoutCode(const std::string& layout, const nlohmann::json& metadata);
 std::vector<float> GetFeaturesMean(const nlohmann::json& metadata);
 std::vector<float> GetFeaturesStd(const nlohmann::json& metadata);
-std::vector<float> ToFeatures(const conv::ProblemDescription& conv_problem,
+std::vector<float> ToFeatures(const conv::ProblemDescription& problem,
                               const nlohmann::json& metadata,
                               const bool normalize);
-bool IsProblemInDistributionL1(const std::vector<float>& features,
-                               const float threshold);
-bool IsProblemInDistributionL2(const std::vector<float>& features,
-                               const float threshold,
-                               const nlohmann::json& metadata);
+bool AreFeaturesInDistributionL1(const std::vector<float>& features,
+                                 const float threshold);
+bool AreFeaturesInDistributionL2(const std::vector<float>& features,
+                                 const float threshold,
+                                 const nlohmann::json& metadata);
+bool IsProblemSupported(const conv::ProblemDescription& problem,
+                        const ConvolutionContext& ctx,
+                        const nlohmann::json& metadata);
 } // namespace tn
 
 namespace ktn {

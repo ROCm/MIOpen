@@ -67,6 +67,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_HEUR)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -842,14 +843,23 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.DetectRocm();
 
     // AI based Heuristic fallback mechanism
-    static const nlohmann::json metadata = ai::tn::GetMetadata(handle.GetDeviceName());
-    std::vector<float> features = ai::tn::ToFeatures(problem.conv_problem,
-                                                     metadata,
-                                                     true);
-    //if(MIOPEN_ENABLE_AI_HEUR &&
-    //   ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, features, ctx) &&
-    //   !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}))
+    bool use_tunanet = false;
+    if(MIOPEN_ENABLE_AI_HEUR &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}) &&
+       ai::tn::IsDeviceSupported(handle.GetDeviceName()))
+    {
+        static const nlohmann::json& metadata = ai::tn::GetMetadata(handle.GetDeviceName());
+        use_tunanet = ai::tn::IsProblemSupported(problem.conv_problem,  ctx, metadata);
+        std::vector<float> features = ai::tn::ToFeatures(problem.conv_problem,
+                                                         metadata,
+                                                         true);
+        use_tunanet = ai::tn::AreFeaturesInDistributionL2(features, 2, metadata);
+    }
+    std::cout << "\n\n******************************************\n" << use_tunanet;
+    std::cout << "\n******************************************\n\n";
+    //if (use_tunanet)
     //{
+    //    MIOPEN_LOG_I2("Using TunaNet to predict solver");
     //    const auto ai_time = [](const int& idx) {
     //        return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
     //    };
