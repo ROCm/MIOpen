@@ -253,11 +253,12 @@ struct ProblemDescription
                      int stride,
                      int w_stride)
     {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                           ? batch * channels * depth * height * width * data_len
-                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+        batch_sz           = batch;
+        const int data_len = GetTypeSize(data_type);
+        const size_t size =
+            (layout == "NCHW")
+                ? batch * channels * depth * height * width * data_len
+                : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         out_width          = width;
         out_height         = height;
@@ -288,11 +289,12 @@ struct ProblemDescription
                      int stride,
                      int w_stride)
     {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                           ? batch * channels * depth * height * width * data_len
-                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+        batch_sz           = batch;
+        const int data_len = GetTypeSize(data_type);
+        const size_t size =
+            (layout == "NCHW")
+                ? batch * channels * depth * height * width * data_len
+                : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         in_width          = width;
         in_height         = height;
