@@ -166,10 +166,15 @@ def cmake_fin_build_cmd(prefixpath){
     return fin_cmd
 }
 
-def getDockerImageName(prefixpath)
+def getDockerImageName(dockerArgs)
 {
-    def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}"
+    sh "echo ${dockerArgs} > factors.txt"
+    def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
+    sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
+    def docker_hash = sh(script: "md5sum factors.txt | awk '{print \$1}' | head -c 6", returnStdout: true)
+    sh "rm factors.txt"
+    echo "Docker tag hash: ${docker_hash}"
+    image = "${image}:ci_${docker_hash}"
     if(params.DOCKER_IMAGE_OVERRIDE != '')
     {
         echo "Overriding the base docker image with ${params.DOCKER_IMAGE_OVERRIDE}"
@@ -178,11 +183,12 @@ def getDockerImageName(prefixpath)
     return image
 
 }
+
 def getDockerImage(Map conf=[:])
 {
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
@@ -208,20 +214,23 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --no-cache "
     }
     echo "Docker Args: ${dockerArgs}"
-    def image = getDockerImageName(prefixpath)
-    //Check if image exists 
-    def retimage
-    try 
-    {
+
+    def image = getDockerImageName(dockerArgs)
+
+    def dockerImage
+    try{
         echo "Pulling down image: ${image}"
-        retimage = docker.image("${image}")
-        retimage.pull()
+        dockerImage = docker.image("${image}")
+        dockerImage.pull()
     }
     catch(Exception ex)
     {
-        error "Unable to locate image: ${image}"
+        dockerImage = docker.build("${image}", "${dockerArgs} .")
+        withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+            dockerImage.push()
+        }        
     }
-    return [retimage, image]
+    return [dockerImage, image]
 }
 
 def buildHipClangJob(Map conf=[:]){
@@ -359,6 +368,10 @@ pipeline {
     }
     parameters {
         booleanParam(
+            name: "BUILD_DOCKER",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
             description: "")
@@ -449,6 +462,15 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
+        stage('Build Docker'){
+            when {
+                expression { params.BUILD_DOCKER && params.TARGET_NOGPU && params.DATATYPE_NA }
+            }
+            agent {label "docker_builder && nogpu"}
+            steps{
+                getDockerImage()
+            }
+        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
