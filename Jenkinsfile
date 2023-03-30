@@ -466,7 +466,7 @@ pipeline {
             when {
                 expression { params.BUILD_DOCKER && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
-            agent {label "docker_builder && nogpu"}
+            agent{ label rocmnode("nogpu") }
             steps{
                 getDockerImage()
             }
