@@ -60,7 +60,6 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-set(MIOPEN_ENABLE_AI_HEUR On CACHE BOOL "Enable AI based heuristics")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -138,7 +137,6 @@ option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
-
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
@@ -148,6 +146,7 @@ else()
     option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
+    set(MIOPEN_ENABLE_AI_KERNEL_TUNING OFF CACHE BOOL "Enable AI based heuristics")
 endif()
 
 
