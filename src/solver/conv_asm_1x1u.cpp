@@ -418,7 +418,7 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
 {
     assert(n > 5);
     assert(n < 50);
-    std::vector<float> features(static_cast<std::size_t>(n * n), 0.0f);
+    std::vector<float> features(n * n, 0.0f);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
@@ -446,7 +446,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
         static const auto decoder       = ai::get_model(arch, solver, "decoder");
         static const auto metadata      = ai::get_metadata(arch, solver);
         std::vector<float> features =
-            TransformFeatures(problem, metadata["num_conv_params"].get<int>() + 1);
+            TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
         if(ai::model_set_params(encoder, decoder, metadata, *this, problem, features))
         {
             MIOPEN_LOG_I("Params set by AI: " << ToString());
