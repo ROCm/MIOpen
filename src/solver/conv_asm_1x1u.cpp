@@ -243,57 +243,44 @@ bool PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U
         && use_spare_set == other.use_spare_set; // clang-format on
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidValue() const
+bool PerformanceConfigConvAsm1x1U::IsValidValueImpl(const int sequence_length) const
 {
-    // clang-format off
-    return IsLinear<1,4>(read_size)
-        && Is_1_4_8_12_to_32(k_mult)
-        && IsLinear<1,16>(chunks_per_wave)
-        && IsTwoPower<1,64>(chunk_size)
-        && IsLinear<1,8>(n_mult)
-        && IsTwoPower<1,32>(c_mult)
-        && IsLinear<1,8>(waves_c_in_group)
-        && IsTwoPower<1,8>(waves_k_in_group); // clang-format on
-}
-
-bool PerformanceConfigConvAsm1x1U::IsPartiallyValidValue() const
-{
-    if(read_size != -1)
+    if(sequence_length > 0)
     {
         if(!IsLinear<1, 4>(read_size))
             return false;
     }
-    if(k_mult != -1)
+    if(sequence_length > 1)
     {
         if(!Is_1_4_8_12_to_32(k_mult))
             return false;
     }
-    if(chunks_per_wave != -1)
+    if(sequence_length > 2)
     {
         if(!IsLinear<1, 16>(chunks_per_wave))
             return false;
     }
-    if(chunk_size != -1)
+    if(sequence_length > 3)
     {
         if(!IsTwoPower<1, 64>(chunk_size))
             return false;
     }
-    if(n_mult != -1)
+    if(sequence_length > 4)
     {
         if(!IsLinear<1, 8>(n_mult))
             return false;
     }
-    if(c_mult != -1)
+    if(sequence_length > 5)
     {
         if(!IsTwoPower<1, 32>(c_mult))
             return false;
     }
-    if(waves_c_in_group != -1)
+    if(sequence_length > 6)
     {
         if(!IsLinear<1, 8>(waves_c_in_group))
             return false;
     }
-    if(waves_k_in_group != -1)
+    if(sequence_length > 7)
     {
         if(!IsTwoPower<1, 8>(waves_k_in_group))
             return false;
@@ -301,86 +288,33 @@ bool PerformanceConfigConvAsm1x1U::IsPartiallyValidValue() const
     return true;
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValid(const ProblemDescription& problem) const
-{
-    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
-
-    if(!IsValidValue())
-        return false;
-    if(!(read_size * elements_in_dword <= chunks_per_wave))
-        return false;
-    if(!(waves_c_in_group <= problem.n_inputs))
-        return false;
-    if(!(k_mult * waves_k_in_group <= problem.n_outputs))
-        return false;
-    if(!(waves_c_in_group * waves_k_in_group <= 16))
-        return false;
-    if((c_mult % elements_in_dword) != 0)
-        return false;
-    if((k_mult % elements_in_dword) != 0)
-        return false;
-    if(chunks_per_wave % elements_in_dword != 0)
-        return false;
-    const auto in_gprs =
-        (chunks_per_wave * n_mult * c_mult + elements_in_dword - 1) / elements_in_dword;
-    const auto acc_gprs = chunks_per_wave * n_mult * k_mult;
-    const auto img_hw   = problem.out_height * problem.out_width;
-    // TODO last vgpr only for old card.
-    // ADD if(option.machine_version_major == 9)
-    // vgprs  = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1: 0);
-    // else
-    const auto vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
-    if(!(vgprs < 256))
-        return false;
-    const auto max_waves_per_CU = (256 / vgprs) * 4;
-    if(!(max_waves_per_CU >= waves_c_in_group * waves_k_in_group))
-        return false;
-    const auto sgprs = 25 + 2 * k_mult * c_mult;
-    if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
-        return false;
-    const int total_n_blocks = (problem.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
-    if(!(n_mult <= total_n_blocks))
-        return false;
-
-    const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
-    if(!(chunks_per_wave <= total_chunks))
-        return false;
-
-    const int c_per_wave      = (problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
-    const int c_per_last_wave = problem.n_inputs - (c_per_wave * (waves_c_in_group - 1));
-
-    if(problem.direction.IsBackwardData() && !(problem.n_outputs % k_mult == 0))
-        return false;
-    return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
-}
-
-bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& problem) const
+bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem, const int sequence_length) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
     const auto img_hw            = problem.out_height * problem.out_width;
-    if(!IsPartiallyValidValue())
+    if(!IsValidValueImpl(sequence_length))
         return false;
-    if(k_mult != -1)
+    if(sequence_length > 1)
     {
         if((k_mult % elements_in_dword) != 0)
             return false;
         if(problem.direction.IsBackwardData() && !(problem.n_outputs % k_mult == 0))
             return false;
     }
-    if(chunks_per_wave != -1)
+    if(sequence_length > 2)
     {
         if(!(read_size * elements_in_dword <= chunks_per_wave))
             return false;
         if(chunks_per_wave % elements_in_dword != 0)
             return false;
     }
-    if(chunk_size != -1)
+    if(sequence_length > 3)
     {
         const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
         if(!(chunks_per_wave <= total_chunks))
             return false;
     }
-    if(n_mult != -1)
+    if(sequence_length > 4)
     {
         const int total_n_blocks = (problem.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
         if(!(n_mult <= total_n_blocks))
@@ -394,7 +328,7 @@ bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& pr
     // vgprs  = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1: 0);
     // else
     const auto vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
-    if(c_mult != -1)
+    if(sequence_length > 5)
     {
         if((c_mult % elements_in_dword) != 0)
             return false;
@@ -404,7 +338,7 @@ bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& pr
         if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
             return false;
     }
-    if(waves_c_in_group != -1)
+    if(sequence_length > 6)
     {
         if(!(waves_c_in_group <= problem.n_inputs))
             return false;
@@ -414,7 +348,7 @@ bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& pr
             return false;
         // return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
     }
-    if(waves_k_in_group != -1)
+    if(sequence_length > 7)
     {
         if(!(k_mult * waves_k_in_group <= problem.n_outputs))
             return false;
@@ -429,20 +363,38 @@ bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& pr
 
 bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemDescription& problem)
 {
+    int sequence_length = 0;
     switch(index)
     {
-    case 0: read_size = value; break;
-    case 1: k_mult = value; break;
-    case 2: chunks_per_wave = value; break;
-    case 3: chunk_size = value; break;
-    case 4: n_mult = value; break;
-    case 5: c_mult = value; break;
-    case 6: waves_c_in_group = value; break;
-    case 7: waves_k_in_group = value; break;
+    case 0: 
+    read_size = value; 
+    sequence_length = 1;
+    break;
+    case 1: k_mult = value;
+    sequence_length = 2;
+    break;
+    case 2: chunks_per_wave = value; 
+    sequence_length = 3;
+    break;
+    case 3: chunk_size = value;
+    sequence_length = 4;
+    break;
+    case 4: n_mult = value; 
+    sequence_length = 5;
+    break;
+    case 5: c_mult = value; 
+    sequence_length = 6;
+    break;
+    case 6: waves_c_in_group = value;
+    sequence_length = 7;
+     break;
+    case 7: waves_k_in_group = value;
+    sequence_length = 8;
+     break;
     default: return false;
     }
     //this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
-    return this->IsPartiallyValid(problem);
+    return this->IsPartiallyValid(problem, sequence_length);
 }
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
