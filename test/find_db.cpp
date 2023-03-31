@@ -69,15 +69,15 @@ struct FindDbTest : test_driver
     Allocator::ManageDataPtr x_dev;
     Allocator::ManageDataPtr w_dev;
     Allocator::ManageDataPtr y_dev;
-    // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
+    // --input 100,25,32,32 --weights 300,25,3,3 --filter 0,0,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
-        2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
+        2, miopenConvolution, miopenPaddingDefault, {0, 0}, {1, 1}, {1, 1}};
 
     FindDbTest()
     {
-        filter.findMode.Set(FindMode::Values::Normal);
-        x = {16, 192, 28, 28};
-        w = {32, 192, 5, 5};
+        filter.findMode.Set(FindMode::Values::Hybrid);
+        x = {100, 25, 32, 32};
+        w = {300, 25, 3, 3};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
     }
 
@@ -197,7 +197,8 @@ private:
 
         const auto time0   = Duration(func);
         const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
-        MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
+        MIOPEN_LOG_I(
+            "Find(), 1st call (populating kcache in RAM, updating find-db): " << time0ms.count());
 
         debug::testing_find_db_enabled = false;
         const auto time1               = Duration(func);
@@ -221,7 +222,8 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    setenv("MIOPEN_LOG_LEVEL", "6", 1);              // NOLINT (concurrency-mt-unsafe)
-    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1); // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
     test_drive<miopen::FindDbTest>(argc, argv);
 }
