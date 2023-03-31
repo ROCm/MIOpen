@@ -37,14 +37,22 @@
 #include <string>
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
+#include <miopen/anyramdb.hpp>
+
+namespace fdeep {
+    class model;
+}
 
 namespace miopen {
 namespace ai {
 namespace tn {
 bool IsDeviceSupported(const std::string& device);
 nlohmann::json GetMetadata(const std::string& device);
+fdeep::model GetModel(const std::string& device);
 std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata);
 std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata);
+size_t GetNumInputs(const nlohmann::json& metadata);
+size_t GetNumOutputs(const nlohmann::json& metadata);
 size_t GetNumSolvers(const nlohmann::json& metadata);
 size_t GetDirectionCode(const miopen::conv::Direction& dir, const nlohmann::json& metadata);
 size_t GetPrecisionCode(const miopenDataType_t& data_type, const nlohmann::json& metadata);
@@ -62,6 +70,14 @@ bool AreFeaturesInDistributionL2(const std::vector<float>& features,
 bool IsProblemSupported(const conv::ProblemDescription& problem,
                         const ConvolutionContext& ctx,
                         const nlohmann::json& metadata);
+std::vector<float> CallModel(const fdeep::model& model,
+                             const std::vector<float>& normalized_features,
+                             const nlohmann::json& metadata);
+std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
+                                    const std::vector<float>& normalized_features,
+                                    bool& cached,
+                                    const std::string& device,
+                                    const nlohmann::json& metadata);
 } // namespace tn
 
 namespace ktn {

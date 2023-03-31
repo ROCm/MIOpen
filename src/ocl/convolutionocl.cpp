@@ -838,72 +838,77 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     std::vector<SolutionSortWrapper> interim;
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
-    auto ctx = ConvolutionContext{};
+    auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    // AI based Heuristic fallback mechanism
-    bool use_tunanet = false;
+    // TunaNet Fallback
+    bool is_tunanet_applicable = false;
     if(MIOPEN_ENABLE_AI_HEUR &&
        !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}) &&
        ai::tn::IsDeviceSupported(handle.GetDeviceName()))
     {
         static const nlohmann::json& metadata = ai::tn::GetMetadata(handle.GetDeviceName());
-        use_tunanet = ai::tn::IsProblemSupported(problem.conv_problem,  ctx, metadata);
-        std::vector<float> features = ai::tn::ToFeatures(problem.conv_problem,
-                                                         metadata,
-                                                         true);
-        use_tunanet = ai::tn::AreFeaturesInDistributionL2(features, 2, metadata);
+        if(ai::tn::IsProblemSupported(problem.conv_problem,  ctx, metadata))
+        {
+            std::vector<float> features = ai::tn::ToFeatures(problem.conv_problem,
+                                                             metadata,
+                                                             true);
+            if(ai::tn::AreFeaturesInDistributionL2(features, 2, metadata))
+            {
+                is_tunanet_applicable = true;
+                MIOPEN_LOG_I2("Using TunaNet Fallback");
+                const auto ai_time = [](const int& idx) {
+                    return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
+                };
+
+                int idx        = 1;
+                bool is_cached = false;
+                auto solvers = ai::tn::PredictSolver(problem.conv_problem,
+                                                     features,
+                                                     is_cached,
+                                                     handle.GetDeviceName(),
+                                                     metadata);
+                for(const auto kinder : solvers)
+                {
+                    const auto solver_id = solver::Id{kinder};
+                    const auto sol       = solver_id.GetSolver();
+                    if(!sol.IsDynamic())
+                        continue; // branch should never be taken
+                    if(!sol.IsApplicable(ctx))
+                        continue;
+                    const auto algo = solver_id.GetAlgo();
+                    if(IsAlgorithmDisabled(algo))
+                        continue;
+                    interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+                    ++idx;
+                }
+                auto i = std::size_t{0};
+                MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+                                                    << ", available = " << interim.size());
+                for(const auto& s : interim)
+                    MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+                                         << ", time: " << s.time << " ms, ws: " << s.workspace_size
+                                         << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+
+                for(const auto& entry : interim)
+                {
+                    if(i >= maxSolutionCount)
+                        break;
+                    if(solutions != nullptr)
+                        solutions[i] = entry;
+                    ++i;
+                }
+                *solutionCount = i;
+            }
+        }
     }
-    std::cout << "\n\n******************************************\n" << use_tunanet;
-    std::cout << "\n******************************************\n\n";
-    //if (use_tunanet)
-    //{
-    //    MIOPEN_LOG_I2("Using TunaNet to predict solver");
-    //    const auto ai_time = [](const int& idx) {
-    //        return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
-    //    };
-
-    //    int idx        = 1;
-    //    bool is_cached = false;
-    //    auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(),
-    //                                       problem.conv_problem,
-    //                                       features,
-    //                                       is_cached);
-    //    for(const auto kinder : solvers)
-    //    {
-    //        const auto solver_id = solver::Id{kinder};
-    //        const auto sol       = solver_id.GetSolver();
-    //        if(!sol.IsDynamic())
-    //            continue; // branch should never be taken
-    //        if(!sol.IsApplicable(ctx))
-    //            continue;
-    //        const auto algo = solver_id.GetAlgo();
-    //        if(IsAlgorithmDisabled(algo))
-    //            continue;
-    //        interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
-    //        ++idx;
-    //    }
-    //    auto i = std::size_t{0};
-    //    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
-    //                                        << ", available = " << interim.size());
-    //    for(const auto& s : interim)
-    //        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
-    //                             << ", time: " << s.time << " ms, ws: " << s.workspace_size
-    //                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-
-    //    for(const auto& entry : interim)
-    //    {
-    //        if(i >= maxSolutionCount)
-    //            break;
-    //        if(solutions != nullptr)
-    //            solutions[i] = entry;
-    //        ++i;
-    //    }
-    //    *solutionCount = i;
-    //}
-    //else
+    
+    // WTI Fallback
+    if (!is_tunanet_applicable)
     {
+        MIOPEN_LOG_I2("Using WTI Fallback");
+
         const auto wti2time = [](const float& wti) {
             assert(wti != 0.0f);
             if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
