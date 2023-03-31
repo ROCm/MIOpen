@@ -288,7 +288,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidValueImpl(const int sequence_length) c
     return true;
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem, const int sequence_length) const
+bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem,
+                                               const int sequence_length) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
     const auto img_hw            = problem.out_height * problem.out_width;
@@ -366,34 +367,41 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
     int sequence_length = 0;
     switch(index)
     {
-    case 0: 
-    read_size = value; 
-    sequence_length = 1;
-    break;
-    case 1: k_mult = value;
-    sequence_length = 2;
-    break;
-    case 2: chunks_per_wave = value; 
-    sequence_length = 3;
-    break;
-    case 3: chunk_size = value;
-    sequence_length = 4;
-    break;
-    case 4: n_mult = value; 
-    sequence_length = 5;
-    break;
-    case 5: c_mult = value; 
-    sequence_length = 6;
-    break;
-    case 6: waves_c_in_group = value;
-    sequence_length = 7;
-     break;
-    case 7: waves_k_in_group = value;
-    sequence_length = 8;
-     break;
+    case 0:
+        read_size       = value;
+        sequence_length = 1;
+        break;
+    case 1:
+        k_mult          = value;
+        sequence_length = 2;
+        break;
+    case 2:
+        chunks_per_wave = value;
+        sequence_length = 3;
+        break;
+    case 3:
+        chunk_size      = value;
+        sequence_length = 4;
+        break;
+    case 4:
+        n_mult          = value;
+        sequence_length = 5;
+        break;
+    case 5:
+        c_mult          = value;
+        sequence_length = 6;
+        break;
+    case 6:
+        waves_c_in_group = value;
+        sequence_length  = 7;
+        break;
+    case 7:
+        waves_k_in_group = value;
+        sequence_length  = 8;
+        break;
     default: return false;
     }
-    //this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
+    // this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
     return this->IsPartiallyValid(problem, sequence_length);
 }
 

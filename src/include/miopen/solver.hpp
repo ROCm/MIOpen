@@ -363,22 +363,16 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool TryToken(int index, int value, const ProblemDescription&);
-    bool IsValidValue() const
-    {
-        return IsValidValueImpl(8);
-    }
+    bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription& problem) const
-    {
-        return IsValidImpl(problem, 8);
-    }
+    bool IsValid(const ProblemDescription& problem) const { return IsValidImpl(problem, 8); }
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
 
-    private:
+private:
     bool IsPartiallyValid(const ProblemDescription& problem, int sequence_length) const
     {
         return IsValidImpl(problem, sequence_length);
