@@ -99,7 +99,7 @@ void LengthReorder(std::vector<size_t>& lens, const std::initializer_list<size_t
     for(size_t index : indices)
     {
         assert(index < lens.size());
-        out_lens.push_back(std::move(lens[index]));
+        out_lens.push_back(lens[index]);
     }
     lens = std::move(out_lens);
 }
