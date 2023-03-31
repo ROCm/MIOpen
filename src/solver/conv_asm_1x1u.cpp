@@ -43,7 +43,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_ASM_1X1U_HEUR)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -256,7 +256,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
         && IsTwoPower<1,8>(waves_k_in_group); // clang-format on
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidValueDynamic() const
+bool PerformanceConfigConvAsm1x1U::IsPartiallyValidValue() const
 {
     if(read_size != -1)
     {
@@ -354,11 +354,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ProblemDescription& problem) co
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidDynamic(const ProblemDescription& problem) const
+bool PerformanceConfigConvAsm1x1U::IsPartiallyValid(const ProblemDescription& problem) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
     const auto img_hw            = problem.out_height * problem.out_width;
-    if(!IsValidValueDynamic())
+    if(!IsPartiallyValidValue())
         return false;
     if(k_mult != -1)
     {
@@ -441,28 +441,32 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
     case 7: waves_k_in_group = value; break;
     default: return false;
     }
-    return this->IsValidDynamic(problem);
+    //this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
+    return this->IsPartiallyValid(problem);
 }
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
 #if MIOPEN_ENABLE_AI_HEUR
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_ASM_1X1U_HEUR{}))
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
     if(problem.kernel_stride_h != 1)
         return false;
+    return true;
 #else
     std::ignore = ctx;
     std::ignore = problem;
+    return false;
 #endif
-    return true;
 }
 
-std::vector<float> TransformFeatures(const ProblemDescription& problem, const int& n)
+static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
 {
-    std::vector<float> features(static_cast<unsigned long>(n * n), 0.0);
+    assert(n > 5);
+    assert(n < 50);
+    std::vector<float> features(static_cast<std::size_t>(n * n), 0.0f);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
@@ -493,7 +497,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
             TransformFeatures(problem, metadata["num_conv_params"].get<int>() + 1);
         if(ai::model_set_params(encoder, decoder, metadata, *this, problem, features))
         {
-            MIOPEN_LOG_I(ToString());
+            MIOPEN_LOG_I("Params set by AI: " << ToString());
             return;
         }
     }
