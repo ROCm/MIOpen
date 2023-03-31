@@ -92,6 +92,18 @@ std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
     return lens;
 }
 
+void LengthReorder(std::vector<size_t>& lens, const std::initializer_list<size_t>& indices)
+{
+    std::vector<size_t> out_lens;
+    out_lens.reserve(indices.size());
+    for(size_t index : indices)
+    {
+        assert(0 <= index && index < lens.size());
+        out_lens.push_back(std::move(lens[index]));
+    }
+    lens = std::move(out_lens);
+}
+
 } // namespace
 
 TensorDescriptor::TensorDescriptor() : packed(true) {}
@@ -210,14 +222,43 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     else
     {
         packed = true;
-        this->CalculateStrides();
+        SetTensorNd(GetLayout_str());
     }
-    if(lens.size() >= 4 && GetLayout_str().find("NCHW") == std::string::npos)
+}
+
+void TensorDescriptor::SetTensorNdVector(const std::string& layout)
+{
+    if(layout == "NCHWc")
     {
-        std::vector<size_t> new_strides;
-        tensor_layout_to_strides(lens, "NCHW", GetLayout_str(), new_strides);
-        strides = new_strides;
+        // Do nothing, MIOpen implicit logic that lens are in NCHW order.
     }
+    else if(layout == "CHWNc")
+    {
+        LengthReorder(lens, {1, 2, 3, 0});
+    }
+    else
+    {
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
+    }
+    CalculateStrides();
+}
+
+void TensorDescriptor::SetTensorNd(const std::string& layout)
+{
+    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
+    if(layout == len_layout)
+    {
+        CalculateStrides();
+        return;
+    }
+
+    if(layout.find('c') != std::string::npos)
+    {
+        SetTensorNdVector(layout);
+        return;
+    }
+
+    miopen::tensor_layout_to_strides(lens, len_layout, layout, strides);
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, int size)
