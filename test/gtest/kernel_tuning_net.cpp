@@ -1,6 +1,4 @@
 #include <miopen/miopen.h>
-
-#if MIOPEN_ENABLE_AI_HEUR
 #include "../tensor_holder.hpp"
 #include <gtest/gtest.h>
 #include <iostream>
@@ -8,12 +6,10 @@
 #include <miopen/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include "get_handle.hpp"
-#endif
 
 void Test_908_ConvAsm1x1U(void)
 {
 #if MIOPEN_ENABLE_AI_HEUR
-
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         return;

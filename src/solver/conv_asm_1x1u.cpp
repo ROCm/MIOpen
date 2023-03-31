@@ -362,6 +362,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 
+#if MIOPEN_ENABLE_AI_HEUR
 bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemDescription& problem)
 {
     int sequence_length = 0;
@@ -407,7 +408,6 @@ bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemD
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
-#if MIOPEN_ENABLE_AI_HEUR
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
@@ -415,11 +415,6 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
     if(problem.kernel_stride_h != 1)
         return false;
     return true;
-#else
-    std::ignore = ctx;
-    std::ignore = problem;
-    return false;
-#endif
 }
 
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
@@ -439,6 +434,7 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     features[7 * n + 7] = float(problem.batch_sz);
     return features;
 }
+#endif
 
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem)
@@ -446,6 +442,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     if(problem.in_data_type == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
 
+#if MIOPEN_ENABLE_AI_HEUR
     if(IsModelApplicable(ctx, problem))
     {
         static const std::string& arch  = ctx.GetStream().GetDeviceName();
@@ -461,7 +458,9 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
             return;
         }
     }
-
+#else
+    std::ignore = ctx;
+#endif
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
     read_size                    = 4;
     k_mult                       = 16;

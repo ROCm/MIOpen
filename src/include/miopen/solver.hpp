@@ -373,6 +373,7 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
 
 private:
+#if MIOPEN_ENABLE_AI_HEUR
     bool IsPartiallyValid(const ProblemDescription& problem, int sequence_length) const
     {
         return IsValidImpl(problem, sequence_length);
@@ -381,6 +382,7 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
+#endif
     bool IsValidImpl(const ProblemDescription& problem, int sequence_length) const;
     bool IsValidValueImpl(int sequence_length) const;
 };
