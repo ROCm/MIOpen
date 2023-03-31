@@ -54,12 +54,12 @@ struct PerfConfigBase : PerfConfig
 {
     void Serialize(std::ostream& stream) const final
     {
-        SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
+        serialize::SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
     }
 
     bool Deserialize(const std::string& s) final
     {
-        return SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
+        return serialize::SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
     }
 };
 
