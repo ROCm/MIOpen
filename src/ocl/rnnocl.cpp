@@ -347,7 +347,6 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                                     wx_off,
                                                     reserveSpace,
                                                     out_offset,
-                                                    nullptr,
                                                     GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
             MIOPEN_THROW("GEMM execution failure");
@@ -459,7 +458,6 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                                     WeiBuf.get_matrix_h_off(layer),
                                                     reserveSpace,
                                                     RB_layer_save_points_off,
-                                                    nullptr,
                                                     GemmBackend_t::miopengemm);
 
         if(gemm_status != miopenStatusSuccess)
