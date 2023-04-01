@@ -9,13 +9,16 @@
 
 void Test_908_ConvAsm1x1U(void)
 {
-#if MIOPEN_ENABLE_AI_HEUR
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         return;
-    tensor<float> test_inputs_f  = tensor<float>(miopenHalf, miopenTensorNCHW, 256, 2048, 7, 7);
-    tensor<float> test_weights_f = tensor<float>(miopenHalf, miopenTensorNCHW, 512, 2048, 1, 1);
-    tensor<float> test_outputs_f = tensor<float>(miopenHalf, miopenTensorNCHW, 256, 512, 7, 7);
+    tensor<half_float::half> test_inputs_f =
+        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 256, 2048, 7, 7);
+    tensor<half_float::half> test_weights_f =
+        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 512, 2048, 1, 1);
+    tensor<half_float::half> test_outputs_f =
+        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 256, 512, 7, 7);
 
     tensor<float> test_inputs_b  = tensor<float>(miopenFloat, miopenTensorNCHW, 512, 192, 56, 56);
     tensor<float> test_weights_b = tensor<float>(miopenFloat, miopenTensorNCHW, 288, 192, 1, 1);
@@ -89,6 +92,7 @@ void Test_908_ConvAsm1x1U(void)
         << " but should have predicted: 1,16,1,64,2,2,1,4";
     EXPECT_EQ(config_fallback.ToString(), "1,4,4,1,1,1,1,1")
         << "Model did not fallback when producing erroneous tokens";
+#else
 #endif
 }
 

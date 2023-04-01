@@ -362,7 +362,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 
-#if MIOPEN_ENABLE_AI_HEUR
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemDescription& problem)
 {
     int sequence_length = 0;
@@ -442,17 +442,17 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     if(problem.in_data_type == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
 
-#if MIOPEN_ENABLE_AI_HEUR
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
         static const std::string& arch  = ctx.GetStream().GetDeviceName();
         static const std::string solver = "ConvAsm1x1U";
-        static const auto encoder       = ai::get_model(arch, solver, "encoder");
-        static const auto decoder       = ai::get_model(arch, solver, "decoder");
-        static const auto metadata      = ai::get_metadata(arch, solver);
+        static const auto encoder       = ai::tuning::get_model(arch, solver, "encoder");
+        static const auto decoder       = ai::tuning::get_model(arch, solver, "decoder");
+        static const auto metadata      = ai::tuning::get_metadata(arch, solver);
         std::vector<float> features =
             TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
-        if(ai::model_set_params(encoder, decoder, metadata, *this, problem, features))
+        if(ai::tuning::model_set_params(encoder, decoder, metadata, *this, problem, features))
         {
             MIOPEN_LOG_I("Params set by AI: " << ToString());
             return;

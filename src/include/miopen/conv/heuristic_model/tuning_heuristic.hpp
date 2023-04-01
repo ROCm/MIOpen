@@ -27,19 +27,18 @@
 #ifndef GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
 #define GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
 
-#if MIOPEN_ENABLE_AI_HEUR
-#include <fdeep/fdeep.hpp>
-#include <fdeep/tensor.hpp>
-#include <fdeep/tensor_shape.hpp>
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
 #include <queue>
 #include <typeinfo>
 #include <string>
+#include <fdeep/fdeep.hpp>
 
 namespace miopen {
 namespace ai {
+namespace tuning {
 
 inline nlohmann::json get_metadata(const std::string& arch, const std::string& solver)
 {
@@ -83,9 +82,8 @@ inline bool model_set_params(const fdeep::model& encoder,
         auto output_vector = output[0].to_vector();
         std::priority_queue<std::pair<float, int>> pq;
         for(int j = 0; j < output_vector.size(); j++)
-        {
             pq.push(std::make_pair(output_vector[j], j)); // sort by value at index
-        }
+
         int output_token_index = -1;
         while(!pq.empty())
         {
@@ -113,7 +111,33 @@ inline bool model_set_params(const fdeep::model& encoder,
     }
     return true;
 }
+
+} // namespace tuning
 } // namespace ai
 } // namespace miopen
 #endif
 #endif
+
+// namespace fdeep
+// {
+// class model;
+// }
+
+// namespace miopen {
+// namespace ai {
+// namespace tuning {
+
+// nlohmann::json get_metadata(const std::string& arch, const std::string& solver);
+// fdeep::model get_model(const std::string& arch, const std::string& solver, const std::string&
+// model_type); bool model_set_params(const fdeep::model& encoder,
+//                              const fdeep::model& decoder,
+//                              const nlohmann::json& metadata,
+//                              solver::PerformanceConfigConvAsm1x1U& config,
+//                              const ProblemDescription& problem,
+//                              std::vector<float>& features);
+
+// } // namespace tuning
+// } // namespace ai
+// } // namespace miopen
+// #endif
+// #endif

@@ -49,7 +49,7 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 #cmakedefine01 MIOPEN_USE_MLIR
 #cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
-#cmakedefine01 MIOPEN_ENABLE_AI_HEUR
+#cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.

@@ -60,6 +60,7 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+option(MIOPEN_ENABLE_AI_KERNEL_TUNING "Enable AI based heuristics" OFF)
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -146,9 +147,13 @@ else()
     option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
-    set(MIOPEN_ENABLE_AI_KERNEL_TUNING OFF CACHE BOOL "Enable AI based heuristics")
 endif()
 
+if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+        message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
+    endif()
+endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
