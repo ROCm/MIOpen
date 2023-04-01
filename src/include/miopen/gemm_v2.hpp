@@ -33,6 +33,7 @@ namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
+struct FindDbKCacheKey;
 
 enum GemmBackend_t
 {
@@ -86,6 +87,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
+                                   FindDbKCacheKey* kcache_key, // for find-db
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
@@ -99,6 +101,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
+                        FindDbKCacheKey* kcache_key, // for find-db
                         GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
                         bool gfx90a_alt_impl       = false);
 
@@ -110,6 +113,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
+                                      FindDbKCacheKey* kcache_key, // for find-db
                                       GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
                                       bool gfx90a_alt_impl       = false);
 
@@ -122,6 +126,7 @@ CallGemmStridedBatchedSequential(const Handle& handle,
                                  int b_offset,
                                  Data_t C,
                                  int c_offset,
+                                 FindDbKCacheKey* kcache_key, // for find-db
                                  GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
                                  bool gfx90a_alt_impl       = false);
 
