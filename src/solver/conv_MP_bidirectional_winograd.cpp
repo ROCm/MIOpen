@@ -478,6 +478,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                     static_cast<int>(transform_offset.in / wino_in.buff_info.element_size),
                     workSpace,
                     static_cast<int>(transform_offset.out / wino_out.buff_info.element_size),
+                    nullptr,
                     GemmBackend_t::rocblas);
 #else
                 std::ignore = handle;

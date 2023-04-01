@@ -23,32 +23,42 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONV_ALGO_NAME_HPP
-#define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+
+#ifndef MIOPEN_GUARD_MLOPEN_FINDDB_KERNEL_CACHE_KEY_HPP
+#define MIOPEN_GUARD_MLOPEN_FINDDB_KERNEL_CACHE_KEY_HPP
+
+#include <miopen/errors.hpp>
 
 #include <string>
-#include <miopen/errors.hpp>
 
 namespace miopen {
 
-namespace conv {
-
-enum class Direction
+struct FindDbKCacheKey
 {
-    Forward,
-    BackwardData,
-    BackwardWeights,
+    std::string algorithm_name = {};
+    std::string network_config = {};
+
+    FindDbKCacheKey() = default;
+
+    FindDbKCacheKey(std::string algorithm_name_, std::string network_config_)
+        : algorithm_name(algorithm_name_), network_config(network_config_)
+    {
+        if(!IsValid())
+            MIOPEN_THROW("Invalid kernel cache key: " + algorithm_name + ", " + network_config);
+    }
+
+    bool IsValid() const { return !algorithm_name.empty() && !network_config.empty(); }
+    bool IsUnused() const { return network_config == GetUnusedNetworkConfig(); }
+
+    static FindDbKCacheKey MakeUnused(const std::string& algo_name)
+    {
+        return {algo_name, GetUnusedNetworkConfig()};
+    }
+
+private:
+    static const char* GetUnusedNetworkConfig() { return "<unused>"; }
 };
-
-} // namespace conv
-
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
-
-std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
-std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo, conv::Direction dir);
 
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+#endif
