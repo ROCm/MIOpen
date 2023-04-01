@@ -26,45 +26,26 @@
 
 #include <miopen/miopen.h>
 #include <miopen/conv_algo_name.hpp>
-#include <miopen/logger.hpp>
 
 #include <string>
 #include <unordered_map>
 namespace miopen {
 
-using mapFwd_t = std::unordered_map<std::string, miopenConvFwdAlgorithm_t>;
-using mapBwd_t = std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t>;
-using mapWrw_t = std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t>;
-
-static const mapFwd_t& FwdAlgoMap()
+miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
 {
-    static const mapFwd_t data{
+    static const std::unordered_map<std::string, miopenConvFwdAlgorithm_t> data{
         {"miopenConvolutionFwdAlgoGEMM", miopenConvolutionFwdAlgoGEMM},
         {"miopenConvolutionFwdAlgoDirect", miopenConvolutionFwdAlgoDirect},
         {"miopenConvolutionFwdAlgoFFT", miopenConvolutionFwdAlgoFFT},
         {"miopenConvolutionFwdAlgoWinograd", miopenConvolutionFwdAlgoWinograd},
         {"miopenConvolutionFwdAlgoImplicitGEMM", miopenConvolutionFwdAlgoImplicitGEMM},
     };
-    return data;
+    return data.at(s);
 }
 
-template <typename T>
-typename T::mapped_type ToConvolutionAlgo(const std::string& s, const T& map)
+miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s)
 {
-    const auto it = map.find(s);
-    if(it == map.end())
-        MIOPEN_THROW(miopenStatusInternalError, "Bad algorithm: " + s);
-    return it->second;
-}
-
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
-{
-    return ToConvolutionAlgo(s, FwdAlgoMap());
-}
-
-static const mapBwd_t& BwdAlgoMap()
-{
-    static const mapBwd_t data{
+    static const std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t> data{
         {"miopenConvolutionBwdDataAlgoGEMM", miopenConvolutionBwdDataAlgoGEMM},
         {"miopenConvolutionBwdDataAlgoDirect", miopenConvolutionBwdDataAlgoDirect},
         {"miopenConvolutionBwdDataAlgoFFT", miopenConvolutionBwdDataAlgoFFT},
@@ -72,35 +53,19 @@ static const mapBwd_t& BwdAlgoMap()
         {"miopenTransposeBwdDataAlgoGEMM", miopenTransposeBwdDataAlgoGEMM},
         {"miopenConvolutionBwdDataAlgoImplicitGEMM", miopenConvolutionBwdDataAlgoImplicitGEMM},
     };
-    return data;
+    return data.at(s);
 }
 
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s)
+miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s)
 {
-    return ToConvolutionAlgo(s, BwdAlgoMap());
-}
-
-static const mapWrw_t& WrwAlgoMap()
-{
-    static const mapWrw_t data{
+    static const std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t> data{
         {"miopenConvolutionBwdWeightsAlgoGEMM", miopenConvolutionBwdWeightsAlgoGEMM},
         {"miopenConvolutionBwdWeightsAlgoDirect", miopenConvolutionBwdWeightsAlgoDirect},
         {"miopenConvolutionBwdWeightsAlgoWinograd", miopenConvolutionBwdWeightsAlgoWinograd},
         {"miopenConvolutionBwdWeightsAlgoImplicitGEMM",
          miopenConvolutionBwdWeightsAlgoImplicitGEMM},
     };
-    return data;
-}
-
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s)
-{
-    return ToConvolutionAlgo(s, WrwAlgoMap());
-}
-
-bool IsValidConvolutionDirAlgo(const std::string& s)
-{
-    return FwdAlgoMap().find(s) != FwdAlgoMap().end() ||
-           BwdAlgoMap().find(s) != BwdAlgoMap().end() || WrwAlgoMap().find(s) != WrwAlgoMap().end();
+    return data.at(s);
 }
 
 std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
