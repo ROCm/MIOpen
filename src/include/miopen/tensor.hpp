@@ -259,9 +259,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-    void SetTensorNdVector(const std::string& layout);
-
-    void SetTensorNd(const std::string& layout);
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
 
 private:
     TensorDescriptor(miopenDataType_t t,

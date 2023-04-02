@@ -92,7 +92,7 @@ std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
     return lens;
 }
 
-void LengthReorder(std::vector<size_t>& lens, const std::initializer_list<size_t>& indices)
+void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t>& indices)
 {
     std::vector<size_t> out_lens;
     out_lens.reserve(indices.size());
@@ -222,11 +222,29 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     else
     {
         packed = true;
-        SetTensorNd(GetLayout_str());
+        // Since strides is not passed it is computed based on tensorLayout.
+        SetStrideNd(GetLayout_str());
+    }
+}
+void TensorDescriptor::SetStrideNd(const std::string& layout)
+{
+    std::string default_layout = miopen::tensor_layout_get_default(layout.size());
+    if(layout == default_layout)
+    {
+        CalculateStrides();
+    }
+    else if(layout.find('c') != std::string::npos)
+    {
+        LensReorder(layout);
+        CalculateStrides();
+    }
+    else
+    {
+        miopen::tensor_layout_to_strides(lens, default_layout, layout, strides);
     }
 }
 
-void TensorDescriptor::SetTensorNdVector(const std::string& layout)
+void TensorDescriptor::LensReorder(const std::string& layout)
 {
     if(layout == "NCHWc")
     {
@@ -234,31 +252,12 @@ void TensorDescriptor::SetTensorNdVector(const std::string& layout)
     }
     else if(layout == "CHWNc")
     {
-        LengthReorder(lens, {1, 2, 3, 0});
+        ReorderVector(lens, {1, 2, 3, 0});
     }
     else
     {
         MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
     }
-    CalculateStrides();
-}
-
-void TensorDescriptor::SetTensorNd(const std::string& layout)
-{
-    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
-    if(layout == len_layout)
-    {
-        CalculateStrides();
-        return;
-    }
-
-    if(layout.find('c') != std::string::npos)
-    {
-        SetTensorNdVector(layout);
-        return;
-    }
-
-    miopen::tensor_layout_to_strides(lens, len_layout, layout, strides);
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, int size)
