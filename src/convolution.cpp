@@ -60,24 +60,16 @@ namespace miopen {
 
 std::size_t GetMaxWorkSpaceSize(const std::vector<std::pair<std::string, std::size_t>>& values)
 {
-    try
+    std::size_t sz = 0;
+    for(const auto& pr : values)
     {
-        std::size_t sz = 0;
-        for(const auto& pr : values)
+        if(sz < pr.second)
         {
-            if(sz < pr.second)
-            {
-                MIOPEN_LOG_I2(sz << " < " << pr.second);
-                sz = pr.second;
-            }
+            MIOPEN_LOG_I2(sz << " < " << pr.second);
+            sz = pr.second;
         }
-        return sz;
     }
-    catch(const miopen::Exception& ex)
-    {
-        MIOPEN_LOG_WE(ex.what());
-        return 0;
-    }
+    return sz;
 }
 
 std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,

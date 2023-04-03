@@ -254,7 +254,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
-        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
