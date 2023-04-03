@@ -8,7 +8,7 @@ RUN apt update && \
 
 WORKDIR /
 RUN git clone --recurse-submodules https://github.com/ROCmSoftwarePlatform/gputt.git && \
-	cd gputt && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=hipcc .. && \
+	cd gputt && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ .. && \
 	make VERBOSE=1 && make install && \
 	cd / && rm -rf gputt
 
