@@ -138,8 +138,9 @@ def cmake_build(Map conf=[:]){
     sh cmd
 
     // Only archive from master or develop
-    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
+    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_PERF_BRANCH)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
+        stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
 }
 
@@ -261,7 +262,7 @@ def buildHipClangJob(Map conf=[:]){
             catch(Exception ex) {
                 conf.put("no_cache", true)
                 (retimage, image) = getDockerImage(conf)
-                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
+                retimage = docker.build("${image}", "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -312,6 +313,43 @@ def buildHipClangJobAndReboot(Map conf=[:]){
         }
     }
 }
+
+def RunPerfTest(Map conf=[:]){
+    def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+    try {
+        (retimage, image) = getDockerImage(conf)
+        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+        timeout(time: 600, unit: 'MINUTES')
+            {
+                unstash 'miopen_tar'
+                sh "ls"
+                sh "ls build/"
+                sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
+                ld_lib="${env.WORKSPACE}/opt/rocm/lib"
+                def filename = conf.get("filename", "Resnet50_v1.5.txt") // default Resnet50_v1.5 
+                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+                jenkins_url = "${env.artifact_path}/${env.MIOPEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
+                try {
+                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+                } catch (Exception err){
+                    currentBuild.result = 'SUCCESS'
+                    }
+
+                if (env.BRANCH_NAME == env.MIOPEN_PERF_BRANCH) {
+                    archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+                }
+                else{
+                    sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
+                }
+}
+        }
+    }
+    catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+        echo "The job was cancelled or aborted"
+        throw e
+    }
+}
+
 
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
@@ -434,6 +472,10 @@ pipeline {
             name: "OPENCL_BACKEND",
             defaultValue: false,
             description: "Enable OpenCL backend stages")
+        booleanParam(
+            name: "PERF_TEST",
+            defaultValue: true,
+            description: "Enable performance testing stage")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
             description: "")
@@ -1099,6 +1141,19 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         buildHipClangJobAndReboot( package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
+                    }
+                }
+            }
+        }
+        stage("Perf Test") {
+            when {
+                expression {params.PERF_TEST && params.TARGET_GFX90A}
+            }
+            parallel{
+                stage('Resnet50'){
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5.txt" )
                     }
                 }
             }
