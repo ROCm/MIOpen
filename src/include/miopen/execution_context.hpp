@@ -86,6 +86,8 @@ struct ExecutionContext
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
     ExecutionContext(Handle* stream_) : stream(stream_) {}
+
+    ExecutionContext() {}
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
     ExecutionContext(ExecutionContext&&)      = default;
