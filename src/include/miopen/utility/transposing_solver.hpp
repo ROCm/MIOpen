@@ -77,8 +77,12 @@ struct TransposeInvokeParams : InvokeParams
 
 struct TransposePseudoSolver
 {
-    virtual ~TransposePseudoSolver()                                        = default;
-    TransposePseudoSolver(TransposePseudoSolver const&) = default;
+    TransposePseudoSolver() {}
+    virtual ~TransposePseudoSolver()                    = default;
+    TransposePseudoSolver(const TransposePseudoSolver&) = default;
+    TransposePseudoSolver(TransposePseudoSolver&&)      = default;
+    TransposePseudoSolver& operator=(const TransposePseudoSolver&) = default;
+    TransposePseudoSolver& operator=(TransposePseudoSolver&&)               = default;
     virtual std::string GetTranspose() const                                = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& ctx,
                                      const TransposeProblem& problem) const = 0;
