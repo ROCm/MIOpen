@@ -88,6 +88,7 @@ struct ExecutionContext
     ExecutionContext() = default;
     ExecutionContext(Handle* stream_) : stream(stream_) {}
     virtual ~ExecutionContext() = default;
+    ExecutionContext(ExecutionContext const&) = default;
 
     void DetectRocm();
 #if MIOPEN_EMBED_DB

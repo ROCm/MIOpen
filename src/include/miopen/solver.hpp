@@ -76,6 +76,7 @@ const int wave_size = 64;
 struct SolverBase
 {
     virtual ~SolverBase() = default;
+    SolverBase(SolverBase const&) = default;
 
     /// This will retrieve the id of the solver to write to the database. By
     /// default it uses the class name. If the class is renamed, this function can

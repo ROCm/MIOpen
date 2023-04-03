@@ -41,6 +41,7 @@ namespace solver {
 struct PerfConfig
 {
     virtual ~PerfConfig() = default;
+    PerfConfig(PerfConfig const&) = default;
 
     virtual void Serialize(std::ostream& stream) const = 0;
     virtual bool Deserialize(const std::string& s)     = 0;
