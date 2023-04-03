@@ -307,7 +307,8 @@ bool PerformanceConfigCKGEMActiv::IsValidValue() const
     return this->index >= 0 && this->index < valid_kernels.size();
 }
 
-bool PerformanceConfigCKGEMActiv::IsValid(const FusionDescription& fdesc_problem) const
+bool PerformanceConfigCKGEMActiv::IsValid(const FusionContext&,
+                                          const FusionDescription& fdesc_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = fdesc_problem;
@@ -333,10 +334,12 @@ bool PerformanceConfigCKGEMActiv::operator==(const PerformanceConfigCKGEMActiv& 
 {
     return this->kernel_id == other.kernel_id;
 }
-PerformanceConfigCKGEMActiv CKGEMMActiv::GetDefaultPerformanceConfig(const FusionContext& ctx) const
+PerformanceConfigCKGEMActiv
+CKGEMMActiv::GetDefaultPerformanceConfig(const FusionContext&,
+                                         const FusionDescription& fdesc_problem) const
 {
     PerformanceConfigCKGEMActiv pp;
-    pp.HeuristicInit(ctx);
+    pp.HeuristicInit(fdesc_problem);
     return pp;
 }
 
@@ -363,12 +366,12 @@ bool CKGEMMActiv::IsApplicable(const FusionContext& ctx,
     return false;
 #else
     const auto& fp_desc = fdesc_problem.fusion_plan_desc;
-    if(fp_desc.op_map[0]->kind() != miopenFusionOpGEMM)
+    if(fp_desc->op_map[0]->kind() != miopenFusionOpGEMM)
     {
         return false;
     }
 
-    const auto& problem = ctx.problem.GetGemmProblem(0);
+    const auto& problem = fdesc_problem.GetGemmProblem(0);
     if(miopen::IsDisabled(MIOPEN_DEBUG_CK_IGEMM{}))
     {
         return false;
