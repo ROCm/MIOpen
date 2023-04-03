@@ -40,7 +40,6 @@
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 #endif
 
 namespace miopen {
@@ -456,10 +455,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
+    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
-#endif
 
     {
         std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX{});
@@ -477,7 +474,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 #endif
         if(limit != std::numeric_limits<std::size_t>::max())
         {
-            const auto required = GetWorkspaceSize(problem);
+            const auto required = GetWorkspaceSize(ctx, problem);
             MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
             if(required > limit)
                 return false;
@@ -534,7 +531,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     return InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
            OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
@@ -547,7 +544,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     result.construction_params.push_back(
         InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetKernel(ctx, problem));

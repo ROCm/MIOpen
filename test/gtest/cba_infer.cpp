@@ -49,15 +49,16 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 {
     auto& handle = get_handle();
     Solver solv{};
-    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
+    const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
+    auto fusion_ctx           = miopen::FusionContext{handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx);
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
+    auto sol = solv.GetSolution(fusion_ctx, fusion_problem);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
@@ -72,15 +73,17 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 {
     auto& handle = get_handle();
     Solver solv{};
-    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
+    const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
+    auto fusion_ctx           = miopen::FusionContext{handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx, solv.GetDefaultPerformanceConfig(fusion_ctx));
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
+    auto sol = solv.GetSolution(
+        fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);

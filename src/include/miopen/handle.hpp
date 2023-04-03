@@ -82,6 +82,8 @@ struct Handle : miopenHandle
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
+    void SetStreamFromPool(int streamID) const;
+    void ReserveExtraStreamsInPool(int cnt) const;
 
     void SetAllocator(miopenAllocatorFunction allocator,
                       miopenDeallocatorFunction deallocator,
@@ -149,8 +151,8 @@ struct Handle : miopenHandle
     std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
-        std::size_t num_cu = this->GetMaxComputeUnits();
-        std::string name   = this->GetDeviceName();
+        const std::size_t num_cu = this->GetMaxComputeUnits();
+        const std::string name   = this->GetDeviceName();
         return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
     }
 
@@ -263,11 +265,10 @@ public:
     }
 
 #if MIOPEN_USE_ROCBLAS
-    const rocblas_handle_ptr& rhandle() const { return rhandle_; }
+    const rocblas_handle_ptr& rhandle() const;
 
 private:
-    rocblas_handle_ptr CreateRocblasHandle() const;
-    rocblas_handle_ptr rhandle_;
+    rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
 #else
 private:
 #endif

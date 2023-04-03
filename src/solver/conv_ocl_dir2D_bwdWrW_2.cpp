@@ -153,7 +153,7 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetDefaultPerformanceConfig()
-    return ConvOclBwdWrW2<1>::GetSolution(ctx, problem, GetDefaultPerformanceConfig(problem));
+    return ConvOclBwdWrW2<1>::GetSolution(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
 }
 
 template <int N_BATCH_LOOPS>
@@ -169,7 +169,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
@@ -495,7 +495,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            /// We use the default PerformanceConfig here. This guarantees that at least
            /// one config will pass the LDS constraint check during auto-tuning.
            /// This works also for non-tunable solver.
-           IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(problem));
+           IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
 }
 
 template <int N_BATCH_LOOPS>
@@ -507,7 +507,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(problem);
@@ -515,7 +516,8 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ProblemDescript
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&,
+                                                       const ProblemDescription& problem) const
 {
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     if(n_batch_blks > 1)
@@ -728,7 +730,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         result.construction_params.push_back(kernel);
     }
 
-    const auto ws_sz       = GetWorkspaceSize(problem);
+    const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 

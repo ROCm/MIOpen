@@ -602,8 +602,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(
-    const ConvolutionContext& /*config*/)
+bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {
@@ -756,6 +755,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {
@@ -834,6 +834,11 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
+
+#if WORKAROUND_ISSUE_1979
+    if(problem.group_counts > 1)
+        return false;
+#endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))

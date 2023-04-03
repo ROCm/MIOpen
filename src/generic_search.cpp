@@ -24,20 +24,38 @@
  *
  *******************************************************************************/
 
-#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/generic_search_controls.hpp>
 
 #include <cstddef>
 #include <limits>
+#include <chrono>
 
 namespace miopen {
 namespace solver {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
-
 std::size_t GetTuningIterationsMax()
 {
     return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
+}
+
+std::chrono::milliseconds GetTuningTimeMax()
+{
+    static const auto fallback =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
+    static const auto res =
+        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
+    return res;
+}
+
+std::size_t GetTuningThreadsMax()
+{
+#if MIOPEN_USE_COMGR
+    const auto def_max = 1; // COMGR is not parallelizable
+#else
+    const int def_max = std::thread::hardware_concurrency() / 2;
+#endif
+    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);
 }
 
 } // namespace solver

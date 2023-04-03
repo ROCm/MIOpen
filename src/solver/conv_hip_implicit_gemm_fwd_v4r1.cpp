@@ -57,6 +57,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
@@ -94,6 +96,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.Is2d())
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;

@@ -3,4 +3,4 @@ boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
 ROCmSoftwarePlatform/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
-ROCmSoftwarePlatform/composable_kernel@dc70371142340dc2084d669767b59a239b0e0410 -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"
+ROCmSoftwarePlatform/composable_kernel@5f28614222bd590bc31d98838bc019e9c3a7ad45 -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102"
