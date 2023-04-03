@@ -288,7 +288,7 @@ struct CKGEMMActiv final : FusionTunableSolver<PerformanceConfigCKGEMActiv>
                                   const PerformanceConfigCKGEMActiv& config) const override;
     PerformanceConfigCKGEMActiv
     Search(const FusionContext& ctx,
-           const FusionDescription& fdesc_problem const AnyInvokeParams& invoke_ctx) const override;
+           const FusionDescription& fdesc_problem, const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const FusionContext& ctx,
                       const FusionDescription& fdesc_problem) const override;
     ConvSolution GetSolution(const FusionContext& ctx,
