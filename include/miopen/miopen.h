@@ -2720,37 +2720,6 @@ MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gem
                                                       long long int ldC_,
                                                       miopenDataType_t dataType_);
 
-/*! @brief Execute a gemm fusion layer
- *
- * @param handle        MIOpen handle (input)
- * @param gemmDesc      Descriptor for gemm layer (input)
- * @param ADesc         Tensor descriptor for data input tensor A (input)
- * @param A             Data tensor A (input)
- * @param BDesc         Tensor descriptor for data input tensor B (input)
- * @param B             Data tensor B (input)
- * @param CDesc         Tensor descriptor for output data tensor C (input)
- * @param C             Data tensor C (output)
- * @return              miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenGemmActivFusion(miopenHandle_t handle,
-                                                   const miopenGemmDescriptor_t gemmDesc,
-                                                   const miopenTensorDescriptor_t ADesc,
-                                                   const void* A,
-                                                   const miopenTensorDescriptor_t BDesc,
-                                                   const void* B,
-                                                   const miopenTensorDescriptor_t CDesc,
-                                                   void* C);
-
-/*! @brief Destroys the gemm descriptor object
- *
- * @param gemmDesc   Gemm tensor descriptor type (input)
- * @return            miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
-
-/** @} */
-// CLOSEOUT GEMM DOXYGEN GROUP
-
 // Softmax APIs
 /** @addtogroup softmax
  *

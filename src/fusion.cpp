@@ -108,30 +108,6 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t GemmActivFusion(Handle& handle,
-                               GemmDesc gemm_desc,
-                               const TensorDescriptor& ADesc,
-                               ConstData_t A_data,
-                               const TensorDescriptor& BDesc,
-                               ConstData_t B_data,
-                               const TensorDescriptor& CDesc,
-                               Data_t C_data)
-{
-    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, ADesc};
-    OperatorArgs fusionArgs;
-    // Create gemm Operation. This operation will be part of fusion plan.
-    auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, BDesc);
-    // Add Operation Gemm as part of fusion plan.
-    MIOPEN_CHECK(fusePlanDesc.AddOp(gemmOp));
-    // compile fusion solver
-    MIOPEN_CHECK(fusePlanDesc.Compile(handle));
-    // Here for fusion we set up the B matrix space (b_dev).
-    gemmOp->SetArgs(fusionArgs, B_data);
-    // execute fusion solver
-    MIOPEN_CHECK(fusePlanDesc.Execute(handle, ADesc, A_data, CDesc, C_data, fusionArgs));
-    return miopenStatusSuccess;
-}
-
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),
