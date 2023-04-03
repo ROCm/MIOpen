@@ -36,6 +36,8 @@ namespace ai {
 namespace tn {
 bool IsDeviceSupported(const std::string& device)
 {
+    // TODO look in src/kernels/ dir, and if DEVICE.tn.model and DEVICE_metadata.tn.model files
+    // are present, add DEVICE to the list of supported devices
     static const std::set<std::string> supported_devices = {"gfx908"};
     static const bool is_device_supported = supported_devices.find(device) != supported_devices.end();
     if (!is_device_supported)
@@ -49,7 +51,6 @@ nlohmann::json GetMetadata(const std::string& device)
     static const nlohmann::json metadata = nlohmann::json::parse(std::ifstream(file_path));
     return metadata;
 }
-
 
 fdeep::model GetModel(const std::string& device)
 {
