@@ -70,6 +70,9 @@ Handle::~Handle() {}
 
 void Handle::SetStream(miopenAcceleratorQueue_t /* streamID */) const {}
 
+void Handle::SetStreamFromPool(int) const {}
+void Handle::ReserveExtraStreamsInPool(int) const {}
+
 miopenAcceleratorQueue_t Handle::GetStream() const { return {}; }
 
 void Handle::SetAllocator(miopenAllocatorFunction /* allocator */,
@@ -284,7 +287,10 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
 }
 
 #if MIOPEN_USE_ROCBLAS
-rocblas_handle_ptr Handle::CreateRocblasHandle() const
+
+const rocblas_handle_ptr& Handle::rhandle() const { return this->impl->rhandle_; }
+
+rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
 {
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);
