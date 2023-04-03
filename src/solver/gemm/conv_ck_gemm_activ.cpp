@@ -260,12 +260,12 @@ void RunCKSolution(const Handle& handle,
 }
 #endif
 
-void PerformanceConfigCKGEMActiv::HeuristicInit(const FusionContext& ctx)
+void PerformanceConfigCKGEMActiv::HeuristicInit(const FusionDescription& fdesc_problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
 #else
-    const auto& gemm_prob = ctx.problem.GetGemmProblem(0);
+    const auto& gemm_prob = fdesc_problem.GetGemmProblem(0);
     switch(gemm_prob.GetADataType())
     {
     case miopenHalf: Init<ck::half_t>(gemm_prob); break;
@@ -279,15 +279,15 @@ void PerformanceConfigCKGEMActiv::HeuristicInit(const FusionContext& ctx)
 #endif
 }
 
-bool PerformanceConfigCKGEMActiv::SetNextValue(const FusionContext& ctx)
+bool PerformanceConfigCKGEMActiv::SetNextValue(const FusionDescription& fdesc_problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
     if(this->valid_kernels.empty())
     {
-        this->HeuristicInit(ctx);
+        this->HeuristicInit(fdesc_problem);
         assert(!valid_kernels.empty());
         return true;
     }
@@ -307,14 +307,14 @@ bool PerformanceConfigCKGEMActiv::IsValidValue() const
     return this->index >= 0 && this->index < valid_kernels.size();
 }
 
-bool PerformanceConfigCKGEMActiv::IsValid(const FusionContext& ctx) const
+bool PerformanceConfigCKGEMActiv::IsValid(const FusionDescription& fdesc_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
     // Extract convolution problem from the fusion context.
-    const auto& problem = ctx.problem.GetGemmProblem(0);
+    const auto& problem = fdesc_problem.GetGemmProblem(0);
     switch(problem.GetADataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
@@ -341,24 +341,28 @@ PerformanceConfigCKGEMActiv CKGEMMActiv::GetDefaultPerformanceConfig(const Fusio
 }
 
 bool CKGEMMActiv::IsValidPerformanceConfig(const FusionContext& ctx,
+                                           const FusionDescription& fdesc_problem,
                                            const PerformanceConfigCKGEMActiv& config) const
 {
-    return config.IsValid(ctx);
+    return config.IsValid(ctx, fdesc_problem);
 }
 
 PerformanceConfigCKGEMActiv CKGEMMActiv::Search(const FusionContext& ctx,
+                                                const FusionDescription& fdesc_problem,
                                                 const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, fdesc_problem, invoke_ctx);
 }
 
-bool CKGEMMActiv::IsApplicable(const FusionContext& ctx) const
+bool CKGEMMActiv::IsApplicable(const FusionContext& ctx,
+                               const FusionDescription& fdesc_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
+    std::ignore = fdesc_problem;
     return false;
 #else
-    const auto& fp_desc = *ctx.problem.fusion_plan_desc;
+    const auto& fp_desc = fdesc_problem.fusion_plan_desc;
     if(fp_desc.op_map[0]->kind() != miopenFusionOpGEMM)
     {
         return false;
@@ -394,15 +398,16 @@ bool CKGEMMActiv::IsApplicable(const FusionContext& ctx) const
 #endif
 }
 
-ConvSolution CKGEMMActiv::GetSolution(const FusionContext& ctx,
+ConvSolution CKGEMMActiv::GetSolution(const FusionContext&,
+                                      const FusionDescription& fdesc_problem,
                                       const PerformanceConfigCKGEMActiv& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = fdesc_problem;
     std::ignore = config;
     return {};
 #else
-    const auto& problem = ctx.problem.GetGemmProblem(0);
+    const auto& problem = fdesc_problem.GetGemmProblem(0);
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;

@@ -257,10 +257,10 @@ struct PerformanceConfigCKGEMActiv : PerfConfigBase<PerformanceConfigCKGEMActiv>
     PerformanceConfigCKGEMActiv(int idx, std::string kernl_id) : index(idx), kernel_id(kernl_id) {}
     PerformanceConfigCKGEMActiv() : PerformanceConfigCKGEMActiv(0, "") {}
     PerformanceConfigCKGEMActiv(bool) : PerformanceConfigCKGEMActiv(0, "") {}
-    void HeuristicInit(const FusionContext& ctx);
-    bool SetNextValue(const FusionContext& ctx);
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
     bool IsValidValue() const;
-    bool IsValid(const FusionContext& ctx) const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
 
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
@@ -281,13 +281,18 @@ struct CKGEMMActiv final : FusionTunableSolver<PerformanceConfigCKGEMActiv>
     const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMMActiv>(); }
 
     PerformanceConfigCKGEMActiv
-    GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
     bool IsValidPerformanceConfig(const FusionContext& ctx,
+                                  const FusionDescription& fdesc_problem,
                                   const PerformanceConfigCKGEMActiv& config) const override;
-    PerformanceConfigCKGEMActiv Search(const FusionContext& ctx,
-                                       const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const FusionContext& ctx) const override;
+    PerformanceConfigCKGEMActiv
+    Search(const FusionContext& ctx,
+           const FusionDescription& fdesc_problem const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
     ConvSolution GetSolution(const FusionContext& ctx,
+                             const FusionDescription& fdesc_problem,
                              const PerformanceConfigCKGEMActiv& config) const override;
 
 private:
