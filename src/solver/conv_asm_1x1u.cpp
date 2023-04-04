@@ -362,7 +362,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     }
     return true;
 }
-
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 bool PerformanceConfigConvAsm1x1U::ApplyToken(int index,
                                               int value,
                                               const ProblemDescription& problem)
@@ -429,6 +429,7 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
         valid = true;
     }
 }
+#endif
 
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem)

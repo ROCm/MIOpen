@@ -7,7 +7,7 @@
 #include <typeinfo>
 #include <string>
 #include <iostream>
-
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace miopen {
 namespace ai {
 namespace tuning {
@@ -19,3 +19,4 @@ nlohmann::json GetModelMetadata(const std::string& arch, const std::string& solv
 } // namespace tuning
 } // namespace ai
 } // namespace miopen
+#endif

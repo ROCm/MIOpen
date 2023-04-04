@@ -31,12 +31,10 @@
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
-#include <queue>
 #include <typeinfo>
 #include <string>
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
-#endif
 
 namespace miopen {
 namespace ai {
@@ -113,4 +111,5 @@ inline bool ModelSetParams(const fdeep::model& encoder,
 } // namespace tuning
 } // namespace ai
 } // namespace miopen
+#endif
 #endif
