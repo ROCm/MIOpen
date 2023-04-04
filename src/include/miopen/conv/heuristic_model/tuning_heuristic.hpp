@@ -42,11 +42,7 @@ namespace miopen {
 namespace ai {
 namespace tuning {
 
-inline nlohmann::json GetMetadata(const std::string& arch, const std::string& solver)
-{
-    std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.model";
-    return nlohmann::json::parse(std::ifstream(file_path));
-}
+nlohmann::json GetModelMetadata(const std::string& arch, const std::string& solver);
 
 inline fdeep::model
 GetModel(const std::string& arch, const std::string& solver, const std::string& model_type)
@@ -118,27 +114,3 @@ inline bool ModelSetParams(const fdeep::model& encoder,
 } // namespace ai
 } // namespace miopen
 #endif
-
-// namespace fdeep
-// {
-// class model;
-// }
-
-// namespace miopen {
-// namespace ai {
-// namespace tuning {
-
-// nlohmann::json get_metadata(const std::string& arch, const std::string& solver);
-// fdeep::model get_model(const std::string& arch, const std::string& solver, const std::string&
-// model_type); bool model_set_params(const fdeep::model& encoder,
-//                              const fdeep::model& decoder,
-//                              const nlohmann::json& metadata,
-//                              solver::PerformanceConfigConvAsm1x1U& config,
-//                              const ProblemDescription& problem,
-//                              std::vector<float>& features);
-
-// } // namespace tuning
-// } // namespace ai
-// } // namespace miopen
-// #endif
-// #endif

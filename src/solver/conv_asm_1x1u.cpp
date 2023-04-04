@@ -39,6 +39,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)
@@ -419,7 +420,7 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
     static const std::string solver = "ConvAsm1x1U";
     static const auto encoder       = ai::tuning::GetModel(arch, solver, "encoder");
     static const auto decoder       = ai::tuning::GetModel(arch, solver, "decoder");
-    static const auto metadata      = ai::tuning::GetMetadata(arch, solver);
+    static const auto metadata      = ai::tuning::GetModelMetadata(arch, solver);
     std::vector<float> features =
         TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
     if(ai::tuning::ModelSetParams(encoder, decoder, metadata, *this, problem, features))
