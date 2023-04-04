@@ -27,39 +27,41 @@
 #ifndef GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
 #define GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+#include <miopen/miopen.h>
 #include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <unordered_map>
 #include <queue>
 #include <typeinfo>
 #include <string>
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
+#endif
 
 namespace miopen {
 namespace ai {
 namespace tuning {
 
-inline nlohmann::json get_metadata(const std::string& arch, const std::string& solver)
+inline nlohmann::json GetMetadata(const std::string& arch, const std::string& solver)
 {
     std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.model";
     return nlohmann::json::parse(std::ifstream(file_path));
 }
 
 inline fdeep::model
-get_model(const std::string& arch, const std::string& solver, const std::string& model_type)
+GetModel(const std::string& arch, const std::string& solver, const std::string& model_type)
 {
     std::string file_path =
         GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".model";
     return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
 }
 
-inline bool model_set_params(const fdeep::model& encoder,
-                             const fdeep::model& decoder,
-                             const nlohmann::json& metadata,
-                             solver::PerformanceConfigConvAsm1x1U& config,
-                             const ProblemDescription& problem,
-                             std::vector<float>& features)
+inline bool ModelSetParams(const fdeep::model& encoder,
+                           const fdeep::model& decoder,
+                           const nlohmann::json& metadata,
+                           solver::PerformanceConfigConvAsm1x1U& config,
+                           const ProblemDescription& problem,
+                           std::vector<float>& features)
 {
     MIOPEN_LOG_I("");
 
@@ -93,7 +95,7 @@ inline bool model_set_params(const fdeep::model& encoder,
             pq.pop();
             if(value < 0)
                 return false;
-            if(config.TryToken(i, value, problem))
+            if(config.ApplyToken(i, value, problem))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
@@ -115,7 +117,6 @@ inline bool model_set_params(const fdeep::model& encoder,
 } // namespace tuning
 } // namespace ai
 } // namespace miopen
-#endif
 #endif
 
 // namespace fdeep

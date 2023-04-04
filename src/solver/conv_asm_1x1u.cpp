@@ -362,48 +362,24 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-bool PerformanceConfigConvAsm1x1U::TryToken(int index, int value, const ProblemDescription& problem)
+bool PerformanceConfigConvAsm1x1U::ApplyToken(int index,
+                                              int value,
+                                              const ProblemDescription& problem)
 {
-    int sequence_length = 0;
     switch(index)
     {
-    case 0:
-        read_size       = value;
-        sequence_length = 1;
-        break;
-    case 1:
-        k_mult          = value;
-        sequence_length = 2;
-        break;
-    case 2:
-        chunks_per_wave = value;
-        sequence_length = 3;
-        break;
-    case 3:
-        chunk_size      = value;
-        sequence_length = 4;
-        break;
-    case 4:
-        n_mult          = value;
-        sequence_length = 5;
-        break;
-    case 5:
-        c_mult          = value;
-        sequence_length = 6;
-        break;
-    case 6:
-        waves_c_in_group = value;
-        sequence_length  = 7;
-        break;
-    case 7:
-        waves_k_in_group = value;
-        sequence_length  = 8;
-        break;
+    case 0: read_size = value; break;
+    case 1: k_mult = value; break;
+    case 2: chunks_per_wave = value; break;
+    case 3: chunk_size = value; break;
+    case 4: n_mult = value; break;
+    case 5: c_mult = value; break;
+    case 6: waves_c_in_group = value; break;
+    case 7: waves_k_in_group = value; break;
     default: return false;
     }
     // this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
-    return this->IsPartiallyValid(problem, sequence_length);
+    return this->IsPartiallyValid(problem, index + 1);
 }
 
 bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
@@ -434,7 +410,24 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     features[7 * n + 7] = float(problem.batch_sz);
     return features;
 }
-#endif
+
+void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionContext& ctx,
+                                                              const ProblemDescription& problem,
+                                                              bool& valid)
+{
+    static const std::string& arch  = ctx.GetStream().GetDeviceName();
+    static const std::string solver = "ConvAsm1x1U";
+    static const auto encoder       = ai::tuning::GetModel(arch, solver, "encoder");
+    static const auto decoder       = ai::tuning::GetModel(arch, solver, "decoder");
+    static const auto metadata      = ai::tuning::GetMetadata(arch, solver);
+    std::vector<float> features =
+        TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
+    if(ai::tuning::ModelSetParams(encoder, decoder, metadata, *this, problem, features))
+    {
+        MIOPEN_LOG_I("Params set by AI: " << ToString());
+        valid = true;
+    }
+}
 
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem)
@@ -445,18 +438,10 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
-        static const std::string& arch  = ctx.GetStream().GetDeviceName();
-        static const std::string solver = "ConvAsm1x1U";
-        static const auto encoder       = ai::tuning::get_model(arch, solver, "encoder");
-        static const auto decoder       = ai::tuning::get_model(arch, solver, "decoder");
-        static const auto metadata      = ai::tuning::get_metadata(arch, solver);
-        std::vector<float> features =
-            TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
-        if(ai::tuning::model_set_params(encoder, decoder, metadata, *this, problem, features))
-        {
-            MIOPEN_LOG_I("Params set by AI: " << ToString());
+        bool valid = false;
+        RunParmeterPredictionModel(ctx, problem, valid);
+        if(valid)
             return;
-        }
     }
 #else
     std::ignore = ctx;

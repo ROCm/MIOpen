@@ -1,4 +1,5 @@
 #include <miopen/miopen.h>
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include "../tensor_holder.hpp"
 #include <gtest/gtest.h>
 #include <iostream>
@@ -6,94 +7,93 @@
 #include <miopen/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include "get_handle.hpp"
+#include <unordered_map>
 
-void Test_908_ConvAsm1x1U(void)
+static std::vector<std::vector<std::vector<int>>> gfx908_ConvAsm1x1U_tensor_shapes{
+    {{256, 2048, 7, 7}, {512, 2048, 1, 1}, {256, 512, 7, 7}},
+    {{512, 192, 56, 56}, {288, 192, 1, 1}, {512, 288, 56, 56}},
+    {{1, 4, 2, 2}, {4, 4, 1, 1}, {1, 4, 2, 2}}};
+
+static std::vector<miopenDataType_t> gfx908_ConvAsm1x1U_data_types{
+    miopenHalf, miopenFloat, miopenFloat};
+
+static std::vector<miopen::conv::Direction> gfx908_ConvAsm1x1U_directions{
+    miopen::conv::Direction::Forward,
+    miopen::conv::Direction::BackwardData,
+    miopen::conv::Direction::Forward};
+
+static std::vector<std::string> gfx908_ConvAsm1x1U_expected_configs{
+    "2,8,4,16,1,4,1,4", "1,16,1,64,2,2,1,4", ""};
+
+static std::vector<bool> gfx908_ConvAsm1x1U_expected_valid{true, true, false};
+
+template <typename T, typename G>
+void TestParameterPredictionModel(miopen::Handle& handle,
+                                  const std::vector<std::vector<int>>& tensor_shapes,
+                                  const miopenDataType_t& data_type,
+                                  const miopenTensorLayout_t& layout,
+                                  const miopen::conv::Direction& direction,
+                                  const miopen::ConvolutionDescriptor& conv_desc,
+                                  const std::string& expected,
+                                  const bool expected_valid)
 {
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    auto&& handle = get_handle();
-    if(handle.GetDeviceName() != "gfx908")
-        return;
-    tensor<half_float::half> test_inputs_f =
-        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 256, 2048, 7, 7);
-    tensor<half_float::half> test_weights_f =
-        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 512, 2048, 1, 1);
-    tensor<half_float::half> test_outputs_f =
-        tensor<half_float::half>(miopenHalf, miopenTensorNCHW, 256, 512, 7, 7);
-
-    tensor<float> test_inputs_b  = tensor<float>(miopenFloat, miopenTensorNCHW, 512, 192, 56, 56);
-    tensor<float> test_weights_b = tensor<float>(miopenFloat, miopenTensorNCHW, 288, 192, 1, 1);
-    tensor<float> test_outputs_b = tensor<float>(miopenFloat, miopenTensorNCHW, 512, 288, 56, 56);
-
-    tensor<float> test_inputs_fallback  = tensor<float>(miopenFloat, miopenTensorNCHW, 1, 4, 2, 2);
-    tensor<float> test_weights_fallback = tensor<float>(miopenFloat, miopenTensorNCHW, 4, 4, 1, 1);
-    tensor<float> test_outputs_fallback = tensor<float>(miopenFloat, miopenTensorNCHW, 1, 4, 2, 2);
-
-    miopen::ConvolutionDescriptor conv_desc_fallback{2,
-                                                     miopenConvolution,
-                                                     miopenPaddingDefault,
-                                                     std::vector<int>{0, 0},
-                                                     std::vector<int>{1, 1},
-                                                     std::vector<int>{1, 1},
-                                                     std::vector<int>{0, 0},
-                                                     1,
-                                                     float(1)};
-
-    miopen::ConvolutionDescriptor conv_desc{std::vector<int>{0, 0},
-                                            std::vector<int>{1, 1},
-                                            std::vector<int>{1, 1},
-                                            std::vector<int>{0, 0},
-                                            1,
-                                            float(1)};
-
-    miopen::ProblemDescription forward_pd(test_inputs_f.desc,
-                                          test_weights_f.desc,
-                                          test_outputs_f.desc,
-                                          conv_desc,
-                                          miopen::conv::Direction::Forward);
-
-    miopen::ConvolutionContext forward(forward_pd);
-
-    forward.SetStream(&handle);
-    forward.DetectRocm();
-
-    miopen::ProblemDescription backward_pd(test_inputs_b.desc,
-                                           test_weights_b.desc,
-                                           test_outputs_b.desc,
-                                           conv_desc,
-                                           miopen::conv::Direction::BackwardData);
-
-    miopen::ConvolutionContext backward(backward_pd);
-
-    backward.SetStream(&handle);
-    backward.DetectRocm();
-
-    miopen::ProblemDescription fallback_pd(test_inputs_fallback.desc,
-                                           test_weights_fallback.desc,
-                                           test_outputs_fallback.desc,
-                                           conv_desc_fallback,
-                                           miopen::conv::Direction::Forward);
-
-    miopen::ConvolutionContext fallback(fallback_pd);
-
-    fallback.SetStream(&handle);
-    fallback.DetectRocm();
-
-    miopen::solver::PerformanceConfigConvAsm1x1U config_forward;
-    config_forward.HeuristicInit(forward, forward_pd);
-    miopen::solver::PerformanceConfigConvAsm1x1U config_backward;
-    config_backward.HeuristicInit(backward, backward_pd);
-    miopen::solver::PerformanceConfigConvAsm1x1U config_fallback;
-    config_fallback.HeuristicInit(fallback, fallback_pd);
-    EXPECT_EQ(config_forward.ToString(), "2,8,4,16,1,4,1,4")
-        << "Forward fp16 test case failed, model predicted: " << config_forward.ToString()
-        << " but should have predicted: 2,8,4,16,1,4,1,4";
-    EXPECT_EQ(config_backward.ToString(), "1,16,1,64,2,2,1,4")
-        << "Backward fp32 test case failed, model predicted: " << config_backward.ToString()
-        << " but should have predicted: 1,16,1,64,2,2,1,4";
-    EXPECT_EQ(config_fallback.ToString(), "1,4,4,1,1,1,1,1")
-        << "Model did not fallback when producing erroneous tokens";
-#else
-#endif
+    miopen::ConvolutionContext ctx;
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    bool valid              = false;
+    tensor<G> input_tensor  = tensor<G>(data_type, layout, tensor_shapes[0]);
+    tensor<G> weight_tensor = tensor<G>(data_type, layout, tensor_shapes[1]);
+    tensor<G> output_tensor = tensor<G>(data_type, layout, tensor_shapes[2]);
+    miopen::ProblemDescription problem_description(
+        input_tensor.desc, weight_tensor.desc, output_tensor.desc, conv_desc, direction);
+    T perf_config;
+    perf_config.RunParmeterPredictionModel(ctx, problem_description, valid);
+    ASSERT_EQ(valid, expected_valid)
+        << "Expected parameters to be "
+        << (expected_valid ? std::string("valid") : std::string("invalid")) << " but were "
+        << (valid ? std::string("valid") : std::string("invalid"));
+    if(expected_valid)
+    {
+        EXPECT_EQ(perf_config.ToString(), expected)
+            << "Expected parameters: " << expected
+            << "\nPredicted parameters: " << perf_config.ToString();
+    }
 }
 
-TEST(KERNEL_TUNING_NET_TESTS, Test_908_ConvAsm1x1U) { Test_908_ConvAsm1x1U(); }
+void TestConvAsm1x1UGfx908(void)
+{
+    auto&& handle = get_handle();
+    if(handle.GetDeviceName() != "gfx908")
+        GTEST_SKIP();
+    miopen::ConvolutionDescriptor conv_desc;
+    for(int i = 0; i < gfx908_ConvAsm1x1U_tensor_shapes.size(); i++)
+    {
+        if(gfx908_ConvAsm1x1U_data_types[i] == miopenFloat)
+        {
+            TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, float>(
+                handle,
+                gfx908_ConvAsm1x1U_tensor_shapes[i],
+                gfx908_ConvAsm1x1U_data_types[i],
+                miopenTensorNCHW,
+                gfx908_ConvAsm1x1U_directions[i],
+                conv_desc,
+                gfx908_ConvAsm1x1U_expected_configs[i],
+                gfx908_ConvAsm1x1U_expected_valid[i]);
+        }
+        else if(gfx908_ConvAsm1x1U_data_types[i] == miopenHalf)
+        {
+            TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U,
+                                         half_float::half>(handle,
+                                                           gfx908_ConvAsm1x1U_tensor_shapes[i],
+                                                           gfx908_ConvAsm1x1U_data_types[i],
+                                                           miopenTensorNCHW,
+                                                           gfx908_ConvAsm1x1U_directions[i],
+                                                           conv_desc,
+                                                           gfx908_ConvAsm1x1U_expected_configs[i],
+                                                           gfx908_ConvAsm1x1U_expected_valid[i]);
+        }
+    }
+}
+
+TEST(KERNEL_TUNING_NET_TESTS, TestConvAsm1x1UGfx908) { TestConvAsm1x1UGfx908(); }
+#endif

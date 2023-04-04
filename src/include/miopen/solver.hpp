@@ -362,7 +362,9 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     // clang-format on
 
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
-    bool TryToken(int index, int value, const ProblemDescription&);
+    void
+    RunParmeterPredictionModel(const ConvolutionContext&, const ProblemDescription&, bool& valid);
+    bool ApplyToken(int index, int value, const ProblemDescription&);
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
@@ -373,7 +375,6 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
 
 private:
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     bool IsPartiallyValid(const ProblemDescription& problem, int sequence_length) const
     {
         return IsValidImpl(problem, sequence_length);
@@ -382,7 +383,6 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
-#endif
     bool IsValidImpl(const ProblemDescription& problem, int sequence_length) const;
     bool IsValidValueImpl(int sequence_length) const;
 };
