@@ -262,7 +262,6 @@ def buildHipClangJob(Map conf=[:]){
             catch(Exception ex) {
                 conf.put("no_cache", true)
                 (retimage, image) = getDockerImage(conf)
-                retimage = docker.build("${image}", "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -322,8 +321,6 @@ def RunPerfTest(Map conf=[:]){
         timeout(time: 600, unit: 'MINUTES')
             {
                 unstash 'miopen_tar'
-                sh "ls"
-                sh "ls build/"
                 sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
                 ld_lib="${env.WORKSPACE}/opt/rocm/lib"
                 def filename = conf.get("filename", "Resnet50_v1.5.txt") // default Resnet50_v1.5 
@@ -474,7 +471,7 @@ pipeline {
             description: "Enable OpenCL backend stages")
         booleanParam(
             name: "PERF_TEST",
-            defaultValue: true,
+            defaultValue: false,
             description: "Enable performance testing stage")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
