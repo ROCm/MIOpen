@@ -84,6 +84,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
+    if(IsDeprecatedStatic(ctx))
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))

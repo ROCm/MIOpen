@@ -145,6 +145,8 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
+    if(IsDeprecatedStatic(ctx))
+        return false;
     return ConvOclBwdWrW2<1>::IsApplicableBase(ctx, problem) && !IsTunable(problem);
 }
 

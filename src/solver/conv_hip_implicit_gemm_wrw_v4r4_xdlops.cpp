@@ -1042,6 +1042,8 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
         return false;
 
+    if(IsDeprecatedStatic(ctx))
+        return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 

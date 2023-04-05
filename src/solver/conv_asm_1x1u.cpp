@@ -377,6 +377,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
         return false;
+    if(IsDeprecatedStatic(ctx))
+        return false;
     if(!ctx.use_asm_kernels)
         return false;
     if(!problem.Is2d())
