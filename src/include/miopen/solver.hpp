@@ -4715,7 +4715,7 @@ struct mlo_construct_direct2D_fusion : mlo_construct_base
                                               const miopen::AnyInvokeParams& invoke_ctx);
 };
 
-inline bool IsDeprecatedStatic(const miopen::ExecutionContext ctx)
+inline bool IsDeprecatedStatic(const miopen::ConvolutionContext& ctx)
 {
     const auto dev_name = ctx.GetStream().GetTargetProperties().Name();
     return (dev_name != "gfx900" && dev_name != "gfx906" and dev_name != "gfx908" &&
