@@ -365,7 +365,7 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     void
     RunParmeterPredictionModel(const ConvolutionContext&, const ProblemDescription&, bool& valid);
-    bool ApplyToken(int index, int value, const ProblemDescription&);
+    bool ModelApplyToken(int index, int value, const ProblemDescription&);
 #endif
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);

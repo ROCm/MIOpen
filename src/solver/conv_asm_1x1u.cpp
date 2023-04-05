@@ -363,9 +363,9 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-bool PerformanceConfigConvAsm1x1U::ApplyToken(int index,
-                                              int value,
-                                              const ProblemDescription& problem)
+bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
+                                                   int value,
+                                                   const ProblemDescription& problem)
 {
     switch(index)
     {
@@ -396,8 +396,8 @@ bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& 
 
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
 {
-    assert(n > 5);
-    assert(n < 50);
+    assert(n == 8); // n = 6 (numerical conv params) * 1 + 1 (nominal conv params) * 2(amount of
+                    // values nominal param can take).
     std::vector<float> features(n * n, 0.0f);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;

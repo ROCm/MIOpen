@@ -89,7 +89,7 @@ inline bool ModelSetParams(const fdeep::model& encoder,
             pq.pop();
             if(value < 0)
                 return false;
-            if(config.ApplyToken(i, value, problem))
+            if(config.ModelApplyToken(i, value, problem))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
