@@ -28,7 +28,11 @@
 .if (.amdgcn.gfx_generation_number == 9)
     KERNEL_PROLOG fp16_dot2_edc_f3x2_dilation2
 
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 0)
+    .include "Conv_Winograd_v30_2_6_gfx940_fp16_dot2_edc_f3x2_dilation2.inc"
+.else
     .include "Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc"
+.endif
 
     KERNEL_EPILOG fp16_dot2_edc_f3x2_dilation2
 .elseif (.amdgcn.gfx_generation_number == 10)
