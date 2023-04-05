@@ -138,7 +138,7 @@ def cmake_build(Map conf=[:]){
     sh cmd
 
     // Only archive from master or develop
-    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_PERF_BRANCH)) {
+    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
         stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
@@ -319,26 +319,27 @@ def RunPerfTest(Map conf=[:]){
         (retimage, image) = getDockerImage(conf)
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
         timeout(time: 600, unit: 'MINUTES')
-            {
-                unstash 'miopen_tar'
-                sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
-                ld_lib="${env.WORKSPACE}/opt/rocm/lib"
-                def filename = conf.get("filename", "Resnet50_v1.5.txt") // default Resnet50_v1.5 
-                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
-                jenkins_url = "${env.artifact_path}/${env.MIOPEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
-                try {
-                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
-                } catch (Exception err){
-                    currentBuild.result = 'SUCCESS'
-                    }
+        {
+            unstash 'miopen_tar'
+            sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
+            ld_lib="${env.WORKSPACE}/opt/rocm/lib"
+            def filename = conf.get("filename", "")
+            sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+            jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
+            try {
+                sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+            }
+            catch (Exception err){
+                currentBuild.result = 'SUCCESS'
+            }
 
-                if (env.BRANCH_NAME == env.MIOPEN_PERF_BRANCH) {
-                    archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-                }
-                else{
-                    sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
-                }
-}
+            if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH){
+                archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            }
+            else{
+                sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
+            }
+        }
         }
     }
     catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
@@ -381,6 +382,7 @@ def CheckPerfDbValid(Map conf=[:]){
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
+///   * "Performance" is optional performance analysis.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
@@ -906,7 +908,7 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
-                stage('Int8 HIP All Vega20') {
+           ormancestage('Int8 HIP All Vega20') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
@@ -1142,12 +1144,12 @@ pipeline {
                 }
             }
         }
-        stage("Perf Test") {
+        stage("Performance Test - HIP") {
             when {
                 expression {params.PERF_TEST && params.TARGET_GFX90A}
             }
             parallel{
-                stage('Resnet50'){
+                stage('Performance Test Resnet50'){
                     agent{ label rocmnode("austin")}
                     steps{
                         RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5.txt" )

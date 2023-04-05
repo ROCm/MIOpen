@@ -31,9 +31,10 @@ import re
 import subprocess
 import argparse
 import csv
+from decimal import Decimal
 
-#models_path = "/opt/rocm/share/miopen/perf_models"
 results_path = f"{os.path.dirname(__file__)}/perf_results"
+TOLERANCE = -5  #tolerance 5%
 
 
 def parse_args():
@@ -68,17 +69,16 @@ def parse_args():
 
 def run_driver_cmds(filename, install_path):
   """Parse model file and launch Driver cmds"""
-  #tmp = filename.split('/')[-1]
   resfile = f"{results_path}/{filename}"
   model_path = f"{install_path}/share/miopen/perf_models/{filename}"
 
   try:
-    outfile = open(os.path.expanduser(resfile), 'w+')
+    outfile = open(os.path.expanduser(resfile), 'w+', encoding='utf-8')
     results = []
     field_names = ['Driver', 'k_time']
     writer = csv.DictWriter(outfile, fieldnames=field_names)
     writer.writeheader()
-    with open(os.path.expanduser(model_path), "r") as infile:
+    with open(os.path.expanduser(model_path), "r", encoding='utf-8') as infile:
       for line in infile:
         try:
           idx = line.index('MIOpenDriver')
@@ -86,11 +86,11 @@ def run_driver_cmds(filename, install_path):
           cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
                 f"{install_path}/bin/{driver_cmd} -V 0 -i 1 -w 1 -t 1"
           print(f'Running cm: {cmd}')
-          p = subprocess.Popen(cmd,
-                               shell=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
-          p_out = p.stdout.readlines()
+          proc = subprocess.Popen(cmd,
+                                  shell=True,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT)
+          p_out = proc.stdout.readlines()
           k_time = -1
           for o_line in p_out:
             o_line = o_line.decode("utf-8")
@@ -117,31 +117,39 @@ def run_driver_cmds(filename, install_path):
 def compare_results(args):
   """Compare current results with previous results"""
   if not os.path.exists(results_path):
-    raise ValueError('Results path does not exist %s', results_path)
+    raise ValueError(f"Results path does not exist {results_path}")
   if not os.path.exists(args.old_results_path):
-    raise ValueError('Old results path does not exist %s',
-                     args.old_results_path)
+    raise ValueError(f"Old results path does not exist {args.old_results_path}")
 
-  if not compare_file(args, f"{results_path}/{args.filename}", \
+  if not compare_file(f"{results_path}/{args.filename}", \
     f"{args.old_results_path}/{args.filename}"):
     raise ValueError(f"FAILED: {args.filename}")
-  else:
-    print(f"PASSED: {args.filename}")
+  print(f"PASSED: {args.filename}")
 
 
-def compare_file(args, new_results, old_results):
+def compare_file(new_results, old_results):
   """Compare kernel_time in new vs old results file"""
-  with open(new_results, 'r') as new, open(old_results, 'r') as old:
+  ret = True
+  with open(new_results,
+            'r', encoding='utf-8') as new, open(old_results,
+                                                'r',
+                                                encoding='utf-8') as old:
     for line_new, line_old in zip(csv.DictReader(new), csv.DictReader(old)):
       if line_new['Driver'] != line_old['Driver']:
+        print(f"New driver: {line_new['Driver']}")
+        print(f"Old driver: {line_old['Driver']}")
         raise ValueError('Result files are out of sync')
-      if line_new['k_time'] > line_old['k_time']:
+      speedup = (Decimal(line_old['k_time']) - Decimal(
+          line_new['k_time'])) / Decimal(line_old['k_time']) * 100
+      if int(speedup) < TOLERANCE:
+        print(f"{line_new['Driver']}")
+        print(f"Speedup: {speedup}%")
         print(
             f"FAILED for new k_time: {line_new['k_time']} - old k_time: {line_old['k_time']}\n"
-            f"driver cmd: {line_new['Driver']}")
-        return False
+        )
+        ret = False
 
-  return True
+  return ret
 
 
 def main():
@@ -165,7 +173,6 @@ def main():
       sys.exit(1)
 
   return True
-
 
 
 if __name__ == '__main__':
