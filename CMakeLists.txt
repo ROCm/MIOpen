@@ -87,7 +87,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.19.0)
+rocm_setup_version(VERSION 2.20.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -695,6 +695,10 @@ enable_clang_tidy(
         -performance-no-automatic-move
         -clang-analyzer-cplusplus.NewDeleteLeaks
         -modernize-deprecated-headers
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.4.2
+        ###################################################################
+        -misc-const-correctness
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
