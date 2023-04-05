@@ -33,14 +33,14 @@
 
 // Compiler uses undefined behavior sanitizer
 // -fsanitize=enum (or -fsanitize=undefined)
-#if (defined(__clang__) || defined(__GNUG__)) && !defined(NDEBUG)
+#if(defined(__clang__) || defined(__GNUG__)) && !defined(NDEBUG)
 #define UBSAN_ENABLED 1
 #else
 #define UBSAN_ENABLED 0
 #endif
 
 // We use out-of-range values for miopenDataType_t and miopenTensorLayout_t
-#define USE_OUT_OF_RANGE_ENUM  (UBSAN_ENABLED == 0)
+#define USE_OUT_OF_RANGE_ENUM (UBSAN_ENABLED == 0)
 
 namespace {
 
@@ -80,10 +80,9 @@ bool CompareLengths(const L1 l1, const L2 l2, int size)
 }
 
 // Set tensor descriptor
-TestStatus
-Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
-                      const TensorParams& params,
-                      bool check_skip)
+TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+                                 const TensorParams& params,
+                                 bool check_skip)
 {
     if(params.tensorLayout != miopenTensorNCHW || params.nbDims != 4 || params.dimsA == nullptr ||
        params.use_strides)
@@ -104,10 +103,9 @@ Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus
-SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
-                                const TensorParams& params,
-                                bool check_skip)
+TestStatus SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                           const TensorParams& params,
+                                           bool check_skip)
 {
     if(params.use_strides)
         return TestStatus::Skipped;
@@ -123,10 +121,9 @@ SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus
-Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
-                        const TensorParams& params,
-                        bool check_skip)
+TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+                                   const TensorParams& params,
+                                   bool check_skip)
 {
     if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC ||
        params.nbDims != 4 || params.dimsA == nullptr || params.stridesA == nullptr ||
@@ -152,10 +149,9 @@ Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
-TestStatus
-SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
-                    const TensorParams& params,
-                    bool check_skip)
+TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
+                               const TensorParams& params,
+                               bool check_skip)
 {
     if(params.tensorLayout < miopenTensorNCHW || params.tensorLayout > miopenTensorNDHWC)
         return TestStatus::Skipped;
@@ -195,8 +191,8 @@ TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tens
         return TestStatus::Failed; // internal error
 
     miopenStatus_t status;
-    //miopenDataType_t dataType;
-    miopenDataType_t dataType = miopenHalf;// TODO for UBSan (fix log output for pointers)
+    // miopenDataType_t dataType;
+    miopenDataType_t dataType = miopenHalf; // TODO for UBSan (fix log output for pointers)
     int dims[4], strides[4];
 
     status = miopenGet4dTensorDescriptor(tensorDesc,
@@ -231,8 +227,8 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
     if(status != miopenStatusSuccess || size < 0 || size != params.nbDims)
         return TestStatus::Failed;
 
-    //miopenDataType_t dataType;
-    miopenDataType_t dataType = miopenHalf;// TODO for UBSan (fix log output for pointers)
+    // miopenDataType_t dataType;
+    miopenDataType_t dataType = miopenHalf; // TODO for UBSan (fix log output for pointers)
     std::vector<int> dims(size);
     std::vector<int> strides(size);
 
@@ -313,7 +309,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
     {
         auto config            = valid_config;
         config.params.dataType = datatype;
-        //config.valid           = false;// TODO debug
+        // config.valid           = false;// TODO debug
         wrong_configs.push_back(config);
     }
 #endif
