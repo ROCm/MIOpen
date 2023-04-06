@@ -78,8 +78,10 @@ struct TransposeInvokeParams : InvokeParams
 struct TransposePseudoSolver
 {
     virtual ~TransposePseudoSolver()                    = default;
-    ... protected : TransposePseudoSolver()             = default;
     TransposePseudoSolver(const TransposePseudoSolver&) = default;
+
+protected:
+    TransposePseudoSolver() = default;
 };
 
 template <class Derived, class Interface>
