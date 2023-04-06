@@ -40,13 +40,12 @@ namespace solver {
 
 struct PerfConfig
 {
-    PerfConfig() {}
-
     virtual ~PerfConfig()         = default;
+    ...
+protected:
+    PerfConfig() = default;
     PerfConfig(const PerfConfig&) = default;
-    PerfConfig(PerfConfig&&)      = default;
     PerfConfig& operator=(const PerfConfig&) = default;
-    PerfConfig& operator=(PerfConfig&&) = default;
 
     virtual void Serialize(std::ostream& stream) const = 0;
     virtual bool Deserialize(const std::string& s)     = 0;

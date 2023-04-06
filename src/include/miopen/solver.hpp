@@ -75,13 +75,11 @@ const int wave_size = 64;
 /// There could be multiple solvers of the same algorithm for a problem config.
 struct SolverBase
 {
-    SolverBase() {}
-
-    virtual ~SolverBase()         = default;
+    virtual ~SolverBase() = default;
+    ...
+protected:
+    SolverBase() = default;
     SolverBase(const SolverBase&) = default;
-    SolverBase(SolverBase&&)      = default;
-    SolverBase& operator=(const SolverBase&) = default;
-    SolverBase& operator=(SolverBase&&) = default;
 
     /// This will retrieve the id of the solver to write to the database. By
     /// default it uses the class name. If the class is renamed, this function can
