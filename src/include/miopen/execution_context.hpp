@@ -87,7 +87,7 @@ struct ExecutionContext
 
     ExecutionContext(Handle* stream_) : stream(stream_) {}
 
-    ExecutionContext() = default;
+    ExecutionContext()                        = default;
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
 

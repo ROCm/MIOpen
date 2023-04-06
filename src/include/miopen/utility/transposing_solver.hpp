@@ -78,9 +78,7 @@ struct TransposeInvokeParams : InvokeParams
 struct TransposePseudoSolver
 {
     virtual ~TransposePseudoSolver()                    = default;
-    ...
-protected:
-    TransposePseudoSolver() = default;
+    ... protected : TransposePseudoSolver()             = default;
     TransposePseudoSolver(const TransposePseudoSolver&) = default;
 };
 
