@@ -223,6 +223,10 @@ def getDockerImage(Map conf=[:])
         dockerImage = docker.image("${image}")
         dockerImage.pull()
     }
+    catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+        echo "The job was cancelled or aborted"
+        throw e
+    }
     catch(Exception ex)
     {
         dockerImage = docker.build("${image}", "${dockerArgs} .")
