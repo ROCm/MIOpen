@@ -4,13 +4,13 @@
 #include <cstdlib>
 
 template <typename T>
-inline T FRAND(void)
+inline T FRAND()
 {
     double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
     return static_cast<T>(d);
 }
 
-inline int GET_RAND(void) { return rand(); }
+inline int GET_RAND() { return rand(); }
 
 template <typename T>
 inline T RAN_GEN(T A, T B)

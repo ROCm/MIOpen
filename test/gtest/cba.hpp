@@ -65,14 +65,15 @@ struct ConvTestCase
     size_t pad_y;
     size_t stride_x;
     size_t stride_y;
-    size_t dialtion_x;
+    size_t dilation_x;
     size_t dilation_y;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
                   << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y << " )";
+                  << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
+                  << " dilation_x:" << tc.dilation_x << " )";
     }
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
     std::vector<size_t> GetWeights() { return {k, C, y, x}; }
@@ -81,7 +82,7 @@ struct ConvTestCase
         return miopen::ConvolutionDescriptor{
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},
             {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_y)}};
+            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}};
     }
 };
 
@@ -115,15 +116,16 @@ std::vector<ConvTestCase> GetNetwork1()
 
 template <typename T = float>
 struct ConvBiasActivInferTest
-    : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, ConvTestCase>>
+    : public ::testing::TestWithParam<
+          std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                      = false;
-        std::tie(activ_mode, conv_config) = GetParam();
-        input                             = tensor<T>{conv_config.GetInput()};
-        weights                           = tensor<T>{conv_config.GetWeights()};
+        test_skipped                                     = false;
+        std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
+        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -134,7 +136,7 @@ protected:
         conv_desc  = conv_config.GetConv();
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{output_desc.GetLengths()};
+        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
         auto&& handle = get_handle();
@@ -164,7 +166,7 @@ protected:
         conv_stats stats;
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
-        ref_out = tensor<T>{output_desc.GetLengths()};
+        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         ref_out = ref_conv_fwd(input, weights, output, conv_desc);
         cpu_bias_forward(ref_out, bias);
         activationHostInfer(
@@ -204,4 +206,5 @@ protected:
     const float activ_alpha = static_cast<double>(0.5f);
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
+    miopenTensorLayout_t tensor_layout;
 };
