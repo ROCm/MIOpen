@@ -378,11 +378,11 @@ def CheckPerfDbValid(Map conf=[:]){
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* } [ Codecov ]
+/// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
-///   * "Performance" is optional performance analysis.
+///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
@@ -474,7 +474,7 @@ pipeline {
         booleanParam(
             name: "PERF_TEST",
             defaultValue: false,
-            description: "Enable performance testing stage")
+            description: "Enable performance testing stages")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
             description: "")
@@ -908,7 +908,7 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
-           ormancestage('Int8 HIP All Vega20') {
+                stage('Int8 HIP All Vega20') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
@@ -1144,12 +1144,12 @@ pipeline {
                 }
             }
         }
-        stage("Performance Test - HIP") {
+        stage("Performance Tests - gfx90a") {
             when {
                 expression {params.PERF_TEST && params.TARGET_GFX90A}
             }
             parallel{
-                stage('Performance Test Resnet50'){
+                stage('Fp32 Hip Performance Resnet50_v1.5 gfx90a'){
                     agent{ label rocmnode("austin")}
                     steps{
                         RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5.txt" )
