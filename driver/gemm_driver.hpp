@@ -299,8 +299,7 @@ int GemmDriver<T>::RunForwardGPU()
                                    b_dev->GetMem(),
                                    0,
                                    c_dev->GetMem(),
-                                   0,
-                                   nullptr);
+                                   0);
         else
             CallGemm(miopen::deref(GetHandle()),
                      gemm_desc,
@@ -309,8 +308,7 @@ int GemmDriver<T>::RunForwardGPU()
                      b_dev->GetMem(),
                      0,
                      c_dev->GetMem(),
-                     0,
-                     nullptr);
+                     0);
 
 #if GEMM_DRIVER_DEBUG
         {
