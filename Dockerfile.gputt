@@ -7,7 +7,7 @@ RUN apt update && \
 		fish
 
 WORKDIR /
-RUN git clone --recurse-submodules https://github.com/ROCmSoftwarePlatform/gputt.git && \
+RUN git clone --recurse-submodules --branch v0.1 https://github.com/ROCmSoftwarePlatform/gputt.git && \
 	cd gputt && mkdir build && cd build && cmake -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ .. && \
 	make VERBOSE=1 && make install && \
 	cd / && rm -rf gputt
