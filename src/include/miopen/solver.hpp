@@ -77,10 +77,6 @@ struct SolverBase
 {
     virtual ~SolverBase() = default;
 
-protected:
-    SolverBase()                  = default;
-    SolverBase(const SolverBase&) = default;
-
     /// This will retrieve the id of the solver to write to the database. By
     /// default it uses the class name. If the class is renamed, this function can
     /// overriden to keep the name to avoid DB corruption.
@@ -132,6 +128,8 @@ protected:
         static const auto result = ComputeSolverDbId(get_type_name<Solver>());
         return result;
     }
+    SolverBase()                  = default;
+    SolverBase(const SolverBase&) = default;
 
 private:
     static std::string ComputeSolverDbId(const std::string& type_name)
