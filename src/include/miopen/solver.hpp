@@ -75,8 +75,10 @@ const int wave_size = 64;
 /// There could be multiple solvers of the same algorithm for a problem config.
 struct SolverBase
 {
-    virtual ~SolverBase()         = default;
-    ... protected : SolverBase()  = default;
+    virtual ~SolverBase() = default;
+
+protected:
+    SolverBase()                  = default;
     SolverBase(const SolverBase&) = default;
 
     /// This will retrieve the id of the solver to write to the database. By

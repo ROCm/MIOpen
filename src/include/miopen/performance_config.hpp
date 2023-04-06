@@ -40,8 +40,10 @@ namespace solver {
 
 struct PerfConfig
 {
-    virtual ~PerfConfig()         = default;
-    ... protected : PerfConfig()  = default;
+    virtual ~PerfConfig() = default;
+
+protected:
+    PerfConfig()                  = default;
     PerfConfig(const PerfConfig&) = default;
     PerfConfig& operator=(const PerfConfig&) = default;
 
