@@ -191,8 +191,7 @@ TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tens
         return TestStatus::Failed; // internal error
 
     miopenStatus_t status;
-    // miopenDataType_t dataType;
-    miopenDataType_t dataType = miopenHalf; // TODO for UBSan (fix log output for pointers)
+    miopenDataType_t dataType;
     int dims[4], strides[4];
 
     status = miopenGet4dTensorDescriptor(tensorDesc,
@@ -227,8 +226,7 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
     if(status != miopenStatusSuccess || size < 0 || size != params.nbDims)
         return TestStatus::Failed;
 
-    // miopenDataType_t dataType;
-    miopenDataType_t dataType = miopenHalf; // TODO for UBSan (fix log output for pointers)
+    miopenDataType_t dataType;
     std::vector<int> dims(size);
     std::vector<int> strides(size);
 
@@ -309,7 +307,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
     {
         auto config            = valid_config;
         config.params.dataType = datatype;
-        // config.valid           = false;// TODO debug
+        config.valid           = false;
         wrong_configs.push_back(config);
     }
 #endif
