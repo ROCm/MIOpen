@@ -26,6 +26,28 @@
 
 cmake_policy(SET CMP0057 NEW)
 
+set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
+install(FILES  test_perf.py
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+set(MODEL_FILES)
+list(APPEND MODEL_FILES
+     perf_models/Resnet50_v1.5_FP32_BS128.txt
+     perf_models/Resnet50_v1.5_FP32_BS256.txt
+     perf_models/Resnet50_v1.5_FP32_BS512.txt
+     perf_models/Resnet50_v1.5_FP16_BS128.txt
+     perf_models/Resnet50_v1.5_FP16_BS256.txt
+     perf_models/Resnet50_v1.5_FP16_BS512.txt
+    )
+install(FILES
+    ${MODEL_FILES}
+ DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+ foreach(MODEL_FILE ${MODEL_FILES})
+    get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+ endforeach()
+
 include(CTest)
 include(CheckCXXCompilerFlag)
 

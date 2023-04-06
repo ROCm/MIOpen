@@ -128,6 +128,8 @@ protected:
         static const auto result = ComputeSolverDbId(get_type_name<Solver>());
         return result;
     }
+    SolverBase()                  = default;
+    SolverBase(const SolverBase&) = default;
 
 private:
     static std::string ComputeSolverDbId(const std::string& type_name)
