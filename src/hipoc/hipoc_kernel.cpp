@@ -40,7 +40,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
-#ifndef NDEBUG
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
     std::stringstream ss;
@@ -56,15 +55,12 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
     ss << " }";
     return ss.str();
 }
-#endif // !NDEBUG
 
 void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 {
-#ifndef NDEBUG
     MIOPEN_LOG_I2("kernel_name = "
                   << GetName() << ", global_work_dim = " << DimToFormattedString(gdims.data(), 3)
                   << ", local_work_dim = " << DimToFormattedString(ldims.data(), 3));
-#endif // !NDEBUG
 
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;

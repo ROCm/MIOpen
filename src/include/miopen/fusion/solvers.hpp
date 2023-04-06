@@ -144,10 +144,10 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const FusionContext& fusion_ctx,
+    bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
     ConvSolution
-    GetSolution(const FusionContext& ctx,
+    GetSolution(const FusionContext& context,
                 const FusionDescription& problem,
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
     PerformanceConfigConvBiasActivAsm1x1U
