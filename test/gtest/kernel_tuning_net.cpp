@@ -9,45 +9,128 @@
 #include "get_handle.hpp"
 #include <unordered_map>
 
-static std::vector<std::vector<std::vector<int>>> gfx908_ConvAsm1x1U_tensor_shapes{
-    {{256, 2048, 7, 7}, {512, 2048, 1, 1}, {256, 512, 7, 7}},
-    {{512, 192, 56, 56}, {288, 192, 1, 1}, {512, 288, 56, 56}},
-    {{1, 4, 2, 2}, {4, 4, 1, 1}, {1, 4, 2, 2}}};
+struct KernelTuningNetTestCase
+{
+    std::vector<size_t> input;
+    std::vector<size_t> weight;
+    std::vector<size_t> output;
+    size_t pad_x;
+    size_t pad_y;
+    size_t stride_x;
+    size_t stride_y;
+    size_t dilation_x;
+    size_t dilation_y;
+    miopen::conv::Direction direction;
+    miopenDataType_t data_type;
+    miopenTensorLayout_t layout;
+    bool expected_valid;
+    std::string expected_config;
+    miopen::ConvolutionDescriptor GetConv()
+    {
+        return miopen::ConvolutionDescriptor{
+            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
+            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
+            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}};
+    }
+};
 
-static std::vector<miopenDataType_t> gfx908_ConvAsm1x1U_data_types{
-    miopenHalf, miopenFloat, miopenFloat};
+template <typename G>
+struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto test_case         = GetParam();
+        tensor<G> input_tensor = tensor<G>(test_case.data_type, test_case.layout, test_case.input);
+        tensor<G> weight_tensor =
+            tensor<G>(test_case.data_type, test_case.layout, test_case.weight);
+        tensor<G> output_tensor =
+            tensor<G>(test_case.data_type, test_case.layout, test_case.output);
+        problem        = miopen::ProblemDescription(input_tensor.desc,
+                                             weight_tensor.desc,
+                                             output_tensor.desc,
+                                             test_case.GetConv(),
+                                             test_case.direction);
+        expected_valid = test_case.expected_valid;
+        expected       = test_case.expected_config;
+    }
+    miopen::ProblemDescription problem;
+    bool expected_valid;
+    std::string expected;
+};
 
-static std::vector<miopen::conv::Direction> gfx908_ConvAsm1x1U_directions{
-    miopen::conv::Direction::Forward,
-    miopen::conv::Direction::BackwardData,
-    miopen::conv::Direction::Forward};
+struct KernelTuningNetTestFloat : KernelTuningNetTest<float>
+{
+};
 
-static std::vector<std::string> gfx908_ConvAsm1x1U_expected_configs{
-    "2,8,4,16,1,4,1,4", "1,16,1,64,2,2,1,4", ""};
+struct KernelTuningNetTestHalf : KernelTuningNetTest<half_float::half>
+{
+};
 
-static std::vector<bool> gfx908_ConvAsm1x1U_expected_valid{true, true, false};
+std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
+{
+    return {{{512, 192, 56, 56},
+             {288, 192, 1, 1},
+             {512, 288, 56, 56},
+             0,
+             0,
+             1,
+             1,
+             1,
+             1,
+             miopen::conv::Direction::BackwardData,
+             miopenFloat,
+             miopenTensorNCHW,
+             true,
+             "1,16,1,64,2,2,1,4"},
+            {{1, 4, 2, 2},
+             {4, 4, 1, 1},
+             {1, 4, 2, 2},
+             0,
+             0,
+             1,
+             1,
+             1,
+             1,
+             miopen::conv::Direction::Forward,
+             miopenFloat,
+             miopenTensorNCHW,
+             false,
+             ""}};
+}
+
+std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
+{
+    return {{{256, 2048, 7, 7},
+             {512, 2048, 1, 1},
+             {256, 512, 7, 7},
+             0,
+             0,
+             1,
+             1,
+             1,
+             1,
+             miopen::conv::Direction::Forward,
+             miopenHalf,
+             miopenTensorNCHW,
+             true,
+             "2,8,4,16,1,4,1,4"}};
+}
 
 template <typename T, typename G>
-void TestParameterPredictionModel(miopen::Handle& handle,
-                                  const std::vector<std::vector<int>>& tensor_shapes,
-                                  const miopenDataType_t& data_type,
-                                  const miopenTensorLayout_t& layout,
-                                  const miopen::conv::Direction& direction,
-                                  const miopen::ConvolutionDescriptor& conv_desc,
-                                  const std::string& expected,
-                                  const bool expected_valid)
+void TestParameterPredictionModel(miopen::ProblemDescription problem,
+                                  bool expected_valid,
+                                  std::string expected)
 {
+    auto&& handle = get_handle();
+    if(handle.GetDeviceName() != "gfx908")
+        GTEST_SKIP();
     miopen::ConvolutionContext ctx;
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    bool valid              = false;
-    tensor<G> input_tensor  = tensor<G>(data_type, layout, tensor_shapes[0]);
-    tensor<G> weight_tensor = tensor<G>(data_type, layout, tensor_shapes[1]);
-    tensor<G> output_tensor = tensor<G>(data_type, layout, tensor_shapes[2]);
-    miopen::ProblemDescription problem_description(
-        input_tensor.desc, weight_tensor.desc, output_tensor.desc, conv_desc, direction);
     T perf_config;
-    perf_config.RunParmeterPredictionModel(ctx, problem_description, valid);
+    bool valid = false;
+    perf_config.RunParmeterPredictionModel(ctx, problem, valid);
     ASSERT_EQ(valid, expected_valid)
         << "Expected parameters to be "
         << (expected_valid ? std::string("valid") : std::string("invalid")) << " but were "
@@ -60,40 +143,23 @@ void TestParameterPredictionModel(miopen::Handle& handle,
     }
 }
 
-void TestConvAsm1x1UGfx908(void)
+TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
 {
-    auto&& handle = get_handle();
-    if(handle.GetDeviceName() != "gfx908")
-        GTEST_SKIP();
-    miopen::ConvolutionDescriptor conv_desc;
-    for(int i = 0; i < gfx908_ConvAsm1x1U_tensor_shapes.size(); i++)
-    {
-        if(gfx908_ConvAsm1x1U_data_types[i] == miopenFloat)
-        {
-            TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, float>(
-                handle,
-                gfx908_ConvAsm1x1U_tensor_shapes[i],
-                gfx908_ConvAsm1x1U_data_types[i],
-                miopenTensorNCHW,
-                gfx908_ConvAsm1x1U_directions[i],
-                conv_desc,
-                gfx908_ConvAsm1x1U_expected_configs[i],
-                gfx908_ConvAsm1x1U_expected_valid[i]);
-        }
-        else if(gfx908_ConvAsm1x1U_data_types[i] == miopenHalf)
-        {
-            TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U,
-                                         half_float::half>(handle,
-                                                           gfx908_ConvAsm1x1U_tensor_shapes[i],
-                                                           gfx908_ConvAsm1x1U_data_types[i],
-                                                           miopenTensorNCHW,
-                                                           gfx908_ConvAsm1x1U_directions[i],
-                                                           conv_desc,
-                                                           gfx908_ConvAsm1x1U_expected_configs[i],
-                                                           gfx908_ConvAsm1x1U_expected_valid[i]);
-        }
-    }
+    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, float>(
+        problem, expected_valid, expected);
 }
 
-TEST(KERNEL_TUNING_NET_TESTS, TestConvAsm1x1UGfx908) { TestConvAsm1x1UGfx908(); }
+TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
+{
+    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, half_float::half>(
+        problem, expected_valid, expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelFloatTest,
+                         KernelTuningNetTestFloat,
+                         testing::ValuesIn(GetConvAsm1x1UFloatTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelHalfTest,
+                         KernelTuningNetTestHalf,
+                         testing::ValuesIn(GetConvAsm1x1UHalfTestCases()));
 #endif
