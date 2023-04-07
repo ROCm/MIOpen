@@ -383,7 +383,7 @@ bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
     return this->IsPartiallyValid(problem, index + 1);
 }
 
-bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
