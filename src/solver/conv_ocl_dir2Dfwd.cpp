@@ -40,7 +40,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
-    if(IsDeprecatedStatic(ctx))
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(!ctx.use_opencl_convolutions)
         return false;

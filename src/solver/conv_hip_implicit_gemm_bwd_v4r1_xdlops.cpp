@@ -825,7 +825,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
-    if(IsDeprecatedStatic(ctx))
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;

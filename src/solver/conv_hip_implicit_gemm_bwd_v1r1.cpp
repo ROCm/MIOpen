@@ -632,7 +632,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
         return false;
-    if(IsDeprecatedStatic(ctx))
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
