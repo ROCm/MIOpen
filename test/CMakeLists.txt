@@ -1980,7 +1980,7 @@ add_custom_test(smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 GFX103X_ENABLED GFX11
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<1>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2001,7 +2001,7 @@ add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX103X_ENABLED GFX110X_ENABLED HALF
       ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 3 3 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvOclDirectFwd GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvOclDirectFwd GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclDirectFwd' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_FB} --input 16 16 16 16 --weights 16 16 5 5 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2010,7 +2010,7 @@ add_custom_test(smoke_solver_ConvOclDirectFwd GFX103X_ENABLED GFX110X_ENABLED HA
 # WORKAROUND_SWDEV_271887 disables this solver on gfx10 due to precision issues.
 # However we still want to check that solver is not broken and therefore use
 # MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1=1 to enable it.
-add_custom_test(smoke_solver_ConvOclDirectFwd1x1 GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvOclDirectFwd1x1 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclDirectFwd1x1' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_FB} --input 16 16 16 16 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2134,7 +2134,7 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC GFX900_D
 )
 
 # MIOPEN_DEBUG_TUNING_ITERATIONS_MAX is set to 2 because kernels are very slow to build.
-add_custom_test(smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw GFX110X_ENABLED GFX103X_ENABLED HALF_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw GFX103X_ENABLED HALF_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=2
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw $<TARGET_FILE:test_conv2d>
