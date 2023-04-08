@@ -651,16 +651,16 @@ if(${CODECOV_TEST})
 endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
-    add_custom_test(test_miopendriver_half SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_int8 SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
         # Regression test for:
         #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
         #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1386
@@ -668,24 +668,32 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 
-    # WORKAROUND_ISSUE_1787 disabled for gfx908
-    add_custom_test(test_miopendriver_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
+    # Disabled for gfx908 due to WORKAROUND_ISSUE_1787.
+    add_custom_test(test_miopendriver_regression_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
         # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
     )
+    set_tests_properties(test_miopendriver_regression_big_tensor
+        PROPERTIES RUN_SERIAL On)
+    set_tests_properties(test_miopendriver_regression_big_tensor
+        PROPERTIES TIMEOUT 600)
 
-    add_custom_test(test_miopendriver_conv3d_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX103X_DISABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for:
         #   [SWDEV-375617] Fix 3d convolution Host API bug
         #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1935
-        COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> convfp16 -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
+        COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
-    set_tests_properties(test_miopendriver_big_tensor
-        PROPERTIES RUN_SERIAL On)
-    set_tests_properties(test_miopendriver_big_tensor
-        PROPERTIES TIMEOUT 600)
+    add_custom_test(test_miopendriver_regression OCL_DISABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+        # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
+        COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
+            $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
+                -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2
+                --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1
+                --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
+    )
 endif()
 
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
