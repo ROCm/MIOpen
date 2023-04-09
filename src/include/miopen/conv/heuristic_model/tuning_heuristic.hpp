@@ -46,7 +46,7 @@ inline fdeep::model
 GetModel(const std::string& arch, const std::string& solver, const std::string& model_type)
 {
     std::string file_path =
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".model";
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".ktn.model";
     return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
 }
 

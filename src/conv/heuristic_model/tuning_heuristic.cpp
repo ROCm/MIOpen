@@ -37,7 +37,7 @@ namespace tuning {
 
 nlohmann::json GetModelMetadata(const std::string& arch, const std::string& solver)
 {
-    std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.model";
+    std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model";
     return nlohmann::json::parse(std::ifstream(file_path));
 }
 
