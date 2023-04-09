@@ -99,7 +99,7 @@ struct SQLiteSerializable
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
-        std::string clause = JoinStrings(clauses, " AND ");
+        const std::string clause = JoinStrings(clauses, " AND ");
         return std::make_tuple(clause, values);
     }
     std::tuple<std::string, std::vector<std::string>> InsertQuery() const
@@ -115,7 +115,7 @@ struct SQLiteSerializable
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
-        std::vector<std::string> tokens((values.size()), "?");
+        const std::vector<std::string> tokens((values.size()), "?");
         ;
 
         std::string q = "INSERT OR IGNORE INTO " + Derived::table_name() + "( " +
@@ -382,7 +382,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
-    std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, Derived>{};
@@ -519,7 +519,7 @@ public:
             return true;
         else
         {
-            std::string msg = "Unable to remove database entry: ";
+            const std::string msg = "Unable to remove database entry: ";
             MIOPEN_LOG_E(msg + sql.ErrorMessage());
             return false;
         }

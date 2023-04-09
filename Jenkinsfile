@@ -1,5 +1,5 @@
 def rocmnode(name) {
-    return 'rocmtest && miopen && ' + name
+    return 'rocmtest && miopen && (' + name + ')'
 }
 
 def miopenCheckout()
@@ -862,7 +862,6 @@ pipeline {
                 expression { params.BUILD_FULL_TESTS}
             }
             environment{
-                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
                 // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
                 // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -966,7 +965,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
+                        buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip All Vega20') {
@@ -1005,7 +1004,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
                     }
                 }
                 stage('Fp16 Hip All Install gfx90a') {
@@ -1018,7 +1017,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
                 }
             }
