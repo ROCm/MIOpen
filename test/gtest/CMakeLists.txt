@@ -32,9 +32,6 @@ function(add_gtest TEST_NAME)
     endif()
     # Enable CMake to discover the test binary
     gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
-    
-    # avoid timed out error
-    gtest_discover_tests(test_${TEST_NAME} PROPERTIES TIMEOUT 600)
 
   endif()
 endfunction()
