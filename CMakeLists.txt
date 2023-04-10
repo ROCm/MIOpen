@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required( VERSION 3.24 FATAL_ERROR )
 
 macro(set_var_to_condition var)
     if(${ARGN})
@@ -46,7 +46,7 @@ else()
     set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
-project ( MIOpen C CXX )
+project ( MIOpen C CXX HIP )
 
 enable_testing()
 
@@ -90,7 +90,6 @@ endif()
 rocm_setup_version(VERSION 2.19.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
-include(TargetFlags)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.3")
@@ -191,7 +190,6 @@ endif()
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
-target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
@@ -242,7 +240,7 @@ option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MI
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
+#add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 
 # HIP
@@ -271,10 +269,11 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "OpenCL compiler not found")
     endif()
 
-        # Hcc's clang always defines __HCC__ even when not using hcc driver
-        add_definitions(-U__HCC__)
+    # Hcc's clang always defines __HCC__ even when not using hcc driver
+    add_definitions(-U__HCC__)
 
-    set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
+    enable_language(HIP)
+    set(MIOPEN_HIP_COMPILER ${CMAKE_HIP_COMPILER} CACHE PATH "")
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")

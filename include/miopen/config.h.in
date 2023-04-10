@@ -154,4 +154,34 @@
 
 #define MIOPEN_GOLDEN_DB_VERSION 12
 
+// Otherwise, pArgs() is not defined, if compiled with HIP compiler.
+#ifndef __HIPCC__
+
+#include <cstddef>
+#include <tuple>
+#include <type_traits>
+
+template <std::size_t n, typename... Ts,
+          typename std::enable_if<n == sizeof...(Ts)>::type*>
+void pArgs(const std::tuple<Ts...>&, void*) {}
+
+template <std::size_t n, typename... Ts,
+          typename std::enable_if<n != sizeof...(Ts)>::type*>
+void pArgs(const std::tuple<Ts...>& formals, void** _vargs) {
+    using T = typename std::tuple_element<n, std::tuple<Ts...> >::type;
+
+    static_assert(!std::is_reference<T>{},
+                  "A __global__ function cannot have a reference as one of its "
+                  "arguments.");
+#if defined(HIP_STRICT)
+    static_assert(std::is_trivially_copyable<T>{},
+                  "Only TriviallyCopyable types can be arguments to a __global__ "
+                  "function");
+#endif
+    _vargs[n] = const_cast<void*>(reinterpret_cast<const void*>(&std::get<n>(formals)));
+    return pArgs<n + 1>(formals, _vargs);
+}
+
+#endif
+
 #endif // GUARD_CONFIG_H_IN

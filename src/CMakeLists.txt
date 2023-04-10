@@ -179,21 +179,21 @@ set( MIOpen_Source
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
     solver/conv_direct_naive_conv_wrw.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_xdlops.hip
+    solver/conv_hip_implicit_gemm_bwd_v1r1.hip
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.hip
+    solver/conv_hip_implicit_gemm_bwd_v4r1.hip
+    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.hip
+    solver/conv_hip_implicit_gemm_fwd_v4r1.hip
+    solver/conv_hip_implicit_gemm_fwd_v4r4.hip
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.hip
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.hip
+    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.hip
+    solver/conv_hip_implicit_gemm_fwd_xdlops.hip
+    solver/conv_hip_implicit_gemm_nonxdlops_common.hip
+    solver/conv_hip_implicit_gemm_wrw_v4r4.hip
+    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.hip
+    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.hip
     solver/conv_mlir_igemm_bwd.cpp
     solver/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv_mlir_igemm_fwd.cpp
@@ -652,11 +652,14 @@ target_include_directories(MIOpen PUBLIC
 
 set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
+#set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations) # hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+set_target_properties(MIOpen PROPERTIES
+	HIP_SEPARABLE_COMPILATION ON
+	HIP_RESOLVE_DEVICE_SYMBOLS ON)
 target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
@@ -671,14 +674,14 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    target_link_libraries( MIOpen PRIVATE hip::device )
-    target_link_libraries( MIOpen INTERFACE hip::host )
+    #target_link_libraries( MIOpen PRIVATE hip::device )
+    #target_link_libraries( MIOpen INTERFACE hip::host )
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
         target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
     endif()
     # This is helpful for the tests
-    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
+    #target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
 endif()
 
