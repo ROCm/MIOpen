@@ -81,7 +81,7 @@ std::string GetSystemDbPath()
 }
 
 namespace {
-std::string PrepareUserDbPath()
+boost::filesystem::path PrepareUserDbPath()
 {
     auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
     if(p == nullptr)
@@ -94,7 +94,7 @@ std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
 
 std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
 
-const std::string& GetUserDbPath()
+const boost::filesystem::path& GetUserDbPath()
 {
     static const auto instance = PrepareUserDbPath();
     return instance;

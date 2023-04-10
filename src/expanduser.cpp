@@ -46,13 +46,13 @@ static std::string GetHomeDir()
     // need to figure out what is the correct thing to do here
     // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
     // setting home_dir to the /tmp for now
-    return {boost::filesystem::temp_directory_path().native()};
+    return {boost::filesystem::temp_directory_path().string()};
 }
 
-std::string ExpandUser(const std::string& path)
+boost::filesystem::path ExpandUser(const std::string& path)
 {
     static const std::string home_dir = GetHomeDir();
-    return ReplaceString(path, "~", home_dir);
+    return {ReplaceString(path, "~", home_dir)};
 }
 
 } // namespace miopen

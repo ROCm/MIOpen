@@ -26,11 +26,12 @@
 #ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 #define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 
+#include <boost/filesystem.hpp>
 #include <string>
 
 namespace miopen {
 
-std::string ExpandUser(const std::string& path);
+boost::filesystem::path ExpandUser(const std::string& path);
 
 } // namespace miopen
 
