@@ -203,7 +203,7 @@ void InputFlags::Parse(int argc, char* argv[])
 // This function updates the input flag parameters values.Depending on the flag setting,
 // input values are converted to uppercase & stored into map.This is used while
 // parsing the driver arguments.
-void InputFlags::StoreOptionalFlagValue(char short_name, const std::string input_value)
+void InputFlags::StoreOptionalFlagValue(char short_name, const std::string& input_value)
 {
     if(MapInputs[short_name].convert2uppercase == true)
     {
