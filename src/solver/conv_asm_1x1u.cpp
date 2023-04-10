@@ -348,7 +348,6 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
         const int c_per_last_wave = problem.n_inputs - (c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
-        // return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
     }
     if(sequence_length > 7)
     {
@@ -363,6 +362,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
+
 bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
                                                    int value,
                                                    const ProblemDescription& problem)
