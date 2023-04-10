@@ -35,23 +35,23 @@ MIOPEN_DECLARE_ENV_VAR(HOME)
 
 namespace miopen {
 
-std::string ExpandUser(const std::string& path)
+static std::string GetHomeDir()
 {
-    std::string home_dir;
     const char* const p = GetStringEnv(HOME{});
     if(!(p == nullptr || p == std::string("/") || p == std::string("")))
     {
-        home_dir = std::string(p);
+        return {p};
     }
-    else
-    {
-        // todo:
-        // need to figure out what is the correct thing to do here
-        // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
-        // setting home_dir to the /tmp for now
-        home_dir = boost::filesystem::temp_directory_path().native();
-    }
+    // todo:
+    // need to figure out what is the correct thing to do here
+    // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
+    // setting home_dir to the /tmp for now
+    return {boost::filesystem::temp_directory_path().native()};
+}
 
+std::string ExpandUser(const std::string& path)
+{
+    static const std::string home_dir = GetHomeDir();
     return ReplaceString(path, "~", home_dir);
 }
 
