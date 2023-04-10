@@ -42,7 +42,7 @@ namespace tuning {
 
 nlohmann::json GetModelMetadata(const std::string& arch, const std::string& solver);
 
-inline fdeep::model
+fdeep::model
 GetModel(const std::string& arch, const std::string& solver, const std::string& model_type)
 {
     std::string file_path =
@@ -50,12 +50,12 @@ GetModel(const std::string& arch, const std::string& solver, const std::string& 
     return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
 }
 
-inline bool ModelSetParams(const fdeep::model& encoder,
-                           const fdeep::model& decoder,
-                           const nlohmann::json& metadata,
-                           solver::PerformanceConfigConvAsm1x1U& config,
-                           const ProblemDescription& problem,
-                           std::vector<float>& features)
+bool ModelSetParams(const fdeep::model& encoder,
+                    const fdeep::model& decoder,
+                    const nlohmann::json& metadata,
+                    solver::PerformanceConfigConvAsm1x1U& config,
+                    const ProblemDescription& problem,
+                    std::vector<float>& features)
 {
     MIOPEN_LOG_I("");
 
