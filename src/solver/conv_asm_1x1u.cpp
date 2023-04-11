@@ -488,8 +488,8 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     }
 #else
     std::ignore = ctx;
-    StaticHeuristic(problem);
 #endif
+    StaticHeuristic(problem);
     MIOPEN_LOG_I(ToString());
 }
 
