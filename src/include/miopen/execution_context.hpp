@@ -92,9 +92,11 @@ struct ExecutionContext
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext() = default;
     ExecutionContext(Handle* stream_) : stream(stream_) {}
-    virtual ~ExecutionContext() = default;
+
+    ExecutionContext()                        = default;
+    virtual ~ExecutionContext()               = default;
+    ExecutionContext(const ExecutionContext&) = default;
 
     ExecutionContext& DetectRocm();
 
