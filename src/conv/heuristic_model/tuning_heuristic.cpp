@@ -104,7 +104,7 @@ struct Model {
     }
 };
 
-std::unordered_map<std::string, Model*> GetModel(const std::string& arch)
+std::unordered_map<std::string, Model*> GetModels(const std::string& arch)
 {
     static std::unordered_map<std::string, Model*> models = {
         {"ConvAsm1x1U", new Model(arch, "ConvAsm1x1U")}
@@ -119,13 +119,13 @@ bool ModelSetParams(const std::string& arch,
 {
     MIOPEN_LOG_I("");
 
-    static auto model = GetModel(arch);
+    static auto models = GetModels(arch);
 
-    float decoder_input    = float(model[solver]->metadata.sos_token);
-    fdeep::tensors context = model[solver]->Encode(problem);
-    for(std::size_t i = 0; i < model[solver]->metadata.num_tuning_params; ++i)
+    float decoder_input    = float(models[solver]->metadata.sos_token);
+    fdeep::tensors context = models[solver]->Encode(problem);
+    for(std::size_t i = 0; i < models[solver]->metadata.num_tuning_params; ++i)
     {
-        fdeep::tensors decoder_output = model[solver]->Decode(decoder_input, context);
+        fdeep::tensors decoder_output = models[solver]->Decode(decoder_input, context);
 
         auto tokens_scores = decoder_output[0].to_vector();
         std::priority_queue<std::pair<float, int>> pq;
@@ -136,8 +136,8 @@ bool ModelSetParams(const std::string& arch,
         while(!pq.empty())
         {
             int token = pq.top().second;
-            // convert index to tuning value
-            int value = model[solver]->metadata.tuning_decodings[std::to_string(token)];
+            // convert index to token value
+            int value = models[solver]->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
             if(value < 0)
                 return false;
