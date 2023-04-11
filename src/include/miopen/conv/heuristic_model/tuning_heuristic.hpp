@@ -58,8 +58,11 @@ struct Metadata {
 
 std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch);
 
-fdeep::model
-GetModel(const std::string& arch, const std::string& solver, const std::string& model_type);
+fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type);
+
+std::unordered_map<std::string, fdeep::model*> GetEncoder(const std::string& arch);
+
+std::unordered_map<std::string, fdeep::model*> GetDecoder(const std::string& arch);
 
 std::vector<float> TransformFeatures(const std::string& arch,
                                      const std::string& solver,
