@@ -45,13 +45,26 @@ Metadata::Metadata (const std::string& arch, const std::string& solver)
     n    = num_conv_params + 1;
 }
 
-fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type)
+Model::Model (const std::string& arch, const std::string& solver)
 {
-    const std::string file_path =
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".ktn.model";
-    return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
+    const fdeep::model _encoder_ = fdeep::load_model(
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model", true, fdeep::dev_null_logger);
+    const fdeep::model _decoder_ = fdeep::load_model(
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model", true, fdeep::dev_null_logger);
+    Metadata _metadata_ = Metadata(arch, solver);
+
+    encoder = &_encoder_;
+    decoder = &_decoder_;
+    metadata = &_metadata_;
 }
 
+std::unordered_map<std::string, Model*> GetModel(const std::string& arch)
+{
+    const static std::unordered_map<std::string, Model*> models = {
+        {"ConvAsm1x1U", new Model(arch, "ConvAsm1x1U")}
+    };
+    return models;
+}
 
 std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch)
 {
@@ -59,6 +72,13 @@ std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch)
         {"ConvAsm1x1U", new Metadata(arch, "ConvAsm1x1U")}
     };
     return metadata;
+}
+
+fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type)
+{
+    const std::string file_path =
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".ktn.model";
+    return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
 }
 
 std::unordered_map<std::string, fdeep::model*> GetEncoder(const std::string& arch)
@@ -113,9 +133,14 @@ bool ModelSetParams(const std::string& arch,
 {
     MIOPEN_LOG_I("");
 
+    static auto model        = GetModel(arch);
+
     static auto encoder       = GetEncoder(arch);
     static auto decoder       = GetDecoder(arch);
     static auto metadata      = GetMetadata(arch);
+
+    std::cout << "\n#######################" <<  metadata[solver]->num_tuning_params << "###############\n";
+    std::cout << "\n#######################" <<  model[solver]->metadata->num_tuning_params << "###############\n";
 
     std::vector<float> features = TransformFeatures(arch, solver, problem, metadata[solver]->n);
 

@@ -56,6 +56,15 @@ struct Metadata {
     Metadata (const std::string& arch, const std::string& solver);
 };
 
+struct Model {
+    const fdeep::model* encoder;
+    const fdeep::model* decoder;
+    Metadata* metadata;
+    Model (const std::string& arch, const std::string& solver);
+};
+
+std::unordered_map<std::string, Model*> GetModel(const std::string& arch, const std::string& solver);
+
 std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch);
 
 fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type);
