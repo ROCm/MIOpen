@@ -57,14 +57,9 @@ struct Metadata {
     Metadata (const std::string& arch, const std::string& solver);
 };
 
-struct Model;
+class Model;
 
 std::unordered_map<std::string, Model*> GetModels(const std::string& arch, const std::string& solver);
-
-std::vector<float> TransformFeatures(const std::string& arch,
-                                     const std::string& solver,
-                                     const ProblemDescription& problem, 
-                                     std::size_t n);
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,

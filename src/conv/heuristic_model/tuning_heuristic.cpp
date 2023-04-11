@@ -44,7 +44,7 @@ Metadata::Metadata (const std::string& arch, const std::string& solver)
     tuning_decodings  = metadata["decodings"]["tunings"].get<std::unordered_map<std::string, int>>();
 }
 
-struct Model {
+class Model {
     public:
     Metadata metadata;
     Model(const std::string& arch, const std::string& solver)
@@ -56,6 +56,7 @@ struct Model {
           decoder_input_shape(fdeep::tensor_shape(1))
     {
     }
+    virtual ~Model() = default;
     fdeep::tensors Encode(const ProblemDescription& problem) const
     {
         std::vector<float> features = ToFeatures(problem);
@@ -73,7 +74,7 @@ struct Model {
         );
     }
 
-    private:
+    protected:
     const fdeep::model encoder;
     const fdeep::model decoder;
     const std::size_t encoder_input_dim;
@@ -87,7 +88,18 @@ struct Model {
     {
         return GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
     }
-    std::vector<float> ToFeatures(const ProblemDescription& problem) const
+    virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
+};
+
+class ConvAsm1x1UModel : public Model
+{
+    public:
+    ConvAsm1x1UModel(const std::string& arch)
+        : Model(arch, "ConvAsm1x1U")
+    {
+    }
+    protected:
+    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
     {
         std::vector<float> features(encoder_input_dim * encoder_input_dim, 0.0f);
         features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
@@ -107,7 +119,7 @@ struct Model {
 std::unordered_map<std::string, Model*> GetModels(const std::string& arch)
 {
     static std::unordered_map<std::string, Model*> models = {
-        {"ConvAsm1x1U", new Model(arch, "ConvAsm1x1U")}
+        {"ConvAsm1x1U", new ConvAsm1x1UModel(arch)}
     };
     return models;
 }
