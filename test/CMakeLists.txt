@@ -33,7 +33,12 @@ install(FILES  test_perf.py
 
 set(MODEL_FILES)
 list(APPEND MODEL_FILES
-     perf_models/Resnet50_v1.5.txt
+     perf_models/Resnet50_v1.5_FP32_BS128.txt
+     perf_models/Resnet50_v1.5_FP32_BS256.txt
+     perf_models/Resnet50_v1.5_FP32_BS512.txt
+     perf_models/Resnet50_v1.5_FP16_BS128.txt
+     perf_models/Resnet50_v1.5_FP16_BS256.txt
+     perf_models/Resnet50_v1.5_FP16_BS512.txt
     )
 install(FILES
     ${MODEL_FILES}
