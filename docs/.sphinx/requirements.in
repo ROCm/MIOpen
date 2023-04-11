@@ -1,1 +1,1 @@
-git+https://github.com/RadeonOpenCompute/rocm-docs-core.git
+rocm-docs-core==0.2.0
