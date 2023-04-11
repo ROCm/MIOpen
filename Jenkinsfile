@@ -337,19 +337,20 @@ def RunPerfTest(Map conf=[:]){
             sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
             ld_lib="${env.WORKSPACE}/opt/rocm/lib"
             def filename = conf.get("filename", "")
-            sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
-            jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
-            try {
-                sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
-            }
-            catch (Exception err){
-                currentBuild.result = 'SUCCESS'
+            if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH || params.PERF_TEST_BRANCH_OVERRIDE){
+                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+                jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
+                try {
+                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+                }
+                catch (Exception err){
+                    currentBuild.result = 'SUCCESS'
+                }
             }
 
-            if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH){
-                archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-            }
-            else{
+            archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            //if (env.BRANCH_NAME != env.MIOPEN_GOLDEN_PERF_BRANCH){
+            if (env.BRANCH_NAME == "alex_perf"){
                 sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
             }
         }
@@ -490,8 +491,21 @@ pipeline {
             description: "Enable OpenCL backend stages")
         booleanParam(
             name: "PERF_TEST",
+            defaultValue: true,
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_FP16",
+            defaultValue: true,
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_FP32",
+            defaultValue: true,
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_BRANCH_OVERRIDE",
             defaultValue: false,
             description: "Enable performance testing stages")
+
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
             description: "")
@@ -515,7 +529,7 @@ pipeline {
             steps{
                 getDockerImage()
             }
-        }
+        }/*
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -1144,7 +1158,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
         stage("Packages") {
             when {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -1170,9 +1184,57 @@ pipeline {
             }
             parallel{
                 stage('Fp32 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
                     agent{ label rocmnode("austin")}
                     steps{
-                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5.txt" )
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp32 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt" )
                     }
                 }
             }
