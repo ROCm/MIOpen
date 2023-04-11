@@ -39,7 +39,7 @@ namespace tuning {
 
 struct PerfTuningModel::impl
 {
-    nlohmann::json GetModelMetadata()
+    nlohmann::json GetModelMetadata() const
     {
         std::string file_path = GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.model";
         return nlohmann::json::parse(std::ifstream(file_path));
