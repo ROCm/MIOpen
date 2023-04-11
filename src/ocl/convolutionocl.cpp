@@ -225,6 +225,23 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     return results;
 }
 
+/// Keep only the best within algorithm, remove all others.
+static void ShrinkToFind10Results(std::vector<PerfField>& found)
+{
+    std::vector<PerfField> out;
+    std::sort(begin(found), end(found));
+    for(const auto& f : found)
+    {
+        // If an algo already resides in out, then skip solver.
+        if(std::find_if(out.begin(), out.end(), [&](const auto& o) {
+               return o.algorithm == f.algorithm;
+           }) != out.end())
+            continue;
+        out.emplace_back(f);
+    }
+    found = out;
+}
+
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
