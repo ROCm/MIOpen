@@ -34,6 +34,7 @@
 #include <typeinfo>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
 #include <fstream>
@@ -51,27 +52,14 @@ namespace tuning {
 struct Metadata {
     std::size_t num_conv_params;
     std::size_t num_tuning_params;
+    std::size_t sos_token;
     std::unordered_map<std::string, int> tuning_decodings;
-    std::size_t n;
     Metadata (const std::string& arch, const std::string& solver);
 };
 
-struct Model {
-    const fdeep::model* encoder;
-    const fdeep::model* decoder;
-    Metadata* metadata;
-    Model (const std::string& arch, const std::string& solver);
-};
+struct Model;
 
 std::unordered_map<std::string, Model*> GetModel(const std::string& arch, const std::string& solver);
-
-std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch);
-
-fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type);
-
-std::unordered_map<std::string, fdeep::model*> GetEncoder(const std::string& arch);
-
-std::unordered_map<std::string, fdeep::model*> GetDecoder(const std::string& arch);
 
 std::vector<float> TransformFeatures(const std::string& arch,
                                      const std::string& solver,

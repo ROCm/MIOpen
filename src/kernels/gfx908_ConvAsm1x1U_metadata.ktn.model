@@ -1,6 +1,7 @@
 {
     "num_conv_params": 7,
     "num_tuning_params": 8,
+    "sos_token": 0,
     "decodings": {
         "tunings": {
             "0": -1,

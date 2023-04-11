@@ -40,91 +40,77 @@ Metadata::Metadata (const std::string& arch, const std::string& solver)
 
     num_conv_params   = metadata["num_conv_params"].get<std::size_t>();
     num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
+    sos_token         = metadata["sos_token"].get<std::size_t>();
     tuning_decodings  = metadata["decodings"]["tunings"].get<std::unordered_map<std::string, int>>();
-
-    n    = num_conv_params + 1;
 }
 
-Model::Model (const std::string& arch, const std::string& solver)
-{
-    const fdeep::model _encoder_ = fdeep::load_model(
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model", true, fdeep::dev_null_logger);
-    const fdeep::model _decoder_ = fdeep::load_model(
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model", true, fdeep::dev_null_logger);
-    Metadata _metadata_ = Metadata(arch, solver);
+struct Model {
+    public:
+    Metadata metadata;
+    Model(const std::string& arch, const std::string& solver)
+        : metadata(Metadata(arch, solver)),
+          encoder(fdeep::load_model(EncoderPath(arch, solver), true, fdeep::dev_null_logger)),
+          decoder(fdeep::load_model(DecoderPath(arch, solver), true, fdeep::dev_null_logger)),
+          encoder_input_dim(metadata.num_conv_params + 1),
+          encoder_input_shape(fdeep::tensor_shape(encoder_input_dim, encoder_input_dim)),
+          decoder_input_shape(fdeep::tensor_shape(1))
+    {
+    }
+    fdeep::tensors Encode(const ProblemDescription& problem)
+    {
+        std::vector<float> features = ToFeatures(problem);
+        fdeep::tensor input_tensor  = fdeep::tensor(encoder_input_shape, features);
+        return encoder.predict({input_tensor}); 
+    }
+    fdeep::tensors Decode(float input, const fdeep::tensors& context)
+    {
+        return decoder.predict(
+            {{fdeep::tensor(decoder_input_shape, std::vector<float>(1, input)),
+              context[0],
+              context[1],
+              context[2],
+              context[3]}}
+        );
+    }
 
-    encoder = &_encoder_;
-    decoder = &_decoder_;
-    metadata = &_metadata_;
-}
+    private:
+    const fdeep::model encoder;
+    const fdeep::model decoder;
+    const std::size_t encoder_input_dim;
+    const fdeep::tensor_shape encoder_input_shape;
+    const fdeep::tensor_shape decoder_input_shape;
+    static std::string EncoderPath(const std::string& arch, const std::string& solver)
+    {
+        return GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+    }
+    static std::string DecoderPath(const std::string& arch, const std::string& solver)
+    {
+        return GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
+    }
+    std::vector<float> ToFeatures(const ProblemDescription& problem)
+    {
+        std::vector<float> features(encoder_input_dim * encoder_input_dim, 0.0f);
+        features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
+        int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
+        features[(offset)*encoder_input_dim + offset] = 1.0;
+        features[3 * encoder_input_dim + 3] =
+            float(problem.direction.IsForward() ? problem.n_inputs : problem.n_outputs);
+        features[4 * encoder_input_dim + 4] =
+            float(problem.direction.IsForward() ? problem.n_outputs : problem.n_inputs);
+        features[5 * encoder_input_dim + 5] = float(problem.in_height);
+        features[6 * encoder_input_dim + 6] = float(problem.in_width);
+        features[7 * encoder_input_dim + 7] = float(problem.batch_sz);
+        return features;
+    }
+};
 
 std::unordered_map<std::string, Model*> GetModel(const std::string& arch)
 {
-    const static std::unordered_map<std::string, Model*> models = {
+    static std::unordered_map<std::string, Model*> models = {
         {"ConvAsm1x1U", new Model(arch, "ConvAsm1x1U")}
     };
     return models;
 }
-
-std::unordered_map<std::string, Metadata*> GetMetadata(const std::string& arch)
-{
-    const static std::unordered_map<std::string, Metadata*> metadata = {
-        {"ConvAsm1x1U", new Metadata(arch, "ConvAsm1x1U")}
-    };
-    return metadata;
-}
-
-fdeep::model LoadModel(const std::string& arch, const std::string& solver, const std::string& model_type)
-{
-    const std::string file_path =
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".ktn.model";
-    return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
-}
-
-std::unordered_map<std::string, fdeep::model*> GetEncoder(const std::string& arch)
-{
-    static fdeep::model conv_asm_1x1u_encoder = LoadModel(arch, "ConvAsm1x1U", "encoder");
-    const static std::unordered_map<std::string, fdeep::model*> encoder = {
-        {"ConvAsm1x1U", &conv_asm_1x1u_encoder}
-    };
-    return encoder;
-}
-
-std::unordered_map<std::string, fdeep::model*> GetDecoder(const std::string& arch)
-{
-    static fdeep::model conv_asm_1x1u_decoder = LoadModel(arch, "ConvAsm1x1U", "decoder");
-    const static std::unordered_map<std::string, fdeep::model*> decoder = {
-        {"ConvAsm1x1U", &conv_asm_1x1u_decoder}
-    };
-    return decoder;
-}
-
-std::vector<float> TransformFeatures(const std::string& arch,
-                                     const std::string& solver,
-                                     const ProblemDescription& problem, 
-                                     std::size_t n)
-{
-    if(arch == "gfx908" && solver=="ConvAsm1x1U")
-    {
-        assert(n == 8); // n = 6 (numerical conv params) * 1 + 1 (nominal conv params) * 2(amount of
-                        // values nominal param can take).
-        std::vector<float> features(n * n, 0.0f);
-        features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
-        int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
-        features[(offset)*n + offset] = 1.0;
-        features[3 * n + 3] =
-            float(problem.direction.IsForward() ? problem.n_inputs : problem.n_outputs);
-        features[4 * n + 4] =
-            float(problem.direction.IsForward() ? problem.n_outputs : problem.n_inputs);
-        features[5 * n + 5] = float(problem.in_height);
-        features[6 * n + 6] = float(problem.in_width);
-        features[7 * n + 7] = float(problem.batch_sz);
-        return features;
-    }
-    else
-        MIOPEN_THROW("Kernel tuning heuristic doesn't support GPU and/or solver.");
-}
-
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
@@ -133,43 +119,25 @@ bool ModelSetParams(const std::string& arch,
 {
     MIOPEN_LOG_I("");
 
-    static auto model        = GetModel(arch);
+    static auto model = GetModel(arch);
 
-    static auto encoder       = GetEncoder(arch);
-    static auto decoder       = GetDecoder(arch);
-    static auto metadata      = GetMetadata(arch);
-
-    std::cout << "\n#######################" <<  metadata[solver]->num_tuning_params << "###############\n";
-    std::cout << "\n#######################" <<  model[solver]->metadata->num_tuning_params << "###############\n";
-
-    std::vector<float> features = TransformFeatures(arch, solver, problem, metadata[solver]->n);
-
-    int dim            = std::sqrt(features.size());
-    auto input_tensor  = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
-    auto hidden_states = encoder[solver]->predict({input_tensor}); // Get hidden states from Encoder LSTM
-
-    std::vector<float> decoder_input_vector(1, 0.0);
-    auto decoder_input_tensor = fdeep::tensor(fdeep::tensor_shape(1), decoder_input_vector);
-    std::vector<fdeep::tensor> decoder_input = {
-        decoder_input_tensor,
-        hidden_states[0],
-        hidden_states[1],
-        hidden_states[2],
-        hidden_states[3]}; // pass in SOS token and hidden states
-
-    for(int i = 0; i < metadata[solver]->num_tuning_params; ++i)
+    float decoder_input    = float(model[solver]->metadata.sos_token);
+    fdeep::tensors context = model[solver]->Encode(problem);
+    for(std::size_t i = 0; i < model[solver]->metadata.num_tuning_params; ++i)
     {
-        auto output        = decoder[solver]->predict({decoder_input});
-        auto output_vector = output[0].to_vector();
+        fdeep::tensors decoder_output = model[solver]->Decode(decoder_input, context);
+
+        auto tokens_scores = decoder_output[0].to_vector();
         std::priority_queue<std::pair<float, int>> pq;
-        for(int j = 0; j < output_vector.size(); j++)
-            pq.push(std::make_pair(output_vector[j], j)); // sort by value at index
+        for(int j = 0; j < tokens_scores.size(); j++)
+            pq.push(std::make_pair(tokens_scores[j], j)); // sort by value at index
 
         int output_token_index = -1;
         while(!pq.empty())
         {
             int token = pq.top().second;
-            int value = metadata[solver]->tuning_decodings[std::to_string(token)]; // convert index to tuning value
+            // convert index to tuning value
+            int value = model[solver]->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
             if(value < 0)
                 return false;
@@ -180,14 +148,9 @@ bool ModelSetParams(const std::string& arch,
                 break;
             }
         }
-        decoder_input_tensor =
-            fdeep::tensor(fdeep::tensor_shape(1), std::vector<float>(1, float(output_token_index)));
-        decoder_input = {decoder_input_tensor,
-                         output[1],
-                         output[2],
-                         output[3],
-                         output[4]}; // index fed into decoder along with hidden states produced
-                                     // from previous step
+
+        decoder_input = float(output_token_index);
+        context = {decoder_output.begin() + 1, decoder_output.end()};
     }
     return true;
 }
