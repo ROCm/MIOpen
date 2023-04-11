@@ -205,6 +205,8 @@ static inline void AppendPointersToElements(const std::vector<miopen::solver::Co
                    [](const miopen::solver::ConvSolution& s) { return &s; });
 }
 
+/// Register invoker only for the best solution within algorithm.
+/// Add all solutions to the find-db record.
 template <class InvokeParams>
 static void EvaluateInvokers(Handle& handle,
                              const std::vector<solver::ConvSolution>& solutions,
@@ -213,7 +215,6 @@ static void EvaluateInvokers(Handle& handle,
                              const InvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
         return;
@@ -250,6 +251,7 @@ static void EvaluateInvokers(Handle& handle,
         {
             invoker(handle, invoke_ctx);
             const auto elapsed = handle.GetKernelTime();
+            record.SetValues(sol.solver_id, FindDbData{elapsed, sol.workspace_sz, algorithm_name});
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
@@ -270,11 +272,6 @@ static void EvaluateInvokers(Handle& handle,
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
         MIOPEN_LOG_I("Selected: " << selected << ": " << best
                                   << ", workspace_sz = " << selected.workspace_sz);
-        record.SetValues(algorithm_name,
-                         FindDbData{selected.solver_id,
-                                    best,
-                                    selected.workspace_sz,
-                                    FindDbKCacheKey::MakeUnused(algorithm_name)});
     }
 }
 

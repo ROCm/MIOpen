@@ -33,7 +33,6 @@
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_db.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/invoker.hpp>
@@ -153,6 +152,23 @@ CompileSolution(solver::Id solver_id, ExecutionContext ctx, const conv::ProblemD
     LoadOrPrepareInvoker(ctx, problem, solver_id);
 }
 
+/// Keep only the best within algorithm, remove all others.
+static void ShrinkToFind10Results(std::vector<PerfField>& found)
+{
+    std::vector<PerfField> out;
+    std::sort(begin(found), end(found));
+    for(const auto& f : found)
+    {
+        // If an algo already resides in out, then skip solver.
+        if(std::find_if(out.begin(), out.end(), [&](const auto& o) {
+               return o.algorithm == f.algorithm;
+           }) != out.end())
+            continue;
+        out.emplace_back(f);
+    }
+    found = out;
+}
+
 static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
                                                      const conv::ProblemDescription& problem,
                                                      const AnyInvokeParams& invoke_ctx)
@@ -201,10 +217,10 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
 
-    std::sort(begin(results), end(results));
+    ShrinkToFind10Results(results);
 
     for(const auto& entry : results)
-        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
+        MIOPEN_LOG_I(entry.algorithm << "\t" << entry.time << "\t" << entry.workspace);
 
     return results;
 }
@@ -260,7 +276,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(results[i].name);
+        perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(results[i].algorithm);
         perfResults[i].time     = results[i].time;
         perfResults[i].memory   = results[i].workspace;
     }
@@ -581,7 +597,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
         return {};
 
     auto interim = std::vector<miopenConvSolution_t>{};
-    interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
+    interim.reserve(20); // Heuristic for speed.
 
     // Individual Solvers can be enabled/disabled by environment settings.
     // Applicability is also affected by presence of external tools (e.g. assembler)
@@ -593,27 +609,37 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
 
     for(const auto& pair : fdb_record)
     {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.first));
+        const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
         if(IsAlgorithmDisabled(algo))
             continue;
 
-        const auto solver_id = solver::Id{pair.second.solver_id};
+        const auto solver_id = solver::Id{pair.first};
         // Wrong IDs can't be used to call IsApplicable(), so let's
         // ignore obsolete or invalid IDs read from find-db first.
         if(!solver_id.IsValid())
         {
             // Do not disturb users with warnings unless detailed log is enabled.
-            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.second.solver_id);
+            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
             continue;
         }
 
-        if(solver_id.GetSolver().IsApplicable(ctx, problem))
-            interim.emplace_back(miopenConvSolution_t{
-                pair.second.time, pair.second.workspace, solver_id.Value(), algo});
+        interim.emplace_back(
+            miopenConvSolution_t{pair.second.time, pair.second.workspace, solver_id.Value(), algo});
     }
 
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
+
+    // Let's avoid checks of solvers that reside beyond maxSolutionCount,
+    // i.e. those that unnecessary anyway. This optimization is important
+    // because applicability check may involve running MIIR compiler
+    // (for MLIR solvers), which can be very slow.
     interim.resize(std::min(interim.size(), maxSolutionCount));
+    const auto to_erase_from = std::remove_if(interim.begin(), interim.end(), [&](auto&& entry) {
+        const auto solver_id = solver::Id{entry.solution_id};
+        return !solver_id.GetSolver().IsApplicable(ctx, problem);
+    });
+    interim.erase(to_erase_from, interim.end());
+
     return interim;
 }
 
@@ -768,7 +794,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(results[i].name);
+        perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(results[i].algorithm);
         perfResults[i].time          = results[i].time;
         perfResults[i].memory        = results[i].workspace;
     }
@@ -981,7 +1007,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(results[i].name);
+        perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(results[i].algorithm);
         perfResults[i].time             = results[i].time;
         perfResults[i].memory           = results[i].workspace;
     }
