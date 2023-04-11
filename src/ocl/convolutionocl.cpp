@@ -225,23 +225,6 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     return results;
 }
 
-/// Keep only the best within algorithm, remove all others.
-static void ShrinkToFind10Results(std::vector<PerfField>& found)
-{
-    std::vector<PerfField> out;
-    std::sort(begin(found), end(found));
-    for(const auto& f : found)
-    {
-        // If an algo already resides in out, then skip solver.
-        if(std::find_if(out.begin(), out.end(), [&](const auto& o) {
-               return o.algorithm == f.algorithm;
-           }) != out.end())
-            continue;
-        out.emplace_back(f);
-    }
-    found = out;
-}
-
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
@@ -704,12 +687,6 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
                      " is not applicable to the current problem");
 }
 
-static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
-{
-    const auto& algo = solver_id.GetAlgo(dir);
-    return CheckInvokerSupport(algo);
-}
-
 void ConvolutionDescriptor::CompileSolution(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             solver::Id solver_id) const
@@ -740,13 +717,6 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         const auto problem =
             conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         const auto ctx = ExecutionContext{&handle};
-
-        if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
-        {
-            const auto algo_name = solver_id.GetAlgo(conv::Direction::Forward);
-            MIOPEN_THROW("Conv forward algorithm " + algo_name + " must implement invokers.");
-        }
-
         const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
@@ -954,13 +924,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         const auto problem =
             conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
         const auto ctx = ExecutionContext{&handle};
-
-        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
-        {
-            const auto algo_name = solver_id.GetAlgo(conv::Direction::BackwardData);
-            MIOPEN_THROW("Conv backward algorithm " + algo_name + " must implement invokers.");
-        }
-
         const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
@@ -1165,13 +1128,6 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         const auto problem = conv::ProblemDescription{
             dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
         const auto ctx = ExecutionContext{&handle};
-
-        if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
-        {
-            MIOPEN_THROW("Solver " + solver_id.ToString() +
-                         " requested in immediate WrW, which is not supported.");
-        }
-
         const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::WrWInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
