@@ -1,5 +1,4 @@
 #include <miopen/miopen.h>
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include "../tensor_holder.hpp"
 #include <gtest/gtest.h>
 #include <iostream>
@@ -40,6 +39,7 @@ struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTest
 protected:
     void SetUp() override
     {
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
         auto test_case         = GetParam();
         tensor<G> input_tensor = tensor<G>(test_case.data_type, test_case.layout, test_case.input);
         tensor<G> weight_tensor =
@@ -53,6 +53,9 @@ protected:
                                              test_case.direction);
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;
+#else
+        GTEST_SKIP();
+#endif
     }
     miopen::ProblemDescription problem;
     bool expected_valid;
@@ -122,6 +125,7 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
                                   bool expected_valid,
                                   std::string expected)
 {
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         GTEST_SKIP();
@@ -141,6 +145,12 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
             << "Expected parameters: " << expected
             << "\nPredicted parameters: " << perf_config.ToString();
     }
+#else
+    std::ignore = problem;
+    std::ignore = expected_valid;
+    std::ignore = expected;
+    GTEST_SKIP();
+#endif
 }
 
 TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
@@ -162,4 +172,3 @@ INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelFloatTest,
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelHalfTest,
                          KernelTuningNetTestHalf,
                          testing::ValuesIn(GetConvAsm1x1UHalfTestCases()));
-#endif

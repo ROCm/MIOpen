@@ -56,13 +56,13 @@ struct Model {
           decoder_input_shape(fdeep::tensor_shape(1))
     {
     }
-    fdeep::tensors Encode(const ProblemDescription& problem)
+    fdeep::tensors Encode(const ProblemDescription& problem) const
     {
         std::vector<float> features = ToFeatures(problem);
         fdeep::tensor input_tensor  = fdeep::tensor(encoder_input_shape, features);
         return encoder.predict({input_tensor}); 
     }
-    fdeep::tensors Decode(float input, const fdeep::tensors& context)
+    fdeep::tensors Decode(const float input, const fdeep::tensors& context) const
     {
         return decoder.predict(
             {{fdeep::tensor(decoder_input_shape, std::vector<float>(1, input)),
@@ -87,7 +87,7 @@ struct Model {
     {
         return GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
     }
-    std::vector<float> ToFeatures(const ProblemDescription& problem)
+    std::vector<float> ToFeatures(const ProblemDescription& problem) const
     {
         std::vector<float> features(encoder_input_dim * encoder_input_dim, 0.0f);
         features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
