@@ -418,36 +418,19 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 {
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    static const auto encoder       = ai::tuning::GetModel(arch, solver, "encoder");
-    static const auto decoder       = ai::tuning::GetModel(arch, solver, "decoder");
-    static const auto metadata      = ai::tuning::GetModelMetadata(arch, solver);
-    std::vector<float> features =
-        TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
-    if(ai::tuning::ModelSetParams(encoder, decoder, metadata, *this, problem, features))
+    static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
+    std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
+    if(perf_model.ModelSetParams(
+           [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
+           features))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
     }
 }
 #endif
-
-void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
-                                                 const ProblemDescription& problem)
+void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
-    if(problem.in_data_type == miopenDouble)
-        MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
-
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(IsModelApplicable(ctx, problem))
-    {
-        bool valid = false;
-        RunParmeterPredictionModel(ctx, problem, valid);
-        if(valid)
-            return;
-    }
-#else
-    std::ignore = ctx;
-#endif
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
     read_size                    = 4;
     k_mult                       = 16;
@@ -488,6 +471,25 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
     }
+}
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
+                                                 const ProblemDescription& problem)
+{
+    if(problem.in_data_type == miopenDouble)
+        MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
+
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    if(IsModelApplicable(ctx, problem))
+    {
+        bool valid = false;
+        RunParmeterPredictionModel(ctx, problem, valid);
+        if(valid)
+            return;
+    }
+#else
+    std::ignore = ctx;
+    StaticHeuristic(problem);
+#endif
     MIOPEN_LOG_I(ToString());
 }
 

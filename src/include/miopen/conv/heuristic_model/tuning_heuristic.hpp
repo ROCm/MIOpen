@@ -34,79 +34,25 @@
 #include <typeinfo>
 #include <string>
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-#include <fdeep/fdeep.hpp>
 
 namespace miopen {
 namespace ai {
 namespace tuning {
 
-nlohmann::json GetModelMetadata(const std::string& arch, const std::string& solver);
-
-fdeep::model
-GetModel(const std::string& arch, const std::string& solver, const std::string& model_type)
+struct PerfTuningModel
 {
-    std::string file_path =
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_" + model_type + ".model";
-    return fdeep::load_model(file_path, true, fdeep::dev_null_logger);
-}
+    struct impl;
+    std::unique_ptr<impl> pImpl;
 
-bool ModelSetParams(const fdeep::model& encoder,
-                    const fdeep::model& decoder,
-                    const nlohmann::json& metadata,
-                    solver::PerformanceConfigConvAsm1x1U& config,
-                    const ProblemDescription& problem,
-                    std::vector<float>& features)
-{
-    MIOPEN_LOG_I("");
-
-    int dim            = std::sqrt(features.size());
-    auto input_tensor  = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
-    auto hidden_states = encoder.predict({input_tensor}); // Get hidden states from Encoder LSTM
-
-    std::vector<float> decoder_input_vector(1, 0.0);
-    auto decoder_input_tensor = fdeep::tensor(fdeep::tensor_shape(1), decoder_input_vector);
-    std::vector<fdeep::tensor> decoder_input = {
-        decoder_input_tensor,
-        hidden_states[0],
-        hidden_states[1],
-        hidden_states[2],
-        hidden_states[3]}; // pass in SOS token and hidden states
-
-    for(int i = 0; i < metadata["num_tuning_params"].get<int>(); i++)
-    {
-        auto output        = decoder.predict({decoder_input});
-        auto output_vector = output[0].to_vector();
-        std::priority_queue<std::pair<float, int>> pq;
-        for(int j = 0; j < output_vector.size(); j++)
-            pq.push(std::make_pair(output_vector[j], j)); // sort by value at index
-
-        int output_token_index = -1;
-        while(!pq.empty())
-        {
-            int token = pq.top().second;
-            int value = metadata["decodings"]["tunings"][std::to_string(token)]
-                            .get<int>(); // convert index to tuning value
-            pq.pop();
-            if(value < 0)
-                return false;
-            if(config.ModelApplyToken(i, value, problem))
-            {
-                output_token_index =
-                    token; // index with largest value that is valid = predicted index
-                break;
-            }
-        }
-        decoder_input_tensor =
-            fdeep::tensor(fdeep::tensor_shape(1), std::vector<float>(1, float(output_token_index)));
-        decoder_input = {decoder_input_tensor,
-                         output[1],
-                         output[2],
-                         output[3],
-                         output[4]}; // index fed into decoder along with hidden states produced
-                                     // from previous step
-    }
-    return true;
-}
+    PerfTuningModel();
+    ~PerfTuningModel();
+    PerfTuningModel(PerfTuningModel&&) noexcept;
+    PerfTuningModel(const std::string& arch, const std::string& solver);
+    PerfTuningModel& operator=(PerfTuningModel&&) noexcept;
+    bool ModelSetParams(std::function<bool(int, int)> validator,
+                        const std::vector<float>& features) const;
+    size_t GetNumParams() const;
+};
 
 } // namespace tuning
 } // namespace ai

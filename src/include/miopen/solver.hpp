@@ -363,6 +363,7 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
+    void StaticHeuristic(const ProblemDescription& problem);
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     void
