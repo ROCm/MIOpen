@@ -418,12 +418,11 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 {
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    static const auto encoder       = ai::tuning::GetModel(arch, solver, "encoder");
-    static const auto decoder       = ai::tuning::GetModel(arch, solver, "decoder");
-    static const auto metadata      = ai::tuning::GetModelMetadata(arch, solver);
-    std::vector<float> features =
-        TransformFeatures(problem, metadata["num_conv_params"].get<std::size_t>() + 1);
-    if(ai::tuning::ModelSetParams(encoder, decoder, metadata, *this, problem, features))
+    static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
+    std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
+    if(perf_model.ModelSetParams(
+           [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
+           features))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
