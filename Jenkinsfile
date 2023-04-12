@@ -502,7 +502,7 @@ pipeline {
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_BRANCH_OVERRIDE",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
 
         string(name: "DOCKER_IMAGE_OVERRIDE",
