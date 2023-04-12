@@ -387,9 +387,23 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     std::ignore = fdesc_problem;
     return false;
 #else
-    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto& desc = *fdesc_problem.fusion_plan_desc;
+    if(desc.op_map.empty())
+    {
+        MIOPEN_THROW("");
+    }
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
         return false;
+    // check the sequence of prims
+    if(desc.op_map.size() != 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
+        return false;
+    if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+        return false;
+    const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
