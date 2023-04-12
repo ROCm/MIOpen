@@ -403,6 +403,9 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
         return false;
+    const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
+    if(activ_op.activMode != miopenActivationRELU)
+        return false;
     const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
