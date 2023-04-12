@@ -177,6 +177,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS.cpp
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp

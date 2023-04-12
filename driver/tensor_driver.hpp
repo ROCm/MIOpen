@@ -200,12 +200,12 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    if(layout.size() != len.size() && layout.find("c") == std::string::npos)
+    if(layout.size() != len.size() && layout.find('c') == std::string::npos)
     {
         MIOPEN_THROW("unmatched layout and dimension size");
     }
 
-    if(layout.find("c") != std::string::npos)
+    if(layout.find('c') != std::string::npos)
     {
         return SetTensorNdVector(t, len, StringToLayoutType(layout), data_type);
     }

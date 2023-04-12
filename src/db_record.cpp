@@ -31,8 +31,13 @@
 #include <utility>
 
 #include <miopen/config.h>
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/logger.hpp>
+
+// Keep compatibility with old format for reading existing system find-db files.
+// To be removed when the system find-db files regenerated in the 2.0 format.
+#define WORKAROUND_ISSUE_1987 1
 
 namespace miopen {
 
@@ -82,6 +87,37 @@ bool DbRecord::EraseValues(const std::string& id)
     return false;
 }
 
+#if WORKAROUND_ISSUE_1987
+/// Transform find-db (v.1.0) ID:VALUES to the current format.
+/// Implementation is intentionally straightforward.
+/// Do not include the 1st value from VALUES (solver name) into transformed VALUES.
+/// Ignore FdbKCache_Key pair (last two values).
+/// Append id (algorithm) to VALUES.
+/// Use solver name as ID.
+static bool TransformFindDbItem10to20(std::string& id, std::string& values)
+{
+    MIOPEN_LOG_T("Legacy find-db item: " << id << ':' << values);
+    std::size_t pos = values.find(',');
+    if(pos == std::string::npos)
+        return false;
+    const auto solver = values.substr(0, pos);
+
+    const auto time_workspace_pos = pos + 1;
+    pos                           = values.find(',', time_workspace_pos);
+    if(pos == std::string::npos)
+        return false;
+    pos = values.find(',', pos + 1);
+    if(pos == std::string::npos)
+        return false;
+    const auto time_workspace = values.substr(time_workspace_pos, pos - time_workspace_pos);
+
+    values = time_workspace + ',' + id;
+    id     = solver;
+    MIOPEN_LOG_T("Transformed find-db item: " << id << ':' << values);
+    return true;
+}
+#endif
+
 bool DbRecord::ParseContents(std::istream& contents)
 {
     std::string id_and_values;
@@ -100,8 +136,22 @@ bool DbRecord::ParseContents(std::istream& contents)
             continue;
         }
 
-        const auto id     = id_and_values.substr(0, id_size);
-        const auto values = id_and_values.substr(id_size + 1);
+        auto id     = id_and_values.substr(0, id_size);
+        auto values = id_and_values.substr(id_size + 1);
+
+#if WORKAROUND_ISSUE_1987
+        // Detect legacy find-db item (v.1.0 ID:VALUES) and transform it to the current format.
+        // For now, *only* legacy find-db record use convolution algorithm as ID, so if ID is
+        // a valid algorithm, then we can safely assume that the item is in legacy format.
+        if(IsValidConvolutionDirAlgo(id))
+        {
+            if(!TransformFindDbItem10to20(id, values))
+            {
+                MIOPEN_LOG_E("Ill-formed legacy find-db item: " << values);
+                continue;
+            }
+        }
+#endif
 
         if(map.find(id) != map.end())
         {
