@@ -230,12 +230,8 @@ set( MIOpen_Source
     tensor_api.cpp
     )
 
-if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
-    list(APPEND MIOpen_Source conv/heuristic_model/solver_heuristic.cpp)
-endif()
-
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-    list(APPEND MIOpen_Source conv/heuristic_model/tuning_heuristic.cpp)
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
 endif()
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)

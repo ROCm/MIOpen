@@ -48,6 +48,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 
 #include <cassert>
 #include <type_traits>
@@ -66,6 +67,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -840,56 +842,127 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    const auto wti2time = [](const float& wti) {
-        assert(wti != 0.0f);
-        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
-            return wti;
-        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
-    };
-
-    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+    #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+    // TunaNet Fallback
+    bool is_tunanet_applicable = false;
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}) &&
+       ai::immed_mode::IsDeviceSupported(handle.GetDeviceName()))
     {
-        // solver_id is always valid here, because taken from registry.
-        // Validity check is not required.
-        const auto algo = solver_id.GetAlgo();
-        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
-            continue;
-        const auto& s = solver_id.GetSolver();
-        if(s.IsEmpty())
-            continue;
-        if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
-            continue;
-        if(!s.IsApplicable(ctx, problem))
-            continue;
+        static const nlohmann::json& metadata = ai::immed_mode::GetMetadata(handle.GetDeviceName());
+        if(ai::immed_mode::IsProblemSupported(problem,  ctx, metadata))
+        {
+            std::vector<float> features = ai::immed_mode::ToFeatures(problem.conv_problem,
+                                                                     metadata,
+                                                                     true);
+            if(ai::immed_mode::AreFeaturesInDistributionL2(features, 2, metadata))
+            {
+                is_tunanet_applicable = true;
+                MIOPEN_LOG_I2("Using TunaNet Fallback");
+                const auto ai_time = [](const int& idx) {
+                    return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
+                };
 
-        const auto wti = s.GetWti(ctx, problem);
-        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
-        if(wti < 0.0f) // Skip unknown WTIs.
-            continue;
+                int idx        = 1;
+                bool is_cached = false;
+                auto solvers = ai::immed_mode::PredictSolver(problem.conv_problem,
+                                                             features,
+                                                             is_cached,
+                                                             handle.GetDeviceName(),
+                                                             metadata);
+                for(const auto kinder : solvers)
+                {
+                    const auto solver_id = solver::Id{kinder};
+                    const auto sol       = solver_id.GetSolver();
+                    if(!sol.IsDynamic())
+                        continue; // branch should never be taken
+                    if(!sol.IsApplicable(ctx, problem))
+                        continue;
+                    const auto algo = solver_id.GetAlgo();
+                    if(IsAlgorithmDisabled(algo))
+                        continue;
+                    interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+                    ++idx;
+                }
+                auto i = std::size_t{0};
+                MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+                                                    << ", available = " << interim.size());
+                for(const auto& s : interim)
+                    MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+                                         << ", time: " << s.time << " ms, ws: " << s.workspace_size
+                                         << ", name: " << miopen::solver::Id(s.solution_id).ToString());
 
-        interim.emplace_back(
-            wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+                for(const auto& entry : interim)
+                {
+                    if(i >= maxSolutionCount)
+                        break;
+                    if(solutions != nullptr)
+                        solutions[i] = entry;
+                    ++i;
+                }
+                *solutionCount = i;
+            }
+        }
     }
 
-    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
-    for(const auto& s : interim)
-        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: " << s.workspace_size
-                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-    std::sort(begin(interim), end(interim));
-    for(const auto& entry : interim)
+    // WTI Fallback
+    if (!is_tunanet_applicable)
     {
-        if(i >= maxSolutionCount)
-            break;
-        if(solutions != nullptr)
-            solutions[i] = entry;
-        ++i;
+    #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+        MIOPEN_LOG_I2("Using WTI Fallback");
+        const auto wti2time = [](const float& wti) {
+            assert(wti != 0.0f);
+            if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+                return wti;
+            return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+        };
+
+        for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+        {
+            // solver_id is always valid here, because taken from registry.
+            // Validity check is not required.
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+                continue;
+            const auto& s = solver_id.GetSolver();
+            if(s.IsEmpty())
+                continue;
+            if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
+                continue;
+            if(!s.IsApplicable(ctx, problem))
+                continue;
+
+            const auto wti = s.GetWti(ctx, problem);
+            MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
+            if(wti < 0.0f) // Skip unknown WTIs.
+                continue;
+
+            interim.emplace_back(
+                wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+        }
+
+        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+        for(const auto& s : interim)
+            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
+                                << " ms, ws: " << s.workspace_size
+                                << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+        // Dual purpose variable:
+        // * Used as index for writing into output array (solutions).
+        // * Counts the number of entries written, yielding value for solutionsCount.
+        auto i = std::size_t{0};
+        std::sort(begin(interim), end(interim));
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            if(solutions != nullptr)
+                solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
+    #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     }
-    *solutionCount = i;
+    #endif
 }
 
 void GetSolutions(Handle& handle,

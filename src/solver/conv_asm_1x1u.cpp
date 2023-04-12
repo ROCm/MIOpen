@@ -38,7 +38,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
@@ -400,7 +400,7 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 {
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    if(ai::tuning::ModelSetParams(arch, solver, *this, problem))
+    if(ai::kernel_tuning::ModelSetParams(arch, solver, *this, problem))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
@@ -467,8 +467,8 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
     }
 #else
     std::ignore = ctx;
-    StaticHeuristic(problem);
 #endif
+    StaticHeuristic(problem);
     MIOPEN_LOG_I(ToString());
 }
 
