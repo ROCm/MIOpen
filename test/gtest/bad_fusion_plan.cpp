@@ -108,10 +108,6 @@ public:
         bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-        in_dev   = handle.Write(input.data);
-        wei_dev  = handle.Write(weights.data);
-        out_dev  = handle.Write(output.data);
-        bias_dev = handle.Write(bias.data);
 
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
 
@@ -135,7 +131,7 @@ public:
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
     }
 
-    bool Applicable()
+    bool Applicability()
     {
 
         Solver solv{};
@@ -177,7 +173,7 @@ TEST(TestFusionPlan, GoodFusionPlan)
     obj.AddConv();
     obj.AddBias();
     obj.AddActiv();
-    ASSERT_TRUE(obj.Applicable());
+    ASSERT_TRUE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadActivationFusionPlan)
@@ -187,7 +183,7 @@ TEST(TestFusionPlan, BadActivationFusionPlan)
     obj.AddConv();
     obj.AddBias();
     obj.AddActiv();
-    ASSERT_FALSE(obj.Applicable());
+    ASSERT_FALSE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadMissingBiasFusionPlan)
@@ -196,7 +192,7 @@ TEST(TestFusionPlan, BadMissingBiasFusionPlan)
         miopenTensorNHWC, miopenActivationRELU);
     obj.AddConv();
     obj.AddActiv();
-    ASSERT_FALSE(obj.Applicable());
+    ASSERT_FALSE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadMissingActivBiasFusionPlan)
@@ -204,12 +200,12 @@ TEST(TestFusionPlan, BadMissingActivBiasFusionPlan)
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     obj.AddConv();
-    ASSERT_FALSE(obj.Applicable());
+    ASSERT_FALSE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadEmptyFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    EXPECT_ANY_THROW(obj.Applicable());
+    EXPECT_ANY_THROW(obj.Applicability());
 }
