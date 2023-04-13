@@ -1,4 +1,5 @@
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
+bzip2@1.0.8
 boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion "
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
 ROCmSoftwarePlatform/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1
