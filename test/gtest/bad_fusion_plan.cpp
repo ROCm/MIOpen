@@ -30,6 +30,8 @@
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 
+#if MIOPEN_BACKEND_HIP
+
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -84,7 +86,6 @@ public:
                    const miopenActivationMode_t& activ_mode)
         : handle(get_handle())
     {
-
         input_des   = {miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights_des = {miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         bias_des = {miopen_type<T>{}, tensor_layout, {1, static_cast<size_t>(conv_config.k), 1, 1}};
@@ -114,7 +115,6 @@ public:
 
     bool Applicability()
     {
-
         Solver solv{};
         const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
         auto fusion_ctx           = miopen::FusionContext{handle};
@@ -149,6 +149,16 @@ TEST(TestFusionPlan, GoodFusionPlan)
     obj.AddBias();
     obj.AddActiv();
     ASSERT_TRUE(obj.Applicability());
+}
+
+TEST(TestFusionPlan, BadOrderFusionPlan)
+{
+    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+        miopenTensorNHWC, miopenActivationRELU);
+    obj.AddBias();
+    obj.AddConv();
+    obj.AddActiv();
+    ASSERT_FALSE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadLayoutFusionPlan)
@@ -194,3 +204,5 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
         miopenTensorNHWC, miopenActivationRELU);
     EXPECT_ANY_THROW(obj.Applicability());
 }
+
+#endif
