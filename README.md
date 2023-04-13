@@ -103,7 +103,7 @@ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-insta
 An example cmake step can be:
 ```
 export CXX=/opt/rocm/llvm/bin/clang++ && \
-cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
+cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" -DCMAKE_HIP_ARCHITECTURES="gfx900;gfx906;gfx908;gfx90a;gfx1030" ..
 ```
 
 Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
