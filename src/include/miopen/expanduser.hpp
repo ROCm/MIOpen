@@ -32,6 +32,7 @@
 namespace miopen {
 
 boost::filesystem::path ExpandUser(const std::string& path);
+bool IsNetworkedFilesystem(const boost::filesystem::path& path);
 
 } // namespace miopen
 
