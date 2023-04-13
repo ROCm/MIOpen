@@ -115,17 +115,18 @@ void RunHostFastGeLU(tensor<T>& ref_out)
 }
 
 template <typename T = half_float::half>
-struct GemmTest : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, GemmTestCase, miopenTensorLayout_t>>
+struct GemmTest : public ::testing::TestWithParam<
+                      std::tuple<miopenActivationMode_t, GemmTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
         //  we need stride too.
-        test_skipped                         = false;
+        test_skipped                                     = false;
         std::tie(activ_mode, gemm_config, tensor_layout) = GetParam();
-        A_tensor                             = tensor<T>(gemm_config.GetA());
-        B_tensor                             = tensor<T>(gemm_config.GetB());
-        C_tensor                             = tensor<T>(gemm_config.GetC());
+        A_tensor                                         = tensor<T>(gemm_config.GetA());
+        B_tensor                                         = tensor<T>(gemm_config.GetB());
+        C_tensor                                         = tensor<T>(gemm_config.GetC());
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -152,7 +153,7 @@ protected:
 
         fusePlanDesc = miopen::FusionPlanDescriptor(
             miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
-        
+
         // Create GEMM Operation
         auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
         // Create Activation Operation
