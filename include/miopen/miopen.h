@@ -479,6 +479,8 @@ typedef enum
     miopenActivationELU =
         9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$
             */
+    miopenActivationFGELU = 10, // Fast GeLU  https://paperswithcode.com/method/gelu
+                                // y = 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
 } miopenActivationMode_t;
 
 /*! @ingroup softmax

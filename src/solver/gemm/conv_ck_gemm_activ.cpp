@@ -365,17 +365,26 @@ bool CKGEMMActiv::IsApplicable(const FusionContext& ctx,
     std::ignore = fdesc_problem;
     return false;
 #else
-    const auto& fp_desc = fdesc_problem.fusion_plan_desc;
-    if(fp_desc->op_map[0]->kind() != miopenFusionOpGEMM)
+    const auto& fp_desc = *fdesc_problem.fusion_plan_desc;
+    if(fp_desc.op_map.empty())
     {
-        return false;
+        MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-
-    const auto& problem = fdesc_problem.GetGemmProblem(0);
     if(miopen::IsDisabled(MIOPEN_DEBUG_CK_IGEMM{}))
     {
         return false;
     }
+    // check the sequence of prims
+    if(fp_desc.op_map.size() != 2)
+        return false;
+    if(fp_desc.op_map[0]->kind() != miopenFusionOpGEMM)
+        return false;
+    if(fp_desc.op_map[1]->kind() != miopenFusionOpActivForward)
+        return false;
+    const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*fp_desc.op_map[1]);
+    if(activ_op.activMode != miopenActivationFGELU)
+        return false;
+    const auto& problem = fdesc_problem.GetGemmProblem(0);
     if(problem.GetADataType() != problem.GetBDataType() ||
        problem.GetADataType() != problem.GetCDataType())
     {
@@ -383,6 +392,12 @@ bool CKGEMMActiv::IsApplicable(const FusionContext& ctx,
     }
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a")
+    {
+        return false;
+    }
+    const auto& args = CKArgs{problem};
+    // check dimensional mismatch.
+    if(args.ldA != args.K || args.ldB != args.N || args.ldC != args.N)
     {
         return false;
     }

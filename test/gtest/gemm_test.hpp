@@ -39,8 +39,6 @@
 #include "conv_common.hpp"
 #include "gemm.hpp"
 
-#include "../driver/tensor_driver.hpp"
-
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -92,6 +90,7 @@ std::vector<GemmTestCase> GetTestData()
         {16, 108, 104, 104, 108, 108},
         {36, 18, 623, 623, 18, 18},
         {36, 36, 36, 36, 36, 36},
+        {36, 36, 36, 43, 36, 36},
     };
 }
 
@@ -116,14 +115,14 @@ void RunHostFastGeLU(tensor<T>& ref_out)
 }
 
 template <typename T = half_float::half>
-struct GemmTest : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
+struct GemmTest : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, GemmTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
         //  we need stride too.
         test_skipped                         = false;
-        std::tie(gemm_config, tensor_layout) = GetParam();
+        std::tie(activ_mode, gemm_config, tensor_layout) = GetParam();
         A_tensor                             = tensor<T>(gemm_config.GetA());
         B_tensor                             = tensor<T>(gemm_config.GetB());
         C_tensor                             = tensor<T>(gemm_config.GetC());
@@ -149,15 +148,24 @@ protected:
         b_dev = handle.Write(B_tensor.data);
         c_dev = handle.Write(C_tensor.data);
 
+        activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
+
         fusePlanDesc = miopen::FusionPlanDescriptor(
             miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
-        // Create gemm Operation. This operation will be part of fusion plan.
+        
+        // Create GEMM Operation
         auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
-        // Add Operation Gemm as part of fusion plan.
+        // Create Activation Operation
+        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
+
+        // Add Gemm Operation as part of fusion plan.
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
         // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
         // prepared when we call RunTunableSolver.
         gemmOp->SetArgs(params, b_dev.get());
+        // activation
+        EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
+        activOp->SetArgs(params, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     }
     void TearDown() override
     {
@@ -183,6 +191,7 @@ protected:
     }
 
     GemmTestCase gemm_config;
+    miopen::ActivationDescriptor activ_desc;
     miopen::GemmDesc gemm_desc;
     tensor<T> A_tensor;
     tensor<T> B_tensor;
@@ -194,8 +203,13 @@ protected:
     bool test_skipped = false;
     miopen::FusionPlanDescriptor fusePlanDesc;
     miopen::OperatorArgs params;
-    const float alpha = static_cast<float>(1.0f);
-    const float beta  = static_cast<float>(0);
+    const float alpha       = static_cast<float>(1.0f);
+    const float beta        = static_cast<float>(0);
+    const float activ_alpha = static_cast<double>(0.5f);
+    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_gamma = static_cast<double>(0.5f);
+
+    miopenActivationMode_t activ_mode;
 
     miopenTensorLayout_t tensor_layout;
 };

@@ -78,5 +78,6 @@ TEST_P(GemmTestHalf, CKGEMMActiv)
 
 INSTANTIATE_TEST_SUITE_P(GemmSolverTest,
                          GemmTestHalf,
-                         testing::Combine(testing::ValuesIn(GetTestData()),
+                         testing::Combine(testing::Values(miopenActivationFGELU),
+                                          testing::ValuesIn(GetTestData()),
                                           testing::Values(miopenTensorNCHW)));
