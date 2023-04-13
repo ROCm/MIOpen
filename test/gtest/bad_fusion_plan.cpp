@@ -113,12 +113,23 @@ public:
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
     }
 
+    void Skip(const std::string& arch)
+    {
+        bool skip_test = (arch != "gfx908" && arch != "gfx90a");
+        if(skip_test)
+            GTEST_SKIP() << "Skipping fusion plan test on unsupported arch";
+    }
+
     bool Applicability()
     {
         Solver solv{};
         const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
         auto fusion_ctx           = miopen::FusionContext{handle};
         fusion_ctx.DetectRocm();
+
+        const std::string arch = fusion_ctx.GetStream().GetDeviceName();
+        Skip(arch);
+
         return solv.IsApplicable(fusion_ctx, fusion_problem);
     }
 

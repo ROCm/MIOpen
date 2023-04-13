@@ -390,7 +390,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto& desc = *fdesc_problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
-        MIOPEN_THROW("");
+        MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
         return false;
