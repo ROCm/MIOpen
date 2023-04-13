@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <random>
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
-#include <miopen/solver_id.hpp>
-#include <serialize.hpp>
-#include <fusionHost.hpp>
-#include <miopen/fusion.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "tensor_util.hpp"
+#include "tensor_holder.hpp"
 #include "get_handle.hpp"
 
 template <typename T>
@@ -91,38 +85,25 @@ public:
         : handle(get_handle())
     {
 
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        input_des   = {miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
+        weights_des = {miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        bias_des = {miopen_type<T>{}, tensor_layout, {1, static_cast<size_t>(conv_config.k), 1, 1}};
 
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
-        input.generate(gen_value);
-        weights.generate(gen_value);
-        activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
         conv_desc  = conv_config.GetConv();
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
-        bias.generate(gen_value);
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
 
         // Setup the Fusionplan
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc);
+        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input_des);
     }
 
     void AddConv()
     {
-        auto convOp = std::make_shared<miopen::ConvForwardOpDescriptor>(conv_desc, weights.desc);
+        auto convOp = std::make_shared<miopen::ConvForwardOpDescriptor>(conv_desc, weights_des);
         EXPECT_EQ(fusePlanDesc.AddOp(convOp), miopenStatusSuccess);
     }
     void AddBias()
     {
-        auto biasOp = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
+        auto biasOp = std::make_shared<miopen::BiasFusionOpDescriptor>(bias_des);
         EXPECT_EQ(fusePlanDesc.AddOp(biasOp), miopenStatusSuccess);
     }
     void AddActiv()
@@ -142,20 +123,14 @@ public:
     }
 
 private:
-    tensor<T> input;
-    tensor<T> bias;
-    tensor<T> weights;
-    tensor<T> output;
+    miopen::TensorDescriptor input_des;
+    miopen::TensorDescriptor bias_des;
+    miopen::TensorDescriptor weights_des;
 
     miopen::Handle& handle;
 
     miopen::ConvolutionDescriptor conv_desc;
     miopen::ActivationDescriptor activ_desc;
-
-    miopen::Allocator::ManageDataPtr in_dev;
-    miopen::Allocator::ManageDataPtr wei_dev;
-    miopen::Allocator::ManageDataPtr bias_dev;
-    miopen::Allocator::ManageDataPtr out_dev;
 
     miopen::OperatorArgs params;
 
@@ -174,6 +149,16 @@ TEST(TestFusionPlan, GoodFusionPlan)
     obj.AddBias();
     obj.AddActiv();
     ASSERT_TRUE(obj.Applicability());
+}
+
+TEST(TestFusionPlan, BadLayoutFusionPlan)
+{
+    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+        miopenTensorNCHW, miopenActivationRELU);
+    obj.AddConv();
+    obj.AddBias();
+    obj.AddActiv();
+    ASSERT_FALSE(obj.Applicability());
 }
 
 TEST(TestFusionPlan, BadActivationFusionPlan)
