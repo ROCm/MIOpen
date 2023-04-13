@@ -97,7 +97,7 @@ public:
         fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input_des);
 
         const std::string arch = handle.GetDeviceName();
-        skip_test = (arch != "gfx908" && arch != "gfx90a");
+        skip_test              = (arch != "gfx908" && arch != "gfx90a");
         SkipWithMsg();
     }
 
@@ -117,7 +117,7 @@ public:
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
     }
 
-    bool Skip()const {return skip_test;}
+    bool Skip() const { return skip_test; }
     void SkipWithMsg()
     {
         if(skip_test)
@@ -130,8 +130,6 @@ public:
         const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
         auto fusion_ctx           = miopen::FusionContext{handle};
         fusion_ctx.DetectRocm();
-
-        
 
         return solv.IsApplicable(fusion_ctx, fusion_problem);
     }
@@ -160,7 +158,8 @@ TEST(TestFusionPlan, GoodFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddConv();
     obj.AddBias();
     obj.AddActiv();
@@ -171,7 +170,8 @@ TEST(TestFusionPlan, BadOrderFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddBias();
     obj.AddConv();
     obj.AddActiv();
@@ -182,7 +182,8 @@ TEST(TestFusionPlan, BadLayoutFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNCHW, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddConv();
     obj.AddBias();
     obj.AddActiv();
@@ -193,7 +194,8 @@ TEST(TestFusionPlan, BadActivationFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddConv();
     obj.AddBias();
     obj.AddActiv();
@@ -204,7 +206,8 @@ TEST(TestFusionPlan, BadMissingBiasFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddConv();
     obj.AddActiv();
     ASSERT_FALSE(obj.Applicability());
@@ -214,7 +217,8 @@ TEST(TestFusionPlan, BadMissingActivBiasFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     obj.AddConv();
     ASSERT_FALSE(obj.Applicability());
 }
@@ -223,7 +227,8 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
 {
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
-    if(obj.Skip()) GTEST_SKIP();
+    if(obj.Skip())
+        GTEST_SKIP();
     EXPECT_ANY_THROW(obj.Applicability());
 }
 
