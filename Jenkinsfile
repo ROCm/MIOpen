@@ -343,7 +343,7 @@ def RunPerfTest(Map conf=[:]){
                 //jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
                 jenkins_url = "${env.artifact_path}/alex_perf/lastSuccessfulBuild/artifact"
                 try {
-                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/${filename} ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
                 }
                 catch (Exception err){
                     currentBuild.result = 'SUCCESS'

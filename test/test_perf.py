@@ -130,6 +130,7 @@ def compare_results(args):
 def compare_file(new_results, old_results):
   """Compare kernel_time in new vs old results file"""
   ret = True
+  print(f"Comparing results from: {new_results} to {old_results}")
   with open(new_results,
             'r', encoding='utf-8') as new, open(old_results,
                                                 'r',
