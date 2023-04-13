@@ -140,6 +140,7 @@ bool IsNetworkedFilesystem(const boost::filesystem::path& path)
     const int rc = statfs(path.c_str(), &stat);
     if(rc != 0)
     {
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
         MIOPEN_LOG_NQE("rc = " << rc << ", '" << strerror(errno) << "'");
         return false;
     }
