@@ -686,7 +686,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
-    rocblas_set_stream(result.get(), GetStream());
+    rocblas_set_stream(result.get(), stream);
     rocblas_initialize();
     return result;
 }
