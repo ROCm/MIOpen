@@ -1184,6 +1184,7 @@ pipeline {
             when {
                 expression {params.PERF_TEST && params.TARGET_GFX90A}
             }
+            parallel{
                 stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -1238,6 +1239,7 @@ pipeline {
                         RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt" )
                     }
                 }
+            }
         }
     }
 }
