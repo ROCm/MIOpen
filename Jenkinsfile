@@ -353,12 +353,7 @@ def RunPerfTest(Map conf=[:]){
 
             archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
             if (env.BRANCH_NAME != env.MIOPEN_GOLDEN_PERF_BRANCH){
-                try {
-                    sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
-                }
-                catch (Exception err){
-                    currentBuild.result = 'SUCCESS'
-                }
+                sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
             }
         }
         }
