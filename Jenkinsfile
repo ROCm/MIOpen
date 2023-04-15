@@ -193,7 +193,6 @@ def getDockerImage(Map conf=[:])
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def no_cache = conf.get("no_cache", false)
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
@@ -209,10 +208,6 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
-    }
-    if(no_cache)
-    {
-        dockerArgs = dockerArgs + " --no-cache "
     }
     echo "Docker Args: ${dockerArgs}"
 
@@ -273,7 +268,6 @@ def buildHipClangJob(Map conf=[:]){
                 throw e
             }
             catch(Exception ex) {
-                conf.put("no_cache", true)
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
