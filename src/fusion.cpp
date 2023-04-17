@@ -109,13 +109,15 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 }
 
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
-                                           const TensorDescriptor& inDesc)
+                                           const TensorDescriptor& inDesc,
+                                           int fmode)
     : fusion_dir(dir),
       input_desc(inDesc),
       is_valid(false),
       kernel_source_type(OpenclText),
       fp_contains_bn(false),
-      data_type(inDesc.GetType())
+      data_type(inDesc.GetType()),
+      fusion_mode(static_cast<fusionMode_t>(fmode))
 {
 }
 

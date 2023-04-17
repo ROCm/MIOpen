@@ -45,6 +45,7 @@
 #include <cassert>
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
+#include <miopen/fusion_plan.hpp>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -65,18 +66,6 @@
 #endif
 
 #define CBA_DEBUG_VALUES 0
-
-//"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
-typedef enum
-{
-    miopen_fusion_cbna = 0,
-    miopen_fusion_cna  = 1,
-    miopen_fusion_na   = 2,
-    miopen_fusion_cn   = 3,
-    miopen_fusion_cba  = 4,
-    miopen_fusion_ca   = 5,
-    miopen_fusion_cb   = 6,
-} fusionMode_t;
 
 template <typename Tgpu, typename Tref>
 class CBAInferFusionDriver : public Driver
@@ -279,14 +268,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         std::cout << "Fusion mode out of range.\n Exiting..." << std::endl;
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
-    if(fusion_mode != miopen_fusion_cba && fusion_mode != miopen_fusion_ca &&
-       fusion_mode != miopen_fusion_cb)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cba && fusion_mode != miopen::fusionMode_t::miopen_fusion_ca &&
+       fusion_mode != miopen::fusionMode_t::miopen_fusion_cb)
         useBatchNorm = true;
     else
         useBatchNorm = false;
 
-    if(fusion_mode == miopen_fusion_cbna || fusion_mode == miopen_fusion_cba ||
-       fusion_mode == miopen_fusion_cb)
+    if(fusion_mode == miopen::fusionMode_t::miopen_fusion_cbna || fusion_mode == miopen::fusionMode_t::miopen_fusion_cba ||
+       fusion_mode == miopen::fusionMode_t::miopen_fusion_cb)
         bias_mode = 1;
     else
         bias_mode = 0;
@@ -331,12 +320,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 
     SetTensor4d(inputTensor, in_len, data_type);
 
-    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
+    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor, fusion_mode);
 
     SetTensor4d(weightTensor, wei_len, data_type);
 
     std::vector<int> out_len{};
-    if(fusion_mode != miopen_fusion_na)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_na)
     {
         out_len = GetOutputTensorLengths();
     }
@@ -603,7 +592,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     size_t out_sz = 0;
-    if(fusion_mode != miopen_fusion_na)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_na)
         out_sz = GetTensorSize(outputTensor);
     else
         out_sz = in_sz; // This is for N+A so the output is the same as the input size
@@ -682,7 +671,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 #endif
     }
 
-    if(fusion_mode != miopen_fusion_na)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_na)
     {
         wei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
         for(int i = 0; i < wei_sz; i++)
@@ -782,13 +771,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         plan_error_str += "+Bias";
     }
 
-    if(fusion_mode != miopen_fusion_cba)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cba)
     {
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
         plan_error_str += "+BatchNorm";
     }
 
-    if(fusion_mode != miopen_fusion_cn)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cn)
     {
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
         plan_error_str += "+Activation";
@@ -801,13 +790,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
 
-    if(fusion_mode != miopen_fusion_cn)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cn)
     {
         miopenSetOpArgsActivForward(
             fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     }
 
-    if(fusion_mode != miopen_fusion_cba)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cba)
         miopenSetOpArgsBatchNormInference(fusionArgs,
                                           bNormOp,
                                           &alpha,
@@ -1062,7 +1051,7 @@ template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
     ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != miopen_fusion_cb ? conv_res_host
+                               fusion_mode != miopen::fusionMode_t::miopen_fusion_cb ? conv_res_host
                                                                : out_host, // dlowell 6 or 5???
                                wei,
                                b,
@@ -1084,9 +1073,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCxHxW
         std::cout << "Running CPU per activation BN." << std::endl;
         miopenBNPerActivFwdInferHost(
-            fusion_mode != miopen_fusion_na ? outputTensor
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na ? outputTensor
                                             : inputTensor, // DLOWELL use output for splice test
-            fusion_mode != miopen_fusion_na
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
@@ -1100,9 +1089,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCx1x1
         std::cout << "Running CPU spatial BN." << std::endl;
         miopenBNSpatialFwdInferHost(
-            fusion_mode != miopen_fusion_na ? outputTensor
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na ? outputTensor
                                             : inputTensor, // DLOWELL use output for splice test
-            fusion_mode != miopen_fusion_na
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
@@ -1119,7 +1108,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
     // C+N mode so we are done
-    if(fusion_mode == miopen_fusion_cn)
+    if(fusion_mode == miopen::fusionMode_t::miopen_fusion_cn)
         out_host = bn_res_host; // DLOWELL if we add C+B+N the is to be modified
 
     return;
@@ -1130,7 +1119,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)"
     MIOPEN_LOG_I("Fusion mode: " << fusion_mode);
-    if(fusion_mode != miopen_fusion_na)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_na)
     {
         std::cout << "Running CPU fwd convolution." << std::endl;
         runCPUConvFwdInference();
@@ -1142,7 +1131,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         runCPUBNFwdInference();
     }
 
-    if(fusion_mode != miopen_fusion_cb && fusion_mode != miopen_fusion_cn)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cb && fusion_mode != miopen::fusionMode_t::miopen_fusion_cn)
     {
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();

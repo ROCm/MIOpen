@@ -14,6 +14,18 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
+//"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
+typedef enum
+{
+    miopen_fusion_cbna = 0,
+    miopen_fusion_cna  = 1,
+    miopen_fusion_na   = 2,
+    miopen_fusion_cn   = 3,
+    miopen_fusion_cba  = 4,
+    miopen_fusion_ca   = 5,
+    miopen_fusion_cb   = 6,
+} fusionMode_t;
+
 enum Exec_Arg_Type_t
 {
     Scalar,
@@ -44,7 +56,7 @@ struct FusionContext;
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor() {}
-    FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
+    FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc, int fmode = 0);
     bool isValid() const { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     TensorDescriptor DeriveOutputDescriptor();
@@ -80,6 +92,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     std::vector<solver::ConvSolution> solutions;
     NetworkConfig network_config;
     std::optional<miopenConvFwdAlgorithm_t> conv_fwd_algo;
+
+    fusionMode_t fusion_mode;
 };
 
 } // namespace miopen

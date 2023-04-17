@@ -44,12 +44,102 @@ enum class ConvDirection
 
 namespace miopen {
 namespace debug {
-void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
-                       const miopenTensorDescriptor_t& wDesc,
-                       const miopenConvolutionDescriptor_t& convDesc,
-                       const miopenTensorDescriptor_t& yDesc,
-                       const ConvDirection& conv_dir,
-                       bool is_immediate);
+
+std::string FusionConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
+                                          const miopenTensorDescriptor_t& wDesc,
+                                          const miopenConvolutionDescriptor_t& convDesc,
+                                          const miopenTensorDescriptor_t& yDesc,
+                                          fusionMode_t fusion_mode)
+{
+    std::stringstream ss;
+    ss << "CBAInfer -F " << fusion_mode;
+    if(miopen::deref(convDesc).GetSpatialDimension() == 2)
+    {
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3]
+            << " -k " << miopen::deref(wDesc).GetLengths()[0]
+            << " -y " << miopen::deref(wDesc).GetLengths()[2]
+            << " -x " << miopen::deref(wDesc).GetLengths()[3]
+            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
+            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
+            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
+            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
+            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
+            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]; // clang-format on
+        std::string x_layout = miopen::deref(xDesc).GetLayout("NCHW");
+        std::string w_layout = miopen::deref(wDesc).GetLayout("NCHW");
+        std::string y_layout = miopen::deref(yDesc).GetLayout("NCHW");
+        if(x_layout != "NCHW")
+        {
+            ss << " --in_layout " << x_layout;
+        }
+        if(w_layout != "NCHW")
+        {
+            ss << " --fil_layout " << w_layout;
+        }
+        if(y_layout != "NCHW")
+        {
+            ss << " --out_layout " << y_layout;
+        }
+    }
+    else if(miopen::deref(convDesc).GetSpatialDimension() == 3)
+    {
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1]
+            << " --in_d " << miopen::deref(xDesc).GetLengths()[2]
+            << " -H " << miopen::deref(xDesc).GetLengths()[3]
+            << " -W " << miopen::deref(xDesc).GetLengths()[4]
+            << " -k " << miopen::deref(wDesc).GetLengths()[0]
+            << " --fil_d " << miopen::deref(wDesc).GetLengths()[2]
+            << " -y " << miopen::deref(wDesc).GetLengths()[3]
+            << " -x " << miopen::deref(wDesc).GetLengths()[4]
+            << " --pad_d " << miopen::deref(convDesc).GetConvPads()[0]
+            << " -p " << miopen::deref(convDesc).GetConvPads()[1]
+            << " -q " << miopen::deref(convDesc).GetConvPads()[2]
+            << " --conv_stride_d " << miopen::deref(convDesc).GetConvStrides()[0]
+            << " -u " << miopen::deref(convDesc).GetConvStrides()[1]
+            << " -v " << miopen::deref(convDesc).GetConvStrides()[2]
+            << " --dilation_d " << miopen::deref(convDesc).GetConvDilations()[0]
+            << " -l " << miopen::deref(convDesc).GetConvDilations()[1]
+            << " -j " << miopen::deref(convDesc).GetConvDilations()[2]
+            << " --spatial_dim 3"; // clang-format on
+        std::string x_layout = miopen::deref(xDesc).GetLayout("NCDHW");
+        std::string w_layout = miopen::deref(wDesc).GetLayout("NCDHW");
+        std::string y_layout = miopen::deref(yDesc).GetLayout("NCDHW");
+        if(x_layout != "NCDHW")
+        {
+            ss << " --in_layout " << x_layout;
+        }
+        if(w_layout != "NCDHW")
+        {
+            ss << " --fil_layout " << w_layout;
+        }
+        if(y_layout != "NCDHW")
+        {
+            ss << " --out_layout " << y_layout;
+        }
+    }
+    ss << " -g " << miopen::deref(convDesc).group_count;
+
+    return ss.str();
+}
+
+void LogCmdFusion(const miopenTensorDescriptor_t& xDesc,
+                    const miopenTensorDescriptor_t& wDesc,
+                    const miopenConvolutionDescriptor_t& convDesc,
+                    const miopenTensorDescriptor_t& yDesc,
+                    fusionMode_t fusion_mode)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        const std::string& str =
+            FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, 
+                fusion_mode);
+        MIOPEN_LOG_DRIVER_CMD(str);
+    }
+}
 } // namespace debug
 } // namespace miopen
 
@@ -59,12 +149,13 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
 // 		Set up the internal datastructures for the fused kernel.
 extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
                                                  const miopenFusionDirection_t fuseDirection,
-                                                 const miopenTensorDescriptor_t inputDesc)
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 int fusion_mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc);
     return miopen::try_([&] {
         miopen::deref(fusePlanDesc) =
-            new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));
+            new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc), fusion_mode);
     });
 }
 
@@ -155,12 +246,11 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
         miopen::deref(convOp) = fod.get();
         res                   = miopen::deref(fusePlanDesc).AddOp(fod);
 
-        miopen::debug::LogCmdConvolution(&miopen::deref(fusePlanDesc).input_desc,
-                                         wDesc,
-                                         convDesc,
-                                         &miopen::deref(fusePlanDesc).output_desc,
-                                         ConvDirection::Fwd,
-                                         true);
+        miopen::debug::LogCmdFusion(&miopen::deref(fusePlanDesc).input_desc,
+                                    wDesc,
+                                    convDesc,
+                                    &miopen::deref(fusePlanDesc).output_desc,
+                                    miopen::deref(fusePlanDesc).fusion_mode);
     });
     return res;
 }
