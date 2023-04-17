@@ -94,6 +94,7 @@ def run_driver_cmds(filename, install_path):
           k_time = -1
           for o_line in p_out:
             o_line = o_line.decode("utf-8")
+            print(o_line)
             if 'GPU Kernel Time' in o_line:
               split = re.search('Elapsed: (.*)ms', o_line)
               k_time = split.group(1)
