@@ -33,6 +33,34 @@
 
 namespace miopen {
 
+#if MIOPEN_BACKEND_HIP
+inline void RNNProfilingBegin(const miopen::Handle& handle,
+                              miopen::HipEventPtr& start,
+                              miopen::HipEventPtr& stop)
+{
+    start = miopen::make_hip_event();
+    stop  = miopen::make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline float
+RNNProfilingEnd(const miopen::Handle& handle, miopen::HipEventPtr& start, miopen::HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    return mS;
+}
+
+inline miopen::HipEventPtr make_hip_fast_event()
+{
+    hipEvent_t result = nullptr;
+    hipEventCreateWithFlags(&result, hipEventDisableTiming);
+    return miopen::HipEventPtr{result};
+}
+#endif //#if MIOPEN_BACKEND_HIP
+
 void LSTMForwardHiddenStateUpdate(const Handle& handle,
                                   miopenDataType_t rnn_data_type,
                                   bool is_inference,

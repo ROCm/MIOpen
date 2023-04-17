@@ -82,6 +82,8 @@ struct Handle : miopenHandle
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
+    void SetStreamFromPool(int streamID) const;
+    void ReserveExtraStreamsInPool(int cnt) const;
 
     void SetAllocator(miopenAllocatorFunction allocator,
                       miopenDeallocatorFunction deallocator,
@@ -105,8 +107,6 @@ struct Handle : miopenHandle
                            std::size_t cache_index       = 0,
                            bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
-
-    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
 
@@ -263,11 +263,10 @@ public:
     }
 
 #if MIOPEN_USE_ROCBLAS
-    const rocblas_handle_ptr& rhandle() const { return rhandle_; }
+    const rocblas_handle_ptr& rhandle() const;
 
 private:
-    rocblas_handle_ptr CreateRocblasHandle() const;
-    rocblas_handle_ptr rhandle_;
+    rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
 #else
 private:
 #endif

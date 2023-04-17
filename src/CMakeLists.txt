@@ -175,6 +175,7 @@ set( MIOpen_Source
     solver/conv_bin_winoRxS.cpp
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -237,6 +238,10 @@ endif()
 if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
 endif()
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+    list(APPEND MIOpen_Source conv/heuristic_model/tuning_heuristic.cpp)
+endif()
+
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_INCLUDE "kernels/static_composable_kernel/include/*/*.hpp")
@@ -661,6 +666,28 @@ target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
+
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+        find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
+        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
+        if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
+            message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
+        endif()
+        if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
+            message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
+        endif()
+        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
+        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+        if(NOT BUILD_DEV)
+            file(GLOB MODEL_FILES kernels/*.model)
+            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            foreach(MODEL_FILE ${MODEL_FILES})
+                get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+                configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+            endforeach()
+        endif()
+endif()
+
 set(PACKAGE_DEPENDS)
 set(PACKAGE_STATIC_DEPENDS)
 ############################################################
