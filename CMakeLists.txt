@@ -245,9 +245,9 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
-message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
+message(STATUS "Hip compiler flags: \"${HIP_COMPILER_FLAGS}\"")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}"
+add_definitions(-DHIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}"
         -D_MBCS
         -DWIN32
         -DWIN32_LEAN_AND_MEAN
@@ -309,7 +309,7 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # look for and register clang-offload-bundler
-if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+")
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+.*")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS
