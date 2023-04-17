@@ -630,7 +630,7 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex0_bt128x64x32_wt32x32x8_ws1x1_wr1x2_ta1x16x1x1
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
     ; start group 1, i_g_mr:0, i_g_ms:0, i_g_mw:0, i_g_mb:1, i_g_mt:0, m index start from 8
@@ -662,7 +662,7 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex0_bt128x64x32_wt32x32x8_ws1x1_wr1x2_ta1x16x1x1
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
     ; start group 2, i_g_mr:0, i_g_ms:0, i_g_mw:0, i_g_mb:2, i_g_mt:0, m index start from 16
@@ -694,7 +694,7 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex0_bt128x64x32_wt32x32x8_ws1x1_wr1x2_ta1x16x1x1
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
     ; start group 3, i_g_mr:0, i_g_ms:0, i_g_mw:0, i_g_mb:3, i_g_mt:0, m index start from 24
@@ -726,7 +726,7 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex0_bt128x64x32_wt32x32x8_ws1x1_wr1x2_ta1x16x1x1
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
 L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex0_bt128x64x32_wt32x32x8_ws1x1_wr1x2_ta1x16x1x1_1x2x4x32_tb1x8x1x1_1x4x1x64_pta_out:

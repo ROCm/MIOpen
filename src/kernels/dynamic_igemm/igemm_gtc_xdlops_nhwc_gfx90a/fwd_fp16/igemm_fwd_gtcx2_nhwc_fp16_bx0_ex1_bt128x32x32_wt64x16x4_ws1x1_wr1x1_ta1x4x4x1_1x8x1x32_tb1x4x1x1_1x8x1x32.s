@@ -839,14 +839,14 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex1_bt128x32x32_wt64x16x4_ws1x1_wr1x1_ta1x4x4x1_
     s_waitcnt lgkmcnt(1)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 64, s[s_out_stride_wo]   ; i_m:64(i_m0:2,i_m1:0)
     v_add_u32 v[v_tmp], 64, v[v_out_inb]
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
 L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex1_bt128x32x32_wt64x16x4_ws1x1_wr1x1_ta1x4x4x1_1x8x1x32_tb1x4x1x1_1x8x1x32_out:

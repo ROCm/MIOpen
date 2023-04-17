@@ -841,7 +841,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx940") )
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -907,7 +907,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
 
     const auto isGfx90aFp16altSupport =
-        (ctx.GetStream().GetDeviceName() == "gfx90a") && problem.conv_problem.IsFp16();
+        (ctx.GetStream().GetDeviceName() == "gfx90a" || ctx.GetStream().GetDeviceName() == "gfx940") && problem.conv_problem.IsFp16();
 
     const auto is_nchw = problem.IsLayoutDefault();
 

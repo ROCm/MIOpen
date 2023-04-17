@@ -937,28 +937,28 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x8x1x1_
     s_waitcnt lgkmcnt(3)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 8, s[s_out_stride_wo]   ; i_m:8(i_m0:0,i_m1:8)
     v_add_u32 v[v_tmp], 8, v[v_out_inb]
     s_waitcnt lgkmcnt(2)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 16, s[s_out_stride_wo]   ; i_m:16(i_m0:0,i_m1:16)
     v_add_u32 v[v_tmp], 16, v[v_out_inb]
     s_waitcnt lgkmcnt(1)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+8:v_c+8+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+8:v_c+8+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 24, s[s_out_stride_wo]   ; i_m:24(i_m0:0,i_m1:24)
     v_add_u32 v[v_tmp], 24, v[v_out_inb]
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+12:v_c+12+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+12:v_c+12+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 32, s[s_out_stride_wo]   ; i_m:32(i_m0:0,i_m1:32)
     v_add_u32 v[v_tmp], 32, v[v_out_inb]
@@ -973,28 +973,28 @@ L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x8x1x1_
     s_waitcnt lgkmcnt(3)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c:v_c+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 40, s[s_out_stride_wo]   ; i_m:40(i_m0:0,i_m1:40)
     v_add_u32 v[v_tmp], 40, v[v_out_inb]
     s_waitcnt lgkmcnt(2)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+4:v_c+4+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 48, s[s_out_stride_wo]   ; i_m:48(i_m0:0,i_m1:48)
     v_add_u32 v[v_tmp], 48, v[v_out_inb]
     s_waitcnt lgkmcnt(1)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+8:v_c+8+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+8:v_c+8+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mul_i32 s[s_tmp], 56, s[s_out_stride_wo]   ; i_m:56(i_m0:0,i_m1:56)
     v_add_u32 v[v_tmp], 56, v[v_out_inb]
     s_waitcnt lgkmcnt(0)
     v_cmp_gt_u32 vcc, s[s_dim_mr], v[v_tmp]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
-    buffer_store_dwordx4 v[v_c+12:v_c+12+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0
+    buffer_store_dwordx4 v[v_c+12:v_c+12+3], v[v_out_os], s[s_p_out:s_p_out+3], s[s_tmp] offen offset:0 sc0 sc1
     s_or_b64 exec, exec, s[s_tmp+4:s_tmp+5]
     s_mov_b64 exec, -1
 L_igemm_fwd_gtcx2_nhwc_fp16_bx0_ex1_bt64x256x32_wt32x32x8_ws1x1_wr2x2_ta1x8x1x1_1x4x1x64_tb1x8x4x1_1x4x1x64_out:
