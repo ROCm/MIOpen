@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,51 +24,38 @@
  *
  *******************************************************************************/
 
-#ifndef PERFORMANCE_CONFIG_HPP
-#define PERFORMANCE_CONFIG_HPP
+#ifndef GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
+#define GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
 
 #include <miopen/miopen.h>
-#include <miopen/serializable.hpp>
-
-#include <iostream>
-#include <sstream>
+#include <miopen/conv/context.hpp>
+#include <miopen/solver.hpp>
+#include <unordered_map>
+#include <typeinfo>
 #include <string>
-#include <functional>
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 namespace miopen {
-namespace solver {
+namespace ai {
+namespace tuning {
 
-struct PerfConfig
+struct PerfTuningModel
 {
-    virtual ~PerfConfig() = default;
+    struct impl;
+    std::unique_ptr<impl> pImpl;
 
-    virtual void Serialize(std::ostream& stream) const = 0;
-    virtual bool Deserialize(const std::string& s)     = 0;
-    virtual std::string ToString() const;
-
-protected:
-    PerfConfig()                  = default;
-    PerfConfig(const PerfConfig&) = default;
-    PerfConfig& operator=(const PerfConfig&) = default;
+    PerfTuningModel();
+    ~PerfTuningModel();
+    PerfTuningModel(PerfTuningModel&&) noexcept;
+    PerfTuningModel(const std::string& arch, const std::string& solver);
+    PerfTuningModel& operator=(PerfTuningModel&&) noexcept;
+    bool ModelSetParams(std::function<bool(int, int)> validator,
+                        const std::vector<float>& features) const;
+    size_t GetNumParams() const;
 };
 
-std::ostream& operator<<(std::ostream& os, const PerfConfig& c);
-
-template <class Derived>
-struct PerfConfigBase : PerfConfig
-{
-    void Serialize(std::ostream& stream) const final
-    {
-        serialize::SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
-    }
-
-    bool Deserialize(const std::string& s) final
-    {
-        return serialize::SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
-    }
-};
-
-} // namespace solver
+} // namespace tuning
+} // namespace ai
 } // namespace miopen
-
-#endif // PERFORMANCE_CONFIG_HPP
+#endif
+#endif
