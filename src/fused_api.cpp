@@ -127,16 +127,15 @@ std::string FusionConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
 }
 
 void LogCmdFusion(const miopenTensorDescriptor_t& xDesc,
-                    const miopenTensorDescriptor_t& wDesc,
-                    const miopenConvolutionDescriptor_t& convDesc,
-                    const miopenTensorDescriptor_t& yDesc,
-                    fusionMode_t fusion_mode)
+                  const miopenTensorDescriptor_t& wDesc,
+                  const miopenConvolutionDescriptor_t& convDesc,
+                  const miopenTensorDescriptor_t& yDesc,
+                  fusionMode_t fusion_mode)
 {
     if(miopen::IsLoggingCmd())
     {
         const std::string& str =
-            FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, 
-                fusion_mode);
+            FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, fusion_mode);
         MIOPEN_LOG_DRIVER_CMD(str);
     }
 }

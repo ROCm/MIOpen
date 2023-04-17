@@ -268,13 +268,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         std::cout << "Fusion mode out of range.\n Exiting..." << std::endl;
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
-    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cba && fusion_mode != miopen::fusionMode_t::miopen_fusion_ca &&
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cba &&
+       fusion_mode != miopen::fusionMode_t::miopen_fusion_ca &&
        fusion_mode != miopen::fusionMode_t::miopen_fusion_cb)
         useBatchNorm = true;
     else
         useBatchNorm = false;
 
-    if(fusion_mode == miopen::fusionMode_t::miopen_fusion_cbna || fusion_mode == miopen::fusionMode_t::miopen_fusion_cba ||
+    if(fusion_mode == miopen::fusionMode_t::miopen_fusion_cbna ||
+       fusion_mode == miopen::fusionMode_t::miopen_fusion_cba ||
        fusion_mode == miopen::fusionMode_t::miopen_fusion_cb)
         bias_mode = 1;
     else
@@ -1051,8 +1053,9 @@ template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
     ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != miopen::fusionMode_t::miopen_fusion_cb ? conv_res_host
-                                                               : out_host, // dlowell 6 or 5???
+                               fusion_mode != miopen::fusionMode_t::miopen_fusion_cb
+                                   ? conv_res_host
+                                   : out_host, // dlowell 6 or 5???
                                wei,
                                b,
                                bias_mode,
@@ -1073,8 +1076,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCxHxW
         std::cout << "Running CPU per activation BN." << std::endl;
         miopenBNPerActivFwdInferHost(
-            fusion_mode != miopen::fusionMode_t::miopen_fusion_na ? outputTensor
-                                            : inputTensor, // DLOWELL use output for splice test
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na
+                ? outputTensor
+                : inputTensor, // DLOWELL use output for splice test
             fusion_mode != miopen::fusionMode_t::miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
@@ -1089,8 +1093,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCx1x1
         std::cout << "Running CPU spatial BN." << std::endl;
         miopenBNSpatialFwdInferHost(
-            fusion_mode != miopen::fusionMode_t::miopen_fusion_na ? outputTensor
-                                            : inputTensor, // DLOWELL use output for splice test
+            fusion_mode != miopen::fusionMode_t::miopen_fusion_na
+                ? outputTensor
+                : inputTensor, // DLOWELL use output for splice test
             fusion_mode != miopen::fusionMode_t::miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
@@ -1131,7 +1136,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         runCPUBNFwdInference();
     }
 
-    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cb && fusion_mode != miopen::fusionMode_t::miopen_fusion_cn)
+    if(fusion_mode != miopen::fusionMode_t::miopen_fusion_cb &&
+       fusion_mode != miopen::fusionMode_t::miopen_fusion_cn)
     {
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
