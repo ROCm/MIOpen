@@ -62,7 +62,7 @@ template <class T, class Work>
 auto then(std::future<T> f, Work w) -> std::future<decltype(w(f.get()))>
 {
     return std::async(std::launch::deferred,
-                      [=, f = std::move(f)]() mutable { return w(f.get()); });
+                      [=, f_ = std::move(f)]() mutable { return w(f_.get()); });
 }
 
 struct joinable_thread : std::thread
