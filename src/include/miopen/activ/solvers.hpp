@@ -27,42 +27,17 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/activ/problem_description.hpp>
 
 #include <utility>
 
 namespace miopen {
 
-namespace activ {
-struct ProblemDescription;
-} // namespace activ
-
 namespace solver {
 
 namespace activ {
 
-using OldStyleProblemDescription =
-    std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
-
-struct ActivSolver : SolverMixin<OldStyleProblemDescription>
-{
-    // To suppress -Woverloaded-virtual
-    using SolverMixin::IsApplicable;
-
-    bool IsApplicable(const OldStyleProblemDescription& problem) const final
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::activ::ProblemDescription& problem) const        = 0;
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::activ::ProblemDescription& problem) const = 0;
-};
+using ActivSolver = NonTunableSolverBase<ExecutionContext, miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver
 {

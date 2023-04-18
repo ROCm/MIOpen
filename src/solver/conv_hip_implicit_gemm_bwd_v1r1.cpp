@@ -562,7 +562,7 @@ void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -607,7 +607,8 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&,
+                                                        const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -644,8 +645,6 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))
         return false;
 
-    // TBD Renable fp16 once the root cause of
-    // fp16 failures, observed in CI, is resolved.
     if(!(problem.IsFp32() || problem.IsBfp16()))
         return false;
     if(problem.group_counts != 1)
@@ -654,11 +653,9 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
         return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
-        return false;
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
+            return false;
 #endif
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
-        return false;
 
     const auto k = ProblemInterpreter::GetOutputChannelK(problem);
     if(k % GetEPackLength(ctx, problem, false) != 0)
@@ -783,7 +780,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     std::tie(GemmCThreadCopyDstDataPerWrite_GemmN1, std::ignore) =
         config.CalculateGemmCThreadCopyPerformanceParameters(problem);
 
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     // clang-format off
     construction_parameters.comp_options =

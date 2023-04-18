@@ -194,7 +194,7 @@ struct buff_info
     }
 };
 
-bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do
@@ -458,7 +458,8 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ProblemDescription& pro
 }
 
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
     pp.HeuristicInit(problem);
@@ -466,7 +467,8 @@ ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ProblemDescription& problem) co
     return pp;
 }
 
-bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext&,
+                                             const ProblemDescription& problem,
                                              const PerformanceConfigConvAsm1x1UV2& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
