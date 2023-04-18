@@ -28,17 +28,16 @@
 #define GUARD_MIOPEN_SOLVER_HPP_
 
 #include <miopen/config.h>
-#include <miopen/miopen.h>
 
-#include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
-#include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/performance_config.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/stringutils.hpp>
 #include <miopen/type_name.hpp>
+#include <miopen/miopen.h>
+#include <miopen/buffer_info.hpp>
+#include <miopen/performance_config.hpp>
 
 #include <boost/any.hpp>
 
@@ -4694,19 +4693,7 @@ struct AnySolver;
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic
 {
-    static inline bool IsDisabled(const ConvolutionContext& ctx)
-    {
-        static const bool device_is_allowed = [&]() {
-            const auto device = ctx.GetStream().GetTargetProperties().Name();
-            return device == "gfx803"                       // Fiji
-                   || device == "gfx900"                    // Vega10
-                   || device == "gfx906"                    // Vega20, MI50/60
-                   || device == "gfx908"                    // MI100
-                   || device == "gfx90a"                    // MI200
-                   || miopen::StartsWith(device, "gfx103"); // Navi2x
-        }();
-        return !device_is_allowed;
-    }
+    static bool IsDisabled(const ConvolutionContext& ctx);
 };
 
 } // namespace solver
