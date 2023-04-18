@@ -165,8 +165,8 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
 
     if(conv_problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
-         StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
     // clang-format off
@@ -221,6 +221,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
 
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
+        {"FORCE_CACHE_BYPASS_ON_STORE", StartsWith(name, "gfx940")},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
