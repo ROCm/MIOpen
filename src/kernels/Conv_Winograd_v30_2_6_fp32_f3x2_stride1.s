@@ -27,8 +27,8 @@
 
 KERNEL_PROLOG fp32_f3x2_stride1
 
-.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 0)
-    .include "Conv_Winograd_v30_2_6_gfx940_fp32_f3x2_stride1.inc"
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4)
+    .include "Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride1.inc"
 .elseif (.amdgcn.gfx_generation_number == 9)
     .include "Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride1.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
