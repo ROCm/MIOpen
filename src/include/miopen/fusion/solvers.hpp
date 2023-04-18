@@ -131,7 +131,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
         : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    void HeuristicInit(const FusionDescription& problem);
+    void HeuristicInit(const FusionContext& ctx, const FusionDescription& problem);
     bool SetNextValue(const FusionDescription& problem);
     bool IsValid(const FusionContext&, const FusionDescription& problem) const
     {
@@ -144,10 +144,10 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const FusionContext& fusion_ctx,
+    bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
     ConvSolution
-    GetSolution(const FusionContext& ctx,
+    GetSolution(const FusionContext& context,
                 const FusionDescription& problem,
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
     PerformanceConfigConvBiasActivAsm1x1U
@@ -184,6 +184,74 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
+struct PerformanceConfigConvCKIgemmFwdBiasActivFused
+    : PerfConfigBase<PerformanceConfigConvCKIgemmFwdBiasActivFused>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigConvCKIgemmFwdBiasActivFused(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigConvCKIgemmFwdBiasActivFused()
+        : PerformanceConfigConvCKIgemmFwdBiasActivFused(0, "")
+    {
+    }
+    PerformanceConfigConvCKIgemmFwdBiasActivFused(bool)
+        : PerformanceConfigConvCKIgemmFwdBiasActivFused(0, "")
+    {
+    }
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
+    bool IsValidValue() const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigConvCKIgemmFwdBiasActivFused& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvCKIgemmFwdBiasActivFused final
+    : FusionTunableSolver<PerformanceConfigConvCKIgemmFwdBiasActivFused>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvCKIgemmFwdBiasActivFused>();
+    }
+
+    PerformanceConfigConvCKIgemmFwdBiasActivFused
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
+    bool IsValidPerformanceConfig(
+        const FusionContext& ctx,
+        const FusionDescription& fdesc_problem,
+        const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
+    PerformanceConfigConvCKIgemmFwdBiasActivFused
+    Search(const FusionContext& ctx,
+           const FusionDescription& fdesc_problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
+    ConvSolution
+    GetSolution(const FusionContext& ctx,
+                const FusionDescription& fdesc_problem,
+                const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
 struct ConvBinWinogradRxSFused final : FusionSolverBase
 {
     const std::string& SolverDbId() const override
@@ -192,9 +260,9 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     }
 
     bool IsApplicable(const FusionContext& context,
-                      const FusionDescription& problem) const override;
+                      const FusionDescription& fdesc_problem) const override;
     ConvSolution GetSolution(const FusionContext& context,
-                             const FusionDescription& problem) const override;
+                             const FusionDescription& fdesc_problem) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase

@@ -71,24 +71,6 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     return empty;
 }
 
-bool KernelCache::HasKernels(const std::string& algorithm, const std::string& network_config) const
-{
-    const auto key = std::make_pair(algorithm, network_config);
-#ifndef NDEBUG
-    MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
-#endif
-    const auto it = kernel_map.find(key);
-    if(it == kernel_map.end())
-        return false;
-
-    if(it->second.empty())
-    {
-        MIOPEN_THROW("There should be at least one kernel in kernel cache if an entry exists");
-    }
-
-    return true;
-}
-
 bool KernelCache::HasProgram(const std::string& name, const std::string& params) const
 {
     const auto key = std::make_pair(name, params);
