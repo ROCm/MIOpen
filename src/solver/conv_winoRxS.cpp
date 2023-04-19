@@ -709,9 +709,11 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    const auto force_cache_bypass = StartsWith(name, "gfx940") || StartsWith(name, "gfx941");
+
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
-        {"FORCE_CACHE_BYPASS_ON_STORE", StartsWith(name, "gfx940")},
+        {"FORCE_CACHE_BYPASS_ON_STORE", force_cache_bypass},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
