@@ -35,13 +35,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 
-enum class ConvDirection
-{
-    Fwd = 1,
-    Bwd = 2,
-    WrW = 4
-};
-
 namespace miopen {
 namespace debug {
 
