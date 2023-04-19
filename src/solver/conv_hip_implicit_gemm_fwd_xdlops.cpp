@@ -339,6 +339,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(!IsXdlopsSupport(ctx))
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
