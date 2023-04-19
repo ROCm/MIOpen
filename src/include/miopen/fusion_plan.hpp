@@ -24,7 +24,7 @@ enum fusionMode_t
     miopen_fusion_cba  = 4,
     miopen_fusion_ca   = 5,
     miopen_fusion_cb   = 6,
-} ;
+};
 
 enum Exec_Arg_Type_t
 {
