@@ -15,7 +15,7 @@ struct ConvSolution;
 } // namespace solver
 
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
-typedef enum
+enum fusionMode_t
 {
     miopen_fusion_cbna = 0,
     miopen_fusion_cna  = 1,
@@ -24,7 +24,7 @@ typedef enum
     miopen_fusion_cba  = 4,
     miopen_fusion_ca   = 5,
     miopen_fusion_cb   = 6,
-} fusionMode_t;
+} ;
 
 enum Exec_Arg_Type_t
 {

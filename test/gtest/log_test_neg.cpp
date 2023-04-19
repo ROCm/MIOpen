@@ -45,6 +45,5 @@ TEST(LOG_TEST, AssertTestLogCmdFusionOutput_Neg)
                      logFusionConvBiasActiv,
                      false,
                      4 /*miopen_fusion_cba*/);
-    ;
 }
 #endif
