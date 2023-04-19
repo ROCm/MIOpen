@@ -338,7 +338,6 @@ def RunPerfTest(Map conf=[:]){
             sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
             ld_lib="${env.WORKSPACE}/opt/rocm/lib"
             def filename = conf.get("filename", "")
-            sh "/opt/rocm/bin/rocminfo"
             if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH || params.PERF_TEST_BRANCH_OVERRIDE){
                 sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 //jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
@@ -353,13 +352,8 @@ def RunPerfTest(Map conf=[:]){
             }
 
             archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-            try{
-                if (env.BRANCH_NAME != env.MIOPEN_GOLDEN_PERF_BRANCH){
-                    sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
-                }
-            }
-            catch (Exception err){
-                currentBuild.result = 'SUCCESS'
+            if (env.BRANCH_NAME != env.MIOPEN_GOLDEN_PERF_BRANCH){
+                sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
             }
         }
         }
