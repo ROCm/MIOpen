@@ -36,6 +36,32 @@ from decimal import Decimal
 results_path = f"{os.path.dirname(__file__)}/perf_results"
 TOLERANCE = -5  #tolerance 5%
 
+re_Elapsed = re.compile(r"(\d*\.*\d+)")
+re_Solver = re.compile(r"^MIOpen .* Algorithm: (\d+), Solution: (\d+)/(\w+)")
+re_GPU = re.compile(r"^GPU Kernel Time .* Elapsed: (\d+\.\d+) ms")
+re_Key = re.compile(r"^.*Key match: ([\w\-]*)")
+
+
+class Entry:
+
+  def __init__(self):
+    self.cmd = ''
+    self.wall_elapsed = ''
+    self.wall_aux = ''
+    self.wall_gwss = ''
+    self.algo = ''
+    self.sol_id = ''
+    self.sol_name = ''
+    self.sol_time = ''
+    self.fdb_key = ''
+
+  def __str__(self):
+    atrs = [
+        self.cmd, self.wall_elapsed, self.wall_aux, self.wall_gwss, self.algo,
+        self.sol_id, self.sol_name, self.sol_time, self.fdb_key
+    ]
+    return ",".join(atrs)
+
 
 def parse_args():
   """Function to parse cmd line arguments"""
@@ -75,7 +101,9 @@ def run_driver_cmds(filename, install_path):
   try:
     outfile = open(os.path.expanduser(resfile), 'w+', encoding='utf-8')
     results = []
-    field_names = ['Driver', 'k_time']
+    field_names = [
+        'Driver', 'k_time', 'wall_time', 'solver_id', 'solver_name', 'fdb_key'
+    ]
     writer = csv.DictWriter(outfile, fieldnames=field_names)
     writer.writeheader()
     with open(os.path.expanduser(model_path), "r", encoding='utf-8') as infile:
@@ -93,16 +121,45 @@ def run_driver_cmds(filename, install_path):
                                   stderr=subprocess.STDOUT)
           p_out = proc.stdout.readlines()
           k_time = -1
-          for o_line in p_out:
-            o_line = o_line.decode("utf-8")
-            print(o_line)
-            if 'GPU Kernel Time' in o_line:
-              split = re.search('Elapsed: (.*)ms', o_line)
-              k_time = split.group(1)
-            if 'error' in o_line:
+          res = None
+          e = None
+          for line in p_out:
+            line = line.decode("utf-8")
+            line = line.strip()
+            #print(line)
+            if (line.find('MIOpenDriver') != -1):
+              e = Entry()
+              e.cmd = line
+              continue
+            if (line.find('Wall-clock Time') != -1):
+              res = re_Elapsed.findall(line)
+              e.wall_elapsed = res[0]
+              e.wall_aux = res[1]
+              e.wall_gwss = res[2]
+              continue
+            if (re_Solver.match(line)):
+              res = re_Solver.findall(line)[0]
+              e.algo = res[0]
+              e.sol_id = res[1]
+              e.sol_name = res[2]
+              continue
+            if (re_Key.match(line)):
+              e.fdb_key = re_Key.findall(line)[0]
+            if (re_GPU.match(line)):
+              res = re_GPU.findall(line)
+              e.sol_time = res[0]
+              print(e)
+            if line.find('error') != -1:
               raise ValueError(p_out)
-          results.append({'Driver': driver_cmd, 'k_time': k_time})
-          print(f'k_time: {k_time}')
+          results.append({
+              'Driver': e.cmd,
+              'k_time': e.sol_time,
+              'wall_time': e.wall_elapsed,
+              'solver_id': e.sol_id,
+              'solver_name': e.sol_name,
+              'fdb_key': e.fdb_key
+          })
+          print(f'k_time: {e.sol_time}')
 
         except Exception as ex:
           raise ValueError(f"Could not get kernel time: {ex}")
