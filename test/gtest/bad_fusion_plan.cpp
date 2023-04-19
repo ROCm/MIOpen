@@ -94,7 +94,8 @@ public:
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
 
         // Setup the Fusionplan
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input_des);
+        fusePlanDesc =
+            miopen::FusionPlanDescriptor(miopenVerticalFusion, input_des, 4 /*miopen_fusion_cba*/);
 
         const std::string arch = handle.GetDeviceName();
         skip_test              = (arch != "gfx908" && arch != "gfx90a");

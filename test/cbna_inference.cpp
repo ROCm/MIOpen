@@ -35,7 +35,8 @@ using ptr_ActivationDesc = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
 ptr_FusionPlanDesc GetManagedFusionPlanDesc(miopenTensorDescriptor_t inputDesc)
 {
     miopenFusionPlanDescriptor_t fusePlanDesc;
-    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+    miopenCreateFusionPlan(
+        &fusePlanDesc, miopenVerticalFusion, inputDesc, 0 /*miopen_fusion_cbna*/);
     return ptr_FusionPlanDesc{fusePlanDesc};
 }
 

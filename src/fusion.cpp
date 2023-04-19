@@ -83,7 +83,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     }
     if(z != nullptr || zDesc.GetSize() != 0)
         MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
-    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
+    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc, 4 /*miopen_fusion_cba*/};
     OperatorArgs fusionArgs;
     auto convoOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
     auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
@@ -116,9 +116,10 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       is_valid(false),
       kernel_source_type(OpenclText),
       fp_contains_bn(false),
-      data_type(inDesc.GetType()),
-      fusion_mode(static_cast<fusionMode_t>(fmode))
+      data_type(inDesc.GetType())
 {
+    assert(fmode >= 0 && fmode <= static_cast<int>(miopen_fusion_cb));
+    fusion_mode = static_cast<fusionMode_t>(fmode);
 }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)

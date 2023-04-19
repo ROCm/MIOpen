@@ -147,7 +147,8 @@ protected:
         bias_dev = handle.Write(bias.data);
 
         // Setup the Fusionplan
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc);
+        fusePlanDesc =
+            miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc, 4 /*miopen_fusion_cba*/);
         auto convOp  = std::make_shared<miopen::ConvForwardOpDescriptor>(conv_desc, weights.desc);
         auto biasOp  = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
         auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());

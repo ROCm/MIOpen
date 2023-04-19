@@ -28,9 +28,11 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <miopen/convolution.hpp>
+#include "miopen/fusion_plan.hpp"
 
 extern std::string const logConv;
 extern std::string const logFindConv;
+extern std::string const logFusionConvBiasActiv;
 extern std::string const envConv;
 
 enum class ConvDirection;
@@ -53,6 +55,15 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& yDesc,
                            const ConvDirection& conv_dir,
                            bool is_immediate);
+
+// Copy of function declaration that is in miopen.
+// This is for testing purpose only.
+void LogCmdFusion(const miopenTensorDescriptor_t& xDesc,
+                  const miopenTensorDescriptor_t& wDesc,
+                  const miopenConvolutionDescriptor_t& convDesc,
+                  const miopenTensorDescriptor_t& yDesc,
+                  miopen::fusionMode_t fusion_mode);
+
 } // namespace debug
 } // namespace miopen
 // Function that is used in multiple test cases.
@@ -65,3 +76,14 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                 std::string env_var,
                 std::string sub_str,
                 bool set_env);
+
+// Function that is used in multiple test cases.
+void TestLogCmdFusion(std::function<void(const miopenTensorDescriptor_t&,
+                                         const miopenTensorDescriptor_t&,
+                                         const miopenConvolutionDescriptor_t&,
+                                         const miopenTensorDescriptor_t&,
+                                         miopen::fusionMode_t fusion_mode)> const& func,
+                      std::string env_var,
+                      std::string sub_str,
+                      bool set_env,
+                      int fusion_mode);

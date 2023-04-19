@@ -134,6 +134,7 @@ void LogCmdFusion(const miopenTensorDescriptor_t& xDesc,
 {
     if(miopen::IsLoggingCmd())
     {
+        // convolution
         const std::string& str =
             FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, fusion_mode);
         MIOPEN_LOG_DRIVER_CMD(str);
@@ -249,7 +250,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                     wDesc,
                                     convDesc,
                                     &miopen::deref(fusePlanDesc).output_desc,
-                                    miopen::deref(fusePlanDesc).fusion_mode);
+                                    miopen::deref(fusePlanDesc).GetFusionMode());
     });
     return res;
 }

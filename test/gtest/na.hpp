@@ -131,7 +131,8 @@ protected:
         out_dev         = handle.Write(output.data);
 
         // Setup the Fusionplan
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc);
+        fusePlanDesc =
+            miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc, 2 /*miopen_fusion_na*/);
         auto bnOp =
             std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(bn_mode, bn_desc);
         EXPECT_EQ(fusePlanDesc.AddOp(bnOp), miopenStatusSuccess);

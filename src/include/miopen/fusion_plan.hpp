@@ -56,9 +56,7 @@ struct FusionContext;
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor() {}
-    FusionPlanDescriptor(miopenFusionDirection_t dir,
-                         const TensorDescriptor& inDesc,
-                         int fmode = 0);
+    FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc, int fmode);
     bool isValid() const { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     TensorDescriptor DeriveOutputDescriptor();
@@ -95,6 +93,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     NetworkConfig network_config;
     std::optional<miopenConvFwdAlgorithm_t> conv_fwd_algo;
 
+    fusionMode_t GetFusionMode() const { return fusion_mode; }
+
+private:
     fusionMode_t fusion_mode;
 };
 

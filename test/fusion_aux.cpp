@@ -61,7 +61,7 @@ void chk_getop_bounds()
                                            conv_desc[4],
                                            conv_desc[5]));
 
-    miopen::FusionPlanDescriptor fp(miopenVerticalFusion, inputTensor);
+    miopen::FusionPlanDescriptor fp(miopenVerticalFusion, inputTensor, 0 /*miopen_fusion_cbna*/);
 
     STATUS(miopenCreateOpConvForward(&fp, &convoOp, convDesc, &convFilter));
     miopenFusionOpDescriptor_t op1;
