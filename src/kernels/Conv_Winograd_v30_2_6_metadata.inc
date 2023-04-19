@@ -200,7 +200,7 @@ __dx10_clamp = 0
     .amdhsa_dx10_clamp                       __dx10_clamp
     .amdhsa_accum_offset                    .amdgcn.next_free_vgpr
 .end_amdhsa_kernel
-.elseif (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 0)
+.elseif (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
     .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
