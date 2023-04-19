@@ -95,7 +95,8 @@ void MiirGenBin(const std::string& params, std::vector<char>& buffer)
 int MiirGetKernelCount(const std::string& params)
 {
     AutoMiirHandle handle(params);
-    return miirGetKernelCount(handle());
+    const auto n = miirGetKernelCount(handle());
+    return n < 0 ? 0 : n;
 }
 
 int MiirGetWorkspaceSize(const std::string& params)
