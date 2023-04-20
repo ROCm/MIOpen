@@ -51,41 +51,34 @@ namespace fdeep {
 
 namespace miopen {
 namespace ai {
+namespace common {
+}
 #endif
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
-bool IsDeviceSupported(const std::string& device);
-nlohmann::json GetMetadata(const std::string& device);
-fdeep::model GetModel(const std::string& device);
-std::vector<std::string> GetFeatureNames(const nlohmann::json& metadata);
-std::unordered_map<size_t, std::string> GetSolverMap(const nlohmann::json& metadata);
-size_t GetNumInputs(const nlohmann::json& metadata);
-size_t GetNumOutputs(const nlohmann::json& metadata);
-size_t GetNumSolvers(const nlohmann::json& metadata);
-size_t GetDirectionCode(const miopen::conv::Direction& dir, const nlohmann::json& metadata);
-size_t GetPrecisionCode(const miopenDataType_t& data_type, const nlohmann::json& metadata);
-size_t GetLayoutCode(const std::string& layout, const nlohmann::json& metadata);
-std::vector<float> GetFeaturesMean(const nlohmann::json& metadata);
-std::vector<float> GetFeaturesStd(const nlohmann::json& metadata);
-std::vector<float> ToFeatures(const conv::ProblemDescription& problem,
-                              const nlohmann::json& metadata,
-                              const bool normalize);
-bool AreFeaturesInDistributionL1(const std::vector<float>& features,
-                                 const float threshold);
-bool AreFeaturesInDistributionL2(const std::vector<float>& features,
-                                 const float threshold,
-                                 const nlohmann::json& metadata);
-bool IsProblemSupported(const ProblemDescription& problem,
-                        const ConvolutionContext& ctx,
-                        const nlohmann::json& metadata);
-std::vector<float> CallModel(const fdeep::model& model,
-                             const std::vector<float>& normalized_features,
-                             const nlohmann::json& metadata);
-std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
-                                    const std::vector<float>& normalized_features,
-                                    bool& cached,
-                                    const std::string& device,
-                                    const nlohmann::json& metadata);
+struct Metadata {
+    public:
+    std::vector<std::string> features;
+    size_t num_inputs;
+    size_t num_outputs;
+    size_t num_solvers;
+    std::unordered_map<size_t, std::string> solver_map;
+    std::vector<float> features_mean;
+    std::vector<float> features_std;
+    Metadata (const std::string& arch);
+    size_t MapDirection(const miopen::conv::Direction& dir) const;
+    size_t MapPrecision(const miopenDataType_t& data_type) const;
+    size_t MapLayout(const std::string& layout) const;
+
+    private:
+    std::unordered_map<std::string, int> direction_map;
+    std::unordered_map<std::string, int> precision_map;
+    std::unordered_map<std::string, int> layout_map;
+};
+class Model;
+std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
+                                    const ConvolutionContext& ctx,
+                                    const std::string& device);
 } // namespace immed_mode
 
 #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
