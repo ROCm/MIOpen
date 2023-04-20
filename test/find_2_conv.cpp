@@ -253,10 +253,12 @@ private:
         {
             float time;
             std::size_t workspace_size;
+            uint64_t solver_id;
 
             EXPECT_EQUAL(miopenGetSolutionTime(solution, &time), miopenStatusSuccess);
             EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
                          miopenStatusSuccess);
+            EXPECT_EQUAL(miopenGetSolutionSolverId(solution, &solver_id), miopenStatusSuccess);
         }
 
         std::cerr << "Finished testing miopenGetSolution<Attribute>." << std::endl;

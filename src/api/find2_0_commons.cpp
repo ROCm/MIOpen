@@ -294,4 +294,15 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
         *time                      = solution_deref.GetTime();
     });
 }
+
+miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
+{
+    MIOPEN_LOG_FUNCTION(solution, solverId);
+
+    return miopen::try_([&] {
+        const auto& solution_deref = miopen::deref(solution);
+        *solverId                  = solution_deref.GetSolver().Value();
+    });
+}
+
 }
