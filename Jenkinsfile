@@ -1195,15 +1195,6 @@ pipeline {
                 expression {params.PERF_TEST && params.TARGET_GFX90A}
             }
             parallel{
-                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
-                    when {
-                        expression {params.PERF_TEST_FP32}
-                    }
-                    agent{ label rocmnode("austin")}
-                    steps{
-                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt" )
-                    }
-                }
                 stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -1220,6 +1211,15 @@ pipeline {
                     agent{ label rocmnode("austin")}
                     steps{
                         RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt" )
                     }
                 }
                 stage('Fp16 BS128 Hip Performance Resnet50_v1.5 gfx90a'){

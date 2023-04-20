@@ -97,12 +97,12 @@ def run_driver_cmds(filename, install_path, override=None):
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
                   f"export MIOPEN_FIND_MODE=1 && "\
                   f"{var_str} "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 100 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 20 -w 1 -t 1"
           else:
             cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
                   f"export MIOPEN_FIND_MODE=1 && "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 100 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 20 -w 1 -t 1"
           print(f'Running cm: {cmd}')
           proc = subprocess.Popen(cmd,
                                   shell=True,
@@ -112,13 +112,14 @@ def run_driver_cmds(filename, install_path, override=None):
           k_time = -1
           for o_line in p_out:
             o_line = o_line.decode("utf-8")
+            o_line = o_line.strip()
+            print(o_line)
             if 'GPU Kernel Time' in o_line:
               split = re.search('Elapsed: (.*)ms', o_line)
               k_time = split.group(1)
             if 'error' in o_line:
               raise ValueError(p_out)
           results.append({'Driver': driver_cmd, 'k_time': k_time})
-          print(p_out)
           print(f'k_time: {k_time}')
 
         except Exception as ex:
