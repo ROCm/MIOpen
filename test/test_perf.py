@@ -84,6 +84,10 @@ def parse_args():
                       dest='old_results_path',
                       type=str,
                       help='Specify full path to old results directory')
+  parser.add_argument('--override',
+                      dest='override',
+                      type=str,
+                      help='Specify driver cmd env vars')
   args = parser.parse_args()
 
   if args.compare_results and not args.old_results_path:
@@ -93,10 +97,15 @@ def parse_args():
   return args
 
 
-def run_driver_cmds(filename, install_path):
+def run_driver_cmds(filename, install_path, override=None):
   """Parse model file and launch Driver cmds"""
   resfile = f"{results_path}/{filename}"
   model_path = f"{install_path}/share/miopen/perf_models/{filename}"
+  if override:
+    var_list = override.split(',')
+    var_str = ""
+    for var in var_list:
+      var_str += var + " &&"
 
   try:
     outfile = open(os.path.expanduser(resfile), 'w+', encoding='utf-8')
@@ -111,9 +120,17 @@ def run_driver_cmds(filename, install_path):
         try:
           idx = line.index('MIOpenDriver')
           driver_cmd = line[idx:-1]
-          cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
-                f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
-                f"{install_path}/bin/{driver_cmd} -V 0 -i 10 -w 1 -t 1"
+          if override:
+            cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
+                  f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
+                  f"export MIOPEN_FIND_MODE=1 && "\
+                  f"{var_str} "\
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 100 -w 1 -t 1"
+          else:
+            cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
+                  f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
+                  f"export MIOPEN_FIND_MODE=1 && "\
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 100 -w 1 -t 1"
           print(f'Running cm: {cmd}')
           proc = subprocess.Popen(cmd,
                                   shell=True,
@@ -159,6 +176,7 @@ def run_driver_cmds(filename, install_path):
               'solver_name': e.sol_name,
               'fdb_key': e.fdb_key
           })
+          print(p_out)
           print(f'k_time: {e.sol_time}')
 
         except Exception as ex:
@@ -227,7 +245,7 @@ def main():
       os.makedirs(results_path)
 
     try:
-      run_driver_cmds(f"{args.filename}", args.install_path)
+      run_driver_cmds(f"{args.filename}", args.install_path, args.override)
     except Exception as ex:
       print(f'ERR: {ex}')
       sys.exit(1)
