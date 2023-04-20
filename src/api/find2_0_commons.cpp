@@ -33,6 +33,7 @@
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/solver_id.hpp>
 #include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
@@ -305,4 +306,17 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
     });
 }
 
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
+{
+    MIOPEN_LOG_FUNCTION(solverId, result);
+
+    return miopen::try_([&] {
+        const auto id_deref = miopen::solver::Id{solverId};
+
+        if(!id_deref.IsValid() || id_deref.GetPrimitive() != miopen::solver::Primitive::Convolution)
+            MIOPEN_THROW(miopenStatusInvalidValue);
+
+        *result = id_deref.GetAlgo();
+    });
+}
 }

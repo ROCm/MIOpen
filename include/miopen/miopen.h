@@ -4993,6 +4993,14 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
  */
 miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
 
+/*! @brief Reads the time spent to execute the solution the last it was run.
+ *
+ * @param solverId Solver id to get convolution algorithm of
+ * @param result   Pointer to a location where to write the algorithm
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
+
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
 
