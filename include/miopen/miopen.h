@@ -4985,7 +4985,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
  */
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
 
-/*! @brief Reads id of the solver referred to by the solution.
+/*! @brief Reads id of the solver referred by the solution.
  *
  * @param solution Solution to get solver id from
  * @param solverId Pointer to a location where to write the solver id
@@ -4993,7 +4993,7 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
  */
 miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
 
-/*! @brief Reads the time spent to execute the solution the last it was run.
+/*! @brief Gets the convolution algorithm implemented by a solver.
  *
  * @param solverId Solver id to get convolution algorithm of
  * @param result   Pointer to a location where to write the algorithm
