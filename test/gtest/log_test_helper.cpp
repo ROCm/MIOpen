@@ -253,7 +253,6 @@ void TestLogCmdFusion(std::function<void(const miopenTensorDescriptor_t&,
     // start capturing std::cerr
     CerrRedirect capture_cerr;
     miopenActivationMode_t activ_mode = miopenActivationRELU;
-    miopen::OperatorArgs params;
 
     miopenFusionPlanDescriptor_t fusePlanDesc;
     miopenFusionOpDescriptor_t convoOp;
