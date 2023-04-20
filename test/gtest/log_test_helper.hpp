@@ -85,5 +85,4 @@ void TestLogCmdFusion(std::function<void(const miopenTensorDescriptor_t&,
                                          miopen::fusionMode_t fusion_mode)> const& func,
                       std::string env_var,
                       std::string sub_str,
-                      bool set_env,
-                      int fusion_mode);
+                      bool set_env);

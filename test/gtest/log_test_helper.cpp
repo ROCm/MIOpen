@@ -55,9 +55,9 @@ const std::string logFindConv =
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 
 const std::string logFusionConvBiasActiv =
-    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 64 -c 64 -H 56"
-    " -W 56 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 --in_layout NHWC --fil_layout NHWC "
-    "--out_layout NHWC -g 1";
+    "MIOpen(" BKEND
+    "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 128 -c 3 -H 32 -W 32 "
+    "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -g 1";
 
 const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 
@@ -206,95 +206,29 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
         ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
 }
 
-struct ConvTestCase
-{
-    size_t N;
-    size_t C;
-    size_t H;
-    size_t W;
-    size_t k;
-    size_t y;
-    size_t x;
-    size_t pad_x;
-    size_t pad_y;
-    size_t stride_x;
-    size_t stride_y;
-    size_t dilation_x;
-    size_t dilation_y;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
-    {
-        return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
-                  << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
-                  << " dilation_x:" << tc.dilation_x << " )";
-    }
-    std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, y, x}; }
-    miopen::ConvolutionDescriptor GetConv()
-    {
-        return miopen::ConvolutionDescriptor{
-            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}};
-    }
-};
-
 void TestLogCmdFusion(std::function<void(const miopenTensorDescriptor_t&,
                                          const miopenTensorDescriptor_t&,
                                          const miopenConvolutionDescriptor_t&,
                                          const miopenTensorDescriptor_t&,
-                                         miopen::fusionMode_t fusion_mode)> const& func,
+                                         miopen::fusionMode_t)> const& func,
                       std::string env_var,
                       std::string sub_str,
-                      bool set_env,
-                      int fusion_mode)
+                      bool set_env)
 {
     // start capturing std::cerr
     CerrRedirect capture_cerr;
-    miopenActivationMode_t activ_mode = miopenActivationRELU;
-
-    miopenFusionPlanDescriptor_t fusePlanDesc;
-    miopenFusionOpDescriptor_t convoOp;
-
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
-
-    miopenTensorLayout_t tensor_layout = miopenTensorNHWC;
-
-    ConvTestCase conv_config = {64, 64, 56, 56, 256, 1, 1, 0, 0, 1, 1, 1, 1};
-
-    tensor<half_float::half> input = tensor<half_float::half>{
-        miopen_type<half_float::half>{}, tensor_layout, conv_config.GetInput()};
-    tensor<half_float::half> weights = tensor<half_float::half>{
-        miopen_type<half_float::half>{}, tensor_layout, conv_config.GetWeights()};
-    tensor<half_float::half> bias =
-        tensor<half_float::half>{1, static_cast<size_t>(conv_config.k), 1, 1};
-
-    miopen::ConvolutionDescriptor conv_desc = conv_config.GetConv();
-    miopen::ActivationDescriptor activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-
-    miopen::TensorDescriptor output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenHalf);
-
-    tensor<half_float::half> output = tensor<half_float::half>{
-        miopen_type<half_float::half>{}, tensor_layout, output_desc.GetLengths()};
-
-    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, &input.desc, fusion_mode);
-
-    miopenCreateOpConvForward(fusePlanDesc, &convoOp, &conv_desc, &weights.desc);
-
+    // prepare tensor and convolution descriptors
+    Conv test_conv_log;
     if(set_env)
         setEnvironmentVariable(env_var, "1");
     else
         unSetEnvironmentVariable(env_var);
-
-    func(&input.desc,
-         &weights.desc,
-         &conv_desc,
-         &output.desc,
-         miopen::deref(fusePlanDesc).GetFusionMode());
+    miopen::fusionMode_t fusion_mode = miopen::fusionMode_t::miopen_fusion_cba;
+    func(test_conv_log.input.desc,
+         test_conv_log.weights.desc,
+         test_conv_log.convDesc,
+         test_conv_log.output.desc,
+         fusion_mode);
 
     // get the captured string
     std::string str = capture_cerr.getString();

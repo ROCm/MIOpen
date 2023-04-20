@@ -40,11 +40,7 @@ TEST(LOG_TEST, AssertLogFindCmdOutput)
 
 TEST(LOG_TEST_FUSION, AssertTestLogCmdFusionOutput)
 {
-    TestLogCmdFusion(miopen::debug::LogCmdFusion,
-                     envConv,
-                     logFusionConvBiasActiv,
-                     true,
-                     4 /*miopen_fusion_cba*/);
+    TestLogCmdFusion(miopen::debug::LogCmdFusion, envConv, logFusionConvBiasActiv, true);
 }
 
 #endif
