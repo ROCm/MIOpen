@@ -52,28 +52,34 @@ namespace fdeep {
 namespace miopen {
 namespace ai {
 namespace common {
+nlohmann::json LoadJSON(const std::string& path);
+template <typename U, typename V> 
+std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map);
+template <typename U, typename V>
+std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<U, V>& map);
 }
 #endif
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
 struct Metadata {
-    public:
-    std::vector<std::string> features;
-    size_t num_inputs;
-    size_t num_outputs;
-    size_t num_solvers;
-    std::unordered_map<size_t, std::string> solver_map;
-    std::vector<float> features_mean;
-    std::vector<float> features_std;
-    Metadata (const std::string& arch);
-    size_t MapDirection(const miopen::conv::Direction& dir) const;
-    size_t MapPrecision(const miopenDataType_t& data_type) const;
-    size_t MapLayout(const std::string& layout) const;
-
     private:
-    std::unordered_map<std::string, int> direction_map;
-    std::unordered_map<std::string, int> precision_map;
-    std::unordered_map<std::string, int> layout_map;
+    nlohmann::json json;
+    const std::unordered_map<std::string, int> direction_encodings;
+    const std::unordered_map<std::string, int> precision_encodings;
+    const std::unordered_map<std::string, int> layout_encodings;
+
+    public:
+    const std::vector<std::string> features;
+    const size_t num_inputs;
+    const size_t num_outputs;
+    const size_t num_solvers;
+    const std::unordered_map<size_t, std::string> solver_map;
+    const std::vector<float> features_mean;
+    const std::vector<float> features_std;
+    Metadata (const std::string& arch);
+    size_t EncodeDirection(const miopen::conv::Direction& dir) const;
+    size_t EncodePrecision(const miopenDataType_t& data_type) const;
+    size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,

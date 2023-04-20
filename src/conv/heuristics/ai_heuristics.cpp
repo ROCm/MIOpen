@@ -31,66 +31,74 @@
 namespace miopen {
 namespace ai {
 namespace common {
+    nlohmann::json LoadJSON(const std::string& path)
+    {
+        return nlohmann::json::parse(std::ifstream(path));
+    }
+    template <typename U, typename V> 
+    std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
+    {
+        std::unordered_map<V, U> reversed_map = {};
+        for(auto& it: map)
+            reversed_map.emplace(make_pair(it.second, it.first));
+        return reversed_map;
+    }
+    template <typename U, typename V>
+    std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<U, V>& map)
+    {
+        std::vector<V> values = {};
+        for(const U& key: keys)
+            values.push_back(map.at(key));
+        return values;
+    }
 }
 #endif
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
 Metadata::Metadata (const std::string& arch)
-    : solver_map({}),
-      features_mean({})
+    : json(common::LoadJSON(GetSystemDbPath() + "/" + arch + "_metadata.tn.model")),
+      direction_encodings(json["encodings"]["Direction"]),
+      precision_encodings(json["encodings"]["Precision"]),
+      layout_encodings(json["encodings"]["Layout"]),
+      features(json["conv_params_used_as_features"]),
+      num_inputs(json["num_inputs"]),
+      num_outputs(json["num_outputs"]),
+      num_solvers(json["num_solvers"]),
+      solver_map(common::ReverseMap<std::string, size_t>(json["encodings"]["solver"])),
+      features_mean(common::LookupValues<std::string, float>(features, json["stats"]["overall"]["features"]["mean"])),
+      features_std(common::LookupValues<std::string, float>(features, json["stats"]["overall"]["features"]["std"]))
 {
-    const nlohmann::json metadata = nlohmann::json::parse(std::ifstream(
-        GetSystemDbPath() + "/" + arch + "_metadata.tn.model"));
-
-    features = metadata["conv_params_used_as_features"].get<std::vector<std::string>>();
-    num_inputs = metadata["num_inputs"];
-    num_outputs = metadata["num_outputs"];
-    num_solvers = metadata["num_solvers"];
-    direction_map = metadata["encodings"]["Direction"].get<std::unordered_map<std::string, int>>();
-    precision_map = metadata["encodings"]["Precision"].get<std::unordered_map<std::string, int>>();
-    layout_map = metadata["encodings"]["Layout"].get<std::unordered_map<std::string, int>>();
-    if(solver_map.empty())
-    {
-        std::unordered_map<std::string, size_t> solver_map_rev = metadata["encodings"]["solver"];
-        for(auto& it : solver_map_rev)
-            solver_map.emplace(make_pair(it.second, it.first));
-    }
-    for(const std::string& feature: features)
-    {
-        features_mean.push_back(metadata["stats"]["overall"]["features"]["mean"][feature]);
-        features_std.push_back(metadata["stats"]["overall"]["features"]["std"][feature]);
-    }
 }
-size_t Metadata::MapDirection(const miopen::conv::Direction& dir) const
+size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
 {
     if(dir == conv::Direction::BackwardWeights)
-        return direction_map.at("W");
+        return direction_encodings.at("W");
     else if(dir == conv::Direction::BackwardData)
-        return direction_map.at("B");
+        return direction_encodings.at("B");
     else if(dir == conv::Direction::Forward)
-        return direction_map.at("F");
+        return direction_encodings.at("F");
     else
         throw std::invalid_argument("Invalid direction");
 }
-size_t Metadata::MapPrecision(const miopenDataType_t& data_type) const
+size_t Metadata::EncodePrecision(const miopenDataType_t& data_type) const
 {
     if(data_type == miopenBFloat16)
-        return precision_map.at("BF16");
+        return precision_encodings.at("BF16");
     else if(data_type == miopenHalf)
-        return precision_map.at("FP16");
+        return precision_encodings.at("FP16");
     else if(data_type == miopenFloat)
-        return precision_map.at("FP32");
+        return precision_encodings.at("FP32");
     else
-        throw std::invalid_argument("TunaNet doesn't support this precision");
+        throw std::invalid_argument("Unsupported precision");
 }
-size_t Metadata::MapLayout(const std::string& layout) const
+size_t Metadata::EncodeLayout(const std::string& layout) const
 {
     if(layout == "NCDHW")
-        return layout_map.at("NCDHW");
+        return layout_encodings.at("NCDHW");
     else if(layout == "NCHW")
-        return layout_map.at("NCHW");
+        return layout_encodings.at("NCHW");
     else
-        throw std::invalid_argument("TunaNet doesn't support this layout");
+        throw std::invalid_argument("Unsupported layout");
 }
 
 class Model {
@@ -235,9 +243,9 @@ class Gfx908Model : public Model
             static_cast<float>(conv_problem.GetKernelStrideW()),
             static_cast<float>(conv_problem.GetDilationH()),
             static_cast<float>(conv_problem.GetDilationW()),
-            static_cast<float>(metadata.MapLayout(conv_problem.GetInLayout())),
-            static_cast<float>(metadata.MapPrecision(conv_problem.GetInDataType())),
-            static_cast<float>(metadata.MapDirection(conv_problem.GetDirection())),
+            static_cast<float>(metadata.EncodeLayout(conv_problem.GetInLayout())),
+            static_cast<float>(metadata.EncodePrecision(conv_problem.GetInDataType())),
+            static_cast<float>(metadata.EncodeDirection(conv_problem.GetDirection())),
             static_cast<float>(conv_problem.GetGroupCount())
         };
 
