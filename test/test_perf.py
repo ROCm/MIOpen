@@ -97,12 +97,12 @@ def run_driver_cmds(filename, install_path, override=None):
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
                   f"export MIOPEN_FIND_MODE=1 && "\
                   f"{var_str} "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 30 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 50 -w 1 -t 1"
           else:
             cmd = f"export LD_LIBRARY_PATH={install_path}/lib && export MIOPEN_LOG_LEVEL=6 && "\
                   f"export MIOPEN_SYSTEM_DB_PATH={install_path}/share/miopen/db && "\
                   f"export MIOPEN_FIND_MODE=1 && "\
-                  f"{install_path}/bin/{driver_cmd} -V 0 -i 30 -w 1 -t 1"
+                  f"{install_path}/bin/{driver_cmd} -V 0 -i 50 -w 1 -t 1"
           print(f'Running cm: {cmd}')
           proc = subprocess.Popen(cmd,
                                   shell=True,
