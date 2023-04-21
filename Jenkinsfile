@@ -349,7 +349,7 @@ def RunPerfTest(Map conf=[:]){
                 }
                 sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 //jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
-                jenkins_url = "${env.artifact_path}/alex_perf/lastSuccessfulBuild/artifact"
+                jenkins_url = "${env.artifact_path}/alex_perf_update/lastSuccessfulBuild/artifact"
                 try {
                     sh "rm -rf ${env.WORKSPACE}/opt/rocm/bin/old_results/"
                     sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
