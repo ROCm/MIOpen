@@ -315,23 +315,7 @@ if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
     set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
 else()
-    # look for and register extractkernel
     message(STATUS "clang-offload-bundler not found")
-
-    find_program(EXTRACTKERNEL_BIN extractkernel
-        PATH_SUFFIXES bin
-        PATHS
-            /opt/rocm/hip
-            /opt/rocm
-            ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}
-    )
-    if(EXTRACTKERNEL_BIN)
-        message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
-        set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
-    else()
-        message(FATAL_ERROR "extractkernel not found")
-    endif()
 endif()
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
