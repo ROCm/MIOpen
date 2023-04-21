@@ -38,7 +38,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
@@ -394,35 +394,13 @@ static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescri
     return true;
 }
 
-static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
-{
-    assert(n == 8); // n = 6 (numerical conv params) * 1 + 1 (nominal conv params) * 2(amount of
-                    // values nominal param can take).
-    std::vector<float> features(n * n, 0.0f);
-    features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
-    int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
-    features[(offset)*n + offset] = 1.0;
-    features[3 * n + 3] =
-        float(problem.direction.IsForward() ? problem.n_inputs : problem.n_outputs);
-    features[4 * n + 4] =
-        float(problem.direction.IsForward() ? problem.n_outputs : problem.n_inputs);
-    features[5 * n + 5] = float(problem.in_height);
-    features[6 * n + 6] = float(problem.in_width);
-    features[7 * n + 7] = float(problem.batch_sz);
-    return features;
-}
-
 void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionContext& ctx,
                                                               const ProblemDescription& problem,
                                                               bool& valid)
 {
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
-    std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
-    if(perf_model.ModelSetParams(
-           [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
-           features))
+    if(ai::kernel_tuning::ModelSetParams(arch, solver, *this, problem))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
@@ -472,6 +450,7 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
         assert(false);
     }
 }
+
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
