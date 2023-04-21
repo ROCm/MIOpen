@@ -150,8 +150,10 @@ pure-eval==0.2.2
     # via stack-data
 pycparser==2.21
     # via cffi
-pydata-sphinx-theme==0.13.0rc5
-    # via sphinx-book-theme
+pydata-sphinx-theme==0.13.3
+    # via
+    #   rocm-docs-core
+    #   sphinx-book-theme
 pygithub==1.57
     # via rocm-docs-core
 pygments==2.14.0
@@ -184,7 +186,7 @@ requests==2.28.1
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core==0.2.0
+rocm-docs-core==0.6.0
     # via -r .sphinx/requirements.in
 six==1.16.0
     # via
@@ -254,6 +256,7 @@ typing-extensions==4.5.0
     # via
     #   myst-nb
     #   myst-parser
+    #   pydata-sphinx-theme
 uc-micro-py==1.0.1
     # via linkify-it-py
 urllib3==1.26.13
