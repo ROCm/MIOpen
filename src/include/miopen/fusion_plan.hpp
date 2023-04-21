@@ -17,13 +17,14 @@ struct ConvSolution;
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
 enum fusionMode_t
 {
-    miopen_fusion_cbna = 0,
-    miopen_fusion_cna  = 1,
-    miopen_fusion_na   = 2,
-    miopen_fusion_cn   = 3,
-    miopen_fusion_cba  = 4,
-    miopen_fusion_ca   = 5,
-    miopen_fusion_cb   = 6,
+    miopen_fusion_cbna      = 0,
+    miopen_fusion_cna       = 1,
+    miopen_fusion_na        = 2,
+    miopen_fusion_cn        = 3,
+    miopen_fusion_cba       = 4,
+    miopen_fusion_ca        = 5,
+    miopen_fusion_cb        = 6,
+    miopen_last_fusion_mode = miopen_fusion_cb,
 };
 
 enum Exec_Arg_Type_t

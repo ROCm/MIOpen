@@ -118,7 +118,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       fp_contains_bn(false),
       data_type(inDesc.GetType())
 {
-    assert(fmode >= 0 && fmode <= static_cast<int>(miopen_fusion_cb));
+    assert(fmode >= 0 && fmode <= static_cast<int>(miopen_last_fusion_mode));
     fusion_mode = static_cast<fusionMode_t>(fmode);
 }
 

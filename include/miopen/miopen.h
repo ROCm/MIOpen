@@ -2820,8 +2820,8 @@ typedef enum
  * @param fusePlanDesc  Pointer to a fusion plan (output)
  * @param fuseDirection Horizontal or Vertical fusion (input)
  * @param inputDesc     Descriptor to tensor for the input (input)
- * @param fusion_mode   describes fusion plan state (eg: miopen_fusion_cbna (0) or
- * miopen_fusion_cba(4))
+ * @param fusion_mode   id to represent fusion plan's mode. eg: for conv + bias + activ would be 0
+ * (miopen_fusion_cba)
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
