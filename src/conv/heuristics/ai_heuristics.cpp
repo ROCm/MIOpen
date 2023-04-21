@@ -68,6 +68,7 @@ Metadata::Metadata (const std::string& arch)
       features_mean(common::LookupValues<std::string, float>(features, json["stats"]["overall"]["features"]["mean"])),
       features_std(common::LookupValues<std::string, float>(features, json["stats"]["overall"]["features"]["std"]))
 {
+    json.~basic_json();
 }
 size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
 {
@@ -340,8 +341,8 @@ namespace kernel_tuning {
 
 Metadata::Metadata (const std::string& arch, const std::string& solver)
 {
-    const nlohmann::json metadata = nlohmann::json::parse(std::ifstream(
-        GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model"));
+    const nlohmann::json metadata = common::LoadJSON(
+        GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
 
     num_conv_params   = metadata["num_conv_params"].get<std::size_t>();
     num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
