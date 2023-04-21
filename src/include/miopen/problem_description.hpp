@@ -112,7 +112,9 @@ struct ProblemDescription
     int out_batch_stride               = 0;
     int group_counts                   = 0;
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+#endif
 
     bool IsLayoutDefault() const;
 
@@ -120,6 +122,7 @@ struct ProblemDescription
 
     bool IsLayoutNCHWC() const;
 
+#if MIOPEN_ENABLE_SQLITE
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
@@ -163,6 +166,8 @@ struct ProblemDescription
                                                             : "W";
         f(dir, "direction");
     }
+#endif
+
     struct Direction
     {
     public:
@@ -180,6 +185,7 @@ struct ProblemDescription
 
         friend struct ProblemDescription;
     } direction;
+
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
@@ -275,7 +281,6 @@ struct ProblemDescription
     /*
      *  set bot tensor
      */
-
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
@@ -308,6 +313,7 @@ struct ProblemDescription
         //			_tens_layout = layout;
         //			_tens_data_format = data_type;
     }
+
     /*
      * set top df tensor
      */
@@ -330,7 +336,6 @@ struct ProblemDescription
     /*
      *  set bot df tensor
      */
-
     void setBotDfDescr(const std::string& /*layout*/,
                        miopenDataType_t /*data_type*/,
                        int batch,
