@@ -97,7 +97,9 @@ if(MIOPEN_ENABLE_SQLITE)
             UPDATE_DISCONNECTED true
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ${NMAKE_EXECUTABLE} /f ..\\sqlite3\\Makefile.msc TOP=..\\sqlite3
-            INSTALL_COMMAND cmd.exe /c for %I in (sqlite3.dll sqlite3.lib sqlite3.h sqlite3ext.h) do copy /y %I ..\\..)
+            INSTALL_COMMAND cmd.exe /c for %I in (sqlite3.dll sqlite3.lib sqlite3.h sqlite3ext.h) do copy /y %I ..\\..
+            COMMAND cmd.exe /c copy /y ..\\..\\sqlite3.dll ..\\..\\..\\..\\bin && copy /y ..\\..\\sqlite3.lib ..\\..\\..\\..\\lib && for %I in (..\\..\\sqlite3.h ..\\..\\sqlite3ext.h) do copy /y %I ..\\..\\..\\..\\include\\miopen
+    )
 
     ExternalProject_Get_Property(sqlite3 install_dir)
 
@@ -106,6 +108,7 @@ if(MIOPEN_ENABLE_SQLITE)
     target_link_directories(sqlite3::sqlite3 INTERFACE ${install_dir})
     target_link_libraries(sqlite3::sqlite3 INTERFACE sqlite3.lib)
     target_include_directories(sqlite3::sqlite3 INTERFACE ${install_dir})
+
 endif()
 
 set(_CXX_FLAGS
