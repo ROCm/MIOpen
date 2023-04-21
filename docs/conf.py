@@ -4,12 +4,11 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
 from rocm_docs import ROCmDocs
 
-os.system("sed -e 's/MIOPEN_EXPORT //g' ../include/miopen/miopen.h > .doxygen/miopen.h")
-
 docs_core = ROCmDocs("MIOpen Documentation")
+docs_core.copy_file("../include/miopen/miopen.h", ".doxygen/miopen.h")
+docs_core.run_sed_on_file('s/MIOPEN_EXPORT //g', ".doxygen/miopen.h")
 docs_core.run_doxygen()
 docs_core.setup()
 
