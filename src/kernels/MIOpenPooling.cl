@@ -41,12 +41,17 @@
 #define USE_MASK 0
 #endif
 
+#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#define AVERAGE_OPS 1
+#else
+#define AVERAGE_OPS 0
+#endif
+
 #define MLO_POOLING_GROUP_SZ2 1
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 #define MLO_POOLING_OP(A, B) (fmax((A), (B)))
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#elif AVERAGE_OPS
 #define MLO_POOLING_OP(A, B) ((A) + (B))
 #endif
 
@@ -54,6 +59,21 @@
     ((MLO_POOLING_N_HORIZ_OUT_PIX - 1) * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0)
 #define MLO_BOT_DATA_SZ1 \
     ((MLO_POOLING_N_VERT_OUT_PIX - 1) * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1)
+
+// Let's use extended-precision accumulator only in FP16 pooling and only for averaging.
+// For all other ops and datatypes, redefine macros used for accum-float conversion
+// and accum types, so they do nothing.
+#if !(AVERAGE_OPS && MIOPEN_USE_FP16)
+
+#undef FLOAT_ACCUM
+#undef CVT_FLOAT2ACCUM
+#undef CVT_ACCUM2FLOAT
+
+#define FLOAT_ACCUM FLOAT
+#define CVT_FLOAT2ACCUM(x) (x)
+#define CVT_ACCUM2FLOAT(x) (x)
+
+#endif // !(AVERAGE_OPS && MIOPEN_USE_FP16)
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ1,
@@ -102,8 +122,7 @@ mloPoolingG(const __global _FLOAT* bot,
         {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
             res[k][l] = (_FLOAT)(-MAX_VAL);
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#elif AVERAGE_OPS
             res[k][l] = (_FLOAT)(0);
 #endif
         }
@@ -121,12 +140,10 @@ mloPoolingG(const __global _FLOAT* bot,
             bool vis_x       = run_x >= 0 && run_x < mlo_bot_width;
             bot_data[j][i]   = vis_y && vis_x ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                            (_FLOAT)(-MAX_VAL)
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-                                            (_FLOAT)(0)
+                                            (_FLOAT)(-MAX_VAL);
+#elif AVERAGE_OPS
+                                            (_FLOAT)(0);
 #endif
-                ;
         }
     }
 
@@ -175,11 +192,10 @@ mloPoolingG(const __global _FLOAT* bot,
                         res[k][l] = bot_val;
                         mask_private[k][l] =
 #if USE_IMG_INDEX
-                            (hstart1 + j) * mlo_bot_width + (wstart1 + i)
+                            (hstart1 + j) * mlo_bot_width + (wstart1 + i);
 #else
-                            i + MLO_POOLING_KERNEL_SZ0 * j
+                            i + MLO_POOLING_KERNEL_SZ0 * j;
 #endif
-                            ;
                     }
 #else
                     res[k][l] = MLO_POOLING_OP(res[k][l], bot_val);
@@ -187,7 +203,7 @@ mloPoolingG(const __global _FLOAT* bot,
                 }
             }
 
-#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#if AVERAGE_OPS
             res[k][l] *= (_FLOAT)1.f / (_FLOAT)pool_size;
 #endif
         }
