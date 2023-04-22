@@ -24,10 +24,17 @@
  *
  *******************************************************************************/
 
+#include "float_types.h"
 #include "pooling_functions.h"
 
 #ifndef USE_GLOBAL_INDEX
 #define USE_GLOBAL_INDEX 1
+#endif
+
+#if defined(MLO_POOLING_SAVE_INDEX) && (MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX)
+#define USE_MASK 1
+#else
+#define USE_MASK 0
 #endif
 
 #ifndef MLO_POOLING_OP_ID
@@ -48,7 +55,7 @@
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0, 1, 1))) __kernel void
 mloPoolingNDFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
-#if !defined(MLO_POOLING_SAVE_INDEX) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
+#if !USE_MASK
                 UNUSED
 #endif
                     __global index_t* mask,
@@ -163,7 +170,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
 #endif
                         ;
 
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                     index_t mask_idx = 0;
 #endif
 
@@ -177,7 +184,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                                 _FLOAT bot_val =
                                     bot_data[h + m * STRIDE_D][j + k * STRIDE_H][i + l * STRIDE_W];
 
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                                 if(bot_val > top_val)
                                 {
                                     top_val = bot_val;
@@ -210,7 +217,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                                        top_w_id + l;
 
                         top[top_idx] = top_val;
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                         mask[top_idx] = mask_idx;
 #endif
                     }

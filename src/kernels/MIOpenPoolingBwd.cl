@@ -24,9 +24,14 @@
  *
  *******************************************************************************/
 
+#include "float_types.h"
 #include "pooling_functions.h"
 
-#ifndef USE_IMG_INDEX
+#ifdef USE_IMG_INDEX
+#if !(USE_IMG_INDEX == 0 || USE_IMG_INDEX == 1)
+#error "Bad value of USE_IMG_INDEX"
+#endif
+#else
 #define USE_IMG_INDEX 1
 #endif
 
@@ -319,7 +324,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                 {
                     int lcl_th = th - top_y;
                     int lcl_tw = tw - top_x;
-#if USE_IMG_INDEX == 1
+#if USE_IMG_INDEX
                     index_t img_idx = b_x + b_y * mlo_bot_width;
 #else
                     int filter_x   = b_x - tw * MLO_POOLING_STRIDE0 + mlo_pad0;
@@ -331,7 +336,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
 
                     bool match = visible &&
-#if USE_IMG_INDEX == 1
+#if USE_IMG_INDEX
                                  (img_idx == lcl_mask[lcl_idx])
 #else
                                  (filter_idx == lcl_mask[lcl_idx]) && (filter_x >= 0) &&

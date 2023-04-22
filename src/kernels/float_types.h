@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef FLOAT_TYPES_HPP
-#define FLOAT_TYPES_HPP
+#ifndef GUARD_FLOAT_TYPES_H
+#define GUARD_FLOAT_TYPES_H
 
 #include "bfloat16_dev.hpp"
 
@@ -106,6 +106,8 @@
 
 #ifndef __HIP_PLATFORM_HCC__
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #endif
 
-#endif // FLOAT_TYPES_HPP
+#endif // GUARD_FLOAT_TYPES_H
