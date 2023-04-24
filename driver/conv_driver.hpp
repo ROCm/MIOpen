@@ -1119,7 +1119,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t out_sz     = GetTensorSize(outputTensor);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
-    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+    if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
@@ -1145,7 +1145,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
             size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
             size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-            if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
+            if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
             {
                 PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
                 PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
@@ -1493,7 +1493,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||

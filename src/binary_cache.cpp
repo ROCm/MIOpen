@@ -65,7 +65,7 @@ static boost::filesystem::path ComputeUserCachePath()
         std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
         std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
 
-    const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
+    const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR);
     const auto p             = (custom != nullptr && strlen(custom) > 0)
                                    ? boost::filesystem::path{miopen::ExpandUser(custom)}
                                    : boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
@@ -104,7 +104,7 @@ bool IsCacheDisabled()
     if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)
         return true;
     else
-        return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
+        return miopen::IsEnabled(MIOPEN_DISABLE_CACHE);
 #else
     return true;
 #endif

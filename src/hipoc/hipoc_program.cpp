@@ -193,7 +193,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::s
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
     if(nullptr !=
-       miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{})) /// \todo Finish off this spaghetti eventually.
+       miopen::GetStringEnv(MIOPEN_DEVICE_ARCH)) /// \todo Finish off this spaghetti eventually.
         return;
     module = CreateModuleInMem(blob);
 }
@@ -212,7 +212,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
     }
     else
     {
-        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH);
         if(arch == nullptr)
         {
             module = CreateModule(hsaco_file);
@@ -253,7 +253,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     else
     {
         params += " " + GetCodeObjectVersionOption();
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
             params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
@@ -287,7 +287,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_USE_HIPRTC
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_USE_HIPRTC{}))
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_USE_HIPRTC))
                 hiprtc::BuildHip(filename, src, params, target, binary);
             else
 #endif // MIOPEN_USE_HIPRTC

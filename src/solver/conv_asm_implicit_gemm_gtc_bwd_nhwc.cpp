@@ -713,7 +713,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(
                     if(need_k_split)
                     {
                         if(miopen::IsDisabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16))
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
                         if(gks > 0)
@@ -782,7 +782,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
          (problem.IsBfp16() && precision == "bf16")))
         return false;
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16))
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
@@ -891,7 +891,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC))
         return false;
 
     if(problem.conv_problem.GetConv().attribute.deterministic)

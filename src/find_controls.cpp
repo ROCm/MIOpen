@@ -68,7 +68,7 @@ const char* ToCString(const FindEnforceAction mode)
 
 FindEnforceAction GetFindEnforceActionImpl()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE);
     if(p_asciz == nullptr)
         return FindEnforceAction::Default_;
     std::string str = p_asciz;
@@ -87,7 +87,7 @@ FindEnforceAction GetFindEnforceActionImpl()
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
+    const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE, using default.");
@@ -103,7 +103,7 @@ FindEnforceAction GetFindEnforceAction()
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER);
     std::vector<solver::Id> res;
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
     {
@@ -181,7 +181,7 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 
 FindMode::Values GetFindModeValueImpl2()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE);
     if(p_asciz == nullptr)
         return FindMode::Values::Default_;
     std::string str = p_asciz;
@@ -198,7 +198,7 @@ FindMode::Values GetFindModeValueImpl2()
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE{}));
+    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE));
     if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");

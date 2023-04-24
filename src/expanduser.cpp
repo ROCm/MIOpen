@@ -7,9 +7,11 @@ MIOPEN_DECLARE_ENV_VAR(HOME)
 
 namespace miopen {
 
+#if defined(__linux__)
+
 std::string ExpandUser(const std::string& p)
 {
-    const char* home_dir = GetStringEnv(HOME{});
+    const char* home_dir = GetStringEnv(HOME);
     if(home_dir == nullptr || home_dir == std::string("/") || home_dir == std::string(""))
     {
         // todo:
@@ -21,5 +23,25 @@ std::string ExpandUser(const std::string& p)
 
     return ReplaceString(p, "~", home_dir);
 }
+
+#else
+
+MIOPEN_DECLARE_ENV_VAR(TEMP)
+
+std::string ExpandUser(const std::string& p)
+{
+    std::string home_dir{ GetStringEnv(HOME) };
+    if (home_dir.empty())
+    {
+        home_dir = GetStringEnv(TEMP);
+        if (home_dir.empty())
+        {
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+    return ReplaceString(p, "$HOME", home_dir);
+}
+
+#endif
 
 } // namespace miopen

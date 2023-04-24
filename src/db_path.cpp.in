@@ -33,6 +33,7 @@
 #include <boost/filesystem.hpp>
 
 #include <cstdlib>
+
 #ifdef __linux__
 #include <dlfcn.h>
 #endif
@@ -42,10 +43,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
 
 namespace miopen {
 
+#ifdef __linux__
 boost::filesystem::path GetLibPath()
 {
     boost::filesystem::path path = {""};
-#ifdef __linux__
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
@@ -58,17 +59,15 @@ boost::filesystem::path GetLibPath()
         path = path.parent_path();
     }
     return path;
-#else
-    MIOPEN_THROW(miopenStatusNotImplemented);
-#endif
 }
+#endif
 
 std::string GetSystemDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
+    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH);
     if(p == nullptr)
-#if MIOPEN_BUILD_DEV
-        return "${MIOPEN_SYSTEM_DB_PATH}";
+#if defined(MIOPEN_BUILD_DEV) || defined(_WIN32)
+        return "@MIOPEN_SYSTEM_DB_PATH@";
 #else
     {
         // Get the module path and construct the db path
@@ -83,16 +82,16 @@ std::string GetSystemDbPath()
 namespace {
 std::string PrepareUserDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
+    auto p = GetStringEnv(MIOPEN_USER_DB_PATH);
     if(p == nullptr)
-        p = "${MIOPEN_USER_DB_PATH}";
+        p = "@MIOPEN_USER_DB_PATH@";
     return ExpandUser(p);
 }
 } // namespace
 
-std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
+std::string GetUserDbSuffix() { return "@MIOPEN_USER_DB_SUFFIX@"; }
 
-std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
+std::string GetSystemFindDbSuffix() { return "@MIOPEN_SYSTEM_FIND_DB_SUFFIX@"; }
 
 const std::string& GetUserDbPath()
 {

@@ -487,7 +487,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
     endif()
 
-    configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
+    configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp @ONLY)
     list(APPEND MIOpen_Source
         activ.cpp
         kernel_cache.cpp

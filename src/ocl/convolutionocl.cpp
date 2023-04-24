@@ -391,7 +391,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;
@@ -497,6 +497,11 @@ std::size_t ConvolutionDescriptor::GetSolutionCount(const ExecutionContext& exec
     return GetSolutionCountFallback(exec_ctx, problem);
 }
 
+        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM);
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT);
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT);
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD);
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
 struct SolutionTimeComparator
 {
     bool operator()(const miopenConvSolution_t& lhs, const miopenConvSolution_t& rhs) const
@@ -520,7 +525,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK))
     {
         MIOPEN_LOG_I("Disabled via environment");
         return {};
@@ -816,7 +821,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;
@@ -1025,7 +1030,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;

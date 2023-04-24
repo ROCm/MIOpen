@@ -380,7 +380,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD))
         return false;
 
     // Disable this performance optimization when we want to run some specific Solver.
@@ -401,7 +401,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
                                                     const TensorDescriptor& dwDesc) const
 {
 #if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM))
         return 0;
 
     const auto problem =

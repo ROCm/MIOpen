@@ -36,7 +36,7 @@ namespace solver {
 
 std::size_t GetTuningIterationsMax()
 {
-    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
+    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, std::numeric_limits<std::size_t>::max());
 }
 
 std::chrono::milliseconds GetTuningTimeMax()

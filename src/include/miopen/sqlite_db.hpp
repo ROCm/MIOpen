@@ -283,7 +283,7 @@ public:
         else
         {
             dbInvalid = false;
-            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL{}))
+            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL))
             {
                 auto res = sql.Exec("PRAGMA journal_mode=WAL;");
                 if(res.empty() || res[0]["journal_mode"] != "wal")

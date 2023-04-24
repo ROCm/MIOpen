@@ -37,10 +37,12 @@ namespace miopen {
 
 // Declare a cached environment variable
 #define MIOPEN_DECLARE_ENV_VAR(x)                 \
-    struct x                                      \
+    struct __##x                                  \
     {                                             \
         static const char* value() { return #x; } \
-    };
+    };                                            \
+                                                  \
+    inline constexpr auto x = __##x{};
 
 /*
  * Returns false if a feature-controlling environment variable is defined
