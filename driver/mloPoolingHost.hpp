@@ -75,6 +75,16 @@ double CalcErr( _T c_val, _T g_val)
 #define MLO_POOLING_OP_AVE_INCLUSIVE 3
 #endif
 
+// Non-zero value N skips each Nth computation, thus leading to validation failure.
+// For FP16, 100 works well.
+#define MLO_POOLING_EMULATE_VALIDATION_FAILURE 0
+
+struct pooling_math_stats
+{
+    int max_error             = 0;
+    int max_num_flops_per_res = 0;
+};
+
 template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
           typename Tcheck_ /* the data type used in CPU checkings (usually double) */,
           typename Index>
@@ -96,6 +106,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        size_t* mask_ptr,
                                        Index* mask_gpu,
                                        Tcheck_ allowedEps,
+                                       pooling_math_stats& stats,
                                        int index_position = 1)
 {
     const miopen::TensorDescriptor& bot = miopen::deref(bot_);
@@ -154,6 +165,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         {
                             res = static_cast<Tcheck_>(0);
                         }
+                        int num_flops_per_res = 0;
 
                         int dstart = k * pool_stride_d - pad_d;
                         int hstart = j * pool_stride_h - pad_h;
@@ -187,8 +199,9 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                     {
                                         if(static_cast<Tcheck_>(bot_ptr[bot_index]) > res)
                                         {
-                                            res       = static_cast<Tcheck_>(bot_ptr[bot_index]);
-                                            res_index = bot_index;
+                                            res = static_cast<Tcheck_>(bot_ptr[bot_index]);
+                                            num_flops_per_res = 0;
+                                            res_index         = bot_index;
                                             res_index_gpu =
                                                 index_position == 1
                                                     ? (d * bot_height * bot_width + h * bot_width +
@@ -204,8 +217,13 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                     else if(pooling_method == MLO_POOLING_OP_AVE ||
                                             pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                                     {
-
-                                        res += static_cast<Tcheck_>(bot_ptr[bot_index]);
+#if MLO_POOLING_EMULATE_VALIDATION_FAILURE
+                                        if(num_flops_per_res %
+                                               MLO_POOLING_EMULATE_VALIDATION_FAILURE !=
+                                           0)
+#endif
+                                            res += static_cast<Tcheck_>(bot_ptr[bot_index]);
+                                        ++num_flops_per_res;
                                     }
                                     else
                                     {
@@ -252,6 +270,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                            pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                         {
                             res /= pool_size;
+                            ++num_flops_per_res;
                         }
                         Tcheck_ c_val = res;
 
@@ -268,11 +287,19 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) ||
                            !std::isfinite(c_val) || !std::isfinite(g_val))
                         {
-                            std::cout << "Difference " << err << " too large at " << b << ", " << o
-                                      << ", " << j << ", " << i << " c_v = " << c_val
-                                      << " vs g_val = " << g_val << std::endl;
+                            std::cout << "Difference " << err << " too large (> " << allowedEps
+                                      << ") at " << b << ", " << o << ", " << j << ", " << i
+                                      << " cpu_val = " << c_val << " vs gpu_val = " << g_val
+                                      << std::endl;
+                            std::cout << "Number of flops used: " << num_flops_per_res
+                                      << ", pool_size: " << pool_size << std::endl;
                             match = false;
                         }
+
+                        if(err > stats.max_error)
+                            stats.max_error = err;
+                        if(num_flops_per_res > stats.max_num_flops_per_res)
+                            stats.max_num_flops_per_res = num_flops_per_res;
                     }
                 }
             }
