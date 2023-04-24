@@ -325,6 +325,40 @@ std::vector<int> PoolDriver_impl<Tgpu, Tref, Index>::GetOutputTensorLengths()
     return out_dim;
 }
 
+namespace detail {
+template <typename T>
+T RanGenInput()
+{
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+}
+
+#define FP16IN_NORMAL 1
+#define FP16IN_CONST_SMALLEST_NORMALIZED 0
+#define FP16IN_5VALUES_0_TO_1 0
+#define FP16IN_SPARSE_X 0 // non-zero value defines "sparsity"
+
+template <>
+float16 RanGenInput()
+{
+    using T = float16;
+#if FP16IN_NORMAL
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+#endif
+#if FP16IN_CONST_SMALLEST_NORMALIZED
+    return static_cast<T>(+1.0p-eh) // (6.103515625E-05);
+#endif
+#if FP16IN_5VALUES_0_TO_1
+           const int r = GET_RAND() % 5; // values from 0 to 4
+    return static_cast<T>(r * 0.25);     // { 0.0, 0.25, 0.5, 0.75, 1.0 }
+#endif
+#if FP16IN_SPARSE_X
+    if(GET_RAND() % (FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
+        return static_cast<T>(0.0);
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+#endif
+}
+} // namespace detail
+
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
 {
@@ -366,7 +400,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            in[i] = detail::RanGenInput<Tgpu>();
         }
 
         if(!dump_root.empty())
@@ -614,7 +648,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
-    bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(
+    pooling_math_stats stats;
+    bool match = mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(
         pooling_method,
         pad_d,
         stride_d,
@@ -633,11 +668,14 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         maskhost.data(),
         mask.data(),
         tolerance,
+        stats,
         spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
-    printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
-                 : "Forward Pooling verification FAILED !!\n");
-
+    if(match)
+        std::cout << "Forward Pooling Verifies on CPU and GPU (" << stats.max_error << ", "
+                  << stats.max_num_flops_per_res << ')' << std::endl;
+    else
+        std::cout << "Forward Pooling verification FAILED !!" << std::endl;
     return 0;
 }
 
