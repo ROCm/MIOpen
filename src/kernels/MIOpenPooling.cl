@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "float_types.h"
 #include "pooling_functions.h"
 
 #ifdef USE_IMG_INDEX
@@ -62,18 +61,11 @@
 
 // Let's use extended-precision accumulator only in FP16 pooling and only for averaging.
 // For all other ops and datatypes, redefine macros used for accum-float conversion
-// and accum types, so they do nothing.
+// and accum types, so they do nothing, i.e. treate FLOAT_ACCUM as FLOAT.
 #if !(AVERAGE_OPS && MIOPEN_USE_FP16)
-
-#undef FLOAT_ACCUM
-#undef CVT_FLOAT2ACCUM
-#undef CVT_ACCUM2FLOAT
-
-#define FLOAT_ACCUM FLOAT
-#define CVT_FLOAT2ACCUM(x) (x)
-#define CVT_ACCUM2FLOAT(x) (x)
-
-#endif // !(AVERAGE_OPS && MIOPEN_USE_FP16)
+#define MIOPEN_USE_NATIVE_DATATYPE_ACCUM 1
+#endif
+#include "float_types.h"
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ1,
@@ -112,7 +104,7 @@ mloPoolingG(const __global _FLOAT* bot,
     uint bot_off = b * mlo_bot_batch_str + o * mlo_bot_channel_str;
 
     _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
-    _FLOAT res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
+    _FLOAT_ACCUM res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
 #if USE_MASK
     index_t mask_private[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
 #endif
@@ -121,9 +113,9 @@ mloPoolingG(const __global _FLOAT* bot,
         for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
         {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-            res[k][l] = (_FLOAT)(-MAX_VAL);
+            res[k][l] = (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
 #elif AVERAGE_OPS
-            res[k][l] = (_FLOAT)(0);
+            res[k][l] = (_FLOAT_ACCUM)(0);
 #endif
         }
     }
@@ -183,8 +175,8 @@ mloPoolingG(const __global _FLOAT* bot,
                 for(uint i = 0; i < MLO_POOLING_KERNEL_SZ0; i++)
                 {
 
-                    _FLOAT bot_val =
-                        bot_data[j + k * MLO_POOLING_STRIDE1][i + l * MLO_POOLING_STRIDE0];
+                    _FLOAT_ACCUM bot_val = CVT_FLOAT2ACCUM(
+                        bot_data[j + k * MLO_POOLING_STRIDE1][i + l * MLO_POOLING_STRIDE0]);
 
 #if USE_MASK
                     if(bot_val > res[k][l])
@@ -204,7 +196,7 @@ mloPoolingG(const __global _FLOAT* bot,
             }
 
 #if AVERAGE_OPS
-            res[k][l] *= (_FLOAT)1.f / (_FLOAT)pool_size;
+            res[k][l] *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
 #endif
         }
     }
@@ -218,7 +210,7 @@ mloPoolingG(const __global _FLOAT* bot,
         {
             if(top_y + k < mlo_top_height && top_x + l < mlo_top_width)
             {
-                top[top_off + k * mlo_top_str + l] = res[k][l];
+                top[top_off + k * mlo_top_str + l] = CVT_ACCUM2FLOAT(res[k][l]);
 #if USE_MASK
                 mask[top_off + k * mlo_top_str + l] = mask_private[k][l];
 #endif
