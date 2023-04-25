@@ -734,9 +734,10 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetBwdXdlopsNHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
+    for(auto cfg_it = config_list.begin(); cfg_it != config_list.end(); ++cfg_it)
+        if(*this == *cfg_it)
+            return true;
+    return false;
 }
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {

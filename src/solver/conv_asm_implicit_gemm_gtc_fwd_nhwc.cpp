@@ -636,15 +636,18 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdXdlopsNHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
+    for(auto cfg_it = config_list.begin(); cfg_it != config_list.end(); ++cfg_it)
+        if(*this == *cfg_it)
+            return true;
+    return false;
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const ProblemDescription& problem) const
 {
@@ -697,9 +700,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        // in case k split too large
-        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
-            return false;
         // if both 1, indicate padded c support
         if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
             return false;
