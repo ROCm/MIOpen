@@ -39,6 +39,12 @@
 #error "MLO_POOLING_INDEX_MAX not defined"
 #endif
 
+#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#define AVERAGE_OPS 1
+#else
+#define AVERAGE_OPS 0
+#endif
+
 #define MLO_POOLBWD_GROUP_SZ2 1
 
 #define MLO_POOLBWD_LCL_DATA_WIDTH                                                   \
@@ -50,6 +56,7 @@
       MLO_POOLING_STRIDE1 - 2) /                                                    \
      MLO_POOLING_STRIDE1)
 
+#if AVERAGE_OPS
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,
                                     MLO_POOLBWD_GROUP_SZ1,
                                     MLO_POOLBWD_GROUP_SZ2))) __kernel void
@@ -210,7 +217,9 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
         }
     }
 }
+#endif // AVERAGE_OPS
 
+#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,
                                     MLO_POOLBWD_GROUP_SZ1,
                                     MLO_POOLBWD_GROUP_SZ2))) __kernel void
@@ -369,3 +378,4 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
         }
     }
 }
+#endif // MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
