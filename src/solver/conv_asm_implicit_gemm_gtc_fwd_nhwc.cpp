@@ -642,7 +642,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValidValue() const
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdXdlopsNHWCConfigList();
-    for(const auto & cfg_it : config_list)
+    for(const auto& cfg_it : config_list)
         if(*this == cfg_it)
             return true;
     return false;
