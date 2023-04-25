@@ -642,10 +642,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValidValue() const
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdXdlopsNHWCConfigList();
-    for(const auto& cfg_it : config_list)
-        if(*this == cfg_it)
-            return true;
-    return false;
+    return miopen::any_of(config_list, [](auto v) { return (*this == v); })
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
