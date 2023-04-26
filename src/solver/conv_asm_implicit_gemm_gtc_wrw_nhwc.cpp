@@ -725,7 +725,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValidValue() const
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetWrwXdlopsNHWCConfigList();
-    return miopen::any_of(config_list, [](auto v) { return (*this == v); })
+    return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
