@@ -235,10 +235,8 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
 
 miopenStatus_t GemmOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
-    std::vector<int> lens_in = {gemm_descriptor.GetM(), gemm_descriptor.GetN()};
-    TensorDescriptor temp(input_desc.GetType(), input_desc.GetLayout_t(), lens_in);
-    output_desc = temp;
-    return miopenStatusSuccess;
+    return miopen::try_(
+        [&]() { output_desc = gemm_descriptor.GetOutputTensor(input_desc, B_desc); });
 }
 
 miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args, ConstData_t b_data_)

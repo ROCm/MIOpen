@@ -89,9 +89,9 @@ struct CKArgs
 {
     CKArgs(const miopen::gemm::ProblemDescription& problem)
     {
-        M = problem.GetGemmDescriptor().GetM();
-        N = problem.GetGemmDescriptor().GetN();
-        K = problem.GetGemmDescriptor().GetK();
+        M = problem.GetM();
+        N = problem.GetN();
+        K = problem.GetK();
 
         ldA = problem.GetGemmDescriptor().GetldA();
         ldB = problem.GetGemmDescriptor().GetldB();

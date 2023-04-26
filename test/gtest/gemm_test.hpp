@@ -126,7 +126,7 @@ protected:
         std::tie(activ_mode, gemm_config, tensor_layout) = GetParam();
         A_tensor                                         = tensor<T>(gemm_config.GetA());
         B_tensor                                         = tensor<T>(gemm_config.GetB());
-        C_tensor                                         = tensor<T>(gemm_config.GetC());
+
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -134,14 +134,10 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
-        gemm_desc = miopen::GemmDesc{gemm_config.M,
-                                     gemm_config.N,
-                                     gemm_config.K,
-                                     gemm_config.ldA,
-                                     gemm_config.ldB,
-                                     gemm_config.ldC,
-                                     GetDataType<T>()};
-
+        miopenInitGemmDescriptor(gemm_desc_t, gemm_config.ldA, gemm_config.ldB, gemm_config.ldC);
+        miopenCreateActivationDescriptor(&activ_desc);
+        miopenSetActivationDescriptor(activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+        C_tensor      = miopen::deref(gemm_desc_t).GetOutputTensor(A_tensor.desc, B_tensor.desc);
         auto&& handle = get_handle();
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
 
@@ -149,15 +145,15 @@ protected:
         b_dev = handle.Write(B_tensor.data);
         c_dev = handle.Write(C_tensor.data);
 
-        activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-
         fusePlanDesc = miopen::FusionPlanDescriptor(
             miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
 
         // Create GEMM Operation
-        auto gemmOp = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
+        auto gemmOp =
+            std::make_shared<miopen::GemmOpDescriptor>(miopen::deref(gemm_desc_t), B_tensor.desc);
         // Create Activation Operation
-        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
+        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(
+            miopen::deref(activ_desc).GetMode());
 
         // Add Gemm Operation as part of fusion plan.
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
@@ -189,11 +185,13 @@ protected:
             << "Non finite number found in the CPU data";
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        miopenDestroyGemmDescriptor(gemm_desc_t);
+        miopenDestroyActivationDescriptor(activ_desc);
     }
 
     GemmTestCase gemm_config;
-    miopen::ActivationDescriptor activ_desc;
-    miopen::GemmDesc gemm_desc;
+    miopenActivationDescriptor_t activ_desc;
+    miopenGemmDescriptor_t gemm_desc_t;
     tensor<T> A_tensor;
     tensor<T> B_tensor;
     tensor<T> C_tensor;

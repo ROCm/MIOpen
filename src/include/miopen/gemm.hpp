@@ -39,47 +39,31 @@ struct TensorDescriptor;
 struct GemmDesc : miopenGemmDescriptor
 {
     GemmDesc();
-    GemmDesc(int m_,
-             int n_,
-             int k_,
-             long long int lda_,
-             long long int ldb_,
-             long long int ldc_,
-             miopenDataType_t dataType_);
+    GemmDesc(long long int lda_, long long int ldb_, long long int ldc_);
 
     GemmDesc(bool isColMajor_,
              bool transA_,
              bool transB_,
-             int m_,
-             int n_,
-             int k_,
              int lda_,
              int ldb_,
              int ldc_,
              long long int strideA_,
              long long int strideB_,
              long long int strideC_,
-             double alpha_,
-             double beta_,
-             int batch_count_,
-             miopenDataType_t dataType_);
+             int batch_count_);
 
     bool GetIsColMajor() const;
     bool GetTransA() const;
     bool GetTransB() const;
-    int GetM() const;
-    int GetN() const;
-    int GetK() const;
     int GetldA() const;
     int GetldB() const;
     int GetldC() const;
     long long int GetStrideA() const;
     long long int GetStrideB() const;
     long long int GetStrideC() const;
-    double GetAlpha() const;
-    double GetBeta() const;
     int GetBatchCount() const;
-    miopenDataType_t GetMIOpenDataType() const;
+    TensorDescriptor GetOutputTensor(const TensorDescriptor& ADesc,
+                                     const TensorDescriptor& BDesc) const;
 
     void SetIsColMajor(bool);
 
@@ -89,12 +73,9 @@ struct GemmDesc : miopenGemmDescriptor
     // private:
     bool isColMajor;
     bool transA, transB;
-    int m, n, k;
     int ldA, ldB, ldC; // leading dimension
     long long int strideA, strideB, strideC;
-    double alpha, beta;
     int batch_count;
-    miopenDataType_t dataType;
 };
 
 } // namespace miopen

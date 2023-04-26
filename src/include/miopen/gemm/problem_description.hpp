@@ -53,12 +53,33 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& CDesc_)
         : gemmDesc(gemmDesc_), ADesc(ADesc_), BDesc(BDesc_), CDesc(CDesc_)
     {
+        assert(ADesc.GetLengths().size() == 2);
+        assert(BDesc.GetLengths().size() == 2);
+        assert(CDesc.GetLengths().size() == 2);
     }
 
     const GemmDesc& GetGemmDescriptor() const { return gemmDesc; }
     const TensorDescriptor& GetADesc() const { return ADesc; }
     const TensorDescriptor& GetBDesc() const { return BDesc; }
     const TensorDescriptor& GetCDesc() const { return CDesc; }
+
+    int GetK() const
+    {
+        const auto& lens = ADesc.GetLengths();
+        return lens[1]; // A = [M, K]
+    }
+
+    int GetM() const
+    {
+        const auto& lens = ADesc.GetLengths();
+        return lens[0]; // A = [M, K]
+    }
+
+    int GetN() const
+    {
+        const auto& lens = BDesc.GetLengths();
+        return lens[1]; // B = [K, N]
+    }
 
     miopenDataType_t GetADataType() const { return ADesc.GetType(); }
     miopenDataType_t GetBDataType() const { return BDesc.GetType(); }

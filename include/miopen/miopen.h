@@ -2714,13 +2714,11 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 MIOPEN_EXPORT miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
 
 MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
-                                                      int m_,
-                                                      int n_,
-                                                      int k_,
                                                       long long int ldA_,
                                                       long long int ldB_,
-                                                      long long int ldC_,
-                                                      miopenDataType_t dataType_);
+                                                      long long int ldC_);
+
+MIOPEN_EXPORT miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
 
 // Softmax APIs
 /** @addtogroup softmax

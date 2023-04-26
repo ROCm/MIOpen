@@ -40,18 +40,12 @@ extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gem
 }
 
 extern "C" miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
-                                                   int m_,
-                                                   int n_,
-                                                   int k_,
                                                    long long int ldA_,
                                                    long long int ldB_,
-                                                   long long int ldC_,
-                                                   miopenDataType_t dataType_)
+                                                   long long int ldC_)
 {
-    MIOPEN_LOG_FUNCTION(gemmDesc, m_, n_, k_, ldA_, ldB_, ldC_);
-    return miopen::try_([&] {
-        miopen::deref(gemmDesc) = miopen::GemmDesc{m_, n_, k_, ldA_, ldB_, ldC_, dataType_};
-    });
+    MIOPEN_LOG_FUNCTION(gemmDesc, ldA_, ldB_, ldC_);
+    return miopen::try_([&] { miopen::deref(gemmDesc) = miopen::GemmDesc{ldA_, ldB_, ldC_}; });
 }
 
 extern "C" miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc)
