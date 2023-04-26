@@ -37,6 +37,52 @@ namespace solver {
 
 namespace pooling {
 
+namespace {
+
+int inline get_kernel_size_h(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetPooling().lens[0];
+}
+
+int inline get_kernel_size_w(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetPooling().lens[1];
+}
+
+int inline get_kernel_stride_h(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetPooling().strides[0];
+}
+
+int inline get_kernel_stride_w(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetPooling().strides[1];
+}
+
+int inline get_out_height(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetYDesc().GetLengths()[2];
+}
+
+int inline get_out_width(const miopen::pooling::ProblemDescription& p)
+{
+    return p.GetYDesc().GetLengths()[3];
+}
+
+int inline get_out_pix_tile0(const miopen::pooling::ProblemDescription&) { return 1; }
+
+int inline get_out_pix_tile1(const miopen::pooling::ProblemDescription& p)
+{
+    int rv =                          //
+        get_out_height(p) <= 8    ? 1 //
+        : get_out_height(p) <= 32 ? 4 //
+                                  : 8;
+    if(get_out_height(p) > 16 && get_out_height(p) % 32 > 16)
+        rv = std::min(16, std::max(1, prePow2(rv * get_kernel_stride_h(p))));
+    return rv;
+}
+} // namespace
+
 bool PoolingForward2d::IsApplicable(const ExecutionContext&,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
@@ -50,7 +96,7 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext&,
 }
 
 ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
-                                           const miopen::pooling::ProblemDescription& problem) const
+                                           const miopen::pooling::ProblemDescription& p) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -60,76 +106,66 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
         kernel.kernel_file = "MIOpenPooling.cl";
         kernel.kernel_name = "mloPoolingG";
 
-        int batch_sz, n_outputs, out_height, out_width;
-        std::tie(batch_sz, n_outputs, out_height, out_width) =
-            miopen::tien<4>(problem.GetYDesc().GetLengths(), 1);
+        int batch_sz, n_outputs;
+        std::tie(batch_sz, n_outputs, std::ignore, std::ignore) =
+            miopen::tien<4>(p.GetYDesc().GetLengths(), 1);
 
-        const auto kernel_size_h   = problem.GetPooling().lens[0];
-        const auto kernel_size_w   = problem.GetPooling().lens[1];
-        const auto kernel_stride_h = problem.GetPooling().strides[0];
-        const auto kernel_stride_w = problem.GetPooling().strides[1];
-        const auto _wsp_index      = problem.GetPooling().GetWorkspaceIndexMode();
+        const auto wsp_index = p.GetPooling().GetWorkspaceIndexMode();
 
-        const int _out_pix_tile0 = 1;
-        int _out_pix_tile1       = out_height <= 8 ? 1 : out_height <= 32 ? 4 : 8;
-        if(out_height > 16 && out_height % 32 > 16)
-            _out_pix_tile1 = std::min(16, std::max(1, prePow2(_out_pix_tile1 * kernel_stride_h)));
+        int grp_tile0 = get_out_width(p) <= 8 ? 8 : (get_out_width(p) % 32 <= 16 ? 16 : 32);
+        int grp_tile1 = get_out_height(p) <= 8    ? 8
+                        : get_out_height(p) < 16  ? 16
+                        : get_out_height(p) <= 32 ? 32
+                        : get_out_height(p) <= 64 ? 64
+                                                  : 128;
+        grp_tile1 /= get_out_pix_tile1(p);
+        while(grp_tile0 * grp_tile1 > 256 && grp_tile0 > 1)
+            grp_tile0 >>= 1;
 
-        int _grp_tile0 = out_width <= 8 ? 8 : (out_width % 32 <= 16 ? 16 : 32);
-        int _grp_tile1 = out_height <= 8    ? 8
-                         : out_height < 16  ? 16
-                         : out_height <= 32 ? 32
-                         : out_height <= 64 ? 64
-                                            : 128;
-        _grp_tile1 /= _out_pix_tile1;
-        while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
-            _grp_tile0 >>= 1;
-
-        int pooling_method = (problem.GetPooling().GetMode() == miopenPoolingMax)
+        int pooling_method = (p.GetPooling().GetMode() == miopenPoolingMax)
                                  ? MLO_POOLING_OP_MAX
-                                 : ((problem.GetPooling().GetMode() == miopenPoolingAverage)
+                                 : ((p.GetPooling().GetMode() == miopenPoolingAverage)
                                         ? MLO_POOLING_OP_AVE
                                         : MLO_POOLING_OP_AVE_INCLUSIVE);
 
         auto build_params = KernelBuildParameters{
-            {"MLO_POOLING_OP_ID", static_cast<long long>(pooling_method)},
-            {"MLO_POOLING_KERNEL_SZ1", static_cast<long long>(kernel_size_h)},
-            {"MLO_POOLING_STRIDE1", static_cast<long long>(kernel_stride_h)},
-            {"MLO_POOLING_KERNEL_SZ0", static_cast<long long>(kernel_size_w)},
-            {"MLO_POOLING_STRIDE0", static_cast<long long>(kernel_stride_w)},
-            {"MLO_POOLING_N_HORIZ_OUT_PIX", static_cast<long long>(_out_pix_tile0)},
-            {"MLO_POOLING_N_VERT_OUT_PIX", static_cast<long long>(_out_pix_tile1)},
-            {"MLO_POOLING_GROUP_SZ0", static_cast<long long>(_grp_tile0)},
-            {"MLO_POOLING_GROUP_SZ1", static_cast<long long>(_grp_tile1)},
-            {"MLO_POOLING_INDEX_TYPE",
-             get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
+            {"MLO_POOLING_OP_ID", pooling_method},
+            {"MLO_POOLING_KERNEL_SZ1", get_kernel_size_h(p)},
+            {"MLO_POOLING_STRIDE1", get_kernel_stride_h(p)},
+            {"MLO_POOLING_KERNEL_SZ0", get_kernel_size_w(p)},
+            {"MLO_POOLING_STRIDE0", get_kernel_stride_w(p)},
+            {"MLO_POOLING_N_HORIZ_OUT_PIX", get_out_pix_tile0(p)},
+            {"MLO_POOLING_N_VERT_OUT_PIX", get_out_pix_tile1(p)},
+            {"MLO_POOLING_GROUP_SZ0", grp_tile0},
+            {"MLO_POOLING_GROUP_SZ1", grp_tile1},
+            {"MLO_POOLING_INDEX_TYPE", get_pooling_index_type_name(p.GetPooling().GetIndexType())},
             {"MLO_POOLING_INDEX_MAX",
-             get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
+             get_pooling_index_type_max_name(p.GetPooling().GetIndexType())},
         };
 
-        if(problem.SaveIndex())
+        if(p.SaveIndex())
         {
             build_params << KernelBuildParameters{
                 {"MLO_POOLING_SAVE_INDEX"},
-                {"USE_IMG_INDEX", (_wsp_index == miopenPoolingWorkspaceIndexImage ? 1 : 0)},
+                {"USE_IMG_INDEX", (wsp_index == miopenPoolingWorkspaceIndexImage ? 1 : 0)},
             };
         }
 
-        build_params << GetDataTypeKBP(problem.GetXDesc().GetType());
+        build_params << GetDataTypeKBP(p.GetXDesc().GetType());
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
-        kernel.l_wk.push_back(_grp_tile0);
-        kernel.l_wk.push_back(_grp_tile1);
+        kernel.l_wk.push_back(grp_tile0);
+        kernel.l_wk.push_back(grp_tile1);
         kernel.l_wk.push_back(1);
 
-        int g_wk_width =
-            ((out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
-        int g_wk_height =
-            ((out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+        int g_wk_width  = ((get_out_width(p) + grp_tile0 * get_out_pix_tile0(p) - 1) /
+                          (grp_tile0 * get_out_pix_tile0(p)));
+        int g_wk_height = ((get_out_height(p) + grp_tile1 * get_out_pix_tile1(p) - 1) /
+                           (grp_tile1 * get_out_pix_tile1(p)));
 
-        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_width) * _grp_tile0);
-        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_height) * _grp_tile1);
+        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_width) * grp_tile0);
+        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_height) * grp_tile1);
         kernel.g_wk.push_back(static_cast<std::size_t>(n_outputs) * batch_sz);
 
         result.construction_params.push_back(kernel);
