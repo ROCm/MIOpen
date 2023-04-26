@@ -6,4 +6,4 @@ nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCmSoftwarePlatform/FunctionalPlus@v0.2.18-p0
 ROCmSoftwarePlatform/eigen@3.4.0
 ROCmSoftwarePlatform/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCmSoftwarePlatform/composable_kernel@0f98035df1cc5ba3e90ab03187e672b426a25b00 -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102"
+ROCmSoftwarePlatform/composable_kernel@0a8dac4ef1a232abd8f6896a5b016f9e76192ddd -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx940;gfx1030;gfx1100;gfx1101;gfx1102"
