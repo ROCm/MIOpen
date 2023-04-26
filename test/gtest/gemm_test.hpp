@@ -134,6 +134,7 @@ protected:
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
 
+        miopenCreateGemmDescriptor(&gemm_desc_t);
         miopenInitGemmDescriptor(gemm_desc_t, gemm_config.ldA, gemm_config.ldB, gemm_config.ldC);
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
