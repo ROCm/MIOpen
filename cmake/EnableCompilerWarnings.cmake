@@ -93,6 +93,7 @@ else()
                 -Wno-weak-vtables
                 -Wno-covered-switch-default
                 -Wno-unused-result
+                -Wno-unsafe-buffer-usage
             )
         else()
             if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "GNU" AND ${COMPILER} MATCHES "CXX")
