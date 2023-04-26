@@ -675,7 +675,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         std::cout << "Forward Pooling Verifies on CPU and GPU (" << stats.max_error << ", "
                   << stats.max_num_flops_per_res << ')' << std::endl;
     else
-        std::cout << "Forward Pooling verification FAILED !!" << std::endl;
+        std::cout << "Forward Pooling verification FAILED" << std::endl;
     return 0;
 }
 
@@ -776,6 +776,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
             ? MLO_POOLING_OP_MAX
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
+    pooling_math_stats stats;
     mloPoolingBackwardRunHost<Tgpu, Tref>(pooling_method,
                                           windowDepth,
                                           pad_d,
@@ -791,25 +792,29 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
                                           // host output
                                           dinhost.data(),
                                           dout.data(),
-                                          maskhost.data());
+                                          maskhost.data(),
+                                          stats);
 
-    bool match            = true;
-    const Tref allowedEps = (1 << 2);
-    Tref max_sqr          = 1. / 1000000; // 100000000;
-    Tref max_abs_diff     = 1. / 1000000; // 100000000;
-    bool get_error_pos    = true;
+    float ulps_tolerance = 4;
+    Tref diff_tolerance  = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? static_cast<Tref>(1e-6)
+                                                                    : static_cast<Tref>(5e-3);
+    double rms_tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
 
-    match = mloVerify<Tgpu, Tref>(dInputTensor,
-                                  dInputTensor,
-                                  dinhost.data(),
-                                  din.data(),
-                                  allowedEps,
-                                  max_abs_diff,
-                                  max_sqr,
-                                  get_error_pos);
+    const auto match = mloVerify<Tgpu, Tref>(dInputTensor,
+                                             dInputTensor,
+                                             dinhost.data(),
+                                             din.data(),
+                                             ulps_tolerance,
+                                             diff_tolerance,
+                                             rms_tolerance,
+                                             true,
+                                             stats.max_error);
 
     if(match)
-        printf("Backward Pooling Verifies on CPU and GPU\n");
+        std::cout << "Backward Pooling Verifies on CPU and GPU";
+    else
+        std::cout << "Backward Pooling verification FAILED";
+    std::cout << " (" << stats.max_error << ", " << stats.max_num_flops_per_res << ')' << std::endl;
 
     return 0;
 }

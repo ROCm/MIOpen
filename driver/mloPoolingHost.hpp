@@ -32,6 +32,7 @@
 #pragma clang diagnostic ignored "-Wfloat-equal"
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iomanip>
@@ -81,7 +82,7 @@ double CalcErr( _T c_val, _T g_val)
 
 struct pooling_math_stats
 {
-    int max_error             = 0;
+    double max_error          = 0.0;
     int max_num_flops_per_res = 0;
 };
 
@@ -288,8 +289,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                            !std::isfinite(c_val) || !std::isfinite(g_val))
                         {
                             std::cout << "Difference " << err << " too large (> " << allowedEps
-                                      << ") at " << b << ", " << o << ", " << j << ", " << i
-                                      << " cpu_val = " << c_val << " vs gpu_val = " << g_val
+                                      << ") at {" << b << ',' << o << ',' << j << ',' << i
+                                      << "}, cpu_val = " << c_val << " vs gpu_val = " << g_val
                                       << std::endl;
                             std::cout << "Number of flops used: " << num_flops_per_res
                                       << ", pool_size: " << pool_size << std::endl;
@@ -311,7 +312,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
 
 template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
           typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
-int mloPoolingBackwardRunHost(
+void mloPoolingBackwardRunHost(
     int pooling_method,
     int filter_size_d,
     int pad_d,
@@ -322,12 +323,12 @@ int mloPoolingBackwardRunHost(
     int filter_size_w,
     int pad_w,
     int pool_stride_w,
-
     const miopenTensorDescriptor_t& bot_df_,
     const miopenTensorDescriptor_t& top_df_,
     Tcheck_* bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
     const Tgpu_* top_df_ptr,
-    const size_t* mask_ptr)
+    const size_t* mask_ptr,
+    pooling_math_stats& stats)
 {
     const miopen::TensorDescriptor& bot_df = miopen::deref(bot_df_);
     const miopen::TensorDescriptor& top_df = miopen::deref(top_df_);
@@ -352,7 +353,7 @@ int mloPoolingBackwardRunHost(
     std::tie(top_df_n_stride, top_df_c_stride, top_df_d_stride, top_df_h_stride, top_df_w_stride) =
         miopen::GetNCDHW(spatial_dim, top_df.GetStrides());
 
-    int ret = 0;
+    std::vector<int> num_flops(bot_df.GetElementSize(), 0);
 
     for(int b = 0; b < n_batchs; b++)
     {
@@ -376,6 +377,7 @@ int mloPoolingBackwardRunHost(
                             if(bot_idx == std::numeric_limits<size_t>::max())
                                 continue;
                             bot_df_v_ptr[bot_idx] += static_cast<Tcheck_>(top_df_ptr[top_idx]);
+                            ++num_flops[bot_idx];
                         }
                     }
                 }
@@ -394,6 +396,7 @@ int mloPoolingBackwardRunHost(
                             const auto bot_idx = bot_df_v_off + k * bot_df_d_stride +
                                                  j * bot_df_h_stride + i * bot_df_w_stride;
                             bot_df_v_ptr[bot_idx] = static_cast<Tcheck_>(0);
+                            num_flops[bot_idx]    = 0;
 
                             int d = k + pad_d;
                             int h = j + pad_h;
@@ -406,8 +409,9 @@ int mloPoolingBackwardRunHost(
                             int phend = std::min(h / pool_stride_h + 1, top_h);
                             int pwstart =
                                 (w < filter_size_w) ? 0 : (w - filter_size_w) / pool_stride_w + 1;
-                            int pwend        = std::min(w / pool_stride_w + 1, top_w);
-                            Tcheck_ gradient = static_cast<Tcheck_>(0);
+                            int pwend            = std::min(w / pool_stride_w + 1, top_w);
+                            Tcheck_ gradient     = static_cast<Tcheck_>(0);
+                            int gradient_n_flops = 0;
                             for(int pd = pdstart; pd < pdend; ++pd)
                             {
                                 for(int ph = phstart; ph < phend; ++ph)
@@ -445,10 +449,13 @@ int mloPoolingBackwardRunHost(
 
                                         gradient += static_cast<Tcheck_>(top_df_ptr[top_idx]) /
                                                     static_cast<Tcheck_>(pool_size);
+                                        gradient_n_flops += 2; // pool_size is computed using
+                                                               // integer ops, do not count those.
                                     }
                                 }
                             }
                             bot_df_v_ptr[bot_idx] = gradient;
+                            num_flops[bot_idx]    = gradient_n_flops;
                         }
                     }
                 }
@@ -461,7 +468,7 @@ int mloPoolingBackwardRunHost(
             }
         }
     }
-    return (ret);
+    stats.max_num_flops_per_res = *(std::max_element(num_flops.begin(), num_flops.end()));
 }
 
 #ifdef __clang__
