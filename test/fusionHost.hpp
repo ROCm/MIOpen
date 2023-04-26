@@ -711,7 +711,10 @@ void visitActivationHostInfer(
     case miopenActivationFGELU: // Fast GeLU  https://paperswithcode.com/method/gelu
         // 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
         // pi =  std::atan(1)*4
-        f([=](double x) {return 0.5*x*(1+tanh(sqrt(2/(std::atan(1)*4))*(x+0.044715*std::pow(x,3)))); });
+        f([=](double x) {
+            return 0.5 * x *
+                   (1 + tanh(sqrt(2 / (std::atan(1) * 4)) * (x + 0.044715 * std::pow(x, 3))));
+        });
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }

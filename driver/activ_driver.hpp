@@ -274,7 +274,7 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
                           : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
             break;
-         case MIOPEN_NEURON_FGELU:
+        case MIOPEN_NEURON_FGELU:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
         }
