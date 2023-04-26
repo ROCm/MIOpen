@@ -57,6 +57,7 @@ std::string to_name(miopenActivationMode_t m)
         STRING_CASE(miopenActivationCLIPPEDRELU)
         STRING_CASE(miopenActivationLEAKYRELU)
         STRING_CASE(miopenActivationELU)
+        STRING_CASE(miopenActivationFGELU)
     }
     return "";
 }

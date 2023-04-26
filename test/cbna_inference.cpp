@@ -330,7 +330,8 @@ struct cbna_fusion_driver : test_driver
         case 6: activ_mode = miopenActivationPOWER; break;
         case 7: activ_mode = miopenActivationCLIPPEDRELU; break;
         case 8: activ_mode = miopenActivationLEAKYRELU; break;
-        case 9: activ_mode = miopenActivationELU;
+        case 9: activ_mode = miopenActivationELU; break;
+        case 10: activ_mode = miopenActivationFGELU;
         }
 
         int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;

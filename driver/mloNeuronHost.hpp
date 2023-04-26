@@ -53,7 +53,8 @@
 #define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
 #define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
 #define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-#define MIOPEN_NEURON_TOTAL 10
+#define MIOPEN_NEURON_FGELU 10       // 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
+#define MIOPEN_NEURON_TOTAL 11
 #endif
 
 const float kBNLL_THRESHOLD = 50.;
