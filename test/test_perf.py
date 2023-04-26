@@ -143,7 +143,7 @@ def run_driver_cmds(filename, install_path, override=None):
           for line in p_out:
             line = line.decode("utf-8")
             line = line.strip()
-            #print(line)
+            print(line)
             if (line.find('MIOpenDriver') != -1):
               e = Entry()
               e.cmd = line
@@ -216,6 +216,10 @@ def compare_file(new_results, old_results):
         print(f"New driver: {line_new['Driver']}")
         print(f"Old driver: {line_old['Driver']}")
         raise ValueError('Result files are out of sync')
+      if line_new['solver_name'] != line_old['solver_name']:
+        print(
+            f"Winning solver changed from {line_new['solver_name']} to {line_old['solver_name']}"
+        )
       speedup = (Decimal(line_old['k_time']) - Decimal(
           line_new['k_time'])) / Decimal(line_old['k_time']) * 100
       if int(speedup) < TOLERANCE:
