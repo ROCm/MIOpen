@@ -94,6 +94,8 @@ else()
                 -Wno-covered-switch-default
                 -Wno-unused-result
                 -Wno-unsafe-buffer-usage
+                -Wno-deprecated-declarations
+                -Wno-shadow-uncaptured-local
             )
         else()
             if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "GNU" AND ${COMPILER} MATCHES "CXX")
