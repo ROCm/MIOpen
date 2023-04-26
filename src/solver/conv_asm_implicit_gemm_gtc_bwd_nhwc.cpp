@@ -734,6 +734,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetBwdXdlopsNHWCConfigList();
+    if(index < config_list.size() && *this == config_list[index])
+        return true;
     return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
