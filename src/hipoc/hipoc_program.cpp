@@ -168,7 +168,7 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 template <typename T> /// intended for std::string and std::vector<char>
 hipModulePtr CreateModuleInMem(const T& blob)
 {
-#if !MIOPEN_WORKAROUND_ISSUE_1359
+#if !MIOPEN_WORKAROUND_ISSUE_1359 || defined(_WIN32)
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};

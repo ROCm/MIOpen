@@ -30,11 +30,11 @@ MIOPEN_DECLARE_ENV_VAR(TEMP)
 
 std::string ExpandUser(const std::string& p)
 {
-    std::string home_dir{ GetStringEnv(HOME) };
-    if (home_dir.empty())
+    const char* home_dir = GetStringEnv(HOME);
+    if (home_dir == nullptr)
     {
         home_dir = GetStringEnv(TEMP);
-        if (home_dir.empty())
+        if (home_dir == nullptr)
         {
             MIOPEN_THROW(miopenStatusInternalError);
         }
