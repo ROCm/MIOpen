@@ -7,8 +7,6 @@
 from rocm_docs import ROCmDocs
 
 docs_core = ROCmDocs("MIOpen Documentation")
-docs_core.copy_file("../include/miopen/miopen.h", ".doxygen/miopen.h")
-docs_core.run_sed_on_file('s/MIOPEN_EXPORT //g', ".doxygen/miopen.h")
 docs_core.run_doxygen()
 docs_core.setup()
 
