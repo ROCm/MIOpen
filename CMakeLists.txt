@@ -25,6 +25,10 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.11 )
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
