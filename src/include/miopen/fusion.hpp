@@ -271,15 +271,6 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
 
-miopenStatus_t GemmActivFusion(Handle& handle,
-                               GemmDesc gemm_desc,
-                               const TensorDescriptor& ADesc,
-                               ConstData_t A_data,
-                               const TensorDescriptor& BDesc,
-                               ConstData_t B_data,
-                               const TensorDescriptor& CDesc,
-                               Data_t C_data);
-
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);
