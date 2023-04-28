@@ -46,12 +46,12 @@ struct PoolingForward2d final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::pooling::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::pooling::ProblemDescription&) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext&,
-                                 const miopen::pooling::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
 };
 
 struct PoolingForwardNd final : PoolingSolver
