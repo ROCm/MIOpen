@@ -379,6 +379,50 @@ private:
     }
 };
 
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_fwd(const tensor<T>& input,
+                          const tensor<T>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rout = out;
+    if(filter.mode == miopenTranspose)
+    {
+        std::fill(rout.begin(), rout.end(), 0);
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference skipped");
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rout,
+                                          weights,
+                                          input,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
+        }
+    }
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
+
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference skipped");
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    rout,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+        }
+    }
+    return rout;
+}
+
 // Mainline convolution tests
 //========================================
 template <ConvApi api, class T, class Tout = T>

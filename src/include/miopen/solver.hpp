@@ -6058,11 +6058,6 @@ private:
 
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
-    template <typename DataType>
-    void RunCKSolution(const Handle& handle,
-                       const AnyInvokeParams& primitive_parameters,
-                       const ProblemDescription& problem,
-                       const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const;
 };
 
 struct AnySolver;

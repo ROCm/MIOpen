@@ -43,10 +43,10 @@ namespace solver {
 template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
     2,
-    ck::tensor_layout::convolution::GNHWC,
-    ck::tensor_layout::convolution::GKYXC,
+    ck::tensor_layout::convolution::NHWGC, //NHWGC1    8 24 24 16   -> 8 24 24 2  8 
+    ck::tensor_layout::convolution::GKYXC, //GK1YXC1,  64 3 3 8(C1) -> 2 32 3  3  8
     ck::Tuple<>,
-    ck::tensor_layout::convolution::GNHWK,
+    ck::tensor_layout::convolution::NHWGK, //NHWGK1     8 24 24 64   -> 8 24 24 2 32
     DataType,
     DataType,
     ck::Tuple<>,
@@ -58,24 +58,46 @@ using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD
 template <typename DataType>
 using DeviceOpGFwdPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwd<DataType>>;
-
 struct CKArgsGFwd
 {
     CKArgsGFwd(const ProblemDescription& problem)
     {
         G        = ProblemInterpreter::GetGroupCountG(problem);
         N        = ProblemInterpreter::GetBatchN(problem);
-        K        = ProblemInterpreter::GetOutputChannelK(problem);
-        C        = ProblemInterpreter::GetInputChannelC(problem);
-        input    = {G, N, ProblemInterpreter::GetInputHeightHi(problem),
-                 ProblemInterpreter::GetInputWidthWi(problem), C};
-        output   = {G, N, ProblemInterpreter::GetOutputHeightHo(problem),
-                  ProblemInterpreter::GetOutputWidthWo(problem), K};
-        weight   = {G, K, ProblemInterpreter::GetFilterHeightY(problem),
-                  ProblemInterpreter::GetFilterWidthX(problem), C};
-        in_strides = {0, 0, 0, 0, 1};
-        out_strides = {0, 0, 0, 0, 1};
-        wei_strides = {0, 0, 0, 0, 1};
+        K1        = ProblemInterpreter::GetOutputChannelK(problem);
+        C1        = ProblemInterpreter::GetInputChannelC(problem);
+        C       = C1/G;
+        K       = K1/G;
+        Hi       = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi       = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho       = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo       = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y        = ProblemInterpreter::GetFilterHeightY(problem);
+        X        = ProblemInterpreter::GetFilterWidthX(problem);
+        //MIOpen: NCHW, NHWC
+        input    = {G, N, C, Hi, Wi};  //NHWGC
+        output   = {G, N, K, Ho, Wo};
+        weight   = {G, K, C, Y, X};
+        // for NHWGC
+        in_strides = {C, Hi*Wi*G*C, 1, Wi*G*C, G*C};
+        out_strides = {K, Ho*Wo*G*K, 1, Wo*G*K, G*K};
+        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        // for GNHWC
+        //in_strides = {N * Hi * Wi * C, Hi * Wi * C, 1, Wi * C, C};
+        //out_strides = {N * Ho * Wo * K, Ho * Wo * K, 1, Wo * K, K};
+        //wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};        
+    /*std::cout<<"in struct"<<std::endl;
+    std::cout<<"**********************************************G: "<<G<<std::endl;
+    std::cout<<"**********************************************N: "<<N<<std::endl;
+    std::cout<<"**********************************************K: "<<K<<std::endl;
+    std::cout<<"**********************************************C: "<<C<<std::endl;
+    std::cout<<"**********************************************Hi: "<<input[2]<<std::endl;
+    std::cout<<"**********************************************Wi: "<<input[3]<<std::endl;
+    std::cout<<"**********************************************Ho: "<<output[2]<<std::endl;
+    std::cout<<"**********************************************Wo: "<<output[3]<<std::endl;
+    std::cout<<"**********************************************Y: "<<weight[2]<<std::endl;
+    std::cout<<"**********************************************X: "<<weight[3]<<std::endl;
+    std::cout<<std::endl;*/
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -84,6 +106,7 @@ struct CKArgsGFwd
                     ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+        /*/
         std::partial_sum(rbegin(input),
                         std::prev(rend(input)),
                         std::next(rbegin(in_strides)),
@@ -108,13 +131,27 @@ struct CKArgsGFwd
         std::rotate(
             rbegin(output), std::next(rbegin(output)), std::next(rbegin(output), 3));
         std::rotate(
-            rbegin(out_strides), std::next(rbegin(out_strides)), std::next(rbegin(out_strides), 3));
-   
+            rbegin(out_strides), std::next(rbegin(out_strides)), std::next(rbegin(out_strides), 3));*/
+    /*std::cout<<"after computation"<<std::endl;
+    std::cout<<"**********************************************input[0]: "<<input[0]<<std::endl;
+    std::cout<<"**********************************************input[1]: "<<input[1]<<std::endl;
+    std::cout<<"**********************************************input[2]: "<<input[2]<<std::endl;
+    std::cout<<"**********************************************input[3]: "<<input[3]<<std::endl;
+    std::cout<<"**********************************************input[4]: "<<input[4]<<std::endl;
+    std::cout<<std::endl;*/
     }
     int G;
     int N;
     int K;
     int C;
+    int C1;
+    int K1;
+    int Hi;
+    int Wi;
+    int Ho;
+    int Wo;
+    int Y;
+    int X;
     std::array<ck::index_t, 5> input;
     std::array<ck::index_t, 5> in_strides;
     std::array<ck::index_t, 5> output;
@@ -132,9 +169,10 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
 {
     const auto args      = CKArgsGFwd{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
+    std::cout<<"****************** in init  "<<conv_ptrs.size()<<std::endl;
     assert(!conv_ptrs.empty());
     for(int i = 0; i < conv_ptrs.size(); i++)
-    {
+    {  
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               {},
@@ -156,7 +194,9 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
                                                               {});
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
-            valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
+            std::cout<<" support argument is true!*******"<<std::endl;
+            valid_kernels.push_back(conv_ptrs[i]->GetTypeIdName());
+            //std::cout<<"**********conv_ptrs[i]->GetTypeIdName()*******"<<conv_ptrs[i]->GetTypeIdName()<<std::endl;
         }
     }
     assert(!valid_kernels.empty());
@@ -173,7 +213,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeString() == this->kernel_id)
+        if(conv_ptrs[i]->GetTypeIdName() == this->kernel_id)
         {
             break;
         }
@@ -209,9 +249,20 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
 {
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
+    std::cout<<"conv_ptrs.size(): "<<conv_ptrs.size()<<std::endl;
     const auto args = CKArgsGFwd{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
+    std::cout<<"**********************************************G: "<<args.G<<std::endl;
+    std::cout<<"**********************************************N: "<<args.N<<std::endl;
+    std::cout<<"**********************************************K: "<<args.K<<std::endl;
+    std::cout<<"**********************************************C: "<<args.C<<std::endl;
+    std::cout<<"**********************************************Hi: "<<args.input[3]<<std::endl;
+    std::cout<<"**********************************************Wi: "<<args.input[4]<<std::endl;
+    std::cout<<"**********************************************Ho: "<<args.output[3]<<std::endl;
+    std::cout<<"**********************************************Wo: "<<args.output[4]<<std::endl;
+    std::cout<<"**********************************************Y: "<<args.weight[3]<<std::endl;
+    std::cout<<"**********************************************X: "<<args.weight[4]<<std::endl;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -236,22 +287,25 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
+    std::cout<<" not here, or you die  "<<std::endl;
     return false;
 }
 
+namespace {
+
 template <typename DataType>
-void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
+void RunCKSolution(
     const Handle& handle,
     const AnyInvokeParams& primitive_parameters,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config)
 {
     const auto args      = CKArgsGFwd{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        if(conv_ptrs[i]->GetTypeIdName() == config.kernel_id)
         {
             break;
         }
@@ -260,12 +314,71 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
     auto& conv_ptr      = conv_ptrs.at(i);
     auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors = data_ctx.tensors;
+    //SimpleDeviceMem in(sizeof(InDataType) * G * N * Hi * Wi * C);
+    //SimpleDeviceMem wei(sizeof(WeiDataType) * G * K * Y * X * C);
+    //SimpleDeviceMem out(sizeof(OutDataType) * G * N * Ho * Wo * K);
+    //std::cout<<"tensors.in: "<<tensors.in<<std::endl;
+    /*
+    std::cout<<"**********************************************G: "<<args.G<<std::endl;
+    std::cout<<"**********************************************N: "<<args.N<<std::endl;
+    std::cout<<"**********************************************K: "<<args.K<<std::endl;
+    std::cout<<"**********************************************C: "<<args.C<<std::endl;
+    std::cout<<"**********************************************Hi: "<<args.input[2]<<std::endl;
+    std::cout<<"**********************************************Wi: "<<args.input[3]<<std::endl;
+    std::cout<<"**********************************************Ho: "<<args.output[2]<<std::endl;
+    std::cout<<"**********************************************Wo: "<<args.output[3]<<std::endl;
+    std::cout<<"**********************************************Y: "<<args.weight[2]<<std::endl;
+    std::cout<<"**********************************************X: "<<args.weight[3]<<std::endl;
+
+    std::cout<<"**********************************************G: "<<G<<std::endl;
+    std::cout<<"**********************************************N: "<<N<<std::endl;
+    std::cout<<"**********************************************K: "<<K<<std::endl;
+    std::cout<<"**********************************************C: "<<C<<std::endl;
+    std::cout<<"**********************************************Hi: "<<Hi<<std::endl;
+    std::cout<<"**********************************************Wi: "<<Wi<<std::endl;
+    std::cout<<"**********************************************Ho: "<<Ho<<std::endl;
+    std::cout<<"**********************************************Wo: "<<Wo<<std::endl;
+    std::cout<<"**********************************************Y: "<<Y<<std::endl;
+    std::cout<<"**********************************************X: "<<X<<std::endl;
+    */
+    auto tensor_lens = tensors.inDesc.GetLengths();
+    auto tensor_strides = tensors.inDesc.GetStrides();
+    auto lens = args.input;
+    auto strides = args.in_strides;
+    /*int s_size = tensors.inDesc.GetSize();
+    auto ele_space = tensors.inDesc.GetElementSpace();
+    auto ele_size  = tensors.inDesc.GetElementSize();
+    std::cout<<"*****************************s_size: "<<s_size<<std::endl;
+    std::cout<<"*****************************ele_space: "<<ele_space<<std::endl;
+    std::cout<<"*****************************ele_size: "<<ele_size<<std::endl; 
+    std::cout<<"*****************************ck mem size: "<<G<<" "<<N<<" " <<Hi<<" " <<Wi<<" "<<C<<" "<<G * N * Hi * Wi * C<<std::endl;*/
+    std::cout<<"MIOpen tensor info"<<std::endl;  
+    for(auto x:tensor_lens){
+        std::cout<<x<<"  ";
+    }
+    std::cout<<std::endl;
+    for(auto x:tensor_strides){
+        std::cout<<x<<"  ";
+    }
+    std::cout<<std::endl;
+    std::cout<<"CK args info"<<std::endl;
+    for(auto x:lens){
+        std::cout<<x<<"  ";
+    }
+    std::cout<<std::endl;
+    for(auto x:strides){
+        std::cout<<x<<"  ";
+    }
+    std::cout<<std::endl;
     auto argument_ptr   = conv_ptr->MakeArgumentPointer(
+        //in.GetDeviceBuffer(),
+        //wei.GetDeviceBuffer(),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.in)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.w)),
         {},
+        //out.GetDeviceBuffer(),
         static_cast<void*>(tensors.out),
         args.input,
         args.in_strides,
@@ -286,22 +399,23 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
     const auto enable_profiling = handle.IsProfilingEnabled();
     
     std::cout<<"*********run ck solution**********"<<std::endl;
-    auto& xDesc = tensors.inDesc;
+    //auto& xDesc = tensors.inDesc;
     /*auto& wDesc = tensors.wDesc;
-    auto& yDesc = tensors.outDesc;
-    std::cout<<"**********************************************G: "<<args.G<<std::endl;
-    std::cout<<"**********************************************N: "<<args.N<<std::endl;
-    std::cout<<"**********************************************K: "<<args.K<<std::endl;
-    std::cout<<"**********************************************C: "<<args.C<<std::endl;*/   
-    std::cout<<"****************************problem.conv_problem.GetInLayout(): "<<problem.conv_problem.GetInLayout()<<std::endl;
-    std::cout<<"****************************xDesc.GetLayout_str(): "<<xDesc.GetLayout_str()<<std::endl;
-    /*std::cout<<"****************************yDesc.GetLayout_t(): "<<yDesc.GetLayout_t()<<std::endl;
+    auto& yDesc = tensors.outDesc;*/   
+    //std::cout<<"****************************problem.conv_problem.GetInLayout(): "<<problem.conv_problem.GetInLayout()<<std::endl;
+    //std::cout<<"****************************xDesc.GetLayout_str(): "<<xDesc.GetLayout_str()<<std::endl;
+    //std::cout<<"****************************yDesc.GetLayout_t(): "<<yDesc.GetLayout_t()<<std::endl;
+    std::cout<<"****************************input[0]: "<<args.input[0]<<std::endl;
+    std::cout<<"****************************input[1]: "<<args.input[1]<<std::endl;
+    std::cout<<"****************************input[2]: "<<args.input[2]<<std::endl;  
+    std::cout<<"****************************input[3]: "<<args.input[3]<<std::endl;  
+    std::cout<<"****************************input[4]: "<<args.input[4]<<std::endl;    
     std::cout<<"****************************strides[0]: "<<args.in_strides[0]<<std::endl;
     std::cout<<"****************************strides[1]: "<<args.in_strides[1]<<std::endl;
     std::cout<<"****************************strides[2]: "<<args.in_strides[2]<<std::endl;
     std::cout<<"****************************strides[3]: "<<args.in_strides[3]<<std::endl;
     std::cout<<"****************************strides[4]: "<<args.in_strides[4]<<std::endl;
-    std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
+    /*std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
@@ -318,6 +432,8 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+}// namespace
 #endif
 
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(const ProblemDescription& problem)
@@ -329,7 +445,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(const Problem
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
-    case miopenInt8:
+    case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -371,7 +487,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(const ProblemDescri
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenInt8:
+    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -439,7 +555,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& c
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenInt8:
+    case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -473,6 +589,8 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
                 RunCKSolution<float>(handle, primitive_parameters, problem, config);
                 break;
             case miopenInt8:
+                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
+                break;
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:

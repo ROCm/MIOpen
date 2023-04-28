@@ -629,6 +629,20 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             const auto& workSpace   = data_ctx.workSpace;
+
+
+    std::cout<<"*********run get solution**********"<<std::endl;
+    auto& xDesc = tensors.inDesc;
+    /*auto& wDesc = tensors.wDesc;
+    auto& yDesc = tensors.outDesc;
+    std::cout<<"**********************************************G: "<<args.G<<std::endl;
+    std::cout<<"**********************************************N: "<<args.N<<std::endl;
+    std::cout<<"**********************************************K: "<<args.K<<std::endl;
+    std::cout<<"**********************************************C: "<<args.C<<std::endl;*/   
+    std::cout<<"****************************problem.conv_problem.GetInLayout(): "<<problem.conv_problem.GetInLayout()<<std::endl;
+    std::cout<<"****************************xDesc.GetLayout_str(): "<<xDesc.GetLayout_str()<<std::endl;   
+
+
             const auto ker =
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
