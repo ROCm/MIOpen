@@ -270,6 +270,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+        // Changes to this message lead to failures in test_conv_for_implicit_gemm
+        // To fix them check the test
+        // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
@@ -774,6 +777,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+        // Changes to this message lead to failures in test_conv_for_implicit_gemm
+        // To fix them check the test
+        // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
@@ -980,6 +986,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+        // Changes to this message lead to failures in test_conv_for_implicit_gemm
+        // To fix them check the test
+        // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
