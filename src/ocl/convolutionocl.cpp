@@ -774,8 +774,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
-        MIOPEN_THROW(miopenStatusUnknownError,
-                     "Backward Data Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
@@ -981,7 +980,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
-        MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
+        MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
