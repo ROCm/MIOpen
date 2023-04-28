@@ -74,30 +74,14 @@ struct CKArgsGFwd
         Wo       = ProblemInterpreter::GetOutputWidthWo(problem);
         Y        = ProblemInterpreter::GetFilterHeightY(problem);
         X        = ProblemInterpreter::GetFilterWidthX(problem);
-        //MIOpen: NCHW, NHWC
-        input    = {G, N, C, Hi, Wi};  //NHWGC
+ 
+        input    = {G, N, C, Hi, Wi};
         output   = {G, N, K, Ho, Wo};
         weight   = {G, K, C, Y, X};
-        // for NHWGC
+        // strides from GNHWC to NHWGC laout
         in_strides = {C, Hi*Wi*G*C, 1, Wi*G*C, G*C};
         out_strides = {K, Ho*Wo*G*K, 1, Wo*G*K, G*K};
         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        // for GNHWC
-        //in_strides = {N * Hi * Wi * C, Hi * Wi * C, 1, Wi * C, C};
-        //out_strides = {N * Ho * Wo * K, Ho * Wo * K, 1, Wo * K, K};
-        //wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};        
-    /*std::cout<<"in struct"<<std::endl;
-    std::cout<<"**********************************************G: "<<G<<std::endl;
-    std::cout<<"**********************************************N: "<<N<<std::endl;
-    std::cout<<"**********************************************K: "<<K<<std::endl;
-    std::cout<<"**********************************************C: "<<C<<std::endl;
-    std::cout<<"**********************************************Hi: "<<input[2]<<std::endl;
-    std::cout<<"**********************************************Wi: "<<input[3]<<std::endl;
-    std::cout<<"**********************************************Ho: "<<output[2]<<std::endl;
-    std::cout<<"**********************************************Wo: "<<output[3]<<std::endl;
-    std::cout<<"**********************************************Y: "<<weight[2]<<std::endl;
-    std::cout<<"**********************************************X: "<<weight[3]<<std::endl;
-    std::cout<<std::endl;*/
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -106,39 +90,6 @@ struct CKArgsGFwd
                     ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
-        /*/
-        std::partial_sum(rbegin(input),
-                        std::prev(rend(input)),
-                        std::next(rbegin(in_strides)),
-                        std::multiplies<>{});
-        std::partial_sum(rbegin(weight),
-                        std::prev(rend(weight)),
-                        std::next(rbegin(wei_strides)),
-                        std::multiplies<>{});
-        std::partial_sum(rbegin(output),
-                        std::prev(rend(output)),
-                        std::next(rbegin(out_strides)),
-                        std::multiplies<>{});
-
-        std::rotate(
-            rbegin(input), std::next(rbegin(input)), std::next(rbegin(input), 3));
-        std::rotate(
-            rbegin(in_strides), std::next(rbegin(in_strides)), std::next(rbegin(in_strides), 3));
-        std::rotate(
-            rbegin(weight), std::next(rbegin(weight)), std::next(rbegin(weight), 3));
-        std::rotate(
-            rbegin(wei_strides), std::next(rbegin(wei_strides)), std::next(rbegin(wei_strides), 3));
-        std::rotate(
-            rbegin(output), std::next(rbegin(output)), std::next(rbegin(output), 3));
-        std::rotate(
-            rbegin(out_strides), std::next(rbegin(out_strides)), std::next(rbegin(out_strides), 3));*/
-    /*std::cout<<"after computation"<<std::endl;
-    std::cout<<"**********************************************input[0]: "<<input[0]<<std::endl;
-    std::cout<<"**********************************************input[1]: "<<input[1]<<std::endl;
-    std::cout<<"**********************************************input[2]: "<<input[2]<<std::endl;
-    std::cout<<"**********************************************input[3]: "<<input[3]<<std::endl;
-    std::cout<<"**********************************************input[4]: "<<input[4]<<std::endl;
-    std::cout<<std::endl;*/
     }
     int G;
     int N;
@@ -169,7 +120,6 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
 {
     const auto args      = CKArgsGFwd{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
-    std::cout<<"****************** in init  "<<conv_ptrs.size()<<std::endl;
     assert(!conv_ptrs.empty());
     for(int i = 0; i < conv_ptrs.size(); i++)
     {  
@@ -194,9 +144,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
                                                               {});
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
-            std::cout<<" support argument is true!*******"<<std::endl;
-            valid_kernels.push_back(conv_ptrs[i]->GetTypeIdName());
-            //std::cout<<"**********conv_ptrs[i]->GetTypeIdName()*******"<<conv_ptrs[i]->GetTypeIdName()<<std::endl;
+            valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
         }
     }
     assert(!valid_kernels.empty());
@@ -213,7 +161,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeIdName() == this->kernel_id)
+        if(conv_ptrs[i]->GetTypeString() == this->kernel_id)
         {
             break;
         }
@@ -253,16 +201,6 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
     const auto args = CKArgsGFwd{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
-    std::cout<<"**********************************************G: "<<args.G<<std::endl;
-    std::cout<<"**********************************************N: "<<args.N<<std::endl;
-    std::cout<<"**********************************************K: "<<args.K<<std::endl;
-    std::cout<<"**********************************************C: "<<args.C<<std::endl;
-    std::cout<<"**********************************************Hi: "<<args.input[3]<<std::endl;
-    std::cout<<"**********************************************Wi: "<<args.input[4]<<std::endl;
-    std::cout<<"**********************************************Ho: "<<args.output[3]<<std::endl;
-    std::cout<<"**********************************************Wo: "<<args.output[4]<<std::endl;
-    std::cout<<"**********************************************Y: "<<args.weight[3]<<std::endl;
-    std::cout<<"**********************************************X: "<<args.weight[4]<<std::endl;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -305,7 +243,7 @@ void RunCKSolution(
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeIdName() == config.kernel_id)
+        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
         {
             break;
         }
@@ -314,71 +252,13 @@ void RunCKSolution(
     auto& conv_ptr      = conv_ptrs.at(i);
     auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors = data_ctx.tensors;
-    //SimpleDeviceMem in(sizeof(InDataType) * G * N * Hi * Wi * C);
-    //SimpleDeviceMem wei(sizeof(WeiDataType) * G * K * Y * X * C);
-    //SimpleDeviceMem out(sizeof(OutDataType) * G * N * Ho * Wo * K);
-    //std::cout<<"tensors.in: "<<tensors.in<<std::endl;
-    /*
-    std::cout<<"**********************************************G: "<<args.G<<std::endl;
-    std::cout<<"**********************************************N: "<<args.N<<std::endl;
-    std::cout<<"**********************************************K: "<<args.K<<std::endl;
-    std::cout<<"**********************************************C: "<<args.C<<std::endl;
-    std::cout<<"**********************************************Hi: "<<args.input[2]<<std::endl;
-    std::cout<<"**********************************************Wi: "<<args.input[3]<<std::endl;
-    std::cout<<"**********************************************Ho: "<<args.output[2]<<std::endl;
-    std::cout<<"**********************************************Wo: "<<args.output[3]<<std::endl;
-    std::cout<<"**********************************************Y: "<<args.weight[2]<<std::endl;
-    std::cout<<"**********************************************X: "<<args.weight[3]<<std::endl;
 
-    std::cout<<"**********************************************G: "<<G<<std::endl;
-    std::cout<<"**********************************************N: "<<N<<std::endl;
-    std::cout<<"**********************************************K: "<<K<<std::endl;
-    std::cout<<"**********************************************C: "<<C<<std::endl;
-    std::cout<<"**********************************************Hi: "<<Hi<<std::endl;
-    std::cout<<"**********************************************Wi: "<<Wi<<std::endl;
-    std::cout<<"**********************************************Ho: "<<Ho<<std::endl;
-    std::cout<<"**********************************************Wo: "<<Wo<<std::endl;
-    std::cout<<"**********************************************Y: "<<Y<<std::endl;
-    std::cout<<"**********************************************X: "<<X<<std::endl;
-    */
-    auto tensor_lens = tensors.inDesc.GetLengths();
-    auto tensor_strides = tensors.inDesc.GetStrides();
-    auto lens = args.input;
-    auto strides = args.in_strides;
-    /*int s_size = tensors.inDesc.GetSize();
-    auto ele_space = tensors.inDesc.GetElementSpace();
-    auto ele_size  = tensors.inDesc.GetElementSize();
-    std::cout<<"*****************************s_size: "<<s_size<<std::endl;
-    std::cout<<"*****************************ele_space: "<<ele_space<<std::endl;
-    std::cout<<"*****************************ele_size: "<<ele_size<<std::endl; 
-    std::cout<<"*****************************ck mem size: "<<G<<" "<<N<<" " <<Hi<<" " <<Wi<<" "<<C<<" "<<G * N * Hi * Wi * C<<std::endl;*/
-    std::cout<<"MIOpen tensor info"<<std::endl;  
-    for(auto x:tensor_lens){
-        std::cout<<x<<"  ";
-    }
-    std::cout<<std::endl;
-    for(auto x:tensor_strides){
-        std::cout<<x<<"  ";
-    }
-    std::cout<<std::endl;
-    std::cout<<"CK args info"<<std::endl;
-    for(auto x:lens){
-        std::cout<<x<<"  ";
-    }
-    std::cout<<std::endl;
-    for(auto x:strides){
-        std::cout<<x<<"  ";
-    }
-    std::cout<<std::endl;
     auto argument_ptr   = conv_ptr->MakeArgumentPointer(
-        //in.GetDeviceBuffer(),
-        //wei.GetDeviceBuffer(),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.in)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.w)),
         {},
-        //out.GetDeviceBuffer(),
         static_cast<void*>(tensors.out),
         args.input,
         args.in_strides,
@@ -396,33 +276,7 @@ void RunCKSolution(
         {},
         {});
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-    
-    std::cout<<"*********run ck solution**********"<<std::endl;
-    //auto& xDesc = tensors.inDesc;
-    /*auto& wDesc = tensors.wDesc;
-    auto& yDesc = tensors.outDesc;*/   
-    //std::cout<<"****************************problem.conv_problem.GetInLayout(): "<<problem.conv_problem.GetInLayout()<<std::endl;
-    //std::cout<<"****************************xDesc.GetLayout_str(): "<<xDesc.GetLayout_str()<<std::endl;
-    //std::cout<<"****************************yDesc.GetLayout_t(): "<<yDesc.GetLayout_t()<<std::endl;
-    std::cout<<"****************************input[0]: "<<args.input[0]<<std::endl;
-    std::cout<<"****************************input[1]: "<<args.input[1]<<std::endl;
-    std::cout<<"****************************input[2]: "<<args.input[2]<<std::endl;  
-    std::cout<<"****************************input[3]: "<<args.input[3]<<std::endl;  
-    std::cout<<"****************************input[4]: "<<args.input[4]<<std::endl;    
-    std::cout<<"****************************strides[0]: "<<args.in_strides[0]<<std::endl;
-    std::cout<<"****************************strides[1]: "<<args.in_strides[1]<<std::endl;
-    std::cout<<"****************************strides[2]: "<<args.in_strides[2]<<std::endl;
-    std::cout<<"****************************strides[3]: "<<args.in_strides[3]<<std::endl;
-    std::cout<<"****************************strides[4]: "<<args.in_strides[4]<<std::endl;
-    /*std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
-    std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
-    std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
-    std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
-    std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
-    std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
-    std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
-    std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;*/
+    const auto enable_profiling = handle.IsProfilingEnabled();  
 
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});

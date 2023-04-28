@@ -52,10 +52,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     Solver solv{};
 
     const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-    //std::cout<<"1111: "<<inputDesc.GetLayout_str()<<std::endl;
-    //std::cout<<"1111: "<<wDesc.GetLayout_str()<<std::endl;
-    //std::cout<<"1111: "<<outputDesc.GetLayout_str()<<std::endl;    
+        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};   
     auto ctx = miopen::ConvolutionContext{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
 
