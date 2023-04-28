@@ -40,6 +40,7 @@ struct TargetProperties
     boost::optional<bool> Xnack() const { return xnack; }
     boost::optional<bool> Sramecc() const { return sramecc; }
     boost::optional<bool> SrameccReported() const { return sramecc_reported; }
+    static std::size_t GetMaxWaveScratchSize() { return MaxWaveScratchSize; }
     void Init(const Handle*);
 
 private:
@@ -49,6 +50,8 @@ private:
     boost::optional<bool> xnack            = boost::none;
     boost::optional<bool> sramecc          = boost::none;
     boost::optional<bool> sramecc_reported = boost::none;
+    // https://github.com/llvm/llvm-project/commit/1ed4caff1d5cd49233c1ae7b9f6483a946ed5eea
+    static const std::size_t MaxWaveScratchSize;
 };
 
 } // namespace miopen
