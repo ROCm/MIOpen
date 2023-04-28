@@ -69,6 +69,66 @@ struct kernel_params
     }
 };
 
+std::size_t sizeof_kernel_FLOAT(const miopen::pooling::ProblemDescription& problem)
+{
+    const auto datatype = problem.GetXDesc().GetType();
+    return get_data_size(datatype);
+}
+
+std::size_t sizeof_kernel_FLOAT_ACCUM(const miopen::pooling::ProblemDescription& problem)
+{
+    const auto datatype = problem.GetXDesc().GetType();
+    if(datatype == miopenHalf)
+        return get_data_size(miopenFloat); // mixed precision
+    return get_data_size(datatype);
+}
+
+inline std::size_t RoundUpToMultiple(std::size_t v, std::size_t m)
+{
+    assert(m > 0);
+    return ((v + m - 1) / m) * m;
+}
+
+// Compute amount of private memory required for holding the arrays defined
+// in the "mloPoolingG" kernel:
+//
+// #define MLO_BOT_DATA_SZ0 \
+//    ((MLO_POOLING_N_HORIZ_OUT_PIX - 1) * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0)
+// #define MLO_BOT_DATA_SZ1 \
+//    ((MLO_POOLING_N_VERT_OUT_PIX - 1) * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1)
+//
+// _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
+// _FLOAT_ACCUM res[MLO_POOLING_N_VERT_OUT_PIX][MLO_POOLING_N_HORIZ_OUT_PIX];
+//
+std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& problem)
+{
+    const kernel_params kp(problem);
+
+    // aliases to ease programming
+    const auto& MLO_POOLING_KERNEL_SZ1      = kp.kernel_size_h;
+    const auto& MLO_POOLING_STRIDE1         = kp.kernel_stride_h;
+    const auto& MLO_POOLING_KERNEL_SZ0      = kp.kernel_size_w;
+    const auto& MLO_POOLING_STRIDE0         = kp.kernel_stride_w;
+    const auto& MLO_POOLING_N_HORIZ_OUT_PIX = kp.out_pix_tile0;
+    const auto& MLO_POOLING_N_VERT_OUT_PIX  = kp.out_pix_tile1;
+
+    const auto MLO_BOT_DATA_SZ0 =
+        (static_cast<std::size_t>(MLO_POOLING_N_HORIZ_OUT_PIX) - 1) * MLO_POOLING_STRIDE0 +
+        MLO_POOLING_KERNEL_SZ0;
+    const auto MLO_BOT_DATA_SZ1 =
+        (static_cast<std::size_t>(MLO_POOLING_N_VERT_OUT_PIX) - 1) * MLO_POOLING_STRIDE1 +
+        MLO_POOLING_KERNEL_SZ1;
+
+    const auto sizeof_bot_data = sizeof_kernel_FLOAT(problem) * MLO_BOT_DATA_SZ1 * MLO_BOT_DATA_SZ0;
+    const auto sizeof_res      = sizeof_kernel_FLOAT_ACCUM(problem) * MLO_POOLING_N_VERT_OUT_PIX *
+                            MLO_POOLING_N_HORIZ_OUT_PIX;
+
+    MIOPEN_LOG_I("sizeof_bot_data " << sizeof_bot_data << "sizeof_res" << sizeof_res);
+
+    // Assume 8-byte (2xDWORD) alignment.
+    return RoundUpToMultiple(sizeof_bot_data, 8) + RoundUpToMultiple(sizeof_res, 8);
+}
+
 } // namespace
 
 bool PoolingForward2d::IsApplicable(const ExecutionContext& ec,
@@ -80,7 +140,9 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext& ec,
            (problem.GetXDesc().GetType() == miopenFloat ||
             problem.GetXDesc().GetType() == miopenHalf) &&
            problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
-           problem.GetYDesc().GetLayout("NCHW") == "NCHW";
+           problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
+           sizeof_private_memory(problem) <=
+               TargetProperties::GetMaxWaveScratchSize() / ec.GetStream().GetWavefrontWidth();
 }
 
 ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
