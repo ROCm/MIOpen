@@ -47,6 +47,8 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
             return false;
 #endif
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
         return false;
     if(!ctx.use_opencl_convolutions)
