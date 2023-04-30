@@ -131,7 +131,7 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
 
 } // namespace
 
-bool PoolingForward2d::IsApplicable(const ExecutionContext& ec,
+bool PoolingForward2d::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
@@ -142,7 +142,7 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext& ec,
            problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
            problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
            sizeof_private_memory(problem) <=
-               TargetProperties::GetMaxWaveScratchSize() / ec.GetStream().GetWavefrontWidth();
+               TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
 }
 
 ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,

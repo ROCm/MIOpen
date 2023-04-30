@@ -67,7 +67,9 @@ static std::string GetDeviceNameFromMap(const std::string& in)
     return name; // NOLINT (performance-no-automatic-move)
 }
 
-const std::size_t TargetProperties::MaxWaveScratchSize = (256 * 4) * ((1 << 13) - 1);
+// See https://github.com/llvm/llvm-project/commit/1ed4caff1d5cd49233c1ae7b9f6483a946ed5eea.
+const std::size_t TargetProperties::MaxWaveScratchSize =
+    (static_cast<const std::size_t>(256) * 4) * ((1 << 13) - 1);
 
 void TargetProperties::Init(const Handle* const handle)
 {
