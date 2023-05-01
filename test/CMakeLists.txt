@@ -769,7 +769,7 @@ add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_EN
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED GFX94X_DISABLED
+add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -780,7 +780,7 @@ add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABL
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
 
-add_custom_test(test_conv_igemm_mlir_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED GFX94X_DISABLED
+add_custom_test(test_conv_igemm_mlir_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
@@ -804,7 +804,7 @@ set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FI
 set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwdXdlops)
 set(IMPLICITGEMM_MLIR_ENV_W_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrWXdlops)
 
-add_custom_test(test_conv_igemm_mlir_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED GFX94X_DISABLED
+add_custom_test(test_conv_igemm_mlir_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -838,7 +838,7 @@ add_custom_test(test_conv_hip_igemm_xdlops SKIP_UNLESS_ALL OCL_DISABLED HALF_DIS
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
 )
 
-add_custom_test(test_conv_igemm_mlir_xdlops_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED GFX94X_DISABLED
+add_custom_test(test_conv_igemm_mlir_xdlops_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
