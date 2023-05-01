@@ -4712,6 +4712,12 @@ private:
 
 struct AnySolver;
 
+// Use struct as a syntactic sugar to make the intent as clear as possible.
+struct ThisSolverIsDeprecatedStatic
+{
+    static bool IsDisabled(const ConvolutionContext& ctx);
+};
+
 } // namespace solver
 } // namespace miopen
 

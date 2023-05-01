@@ -50,6 +50,8 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!ctx.use_opencl_convolutions)
         return false;
     if(!problem.Is2d())
