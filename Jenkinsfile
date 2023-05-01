@@ -348,7 +348,8 @@ def RunPerfTest(Map conf=[:]){
                     sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 }
                 sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
-                jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
+                //jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
+                jenkins_url = "${env.artifact_path}/alex_models/lastSuccessfulBuild/artifact"
                 try {
                     sh "rm -rf ${env.WORKSPACE}/opt/rocm/bin/old_results/"
                     sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
@@ -1251,6 +1252,492 @@ pipeline {
                     agent{ label rocmnode("austin")}
                     steps{
                         RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS4.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS64.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP16_BS256.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP32_BS256.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP16_BS256.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP32_BS256.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP16_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS128.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS512.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_F32_BS4.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_F32_BS64.txt" )
+.txt" )
+                    }
+                }
+                stage('Fp16 BS32 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS32.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Shufflenet_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Shufflenet_v2_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS4.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS64.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS512.txt" )
                     }
                 }
             }
