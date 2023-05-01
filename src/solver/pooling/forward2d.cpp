@@ -92,9 +92,10 @@ inline std::size_t RoundUpToMultiple(std::size_t v, std::size_t m)
 // Compute amount of private memory required for holding the arrays defined
 // in the "mloPoolingG" kernel:
 //
-// #define MLO_BOT_DATA_SZ0 \
-//    ((MLO_POOLING_N_HORIZ_OUT_PIX - 1) * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0)
-// #define MLO_BOT_DATA_SZ1 \
+// #define MLO_BOT_DATA_SZ0
+//     ((MLO_POOLING_N_HORIZ_OUT_PIX - 1) * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0)
+//
+// #define MLO_BOT_DATA_SZ1
 //    ((MLO_POOLING_N_VERT_OUT_PIX - 1) * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1)
 //
 // _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
