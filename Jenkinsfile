@@ -138,8 +138,9 @@ def cmake_build(Map conf=[:]){
     sh cmd
 
     // Only archive from master or develop
-    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
+    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
+        stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
 }
 
@@ -192,7 +193,6 @@ def getDockerImage(Map conf=[:])
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def no_cache = conf.get("no_cache", false)
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
@@ -208,10 +208,6 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
-    }
-    if(no_cache)
-    {
-        dockerArgs = dockerArgs + " --no-cache "
     }
     echo "Docker Args: ${dockerArgs}"
 
@@ -272,9 +268,7 @@ def buildHipClangJob(Map conf=[:]){
                 throw e
             }
             catch(Exception ex) {
-                conf.put("no_cache", true)
                 (retimage, image) = getDockerImage(conf)
-                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -326,6 +320,42 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+def RunPerfTest(Map conf=[:]){
+    def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+    try {
+        (retimage, image) = getDockerImage(conf)
+        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+        timeout(time: 600, unit: 'MINUTES')
+        {
+            unstash 'miopen_tar'
+            sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
+            ld_lib="${env.WORKSPACE}/opt/rocm/lib"
+            def filename = conf.get("filename", "")
+            sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+            jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact" 
+            try {
+                sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+            }
+            catch (Exception err){
+                currentBuild.result = 'SUCCESS'
+            }
+
+            if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH){
+                archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            }
+            else{
+                sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
+            }
+        }
+        }
+    }
+    catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+        echo "The job was cancelled or aborted"
+        throw e
+    }
+}
+
+
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
@@ -355,10 +385,11 @@ def CheckPerfDbValid(Map conf=[:]){
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* } [ Codecov ]
+/// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
+///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
@@ -451,6 +482,10 @@ pipeline {
             name: "OPENCL_BACKEND",
             defaultValue: false,
             description: "Enable OpenCL backend stages")
+        booleanParam(
+            name: "PERF_TEST",
+            defaultValue: false,
+            description: "Enable performance testing stages")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
             description: "")
@@ -1119,6 +1154,19 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
+                    }
+                }
+            }
+        }
+        stage("Performance Tests - gfx90a") {
+            when {
+                expression {params.PERF_TEST && params.TARGET_GFX90A}
+            }
+            parallel{
+                stage('Fp32 Hip Performance Resnet50_v1.5 gfx90a'){
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5.txt" )
                     }
                 }
             }

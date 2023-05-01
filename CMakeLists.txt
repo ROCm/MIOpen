@@ -25,6 +25,10 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.11 )
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
@@ -60,7 +64,7 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI based heuristics")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -138,7 +142,6 @@ option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
-
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
@@ -150,6 +153,11 @@ else()
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
+if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+        message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
+    endif()
+endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
