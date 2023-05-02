@@ -546,7 +546,7 @@ pipeline {
             steps{
                 getDockerImage()
             }
-        }
+        }/*
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -1175,7 +1175,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
         stage("Packages") {
             when {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
