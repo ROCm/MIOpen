@@ -75,13 +75,12 @@ void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t 
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     auto&& handle      = get_handle();
     std::string device = handle.GetDeviceName();
-    // if(device != "gfx908")
-    //     GTEST_SKIP();
+    if(device != "gfx908")
+        GTEST_SKIP();
     miopen::ConvolutionContext ctx;
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    std::vector<std::size_t> solvers =
-        miopen::ai::immed_mode::PredictSolver(problem, ctx, "gfx908");
+    std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =
         std::distance(solvers.begin(), std::max_element(solvers.begin(), solvers.end()));
     ASSERT_EQ(solver, expected_solver)

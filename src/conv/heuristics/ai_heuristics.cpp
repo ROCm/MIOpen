@@ -70,7 +70,6 @@ Metadata::Metadata(const std::string& arch)
       features_std(common::LookupValues<std::string, float>(
           features, json["stats"]["overall"]["features"]["std"]))
 {
-    json.~basic_json();
 }
 
 size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
