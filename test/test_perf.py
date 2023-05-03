@@ -118,6 +118,9 @@ def run_driver_cmds(filename, install_path, override=None):
     with open(os.path.expanduser(model_path), "r", encoding='utf-8') as infile:
       for line in infile:
         try:
+          if (line.find('MIOpenDriver') == -1):
+            print(f"Skipping line '{line}'")
+            continue
           idx = line.index('MIOpenDriver')
           driver_cmd = line[idx:-1]
           if override:
