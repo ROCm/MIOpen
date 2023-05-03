@@ -30,6 +30,7 @@
 #include <miopen/miopen.h>
 
 #include <vector>
+#include <functional>
 
 // Compiler uses undefined behavior sanitizer
 // -fsanitize=enum (or -fsanitize=undefined)
@@ -243,8 +244,8 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
 
 const auto get_tensor_descr_funcs = {Get4dTensorDescriptor, GetTensorDescriptor};
 
-// Generate test data
-void GenerateValidTestConfigs(std::vector<TestConfig>& configs, bool use_strides)
+// Generate test data and run tests
+void RunValidTestConfigs(bool use_strides, std::function<void(const TestConfig&)> run_test)
 {
     const auto datatypes = {miopenHalf, miopenDouble};
     const auto layouts   = {miopenTensorNCHW, miopenTensorNCDHW};
@@ -267,22 +268,20 @@ void GenerateValidTestConfigs(std::vector<TestConfig>& configs, bool use_strides
                                             use_strides ? (strides + (max_ndims - ndims)) : nullptr,
                                             use_strides},
                                            true};
-                configs.push_back(config);
+                ASSERT_NO_FATAL_FAILURE(run_test(config));
             }
         }
     }
 }
 
-std::vector<TestConfig> GenerateValidTestConfigs()
+void RunValidTestConfigs(std::function<void(const TestConfig&)> run_test)
 {
-    std::vector<TestConfig> configs;
-    GenerateValidTestConfigs(configs, false);
-    GenerateValidTestConfigs(configs, true);
-    return configs;
+    ASSERT_NO_FATAL_FAILURE(RunValidTestConfigs(false, run_test));
+    ASSERT_NO_FATAL_FAILURE(RunValidTestConfigs(true, run_test));
 }
 
-void GenerateWrongTestConfigs(const TestConfig& valid_config,
-                              std::vector<TestConfig>& wrong_configs)
+void RunWrongTestConfigs(const TestConfig& valid_config,
+                         std::function<void(const TestConfig&)> run_test)
 {
 #if USE_OUT_OF_RANGE_ENUM
     const auto wrong_datatypes = {static_cast<miopenDataType_t>(miopenHalf - 1),
@@ -298,7 +297,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config                   = valid_config;
         config.null_tensor_descriptor = true;
         config.valid                  = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 
 #if USE_OUT_OF_RANGE_ENUM
@@ -308,7 +307,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config            = valid_config;
         config.params.dataType = datatype;
         config.valid           = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 #endif
 
@@ -319,7 +318,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config                = valid_config;
         config.params.tensorLayout = layout;
         config.valid               = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 #endif
 
@@ -329,7 +328,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config          = valid_config;
         config.params.nbDims = ndims;
         config.valid         = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 
     // dimsA = nullptr
@@ -337,7 +336,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config         = valid_config;
         config.params.dimsA = nullptr;
         config.valid        = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 
     // wrong dimensions
@@ -346,7 +345,7 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
         auto config         = valid_config;
         config.params.dimsA = dims;
         config.valid        = false;
-        wrong_configs.push_back(config);
+        ASSERT_NO_FATAL_FAILURE(run_test(config));
     }
 
     if(valid_config.params.use_strides)
@@ -357,17 +356,14 @@ void GenerateWrongTestConfigs(const TestConfig& valid_config,
             auto config            = valid_config;
             config.params.stridesA = strides;
             config.valid           = false;
-            wrong_configs.push_back(config);
+            ASSERT_NO_FATAL_FAILURE(run_test(config));
         }
     }
 }
 
-std::vector<TestConfig> GenerateWrongTestConfigs(const std::vector<TestConfig>& valid_configs)
+void RunWrongTestConfigs(std::function<void(const TestConfig&)> run_test)
 {
-    std::vector<TestConfig> configs;
-    for(const auto& valid_config : valid_configs)
-        GenerateWrongTestConfigs(valid_config, configs);
-    return configs;
+    RunValidTestConfigs([run_test](const TestConfig& valid_config){ RunWrongTestConfigs(valid_config, run_test); });
 }
 
 } // namespace
@@ -377,8 +373,6 @@ class TestTensorApi : public ::testing::Test
 protected:
     void SetUp() override
     {
-        valid_configs = GenerateValidTestConfigs();
-        wrong_configs = GenerateWrongTestConfigs(valid_configs);
     }
 
     static void RunTest(const TestConfig& config)
@@ -421,17 +415,8 @@ protected:
             }
         }
     }
-
-    static void RunTests(const std::vector<TestConfig> configs)
-    {
-        for(const auto& config : configs)
-            RunTest(config);
-    }
-
-    std::vector<TestConfig> valid_configs;
-    std::vector<TestConfig> wrong_configs;
 };
 
-TEST_F(TestTensorApi, SetTensor) { RunTests(valid_configs); }
+TEST_F(TestTensorApi, SetTensor) { RunValidTestConfigs([](const TestConfig& valid_config){ RunTest(valid_config); }); }
 
-TEST_F(TestTensorApi, SetWrongTensor) { RunTests(wrong_configs); }
+TEST_F(TestTensorApi, SetWrongTensor) { RunWrongTestConfigs([](const TestConfig& wrong_config){ RunTest(wrong_config); }); }
