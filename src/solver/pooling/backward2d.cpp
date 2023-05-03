@@ -147,13 +147,13 @@ std::size_t sizeof_local_memory(const miopen::pooling::ProblemDescription& probl
     {
         const auto sizeof_lcl_top_df = sizeof_kernel_FLOAT(problem) * nelem;
         const auto sizeof_lcl_mask   = sizeof_kernel_index_t(problem) * nelem;
-        /// \anchor alignment_of_arrays_in_gpu_memory The total amount of memory calculated here is
-        /// slightly less than the amount calculated by the compiler. As a result, the check here
-        /// may pass, while then the compiler might refuse to build the kernel. The most likely
-        /// reason for the difference is padding (due to alignment requirements). We don't know
-        /// exactly how the compiler takes alignment into account, but what can we do is applying an
-        /// alignment that imposes a slightly tighter constraints than the compiler. So far, 16-byte
-        /// (4xDWORD) alignment works well.
+        /// \anchor alignment_of_arrays_in_gpu_memory
+        /// The total amount of memory calculated here is slightly less than the amount calculated
+        /// by the compiler. As a result, the check here may pass, while then the compiler might
+        /// refuse to build the kernel. The most likely reason for the difference is padding (due to
+        /// alignment requirements). We don't know exactly how the compiler takes alignment into
+        /// account, but what can we do is applying an alignment that imposes a slightly tighter
+        /// constraints than the compiler. So far, 16-byte (4xDWORD) alignment works well.
         rv = RoundUpToMultiple(sizeof_lcl_top_df, 16) + RoundUpToMultiple(sizeof_lcl_mask, 16);
     }
     else
