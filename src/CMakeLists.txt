@@ -138,6 +138,7 @@ set( MIOpen_Source
     rnn_api.cpp
     softmax_api.cpp
     solution.cpp
+    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
