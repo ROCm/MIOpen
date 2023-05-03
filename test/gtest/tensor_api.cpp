@@ -363,7 +363,9 @@ void RunWrongTestConfigs(const TestConfig& valid_config,
 
 void RunWrongTestConfigs(std::function<void(const TestConfig&)> run_test)
 {
-    RunValidTestConfigs([run_test](const TestConfig& valid_config){ RunWrongTestConfigs(valid_config, run_test); });
+    RunValidTestConfigs([run_test](const TestConfig& valid_config) {
+        RunWrongTestConfigs(valid_config, run_test);
+    });
 }
 
 } // namespace
@@ -371,9 +373,7 @@ void RunWrongTestConfigs(std::function<void(const TestConfig&)> run_test)
 class TestTensorApi : public ::testing::Test
 {
 protected:
-    void SetUp() override
-    {
-    }
+    void SetUp() override {}
 
     static void RunTest(const TestConfig& config)
     {
@@ -417,6 +417,12 @@ protected:
     }
 };
 
-TEST_F(TestTensorApi, SetTensor) { RunValidTestConfigs([](const TestConfig& valid_config){ RunTest(valid_config); }); }
+TEST_F(TestTensorApi, SetTensor)
+{
+    RunValidTestConfigs([](const TestConfig& valid_config) { RunTest(valid_config); });
+}
 
-TEST_F(TestTensorApi, SetWrongTensor) { RunWrongTestConfigs([](const TestConfig& wrong_config){ RunTest(wrong_config); }); }
+TEST_F(TestTensorApi, SetWrongTensor)
+{
+    RunWrongTestConfigs([](const TestConfig& wrong_config) { RunTest(wrong_config); });
+}
