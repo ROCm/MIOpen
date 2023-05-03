@@ -40,6 +40,7 @@ struct TargetProperties
     boost::optional<bool> Xnack() const { return xnack; }
     boost::optional<bool> Sramecc() const { return sramecc; }
     boost::optional<bool> SrameccReported() const { return sramecc_reported; }
+    static std::size_t GetMaxWaveScratchSize() { return MaxWaveScratchSize; }
     void Init(const Handle*);
 
 private:
@@ -49,6 +50,7 @@ private:
     boost::optional<bool> xnack            = boost::none;
     boost::optional<bool> sramecc          = boost::none;
     boost::optional<bool> sramecc_reported = boost::none;
+    static const std::size_t MaxWaveScratchSize;
 };
 
 } // namespace miopen
