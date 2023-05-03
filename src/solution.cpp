@@ -123,22 +123,6 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    // auto log_tensor = [](auto name, const TensorDescriptor& tensor) {
-    //     std::cerr << name << ": l";
-    //     LogRange(std::cerr, tensor.GetLengths(), "x");
-    //     std::cerr << ", s";
-    //     LogRange(std::cerr, tensor.GetStrides(), "x");
-    //     std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
-    // };
-    //
-    // std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
-    //           << std::endl;
-    //
-    // std::cerr << "Conv: " << conv_desc << std::endl;
-    // log_tensor("X", *x.descriptor);
-    // log_tensor("W", *w.descriptor);
-    // log_tensor("Y", *y.descriptor);
-
     const auto net_cfg       = conv_problem.BuildConfKey();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
@@ -161,14 +145,14 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    const auto conv_prob = ProblemDescription{conv_problem};
-    auto conv_ctx        = ConvolutionContext{{&handle}};
+    const auto legacy_problem = ProblemDescription{conv_problem};
+    auto conv_ctx             = ConvolutionContext{{&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats(conv_prob);
+    conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
-        conv_ctx, conv_prob, db, invoke_ctx, perf_cfg.value_or(""));
+        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());

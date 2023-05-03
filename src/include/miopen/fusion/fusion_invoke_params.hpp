@@ -177,6 +177,18 @@ struct FusionInvokeParams : InvokeParams
     TensorDescriptor outDesc;
     Data_t out = nullptr;
     bool gfx90aFp16alt;
+
+    Data_t GetWorkspace() const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+        return {};
+    }
+
+    std::size_t GetWorkspaceSize() const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+        return {};
+    }
 };
 
 } // namespace fusion
