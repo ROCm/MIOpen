@@ -37,6 +37,8 @@
 
 namespace miopen {
 
+struct ExecutionContext;
+
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
@@ -413,6 +415,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;

@@ -45,6 +45,9 @@ struct InvokeParams : public miopen::InvokeParams
     double gamma    = 0;
     size_t x_offset = 0;
     size_t y_offset = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -66,6 +69,9 @@ struct BwdInvokeParams : public miopen::InvokeParams
     size_t y_offset  = 0;
     size_t dx_offset = 0;
     size_t dy_offset = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace activ

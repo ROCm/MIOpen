@@ -169,7 +169,6 @@ struct conv_forward : output_tensor_fixture
 {
     void run()
     {
-        STATUS(miopenEnableProfiling(handle, Profile));
         float alpha = 1, beta = 0;
 
         // Setup OpenCL buffers
@@ -261,12 +260,25 @@ struct conv_forward : output_tensor_fixture
 
         STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
-        int ret_algo_count;
-        miopenConvAlgoPerf_t perf;
+        float time;
 
         std::thread([&] {
+            int ret_algo_count;
+            miopenConvAlgoPerf_t perf;
+
+#if MIOPEN_BUILD_DEV
+            miopenHandle_t handle2{};
+            STATUS(miopenCreate(&handle2));
+
+            miopenHandle_t& used_handle = handle2;
+#else
+            miopenHandle_t& used_handle = handle;
+#endif
+
+            STATUS(miopenEnableProfiling(used_handle, Profile));
+
             STATUS(miopenFindConvolutionForwardAlgorithm(
-                handle,
+                used_handle,
                 inputTensor,
                 in_dev,
                 convFilter,
@@ -281,7 +293,7 @@ struct conv_forward : output_tensor_fixture
                 sz_fwd_workspace,
                 0)); // MD: Not performing exhaustiveSearch by default for now
 
-            STATUS(miopenConvolutionForward(handle,
+            STATUS(miopenConvolutionForward(used_handle,
                                             &alpha,
                                             inputTensor,
                                             in_dev,
@@ -294,10 +306,14 @@ struct conv_forward : output_tensor_fixture
                                             out_dev,
                                             fwd_workspace_dev,
                                             sz_fwd_workspace));
+
+            STATUS(miopenGetKernelTime(used_handle, &time));
+
+#if MIOPEN_BUILD_DEV
+            STATUS(miopenDestroy(handle2));
+#endif
         }).join();
 
-        float time;
-        STATUS(miopenGetKernelTime(handle, &time));
         if(Profile)
         {
             CHECK(time > 0.0);

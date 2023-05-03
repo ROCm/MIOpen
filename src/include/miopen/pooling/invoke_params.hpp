@@ -41,9 +41,13 @@ struct FwdInvokeParams : public miopen::InvokeParams
     TensorDescriptor yDesc;
     PoolingDescriptor pooling;
 
-    ConstData_t x    = nullptr;
-    Data_t y         = nullptr;
-    Data_t workspace = nullptr;
+    ConstData_t x              = nullptr;
+    Data_t y                   = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -57,6 +61,12 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t dx        = nullptr;
     ConstData_t dy   = nullptr;
     Data_t workspace = nullptr;
+    // For some reason, pooling API doesn't have a paramter for this. So in reality it is always
+    // zero.
+    std::size_t workspace_size = 0;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 } // namespace pooling
