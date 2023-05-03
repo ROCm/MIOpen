@@ -197,10 +197,12 @@ if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
     set(MIOPENDRIVER_MODE_CONV convfp16)
     set(MIOPENDRIVER_MODE_BN bnormfp16)
+    set(MIOPENDRIVER_MODE_POOL poolfp16)
 elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
     set(MIOPENDRIVER_MODE_CONV convint8)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8 --output_type int8)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32 --output_type int32)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT --output_type float)
@@ -208,11 +210,13 @@ elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
     set(MIOPENDRIVER_MODE_CONV convbfp16)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
 else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
     set(MIOPENDRIVER_MODE_CONV conv)
     set(MIOPENDRIVER_MODE_BN bnorm)
+    set(MIOPENDRIVER_MODE_POOL pool)
 endif()
 
 message(STATUS "MIOPEN_TEST_FLOAT ${MIOPEN_TEST_FLOAT}")
@@ -679,6 +683,16 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
+    )
+
+    add_custom_test(test_miopendriver_regression_float SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x63,42903x14301x63x1 -y 30 -x 30 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
     )
 
     add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED

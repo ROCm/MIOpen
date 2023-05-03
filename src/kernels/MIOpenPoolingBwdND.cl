@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "float_types.h"
 #include "pooling_functions.h"
 
 #ifndef MLO_POOLING_INDEX_MAX

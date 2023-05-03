@@ -24,14 +24,25 @@
  *
  *******************************************************************************/
 
+#include "float_types.h"
 #include "pooling_functions.h"
 
-#ifndef USE_IMG_INDEX
+#ifdef USE_IMG_INDEX
+#if !(USE_IMG_INDEX == 0 || USE_IMG_INDEX == 1)
+#error "Bad value of USE_IMG_INDEX"
+#endif
+#else
 #define USE_IMG_INDEX 1
 #endif
 
 #ifndef MLO_POOLING_INDEX_MAX
 #error "MLO_POOLING_INDEX_MAX not defined"
+#endif
+
+#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#define AVERAGE_OPS 1
+#else
+#define AVERAGE_OPS 0
 #endif
 
 #define MLO_POOLBWD_GROUP_SZ2 1
@@ -45,6 +56,7 @@
       MLO_POOLING_STRIDE1 - 2) /                                                    \
      MLO_POOLING_STRIDE1)
 
+#if AVERAGE_OPS
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,
                                     MLO_POOLBWD_GROUP_SZ1,
                                     MLO_POOLBWD_GROUP_SZ2))) __kernel void
@@ -205,7 +217,9 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
         }
     }
 }
+#endif // AVERAGE_OPS
 
+#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 __attribute__((reqd_work_group_size(MLO_POOLBWD_GROUP_SZ0,
                                     MLO_POOLBWD_GROUP_SZ1,
                                     MLO_POOLBWD_GROUP_SZ2))) __kernel void
@@ -319,7 +333,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                 {
                     int lcl_th = th - top_y;
                     int lcl_tw = tw - top_x;
-#if USE_IMG_INDEX == 1
+#if USE_IMG_INDEX
                     index_t img_idx = b_x + b_y * mlo_bot_width;
 #else
                     int filter_x   = b_x - tw * MLO_POOLING_STRIDE0 + mlo_pad0;
@@ -331,7 +345,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
 
                     bool match = visible &&
-#if USE_IMG_INDEX == 1
+#if USE_IMG_INDEX
                                  (img_idx == lcl_mask[lcl_idx])
 #else
                                  (filter_idx == lcl_mask[lcl_idx]) && (filter_x >= 0) &&
@@ -364,3 +378,4 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
         }
     }
 }
+#endif // MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
