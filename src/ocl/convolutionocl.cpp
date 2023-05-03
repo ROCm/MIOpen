@@ -822,23 +822,19 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     // TunaNet Fallback
-    bool is_tunanet_applicable = false;
+#if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
         const static std::string arch = handle.GetDeviceName();
-        auto solvers = ai::immed_mode::PredictSolver(problem, ctx, arch);
-        if (!solvers.empty())
+        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        if(!solvers.empty())
         {
-            is_tunanet_applicable = true;
             MIOPEN_LOG_I2("Using TunaNet Fallback");
             const auto ai_time = [](const int& idx) {
                 return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
             };
-
-            int idx        = 1;
-
+            int idx = 1;
             for(const auto kinder : solvers)
             {
                 const auto solver_id = solver::Id{kinder};
@@ -850,7 +846,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                 const auto algo = solver_id.GetAlgo();
                 if(IsAlgorithmDisabled(algo))
                     continue;
-                interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+                interim.emplace_back(
+                    ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
                 ++idx;
             }
             auto i = std::size_t{0};
@@ -858,8 +855,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                                                 << ", available = " << interim.size());
             for(const auto& s : interim)
                 MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
-                                        << ", time: " << s.time << " ms, ws: " << s.workspace_size
-                                        << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+                                     << ", time: " << s.time << " ms, ws: " << s.workspace_size
+                                     << ", name: " << miopen::solver::Id(s.solution_id).ToString());
 
             for(const auto& entry : interim)
             {
@@ -872,11 +869,12 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             *solutionCount = i;
         }
     }
+#endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 
     // WTI Fallback
-    if (!is_tunanet_applicable)
+    if(*solutionCount ==
+       0) // if TunaNet is not enabled or produces no applicable solvers fallback to WTI
     {
-    #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
         MIOPEN_LOG_I2("Using WTI Fallback");
         const auto wti2time = [](const float& wti) {
             assert(wti != 0.0f);
@@ -909,10 +907,11 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
                 wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
         }
 
-        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
+        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+                                            << ", available = " << interim.size());
         for(const auto& s : interim)
-            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                                 << " ms, ws: " << s.workspace_size
+            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+                                 << ", time: " << s.time << " ms, ws: " << s.workspace_size
                                  << ", name: " << miopen::solver::Id(s.solution_id).ToString());
         // Dual purpose variable:
         // * Used as index for writing into output array (solutions).
@@ -928,9 +927,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             ++i;
         }
         *solutionCount = i;
-        #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-        }
-    #endif
+    }
 }
 
 void GetSolutions(Handle& handle,

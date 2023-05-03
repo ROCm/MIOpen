@@ -27,48 +27,37 @@
 #ifndef GAURD_MIOPEN_AI_HEURISTICS_HPP_
 #define GAURD_MIOPEN_AI_HEURISTICS_HPP_
 
-#include <miopen/miopen.h>
-#include <miopen/conv/context.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/config.h>
+#if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <unordered_map>
 #include <typeinfo>
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <queue>
+#include <fstream>
+#include <miopen/miopen.h>
+#include <miopen/conv/context.hpp>
+#include <miopen/solver.hpp>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
-#include <fstream>
-#include <miopen/config.h>
 #include <miopen/any_solver.hpp>
-#include <set>
-#include <queue>
 #include <boost/filesystem.hpp>
 #include <miopen/anyramdb.hpp>
-#if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING 
-namespace fdeep {
-    class model;
-}
 
 namespace miopen {
 namespace ai {
-namespace common {
-nlohmann::json LoadJSON(const std::string& path);
-template <typename U, typename V> 
-std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map);
-template <typename U, typename V>
-std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<U, V>& map);
-}
-#endif
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
-struct Metadata {
-    private:
+struct Metadata
+{
+private:
     nlohmann::json json;
     const std::unordered_map<std::string, int> direction_encodings;
     const std::unordered_map<std::string, int> precision_encodings;
     const std::unordered_map<std::string, int> layout_encodings;
 
-    public:
+public:
     const std::vector<std::string> features;
     const size_t num_inputs;
     const size_t num_outputs;
@@ -76,7 +65,7 @@ struct Metadata {
     const std::unordered_map<size_t, std::string> solver_map;
     const std::vector<float> features_mean;
     const std::vector<float> features_std;
-    Metadata (const std::string& arch);
+    Metadata(const std::string& arch);
     size_t EncodeDirection(const miopen::conv::Direction& dir) const;
     size_t EncodePrecision(const miopenDataType_t& data_type) const;
     size_t EncodeLayout(const std::string& layout) const;
@@ -89,23 +78,20 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
 
 #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-namespace kernel_tuning {
-struct Metadata {
-    std::size_t num_conv_params;
+namespace tuning {
+struct Metadata
+{
     std::size_t num_tuning_params;
-    std::size_t sos_token;
     std::unordered_map<std::string, int> tuning_decodings;
-    Metadata (const std::string& arch, const std::string& solver);
+    Metadata(const std::string& arch, const std::string& solver);
 };
-class Model;
-std::unordered_map<std::string, Model*> GetModels(const std::string& arch);
+
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
-                    solver::PerformanceConfigConvAsm1x1U& config,
-                    const ProblemDescription& problem);
-} // namespace kernel_tuning
+                    std::vector<float> features,
+                    std::function<bool(int, int)> validator);
+} // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
-#if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai
 } // namespace miopen
 #endif
