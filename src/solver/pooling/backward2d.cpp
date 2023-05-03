@@ -30,6 +30,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/target_properties.hpp>
 
 namespace miopen {
 
@@ -51,6 +52,8 @@ struct kernel_params
     std::size_t n_inputs;
     std::size_t in_height;
     std::size_t in_width;
+    std::size_t grp_tile0;
+    std::size_t grp_tile1;
 
     kernel_params(const miopen::pooling::ProblemDescription& problem)
     {
@@ -66,14 +69,101 @@ struct kernel_params
 
         out_pix_tile0 = 1;
         out_pix_tile1 = 1;
-
         if(pd.GetMode() == miopenPoolingMax)
         {
             out_pix_tile0 = in_width > 8 && in_width <= 24 ? 4 : 1;
             out_pix_tile1 = in_width <= 24 ? 1 : (in_width > 64 && in_width <= 96 ? 4 : 8);
         }
+
+        grp_tile0 = 8;
+        grp_tile1 = 8;
+        if(pd.GetMode() == miopenPoolingMax)
+        {
+            grp_tile0 = in_width <= 8     ? 8  //
+                        : in_width <= 16  ? 4  //
+                        : in_width <= 24  ? 8  //
+                        : in_width <= 32  ? 32 //
+                        : in_width <= 64  ? 8  //
+                        : in_width <= 96  ? 16 //
+                        : in_width <= 128 ? 16
+                                          : 32;
+            grp_tile1 = in_width <= 8     ? 8  //
+                        : in_width <= 16  ? 16 //
+                        : in_width <= 24  ? 8  //
+                        : in_width <= 32  ? 4  //
+                        : in_width <= 64  ? 8  //
+                        : in_width <= 96  ? 4  //
+                        : in_width <= 128 ? 16
+                                          : 4;
+        }
     }
 };
+
+std::size_t sizeof_kernel_FLOAT(const miopen::pooling::ProblemDescription& problem)
+{
+    const auto datatype = problem.GetXDesc().GetType();
+    return get_data_size(datatype);
+}
+
+std::size_t sizeof_kernel_index_t(const miopen::pooling::ProblemDescription& problem)
+{
+    return get_data_size(problem.GetPooling().GetIndexType());
+}
+
+inline std::size_t RoundUpToMultiple(std::size_t v, std::size_t m)
+{
+    assert(m > 0);
+    return ((v + m - 1) / m) * m;
+}
+
+// Compute amount of local memory required for holding the arrays defined
+// in the "mloPoolingAveBwd" and "mloPoolingMaxBwd" kernels.
+std::size_t sizeof_local_memory(const miopen::pooling::ProblemDescription& problem)
+{
+    const kernel_params kp(problem);
+
+    // aliases to ease programming
+    const auto& MLO_POOLING_KERNEL_SZ0      = kp.kernel_size_w;
+    const auto& MLO_POOLING_KERNEL_SZ1      = kp.kernel_size_h;
+    const auto& MLO_POOLBWD_N_HORIZ_OUT_PIX = kp.out_pix_tile0;
+    const auto& MLO_POOLBWD_N_VERT_OUT_PIX  = kp.out_pix_tile1;
+    const auto& MLO_POOLING_STRIDE0         = kp.kernel_stride_w;
+    const auto& MLO_POOLING_STRIDE1         = kp.kernel_stride_h;
+    const auto& MLO_POOLBWD_GROUP_SZ0       = kp.grp_tile0;
+    const auto& MLO_POOLBWD_GROUP_SZ1       = kp.grp_tile1;
+
+    const auto MLO_POOLBWD_LCL_DATA_WIDTH =
+        (static_cast<std::size_t>(MLO_POOLBWD_GROUP_SZ0) * MLO_POOLBWD_N_HORIZ_OUT_PIX +
+         MLO_POOLING_KERNEL_SZ0 + MLO_POOLING_STRIDE0 - 2) /
+        MLO_POOLING_STRIDE0;
+    const auto MLO_POOLBWD_LCL_DATA_HEIGHT =
+        (static_cast<std::size_t>(MLO_POOLBWD_GROUP_SZ1) * MLO_POOLBWD_N_VERT_OUT_PIX +
+         MLO_POOLING_KERNEL_SZ1 + MLO_POOLING_STRIDE1 - 2) /
+        MLO_POOLING_STRIDE1;
+
+    std::size_t rv   = 0;
+    const auto nelem = MLO_POOLBWD_LCL_DATA_WIDTH * MLO_POOLBWD_LCL_DATA_HEIGHT;
+    if(problem.GetPooling().GetMode() == miopenPoolingMax)
+    {
+        const auto sizeof_lcl_top_df = sizeof_kernel_FLOAT(problem) * nelem;
+        const auto sizeof_lcl_mask   = sizeof_kernel_index_t(problem) * nelem;
+        /// \anchor alignment_of_arrays_in_gpu_memory The total amount of memory calculated here is
+        /// slightly less than the amount calculated by the compiler. As a result, the check here
+        /// may pass, while then the compiler might refuse to build the kernel. The most likely
+        /// reason for the difference is padding (due to alignment requirements). We don't know
+        /// exactly how the compiler takes alignment into account, but what can we do is applying an
+        /// alignment that imposes a slightly tighter constraints than the compiler. So far, 16-byte
+        /// (4xDWORD) alignment works well.
+        rv = RoundUpToMultiple(sizeof_lcl_top_df, 16) + RoundUpToMultiple(sizeof_lcl_mask, 16);
+    }
+    else
+    {
+        const auto sizeof_lcl_top_diff = sizeof_kernel_FLOAT(problem) * nelem;
+        rv                             = RoundUpToMultiple(sizeof_lcl_top_diff, 16);
+    }
+    MIOPEN_LOG_T(rv);
+    return rv;
+}
 
 } // namespace
 
@@ -85,7 +175,8 @@ bool PoolingBackward2d::IsApplicable(const ExecutionContext&,
             problem.GetPooling().GetMode() == miopenPoolingAverage ||
             problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) &&
            problem.GetXDesc().GetSize() == 4 && problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
-           problem.GetYDesc().GetLayout("NCHW") == "NCHW";
+           problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
+           sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize();
 }
 
 ConvSolution
@@ -117,35 +208,10 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
                                               ? MLO_POOLING_OP_AVE
                                               : MLO_POOLING_OP_AVE_INCLUSIVE);
 
-        std::size_t grp_tile0 = 8;
-        std::size_t grp_tile1 = 8;
-
-        if(problem.GetPooling().GetMode() == miopenPoolingMax)
-        {
-            // clang-format off
-            grp_tile0 = kp.in_width <= 8   ? 8
-                      : kp.in_width <= 16  ? 4
-                      : kp.in_width <= 24  ? 8
-                      : kp.in_width <= 32  ? 32
-                      : kp.in_width <= 64  ? 8
-                      : kp.in_width <= 96  ? 16
-                      : kp.in_width <= 128 ? 16
-                      : 32;
-            grp_tile1 = kp.in_width <= 8   ? 8
-                      : kp.in_width <= 16  ? 16
-                      : kp.in_width <= 24  ? 8
-                      : kp.in_width <= 32  ? 4
-                      : kp.in_width <= 64  ? 8
-                      : kp.in_width <= 96  ? 4
-                      : kp.in_width <= 128 ? 16
-                      : 4;
-            // clang-format on
-        }
-
-        const int g_wk_width =
-            ((kp.in_width + grp_tile0 * kp.out_pix_tile0 - 1) / (grp_tile0 * kp.out_pix_tile0));
-        const int g_wk_height =
-            ((kp.in_height + grp_tile1 * kp.out_pix_tile1 - 1) / (grp_tile1 * kp.out_pix_tile1));
+        const int g_wk_width  = ((kp.in_width + kp.grp_tile0 * kp.out_pix_tile0 - 1) /
+                                (kp.grp_tile0 * kp.out_pix_tile0));
+        const int g_wk_height = ((kp.in_height + kp.grp_tile1 * kp.out_pix_tile1 - 1) /
+                                 (kp.grp_tile1 * kp.out_pix_tile1));
 
         const auto build_params =
             KernelBuildParameters{
@@ -156,8 +222,8 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
                 {"MLO_POOLING_STRIDE0", kp.kernel_stride_w},
                 {"MLO_POOLBWD_N_HORIZ_OUT_PIX", kp.out_pix_tile0},
                 {"MLO_POOLBWD_N_VERT_OUT_PIX", kp.out_pix_tile1},
-                {"MLO_POOLBWD_GROUP_SZ0", grp_tile0},
-                {"MLO_POOLBWD_GROUP_SZ1", grp_tile1},
+                {"MLO_POOLBWD_GROUP_SZ0", kp.grp_tile0},
+                {"MLO_POOLBWD_GROUP_SZ1", kp.grp_tile1},
                 {"MLO_POOLING_INDEX_TYPE",
                  get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
                 {"MLO_POOLING_INDEX_MAX",
@@ -171,8 +237,9 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
-        kernel.l_wk = {grp_tile0, grp_tile1, 1};
-        kernel.g_wk = {g_wk_width * grp_tile0, g_wk_height * grp_tile1, kp.n_inputs * kp.batch_sz};
+        kernel.l_wk = {kp.grp_tile0, kp.grp_tile1, 1};
+        kernel.g_wk = {
+            g_wk_width * kp.grp_tile0, g_wk_height * kp.grp_tile1, kp.n_inputs * kp.batch_sz};
 
         result.construction_params.push_back(kernel);
     }
