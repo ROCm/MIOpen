@@ -191,10 +191,10 @@ The tables below outlines the supported fusions for fp32 and fp16 as well as any
 Fusion Plans with grouped convolutions are not supported.
 
 
-![Convolution based fp32 fusion](fp32fusions.png)
+![Convolution based fp32 fusion](data/fp32fusions.png)
 
 
-![Convolution based fp16 fusion](fp16fusions.png)
+![Convolution based fp16 fusion](data/fp16fusions.png)
 
 
 ## Performance Comparison to Non-Fused Kernels
@@ -202,9 +202,8 @@ Fusion Plans with grouped convolutions are not supported.
 
 The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
 
-![CBA Graph](cba.png)
+![CBA Graph](data/cba.png)
 
 Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:
 
-![Batchnorm activation fusion](na.png)
-
+![Batchnorm activation fusion](data/na.png)

@@ -1,0 +1,20 @@
+defaults:
+  numbered: False
+  maxdepth: 6
+root: index
+subtrees:
+  - entries:
+    - file: releasenotes
+    - file: citation
+    - file: install
+    - file: embed
+    - file: driver
+    - file: DebugAndLogging
+    - file: cache
+    - file: perfdatabase
+    - file: finddb
+    - file: find_and_immediate
+    - file: Getting_Started_FusionAPI
+    - file: MI200AlternateImplementation
+    - file: MIOpen_Porting_Guide
+    - file: apireference
