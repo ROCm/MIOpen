@@ -58,9 +58,12 @@ using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD
 template <typename DataType>
 using DeviceOpGFwdPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwd<DataType>>;
-struct CKArgsGFwd
+
+namespace {
+
+struct CKArgs
 {
-    CKArgsGFwd(const ProblemDescription& problem)
+    CKArgs(const ProblemDescription& problem)
     {
         G        = ProblemInterpreter::GetGroupCountG(problem);
         N        = ProblemInterpreter::GetBatchN(problem);
@@ -114,11 +117,12 @@ struct CKArgsGFwd
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
+}// ck args namespace
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
 {
-    const auto args      = CKArgsGFwd{problem};
+    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     for(int i = 0; i < conv_ptrs.size(); i++)
@@ -156,7 +160,7 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    const auto args      = CKArgsGFwd{problem};
+    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
@@ -197,8 +201,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
 {
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
-    std::cout<<"conv_ptrs.size(): "<<conv_ptrs.size()<<std::endl;
-    const auto args = CKArgsGFwd{problem};
+    std::cout<<"***conv_ptrs.size():*** "<<conv_ptrs.size()<<std::endl;
+    const auto args = CKArgs{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
@@ -225,7 +229,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout<<" not here, or you die  "<<std::endl;
+    std::cout<<" ***not here, or you die***  "<<std::endl;
     return false;
 }
 
@@ -238,7 +242,7 @@ void RunCKSolution(
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config)
 {
-    const auto args      = CKArgsGFwd{problem};
+    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
