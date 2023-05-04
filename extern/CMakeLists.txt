@@ -87,7 +87,7 @@ add_dependencies(bzip2::bzip2 bzip2)
 target_link_directories(bzip2::bzip2 INTERFACE ${install_dir}/src/bzip2)
 target_link_libraries(bzip2::bzip2 INTERFACE libbz2.lib)
 target_include_directories(bzip2::bzip2 INTERFACE ${install_dir}/src/bzip2)
-file(TO_NATIVE_PATH ${CMAKE_BINARY_DIR} CMAKE_BINARY_DIR)
+file(TO_NATIVE_PATH ${CMAKE_BINARY_DIR} __native_binary_dir)
 
 if(MIOPEN_ENABLE_SQLITE)
     ExternalProject_Add(
@@ -98,16 +98,14 @@ if(MIOPEN_ENABLE_SQLITE)
             UPDATE_DISCONNECTED true
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ${NMAKE_EXECUTABLE} /f ..\\sqlite3\\Makefile.msc TOP=..\\sqlite3
-            INSTALL_COMMAND cmd.exe /c copy /y sqlite3.dll "${CMAKE_BINARY_DIR}\\bin" && copy /y sqlite3.lib "${CMAKE_BINARY_DIR}\\lib" && for %I in (sqlite3.h sqlite3ext.h) do copy /y %I "${CMAKE_BINARY_DIR}\\include"
+            INSTALL_COMMAND cmd.exe /c copy /y sqlite3.dll "${__native_binary_dir}\\bin" && copy /y sqlite3.lib "${__native_binary_dir}\\lib" && for %I in (sqlite3.h sqlite3ext.h) do copy /y %I "${__native_binary_dir}\\include"
     )
-
-    ExternalProject_Get_Property(sqlite3 install_dir)
 
     add_library(sqlite3::sqlite3 INTERFACE IMPORTED GLOBAL)
     add_dependencies(sqlite3::sqlite3 sqlite3)
-    target_link_directories(sqlite3::sqlite3 INTERFACE ${CMAKE_BINARY_DIR}\\lib)
+    target_link_directories(sqlite3::sqlite3 INTERFACE ${CMAKE_BINARY_DIR}/lib)
     target_link_libraries(sqlite3::sqlite3 INTERFACE sqlite3.lib)
-    target_include_directories(sqlite3::sqlite3 INTERFACE ${CMAKE_BINARY_DIR}\\include)
+    target_include_directories(sqlite3::sqlite3 INTERFACE ${CMAKE_BINARY_DIR}/include)
 endif()
 
 set(_CXX_FLAGS
