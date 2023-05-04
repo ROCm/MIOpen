@@ -47,8 +47,9 @@ template <typename U, typename V>
 std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<U, V>& map)
 {
     std::vector<V> values = {};
+    values.reserve(keys.size());
     for(const U& key : keys)
-        values.push_back(map.at(key));
+        values.emplace_back(map.at(key));
     return values;
 }
 } // namespace common
@@ -386,7 +387,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
     auto it = models.find(solver);
     if(it == models.end())
     {
-        std::shared_ptr<Model> model = std::shared_ptr<Model>(new Model(arch, solver));
+        std::shared_ptr<Model> model = std::make_shared<Model>(arch, solver);
         models[solver]               = model;
         return model;
     }
