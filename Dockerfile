@@ -101,7 +101,7 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
     fi
 
 # Install doc requirements
-ADD doc/requirements.txt /doc-requirements.txt
+ADD docs/.sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build
