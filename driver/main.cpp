@@ -40,6 +40,7 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "transform_driver.hpp"
 #include "miopen/config.h"
 
 int main(int argc, char* argv[])
@@ -177,6 +178,10 @@ int main(int argc, char* argv[])
     else if(base_arg == "reducefp64")
     {
         drv = new ReduceDriver<double, double>();
+    }
+    else if(base_arg == "tensortrans")
+    {
+        drv = new TensorTransformDriver();
     }
     else
     {
