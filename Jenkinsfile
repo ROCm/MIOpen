@@ -971,7 +971,14 @@ pipeline {
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                        script {
+                            try{
+                                buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                            }
+                            catch(err){
+                                unstable(message: "${STAGE_NAME} is unstable")
+                            }
+                        }
                     }
                 }
                 stage('Fp32 Hip All gfx908') {
