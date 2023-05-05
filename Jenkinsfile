@@ -390,7 +390,7 @@ def CheckPerfDbValid(Map conf=[:]){
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
+/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 | navi32 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
 
@@ -970,6 +970,26 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("navi21") }
+                    steps{
+                        script {
+                            try{
+                                buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                            }
+                            catch(err){
+                                unstable(message: "${STAGE_NAME} is unstable")
+                            }
+                        }
+                    }
+                }
+                stage('Fp16 Hip All Navi32') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
                     steps{
                         script {
                             try{
