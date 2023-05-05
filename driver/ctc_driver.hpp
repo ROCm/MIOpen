@@ -28,6 +28,7 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "timer.hpp"
+#include "random.hpp"
 #include "ctc_verify.hpp"
 #include <../test/verify.hpp>
 #include <algorithm>
@@ -46,7 +47,7 @@
 template <typename Tgpu, typename Tref = Tgpu>
 class CTCDriver : public Driver
 {
-    public:
+public:
     CTCDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&probsDesc);
@@ -56,25 +57,25 @@ class CTCDriver : public Driver
         workspace_dev = nullptr;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputLengthsFromCmdLine(std::string input_str);
     std::vector<int> GetProbabilityTensorLengthsFromCmdLine();
 
     int SetCTCLossDescriptorFromCmdLineArgs();
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
-    int RunBackwardGPU();
-    int VerifyForward();
-    int VerifyBackward();
+    int RunForwardGPU() override;
+    int RunBackwardGPU() override;
+    int VerifyForward() override;
+    int VerifyBackward() override;
 
     int RunCTCLossCPU();
 
-    ~CTCDriver()
+    ~CTCDriver() override
     {
         miopenDestroyTensorDescriptor(probsDesc);
         miopenDestroyTensorDescriptor(gradientsDesc);
@@ -82,7 +83,7 @@ class CTCDriver : public Driver
         miopenDestroyCTCLossDescriptor(ctcLossDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t probsDesc;
@@ -254,7 +255,7 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < labels_sz; i++)
     {
-        labels[i] = static_cast<int>(rand() % num_class + 1);
+        labels[i] = static_cast<int>(GET_RAND() % num_class + 1);
         if(blank_lb > num_class)
             labels[i] = labels[i] == num_class ? num_class - 1 : labels[i];
         else if(blank_lb < 0)
@@ -307,7 +308,7 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < probs_sz; i++)
     {
-        probs[i] = static_cast<Tgpu>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+        probs[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
     }
     if(apply_softmax)
     {
@@ -439,17 +440,17 @@ int CTCDriver<Tgpu, Tref>::VerifyForward()
 
     const double tolerance1 = 1e-5;
     const double tolerance2 = 1e-3;
-    if(!(error1 < tolerance1))
+    if(!std::isfinite(error1) || error1 > tolerance1)
     {
-        std::cout << std::string("CTC loss Failed: ") << error1 << "\n";
+        std::cout << std::string("CTC loss FAILED: ") << error1 << std::endl;
     }
     else
     {
         printf("CTC loss Verifies on CPU and GPU\n");
     }
-    if(!(error2 < tolerance2))
+    if(!std::isfinite(error2) || error2 > tolerance2)
     {
-        std::cout << std::string("CTC gradient Failed: ") << error2 << "\n";
+        std::cout << std::string("CTC gradient FAILED: ") << error2 << std::endl;
     }
     else
     {

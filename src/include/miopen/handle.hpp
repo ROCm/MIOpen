@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONTEXT_HPP_
-#define GUARD_MIOPEN_CONTEXT_HPP_
+#ifndef GUARD_MIOPEN_HANDLE_HPP_
+#define GUARD_MIOPEN_HANDLE_HPP_
 
 #include <miopen/config.h>
 #include <miopen/kernel_info.hpp>
@@ -37,6 +37,8 @@
 #include <miopen/allocator.hpp>
 #include <miopen/simple_hash.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/target_properties.hpp>
 
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -50,7 +52,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <miopen/manage_ptr.hpp>
+#if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #endif
 
 namespace miopen {
@@ -67,6 +73,7 @@ using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_han
 
 struct Handle : miopenHandle
 {
+    friend struct TargetProperties;
 
     Handle();
     Handle(miopenAcceleratorQueue_t stream);
@@ -75,15 +82,17 @@ struct Handle : miopenHandle
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
+    void SetStreamFromPool(int streamID) const;
+    void ReserveExtraStreamsInPool(int cnt) const;
 
     void SetAllocator(miopenAllocatorFunction allocator,
                       miopenDeallocatorFunction deallocator,
                       void* allocatorContext) const;
 
-    void EnableProfiling(bool enable = true);
+    void EnableProfiling(bool enable = true) const;
 
-    void ResetKernelTime();
-    void AccumKernelTime(float curr_time);
+    void ResetKernelTime() const;
+    void AccumKernelTime(float curr_time) const;
 
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
@@ -97,18 +106,16 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index       = 0,
                            bool is_kernel_str            = false,
-                           const std::string& kernel_src = "");
+                           const std::string& kernel_src = "") const;
 
-    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
+    void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
 
-    void ClearKernels(const std::string& algorithm, const std::string& network_config);
-
-    auto GetKernels(const std::string& algorithm, const std::string& network_config)
+    auto GetKernels(const std::string& algorithm, const std::string& network_config) const
     {
         return this->GetKernelsImpl(algorithm, network_config) |
                boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
     }
-    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
+    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config) const
     {
         auto ks = this->GetKernelsImpl(algorithm, network_config);
         if(ks.empty())
@@ -119,43 +126,56 @@ struct Handle : miopenHandle
         return this->Run(ks.front());
     }
 
-    KernelInvoke Run(Kernel k);
+    KernelInvoke Run(Kernel k) const;
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
-                                              const std::string& network_config);
+                                              const std::string& network_config) const;
 
     Program LoadProgram(const std::string& program_name,
                         std::string params,
                         bool is_kernel_str,
-                        const std::string& kernel_src);
+                        const std::string& kernel_src) const;
 
-    bool HasProgram(const std::string& program_name, const std::string& params);
-
-    void AddProgram(Program prog, const std::string& program_name, const std::string& params);
+    bool HasProgram(const std::string& program_name, const std::string& params) const;
+    void ClearProgram(const std::string& program_name, const std::string& params) const;
+    void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
 
     void Finish() const;
     void Flush() const;
 
-    std::size_t GetLocalMemorySize();
-    std::size_t GetGlobalMemorySize();
-    std::size_t GetMaxComputeUnits();
-    std::size_t GetImage3dMaxWidth();
-    std::size_t GetWavefrontWidth();
+    std::size_t GetLocalMemorySize() const;
+    std::size_t GetGlobalMemorySize() const;
+    std::size_t GetImage3dMaxWidth() const;
+    std::size_t GetWavefrontWidth() const;
+    std::size_t GetMaxComputeUnits() const;
+    std::size_t GetMaxHardwareComputeUnits() const
+    {
+        const std::size_t num_cu = this->GetMaxComputeUnits();
+        const std::string name   = this->GetDeviceName();
+        return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
+    }
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();
 
-    std::string GetDeviceName();
+    std::string GetDeviceName() const;
+    const TargetProperties& GetTargetProperties() const;
+
+private:
+    std::string GetDeviceNameImpl() const;
+
+public:
     std::ostream& Print(std::ostream& os) const;
+    void Copy(ConstData_t src, Data_t dest, std::size_t size) const;
 
-    void Copy(ConstData_t src, Data_t dest, std::size_t size);
-
-    Allocator::ManageDataPtr Create(std::size_t sz);
+    Allocator::ManageDataPtr Create(std::size_t sz) const;
     Allocator::ManageDataPtr&
-    WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz);
-    void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz);
-    shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size);
+    WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const;
+    void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const;
+    void ReadTo(void* data, ConstData_t ddata, std::size_t sz) const;
+    shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const;
 #if MIOPEN_BACKEND_HIP
-    shared<ConstData_t> CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size);
+    shared<ConstData_t>
+    CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size) const;
 #endif
 
     template <class T>
@@ -181,9 +201,9 @@ struct Handle : miopenHandle
         return result;
     }
 
-    static std::string GetDbBasename(const std::string& device, size_t num_cu)
+    static std::string GetDbBasename(const TargetProperties& target, size_t num_cu)
     {
-        const auto ret = device + [&]() {
+        auto ret = target.DbId() + [&]() {
             std::ostringstream ss;
             if(num_cu <= 64)
                 ss << '_' << num_cu;
@@ -194,7 +214,10 @@ struct Handle : miopenHandle
         return ret;
     }
 
-    std::string GetDbBasename() { return GetDbBasename(GetDeviceName(), GetMaxComputeUnits()); }
+    std::string GetDbBasename() const
+    {
+        return GetDbBasename(GetTargetProperties(), GetMaxComputeUnits());
+    }
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
@@ -203,15 +226,16 @@ struct Handle : miopenHandle
 #endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels);
+                           const std::vector<solver::KernelInfo>& kernels) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
-                         solver::Id solver,
-                         const AlgorithmName& algo)
+                         const std::string& solver,
+                         const boost::optional<AlgorithmName>& algo = boost::none)
     {
-        invokers.Register({config, solver.ToString()}, invoker);
-        invokers.SetAsFound1_0(config, algo, solver.ToString());
+        invokers.Register({config, solver}, invoker);
+        if(algo.has_value())
+            invokers.SetAsFound1_0(config, *algo, solver);
     }
 
     boost::optional<const Invoker&>
@@ -222,20 +246,30 @@ struct Handle : miopenHandle
         assert(solver || algo);
         assert(!(solver && algo));
         if(solver)
+        {
+            MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and solver "
+                                                              << solver->ToString());
             return invokers[std::make_pair(config.ToString(), solver->ToString())];
+        }
+        MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and algorithm "
+                                                          << algo->ToString());
         return invokers.GetFound1_0(config, *algo);
     }
 
+    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
+                                                            const AlgorithmName& algo) const
+    {
+        return invokers.GetFound1_0SolverId(config, algo);
+    }
+
 #if MIOPEN_USE_ROCBLAS
-    rocblas_handle_ptr& rhandle() { return rhandle_; }
+    const rocblas_handle_ptr& rhandle() const;
 
-    private:
-    rocblas_handle_ptr CreateRocblasHandle() const;
-
-    rocblas_handle_ptr rhandle_;
+private:
+    rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
+#else
+private:
 #endif
-
-    private:
     InvokerCache invokers;
 };
 
@@ -243,7 +277,7 @@ inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return
 
 struct AutoEnableProfiling
 {
-    AutoEnableProfiling(Handle& x) : h(x)
+    AutoEnableProfiling(const Handle& x) : h(x)
     {
         prev_state = h.IsProfilingEnabled();
         h.EnableProfiling();
@@ -255,12 +289,12 @@ struct AutoEnableProfiling
         h.ResetKernelTime();
     }
 
-    private:
-    Handle& h;
+private:
+    const Handle& h;
     bool prev_state;
 };
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 
-#endif // GUARD_MIOPEN_CONTEXT_HPP_
+#endif // GUARD_MIOPEN_HANDLE_HPP_

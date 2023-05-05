@@ -89,7 +89,6 @@ extern "C" miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
         {
             miopen::deref(hiddenSize) = miopen::deref(rnnDesc).hsize;
         }
-
     });
 }
 
@@ -168,7 +167,6 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
     MIOPEN_LOG_FUNCTION(
         rnnDesc, hsize, nlayers, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
-
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
             hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType);
     });
@@ -189,7 +187,6 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
     MIOPEN_LOG_FUNCTION(
         rnnDesc, hsize, nlayers, dropoutDesc, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
-
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
             hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType, dropoutDesc);
     });
@@ -543,7 +540,6 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
     LogCmdRNN(xDesc, rnnDesc, sequenceLen, ForwardTraining);
 
     return miopen::try_([&] {
-
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
         miopen::deref(rnnDesc).RNNForwardTraining(miopen::deref(handle),
@@ -634,7 +630,6 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
     LogCmdRNN(dxDesc, rnnDesc, sequenceLen, BackwardData);
 
     return miopen::try_([&] {
-
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
         miopen::c_array_view<const miopenTensorDescriptor_t> dyDescArray{dyDesc,
                                                                          size_t(sequenceLen)};
@@ -710,7 +705,6 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
     LogCmdRNN(xDesc, rnnDesc, sequenceLen, BackwardWeights);
 
     return miopen::try_([&] {
-
         miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{xDesc, size_t(sequenceLen)};
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
         miopen::deref(rnnDesc).RNNBackwardWeights(miopen::deref(handle),

@@ -32,17 +32,28 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-/*#ifdef __AMDGCN__
-#undef __AMDGCN__
+#define MIOPEN_USE_AMDGCN 0
+#if defined(__AMDGCN__) && !(MIO_BN_GFX103X || MIO_BN_GFX110X)
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 1
 #endif
-*/
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
 
+#ifndef MIO_LAYOUT_NHWC
+#define MIO_LAYOUT_NHWC 0
+#endif
+
+#if(MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
+#error "MIO_LAYOUT_NHWC must be 0 or 1"
+#endif
+
 #if(MIO_BN_VARIANT == 0)
 
-#define MIO_BN_SEGTMP (MIO_BN_HW * (MIO_BN_GRP0 / MIO_BN_HW))
+#define MIO_BN_SEGTMP_1 (MIO_BN_GRP0 / MIO_BN_HW)
+#define MIO_BN_SEGTMP_2 ((MIO_BN_SEGTMP_1 == 0) ? 1 : MIO_BN_SEGTMP_1)
+#define MIO_BN_SEGTMP (MIO_BN_HW * MIO_BN_SEGTMP_2)
 #define MIO_BN_SEGMENT ((MIO_BN_SEGTMP > MIO_BN_NHW) ? (MIO_BN_NHW) : (MIO_BN_SEGTMP))
 #define MIO_BN_NLOOP ((MIO_BN_NHW + MIO_BN_SEGMENT - 1) / MIO_BN_SEGMENT)
 #define MIO_BN_SEGIHW (MIO_BN_SEGMENT / MIO_BN_HW)
@@ -66,7 +77,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -118,7 +129,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -178,6 +189,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 //===========
 
+#if MIO_LAYOUT_NHWC
+#define MIO_MAX_READ 1
+#define RD_BLK 1
+#define GRPRD (MIO_BN_GRP0 * RD_BLK)
+#else
 #if(MIO_BN_HW >= 4096)
 #define MIO_MAX_READ 3
 #else
@@ -185,6 +201,8 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 #define RD_BLK 1
 #define GRPRD (MIO_BN_GRP0 * RD_BLK * 4)
+#endif
+
 #define MIO_BN_REM4 (MIO_BN_NHW - ((MIO_BN_NHW / GRPRD) * GRPRD))
 #define MIO_BN_LESS4 (MIO_BN_NHW - MIO_BN_REM4)
 #define MIO_BN_CHUNK4 (MIO_MAX_READ * GRPRD)
@@ -213,7 +231,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -229,7 +247,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     uint index = 0;
     uint lid   = get_local_id(0);
     uint grpid = get_group_id(0);
+#if !MIO_LAYOUT_NHWC
     uint chwid = grpid * MIO_BN_HW;
+#endif
     uint nidx  = 0;
     uint hwidx = 0;
 
@@ -240,7 +260,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if(MIO_BN_HW >= 4096)
+#if !MIO_LAYOUT_NHWC && MIO_BN_HW >= 4096
     _FLOAT4 read4;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
@@ -264,7 +284,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     nidx                = remkey / MIO_BN_HW;
     hwidx               = remkey - (nidx * MIO_BN_HW);
     index               = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < MIO_BN_NCHW)
+    if(index < (MIO_BN_NCHW - 3))
     {
         read4 = *((const global _FLOAT4*)(in + index));
         mean += (_FLOAT_PREC)read4.x;
@@ -285,7 +305,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         nidx            = k / MIO_BN_HW;
         hwidx           = k - (nidx * MIO_BN_HW);
-        index           = nidx * MIO_BN_CHW + chwid + hwidx;
+#if MIO_LAYOUT_NHWC
+        index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
         mean += xin;
         variance = mad(xin, xin, variance);
@@ -296,7 +320,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         unsigned int remkey = lid + MIO_BN_LESS;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
+#if MIO_LAYOUT_NHWC
+        index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
         mean += xin;
         variance = mad(xin, xin, variance);
@@ -305,7 +333,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -326,13 +354,22 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvscale = lcl_scale;
     pvbias  = lcl_bias;
 
-#if(MIO_BN_REM == 0)
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < MIO_BN_LESS;
-                                               k += MIO_BN_GRP0)
+#if(MIO_LAYOUT_NHWC || MIO_BN_REM == 0)
+    const unsigned int k_limit =
+#if MIO_LAYOUT_NHWC
+        MIO_BN_NHW;
+#else
+        MIO_BN_LESS;
+#endif
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < k_limit; k += MIO_BN_GRP0)
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);
+#if MIO_LAYOUT_NHWC
+        index = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         out[index] =
             (_FLOAT)mad(pvscale, ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance, pvbias);
     } // end for
@@ -475,7 +512,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     ,
     __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-    )
+)
 {
     _FLOAT variance             = (_FLOAT)0.;
     _FLOAT invVariance          = (_FLOAT)0.;
@@ -502,7 +539,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
         }
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -573,7 +610,7 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
         }
     }
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)1.0, lcl_data_x, lcl_data_y, ylid);
@@ -610,7 +647,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -656,7 +693,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
@@ -702,6 +739,128 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
     }
 } // end spatial norm
+
+#elif(MIO_BN_VARIANT == 4)
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Batch size 1 and 2
+/* __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2)))  */
+__kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
+                                             __global _FLOAT* __restrict out,
+                                             __constant _FLOAT_PREC* __restrict scale,
+                                             __constant _FLOAT_PREC* __restrict bias,
+                                             _FLOAT_PREC INHW,
+#if(MIO_RUNNING_RESULT == 1)
+                                             double expAvgFactor,
+                                             __global _FLOAT_PREC* __restrict resultRunningMean,
+                                             __global _FLOAT_PREC* __restrict resultRunningVariance,
+#endif
+                                             double epsilon
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+                                             ,
+                                             __global _FLOAT_PREC* __restrict resultSaveMean,
+                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance
+#endif
+                                             ,
+                                             unsigned int imageDims,
+                                             unsigned int batchStride)
+{
+
+    unsigned int grpid = get_group_id(0);
+    unsigned int lid   = get_local_id(0);
+    unsigned int lsz   = get_local_size(0);
+
+    _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
+    _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
+    _FLOAT_PREC pvscale     = (_FLOAT_PREC)0.;
+    _FLOAT_PREC pvbias      = (_FLOAT_PREC)0.;
+    _FLOAT_PREC xin         = (_FLOAT_PREC)0.;
+
+    unsigned int index0 = 0;
+#if(MIO_BN_N == 2)
+    unsigned int index1 = 0;
+#endif
+
+    local _FLOAT_PREC lcl_bias;
+    local _FLOAT_PREC lcl_scale;
+
+    if(lid == 0)
+    {
+        lcl_scale = *(scale + grpid);
+        lcl_bias  = *(bias + grpid);
+    }
+
+    unsigned int cidx = grpid * imageDims;
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index0 = cidx + idx;
+        xin    = (_FLOAT_PREC)(*(in + index0));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+#if(MIO_BN_N == 2)
+        index0 += batchStride;
+        xin = (_FLOAT_PREC)(*(in + index0));
+        mean += xin;
+        variance = mad(xin, xin, variance);
+#endif
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+
+#if !MIOPEN_USE_AMDGCN
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+    lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#else
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
+#endif
+
+    variance    = mad(-mean, mean, variance);
+    variance    = variance > 0. ? variance : 0.;
+    invVariance = rsqrt(variance + (_FLOAT_PREC)epsilon);
+    pvscale     = lcl_scale;
+    pvbias      = lcl_bias;
+
+    for(int idx = lid; idx < imageDims; idx += lsz)
+    {
+        index0             = cidx + idx;
+#if(MIO_BN_N == 2)
+        index1             = batchStride + index0;
+#endif
+        _FLOAT_PREC inhat0 = ((_FLOAT_PREC)(*(in + index0)) - mean) * invVariance;
+#if(MIO_BN_N == 2)
+        _FLOAT_PREC inhat1 = ((_FLOAT_PREC)(*(in + index1)) - mean) * invVariance;
+#endif
+        out[index0]        = (_FLOAT)mad(pvscale, inhat0, pvbias);
+#if(MIO_BN_N == 2)
+        out[index1]        = (_FLOAT)mad(pvscale, inhat1, pvbias);
+#endif
+    }
+
+    if(lid == 0)
+    {
+#if(MIO_RUNNING_RESULT == 1)
+        running_stash_dyn(
+            resultRunningMean, resultRunningVariance, expAvgFactor, mean, variance, grpid, INHW);
+#endif
+
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+        saved_stash(resultSaveMean, resultSaveInvVariance, mean, invVariance, grpid);
+#endif
+    }
+} // end spatial norm
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif
 
 #endif
 

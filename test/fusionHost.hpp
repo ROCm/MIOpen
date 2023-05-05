@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #pragma once
-#include "test.hpp"
+// #include "test.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -36,7 +36,7 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-#include "driver.hpp"
+// #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
@@ -218,10 +218,9 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-    const auto nhw = double(height * width * n_batch);
+    const auto nhw                             = double(height * width * n_batch);
 
     par_for(channels, 1, [&](int cidx) {
-
         double elemStd        = 0.;
         double variance_accum = 0.;
         double mean_accum     = 0.;
@@ -271,7 +270,7 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
         saveMean(0, cidx, 0, 0)   = mean_accum;
         saveInvVar(0, cidx, 0, 0) = invVar;
 
-        newRunMean = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
+        newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
         runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
         // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
         adjust =
@@ -293,17 +292,16 @@ void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
-    auto nhw       = double(height * width * n_batch);
-    int in_cstride = height * width;
+    auto nhw                                   = double(height * width * n_batch);
+    int in_cstride                             = height * width;
 
     par_for(channels, 1, [&](int cidx) {
-
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
         double invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
         double dyelem = 0.;
-        std::vector<double> xhat(n_batch * in_cstride, 0.0);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
@@ -363,17 +361,16 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
-    auto nhw       = double(height * width * n_batch);
-    int in_cstride = height * width;
+    auto nhw                                   = double(height * width * n_batch);
+    int in_cstride                             = height * width;
 
     par_for(channels, 1, [&](int cidx) {
-
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean   = static_cast<double>(savedMean(0, cidx, 0, 0));   // HxW elements
         double invVar = static_cast<double>(savedInvVar(0, cidx, 0, 0)); // HxW elements
         double dyelem = 0.;
-        std::vector<double> xhat(n_batch * in_cstride, 0.0);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
@@ -423,9 +420,9 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                              y_input(bidx, cidx, row, column),
                                              dyelem);
                     // double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
-                    double tmp1 = nhw * dyelem - dbias(0, cidx, 0, 0);
-                    double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                    double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
+                    double tmp1                     = nhw * dyelem - dbias(0, cidx, 0, 0);
+                    double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
+                    double tmp3                     = (scale(0, cidx, 0, 0) * invVar) / nhw;
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
@@ -448,10 +445,9 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-    const auto n = double(n_batch);
+    const auto n                               = double(n_batch);
 
     par_for(channels, 1, [&](int cidx) {
-
         double mean_accum     = 0.;
         double variance_accum = 0.;
         double elemStd        = 0.;
@@ -522,11 +518,10 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
-    int in_cstride = height * width;
-    auto n         = double(n_batch);
+    int in_cstride                             = height * width;
+    auto n                                     = double(n_batch);
 
     par_for(channels, 1, [&](int cidx) {
-
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean       = 0.;
@@ -535,7 +530,7 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
         double dxhat      = 0.;
         double dxhathat   = 0.;
         double tmp1       = 0.;
-        std::vector<double> xhat(n_batch * in_cstride);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride);
 
         // process the batch per channel
         for(int row = 0; row < height; row++)
@@ -571,7 +566,7 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
                     double tmp2 =
                         n_batch * scale(0, cidx, row, column) * dy_input(bidx, cidx, row, column) -
                         tmp1;
-                    double tmp3 = elemInvVar / (double(n));
+                    double tmp3                     = elemInvVar / (double(n));
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * tmp2);
                 } // end for(n_batchs)
             }     // for (column)
@@ -598,11 +593,10 @@ void batchNormActivPerActHostBwdTrain(miopenActivationMode_t activMode,
 
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
-    int in_cstride = height * width;
-    auto n         = double(n_batch);
+    int in_cstride                             = height * width;
+    auto n                                     = double(n_batch);
 
     par_for(channels, 1, [&](int cidx) {
-
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean       = 0.;
@@ -611,7 +605,7 @@ void batchNormActivPerActHostBwdTrain(miopenActivationMode_t activMode,
         double dxhat      = 0.;
         double dxhathat   = 0.;
         double tmp1       = 0.;
-        std::vector<double> xhat(n_batch * in_cstride);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride);
 
         // process the batch per channel
         for(int row = 0; row < height; row++)

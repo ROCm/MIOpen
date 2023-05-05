@@ -30,10 +30,13 @@ find_package(Threads REQUIRED)
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
 target_link_libraries(MIOpenDriver MIOpen)
 target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
+if(NOT MIOPEN_EMBED_DB STREQUAL "")
+target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
+endif()
 # Cmake does not add flags correctly for gcc
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
     set_target_properties(MIOpenDriver PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
 endif()
 install(TARGETS MIOpenDriver 
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${MIOPEN_INSTALL_DIR}/bin)
+    DESTINATION ${CMAKE_INSTALL_BINDIR})

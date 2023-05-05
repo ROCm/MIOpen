@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "test.hpp"
+#include "random.hpp"
 #include <array>
 #include <iterator>
 #include <memory>
@@ -67,7 +68,7 @@ struct input_tensor_fixture
 
     ~input_tensor_fixture() { miopenDestroyTensorDescriptor(inputTensor); }
 
-    void run()
+    void run() const
     {
         int n, c, h, w;
         int nStride, cStride, hStride, wStride;
@@ -117,7 +118,7 @@ struct conv_filter_fixture : virtual handle_fixture
         miopenDestroyConvolutionDescriptor(convDesc);
     }
 
-    void run()
+    void run() const
     {
         // TODO: Update API to not require mode by pointer
         miopenConvolutionMode_t lcmode = c_mode;
@@ -168,24 +169,27 @@ struct conv_forward : output_tensor_fixture
 {
     void run()
     {
-        STATUS(miopenEnableProfiling(handle, Profile));
         float alpha = 1, beta = 0;
 
         // Setup OpenCL buffers
 
         int n, h, c, w;
         STATUS(miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
-        size_t sz_in = n * c * h * w;
+        size_t sz_in = static_cast<size_t>(n) * c * h * w;
 
         STATUS(miopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w));
-        size_t sz_wei = n * c * h * w;
+        size_t sz_wei = static_cast<size_t>(n) * c * h * w;
 
         STATUS(miopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
-        size_t sz_out = n * c * h * w;
+        size_t sz_out = static_cast<size_t>(n) * c * h * w;
 
         size_t sz_fwd_workspace;
         STATUS(miopenConvolutionForwardGetWorkSpaceSize(
             handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
+        // OCL fails to allocate zero workspace. Let's allocate small workspace instead to simplify
+        // subsequent code.
+        if(sz_fwd_workspace == 0)
+            sz_fwd_workspace = 256;
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
@@ -194,11 +198,11 @@ struct conv_forward : output_tensor_fixture
 
         for(size_t i = 0; i < sz_in; i++)
         {
-            in[i] = rand() * (1.0 / RAND_MAX);
+            in[i] = GET_RAND() * (1.0 / RAND_MAX);
         }
         for(size_t i = 0; i < sz_wei; i++)
         {
-            wei[i] = static_cast<double>(rand() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+            wei[i] = static_cast<double>(GET_RAND() * (1.0 / RAND_MAX) - 0.5) * 0.001;
         }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -256,13 +260,25 @@ struct conv_forward : output_tensor_fixture
 
         STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
 
-        int ret_algo_count;
-        miopenConvAlgoPerf_t perf;
+        float time;
 
         std::thread([&] {
+            int ret_algo_count;
+            miopenConvAlgoPerf_t perf;
+
+#if MIOPEN_BUILD_DEV
+            miopenHandle_t handle2{};
+            STATUS(miopenCreate(&handle2));
+
+            miopenHandle_t& used_handle = handle2;
+#else
+            miopenHandle_t& used_handle = handle;
+#endif
+
+            STATUS(miopenEnableProfiling(used_handle, Profile));
 
             STATUS(miopenFindConvolutionForwardAlgorithm(
-                handle,
+                used_handle,
                 inputTensor,
                 in_dev,
                 convFilter,
@@ -277,24 +293,27 @@ struct conv_forward : output_tensor_fixture
                 sz_fwd_workspace,
                 0)); // MD: Not performing exhaustiveSearch by default for now
 
-            STATUS(miopenConvolutionForward(handle,
+            STATUS(miopenConvolutionForward(used_handle,
                                             &alpha,
                                             inputTensor,
                                             in_dev,
                                             convFilter,
                                             wei_dev,
                                             convDesc,
-                                            miopenConvolutionFwdAlgoDirect,
+                                            perf.fwd_algo,
                                             &beta,
                                             outputTensor,
                                             out_dev,
                                             fwd_workspace_dev,
                                             sz_fwd_workspace));
 
+            STATUS(miopenGetKernelTime(used_handle, &time));
+
+#if MIOPEN_BUILD_DEV
+            STATUS(miopenDestroy(handle2));
+#endif
         }).join();
 
-        float time;
-        STATUS(miopenGetKernelTime(handle, &time));
         if(Profile)
         {
             CHECK(time > 0.0);

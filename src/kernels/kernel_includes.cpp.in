@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,29 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen_kernel_includes.h"
 #include <algorithm>
 #include <map>
 #include <miopen/kernel.hpp>
 #include <miopen/stringutils.hpp>
 
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+// clang-format off
+${KERNELS_DECLS}
+// clang-format on
+#endif
+
 namespace miopen {
 
 const std::map<std::string, std::string>& kernel_includes()
 {
-    static const std::map<std::string, std::string> data{${INIT_KERNELS}};
+    static const std::map<std::string, std::string> data{
+#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
+        ${INIT_KERNELS}
+#endif
+    };
     return data;
 }
+
 std::string GetKernelInc(std::string key)
 {
     auto it = kernel_includes().find(key);
@@ -44,6 +54,24 @@ std::string GetKernelInc(std::string key)
 
     return it->second;
 }
+
+/// \todo [Optimization] Kernels are stored as strings in the static onstant object.
+/// Let's eliminate unnecessary copying: return pointer to the string.
+/// Get rid of GetKernelInc().
+
+const std::string* GetKernelIncPtr(std::string key)
+{
+    auto it = kernel_includes().find(key);
+    if(it == kernel_includes().end())
+        MIOPEN_THROW("Failed to load kernel source: " + key);
+
+    return &(it->second);
+}
+
+/// \todo [Optimization] Kernel storage is constant.
+/// Collect lists in the static object during the first
+/// invocation and return that object on subsequent calls.
+
 std::vector<std::string> GetKernelIncList()
 {
     std::vector<std::string> keys;
@@ -54,4 +82,17 @@ std::vector<std::string> GetKernelIncList()
                    [](decltype(m)::value_type const& pair) { return pair.first; });
     return keys;
 }
+
+std::vector<std::string> GetHipKernelIncList()
+{
+    auto keys = GetKernelIncList();
+    keys.erase(std::remove_if(keys.begin(),
+                              keys.end(),
+                              [&](const auto& key) {
+                                  return !(EndsWith(key, ".hpp") || EndsWith(key, ".h"));
+                              }),
+               keys.end());
+    return keys;
+}
+
 } // namespace miopen

@@ -73,7 +73,7 @@ struct DropoutDescriptor : miopenDropoutDescriptor
                        size_t prng_stateSizeInBytes,
                        unsigned long long prng_seed) const;
 
-    void DropoutForward(Handle& handle,
+    void DropoutForward(const Handle& handle,
                         const TensorDescriptor& noise_shape,
                         const TensorDescriptor& xDesc,
                         ConstData_t x,
@@ -85,7 +85,7 @@ struct DropoutDescriptor : miopenDropoutDescriptor
                         size_t out_offset   = 0,
                         size_t rsvsp_offset = 0) const;
 
-    void DropoutBackward(Handle& handle,
+    void DropoutBackward(const Handle& handle,
                          const TensorDescriptor& noise_shape,
                          const TensorDescriptor& dyDesc,
                          ConstData_t dy,

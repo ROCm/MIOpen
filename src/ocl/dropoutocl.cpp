@@ -166,7 +166,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutForward(Handle& handle,
+void DropoutDescriptor::DropoutForward(const Handle& handle,
                                        const TensorDescriptor& noise_shape,
                                        const TensorDescriptor& xDesc,
                                        ConstData_t x,
@@ -255,8 +255,8 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_mask ? MAX_WORKITEM_NUM : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
+    size_t max_wk_grp = use_mask ? size_t(MAX_WORKITEM_NUM)
+                                 : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -271,23 +271,16 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     std::string kernel_name  = "DropoutForward";
 
     std::string network_config =
-        "fwd-" + std::string(xDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "dim" +
-        std::to_string(in_len[0]) + "x" + std::to_string(in_len[1]) + "x" +
-        std::to_string(in_len[2]) + "x" + std::to_string(in_len[3]) + "x" +
-        std::to_string(in_len[4]) + "-xstr" + std::to_string(in_str[0]) + "x" +
-        std::to_string(in_str[1]) + "x" + std::to_string(in_str[2]) + "x" +
-        std::to_string(in_str[3]) + "x" + std::to_string(in_str[4]) + "-ystr" +
-        std::to_string(out_str[0]) + "x" + std::to_string(out_str[1]) + "x" +
-        std::to_string(out_str[2]) + "x" + std::to_string(out_str[3]) + "x" +
-        std::to_string(out_str[4]) + "-dropout" + std::to_string(dropout) + "-seed" +
+        "fwd-" + std::string(xDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-rsvsp" +
         std::to_string(static_cast<int>(use_rsvsp)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
         std::to_string(static_cast<int>(state_evo)) + "-blk" + std::to_string(RD_BLCK) + "-wg" +
-        std::to_string(wk_grp_num) + "-noise" + std::to_string(noise_shape.GetLengths()[0]);
+        std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0])*/;
 
-    for(int i = 1; i < noise_shape.GetSize(); i++)
-        network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
+    // TODO: Add noise shape
+    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -327,7 +320,9 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -375,7 +370,7 @@ void DropoutDescriptor::DropoutForward(Handle& handle,
     }
 }
 
-void DropoutDescriptor::DropoutBackward(Handle& handle,
+void DropoutDescriptor::DropoutBackward(const Handle& handle,
                                         const TensorDescriptor& noise_shape,
                                         const TensorDescriptor& dyDesc,
                                         ConstData_t dy,
@@ -463,8 +458,8 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) : MAX_WORKITEM_NUM;
+    size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
+                                 : size_t(MAX_WORKITEM_NUM);
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -482,23 +477,15 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
     std::string kernel_name  = "DropoutBackward";
 
     std::string network_config =
-        "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "dim" +
-        std::to_string(in_len[0]) + "x" + std::to_string(in_len[1]) + "x" +
-        std::to_string(in_len[2]) + "x" + std::to_string(in_len[3]) + "x" +
-        std::to_string(in_len[4]) + "-xstr" + std::to_string(in_str[0]) + "x" +
-        std::to_string(in_str[1]) + "x" + std::to_string(in_str[2]) + "x" +
-        std::to_string(in_str[3]) + "x" + std::to_string(in_str[4]) + "-ystr" +
-        std::to_string(out_str[0]) + "x" + std::to_string(out_str[1]) + "x" +
-        std::to_string(out_str[2]) + "x" + std::to_string(out_str[3]) + "x" +
-        std::to_string(out_str[4]) + "-dropout" + std::to_string(dropout) + "-seed" +
+        "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-prng" +
-        std::to_string(static_cast<int>(use_prng)) + "-mask" +
-        std::to_string(static_cast<int>(use_mask)) + "-evo" +
+        std::to_string(static_cast<int>(use_prng)) + "-evo" +
         std::to_string(static_cast<int>(state_evo)) + "-blk" + std::to_string(RD_BLCK) + "-wg" +
-        std::to_string(wk_grp_num) + "-noise" + std::to_string(noise_shape.GetLengths()[0]);
+        std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0]) */;
 
-    for(int i = 1; i < noise_shape.GetSize(); i++)
-        network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
+    // TODO: Add noise shape
+    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -538,7 +525,9 @@ void DropoutDescriptor::DropoutBackward(Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(use_prng)
         {

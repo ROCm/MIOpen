@@ -49,27 +49,18 @@
 
 namespace miopen {
 
-struct RecordPositions
-{
-    std::streamoff begin = -1;
-    std::streamoff end   = -1;
-};
-/// This makes the interface for the MultiFileDb uniform and
-/// allows reusing it for the SQLite perfdb and the kernel cache.
-PlainTextDb::PlainTextDb(const std::string& filename_,
-                         bool is_system,
-                         const std::string& /*arch*/,
-                         const std::size_t /*num_cu*/)
-    : PlainTextDb(filename_, is_system)
-{
-}
-
 PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
     : filename(filename_),
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
-      warn_if_unreadable(is_system)
+      warning_if_unreadable(is_system)
 {
-    if(!is_system)
+    if(is_system)
+    {
+        MIOPEN_THROW("PlainTextDb class is not supported as system database. Use the ReadOnlyRamDb "
+                     "class instead.");
+    }
+
+    if(!DisableUserDbFileIO)
     {
         auto file            = boost::filesystem::path(filename_);
         const auto directory = file.remove_filename();
@@ -98,6 +89,8 @@ using shared_lock    = std::shared_lock<LockFile>;
 
 boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 {
+    if(DisableUserDbFileIO)
+        return {};
     const auto lock = shared_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
@@ -105,6 +98,8 @@ boost::optional<DbRecord> PlainTextDb::FindRecord(const std::string& key)
 
 bool PlainTextDb::StoreRecord(const DbRecord& record)
 {
+    if(DisableUserDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return StoreRecordUnsafe(record);
@@ -112,6 +107,8 @@ bool PlainTextDb::StoreRecord(const DbRecord& record)
 
 bool PlainTextDb::UpdateRecord(DbRecord& record)
 {
+    if(DisableUserDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return UpdateRecordUnsafe(record);
@@ -119,6 +116,8 @@ bool PlainTextDb::UpdateRecord(DbRecord& record)
 
 bool PlainTextDb::RemoveRecord(const std::string& key)
 {
+    if(DisableUserDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     return RemoveRecordUnsafe(key);
@@ -126,6 +125,8 @@ bool PlainTextDb::RemoveRecord(const std::string& key)
 
 bool PlainTextDb::Remove(const std::string& key, const std::string& id)
 {
+    if(DisableUserDbFileIO)
+        return true;
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
     auto record = FindRecordUnsafe(key, nullptr);
@@ -152,11 +153,10 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
 
     if(!file)
     {
-        if(warn_if_unreadable)
-            MIOPEN_LOG_W("File is unreadable: " << filename);
-        else
-            MIOPEN_LOG_I2("File is unreadable: " << filename);
-
+        const auto log_level = IsWarningIfUnreadable() && !MIOPEN_DISABLE_SYSDB
+                                   ? LoggingLevel::Warning
+                                   : LoggingLevel::Info2;
+        MIOPEN_LOG(log_level, "File is unreadable: " << filename);
         return boost::none;
     }
 
@@ -192,8 +192,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(contents.empty())
         {
             MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename
-                                                         << "#"
-                                                         << n_line);
+                                                         << "#" << n_line);
             continue;
         }
         MIOPEN_LOG_I2("Contents found: " << contents);
@@ -204,9 +203,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(!is_parse_ok)
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file "
-                                                                 << filename
-                                                                 << "#"
-                                                                 << n_line);
+                                                                 << filename << "#" << n_line);
             MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.

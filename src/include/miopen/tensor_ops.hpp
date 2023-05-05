@@ -79,7 +79,8 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     {
         auto sz = real_descriptors[0]->GetElementSize();
         return create_tuple<NTensor>([&](auto itensor) {
-            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {1}};
+            return TensorDescriptor{
+                real_descriptors[itensor]->GetType(), {sz}, {static_cast<std::size_t>(1)}};
         });
     }
 
@@ -103,9 +104,9 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         bool is_all_full_length = true;
         repeat_n(
             [&](auto itensor) {
-                std::size_t stride          = boost::get<itensor + 1>(*i);
-                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                std::size_t full_len        = previous_stride / stride;
+                const std::size_t stride          = boost::get<itensor + 1>(*i);
+                const std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
+                const std::size_t full_len        = previous_stride / stride;
                 is_all_full_length &= (len == full_len);
             },
             NTensorConstant);
@@ -139,7 +140,7 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         },
         NTensorConstant);
 
-    for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
         array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
 
     return create_tuple<NTensor>([&](auto itensor) {
@@ -149,13 +150,19 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     });
 }
 
-void ScaleTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, int offset = 0);
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 int offset = 0);
 
-void SetTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, int offset = 0);
+void SetTensor(const Handle& handle,
+               const TensorDescriptor& yDesc,
+               Data_t y,
+               const void* alpha,
+               int offset = 0);
 
-void OpTensor(Handle& handle,
+void OpTensor(const Handle& handle,
               miopenTensorOp_t tensorOp,
               const void* alpha0,
               const TensorDescriptor& aTensorDesc,
@@ -170,7 +177,7 @@ void OpTensor(Handle& handle,
               size_t Boffset = 0,
               size_t Coffset = 0);
 
-void CopyTensor(Handle& handle,
+void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
@@ -178,7 +185,7 @@ void CopyTensor(Handle& handle,
                 int srcOffset = 0,
                 int dstOffset = 0);
 
-void CastTensor(Handle& handle,
+void CastTensor(const Handle& handle,
                 const void* alpha,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
@@ -187,7 +194,7 @@ void CastTensor(Handle& handle,
                 int srcOffset = 0,
                 int dstOffset = 0);
 
-void TransformTensor(Handle& handle,
+void TransformTensor(const Handle& handle,
                      const void* alpha,
                      const TensorDescriptor& xDesc,
                      ConstData_t x,

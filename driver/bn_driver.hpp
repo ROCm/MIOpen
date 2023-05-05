@@ -59,12 +59,14 @@
 #endif
 #endif
 
+#define MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D 1 // Resolves issue #1974
+
 //#define BN_RUNFOR_PROFILER
 
 template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
 class BatchNormDriver : public Driver
 {
-    public:
+public:
     BatchNormDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -76,22 +78,22 @@ class BatchNormDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetModeFromCmdLine();
 
     int SetBNParametersFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU();
 
     void runGPUFwdInference(Tref epsilon, float alpha, float beta);
@@ -103,10 +105,10 @@ class BatchNormDriver : public Driver
     void runCPUFwdTrain(
         Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth = 0);
 
-    int VerifyBackward();
-    int VerifyForward();
+    int VerifyBackward() override;
+    int VerifyForward() override;
 
-    ~BatchNormDriver()
+    ~BatchNormDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensor);
@@ -115,7 +117,7 @@ class BatchNormDriver : public Driver
         miopenDestroyTensorDescriptor(dyInputTensor);
     }
 
-    private:
+private:
     miopenBatchNormMode_t bn_mode;
     bool saveMeanVar;
     bool bsaveMeanVar;
@@ -335,7 +337,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     // save off mean and variance?
@@ -350,7 +352,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Save mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     // keep running mean and variance
@@ -365,21 +367,21 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Running mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     forw = inflags.GetValueInt("forw");
     if(forw > 2)
     {
         printf("Incorrect Batch Normalization forward mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     back = inflags.GetValueInt("back");
     if(back > 1)
     {
         printf("Incorrect Batch Normalization backwards propagation mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(back && forw)
@@ -877,7 +879,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
                    iters - 1);
         int in_n, in_c, in_h, in_w;
         std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-        size_t M      = in_n * in_c * in_h * in_w;
+        size_t M                         = in_n * in_c * in_h * in_w;
         size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
         float rdCnt   = -1.0;
         float wrCnt   = 1.0;
@@ -940,7 +942,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
     return;
 }
@@ -954,8 +956,13 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     { // 1xCxHxW
         miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
+#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
+                                                         1,
+                                                         height * (isDepthSpecified ? depth : 1),
+#else
                                                          (isDepthSpecified ? depth : 1),
                                                          height,
+#endif
                                                          width,
                                                          in.data(),
                                                          out_host.data(),
@@ -974,8 +981,13 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     { // 1xCx1x1
         miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
+#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
+                                                   1,
+                                                   height * (isDepthSpecified ? depth : 1),
+#else
                                                    (isDepthSpecified ? depth : 1),
                                                    height,
+#endif
                                                    width,
                                                    in.data(),
                                                    out_host.data(),
@@ -994,7 +1006,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 }
 
@@ -1180,10 +1192,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             runningVariance_dev->FromGPU(GetStream(), runningVariance.data());
 
             auto errorRunMean = miopen::rms_range(runningMean_host, runningMean);
-            if(errorRunMean > maxrms || std::isnan(errorRunMean))
+            if(!std::isfinite(errorRunMean) || errorRunMean > maxrms)
             {
-                std::cout << "Forward train batch norm verification failed on running mean: "
-                          << errorRunMean << "\n";
+                std::cout << "Forward train batch norm verification FAILED on running mean: "
+                          << errorRunMean << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
                 for(int i = 0; i < runningMean.size() && i < runningMean_host.size() &&
@@ -1191,7 +1203,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i])));
-                    if(diff > tolerance)
+                    if(!std::isfinite(diff) || diff > tolerance)
                     {
                         std::cout << "rm[" << i << "]: " << runningMean[i];
                         std::cout << ", rm_host[" << i << "]: " << runningMean_host[i];
@@ -1204,14 +1216,15 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on running mean.\n";
+                std::cout << "Forward train batch norm verification passed on running mean ("
+                          << errorRunMean << ')' << std::endl;
             }
 
             auto errorRunVar = miopen::rms_range(runningVariance_host, runningVariance);
-            if(errorRunVar > maxrms || std::isnan(errorRunVar))
+            if(!std::isfinite(errorRunVar) || errorRunVar > maxrms)
             {
-                std::cout << "Forward train batch norm verification failed on running variance: "
-                          << errorRunVar << "\n";
+                std::cout << "Forward train batch norm verification FAILED on running variance: "
+                          << errorRunVar << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
                 for(int i = 0; i < runningVariance.size() && i < runningVariance_host.size() &&
@@ -1219,7 +1232,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
-                    if(diff > tolerance)
+                    if(!std::isfinite(diff) || diff > tolerance)
                     {
                         std::cout << "rv[" << i << "]: " << runningVariance[i];
                         std::cout << ", rv_host[" << i << "]: " << runningVariance_host[i];
@@ -1232,7 +1245,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on running variance\n";
+                std::cout << "Forward train batch norm verification passed on running variance ("
+                          << errorRunVar << ')' << std::endl;
             }
         } // end if(keepRunningMeanVar)
 
@@ -1242,10 +1256,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             saveInvVariance_dev->FromGPU(GetStream(), saveInvVariance.data());
             maxval             = static_cast<Tref>(0.0);
             auto errorSaveMean = miopen::rms_range(saveMean_host, saveMean);
-            if(errorSaveMean > maxrms || std::isnan(errorSaveMean))
+            if(!std::isfinite(errorSaveMean) || errorSaveMean > maxrms)
             {
-                std::cout << "Forward train batch norm verification failed on saved mean: "
-                          << errorSaveMean << "\n";
+                std::cout << "Forward train batch norm verification FAILED on saved mean: "
+                          << errorSaveMean << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
                 for(int i = 0;
@@ -1254,7 +1268,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                 {
                     diff   = fabs(Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i])));
                     maxval = maxval < diff ? diff : maxval;
-                    if(diff > tolerance)
+                    if(!std::isfinite(diff) || diff > tolerance)
                     {
                         std::cout << "sm[" << i << "]: " << saveMean[i];
                         std::cout << ", sm_host[" << i << "]: " << saveMean_host[i];
@@ -1268,15 +1282,16 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             else
             {
-                std::cout << "Forward train batch norm verification passed on saved mean\n";
+                std::cout << "Forward train batch norm verification passed on saved mean ("
+                          << errorSaveMean << ')' << std::endl;
             }
 
             auto errorSaveVar = miopen::rms_range(saveInvVariance_host, saveInvVariance);
-            if(errorSaveVar > maxrms || std::isnan(errorSaveVar))
+            if(!std::isfinite(errorSaveVar) || errorSaveVar > maxrms)
             {
                 std::cout
-                    << "Forward train batch norm verification failed on saved inverse variance: "
-                    << errorSaveVar << "\n";
+                    << "Forward train batch norm verification FAILED on saved inverse variance: "
+                    << errorSaveVar << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
                 for(int i = 0; i < saveInvVariance.size() && i < saveInvVariance_host.size() &&
@@ -1284,7 +1299,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
-                    if(diff > tolerance)
+                    if(!std::isfinite(diff) || diff > tolerance)
                     {
                         std::cout << "sv[" << i << "]: " << saveInvVariance[i];
                         std::cout << ", sv_host[" << i << "]: " << saveInvVariance_host[i];
@@ -1298,7 +1313,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             else
             {
                 std::cout
-                    << "Forward train batch norm verification passed on saved inverse variance.\n";
+                    << "Forward train batch norm verification passed on saved inverse variance ("
+                    << errorSaveVar << ')' << std::endl;
             }
         } // end if(saveMeanVar)
     }
@@ -1307,9 +1323,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     out_dev->FromGPU(GetStream(), out.data());
     maxval        = static_cast<Tref>(0.0);
     auto errorOut = miopen::rms_range(out_host, out);
-    if(errorOut > maxrms || std::isnan(errorOut))
+    if(!std::isfinite(errorOut) || errorOut > maxrms)
     {
-        std::cout << "Forward batch norm verification failed on output: " << errorOut << "\n";
+        std::cout << "Forward batch norm verification FAILED on output: " << errorOut << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         unsigned int count = 0;
@@ -1325,7 +1341,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             diff   = Tref(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "out[" << i << "]: " << out[i];
                 std::cout << ", out_host[" << i << "]: " << out_host[i];
@@ -1341,7 +1357,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward batch norm verification passed on output\n";
+        std::cout << "Forward batch norm verification passed on output (" << errorOut << ')'
+                  << std::endl;
     }
 
     // Done! Results?
@@ -1399,7 +1416,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     else if(bn_mode == miopenBNSpatial)
     {                                               // 1xCx1x1
         miopenBNBwdSpatialRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam, betaParam,
-                                                       */
+                                                     */
                                                     batch_sz,
                                                     channels,
                                                     (isDepthSpecified ? depth : 1),
@@ -1420,7 +1437,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     return miopenStatusSuccess;
@@ -1448,16 +1465,17 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 #endif
     maxval          = static_cast<Tref>(0.0);
     auto errordxout = miopen::rms_range(dxout_host, dxout);
-    if(errordxout > maxrms || std::isnan(errordxout))
+    if(!std::isfinite(errordxout) || errordxout > maxrms)
     {
-        std::cout << "Backwards prop batch norm verification failed on dx: " << errordxout << "\n";
+        std::cout << "Backwards prop batch norm verification FAILED on dx: " << errordxout
+                  << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff   = fabs(Tgpu(fabs(dxout[i]) - fabs(dxout_host[i])));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "dxout[" << i << "]: " << dxout[i];
                 std::cout << "\tdxout_host[" << i << "]: " << dxout_host[i];
@@ -1472,22 +1490,23 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dx.\n";
+        std::cout << "Backwards prop batch norm verification passed on dx (" << errordxout << ')'
+                  << std::endl;
     }
 
     maxval           = static_cast<Tref>(0.0);
     auto errordscale = miopen::rms_range(dscale_host, dscale);
-    if(errordscale > maxrms || std::isnan(errordscale))
+    if(!std::isfinite(errordscale) || errordscale > maxrms)
     {
-        std::cout << "Backwards prop batch norm verification failed on dscale: " << errordscale
-                  << "\n";
+        std::cout << "Backwards prop batch norm verification FAILED on dscale: " << errordscale
+                  << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dscale.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff   = fabs(Tmix(fabs(dscale[i]) - fabs(dscale_host[i])));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "dscale[" << i << "]: " << dscale[i];
                 std::cout << "\tdscale_host[" << i << "]: " << dscale_host[i];
@@ -1503,20 +1522,21 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dscale.\n";
+        std::cout << "Backwards prop batch norm verification passed on dscale (" << errordscale
+                  << ')' << std::endl;
     }
 
     auto errordbias = miopen::rms_range(dbias_host, dbias);
-    if(errordbias > maxrms || std::isnan(errordbias))
+    if(!std::isfinite(errordbias) || errordbias > maxrms)
     {
-        std::cout << "Backwards prop batch norm verification failed on dbias: " << errordbias
-                  << "\n";
+        std::cout << "Backwards prop batch norm verification FAILED on dbias: " << errordbias
+                  << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff = fabs(Tmix(fabs(dbias[i]) - fabs(dbias_host[i])));
-            if(diff > tolerance)
+            if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "dbias[" << i << "]: " << dbias[i];
                 std::cout << "\tdbias_host[" << i << "]: " << dbias_host[i];
@@ -1530,7 +1550,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backwards prop batch norm verification passed on dbias.\n";
+        std::cout << "Backwards prop batch norm verification passed on dbias (" << errordbias << ')'
+                  << std::endl;
     }
 
     if(!anError)

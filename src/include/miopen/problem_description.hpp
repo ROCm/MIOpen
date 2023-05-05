@@ -35,6 +35,7 @@
 #endif
 
 #include <cassert>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <boost/optional/optional.hpp>
@@ -74,6 +75,7 @@ struct ProblemDescription
     int in_height         = 0;
     int in_width          = 0;
     int in_depth          = 0;
+    int vectorLength      = 1;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
     int kernel_size_d     = 0;
@@ -111,6 +113,12 @@ struct ProblemDescription
     int group_counts                   = 0;
 
     static std::string table_name() { return "config"; }
+
+    bool IsLayoutDefault() const;
+
+    bool IsLayoutNHWC() const;
+
+    bool IsLayoutNCHWC() const;
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
@@ -150,13 +158,14 @@ struct ProblemDescription
         std::string data_type =
             EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
         f(data_type, "data_type");
-        std::string dir =
-            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        std::string dir = self.direction.IsForward()        ? "F"
+                          : self.direction.IsBackwardData() ? "B"
+                                                            : "W";
         f(dir, "direction");
     }
     struct Direction
     {
-        public:
+    public:
         bool IsKnown() const { return v != boost::none; }
         bool IsForward() const { return v == conv::Direction::Forward; }
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
@@ -165,7 +174,7 @@ struct ProblemDescription
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
 
-        private:
+    private:
         boost::optional<conv::Direction> v;
         void Set(conv::Direction value) { v = value; }
 
@@ -194,6 +203,16 @@ struct ProblemDescription
     {
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
+    }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
+    bool IsNCHWc_NCHWc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
+    }
+
+    bool IsNCHWc_CHWNc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
     }
 
     ProblemDescription() = default;
@@ -233,11 +252,12 @@ struct ProblemDescription
                      int stride,
                      int w_stride)
     {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+        batch_sz           = batch;
+        const int data_len = GetTypeSize(data_type);
+        const size_t size =
+            (layout == "NCHW")
+                ? batch * channels * depth * height * width * data_len
+                : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         out_width          = width;
         out_height         = height;
@@ -268,11 +288,12 @@ struct ProblemDescription
                      int stride,
                      int w_stride)
     {
-        batch_sz     = batch;
-        int data_len = GetTypeSize(data_type);
-        size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+        batch_sz           = batch;
+        const int data_len = GetTypeSize(data_type);
+        const size_t size =
+            (layout == "NCHW")
+                ? batch * channels * depth * height * width * data_len
+                : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         in_width          = width;
         in_height         = height;
@@ -335,6 +356,82 @@ struct ProblemDescription
         return NetworkConfig{ret};
     }
 };
+
+struct UnifiedDescriptionConv2d
+{
+    size_t K;
+    size_t S;
+    size_t C;
+    size_t N;
+    size_t R;
+    int64_t pad_w; // Negative padding is possible for Bwd.
+    int64_t pad_h;
+    size_t U;
+    size_t V;
+    size_t out_w;
+    size_t out_h;
+    size_t input_stride_w;
+    size_t input_stride_h;
+    size_t filter_stride_w;
+    size_t filter_stride_h;
+
+    UnifiedDescriptionConv2d() = delete;
+
+    // KT      XLS             DRIVER                                  PROBLEM DESCRIPTION
+    // -----------------------------------------------------------------------------------
+    // fdil := filter_stride   -l/j filter dilation                    kernel_dilation
+    // strd := U/V             -u/v convolution stride (output stride) kernel_stride
+    // idil := input dilation  (n/a except transposed convolutions)    ?
+
+    UnifiedDescriptionConv2d(const ProblemDescription& problem)
+    {
+        if(!problem.Is2d())
+            MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
+        if(!problem.direction.IsKnown())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "UnifiedDescriptionConv2d needs to know direction.");
+
+        const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts;
+        const auto n_outputs_per_group = problem.n_outputs / problem.group_counts;
+        if(!problem.direction.IsBackwardWrW())
+        {
+            R     = problem.kernel_size_h;
+            S     = problem.kernel_size_w;
+            U     = problem.direction.IsForward() ? problem.kernel_stride_h : 1;
+            V     = problem.direction.IsForward() ? problem.kernel_stride_w : 1;
+            C     = n_inputs_per_group;  // Bwd: C and K is reversed in ProblemDescription.
+            K     = n_outputs_per_group; // Ditto.
+            out_h = problem.out_height;  // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.out_width;   // Ditto.
+            N     = problem.batch_sz;
+            pad_h = problem.direction.IsForward() ? problem.pad_h : problem.GetBackwardPadH();
+            pad_w = problem.direction.IsForward() ? problem.pad_w : problem.GetBackwardPadW();
+            input_stride_h  = problem.direction.IsForward() ? 1 : problem.kernel_stride_h;
+            input_stride_w  = problem.direction.IsForward() ? 1 : problem.kernel_stride_w;
+            filter_stride_h = problem.kernel_dilation_h;
+            filter_stride_w = problem.kernel_dilation_w;
+        }
+        else
+        { // WrW
+            R               = problem.in_height;
+            S               = problem.in_width;
+            U               = problem.kernel_dilation_h;
+            V               = problem.kernel_dilation_w;
+            C               = problem.batch_sz;
+            K               = n_inputs_per_group;
+            out_h           = problem.kernel_size_h;
+            out_w           = problem.kernel_size_w;
+            N               = n_outputs_per_group;
+            pad_h           = problem.pad_h;
+            pad_w           = problem.pad_w;
+            input_stride_h  = 1;
+            input_stride_w  = 1;
+            filter_stride_h = problem.kernel_stride_h;
+            filter_stride_w = problem.kernel_stride_w;
+        }
+    }
+};
+
 } // namespace miopen
 
 #endif

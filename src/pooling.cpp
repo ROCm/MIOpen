@@ -26,10 +26,11 @@
 #include <miopen/pooling.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/subbuffers.hpp>
 
 #include <cassert>
-#include <cmath>
 #include <cmath>
 
 namespace miopen {
@@ -56,7 +57,9 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
       pads(ppads, ppads + size),
       mode(m),
       pmode(pm),
-      indexType(miopenIndexUint8)
+      indexType(miopenIndexUint8),
+      workspaceIndexMode(size == 3 ? miopenPoolingWorkspaceIndexImage
+                                   : miopenPoolingWorkspaceIndexMask)
 {
 }
 
@@ -65,15 +68,33 @@ PoolingDescriptor::PoolingDescriptor(miopenPoolingMode_t m,
                                      const std::vector<int>& plens,
                                      const std::vector<int>& pstrides,
                                      const std::vector<int>& ppads)
-    : lens(plens), strides(pstrides), pads(ppads), mode(m), pmode(pm), indexType(miopenIndexUint8)
+    : lens(plens),
+      strides(pstrides),
+      pads(ppads),
+      mode(m),
+      pmode(pm),
+      indexType(miopenIndexUint8),
+      workspaceIndexMode(miopenPoolingWorkspaceIndexMask)
 {
+    if(plens.size() == 3)
+        workspaceIndexMode = miopenPoolingWorkspaceIndexImage;
 }
 
 void PoolingDescriptor::SetIndexType(miopenIndexType_t index_type) { indexType = index_type; }
 
 miopenIndexType_t PoolingDescriptor::GetIndexType() const { return indexType; }
 
-miopenPoolingMode_t PoolingDescriptor::GetMode() const { return (mode); }
+void PoolingDescriptor::SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t workspace_index)
+{
+    workspaceIndexMode = workspace_index;
+}
+
+miopenPoolingWorkspaceIndexMode_t PoolingDescriptor::GetWorkspaceIndexMode() const
+{
+    return workspaceIndexMode;
+}
+
+miopenPoolingMode_t PoolingDescriptor::GetMode() const { return mode; }
 
 miopenPaddingMode_t PoolingDescriptor::GetPaddingMode() const { return (pmode); }
 
@@ -82,8 +103,6 @@ const std::vector<int>& PoolingDescriptor::GetLengths() const { return lens; }
 const std::vector<int>& PoolingDescriptor::GetStrides() const { return strides; }
 
 const std::vector<int>& PoolingDescriptor::GetPads() const { return pads; }
-
-miopenPoolingMode_t PoolingDescriptor::GetMode() { return mode; }
 
 int PoolingDescriptor::GetSize() const
 {
@@ -108,7 +127,7 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
     std::tie(stride_h, stride_w) = miopen::tien<2>(GetStrides());
     std::tie(pad_h, pad_w)       = miopen::tien<2>(GetPads());
     std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
-    miopenPaddingMode_t _pMode = GetPaddingMode();
+    miopenPaddingMode_t _pMode   = GetPaddingMode();
 
     assert(stride_h > 0);
     assert(stride_w > 0);
@@ -116,9 +135,9 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
     assert(window_w < (input_w + 2 * pad_w));
 
     auto output_h = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t((input_h + 2 * pad_h - window_h) / stride_h + 1));
+        1, ((input_h + 2 * static_cast<std::ptrdiff_t>(pad_h) - window_h) / stride_h + 1));
     auto output_w = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t((input_w + 2 * pad_w - window_w) / stride_w + 1));
+        1, ((input_w + 2 * static_cast<std::ptrdiff_t>(pad_w) - window_w) / stride_w + 1));
 
     if(_pMode == miopenPaddingSame)
     {
@@ -166,7 +185,7 @@ void PoolingDescriptor::GetForwardOutputDimNd(const TensorDescriptor& xDesc,
     while(in_itr != input_dim.end())
     {
         int out_tmp = std::max<std::ptrdiff_t>(
-            1, std::ptrdiff_t((*in_itr + 2 * *pad_itr - *ker_itr) / (*str_itr) + 1));
+            1, ((*in_itr + 2 * static_cast<std::ptrdiff_t>(*pad_itr) - *ker_itr) / (*str_itr) + 1));
 
         if(_pMode == miopenPaddingSame)
         {
@@ -198,13 +217,46 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescripto
 {
     std::vector<int> out_dim(xDesc.GetSize());
     GetForwardOutputDimNd(xDesc, xDesc.GetSize(), out_dim.data());
-    return TensorDescriptor(xDesc.GetType(), out_dim);
+
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string in_layout      = xDesc.GetLayout(default_layout);
+    std::vector<int> out_strides;
+    tensor_layout_to_strides(out_dim, default_layout, in_layout, out_strides);
+
+    return {xDesc.GetType(), out_dim, out_strides};
 }
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const
 {
-    return GetMode() == miopenPoolingMax ? yDesc.GetElementSize() * get_data_size(GetIndexType())
-                                         : 0;
+    const auto y_size       = yDesc.GetElementSize();
+    const auto index_e_size = get_data_size(GetIndexType());
+
+    const auto main_ws = GetMode() == miopenPoolingMax ? y_size * index_e_size : 0;
+
+    const auto labels        = tensor_layout_get_default(yDesc.GetSize());
+    std::size_t transpose_ws = 0;
+
+    if(yDesc.GetLayout(labels) != labels)
+    {
+        const auto e_size       = get_data_size(yDesc.GetType());
+        auto transposed_strides = std::vector<std::size_t>{};
+        const auto in_layout    = yDesc.GetLayout(labels);
+        tensor_layout_to_strides(yDesc.GetLengths(), labels, in_layout, transposed_strides);
+        const auto transposed_y =
+            TensorDescriptor{yDesc.GetType(), yDesc.GetLengths(), transposed_strides};
+
+        const auto y_transpose_size = transposed_y.GetElementSpace() * e_size;
+        // Todo: We do not have xDesc, so we infer that. But currently this is incorrect, x tensor
+        // is larger than y and should be calculated properly.
+        const auto x_transpose_size = y_transpose_size * 2;
+        const auto subbuffer_align  = GetSubbufferAlignment();
+        const auto align_after_mask = (subbuffer_align - main_ws) % subbuffer_align;
+        const auto align_after_x    = (subbuffer_align - x_transpose_size) % subbuffer_align;
+
+        transpose_ws = align_after_mask + x_transpose_size + align_after_x + y_transpose_size;
+    }
+
+    return main_ws + transpose_ws;
 }
 
 std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x)

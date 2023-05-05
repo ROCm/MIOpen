@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,6 +70,8 @@
 
 __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
                                global _FLOAT* reservespace,
+                               const int hy_h,
+                               const int hy_stride,
                                const long cx_offset,
                                const long i_offset,
                                const long f_offset,
@@ -88,7 +90,7 @@ __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
                                const int cur_batch,
                                const int use_batch)
 {
-    int total_item     = cur_batch * HY_H / RD_BLCK;
+    int total_item     = cur_batch * hy_h / RD_BLCK;
     total_item         = max(total_item, 1);
     _FLOAT activ_param = 1;
 
@@ -103,9 +105,9 @@ __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
 
     for(int gid = get_global_id(0); gid < total_item; gid += get_global_size(0))
     {
-        int b_idx   = gid * RD_BLCK / HY_H;
-        int h_idx   = gid * RD_BLCK - b_idx * HY_H;
-        int rsv_idx = b_idx * HY_STRIDE + h_idx;
+        int b_idx   = gid * RD_BLCK / hy_h;
+        int h_idx   = gid * RD_BLCK - b_idx * hy_h;
+        int rsv_idx = b_idx * hy_stride + h_idx;
 
         *((READ_TYPE*)s_dat) = *((const global READ_TYPE*)(reservespace + i_offset + rsv_idx));
         ActivationFunction_Sigmoid(
@@ -175,7 +177,7 @@ __kernel void LSTMFwdHidUpdate(const global _FLOAT* cx,
 
         *((global READ_TYPE*)(reservespace + cell_offset + rsv_idx)) = *((READ_TYPE*)s_dat);
 #if !INFERENCE_MODE
-        *((global READ_TYPE*)(reservespace + activ_cell_offset + b_idx * HY_STRIDE / 6 + h_idx)) =
+        *((global READ_TYPE*)(reservespace + activ_cell_offset + b_idx * hy_stride / 6 + h_idx)) =
             *((READ_TYPE*)cx_dat);
 #endif
         for(int i = 0; i < RD_BLCK; ++i)
@@ -193,6 +195,8 @@ __kernel void LSTMBwdHidUpdate(const global _FLOAT* cx,
                                const global _FLOAT* dcy,
                                global _FLOAT* reservespace,
                                global _FLOAT* workspace,
+                               const int hy_h,
+                               const int hy_stride,
                                const long cx_offset,
                                const long dcy_offset,
                                const long i_offset,
@@ -218,7 +222,7 @@ __kernel void LSTMBwdHidUpdate(const global _FLOAT* cx,
                                const int use_batch,
                                const int use_batch2)
 {
-    int total_item     = cur_batch * HY_H / RD_BLCK;
+    int total_item     = cur_batch * hy_h / RD_BLCK;
     total_item         = max(total_item, 1);
     _FLOAT activ_param = 1;
 
@@ -241,9 +245,9 @@ __kernel void LSTMBwdHidUpdate(const global _FLOAT* cx,
 
     for(int gid = get_global_id(0); gid < total_item; gid += get_global_size(0))
     {
-        int b_idx   = gid * RD_BLCK / HY_H;
-        int h_idx   = gid * RD_BLCK - b_idx * HY_H;
-        int rsv_idx = b_idx * HY_STRIDE + h_idx;
+        int b_idx   = gid * RD_BLCK / hy_h;
+        int h_idx   = gid * RD_BLCK - b_idx * hy_h;
+        int rsv_idx = b_idx * hy_stride + h_idx;
 
         *((READ_TYPE*)dh_dat) = *((const global READ_TYPE*)(workspace + dhidden_offset + rsv_idx));
         *((READ_TYPE*)o_dat)  = *((const global READ_TYPE*)(reservespace + o_offset + rsv_idx));
@@ -258,7 +262,7 @@ __kernel void LSTMBwdHidUpdate(const global _FLOAT* cx,
         }
 
         *((READ_TYPE*)cx_dat) = *((const global READ_TYPE*)(reservespace + activ_cell_offset +
-                                                            b_idx * HY_STRIDE / 6 + h_idx));
+                                                            b_idx * hy_stride / 6 + h_idx));
 
         ActivationFunction_TanH_Diff(RD_BLCK,
                                      dcx_dat,

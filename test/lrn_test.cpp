@@ -60,15 +60,14 @@ struct verify_lrn_foward
         auto beta        = lrn.GetBeta();
         auto K           = lrn.GetK();
         auto lrn_n       = lrn.GetN();
-        int radius_lower = (lrn_n - 1) / 2;
-        int radius_upper = lrn_n / 2;
+        int radius_lower = static_cast<int>((lrn_n - 1) / 2);
+        int radius_upper = static_cast<int>(lrn_n / 2);
         auto mode        = lrn.GetMode();
 
         if(mode == miopenLRNCrossChannel)
         {
             auto alphaoverarea = alpha / lrn_n;
             par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
-
                 int start = c < radius_lower ? 0 : (c - radius_lower);
                 int end   = (c + radius_upper + 1) > channels ? channels : (c + radius_upper + 1);
 
@@ -104,7 +103,7 @@ struct verify_lrn_foward
                 }
                 scale *= alphaoverarea;
                 scale += K;
-                scale = std::pow(scale, -beta);
+                scale              = std::pow(scale, -beta);
                 output(b, c, h, w) = static_cast<T>(scale * input(b, c, h, w));
             });
         }
@@ -177,8 +176,8 @@ struct verify_lrn_bwd
         auto beta        = lrn.GetBeta();
         auto lrn_n       = lrn.GetN();
         auto mode        = lrn.GetMode();
-        int radius_lower = (lrn_n - 1) / 2;
-        int radius_upper = lrn_n / 2;
+        int radius_lower = static_cast<int>((lrn_n - 1) / 2);
+        int radius_upper = static_cast<int>(lrn_n / 2);
 
         if(mode == miopenLRNWithinChannel)
         {
@@ -186,7 +185,6 @@ struct verify_lrn_bwd
             auto cache_ratio_value = 2 * alpha * beta / adjust_area;
 
             par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
-
                 int left   = w < radius_upper ? 0 : (w - radius_upper);
                 int right  = (w + radius_lower + 1) > width ? width : (w + radius_lower + 1);
                 int top    = h < radius_upper ? 0 : (h - radius_upper);
@@ -287,9 +285,12 @@ struct lrn_driver : test_driver
 
     lrn_driver()
     {
-        add(input,
-            "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+        auto gen_value = [](auto... is) {
+            return tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+                   tensor_elem_gen_checkboard_sign{}(is...);
+        };
+
+        add(input, "input", get_input_tensor(gen_value));
         add(n, "N", generate_data({1, 4, 5}));
         add(alpha, "alpha", generate_data({double(1)}));
         add(beta, "beta", generate_data({double(1)}));

@@ -62,7 +62,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
 namespace debug {
 
-bool LoggingQuiet = false;
+bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
@@ -102,6 +102,7 @@ inline int GetProcessAndThreadId()
 
 inline float GetTimeDiff()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto prev = std::chrono::steady_clock::now();
     auto now         = std::chrono::steady_clock::now();
     auto rv =
@@ -192,7 +193,7 @@ std::string LoggingPrefix()
 /// Expected to be invoked with __func__ and __PRETTY_FUNCTION__.
 std::string LoggingParseFunction(const char* func, const char* pretty_func)
 {
-    const std::string fname{func};
+    std::string fname{func};
     if(fname != "operator()")
         return fname;
     // lambda

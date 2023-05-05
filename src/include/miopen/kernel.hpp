@@ -34,7 +34,9 @@
 namespace miopen {
 std::string GetKernelSrc(std::string name);
 std::string GetKernelInc(std::string key);
+const std::string* GetKernelIncPtr(std::string key);
 std::vector<std::string> GetKernelIncList();
+std::vector<std::string> GetHipKernelIncList();
 } // namespace miopen
 
 #if MIOPEN_BACKEND_OPENCL

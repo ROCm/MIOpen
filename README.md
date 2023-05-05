@@ -5,23 +5,48 @@ Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/R
 The latest released documentation can be read online [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/index.html).
 
 MIOpen supports two programming models - 
-1. OpenCL 
-2. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
+1. [HIP](https://github.com/ROCm-Developer-Tools/HIP) (Primary Support).
+2. OpenCL.
+
+## Documentation
+
+For a detailed description of the **MIOpen** library see the [Documentation](https://rocmdocs.amd.com/projects/MIOpen/en/latest/).
+
+### How to build documentation
+
+Run the steps below to build documentation locally.
+
+```
+cd docs
+
+pip3 install -r .sphinx/requirements.txt
+
+python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
+```
 
 ## Prerequisites
-* A ROCm enabled platform, more info [here](https://rocm.github.io/install.html)
-* Base software stack, which includes
-  * OpenCL - OpenCL libraries and header files
-  * HIP - 
-    * HIP and HCC libraries and header files
-    * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
-* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`.
-* ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
-* [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [Boost](http://www.boost.org/) at least version 1.58
-  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
-* [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) Minimum version branch [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
 
+* More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
+* A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
+* Base software stack, which includes:
+  * HIP - 
+    * HIP and HCC libraries and header files.
+  * OpenCL - OpenCL libraries and header files.
+* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
+  * This is optional on the HIP backend, and required on the OpenCL backend.
+  * Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`, which is enabled by default when OpenCL backend is chosen.
+* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
+* [Boost](http://www.boost.org/) 
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
+  * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
+* [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
+* [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) - users can enable this library using the cmake configuration flag`-DMIOPEN_USE_MIOPENTENSILE=On`. (deprecated after ROCm 5.1.1)
+* [rocBLAS](https://github.com/ROCmSoftwarePlatform/rocBLAS) - AMD library for Basic Linear Algebra Subprograms (BLAS) on the ROCm platform.
+  * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
+  * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
+* [MLIR](https://github.com/ROCmSoftwarePlatform/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
+* [Composable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
 
@@ -35,41 +60,47 @@ Currently both the backends cannot be installed on the same system simultaneousl
 
 ## Installing MIOpen kernels package
 
-MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. To install the kernels package for your GPU architecture, use the following command:
+MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
+
+Note that all compiled kernels are locally cached in the folder `$HOME/.cache/miopen/`, so precompiled kernels reduce the startup latency only for the first execution of a neural network. Precompiled kernels do not reduce startup time on subsequent runs.
+
+To install the kernels package for your GPU architecture, use the following command:
 
 ```
-apt-get install miopen-kernels-<arch>-<num cu>
+apt-get install miopenkernels-<arch>-<num cu>
 ```
 
-Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
+Where `<arch>` is the GPU architecture ( for example, `gfx900`, `gfx906`, `gfx1030` ) and `<num cu>` is the number of CUs available in the GPU (for example 56 or 64 etc). 
 
 Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.
 
+The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as: 
+
+```
+./utils/install_precompiled_kernels.sh
+```
+
+The above script depends on the __rocminfo__ package to query the GPU architecture.
+
+More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
 
 ## Installing the dependencies
 
 The dependencies can be installed with the `install_deps.cmake`, script: `cmake -P install_deps.cmake`
 
-
 This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
 ```
-cmake -P install_deps.cmake --prefix /some/local/dir
+cmake -P install_deps.cmake --prefix <miopen-dependency-path>
+```
+An example cmake step can be:
+```
+cmake -P install_deps.cmake --minimum --prefix /root/MIOpen/install_dir
 ```
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
-MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can install rocBlas minimum release by using `apt-get install rocblas`. To disable using rocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
+* MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can install rocBLAS minimum release by using `apt-get install rocblas`. To disable using rocBLAS set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is *not* available for the OpenCL backend.
 
-
-## Installing minimum dependencies in ROCm environment
-
-Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
-
-```
-cmake -P install_deps.cmake --minimum --prefix /some/local/dir
-```
-
-This will build the Boost and half libraries.
-
+* MIOpen's OpenCL backend uses [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) by default. Users can install MIOpenGEMM minimum release by using `apt-get install miopengemm`.
 
 ## Building MIOpen from source
 
@@ -82,6 +113,21 @@ mkdir build; cd build;
 ```
 
 Next configure cmake. The preferred backend for MIOpen can be set using the `-DMIOPEN_BACKEND` cmake variable. 
+
+### For the HIP backend (ROCm 3.5 and later), run:
+Set the C++ compiler to `clang++`.
+```
+export CXX=<location-of-clang++-compiler>
+cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-installed-path>;<miopen-dependency-path>" ..
+```
+
+An example cmake step can be:
+```
+export CXX=/opt/rocm/llvm/bin/clang++ && \
+cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
+```
+
+Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
 
 ### For OpenCL, run:
 
@@ -97,41 +143,8 @@ cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=<hip-compiler-path> -DOPENCL
 
 And an example setting the dependency path for an envirnment in ROCm 3.5 and later:
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH=/some/local/dir ..
+cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH="/opt/rocm/;/opt/rocm/hip;/root/MIOpen/install_dir" ..
 ```
-
-For ROCm 3.3 and earlier:
-```
-cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/some/local/dir ..
-```
-
-### For the HIP backend on ROCm 3.3 and earlier, run:
-
-Set the C++ compiler to `hcc`.
-```
-export CXX=<location-of-hcc-compiler>
-cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>;<miopen-dependency-path>" ..
-```
-
-An example cmake step can be:
-```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir" ..
-```
-
-### For the HIP backend on ROCm 3.5 and later, run:
-Set the C++ compiler to `clang++`.
-```
-export CXX=<location-of-clang++-compiler>
-cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<rocm-installed-path>;<miopen-dependency-path>" ..
-```
-
-An example cmake step can be:
-```
-CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/some/local/dir" ..
-```
-
-Note: When specifying the path for the `CMAKE_PREFIX_PATH` variable, **do not** use the `~` shorthand for the user home directory.
-
 ### Setting Up Locations
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
@@ -208,39 +221,52 @@ cmake --build . --config Release --target test_tensor
 ./bin/test_tensor
 ```
 
-## Building the documentation
-
-HTML and PDF documentation can be built using:
-
-`cmake --build . --config Release --target doc` **OR** `make doc`
-
-This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.
-
-Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately.
-
-HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme).
-
-Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:
-
-```
-pip install -r ./requirements.txt
-```
-
-
-Depending on your setup `sudo` may be required for the pip install.
-
 ## Formatting the code
 
 All the code is formatted using clang-format. To format a file, use:
 
 ```
-clang-format-3.8 -style=file -i <path-to-source-file>
+clang-format-10 -style=file -i <path-to-source-file>
 ```
 
 Also, githooks can be installed to format the code per-commit:
 
 ```
 ./.githooks/install
+```
+
+## Storing large file using Git LFS
+
+Git Large File Storage (LFS) replaces large files such as audio samples, videos, datasets, and graphics with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use git LFS to store the large files, such as the kernel database files (*.kdb) which are normally > 0.5GB. Steps:
+
+Git LFS can be installed and set up by:
+
+```
+sudo apt install git-lfs
+git lfs install
+```
+
+In the Git repository that you want to use Git LFS, track the file type that you's like by (if the file type has been tracked, this step can be skipped):
+
+```
+git lfs track "*.file_type"
+git add .gitattributes
+```
+
+Pull all or a single large file that you would like to update by:
+
+```
+git lfs pull --exclude=
+or
+git lfs pull --exclude= --include "filename"
+```
+
+Update the large files and push to the github by:
+
+```
+git add my_large_files
+git commit -m "the message"
+git push
 ```
 
 ## Installing the dependencies manually
@@ -260,7 +286,6 @@ however, this is not recommended.
 
 The `half` header needs to be installed from [here](http://half.sourceforge.net/). 
 
-
 ## Using docker
 
 The easiest way is to use docker. You can build the top-level docker file:
@@ -277,10 +302,8 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 
 ## Citing MIOpen
 
-
-MIOpen's paper can be accessed on arXiv:  
+MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
-
 
 ### Citation BibTeX
 ```
@@ -294,3 +317,8 @@ MIOpen's paper can be accessed on arXiv:
 }
 ```
 
+## Porting from cuDNN to MIOpen
+
+The [porting
+guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
+highlights the key differences between the current cuDNN and MIOpen APIs.

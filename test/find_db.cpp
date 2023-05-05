@@ -29,15 +29,32 @@
 #include "get_handle.hpp"
 
 #include <miopen/convolution.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/temp_file.hpp>
+#include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
 #include <cstdlib>
 #include <functional>
 
 namespace miopen {
+
+struct TestRordbEmbedFsOverrideLock
+{
+    TestRordbEmbedFsOverrideLock() : cached(debug::rordb_embed_fs_override())
+    {
+        debug::rordb_embed_fs_override() = true;
+    }
+
+    ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
+
+private:
+    bool cached;
+};
+
 static auto Duration(const std::function<void()>& func)
 {
     const auto start = std::chrono::steady_clock::now();
@@ -54,14 +71,15 @@ struct FindDbTest : test_driver
     Allocator::ManageDataPtr x_dev;
     Allocator::ManageDataPtr w_dev;
     Allocator::ManageDataPtr y_dev;
-    // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
+    // --input 100,25,32,32 --weights 300,25,3,3 --filter 0,0,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
-        2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
+        2, miopenConvolution, miopenPaddingDefault, {0, 0}, {1, 1}, {1, 1}};
 
     FindDbTest()
     {
-        x = {16, 192, 28, 28};
-        w = {32, 192, 5, 5};
+        filter.findMode.Set(FindMode::Values::Hybrid);
+        x = {100, 25, 32, 32};
+        w = {300, 25, 3, 3};
         y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
     }
 
@@ -72,19 +90,23 @@ struct FindDbTest : test_driver
         y_dev = handle.Write(y.data);
 
         const TempFile temp_file{"miopen.test.find_db"};
-        testing_find_db_path_override() = temp_file;
+        debug::testing_find_db_path_override() = temp_file;
+        TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
         TestForward();
         TestBwdData();
         TestWeights();
     }
 
-    private:
+private:
     void TestBwdData()
     {
         MIOPEN_LOG_I("Starting backward find-db test.");
 
-        auto workspace_size = filter.BackwardDataGetWorkSpaceSize(handle, w.desc, y.desc, x.desc);
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -115,7 +137,10 @@ struct FindDbTest : test_driver
     {
         std::cout << "Starting forward find-db test." << std::endl;
 
-        auto workspace_size = filter.ForwardGetWorkSpaceSize(handle, w.desc, x.desc, y.desc);
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -146,8 +171,10 @@ struct FindDbTest : test_driver
     {
         MIOPEN_LOG_I("Starting wrw find-db test.");
 
-        auto workspace_size =
-            filter.BackwardWeightsGetWorkSpaceSize(handle, y.desc, x.desc, w.desc);
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = conv::ProblemDescription{
+            y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -180,29 +207,33 @@ struct FindDbTest : test_driver
 
         const auto time0   = Duration(func);
         const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
-        MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
+        MIOPEN_LOG_I(
+            "Find(), 1st call (populating kcache in RAM, updating find-db): " << time0ms.count());
 
-        testing_find_db_enabled = false;
-        const auto time1        = Duration(func);
-        const auto time1ms      = std::chrono::duration_cast<mSeconds>(time1);
+        debug::testing_find_db_enabled = false;
+        const auto time1               = Duration(func);
+        const auto time1ms             = std::chrono::duration_cast<mSeconds>(time1);
         MIOPEN_LOG_I("Find(), find-db disabled: " << time1ms.count());
 
-        testing_find_db_enabled = true;
-        const auto time2        = Duration(func);
-        const auto time2ms      = std::chrono::duration_cast<mSeconds>(time2);
+        debug::testing_find_db_enabled = true;
+        const auto time2               = Duration(func);
+        const auto time2ms             = std::chrono::duration_cast<mSeconds>(time2);
         MIOPEN_LOG_I("Find(), find-db enabled: " << time2ms.count());
 
         const auto find_db_speedup = time1ms / time2ms;
         MIOPEN_LOG_I("Speedup: " << find_db_speedup);
-
-        EXPECT_OP(find_db_speedup, >=, 3);
+#if !MIOPEN_DISABLE_USERDB
+        double limit = 3.0;
+        EXPECT_OP(find_db_speedup, >=, limit);
+#endif
     }
 };
 } // namespace miopen
 
 int main(int argc, const char* argv[])
 {
-    setenv("MIOPEN_LOG_LEVEL", "6", 1);
-    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);
+    setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
+    setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
     test_drive<miopen::FindDbTest>(argc, argv);
 }

@@ -427,7 +427,7 @@ void FwdPassWE(uint batch,
 #ifdef CFF_BACKWARD
         (*R4).x = bufIn[inOffset + (me * 25 * CFF_NFILTER + 24)];
 #else
-        (*R4).x                             = bufIn[inOffset + (me * 25)];
+        (*R4).x = bufIn[inOffset + (me * 25)];
 #endif
 
         ldsf[me * 168 + 56] = (*R4).x;
@@ -1774,7 +1774,7 @@ void FwdPassWE(uint batch,
     inOffset = ((batch * 4 + (me / 32)) % CFF_CHANNELS) * 25 * CFF_NFILTER +
                ((batch * 4 + (me / 32)) / CFF_CHANNELS) * 25;
 #else
-    inOffset                                = batch * 25 * 4 + (me / 32) * 25;
+    inOffset = batch * 25 * 4 + (me / 32) * 25;
 #endif
 
     (*R0) = (float2)(0, 0);
@@ -3269,7 +3269,7 @@ MIOpenConvFFT_transpose_in(__global float2* restrict gb)
 __kernel __attribute__((reqd_work_group_size(256, 1, 1))) void
 MIOpenConvFFT_transpose_in(__global float2* restrict gb)
 {
-    uint me    = get_local_id(0);
+    uint me = get_local_id(0);
     uint batch = get_group_id(0);
 
     __local float2 lds[1024];
@@ -3287,12 +3287,12 @@ MIOpenConvFFT_transpose_in(__global float2* restrict gb)
     iOffset = bm * 32 + bd * 544 * 32;
     oOffset = CFF_HALFW + bm * (CFF_CHANNELS * CFF_BATCH + 64) * 32 + bd * 32;
 
-    lwbIn  = gb + iOffset;
+    lwbIn = gb + iOffset;
     lwbOut = gb + oOffset;
 
     for(uint t = 0; t < 4; t++)
     {
-        R0                                      = lwbIn[(me % 32) + (me / 32) * 544 + t * 8 * 544];
+        R0 = lwbIn[(me % 32) + (me / 32) * 544 + t * 8 * 544];
         lds[(me % 32) * 32 + (me / 32) + t * 8] = R0;
     }
 
@@ -3349,7 +3349,7 @@ MIOpenConvFFT_transpose_we(__global float2* restrict gb)
 __kernel __attribute__((reqd_work_group_size(256, 1, 1))) void
 MIOpenConvFFT_transpose_we(__global float2* restrict gb)
 {
-    uint me    = get_local_id(0);
+    uint me = get_local_id(0);
     uint batch = get_group_id(0);
 
     __local float2 lds[1024];
@@ -3368,12 +3368,12 @@ MIOpenConvFFT_transpose_we(__global float2* restrict gb)
     oOffset = CFF_HALFW + 544 * (CFF_CHANNELS * CFF_BATCH + 64) +
               bm * (CFF_CHANNELS * CFF_NFILTER + 64) * 32 + bd * 32;
 
-    lwbIn  = gb + iOffset;
+    lwbIn = gb + iOffset;
     lwbOut = gb + oOffset;
 
     for(uint t = 0; t < 4; t++)
     {
-        R0                                      = lwbIn[(me % 32) + (me / 32) * 544 + t * 8 * 544];
+        R0 = lwbIn[(me % 32) + (me / 32) * 544 + t * 8 * 544];
         lds[(me % 32) * 32 + (me / 32) + t * 8] = R0;
     }
 
@@ -3429,7 +3429,7 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
 __kernel __attribute__((reqd_work_group_size(256, 1, 1))) void
 MIOpenConvFFT_transpose_out(__global float2* restrict gb)
 {
-    uint me    = get_local_id(0);
+    uint me = get_local_id(0);
     uint batch = get_group_id(0);
 
     __local float2 lds[1024];
@@ -3447,7 +3447,7 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
     iOffset = bm * (CFF_NFILTER * CFF_BATCH + 64) * 32 + bd * 32;
     oOffset = CFF_HALFW + bm * 32 + bd * 544 * 32;
 
-    lwbIn  = gb + iOffset;
+    lwbIn = gb + iOffset;
     lwbOut = gb + oOffset;
 
     for(uint t = 0; t < 4; t++)
@@ -3461,7 +3461,7 @@ MIOpenConvFFT_transpose_out(__global float2* restrict gb)
 
     for(uint t = 0; t < 4; t++)
     {
-        R0                                                = lds[me + t * 256];
+        R0 = lds[me + t * 256];
         lwbOut[(me % 32) + (me / 32) * 544 + t * 8 * 544] = R0;
     }
 }
@@ -4820,7 +4820,7 @@ MIOpenConvFFT_cgemm(__global float2* gb,
     /* SplitU Reduction                    */
     /***************************************/
     barrier(CLK_LOCAL_MEM_FENCE);
-    __local VECTOR_TYPE* ldsSplitU = (__local VECTOR_TYPE*)(lds);
+    __local VECTOR_TYPE* ldsSplitU                 = (__local VECTOR_TYPE*)(lds);
     ldsSplitU[lr0I + 0 * SG0I +
               (MT0I / VECTOR_WIDTH) * (lr1J * VECTOR_WIDTH + 0 + SG1J * VECTOR_WIDTH * 0) +
               (MT0I * MT1J / VECTOR_WIDTH) * sgId] = rC[0 + 0 * (TT0I / VECTOR_WIDTH) + 0 * TT0I];
@@ -5445,7 +5445,7 @@ MIOpenConvFFT_cgemm(__global float2* gb,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     /* SplitU: local write */
-    __local VECTOR_TYPE* localSplitU = (__local VECTOR_TYPE*)(localMemory);
+    __local VECTOR_TYPE* localSplitU                 = (__local VECTOR_TYPE*)(localMemory);
     localSplitU[lr0I + 0 * SG0I +
                 (MT0I / VECTOR_WIDTH) * (lr1J * VECTOR_WIDTH + 0 + SG1J * VECTOR_WIDTH * 0) +
                 (MT0I * MT1J / VECTOR_WIDTH) * sgId] = rC[0 + 0 * (TT0I / VECTOR_WIDTH) + 0 * TT0I];

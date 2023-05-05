@@ -68,16 +68,22 @@ namespace miopen {
 /// All operations are MP- and MT-safe.
 class DbRecord
 {
-    public:
+public:
     template <class TValue>
-    class Iterator : public std::iterator<std::input_iterator_tag, std::pair<std::string, TValue>>
+    class Iterator
     {
         friend class DbRecord;
 
         using Container     = std::unordered_map<std::string, std::string>;
         using InnerIterator = Container::const_iterator;
 
-        public:
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = std::pair<std::string, TValue>;
+        using difference_type   = std::size_t;
+        using pointer           = std::pair<std::string, TValue>*;
+        using reference         = std::pair<std::string, TValue>&;
+
         using Value = std::pair<std::string, TValue>;
 
         Value operator*() const
@@ -115,7 +121,7 @@ class DbRecord
         bool operator==(const Iterator& other) const { return it == other.it; }
         bool operator!=(const Iterator& other) const { return it != other.it; }
 
-        private:
+    private:
         InnerIterator it;
         const Container* container;
         Value value;
@@ -139,18 +145,18 @@ class DbRecord
     template <class TValue>
     class IterationHelper
     {
-        public:
+    public:
         Iterator<TValue> begin() const { return {record.map.begin(), &record.map}; }
         Iterator<TValue> end() const { return {record.map.end(), &record.map}; }
 
-        private:
+    private:
         IterationHelper(const DbRecord& record_) : record(record_) {}
 
         const DbRecord& record;
         friend class DbRecord;
     };
 
-    private:
+private:
     std::string key;
     std::unordered_map<std::string, std::string> map;
 
@@ -166,6 +172,7 @@ class DbRecord
 
     bool ParseContents(std::istream& contents);
     void WriteContents(std::ostream& stream) const;
+    void WriteIdsAndValues(std::ostream& stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 
@@ -177,7 +184,7 @@ class DbRecord
         return ParseContents(ss);
     }
 
-    public:
+public:
     DbRecord() : key(""){};
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.
@@ -242,6 +249,7 @@ class DbRecord
     friend class PlainTextDb;
     friend class SQLitePerfDb;
     friend class ReadonlyRamDb;
+    friend class RamDb;
 };
 
 } // namespace miopen

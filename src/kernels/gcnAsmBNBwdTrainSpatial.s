@@ -82,7 +82,8 @@ fmamix_instructions_available = 0
     .SGPR_ALLOC stmp8 //19
     .SGPR_ALLOC stmp9 //20
     .SGPR_ALLOC stmp10 //21
-    .SGPR_RESERVE_XNACK
+    //xnack disabled by default
+    //.SGPR_RESERVE_XNACK
     .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0

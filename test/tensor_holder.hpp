@@ -34,6 +34,8 @@
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
 
+#include "serialize.hpp"
+
 #include <half.hpp>
 #include <iomanip>
 #include <fstream>
@@ -43,33 +45,27 @@ void visit_tensor_size(std::size_t n, F f)
 {
     switch(n)
     {
-    case 0:
-    {
+    case 0: {
         f(std::integral_constant<std::size_t, 0>{});
         break;
     }
-    case 1:
-    {
+    case 1: {
         f(std::integral_constant<std::size_t, 1>{});
         break;
     }
-    case 2:
-    {
+    case 2: {
         f(std::integral_constant<std::size_t, 2>{});
         break;
     }
-    case 3:
-    {
+    case 3: {
         f(std::integral_constant<std::size_t, 3>{});
         break;
     }
-    case 4:
-    {
+    case 4: {
         f(std::integral_constant<std::size_t, 4>{});
         break;
     }
-    case 5:
-    {
+    case 5: {
         f(std::integral_constant<std::size_t, 5>{});
         break;
     }
@@ -82,6 +78,11 @@ struct miopen_type;
 
 template <>
 struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat>
+{
+};
+
+template <>
+struct miopen_type<double> : std::integral_constant<miopenDataType_t, miopenDouble>
 {
 };
 
@@ -110,22 +111,57 @@ struct tensor
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() : desc(miopen_type<T>{}, {}) {}
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+    tensor() : desc(miopen_type<T>{}) {}
+
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
 
     template <class X>
-    tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSize())
+    tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
     {
     }
 
     template <class X>
     tensor(const std::vector<X>& dims, const std::vector<X>& strides)
-        : desc(miopen_type<T>{}, dims, strides), data(desc.GetElementSize())
+        : desc(miopen_type<T>{}, dims, strides), data(desc.GetElementSpace())
+    {
+        assert(dims.size() == strides.size());
+    }
+
+    template <class X>
+    tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
+        : desc(t, layout, dims), data(desc.GetElementSpace())
+    {
+    }
+
+    template <class X>
+    tensor(miopenDataType_t t,
+           miopenTensorLayout_t layout,
+           const std::vector<X>& dims,
+           const std::vector<X>& strides)
+        : desc(t, layout, dims, strides), data(desc.GetElementSpace())
     {
         assert(dims.size() == strides.size());
     }
 
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
         : desc(miopen_type<T>{}, {n, c, h, w}), data(n * c * h * w)
+    {
+    }
+
+    tensor(miopenDataType_t t,
+           miopenTensorLayout_t layout,
+           std::size_t n,
+           std::size_t c,
+           std::size_t h,
+           std::size_t w)
+        : desc(t, layout, {n, c, h, w}), data(desc.GetElementSpace())
     {
     }
 
@@ -138,23 +174,29 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(rhs.GetType() == miopen_type<T>{} ||
+        assert(desc.GetType() == miopen_type<T>{} ||
                ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                rhs.GetType() == miopenFloat));
+                (desc.GetType() == miopenFloat || desc.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
     template <class G>
     tensor& generate(G g) &
     {
-        this->generate_impl(g);
+        if(this->desc.GetVectorLength() > 1)
+            this->generate_vect_impl(g);
+        else
+            this->generate_impl(g);
         return *this;
     }
 
     template <class G>
     tensor&& generate(G g) &&
     {
-        this->generate_impl(g);
+        if(this->desc.GetVectorLength() > 1)
+            this->generate_vect_impl(g);
+        else
+            this->generate_impl(g);
         return std::move(*this);
     }
 
@@ -173,9 +215,36 @@ struct tensor
         std::srand(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
-            assert(iterator < data.end());
             *iterator = x;
             ++iterator;
+        };
+        this->for_each(
+            miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
+    }
+
+    template <class G>
+    void generate_vect_impl(G g)
+    {
+        auto seed = std::accumulate(desc.GetLengths().begin(),
+                                    desc.GetLengths().end(),
+                                    std::size_t{521288629},
+                                    [](auto x, auto y) {
+                                        x ^= x << 1U;
+                                        return x ^ y;
+                                    });
+        seed ^= data.size();
+        seed ^= desc.GetLengths().size();
+        std::srand(seed);
+        auto iterator     = data.begin();
+        auto vectorLength = desc.GetVectorLength();
+        auto assign       = [&](T x) {
+            assert(iterator < data.end());
+            // for debugging
+            for(auto i = 0; i < vectorLength; i++)
+            {
+                *(iterator + i) = x;
+            }
+            iterator += vectorLength;
         };
         this->for_each(
             miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
@@ -333,8 +402,7 @@ template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
-    return tensor<T>{
-        miopen::TensorDescriptor{miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 }
 
 template <class T, class X, class G>
@@ -445,5 +513,22 @@ void generate_unary_one(F f, std::vector<int> input, G g)
 {
     f(make_tensor<T>(input, g));
 }
+
+struct tensor_elem_gen_integer
+{
+    unsigned long max_value = 17;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        static_assert(sizeof...(Ts) < 6,
+                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
+        assert(max_value > 0);
+        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
+        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
+        return static_cast<double>(dot % max_value);
+    }
+};
 
 #endif

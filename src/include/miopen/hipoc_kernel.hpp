@@ -56,7 +56,8 @@ struct KernelArgsPair
     static const int second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
-        new(buffer) T(x);
+
+        new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
     char buffer[second_index + sizeof(U)] = {};
@@ -118,8 +119,8 @@ struct KernelArgs
 
 struct HIPOCKernelInvoke
 {
-    hipStream_t stream = nullptr;
-    hipFunction_t fun  = nullptr;
+    hipStream_t stream          = nullptr;
+    hipFunction_t fun           = nullptr;
     std::array<size_t, 3> ldims = {};
     std::array<size_t, 3> gdims = {};
     std::string name;
@@ -179,6 +180,7 @@ struct HIPOCKernel
     hipFunction_t fun = nullptr;
 
     HIPOCKernel() {}
+    HIPOCKernel(HIPOCProgram p, const std::string kernel_name) : program(p), name(kernel_name) {}
     HIPOCKernel(HIPOCProgram p,
                 const std::string kernel_name,
                 std::vector<size_t> local_dims,
@@ -197,11 +199,11 @@ struct HIPOCKernel
         if(hipSuccess != status)
             MIOPEN_THROW_HIP_STATUS(status,
                                     "Failed to get function: " + kernel_module + " from " +
-                                        program.GetBinary().string());
+                                        program.GetCodeObjectPathname().string());
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,
-                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr);
+                             std::function<void(hipEvent_t, hipEvent_t)> callback = nullptr) const;
 };
 
 } // namespace miopen

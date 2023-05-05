@@ -36,9 +36,7 @@ namespace miopen {
 
 void SystemCmd(std::string cmd)
 {
-#ifndef NDEBUG
-    MIOPEN_LOG_I(cmd);
-#endif
+    MIOPEN_LOG_I2(cmd);
 // We shouldn't call system commands
 #ifdef MIOPEN_USE_CLANG_TIDY
     (void)cmd;
@@ -55,7 +53,14 @@ TmpDir::TmpDir(std::string prefix)
     boost::filesystem::create_directories(this->path);
 }
 
-void TmpDir::Execute(std::string exe, std::string args)
+TmpDir& TmpDir::operator=(TmpDir&& other) noexcept
+{
+    this->path = other.path;
+    other.path = "";
+    return *this;
+}
+
+void TmpDir::Execute(std::string exe, std::string args) const
 {
     if(miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
     {
@@ -70,7 +75,8 @@ TmpDir::~TmpDir()
 {
     if(!miopen::IsEnabled(MIOPEN_DEBUG_SAVE_TEMP_DIR{}))
     {
-        boost::filesystem::remove_all(this->path);
+        if(!this->path.empty())
+            boost::filesystem::remove_all(this->path);
     }
 }
 

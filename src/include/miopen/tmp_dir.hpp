@@ -16,7 +16,10 @@ struct TmpDir
     TmpDir(TmpDir const&) = delete;
     TmpDir& operator=(TmpDir const&) = delete;
 
-    void Execute(std::string exe, std::string args);
+    TmpDir(TmpDir&& other) noexcept { (*this) = std::move(other); }
+    TmpDir& operator=(TmpDir&& other) noexcept;
+
+    void Execute(std::string exe, std::string args) const;
 
     ~TmpDir();
 };

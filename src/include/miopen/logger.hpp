@@ -32,6 +32,7 @@
 #include <iostream>
 #include <sstream>
 #include <type_traits>
+#include <chrono>
 
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
@@ -155,8 +156,17 @@ std::array<T, sizeof...(Ts) + 1> make_array(T x, Ts... xs)
     return {{x, xs...}};
 }
 
+// MSVC's preprocessor and CPPCHECK seem unable
+// to properly handle some complex stuff. We have to disable
+// some debugging features to avoid build errors.
+#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS 0
+#if defined(_MSC_VER) || defined(CPPCHECK)
+#undef WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
+#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS 1
+#endif
+
 #define MIOPEN_LOG_ENUM_EACH(x) std::pair<std::string, decltype(x)>(#x, x)
-#ifdef _MSC_VER
+#if WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
 #define MIOPEN_LOG_ENUM(os, ...) os
 #else
 #define MIOPEN_LOG_ENUM(os, x, ...) \
@@ -198,7 +208,7 @@ namespace debug {
 /// by MIOPEN_LOG_NQ* macros (that ignore this switch).
 ///
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool LoggingQuiet;
+extern bool LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
@@ -217,9 +227,9 @@ template <typename T, typename S>
 struct CArray
 {
     std::vector<T> values;
-    CArray(T* const x, const S& size)
+    CArray(const T* x, S size)
     {
-        if(x != nullptr)
+        if(x != nullptr && size > 0)
             values = {x, x + static_cast<std::size_t>(size)};
     }
 };
@@ -236,7 +246,7 @@ inline void* LogObjImpl(void* x) { return x; }
 
 inline const void* LogObjImpl(const void* x) { return x; }
 
-#ifndef _MSC_VER
+#if !WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
 template <class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
@@ -300,18 +310,23 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #define MIOPEN_GET_FN_NAME() \
     (miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__)) /* NOLINT */
 
-#define MIOPEN_LOG_XQ_(level, disableQuieting, fn_name, ...)                                 \
-    do                                                                                       \
-    {                                                                                        \
-        if(miopen::IsLogging(level, disableQuieting))                                        \
-        {                                                                                    \
-            std::ostringstream miopen_log_ss;                                                \
-            miopen_log_ss << miopen::LoggingPrefix() << LoggingLevelToCString(level) << " [" \
-                          << fn_name << "] " << __VA_ARGS__ << std::endl;                    \
-            std::cerr << miopen_log_ss.str();                                                \
-        }                                                                                    \
+#define MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, category, fn_name, ...)                \
+    do                                                                                      \
+    {                                                                                       \
+        if(miopen::IsLogging(level, disableQuieting))                                       \
+        {                                                                                   \
+            std::ostringstream miopen_log_ss;                                               \
+            miopen_log_ss << miopen::LoggingPrefix() << category << " [" << fn_name << "] " \
+                          << __VA_ARGS__ << std::endl;                                      \
+            std::cerr << miopen_log_ss.str();                                               \
+        }                                                                                   \
     } while(false)
 
+#define MIOPEN_LOG_XQ_(level, disableQuieting, fn_name, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, LoggingLevelToCString(level), fn_name, __VA_ARGS__)
+
+#define MIOPEN_LOG_CUSTOM(level, category, ...) \
+    MIOPEN_LOG_XQ_CUSTOM(level, false, category, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
 #define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
 #define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME(), __VA_ARGS__)
 
@@ -331,16 +346,42 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                      \
-    do                                                                                  \
-    {                                                                                   \
-        std::ostringstream miopen_driver_cmd_ss;                                        \
-        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                    \
-                             << " [" << miopen::LoggingParseFunction(                   \
-                                            __func__, __PRETTY_FUNCTION__) /* NOLINT */ \
-                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;    \
-        std::cerr << miopen_driver_cmd_ss.str();                                        \
+#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
+    do                                                                                         \
+    {                                                                                          \
+        std::ostringstream miopen_driver_cmd_ss;                                               \
+        miopen_driver_cmd_ss << miopen::LoggingPrefix() << "Command"                           \
+                             << " ["                                                           \
+                             << miopen::LoggingParseFunction(__func__,                         \
+                                                             __PRETTY_FUNCTION__) /* NOLINT */ \
+                             << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
+        std::cerr << miopen_driver_cmd_ss.str();                                               \
     } while(false)
+
+#if MIOPEN_LOG_FUNC_TIME_ENABLE
+class LogScopeTime
+{
+public:
+    LogScopeTime(std::string name)
+        : m_name(std::move(name)), m_beg(std::chrono::high_resolution_clock::now())
+    {
+    }
+    ~LogScopeTime()
+    {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end - m_beg);
+        MIOPEN_LOG_I2(m_name << " : " << dur.count() << " us");
+    }
+
+private:
+    std::string m_name;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
+};
+
+#define MIOPEN_LOG_SCOPE_TIME const miopen::LogScopeTime miopen_timer(MIOPEN_GET_FN_NAME())
+#else
+#define MIOPEN_LOG_SCOPE_TIME
+#endif
 
 } // namespace miopen
 

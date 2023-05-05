@@ -39,7 +39,9 @@
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
-#include "miopen/config.h"
+#include "reduce_driver.hpp"
+#include <miopen/config.h>
+#include <miopen/stringutils.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -52,7 +54,7 @@ int main(int argc, char* argv[])
         miopenGetVersion(&major, &minor, &patch);
         std::cout << "MIOpen (version: " << major << "." << minor << "." << patch << ")"
                   << std::endl;
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     // show command
@@ -76,7 +78,7 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "convint8")
     {
-        drv = new ConvDriver<int8_t, float>();
+        drv = new ConvDriver<int8_t, int32_t>();
     }
     else if(base_arg == "CBAInfer")
     {
@@ -165,31 +167,42 @@ int main(int argc, char* argv[])
     {
         drv = new TensorOpDriver<float16, float>();
     }
+    else if(base_arg == "reduce")
+    {
+        drv = new ReduceDriver<float, float>();
+    }
+    else if(base_arg == "reducefp16")
+    {
+        drv = new ReduceDriver<float16, float>();
+    }
+    else if(base_arg == "reducefp64")
+    {
+        drv = new ReduceDriver<double, double>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     drv->AddCmdLineArgs();
     int rc = drv->ParseCmdLineArgs(argc, argv);
     if(rc != 0)
     {
-        std::cout << "ParseCmdLineArgs() failed, rc = " << rc << std::endl;
+        std::cout << "ParseCmdLineArgs() FAILED, rc = " << rc << std::endl;
         return rc;
     }
     drv->GetandSetData();
     rc = drv->AllocateBuffersAndCopy();
     if(rc != 0)
     {
-        std::cout << "AllocateBuffersAndCopy() failed, rc = " << rc << std::endl;
+        std::cout << "AllocateBuffersAndCopy() FAILED, rc = " << rc << std::endl;
         return rc;
     }
 
-    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
-                      ? drv->GetInputFlags().GetValueInt("forw")
-                      : 1;
-    bool bnFwdInVer   = (fargval == 2 && (base_arg == "bnorm"));
+    int fargval =
+        !miopen::StartsWith(base_arg, "CBAInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
+    bool bnFwdInVer   = (fargval == 2 && miopen::StartsWith(base_arg, "bnorm"));
     bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
     int cumulative_rc = 0; // Do not stop running tests in case of errors.
 
@@ -198,7 +211,7 @@ int main(int argc, char* argv[])
         rc = drv->RunForwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-            std::cout << "RunForwardGPU() failed, rc = "
+            std::cout << "RunForwardGPU() FAILED, rc = "
                       << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyForward();
@@ -209,7 +222,7 @@ int main(int argc, char* argv[])
         rc = drv->RunBackwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-            std::cout << "RunBackwardGPU() failed, rc = "
+            std::cout << "RunBackwardGPU() FAILED, rc = "
                       << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyBackward();

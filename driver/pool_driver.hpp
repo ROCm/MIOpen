@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,10 +42,16 @@
 #include <vector>
 #include "random.hpp"
 
+template <typename T>
+void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems);
+
+template <typename T>
+bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName);
+
 template <typename Tgpu, typename Tref, typename Index>
 class PoolDriver_impl : public Driver
 {
-    public:
+public:
     PoolDriver_impl() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -58,28 +64,27 @@ class PoolDriver_impl : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    int GetandSetData() override;
 
     int SetPoolDescriptorFromCmdLineArgs();
 
     std::vector<int> GetOutputTensorLengths();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU(); // Verify implements it
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~PoolDriver_impl()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~PoolDriver_impl() override
     {
 
         miopenDestroyTensorDescriptor(outputTensor);
@@ -88,7 +93,7 @@ class PoolDriver_impl : public Driver
         miopenDestroyPoolingDescriptor(poolDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -118,6 +123,10 @@ class PoolDriver_impl : public Driver
     std::vector<Tref> dinhost;
 
     int spatial_dim;
+
+    std::string in_filename;
+    std::string out_filename;
+    std::string dump_root;
 };
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -137,29 +146,43 @@ int PoolDriver_impl<Tgpu, Tref, Index>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::GetandSetData()
 {
-    spatial_dim             = inflags.GetValueInt("spatial_dim");
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto input  = inflags.GetValueTensor("input");
+    spatial_dim = input.lengths.size() - 2;
 
-    SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(dInputTensor, in_len, data_type);
+    if(input.SetTensordDescriptor(inputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    auto dinput = inflags.GetValueTensor("dinput").FillMissing(input);
+    if(dinput.SetTensordDescriptor(dInputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("dinput") + ".");
+
     SetPoolDescriptorFromCmdLineArgs();
 
-    std::vector<int> out_len = GetOutputTensorLengths();
-    SetTensorNd(outputTensor, out_len, data_type);
-    SetTensorNd(dOutputTensor, out_len, data_type);
+    auto output = inflags.GetValueTensor("output");
+    if(output.lengths.empty())
+        output.lengths = GetOutputTensorLengths();
+    if(output.layout.empty() && output.strides.empty())
+        output.layout = input.layout;
+
+    if(output.SetTensordDescriptor(outputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output") + ".");
+
+    auto doutput = inflags.GetValueTensor("doutput").FillMissing(output);
+    if(doutput.SetTensordDescriptor(dOutputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing doutput tensor: " + inflags.GetValueStr("doutput") + ".");
+
     return (0);
 }
 
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("spatial_dim", 'd', "2", "Pooling spatial dimension (Default-2)", "int");
+    inflags.AddTensorFlag("input", 'W', "100x3x32x32,NCHW");
+    inflags.AddTensorFlag("dinput", 'D', "", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'O', "", "generated from input tensor descriptor");
+    inflags.AddTensorFlag("doutput", 'H', "", "output tensor descriptor");
+
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Pooling (Default=0)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "32", "Input Depth (Default=32)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("win_d", 'Z', "3", "Window Depth (Default=3)", "int");
     inflags.AddInputFlag("win_h", 'y', "3", "Window Height (Default=3)", "int");
     inflags.AddInputFlag("win_w", 'x', "3", "Window Width (Default=3)", "int");
@@ -171,7 +194,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
     inflags.AddInputFlag(
-        "index_position", 'M', "0", "Global index 0, mask index 1 (Default=0)", "int");
+        "index_position", 'M', "0", "Image index 1, mask index 0 (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -188,26 +211,11 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
                          "Index Data Type (miopenIndexUint8, miopenIndexUint16, miopenIndexUint32, "
                          "miopenIndexUint64) (Default=miopenIndexUint8)",
                          "str");
+    inflags.AddInputFlag("in_data", 'j', "", "Input data filename (Default=none)", "str");
+    inflags.AddInputFlag("out_data", 'k', "", "Output data filename for bwd (Default=none)", "str");
+    inflags.AddInputFlag("dump_root", 'l', "", "Directory to dump buffers (Default=none)", "str");
 
     return 0;
-}
-
-template <typename Tgpu, typename Tref, typename Index>
-std::vector<int> PoolDriver_impl<Tgpu, Tref, Index>::GetInputTensorLengthsFromCmdLine()
-{
-    if(spatial_dim != 2 && spatial_dim != 3)
-    {
-        MIOPEN_THROW("Unsupported spatial dimension");
-    }
-
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_d = inflags.GetValueInt("in_d");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_w = inflags.GetValueInt("in_w");
-
-    return spatial_dim == 2 ? std::vector<int>({in_n, in_c, in_h, in_w})
-                            : std::vector<int>({in_n, in_c, in_d, in_h, in_w});
 }
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -241,7 +249,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Pooling Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if((inflags.GetValueStr("pad_mode")) == "same")
@@ -259,7 +267,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Padding Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if((inflags.GetValueStr("index_type")) == "miopenIndexUint8")
@@ -281,8 +289,12 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Index Data Type\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
+
+    in_filename  = inflags.GetValueStr("in_data");
+    out_filename = inflags.GetValueStr("out_data");
+    dump_root    = inflags.GetValueStr("dump_root");
 
     std::initializer_list<int> lens    = {win_d, win_h, win_w};
     std::initializer_list<int> pads    = {pad_d, pad_h, pad_w};
@@ -296,6 +308,11 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
 
     miopen::deref(poolDesc).SetIndexType(index_type);
 
+    miopenSetPoolingWorkSpaceIndexMode(
+        poolDesc,
+        miopenPoolingWorkspaceIndexMode_t(
+            spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position")));
+
     return miopenStatusSuccess;
 }
 
@@ -307,6 +324,40 @@ std::vector<int> PoolDriver_impl<Tgpu, Tref, Index>::GetOutputTensorLengths()
 
     return out_dim;
 }
+
+namespace detail {
+template <typename T>
+T RanGenInput()
+{
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+}
+
+#define FP16IN_NORMAL 1
+#define FP16IN_CONST_SMALLEST_NORMALIZED 0
+#define FP16IN_5VALUES_0_TO_1 0
+#define FP16IN_SPARSE_X 0 // non-zero value defines "sparsity"
+
+template <>
+float16 RanGenInput()
+{
+    using T = float16;
+#if FP16IN_NORMAL
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+#endif
+#if FP16IN_CONST_SMALLEST_NORMALIZED
+    return static_cast<T>(+1.0p-eh) // (6.103515625E-05);
+#endif
+#if FP16IN_5VALUES_0_TO_1
+           const int r = GET_RAND() % 5; // values from 0 to 4
+    return static_cast<T>(r * 0.25);     // { 0.0, 0.25, 0.5, 0.75, 1.0 }
+#endif
+#if FP16IN_SPARSE_X
+    if(GET_RAND() % (FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
+        return static_cast<T>(0.0);
+    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+#endif
+}
+} // namespace detail
 
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
@@ -345,15 +396,27 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
-    for(int i = 0; i < in_sz; i++)
+    if(in_filename.empty() || !readBufferFromFile<Tgpu>(in.data(), in_sz, in_filename.c_str()))
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        for(int i = 0; i < in_sz; i++)
+        {
+            in[i] = detail::RanGenInput<Tgpu>();
+        }
+
+        if(!dump_root.empty())
+            dumpBufferToFile<Tgpu>((dump_root + "/dump_in.bin").c_str(), in.data(), in_sz);
     }
 
-    Tgpu Data_scale = static_cast<Tgpu>(0.001);
-    for(int i = 0; i < out_sz; i++)
+    if(out_filename.empty() || !readBufferFromFile<Tgpu>(dout.data(), out_sz, out_filename.c_str()))
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+        Tgpu Data_scale = static_cast<Tgpu>(0.001);
+        for(int i = 0; i < out_sz; i++)
+        {
+            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+        }
+
+        if(!dump_root.empty())
+            dumpBufferToFile<Tgpu>((dump_root + "/dump_dout.bin").c_str(), dout.data(), out_sz);
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -376,7 +439,6 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 {
-
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingForward(GetHandle(),
@@ -423,6 +485,13 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
     mask_dev->FromGPU(GetStream(), mask.data());
+
+    if(!dump_root.empty())
+    {
+        const auto out_sz = GetTensorSize(outputTensor);
+        dumpBufferToFile<Tgpu>((dump_root + "/dump_out.bin").c_str(), out.data(), out_sz);
+        dumpBufferToFile<Index>((dump_root + "/dump_mask.bin").c_str(), mask.data(), out_sz);
+    }
 
     return miopenStatusSuccess;
 }
@@ -484,6 +553,12 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
+
+    if(!dump_root.empty())
+    {
+        const auto in_sz = GetTensorSize(inputTensor);
+        dumpBufferToFile<Tgpu>((dump_root + "/dump_din.bin").c_str(), din.data(), in_sz);
+    }
 
     return miopenStatusSuccess;
 }
@@ -572,45 +647,39 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
             ? MLO_POOLING_OP_MAX
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
-    const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
-    bool match =
-        mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(pooling_method,
-                                                             pad_d,
-                                                             stride_d,
-                                                             windowDepth,
-                                                             pad_h,
-                                                             stride_h,
-                                                             windowHeight,
-                                                             pad_w,
-                                                             stride_w,
-                                                             windowWidth,
-                                                             nIn,
-                                                             cOut,
-                                                             dIn,
-                                                             hIn,
-                                                             wIn,
-                                                             hInStride,
-                                                             dInStride,
-                                                             cInStride,
-                                                             nInStride,
-                                                             dOut,
-                                                             hOut,
-                                                             wOut,
-                                                             hOutStride,
-                                                             dOutStride,
-                                                             cOutStride,
-                                                             nOutStride,
-                                                             in.data(),
-                                                             out.data(),
-                                                             do_backward,
-                                                             maskhost.data(),
-                                                             mask.data(),
-                                                             tolerance,
-                                                             inflags.GetValueInt("index_position"));
+    const Tref tolerance =          //
+        sizeof(Tgpu) == 8   ? 1e-6  // double
+        : sizeof(Tgpu) == 4 ? 1e-5  // float
+                            : 5e-3; // half
 
-    printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
-                 : "Forward Pooling Verification Failed !!\n");
+    pooling_math_stats stats;
+    bool match = mloPoolingForwardRunHostAndVerify<Tgpu, Tref, Index>(
+        pooling_method,
+        pad_d,
+        stride_d,
+        windowDepth,
+        pad_h,
+        stride_h,
+        windowHeight,
+        pad_w,
+        stride_w,
+        windowWidth,
+        inputTensor,
+        outputTensor,
+        in.data(),
+        out.data(),
+        do_backward,
+        maskhost.data(),
+        mask.data(),
+        tolerance,
+        stats,
+        spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
+    if(match)
+        std::cout << "Forward Pooling Verifies on CPU and GPU (" << stats.max_error << ", "
+                  << stats.max_num_flops_per_res << ')' << std::endl;
+    else
+        std::cout << "Forward Pooling verification FAILED" << std::endl;
     return 0;
 }
 
@@ -711,6 +780,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
             ? MLO_POOLING_OP_MAX
             : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
 
+    pooling_math_stats stats;
     mloPoolingBackwardRunHost<Tgpu, Tref>(pooling_method,
                                           windowDepth,
                                           pad_d,
@@ -721,56 +791,34 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
                                           windowWidth,
                                           pad_w,
                                           stride_w,
+                                          dInputTensor,
+                                          dOutputTensor,
                                           // host output
                                           dinhost.data(),
                                           dout.data(),
                                           maskhost.data(),
-                                          ndInStride,
-                                          cdInStride,
-                                          ddInStride,
-                                          hdInStride,
-                                          wIn,
-                                          hIn,
-                                          dIn,
-                                          cOut,
-                                          nOut,
-                                          ndOutStride,
-                                          cdOutStride,
-                                          ddOutStride,
-                                          hdOutStride,
-                                          wOut,
-                                          hOut,
-                                          dOut);
+                                          stats);
 
-    bool match            = true;
-    const Tref allowedEps = (1 << 2);
-    Tref max_sqr          = 1. / 1000000; // 100000000;
-    Tref max_abs_diff     = 1. / 1000000; // 100000000;
-    bool get_error_pos    = true;
+    float ulps_tolerance = 4;
+    Tref diff_tolerance  = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? static_cast<Tref>(1e-6)
+                                                                    : static_cast<Tref>(5e-3);
+    double rms_tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 5e-3;
 
-    match = mloVerify<Tgpu, Tref>(spatial_dim,
-                                  nIn,
-                                  cIn,
-                                  dIn,
-                                  hIn,
-                                  wIn,
-                                  ndInStride,
-                                  cdInStride,
-                                  ddInStride,
-                                  hdInStride,
-                                  ndInStride,
-                                  cdInStride,
-                                  ddInStride,
-                                  hdInStride,
-                                  dinhost.data(),
-                                  din.data(),
-                                  allowedEps,
-                                  max_abs_diff,
-                                  max_sqr,
-                                  get_error_pos);
+    const auto match = mloVerify<Tgpu, Tref>(dInputTensor,
+                                             dInputTensor,
+                                             dinhost.data(),
+                                             din.data(),
+                                             ulps_tolerance,
+                                             diff_tolerance,
+                                             rms_tolerance,
+                                             true,
+                                             stats.max_error);
 
     if(match)
-        printf("Backward Pooling Verifies on CPU and GPU\n");
+        std::cout << "Backward Pooling Verifies on CPU and GPU";
+    else
+        std::cout << "Backward Pooling verification FAILED";
+    std::cout << " (" << stats.max_error << ", " << stats.max_num_flops_per_res << ')' << std::endl;
 
     return 0;
 }
@@ -778,10 +826,10 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
 template <typename Tgpu, typename Tref>
 class PoolDriver : public Driver
 {
-    public:
+public:
     PoolDriver() : Driver(), pool_driver_impl(nullptr) {}
 
-    int AddCmdLineArgs()
+    int AddCmdLineArgs() override
     {
         pool_driver_impl_uint8.AddCmdLineArgs();
         pool_driver_impl_uint16.AddCmdLineArgs();
@@ -791,7 +839,7 @@ class PoolDriver : public Driver
         return 0;
     }
 
-    int ParseCmdLineArgs(int argc, char* argv[])
+    int ParseCmdLineArgs(int argc, char* argv[]) override
     {
         pool_driver_impl = &pool_driver_impl_uint8;
 
@@ -815,15 +863,15 @@ class PoolDriver : public Driver
         return 0;
     }
 
-    InputFlags& GetInputFlags() { return pool_driver_impl->GetInputFlags(); }
-    int GetandSetData() { return pool_driver_impl->GetandSetData(); }
-    int AllocateBuffersAndCopy() { return pool_driver_impl->AllocateBuffersAndCopy(); }
-    int RunForwardGPU() { return pool_driver_impl->RunForwardGPU(); }
-    int VerifyForward() { return pool_driver_impl->VerifyForward(); }
-    int RunBackwardGPU() { return pool_driver_impl->RunBackwardGPU(); }
-    int VerifyBackward() { return pool_driver_impl->VerifyBackward(); }
+    InputFlags& GetInputFlags() override { return pool_driver_impl->GetInputFlags(); }
+    int GetandSetData() override { return pool_driver_impl->GetandSetData(); }
+    int AllocateBuffersAndCopy() override { return pool_driver_impl->AllocateBuffersAndCopy(); }
+    int RunForwardGPU() override { return pool_driver_impl->RunForwardGPU(); }
+    int VerifyForward() override { return pool_driver_impl->VerifyForward(); }
+    int RunBackwardGPU() override { return pool_driver_impl->RunBackwardGPU(); }
+    int VerifyBackward() override { return pool_driver_impl->VerifyBackward(); }
 
-    private:
+private:
     Driver* pool_driver_impl;
 
     PoolDriver_impl<Tgpu, Tref, uint8_t> pool_driver_impl_uint8;

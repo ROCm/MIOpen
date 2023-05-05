@@ -27,13 +27,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 #ifndef GUARD_TEST_TEST_HPP_
 #define GUARD_TEST_TEST_HPP_
 
 inline void failed(const char* msg, const char* file, int line)
 {
-    std::cout << "FAILED: " << msg << ": " << file << ": " << line << std::endl;
+    auto ss = std::ostringstream{};
+    ss << "FAILED: " << msg << ": " << file << ": " << line << std::endl;
+    std::cout << ss.str();
 }
 
 [[gnu::noreturn]] inline void failed_abort(const char* msg, const char* file, int line)
@@ -55,8 +58,10 @@ inline void expect_op(const TLeft& left,
     if(op(left, right))
         return;
 
-    std::cout << "FAILED: " << left_s << "(" << left << ") " << op_s << " " << riglt_s << "("
-              << right << "): " << file << ':' << line << std::endl;
+    auto ss = std::ostringstream{};
+    ss << "FAILED: " << left_s << "(" << left << ") " << op_s << " " << riglt_s << "(" << right
+       << "): " << file << ':' << line << std::endl;
+    std::cout << ss.str();
     std::abort();
 }
 
@@ -87,8 +92,6 @@ inline void expect_op(const TLeft& left,
               __LINE__)
 #define EXPECT_EQUAL(LEFT, RIGHT) EXPECT_OP(LEFT, ==, RIGHT)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
-
-#define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
 
 template <class F>
 bool throws(F f)

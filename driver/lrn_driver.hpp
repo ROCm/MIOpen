@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref>
 class LRNDriver : public Driver
 {
-    public:
+public:
     LRNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -58,26 +58,26 @@ class LRNDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetLRNDescriptorFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU();
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~LRNDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~LRNDriver() override
     {
 
         miopenDestroyTensorDescriptor(outputTensor);
@@ -86,7 +86,7 @@ class LRNDriver : public Driver
         miopenDestroyLRNDescriptor(lrnDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -131,7 +131,7 @@ int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 #if 0
 	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
 		printf("Cross channel LRN needs do_backward=1\n");
-		exit(0);
+		exit(0); // NOLINT (concurrency-mt-unsafe)
 	}
 #endif
     return 0;
@@ -210,7 +210,7 @@ int LRNDriver<Tgpu, Tref>::SetLRNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect LRN Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     return (miopenSetLRNDescriptor(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK));
@@ -250,6 +250,14 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         scale     = std::vector<Tgpu>(workSpaceNbVal, static_cast<Tgpu>(0));
         scalehost = std::vector<Tref>(workSpaceNbVal, static_cast<Tref>(0));
+        if(inflags.GetValueInt("forw") == 2)
+        {
+            for(int i = 0; i < scale.size(); i++)
+            {
+                scale[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                scalehost[i] = Tref(scale[i]);
+            }
+        }
     }
     din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
@@ -257,7 +265,7 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
 
     Tgpu Data_scale = static_cast<Tgpu>(0.001);
@@ -466,9 +474,10 @@ int LRNDriver<Tgpu, Tref>::VerifyForward()
 
     auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = 1.5e-4; // 1e-6;
-    if(error > tolerance)
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward LRN Failed: " << error << "\n";
+        std::cout << "Forward LRN FAILED: " << error << std::endl;
     }
     else
     {
@@ -561,9 +570,10 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = 6.0e-5;
-    if(error > tolerance)
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward LRN Failed: " << error << "\n";
+        std::cout << "Backward LRN FAILED: " << error << std::endl;
     }
     else
     {

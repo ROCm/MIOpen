@@ -28,7 +28,7 @@
 
 #include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/device_name.hpp>
+#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
@@ -37,6 +37,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/ocldeviceinfo.hpp>
+#include <miopen/timer.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm_geometry.hpp>
@@ -51,196 +52,6 @@
 #endif
 
 namespace miopen {
-
-#ifndef NDEBUG
-void dumpKernel(cl_kernel kern,
-                const std::string& kernel_name,
-                const std::vector<size_t>& vld,
-                const std::vector<size_t>& vgd,
-                const std::string& params)
-{
-    static int dumpOpenCLFileCounter = 0;
-    static std::vector<cl_kernel> kernList;
-    for(auto it = kernList.begin(); it != kernList.end(); it++)
-        if(*it == kern)
-            return;
-    kernList.push_back(kern);
-    std::string work;
-    for(size_t i = 0; i < vgd.size(); i++)
-    {
-        if(i)
-            work += ",";
-        work += std::to_string(vgd[i]);
-    }
-    for(size_t i = 0; i < vld.size(); i++)
-    {
-        work += i ? "," : "/";
-        work += std::to_string(vld[i]);
-    }
-    auto getValueFromParams = [&](const std::string& par, int& value, const char* define) {
-        const char* q = strstr(par.c_str(), define);
-        if(q)
-            value = atoi(q + strlen(define));
-    };
-    int an = 0, ac = 0, ah = 0, aw = 0, ax = 0, ay = 0, ak = 0, ap = 0, aq = 0, au = 1, av = 1,
-        aP = 0, aQ = 0, af = 1;
-    getValueFromParams(params, an, "-D MLO_BATCH_SZ=");
-    getValueFromParams(params, ac, "-D MLO_N_INPUTS=");
-    getValueFromParams(params, ac, "-D MLO_N_IN_CHNLS=");
-    getValueFromParams(params, ah, "-D MLO_IN_HEIGHT=");
-    getValueFromParams(params, aw, "-D MLO_IN_WIDTH=");
-    getValueFromParams(params, ak, "-D MLO_N_OUTPUTS=");
-    getValueFromParams(params, ak, "-D MLO_N_OUT_CHNLS=");
-    getValueFromParams(params, aP, "-D MLO_OUT_HEIGHT=");
-    getValueFromParams(params, aQ, "-D MLO_OUT_WIDTH=");
-    getValueFromParams(params, ay, "-D MLO_FILTER_SIZE1=");
-    getValueFromParams(params, ax, "-D MLO_FILTER_SIZE0=");
-    getValueFromParams(params, ap, "-D MLO_FILTER_PAD1=");
-    getValueFromParams(params, aq, "-D MLO_FILTER_PAD0=");
-    getValueFromParams(params, av, "-D MLO_FILTER_STRIDE1=");
-    getValueFromParams(params, au, "-D MLO_FILTER_STRIDE0=");
-    getValueFromParams(params, ay, "-D MLO_FLTR_SZ1=");
-    getValueFromParams(params, ax, "-D MLO_FLTR_SZ0=");
-    getValueFromParams(params, ap, "-D MLO_FLTR_PAD_SZ1=");
-    getValueFromParams(params, aq, "-D MLO_FLTR_PAD_SZ0=");
-    getValueFromParams(params, av, "-D MLO_FLTR_STRIDE1=");
-    getValueFromParams(params, au, "-D MLO_FLTR_STRIDE0=");
-    getValueFromParams(params, af, "-D MLO_DIR_FORWARD=");
-    int isize = an * ac * ah * aw * 4;
-    int osize = an * ak * aP * aQ * 4;
-    int wsize = ak * ac * ay * ax * 4;
-    if(!isize || !osize || !wsize)
-    {
-        if(params.size() > 0)
-            printf("dumpKernel: can't dump kernel %s missing macros in params: %s\n",
-                   kernel_name.c_str(),
-                   params.c_str());
-        return;
-    }
-    dumpOpenCLFileCounter++;
-    cl_program prog = nullptr;
-    clGetKernelInfo(kern, CL_KERNEL_PROGRAM, sizeof(prog), &prog, nullptr);
-    cl_uint num_arg = 0;
-    clGetKernelInfo(kern, CL_KERNEL_NUM_ARGS, sizeof(num_arg), &num_arg, nullptr);
-    size_t sizeK = 0;
-    clGetProgramInfo(prog, CL_PROGRAM_SOURCE, 0, nullptr, &sizeK);
-    std::vector<char> bufK(sizeK + 1);
-    char* buf   = bufK.data();
-    size_t size = 0;
-    clGetProgramInfo(prog, CL_PROGRAM_SOURCE, sizeK, buf, &size);
-    buf[size] = 0;
-    char fileName[1024];
-    FILE* fp;
-    sprintf(fileName, "dump_%03d_command.txt", dumpOpenCLFileCounter);
-    fp = fopen(fileName, "w");
-    if(!fp)
-    {
-        printf("ERROR: unable to create: %s\n", fileName);
-    }
-    else
-    {
-        if(af)
-        {
-            fprintf(fp,
-                    "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_fwd_in.bin "
-                    "if#%d:dump_fwd_wei.bin of#%d:#intmp.bin#/+1e%d/dump_fwd_out_cpu.bin %s %s -- "
-                    "comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- "
-                    "P %d Q %d",
-                    dumpOpenCLFileCounter,
-                    kernel_name.c_str(),
-                    isize,
-                    wsize,
-                    osize,
-                    -6,
-                    num_arg > 3 ? "iv#0 " : "",
-                    work.c_str(),
-                    an,
-                    ac,
-                    ah,
-                    aw,
-                    ax,
-                    ay,
-                    ak,
-                    ap,
-                    aq,
-                    au,
-                    av,
-                    aP,
-                    aQ);
-        }
-        else
-        {
-            fprintf(fp,
-                    "execkern -bo -cl-std=CL2.0 dump_%03d_kernel.cl -k %s if#%d:dump_bwd_out.bin "
-                    "if#%d:dump_bwd_wei.bin of#%d:#outtmp.bin#/+1e%d/dump_bwd_in_cpu.bin %s %s -- "
-                    "comment -n %d -c %d -H %d -W %d -x %d -y %d -k %d -p %d -q %d -u %d -v %d -- "
-                    "P %d Q %d",
-                    dumpOpenCLFileCounter,
-                    kernel_name.c_str(),
-                    isize,
-                    wsize,
-                    osize,
-                    -9,
-                    num_arg > 3 ? "iv#0 " : "",
-                    work.c_str(),
-                    an,
-                    ac,
-                    ah,
-                    aw,
-                    ax,
-                    ay,
-                    ak,
-                    ap,
-                    aq,
-                    au,
-                    av,
-                    aP,
-                    aQ);
-        }
-        fclose(fp);
-        printf("*** OpenCL kernel %s command dumped into %s with work %s\n",
-               kernel_name.c_str(),
-               fileName,
-               work.c_str());
-    }
-    sprintf(fileName, "dump_%03d_kernel.cl", dumpOpenCLFileCounter);
-    fp = fopen(fileName, "w");
-    if(!fp)
-    {
-        printf("ERROR: unable to create: %s\n", fileName);
-    }
-    else
-    {
-        const char* s = params.c_str();
-        fprintf(fp, "//[compiler-options] %s\n", s);
-        for(const char* t = s; (t = strstr(t, "-D")) != nullptr;)
-        {
-            t += 2;
-            while(*t && (*t == ' ' || *t == '\t'))
-                t++;
-            fprintf(fp, "#define ");
-            while(*t && *t != ' ' && *t != '\t' && *t != '=')
-                fprintf(fp, "%c", *t++);
-            if(*t == '=')
-            {
-                fprintf(fp, " ");
-                t++;
-                while(*t && *t != ' ' && *t != '\t')
-                    fprintf(fp, "%c", *t++);
-            }
-            fprintf(fp, "\n");
-        }
-        for(const char* p = buf; *p; p++)
-            if(*p != '\r')
-                fprintf(fp, "%c", *p);
-        fclose(fp);
-        printf("*** OpenCL kernel %s source dumped into %s with work %s\n",
-               kernel_name.c_str(),
-               fileName,
-               work.c_str());
-    }
-}
-#endif
 
 void* default_allocator(void* context, size_t sz)
 {
@@ -274,6 +85,17 @@ struct HandleImpl
     KernelCache cache;
     bool enable_profiling  = false;
     float profiling_result = 0.0;
+    TargetProperties target_properties;
+
+    std::string get_device_name() const
+    {
+        std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(device);
+        MIOPEN_LOG_NQI("Raw device name: " << name);
+#if WORKAROUND_MLOPEN_ISSUE_1711
+        WorkaroundIssue1711(name);
+#endif
+        return name;
+    }
 
     ContextPtr create_context()
     {
@@ -324,7 +146,7 @@ struct HandleImpl
         }
         return result;
     }
-    ContextPtr create_context_from_queue()
+    ContextPtr create_context_from_queue() const
     {
         // FIXME: hack for all the queues on the same context
         // do we need anything special to handle multiple GPUs
@@ -359,9 +181,22 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
 {
     clRetainCommandQueue(stream);
     impl->queue   = HandleImpl::AqPtr{stream};
+    impl->device  = miopen::GetDevice(impl->queue.get());
     impl->context = impl->create_context_from_queue();
 
     this->SetAllocator(nullptr, nullptr, nullptr);
+    this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
+}
+
+static bool PrintOpenCLDeprecateMsg()
+{
+    MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
+    MIOPEN_LOG_W(
+        "please port your application to the better supported and functional HIP backend. ");
+    MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
+    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    return true;
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -369,8 +204,9 @@ Handle::Handle() : impl(new HandleImpl())
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-
-    impl->context = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),
@@ -409,34 +245,28 @@ Handle::Handle() : impl(new HandleImpl())
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    impl->device  = devices.at(pid % devices.size());
-#endif
-
-#if !MIOPEN_INSTALLABLE
-    // TODO: Store device name in handle
-    std::string deviceName = miopen::GetDeviceInfo<CL_DEVICE_NAME>(impl->device);
-    ParseDevName(deviceName);
-    MIOPEN_LOG_NQI("Device name: " << deviceName);
+    impl->device = devices.at(pid % devices.size());
 #endif
 
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
+#ifdef CL_VERSION_2_0
+    const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+
+    impl->queue = HandleImpl::AqPtr{
+        clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
+#else
+    impl->queue  = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
+        MIOPEN_THROW("Error creating command queue");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
+    this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -452,6 +282,14 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
 
     clRetainCommandQueue(streamID);
     impl->queue = HandleImpl::AqPtr{streamID};
+    this->impl->target_properties.Init(this);
+    MIOPEN_LOG_NQI(*this);
+}
+
+void Handle::SetStreamFromPool(int) const { MIOPEN_THROW("Error streamPool unsupported at OCl"); }
+void Handle::ReserveExtraStreamsInPool(int) const
+{
+    MIOPEN_THROW("Error streamPool unsupported at OCl");
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
@@ -471,10 +309,10 @@ void Handle::SetAllocator(miopenAllocatorFunction allocator,
         allocatorContext == nullptr ? this->impl->context.get() : allocatorContext;
 }
 
-void Handle::EnableProfiling(bool enable) { this->impl->enable_profiling = enable; }
+void Handle::EnableProfiling(bool enable) const { this->impl->enable_profiling = enable; }
 
-void Handle::ResetKernelTime() { this->impl->ResetProfilingResult(); }
-void Handle::AccumKernelTime(float curr_time) { this->impl->AccumProfilingResult(curr_time); }
+void Handle::ResetKernelTime() const { this->impl->ResetProfilingResult(); }
+void Handle::AccumKernelTime(float curr_time) const { this->impl->AccumProfilingResult(curr_time); }
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
@@ -487,7 +325,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& params,
                                std::size_t cache_index,
                                bool is_kernel_str,
-                               const std::string& kernel_src)
+                               const std::string& kernel_src) const
 {
 
     auto obj = this->impl->cache.AddKernel(*this,
@@ -505,7 +343,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels)
+                               const std::vector<solver::KernelInfo>& kernels) const
 {
     std::vector<Kernel> built;
     for(auto& k : kernels)
@@ -525,24 +363,19 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
     return factory(built);
 }
 
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
-}
-
-void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
+void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const
 {
 
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config)
+                                                  const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k)
+KernelInvoke Handle::Run(Kernel k) const
 {
     auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
@@ -561,25 +394,31 @@ KernelInvoke Handle::Run(Kernel k)
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src)
+                            const std::string& kernel_src) const
 {
-    auto hsaco = miopen::LoadBinary(
-        this->GetDeviceName(), this->GetMaxComputeUnits(), program_name, params, is_kernel_str);
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params,
+                                    is_kernel_str);
     if(hsaco.empty())
     {
+        CompileTimer ct;
         auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
                                      miopen::GetDevice(this->GetStream()),
+                                     this->GetTargetProperties(),
                                      program_name,
                                      params,
                                      is_kernel_str,
                                      kernel_src);
+        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::string binary;
         miopen::GetProgramBinary(p, binary);
         miopen::SaveBinary(binary,
-                           this->GetDeviceName(),
+                           this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params,
@@ -588,9 +427,9 @@ Program Handle::LoadProgram(const std::string& program_name,
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
         miopen::SaveBinary(
-            path.string(), this->GetDeviceName(), program_name, params, is_kernel_str);
+            path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-        return std::move(p);
+        return p;
     }
     else
     {
@@ -604,12 +443,19 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params)
+void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+{
+    this->impl->cache.ClearProgram(program_name, params);
+}
+
+bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog, const std::string& program_name, const std::string& params)
+void Handle::AddProgram(Program prog,
+                        const std::string& program_name,
+                        const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
@@ -620,21 +466,23 @@ void Handle::Flush() const { clFlush(this->GetStream()); }
 
 bool Handle::IsProfilingEnabled() const { return this->impl->enable_profiling; }
 
-std::size_t Handle::GetLocalMemorySize()
+std::size_t Handle::GetLocalMemorySize() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_LOCAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetGlobalMemorySize()
+std::size_t Handle::GetGlobalMemorySize() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_GLOBAL_MEM_SIZE>(miopen::GetDevice(this->GetStream()));
 }
 
-std::string Handle::GetDeviceName()
+std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
+
+std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+
+const TargetProperties& Handle::GetTargetProperties() const
 {
-    std::string name = miopen::GetDeviceInfo<CL_DEVICE_NAME>(miopen::GetDevice(this->GetStream()));
-    ParseDevName(name);
-    return GetDeviceNameFromMap(name);
+    return this->impl->target_properties;
 }
 
 std::ostream& Handle::Print(std::ostream& os) const
@@ -651,23 +499,23 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     return m_MaxMemoryAllocSizeCached;
 }
 
-std::size_t Handle::GetMaxComputeUnits()
+std::size_t Handle::GetMaxComputeUnits() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetImage3dMaxWidth()
+std::size_t Handle::GetImage3dMaxWidth() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_IMAGE3D_MAX_WIDTH>(miopen::GetDevice(this->GetStream()));
 }
 
-std::size_t Handle::GetWavefrontWidth()
+std::size_t Handle::GetWavefrontWidth() const
 {
     return miopen::GetDeviceInfo<CL_DEVICE_WAVEFRONT_WIDTH_AMD>(
         miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz)
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -675,7 +523,7 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 }
 
 Allocator::ManageDataPtr&
-Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -688,19 +536,24 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
     return ddata;
 }
 
-void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
+{
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = clEnqueueReadBuffer(
-        this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    auto status =
+        clEnqueueReadBuffer(this->GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));
     }
 }
 
-void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
+void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     this->Finish();
@@ -712,7 +565,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
     }
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size)
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     struct region
@@ -723,6 +576,25 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
     cl_int error = 0;
     auto r       = region{offset, size};
     auto mem = clCreateSubBuffer(data, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &r, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        auto ss = std::ostringstream{};
+        ss << "Failed to allocate a subbuffer from 0x" << std::hex
+           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << r.origin
+           << " and size 0x" << r.size << ". ";
+
+        if(error == CL_MISALIGNED_SUB_BUFFER_OFFSET)
+        {
+            ss << "CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x" << std::hex
+               << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(GetDevice(this->GetStream()))
+               << " bits. ";
+        }
+
+        ss << "OpenCL error:";
+        MIOPEN_THROW_CL_STATUS(error, ss.str());
+    }
+
     return {mem, manage_deleter<decltype(&clReleaseMemObject), &clReleaseMemObject>{}};
 }
 

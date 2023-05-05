@@ -12,10 +12,19 @@ using FilePtr = MIOPEN_MANAGE_PTR(FILE*, std::fclose);
 inline void WriteFile(const std::string& content, const boost::filesystem::path& name)
 {
     // std::cerr << "Write file: " << name << std::endl;
-    FilePtr f{std::fopen(name.string().c_str(), "w")};
+    const FilePtr f{std::fopen(name.string().c_str(), "w")};
     if(std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size())
-        MIOPEN_THROW("Failed to write to src file");
+        MIOPEN_THROW("Failed to write to file");
 }
+
+inline void WriteFile(const std::vector<char>& content, const boost::filesystem::path& name)
+{
+    // std::cerr << "Write file: " << name << std::endl;
+    const FilePtr f{std::fopen(name.string().c_str(), "w")};
+    if(std::fwrite(&content[0], 1, content.size(), f.get()) != content.size())
+        MIOPEN_THROW("Failed to write to file");
+}
+
 } // namespace miopen
 
 #endif

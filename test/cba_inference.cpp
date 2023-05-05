@@ -24,7 +24,10 @@
  *
  *******************************************************************************/
 
+#include "test.hpp"
+#include "driver.hpp"
 #include "fusionHost.hpp"
+#include "random.hpp"
 #include <miopen/stringutils.hpp>
 
 using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlan);
@@ -198,7 +201,7 @@ struct verify_forward_conv_bias_activ
         EXPECT(miopenError == miopenStatusSuccess);
         miopenSetOpArgsConvForward(ptr_fusionargs.get(), convoOp, &alpha, &beta, wei_dev.get());
 
-        if(bias_mode)
+        if(bias_mode != 0)
         {
             miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &biasOp);
             EXPECT(miopenError == miopenStatusSuccess);
@@ -384,7 +387,7 @@ struct cba_fusion_driver : test_driver
                     srand(0);
                     for(std::size_t i = 0; i < bias.desc.GetElementSize(); i++)
                     {
-                        bias[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
+                        bias[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (0.1 * T(GET_RAND() % 100));
                     }
                 }
 
@@ -448,4 +451,10 @@ struct cba_fusion_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<cba_fusion_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    for(auto idx = 0; idx < argc; ++idx)
+        std::cout << argv[idx] << " ";
+    std::cout << std::endl;
+    test_drive<cba_fusion_driver>(argc, argv);
+}

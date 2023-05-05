@@ -26,6 +26,14 @@
 
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/errors.hpp>
+
+#if MIOPEN_EMBED_DB
+#include <miopen_data.hpp>
+#endif
+
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <fstream>
 #include <mutex>
@@ -33,14 +41,23 @@
 #include <map>
 
 namespace miopen {
-ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
-                                        bool warn_if_unreadable,
-                                        const std::string& /*arch*/,
-                                        const std::size_t /*num_cu*/)
-{
-    static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
 
+namespace debug {
+bool& rordb_embed_fs_override()
+{
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static bool data = false;
+    return data;
+}
+} // namespace debug
+
+ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
+{
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static std::mutex mutex;
+    const std::lock_guard<std::mutex> lock{mutex};
+
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = std::map<std::string, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
 
@@ -56,7 +73,7 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path,
     // These will be destroyed altogether with heap.
     auto instance = new ReadonlyRamDb{path};
     instances.emplace(path, instance);
-    instance->Prefetch(path, warn_if_unreadable);
+    instance->Prefetch(warn_if_unreadable);
     return *instance;
 }
 
@@ -69,44 +86,74 @@ static auto Measure(const std::string& funcName, TFunc&& func)
     const auto start = std::chrono::high_resolution_clock::now();
     func();
     const auto end = std::chrono::high_resolution_clock::now();
-    MIOPEN_LOG_I("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
+    MIOPEN_LOG_I("ReadonlyRamDb::" << funcName << " time: " << (end - start).count() * .000001f
+                                   << " ms");
 }
 
-void ReadonlyRamDb::Prefetch(const std::string& path, bool warn_if_unreadable)
+void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable)
 {
-    Measure("Prefetch", [this, &path, warn_if_unreadable]() {
-        auto file = std::ifstream{path};
+    if(!input_stream)
+    {
+        const auto log_level = (warn_if_unreadable && !MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning
+                                                                             : LoggingLevel::Info;
+        MIOPEN_LOG(log_level, "File is unreadable: " << db_path);
+        return;
+    }
 
-        if(!file)
+    auto line   = std::string{};
+    auto n_line = 0;
+
+    while(std::getline(input_stream, line))
+    {
+        ++n_line;
+
+        if(line.empty())
+            continue;
+
+        const auto key_size = line.find('=');
+        const bool is_key   = (key_size != std::string::npos && key_size != 0);
+
+        if(!is_key)
         {
-            const auto log_level = warn_if_unreadable ? LoggingLevel::Warning : LoggingLevel::Info;
-            MIOPEN_LOG(log_level, "File is unreadable: " << path);
-            return;
+            MIOPEN_LOG_E("Ill-formed record: key not found: " << db_path << "#" << n_line);
+            continue;
         }
 
-        auto line   = std::string{};
-        auto n_line = 0;
+        const auto key      = line.substr(0, key_size);
+        const auto contents = line.substr(key_size + 1);
 
-        while(std::getline(file, line))
+        cache.emplace(key, CacheItem{n_line, contents});
+    }
+}
+
+void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
+{
+    Measure("Prefetch", [this, warn_if_unreadable]() {
+        if(db_path.empty())
+            return;
+        constexpr bool isEmbedded = MIOPEN_EMBED_DB;
+        // cppcheck-suppress knownConditionTrueFalse
+        if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
-            ++n_line;
+#if MIOPEN_EMBED_DB
+            boost::filesystem::path filepath(db_path);
+            const auto& it_p = miopen_data().find(filepath.filename().string() + ".o");
+            if(it_p == miopen_data().end())
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Unknown database: " + filepath.filename().string() +
+                                 " in internal filesystem");
 
-            if(line.empty())
-                continue;
-
-            const auto key_size = line.find('=');
-            const bool is_key   = (key_size != std::string::npos && key_size != 0);
-
-            if(!is_key)
-            {
-                MIOPEN_LOG_E("Ill-formed record: key not found: " << path << "#" << n_line);
-                continue;
-            }
-
-            const auto key      = line.substr(0, key_size);
-            const auto contents = line.substr(key_size + 1);
-
-            cache.emplace(key, CacheItem{n_line, contents});
+            const auto& p = it_p->second;
+            ptrdiff_t sz  = p.second - p.first;
+            MIOPEN_LOG_I2("Loading In Memory file: " << filepath);
+            auto input_stream = std::stringstream(std::string(p.first, sz));
+            ParseAndLoadDb(input_stream, warn_if_unreadable);
+#endif
+        }
+        else
+        {
+            auto input_stream = std::ifstream{db_path};
+            ParseAndLoadDb(input_stream, warn_if_unreadable);
         }
     });
 }

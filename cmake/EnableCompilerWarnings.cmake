@@ -65,9 +65,8 @@ else()
             -Wuninitialized
             -Wunreachable-code
             -Wunused
-
+            -Wno-ignored-qualifiers
             -Wno-sign-compare
-            -Wno-extra-semi-stmt
         )
         if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "Clang")
             list(APPEND CMAKE_COMPILER_WARNINGS
@@ -78,11 +77,13 @@ else()
                 -Wno-double-promotion
                 -Wno-exit-time-destructors
                 -Wno-extra-semi
+                -Wno-extra-semi-stmt
                 -Wno-float-conversion
                 -Wno-gnu-anonymous-struct
                 -Wno-gnu-zero-variadic-macro-arguments
                 -Wno-missing-prototypes
                 -Wno-nested-anon-types
+                -Wno-option-ignored
                 -Wno-padded
                 -Wno-return-std-move-in-c++11
                 -Wno-shorten-64-to-32
@@ -91,6 +92,10 @@ else()
                 -Wno-unused-command-line-argument
                 -Wno-weak-vtables
                 -Wno-covered-switch-default
+                -Wno-unused-result
+                -Wno-unsafe-buffer-usage
+                -Wno-deprecated-declarations
+                -Wno-shadow-uncaptured-local
             )
         else()
             if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "GNU" AND ${COMPILER} MATCHES "CXX")
@@ -102,7 +107,6 @@ else()
             endif()
             list(APPEND CMAKE_COMPILER_WARNINGS
                 -Wno-missing-field-initializers
-                -Wno-deprecated-declarations
             )
         endif()
         add_definitions(${CMAKE_COMPILER_WARNINGS})

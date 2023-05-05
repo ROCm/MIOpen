@@ -65,6 +65,21 @@ gid_z = 4
 .set unused_ptr_off, 0x38
 .set KERNEL_ARGUMENTS_SIZE, unused_ptr_off + 8
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 .ifnotdef do_not_use_default_perf_params
     default n_per_gpr, 4 // 1..4, 2^n
     default c_per_gpr, 4 // 1..16, 2^n
@@ -306,7 +321,8 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .SGPR_ALLOC loop_begin_ptr, 2
 .SGPR_ALLOC wave_id // wave_id in group
 
-.SGPR_RESERVE_XNACK
+//xnack disabled by default
+//.SGPR_RESERVE_XNACK
 .SGPR_RESERVE_VCC
 
 .VGPR_ALLOC_FROM 0
@@ -721,7 +737,13 @@ miopenGcnAsmConv1x1WrW:
                 .if(_sequential_output_channels_it != 0)
                     increase_ioffset_or_soffset _sequential_ck_offset, soff, _seq_ck_offset_in_soffset, ck_stride
                 .endif
-                m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff, _sequential_ck_offset
+                .if tuple_alignment && (\dwords1 > 1) && (dst % 2)
+                    m_buffer_load_dwordx 1,          dst,              \voff1, desc, soff,  _sequential_ck_offset
+                    m_buffer_load_dwordx \dwords1-1, dst+1,            \voff1, desc, soff, (_sequential_ck_offset + dword_size)
+                    \w_cnt = \w_cnt + 1
+                .else
+                    m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff, _sequential_ck_offset
+                .endif
                 .if(\dwords1>0)
                     \w_cnt = \w_cnt + 1
                 .endif
@@ -737,7 +759,13 @@ miopenGcnAsmConv1x1WrW:
                         bound_dwords_cnt = bound_elements_cnt / elements_in_dword
                         bound_shorts_cnt = bound_elements_cnt % elements_in_dword
 
-                        m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
+                        .if tuple_alignment && (bound_dwords_cnt > 1) && (dst % 2)
+                            m_buffer_load_dwordx 1,                  dst,   \voff2, desc, soff,  _sequential_ck_offset
+                            m_buffer_load_dwordx bound_dwords_cnt-1, dst+1, \voff2, desc, soff, (_sequential_ck_offset + dword_size)
+                            \w_cnt = \w_cnt + 1
+                        .else
+                            m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
+                        .endif
                         short_offset = bound_dwords_cnt * dword_size
                         m_buffer_load_ushort bound_shorts_cnt, dst + bound_dwords_cnt, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
 
@@ -750,7 +778,13 @@ miopenGcnAsmConv1x1WrW:
 
                         s_mov_b64 exec, -1
                     .else
-                        m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                        .if tuple_alignment && (\dwords2 > 1) && (dst % 2)
+                            m_buffer_load_dwordx 1,          dst + \dwords1,     \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                            m_buffer_load_dwordx \dwords2-1, dst + \dwords1 + 1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset + dword_size)
+                            \w_cnt = \w_cnt + 1
+                        .else
+                            m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                        .endif
                         .if(\dwords2 > 0)
                             \w_cnt = \w_cnt + 1
                         .endif
@@ -1146,6 +1180,28 @@ workgroup_size_x = n_per_group * 64
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+.amdhsa_kernel miopenGcnAsmConv1x1WrW
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+        .amdhsa_accum_offset ((.AUTO_VGPR_COUNT + 4 - 1) / 4) * 4
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel miopenGcnAsmConv1x1WrW
         .amdhsa_user_sgpr_kernarg_segment_ptr 1
         .amdhsa_system_sgpr_workgroup_id_x 1
@@ -1165,6 +1221,7 @@ workgroup_size_x = n_per_group * 64
         .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
         .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
+.endif
 
 .altmacro
 .macro METADATA sc, vc, wg_x, lds_size, kernarg_size
@@ -1186,7 +1243,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
     - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
     - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }

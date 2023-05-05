@@ -35,6 +35,7 @@
 #endif
 
 #include <miopen/errors.hpp>
+#include <miopen/rocm_features.hpp>
 #include <string>
 #include <type_traits>
 
@@ -566,7 +567,9 @@ template <int N>
 auto GetPlatformInfo(cl_platform_id platform) MIOPEN_RETURNS(
     detail::GetPlatformInfoImpl<detail::PlatformAttributeReturnType<N>>::apply(N, platform));
 
-void ParseDevName(std::string& name);
+#if WORKAROUND_MLOPEN_ISSUE_1711
+void WorkaroundIssue1711(std::string& name);
+#endif
 
 } // namespace miopen
 #endif // GUARD_MIOPEN_OCLDEVICE_HPP

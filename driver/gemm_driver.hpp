@@ -37,6 +37,7 @@
 #include <miopen/gemm_v2.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
 #define GEMM_DRIVER_DEBUG 0
 
@@ -104,29 +105,29 @@ void callCpuGemmStridedBatched(bool isColMajor,
 template <typename T>
 class GemmDriver : public Driver
 {
-    public:
+public:
     GemmDriver() : Driver() {}
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
 
     int RunForwardCPU();
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~GemmDriver() {}
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~GemmDriver() override {}
 
-    private:
+private:
     InputFlags inflags;
 
     std::unique_ptr<GPUMem> a_dev;
@@ -240,7 +241,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 #if GEMM_DRIVER_DEBUG
         a[i] = static_cast<double>(i);
 #else
-        a[i]          = static_cast<double>(rand()) * (1.0 / RAND_MAX);
+        a[i] = static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX);
 #endif
     }
 
@@ -249,7 +250,7 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 #if GEMM_DRIVER_DEBUG
         b[i] = static_cast<double>(i);
 #else
-        b[i]          = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i] = static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
 #endif
     }
 #if MIOPEN_BACKEND_OPENCL
@@ -290,18 +291,6 @@ int GemmDriver<T>::RunForwardGPU()
         }
 #endif
 
-#if 0
-        CallGemmStridedBatched(miopen::deref(GetHandle()),
-                               gemm_desc,
-                               a_dev->GetMem(),
-                               0,
-                               b_dev->GetMem(),
-                               0,
-                               c_dev->GetMem(),
-                               0,
-                               nullptr,
-                               false);
-#else
         if(gemm_desc.batch_count > 1)
             CallGemmStridedBatched(miopen::deref(GetHandle()),
                                    gemm_desc,
@@ -310,9 +299,7 @@ int GemmDriver<T>::RunForwardGPU()
                                    b_dev->GetMem(),
                                    0,
                                    c_dev->GetMem(),
-                                   0,
-                                   nullptr,
-                                   false);
+                                   0);
         else
             CallGemm(miopen::deref(GetHandle()),
                      gemm_desc,
@@ -321,10 +308,7 @@ int GemmDriver<T>::RunForwardGPU()
                      b_dev->GetMem(),
                      0,
                      c_dev->GetMem(),
-                     0,
-                     nullptr,
-                     false);
-#endif
+                     0);
 
 #if GEMM_DRIVER_DEBUG
         {
@@ -409,9 +393,9 @@ int GemmDriver<T>::VerifyForward()
     auto error = miopen::rms_range(chost, c);
     const double tolerance =
         ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << std::string("Forward GEMM Failed: ") << error << "\n";
+        std::cout << std::string("Forward GEMM FAILED: ") << error << std::endl;
     }
     else
     {

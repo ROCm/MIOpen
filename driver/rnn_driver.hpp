@@ -34,6 +34,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "random.hpp"
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>
@@ -53,7 +54,7 @@
 template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
 {
-    public:
+public:
     RNNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -69,27 +70,27 @@ class RNNDriver : public Driver
         miopenCreateDropoutDescriptor(&DropoutDesc);
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetOutputTensorLengthsFromCmdLine();
 
     int SetRNNDescriptorFromCmdLineArgs();
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardDataCPU();
     int RunBackwardWeightsCPU();
-    int VerifyBackward();
-    int VerifyForward();
-    ~RNNDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~RNNDriver() override
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(weightTensor);
@@ -99,7 +100,7 @@ class RNNDriver : public Driver
         miopenDestroyRNNDescriptor(rnnDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     std::vector<miopenTensorDescriptor_t> inputTensors;
@@ -363,7 +364,7 @@ std::vector<int> RNNDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
     int wei_bi = 1;
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
-    wei_oh     = wei_hh * wei_bi;
+    wei_oh = wei_hh * wei_bi;
 
     int wei_sc = 1;
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -402,7 +403,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect RNN Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNBiasMode_t biasMode;
@@ -417,7 +418,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect bias Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNDirectionMode_t directionMode;
@@ -432,7 +433,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect direction Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNInputMode_t inMode;
@@ -447,7 +448,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect input Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNAlgo_t algo;
@@ -462,7 +463,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect RNN algorithm\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(inflags.GetValueInt("use_dropout"))
@@ -562,7 +563,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    uint32_t ctx     = 0;
+    uint32_t ctx = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -618,10 +619,11 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int layer = inflags.GetValueInt("num_layer");
     int bidir = inflags.GetValueInt("bidirection");
 
-    reserveSpace_sz = 2 * (inflags.GetValueStr("mode") == "lstm"
-                               ? 6
-                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
-                      layer * inputBatchLenSum * hid_h * (bidir + 1);
+    reserveSpace_sz =
+        2 *
+        (inflags.GetValueStr("mode") == "lstm" ? 6
+                                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
+        layer * inputBatchLenSum * hid_h * (bidir + 1);
     if(inflags.GetValueInt("use_dropout"))
     {
         reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
@@ -667,19 +669,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<Tgpu>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+        in[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
     }
 
     for(int i = 0; i < hy_sz; i++)
     {
-        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
     {
         for(int i = 0; i < hy_sz; i++)
         {
-            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
     }
 
@@ -687,12 +689,14 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dout[i] =
+                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
 
         for(int i = 0; i < hy_sz; i++)
         {
-            dhy[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dhy[i] =
+                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
 
         if((inflags.GetValueStr("mode")) == "lstm")
@@ -700,7 +704,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             for(int i = 0; i < hy_sz; i++)
             {
                 dcy[i] =
-                    static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+                    static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
             }
         }
     }
@@ -718,7 +722,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < wei_sz; i++)
     {
         wei[i] =
-            static_cast<Tgpu>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
+            static_cast<Tgpu>((scale * static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5)));
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -1559,7 +1563,7 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
-        printf("Bad Parameters! Verification failed\n");
+        printf("Bad Parameters! Verification FAILED\n");
         return miopenStatusBadParm;
     }
 
@@ -1572,9 +1576,9 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
 
     Tref tolerance = (sizeof(Tgpu) == 4 ? static_cast<Tref>(1e-6) : static_cast<Tref>(5e-2));
 
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << std::string("Forward RNN Failed: ") << error << "\n";
+        std::cout << std::string("Forward RNN FAILED: ") << error << std::endl;
     }
     else
     {
@@ -1583,9 +1587,9 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
 
     auto error2 = miopen::rms_range(hy_host, hy);
 
-    if(!(error2 < tolerance))
+    if(!std::isfinite(error2) || error2 > tolerance)
     {
-        std::cout << std::string("final hidden state Failed: ") << error2 << "\n";
+        std::cout << std::string("final hidden state FAILED: ") << error2 << std::endl;
     }
     else
     {
@@ -1596,9 +1600,9 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
     {
         auto error3 = miopen::rms_range(cy_host, cy);
 
-        if(!(error3 < tolerance))
+        if(!std::isfinite(error3) || error3 > tolerance)
         {
-            std::cout << std::string("final cell state Failed: ") << error3 << "\n";
+            std::cout << std::string("final cell state FAILED: ") << error3 << std::endl;
         }
         else
         {
@@ -1649,7 +1653,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
-        printf("Bad Parameters! Verification failed\n");
+        printf("Bad Parameters! Verification FAILED\n");
         return miopenStatusBadParm;
     }
 
@@ -1669,10 +1673,9 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_data = miopen::rms_range(din_host, din);
 
-        if(!(error_data < tolerance))
+        if(!std::isfinite(error_data) || error_data > tolerance)
         {
-            std::cout << std::string("Backward RNN Data Failed: ") << error_data
-                      << std::string("\n");
+            std::cout << std::string("Backward RNN Data FAILED: ") << error_data << std::endl;
         }
         else
         {
@@ -1681,10 +1684,10 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_data2 = miopen::rms_range(dhx_host, dhx);
 
-        if(!(error_data2 < tolerance))
+        if(!std::isfinite(error_data2) || error_data2 > tolerance)
         {
-            std::cout << std::string("difference at inital hidden state Failed: ") << error_data2
-                      << "\n";
+            std::cout << std::string("difference at inital hidden state FAILED: ") << error_data2
+                      << std::endl;
         }
         else
         {
@@ -1695,10 +1698,10 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
         {
             auto error_data3 = miopen::rms_range(dcx_host, dcx);
 
-            if(!(error_data3 < tolerance))
+            if(!std::isfinite(error_data3) || error_data3 > tolerance)
             {
-                std::cout << std::string("difference at inital cell state Failed: ") << error_data3
-                          << "\n";
+                std::cout << std::string("difference at inital cell state FAILED: ") << error_data3
+                          << std::endl;
             }
             else
             {
@@ -1715,10 +1718,9 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
         }
 
         auto error_weights = miopen::rms_range(dwei_host, dwei);
-        if(!(error_weights < tolerance))
+        if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
-            std::cout << std::string("Backward RNN Weights Failed: ") << error_weights
-                      << std::string("\n");
+            std::cout << std::string("Backward RNN Weights FAILED: ") << error_weights << std::endl;
         }
         else
         {

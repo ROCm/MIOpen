@@ -1,5 +1,7 @@
+#ifndef GUARD_REDUCTION_FUNCTIONS_H
+#define GUARD_REDUCTION_FUNCTIONS_H
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
 static inline void lds_reduce2(_FLOAT_ACCUM* x,
                                _FLOAT_ACCUM* y,
                                _FLOAT_ACCUM scale,
@@ -54,9 +56,10 @@ regLDSreduce(_FLOAT_ACCUM* value, local _FLOAT_ACCUM* data, uint localID, _FLOAT
     barrier(CLK_LOCAL_MEM_FENCE);
     *value = data[0] * scale;
 }
+
 #endif
 
-#ifdef __AMDGCN__
+#if MIOPEN_USE_AMDGCN
 static inline void dpp_reduction(_FLOAT_ACCUM* temp_sum)
 {
     __asm__ volatile("s_nop 4\n"
@@ -153,4 +156,6 @@ static inline void gcn_reduce2(_FLOAT_ACCUM* x,
     *y *= scale;
 }
 
-#endif
+#endif // MIOPEN_USE_AMDGCN
+
+#endif // GUARD_REDUCTION_FUNCTIONS_H

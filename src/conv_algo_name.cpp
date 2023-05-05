@@ -26,27 +26,45 @@
 
 #include <miopen/miopen.h>
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/logger.hpp>
 
 #include <string>
 #include <unordered_map>
 namespace miopen {
 
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
+using mapFwd_t = std::unordered_map<std::string, miopenConvFwdAlgorithm_t>;
+using mapBwd_t = std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t>;
+using mapWrw_t = std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t>;
+
+static const mapFwd_t& FwdAlgoMap()
 {
-    static const std::unordered_map<std::string, miopenConvFwdAlgorithm_t> data{
+    static const mapFwd_t data{
         {"miopenConvolutionFwdAlgoGEMM", miopenConvolutionFwdAlgoGEMM},
         {"miopenConvolutionFwdAlgoDirect", miopenConvolutionFwdAlgoDirect},
         {"miopenConvolutionFwdAlgoFFT", miopenConvolutionFwdAlgoFFT},
         {"miopenConvolutionFwdAlgoWinograd", miopenConvolutionFwdAlgoWinograd},
         {"miopenConvolutionFwdAlgoImplicitGEMM", miopenConvolutionFwdAlgoImplicitGEMM},
-        {"miopenConvolutionFwdAlgoStaticCompiledGEMM", miopenConvolutionFwdAlgoStaticCompiledGEMM},
     };
-    return data.at(s);
+    return data;
 }
 
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s)
+template <typename T>
+typename T::mapped_type ToConvolutionAlgo(const std::string& s, const T& map)
 {
-    static const std::unordered_map<std::string, miopenConvBwdDataAlgorithm_t> data{
+    const auto it = map.find(s);
+    if(it == map.end())
+        MIOPEN_THROW(miopenStatusInternalError, "Bad algorithm: " + s);
+    return it->second;
+}
+
+miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s)
+{
+    return ToConvolutionAlgo(s, FwdAlgoMap());
+}
+
+static const mapBwd_t& BwdAlgoMap()
+{
+    static const mapBwd_t data{
         {"miopenConvolutionBwdDataAlgoGEMM", miopenConvolutionBwdDataAlgoGEMM},
         {"miopenConvolutionBwdDataAlgoDirect", miopenConvolutionBwdDataAlgoDirect},
         {"miopenConvolutionBwdDataAlgoFFT", miopenConvolutionBwdDataAlgoFFT},
@@ -54,19 +72,35 @@ miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s
         {"miopenTransposeBwdDataAlgoGEMM", miopenTransposeBwdDataAlgoGEMM},
         {"miopenConvolutionBwdDataAlgoImplicitGEMM", miopenConvolutionBwdDataAlgoImplicitGEMM},
     };
-    return data.at(s);
+    return data;
 }
 
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s)
+miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s)
 {
-    static const std::unordered_map<std::string, miopenConvBwdWeightsAlgorithm_t> data{
+    return ToConvolutionAlgo(s, BwdAlgoMap());
+}
+
+static const mapWrw_t& WrwAlgoMap()
+{
+    static const mapWrw_t data{
         {"miopenConvolutionBwdWeightsAlgoGEMM", miopenConvolutionBwdWeightsAlgoGEMM},
         {"miopenConvolutionBwdWeightsAlgoDirect", miopenConvolutionBwdWeightsAlgoDirect},
         {"miopenConvolutionBwdWeightsAlgoWinograd", miopenConvolutionBwdWeightsAlgoWinograd},
         {"miopenConvolutionBwdWeightsAlgoImplicitGEMM",
          miopenConvolutionBwdWeightsAlgoImplicitGEMM},
     };
-    return data.at(s);
+    return data;
+}
+
+miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s)
+{
+    return ToConvolutionAlgo(s, WrwAlgoMap());
+}
+
+bool IsValidConvolutionDirAlgo(const std::string& s)
+{
+    return FwdAlgoMap().find(s) != FwdAlgoMap().end() ||
+           BwdAlgoMap().find(s) != BwdAlgoMap().end() || WrwAlgoMap().find(s) != WrwAlgoMap().end();
 }
 
 std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
@@ -78,7 +112,6 @@ std::string ConvolutionAlgoToString(const miopenConvAlgorithm_t algo)
     case miopenConvolutionAlgoFFT: return "miopenConvolutionAlgoFFT";
     case miopenConvolutionAlgoWinograd: return "miopenConvolutionAlgoWinograd";
     case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionAlgoImplicitGEMM";
-    case miopenConvolutionAlgoStaticCompiledGEMM: return "miopenConvolutionAlgoStaticCompiledGEMM";
     }
     return "<invalid algorithm>";
 }
@@ -89,8 +122,7 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
 
     switch(dir)
     {
-    case conv::Direction::Forward:
-    {
+    case conv::Direction::Forward: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionFwdAlgoGEMM";
@@ -98,13 +130,10 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoFFT: return "miopenConvolutionFwdAlgoFFT";
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionFwdAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionFwdAlgoImplicitGEMM";
-        case miopenConvolutionAlgoStaticCompiledGEMM:
-            return "miopenConvolutionFwdAlgoStaticCompiledGEMM";
         }
         break;
     }
-    case conv::Direction::BackwardData:
-    {
+    case conv::Direction::BackwardData: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdDataAlgoGEMM";
@@ -112,12 +141,10 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoFFT: return "miopenConvolutionBwdDataAlgoFFT";
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdDataAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM: return "miopenConvolutionBwdDataAlgoImplicitGEMM";
-        case miopenConvolutionAlgoStaticCompiledGEMM: break;
         }
         break;
     }
-    case conv::Direction::BackwardWeights:
-    {
+    case conv::Direction::BackwardWeights: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdWeightsAlgoGEMM";
@@ -126,7 +153,6 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         case miopenConvolutionAlgoWinograd: return "miopenConvolutionBwdWeightsAlgoWinograd";
         case miopenConvolutionAlgoImplicitGEMM:
             return "miopenConvolutionBwdWeightsAlgoImplicitGEMM";
-        case miopenConvolutionAlgoStaticCompiledGEMM: break;
         }
         break;
     }

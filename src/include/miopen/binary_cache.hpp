@@ -27,12 +27,14 @@
 #ifndef GUARD_MLOPEN_BINARY_CACHE_HPP
 #define GUARD_MLOPEN_BINARY_CACHE_HPP
 
-#include <string>
-#include <boost/filesystem/path.hpp>
-
 #include <miopen/config.h>
+#include <miopen/target_properties.hpp>
+#include <boost/filesystem/path.hpp>
+#include <string>
 
 namespace miopen {
+
+bool IsCacheDisabled();
 
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
@@ -40,20 +42,27 @@ boost::filesystem::path GetCacheFile(const std::string& device,
                                      bool is_kernel_str);
 
 boost::filesystem::path GetCachePath(bool is_system);
-std::string LoadBinary(const std::string& device,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args,
-                       bool is_kernel_str = false);
+
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
+boost::filesystem::path LoadBinary(const TargetProperties& target,
+                                   std::size_t num_cu,
+                                   const std::string& name,
+                                   const std::string& args,
+                                   bool is_kernel_str = false);
 void SaveBinary(const boost::filesystem::path& binary_path,
-                const std::string& device,
+                const TargetProperties& target,
                 const std::string& name,
                 const std::string& args,
                 bool is_kernel_str = false);
 #else
+std::string LoadBinary(const TargetProperties& target,
+                       std::size_t num_cu,
+                       const std::string& name,
+                       const std::string& args,
+                       bool is_kernel_str = false);
+
 void SaveBinary(const std::string& hsaco,
-                const std::string& device,
+                const TargetProperties& target,
                 std::size_t num_cu,
                 const std::string& name,
                 const std::string& args,

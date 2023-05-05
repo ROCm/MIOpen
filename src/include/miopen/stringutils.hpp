@@ -26,9 +26,14 @@
 #ifndef GUARD_MIOPEN_STRINGUTILS_HPP
 #define GUARD_MIOPEN_STRINGUTILS_HPP
 
+#include <miopen/algorithm.hpp>
+#include <miopen/errors.hpp>
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 #include <string>
+#include <vector>
+#include <sstream>
 
 #define MIOPEN_STRINGIZE_1(...) #__VA_ARGS__
 #define MIOPEN_STRINGIZE(...) MIOPEN_STRINGIZE_1(__VA_ARGS__)
@@ -36,9 +41,10 @@
 namespace miopen {
 
 inline std::string
-ReplaceString(std::string subject, const std::string& search, const std::string& replace)
+ReplaceString(const std::string& in, const std::string& search, const std::string& replace)
 {
     size_t pos = 0;
+    std::string subject(in);
     while((pos = subject.find(search, pos)) != std::string::npos)
     {
         subject.replace(pos, search.length(), replace);
@@ -90,6 +96,68 @@ inline std::string RemovePrefix(std::string s, std::string prefix)
         return s.substr(prefix.length());
     else
         return s;
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
+{
+    std::istringstream ss(in);
+    const std::istream_iterator<std::string> begin(ss), end;
+    return {begin, end};
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::vector<std::string>& in)
+{
+    std::vector<std::string> rv;
+    for(const auto& item : in)
+    {
+        if(item.find(' ') != std::string::npos)
+        {
+            const auto splitted = SplitSpaceSeparated(item);
+            std::copy(splitted.begin(), splitted.end(), std::back_inserter(rv));
+        }
+        else
+        {
+            rv.emplace_back(item);
+        }
+    }
+    return rv;
+}
+
+inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
+                                                    const std::vector<std::string>& dontSplitAfter)
+{
+    std::vector<std::string> rv;
+    std::istringstream ss(in);
+    std::string s;
+    while(ss >> s)
+    {
+        if(any_of(dontSplitAfter, [&](const auto& dont) { return dont == s; }))
+        {
+            std::string s2;
+            if(ss >> s2)
+            {
+                s += std::string(" ").append(s2); // Exactly one space is important.
+                rv.push_back(s);
+                continue;
+            }
+            MIOPEN_THROW("Error parsing string: '" + in + '\'');
+        }
+        rv.push_back(s);
+    }
+    return rv;
+}
+
+inline std::vector<std::string> SplitDelim(const std::string& in, const char delim)
+{
+    std::vector<std::string> rv;
+    std::string token;
+    std::istringstream ss(in);
+
+    while(std::getline(ss, token, delim))
+    {
+        rv.push_back(token);
+    }
+    return rv;
 }
 
 } // namespace miopen

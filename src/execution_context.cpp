@@ -1,44 +1,45 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/execution_context.hpp>
 
+#include <miopen/datatype.hpp>
+#include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/version.h>
-
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/ocldeviceinfo.hpp>
 #endif
-
-#include <miopen/env.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/version.h>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
@@ -153,7 +154,9 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         if(num_begin != std::string::npos)
         {
             const int num = std::stoi(platform_version.substr(num_begin + 1));
-            if(num >= 3029) // ROCm 2.10 RC 1341
+            if(num >= 3137) // ROCm 3.5 RC
+                rmv = rocm_meta_version::AMDHSA_COv3;
+            else if(num >= 3029) // ROCm 2.10 RC 1341
                 rmv = rocm_meta_version::AMDHSA_COv2_COv3;
             else
                 rmv = rocm_meta_version::AMDHSA_COv2;
@@ -164,16 +167,14 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         }
 #else
         (void)context;
-        if(miopen::HipGetHccVersion() >=
-           miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
-            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-        else
-            rmv = rocm_meta_version::Default;
+        rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
     MIOPEN_LOG_NQI(
         "ROCm MD version "
         << rmv
+        << ", HIP version " MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
+               HIP_PACKAGE_VERSION_MINOR) "." MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_PATCH)
         << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
                MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
     return rmv;
@@ -187,6 +188,7 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
 #else
         true;
 #endif // MIOPEN_BACKEND_OPENCL
+    // cppcheck-suppress knownConditionTrueFalse
     if(ret_bool)
     {
         static const rocm_meta_version ret_rmv = AmdRocmMetadataVersionDetect(context);
@@ -195,21 +197,30 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
     return ret_bool;
 }
 
-void miopen::ExecutionContext::DetectRocm()
+bool IsHipKernelsEnabled()
 {
-    // Detect assembly kernels
+#if MIOPEN_USE_HIP_KERNELS
+    return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#else
+    return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#endif
+}
+
+ExecutionContext& ExecutionContext::DetectRocm()
+{
     use_binaries            = false;
     use_asm_kernels         = false;
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    use_hip_kernels         = IsHipKernelsEnabled();
+    use_opencl_convolutions = !IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {
-        use_asm_kernels =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        use_asm_kernels = !IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        use_binaries = !IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
+    return *this;
 }
 
 } // namespace miopen

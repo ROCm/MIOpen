@@ -29,6 +29,7 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -100,8 +101,8 @@ struct verify_forward_train_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
         auto saveMean   = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
@@ -113,7 +114,6 @@ struct verify_forward_train_bn_spatial
         const auto nhw                = double(in_cstride * n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd        = 0.;
             double variance_accum = 0.;
             double mean_accum     = 0.;
@@ -147,9 +147,9 @@ struct verify_forward_train_bn_spatial
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         mean_accum_arr[row] += input(bidx,cidx,row,column);
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
 #endif
             mean_accum /= nhw;
@@ -180,9 +180,9 @@ struct verify_forward_train_bn_spatial
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         out(bidx,cidx,row,column) = elemStd = input(bidx,cidx,row,column) - mean_accum;
                         variance_accum_arr[row] += elemStd*elemStd;
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
 #endif
             variance_accum /= nhw; // (1/N)*sum{ (x_i - mean)^2 }
@@ -209,7 +209,7 @@ struct verify_forward_train_bn_spatial
             saveMean(0, cidx, 0, 0)   = mean_accum;
             saveInvVar(0, cidx, 0, 0) = invVar;
 
-            newRunMean = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
+            newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
             runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
             // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
             adjust = (n_batch * height * width == 1) ? variance_accum
@@ -268,8 +268,8 @@ struct verify_forward_train_bn_spatial
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
 
@@ -378,7 +378,6 @@ struct verify_forward_infer_bn_spatial_recalc
         const auto nhw                = double(in_cstride * n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd        = 0.;
             double variance_accum = 0.;
             double mean_accum     = 0.;
@@ -656,7 +655,6 @@ struct verify_backward_bn_spatial_recalc
         const auto nhw                = double(in_cstride * n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean     = 0.;
@@ -691,9 +689,9 @@ struct verify_backward_bn_spatial_recalc
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         mean_accum_arr[row] += x_input(bidx,cidx,row,column);
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
 #endif
             mean /= nhw;
@@ -721,9 +719,9 @@ struct verify_backward_bn_spatial_recalc
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         elemStd = x_input(bidx,cidx,row,column) - mean;
                         variance_accum_arr[row] += elemStd*elemStd;
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
 #endif
             variance /= nhw; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
@@ -748,8 +746,8 @@ struct verify_backward_bn_spatial_recalc
                     } // end for(n_batch)
                 }     // for (column)
             }         // for (row)
-#else   
-            
+#else
+
             for(std::size_t row = 0; row < height; row++){ //via rows
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -762,12 +760,12 @@ struct verify_backward_bn_spatial_recalc
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                         //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
                         //dscale_accum_arr[row] += 1.0;//DEBUG
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0) += dscale_accum_arr[i];
             }
 #endif
 
@@ -781,8 +779,8 @@ struct verify_backward_bn_spatial_recalc
 
                         double tmp1 =
                             nhw * dy_input(bidx, cidx, row, column) - dshift(0, cidx, 0, 0);
-                        double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                        double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
+                        double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
+                        double tmp3                     = (scale(0, cidx, 0, 0) * invVar) / nhw;
                         dx_out(bidx, cidx, row, column) = tmp3 * (tmp2 + tmp1);
                     } // end for(n_batchs)
                 }     // for (column)
@@ -926,7 +924,6 @@ struct verify_backward_bn_spatial_use_saved
         const auto nhw                = double(in_cstride * n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
@@ -960,8 +957,8 @@ struct verify_backward_bn_spatial_use_saved
                     } // end for(n_batch)
                 }     // for (column)
             }         // for (row)
-#else   
-            
+#else
+
             for(std::size_t row = 0; row < height; row++){ //via rows
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -974,12 +971,12 @@ struct verify_backward_bn_spatial_use_saved
                         dshift_accum_arr[row] += dyelem;
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                         //dscale_accum_arr[row] += 1.0;//DEBUG
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0) += dscale_accum_arr[i];
             }
 #endif
 
@@ -993,8 +990,8 @@ struct verify_backward_bn_spatial_use_saved
 
                         double tmp1 =
                             nhw * dy_input(bidx, cidx, row, column) - dshift(0, cidx, 0, 0);
-                        double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                        double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
+                        double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
+                        double tmp3                     = (scale(0, cidx, 0, 0) * invVar) / nhw;
                         dx_out(bidx, cidx, row, column) = tmp3 * (tmp2 + tmp1);
                     } // end for(n_batchs)
                 }     // for (column)
@@ -1150,12 +1147,12 @@ struct batch_norm_spatial_driver : test_driver
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
-                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(rand() % 100);
+                scale[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(GET_RAND() % 100);
+                shift[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-4 * PREC_TYPE(GET_RAND() % 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
+                input[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (1e-5 * T(GET_RAND() % 100));
             }
         }
 
@@ -1267,8 +1264,8 @@ struct batch_norm_spatial_driver : test_driver
 
         auto debugvals = verify(verify_backward_bn_spatial_use_saved<T, PREC_TYPE>{
             input, dy_input, scale, savedMean, savedInvVar});
-        auto gpuout = std::get<0>(debugvals.second);
-        auto cpuout = std::get<0>(debugvals.first);
+        auto gpuout    = std::get<0>(debugvals.second);
+        auto cpuout    = std::get<0>(debugvals.first);
 
         double maxdiff = 0.;
         int mn         = 0;
@@ -1337,5 +1334,5 @@ int main(int argc, const char* argv[])
     std::cout << "Wall clock: full SPATIAL test pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
-    exit(0);
+    exit(0); // NOLINT (concurrency-mt-unsafe)
 }

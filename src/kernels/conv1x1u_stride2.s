@@ -70,6 +70,21 @@ gid_n = gid_z
 .set unused_dbg_ptr_off, 0x38
 .set KERNEL_ARGUMENTS_SIZE, unused_dbg_ptr_off + 8
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 maxU24 = 1 << 24
 maxU31 = 1 << 31
 invalid_addr_lit = 0x7FFFFFFF
@@ -215,7 +230,8 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .SGPR_ALLOC loop_cnt
     .SGPR_ALLOC stmp_offset
     .SGPR_ALLOC stmp
-    .SGPR_RESERVE_XNACK
+    //xnack disabled by default
+    //.SGPR_RESERVE_XNACK
     .SGPR_RESERVE_VCC
 
     .VGPR_ALLOC_FROM 0
@@ -593,7 +609,7 @@ miopenGcnAsmConv1x1U_stride2:
         \surpl = \surpl + \i_val
     .endm
 
-    .macro load_input prefetch_id
+    .macro load_input prefetch_id, mbufs_inflight
         ibase\@ = 0
         nb\@ = 0
         .rept n_mult
@@ -613,7 +629,13 @@ miopenGcnAsmConv1x1U_stride2:
                         .if( (imm_off\@ - s_offset_surplus\@) >= 4096)
                             ioffset_as_soffset_conv_2pow12 (imm_off\@ - s_offset_surplus\@), stmp_offset, s_offset_surplus\@
                         .endif
-                        m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                        .if tuple_alignment && (dwords_per_ld > 1) && (ibase\@ % 2)
+                            m_buffer_load_dwordx 1,               ibase\@,   voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                            m_buffer_load_dwordx dwords_per_ld-1, ibase\@+1, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@ + 4)
+                            \mbufs_inflight = \mbufs_inflight + 1
+                        .else
+                            m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                        .endif
                         imm_off\@ = imm_off\@ + w_mult_ld_stride_byte
                         ld_w_it\@ = ld_w_it\@ + dwords_per_ld
                     .endr
@@ -694,7 +716,8 @@ miopenGcnAsmConv1x1U_stride2:
     s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
     s_cmov_b32 s[loop_cnt], 0 + c_per_last_wave
 
-    load_input 0
+    mbufs_cnt_0 = 0
+    load_input 0, mbufs_cnt_0
 
     load_filters  0
 
@@ -749,16 +772,18 @@ miopenGcnAsmConv1x1U_stride2:
     wave_sync_mainLoop 1
 
 loop_begin:
-    load_input 1
+    mbufs_cnt_1 = 0
+    load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
 
-    load_input 0
+    mbufs_cnt_0 = 0
+    load_input 0, mbufs_cnt_0
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_0), 0
     load_filters  0
 
     conv 1
@@ -767,9 +792,10 @@ loop_end:
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult
     s_cbranch_scc1 loop_begin
 
-    load_input 1
+    mbufs_cnt_1 = 0
+    load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
@@ -909,7 +935,12 @@ loop_end:
                     ioffset_as_soffset_conv_2pow12 (\val_offset - \s_offset_surplus), \s_offset, \s_offset_surplus
                     i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
                 .endif
-                m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                .if tuple_alignment && (acc_ptr_\@ % 2)
+                    m_buffer_store_dwordx 1,            acc_ptr_\@,   \v_offset, \s_desc, \s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \v_offset, \s_desc, \s_offset, i_off\@ + 4
+                .else
+                    m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                .endif
                 it_acc\@ = it_acc\@ + acc_cnt_\@
             .endr
         .endif
@@ -1068,6 +1099,28 @@ workgroup_size_x = waves_in_group * 64
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+.amdhsa_kernel miopenGcnAsmConv1x1U_stride2
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 1
+        .amdhsa_system_sgpr_workgroup_id_z 1
+        .amdhsa_system_vgpr_workitem_id 1
+        .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+        .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+        .amdhsa_accum_offset ((.AUTO_VGPR_COUNT + 4 - 1) / 4) * 4
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel miopenGcnAsmConv1x1U_stride2
         .amdhsa_user_sgpr_kernarg_segment_ptr 1
         .amdhsa_system_sgpr_workgroup_id_x 1
@@ -1087,6 +1140,7 @@ workgroup_size_x = waves_in_group * 64
         .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
         .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
+.endif
 
 .altmacro
 .macro METADATA sc,vc,wg_x,lds_sz,kernarg_size
@@ -1108,7 +1162,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:  0, .value_kind: by_value, .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset:  4, .value_kind: by_value, .value_type: i32, .name: C }
     - { .size: 4, .offset:  8, .value_kind: by_value, .value_type: i32, .name: H }
     - { .size: 4, .offset: 12, .value_kind: by_value, .value_type: i32, .name: W }
@@ -1118,7 +1172,7 @@ amdhsa.kernels:
     - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,  .address_space: global, .is_const: true }
     - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,  .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,  .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y_,  .address_space: global, .is_const: false }
     - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: unused_dbg_ptr, .address_space: global, .is_const: false }
 ...
 .end_amdgpu_metadata

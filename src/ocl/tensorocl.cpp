@@ -31,6 +31,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/util.hpp>
+#include <miopen/logger.hpp>
 #include <algorithm>
 #include <cassert>
 #include <numeric>
@@ -44,7 +45,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
 {
     // is packed
     if(desc.IsPacked())
-        return {desc.GetType(), {desc.GetElementSize()}, {1}};
+        return {desc.GetType(), {desc.GetElementSize()}, {static_cast<std::size_t>(1)}};
 
     // start flattening tensor
     std::vector<std::size_t> flat_lengths;
@@ -80,7 +81,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(boost::get<1>(*i_previous));
 
-    return {desc.GetType(), std::move(flat_lengths), std::move(flat_strides)};
+    return {desc.GetType(), flat_lengths, flat_strides};
 }
 
 // Free Tensor Functions
@@ -117,7 +118,7 @@ static bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_o
     return leading_ones;
 }
 
-void OpTensor3d(Handle& handle,
+void OpTensor3d(const Handle& handle,
                 miopenTensorOp_t tensorOp,
                 const void* alpha0,
                 const TensorDescriptor& aTensorDesc,
@@ -147,9 +148,9 @@ void OpTensor3d(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -174,11 +175,26 @@ void OpTensor3d(Handle& handle,
 
     std::string network_config{};
 
-    network_config = std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
-                     std::to_string(tensorOp);
+    network_config = std::to_string(bTensorDesc.GetType()) + "-" +
+                     std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-";
+
+    // for naive tensor ops
+    size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+    const std::string data_type = GetDataType(bTensorDesc.GetType());
+    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+    size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
+    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
+    size_t glb_sz     = local_threads * grp_sz;
+
+    size_t local_threads2 = 64;
+    size_t total_work2    = clens[1];
+    size_t grp_sz2        = (total_work2 + local_threads2 - 1) / local_threads2;
+    grp_sz2               = std::min(size_t(max_num_wg / grp_sz), grp_sz2);
+    size_t glb_sz2        = local_threads2 * grp_sz2;
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
@@ -187,10 +203,9 @@ void OpTensor3d(Handle& handle,
            (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
 
-            network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
-                              std::to_string(float_equal(miopen_beta, 0.0)) +
-                              std::to_string(static_cast<int>(blens[1] == 1)) +
-                              std::to_string(max_num_wg);
+            network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
+                              std::to_string(grp_sz) + std::to_string(local_threads2) +
+                              std::to_string(grp_sz2);
 
             auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
@@ -210,18 +225,18 @@ void OpTensor3d(Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(clens[1]));
+                       long(total_work),
+                       long(total_work2),
+                       int(!float_equal(miopen_beta, 0.0)),
+                       int(blens[1] == 1));
 
                 return;
             }
         }
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
-            network_config += std::to_string(clens[2]) + "x" + std::to_string(clens[1]) + "x" +
-                              std::to_string(float_equal(miopen_alpha0, 0.0)) + "x" +
-                              std::to_string(float_equal(miopen_alpha1, 0.0)) + "x" +
-                              std::to_string(float_equal(miopen_beta, 0.0)) + "x" +
-                              std::to_string(max_num_wg);
+            network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
+                              std::to_string(grp_sz);
 
             auto&& kernels = handle.GetKernels("Op2dTensorSquash", network_config);
 
@@ -239,7 +254,11 @@ void OpTensor3d(Handle& handle,
                        miopen_beta,
                        long(Aoffset),
                        long(Boffset),
-                       long(Coffset));
+                       long(Coffset),
+                       long(total_work),
+                       int(!float_equal(miopen_alpha0, 0.0)),
+                       int(!float_equal(miopen_alpha1, 0.0)),
+                       int(!float_equal(miopen_beta, 0.0)));
 
                 return;
             }
@@ -247,8 +266,8 @@ void OpTensor3d(Handle& handle,
         else
         {
 
-            network_config +=
-                std::to_string(max_num_wg) + std::to_string(local_threads) + std::to_string(num_wg);
+            network_config += std::to_string(max_num_wg) + "-" + std::to_string(local_threads) +
+                              "x" + std::to_string(num_wg);
 
             auto&& kernels = handle.GetKernels("Op3dTensorGeneric", network_config);
 
@@ -303,32 +322,9 @@ void OpTensor3d(Handle& handle,
            (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_LITE";
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            // for naive tensor ops
-            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            if(blens[1] == 1)
-            {
-                parms += " -DBIAS";
-            }
-
-            num_wg = clens[1];
-            num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-
-            const std::vector<size_t> vgd1{MAP_RD, static_cast<size_t>(num_wg), 1};
+            const std::vector<size_t> vgd1{glb_sz, glb_sz2, 1};
 
             handle.AddKernel(
                 "Op2dTensorLite", network_config, program_name, "Op2dTensorLite", vld, vgd1, parms)(
@@ -344,40 +340,17 @@ void OpTensor3d(Handle& handle,
                 long(Aoffset),
                 long(Boffset),
                 long(Coffset),
-                int(clens[1]));
+                long(total_work),
+                long(total_work2),
+                int(!float_equal(miopen_beta, 0.0)),
+                int(blens[1] == 1));
         }
         else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            // for naive tensor ops
-            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-            size_t MAP_RD = std::max(size_t(clens[2] / RD_BLCK), size_t(1));
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_alpha0, 0.0))
-            {
-                parms += " -DALPHA0";
-            }
-
-            if(!float_equal(miopen_alpha1, 0.0))
-            {
-                parms += " -DALPHA1";
-            }
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-            size_t total_work = std::min(max_num_wg * local_threads, MAP_RD);
-            const std::vector<size_t> vgd1{total_work, 1, 1};
+            const std::vector<size_t> vgd1{glb_sz, 1, 1};
 
             handle.AddKernel("Op2dTensorSquash",
                              network_config,
@@ -395,7 +368,11 @@ void OpTensor3d(Handle& handle,
                                     miopen_beta,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    long(total_work),
+                                    int(!float_equal(miopen_alpha0, 0.0)),
+                                    int(!float_equal(miopen_alpha1, 0.0)),
+                                    int(!float_equal(miopen_beta, 0.0)));
         }
         else
         {
@@ -439,7 +416,7 @@ void OpTensor3d(Handle& handle,
     });
 }
 
-void OpTensor4d(Handle& handle,
+void OpTensor4d(const Handle& handle,
                 miopenTensorOp_t tensorOp,
                 const void* alpha0,
                 const TensorDescriptor& aTensorDesc,
@@ -468,9 +445,9 @@ void OpTensor4d(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -519,10 +496,6 @@ void OpTensor4d(Handle& handle,
         local_threads = 64;
     }
 
-    std::string network_config{};
-
-    network_config += GetDataType(bTensorDesc.GetType()) + std::to_string(max_num_wg);
-
     std::string program_name = "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
@@ -550,20 +523,32 @@ void OpTensor4d(Handle& handle,
     printf("equal_tensor: %d\n", bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 #endif
 
-    network_config += std::to_string(bTensorDesc.GetType()) +
-                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
-                      std::to_string(global_threads) + std::to_string(local_threads);
+    // for naive tensor ops
+    const std::string data_type = GetDataType(bTensorDesc.GetType());
+
+    size_t TENS_LEN             = cTensorDesc.GetElementSize();
+    size_t RD_BLCK              = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
+    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+    size_t total_work = std::max(TENS_LEN / RD_BLCK, size_t(1));
+    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
+    size_t glb_sz     = local_threads * grp_sz;
+
+    std::string network_config{};
+    network_config +=
+        std::to_string(bTensorDesc.GetType()) + "-" + std::to_string(aTensorDesc.GetType()) + "-" +
+        std::to_string(tensorOp) + "-" + std::to_string(max_num_wg) + "-" +
+        ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) + "-" +
+        std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
         if(fwd_conv_bias != 0)
         {
-            network_config += std::to_string(incr_wg);
-
             if(packed_tensor)
             {
                 auto&& kernels = handle.GetKernels("OpTensorFwdBias", network_config);
@@ -585,7 +570,8 @@ void OpTensor4d(Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           int(incr_wg));
 
                     return;
                 }
@@ -618,7 +604,8 @@ void OpTensor4d(Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           int(incr_wg));
                     return;
                 }
             }
@@ -626,8 +613,7 @@ void OpTensor4d(Handle& handle,
         // precede leading_ones for bitmap = 1,1,1,1
         else if(packed_equal_tensor)
         {
-            network_config += std::to_string(bTensorDesc.GetElementSize()) +
-                              std::to_string(float_equal(miopen_beta, 0.0));
+            network_config += "x" + std::to_string(grp_sz) + "x" + std::to_string(RD_BLCK);
             auto&& kernels = handle.GetKernels("Op4dTensorLite", network_config);
             if(!kernels.empty())
             {
@@ -640,13 +626,14 @@ void OpTensor4d(Handle& handle,
                        miopen_beta,
                        long(Aoffset),
                        long(Boffset),
-                       long(Coffset));
+                       long(Coffset),
+                       long(total_work),
+                       int(!float_equal(miopen_beta, 0.0)));
                 return;
             }
         }
         else if(leading_ones)
         {
-            network_config += std::to_string(d - 1);
             if(packed_tensor)
             {
 
@@ -670,7 +657,8 @@ void OpTensor4d(Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           bitmap);
 
                     return;
                 }
@@ -704,7 +692,8 @@ void OpTensor4d(Handle& handle,
                            long(Aoffset),
                            long(Boffset),
                            long(Coffset),
-                           int(num_wg_orig));
+                           int(num_wg_orig),
+                           bitmap);
                     return;
                 }
             }
@@ -763,8 +752,6 @@ void OpTensor4d(Handle& handle,
 
         if(fwd_conv_bias != 0)
         {
-            parms += " -DINCR_WG=" + std::to_string(incr_wg);
-
             if(packed_tensor)
             {
                 parms += " -DUSE_FWD_BIAS";
@@ -789,7 +776,8 @@ void OpTensor4d(Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        int(incr_wg));
             }
             else
             {
@@ -820,32 +808,17 @@ void OpTensor4d(Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        int(incr_wg));
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
         else if(packed_equal_tensor)
         {
             parms += " -DUSE_4D_TENSOR_LITE";
-            // for naive tensor ops
-            const std::string data_type = GetDataType(bTensorDesc.GetType());
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-            size_t TENS_LEN = cTensorDesc.GetElementSize();
-            size_t RD_BLCK  = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
-            size_t MAP_RD   = std::max(size_t(TENS_LEN / RD_BLCK), size_t(1));
-
-            const std::string READ_TYPE =
-                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
-                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            const std::vector<size_t> vgd1{TENS_LEN / RD_BLCK, 1, 1};
+            const std::vector<size_t> vgd1{glb_sz, 1, 1};
 
             handle.AddKernel(
                 "Op4dTensorLite", network_config, program_name, "Op4dTensorLite", vld, vgd1, parms)(
@@ -857,11 +830,12 @@ void OpTensor4d(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                long(total_work),
+                int(!float_equal(miopen_beta, 0.0)));
         }
         else if(leading_ones)
         {
-            parms += " -DFIRST_NOT_ONE=" + std::to_string(d - 1);
             if(packed_tensor)
             {
                 parms += " -DUSE_LEADING_ONES";
@@ -886,7 +860,8 @@ void OpTensor4d(Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        bitmap);
             }
             else
             {
@@ -921,7 +896,8 @@ void OpTensor4d(Handle& handle,
                                         long(Aoffset),
                                         long(Boffset),
                                         long(Coffset),
-                                        int(num_wg_orig));
+                                        int(num_wg_orig),
+                                        bitmap);
             }
         }
         else
@@ -965,7 +941,7 @@ void OpTensor4d(Handle& handle,
     });
 }
 
-void OpTensorOther(Handle& handle,
+void OpTensorOther(const Handle& handle,
                    miopenTensorOp_t tensorOp,
                    const void* alpha0,
                    const TensorDescriptor& aTensorDesc,
@@ -993,9 +969,9 @@ void OpTensorOther(Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -1029,12 +1005,11 @@ void OpTensorOther(Handle& handle,
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
     std::string network_config{};
-    network_config += std::to_string(bTensorDesc.GetType()) +
-                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
-                      std::to_string(global_threads) + std::to_string(local_threads);
+    network_config += std::to_string(bTensorDesc.GetType()) + "-" +
+                      std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-" +
+                      std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
-
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
@@ -1244,11 +1219,10 @@ void OpTensorOther(Handle& handle,
                                     long(Coffset),
                                     int(num_wg_orig));
         }
-
     });
 }
 
-void OpTensor(Handle& handle,
+void OpTensor(const Handle& handle,
               miopenTensorOp_t tensorOp,
               const void* alpha0,
               const TensorDescriptor& aTensorDesc,
@@ -1416,8 +1390,11 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     return worker_sizes;
 }
 
-void SetTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
+void SetTensor(const Handle& handle,
+               const TensorDescriptor& yDesc,
+               Data_t y,
+               const void* alpha,
+               const int offset)
 {
     if(y == nullptr || alpha == nullptr)
     {
@@ -1429,9 +1406,9 @@ void SetTensor(
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "real descritor: " << yDesc << std::endl
-                  << "flat descritor: " << yDesc_flat << std::endl;
+        MIOPEN_LOG_I(__func__ << std::endl
+                              << "real descritor: " << yDesc << std::endl
+                              << "flat descritor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1488,8 +1465,7 @@ void SetTensor(
 
     switch(yDim_flat)
     {
-    case 1:
-    {
+    case 1: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1500,8 +1476,7 @@ void SetTensor(
 
         break;
     }
-    case 2:
-    {
+    case 2: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1514,8 +1489,7 @@ void SetTensor(
 
         break;
     }
-    case 3:
-    {
+    case 3: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1530,8 +1504,7 @@ void SetTensor(
 
         break;
     }
-    case 4:
-    {
+    case 4: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1548,8 +1521,7 @@ void SetTensor(
 
         break;
     }
-    case 5:
-    {
+    case 5: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1572,8 +1544,11 @@ void SetTensor(
     }
 }
 
-void ScaleTensor(
-    Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 const int offset)
 {
     if(y == nullptr || alpha == nullptr)
     {
@@ -1585,9 +1560,9 @@ void ScaleTensor(
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "real descritor: " << yDesc << std::endl
-                  << "flat descritor: " << yDesc_flat << std::endl;
+        MIOPEN_LOG_I(__func__ << std::endl
+                              << "real descritor: " << yDesc << std::endl
+                              << "flat descritor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1651,8 +1626,7 @@ void ScaleTensor(
 
     switch(yDim_flat)
     {
-    case 1:
-    {
+    case 1: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1663,8 +1637,7 @@ void ScaleTensor(
 
         break;
     }
-    case 2:
-    {
+    case 2: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1677,8 +1650,7 @@ void ScaleTensor(
 
         break;
     }
-    case 3:
-    {
+    case 3: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1693,8 +1665,7 @@ void ScaleTensor(
 
         break;
     }
-    case 4:
-    {
+    case 4: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1711,8 +1682,7 @@ void ScaleTensor(
 
         break;
     }
-    case 5:
-    {
+    case 5: {
         visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
@@ -1735,7 +1705,7 @@ void ScaleTensor(
     }
 }
 
-void CopyTensor(Handle& handle,
+void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
@@ -1765,11 +1735,11 @@ void CopyTensor(Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "src real descriptor: " << srcDesc << std::endl
-                  << "src flat descriptor: " << srcDesc_flat << std::endl
-                  << "dst real descriptor: " << dstDesc << std::endl
-                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+        MIOPEN_LOG_I(__func__ << std::endl
+                              << "src real descriptor: " << srcDesc << std::endl
+                              << "src flat descriptor: " << srcDesc_flat << std::endl
+                              << "dst real descriptor: " << dstDesc << std::endl
+                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -1832,8 +1802,7 @@ void CopyTensor(Handle& handle,
 
         switch(srcDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1844,8 +1813,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1859,8 +1827,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1877,8 +1844,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1898,8 +1864,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             kernel(src,
                    srcOffset,
                    int(srcDesc_flat.GetStrides()[0]),
@@ -1941,13 +1906,16 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenHalf: return option += "2";
     case miopenFloat: return option += "3";
     case miopenBFloat16: return option += "4";
+    case miopenDouble:
+        // TODO
+        MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
     case miopenInt8x4:
         MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
 
-void CastTensor(Handle& handle,
+void CastTensor(const Handle& handle,
                 const void* alpha,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
@@ -1978,11 +1946,11 @@ void CastTensor(Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        std::cout << __func__ << std::endl
-                  << "src real descriptor: " << srcDesc << std::endl
-                  << "src flat descriptor: " << srcDesc_flat << std::endl
-                  << "dst real descriptor: " << dstDesc << std::endl
-                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+        MIOPEN_LOG_I(__func__ << std::endl
+                              << "src real descriptor: " << srcDesc << std::endl
+                              << "src flat descriptor: " << srcDesc_flat << std::endl
+                              << "dst real descriptor: " << dstDesc << std::endl
+                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -2058,8 +2026,7 @@ void CastTensor(Handle& handle,
 
         switch(srcDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2071,8 +2038,7 @@ void CastTensor(Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2087,8 +2053,7 @@ void CastTensor(Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2106,8 +2071,7 @@ void CastTensor(Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2128,8 +2092,7 @@ void CastTensor(Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             kernel(src,
                    miopen_alpha,
                    srcOffset,
@@ -2158,7 +2121,7 @@ void CastTensor(Handle& handle,
     }
 }
 
-void TransformTensor(Handle& handle,
+void TransformTensor(const Handle& handle,
                      const void* alpha,
                      const TensorDescriptor& xDesc,
                      ConstData_t x,
@@ -2279,16 +2242,16 @@ void TransformTensor(Handle& handle,
 #ifndef NDEBUG
         if(xDesc.GetSize() != xDesc_flat.GetSize())
         {
-            std::cout << __func__ << std::endl
-                      << "real descritor: " << xDesc << std::endl
-                      << "flat descritor: " << xDesc_flat << std::endl;
+            MIOPEN_LOG_I(__func__ << std::endl
+                                  << "real descritor: " << xDesc << std::endl
+                                  << "flat descritor: " << xDesc_flat << std::endl);
         }
 
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
-            std::cout << __func__ << std::endl
-                      << "real descritor: " << yDesc << std::endl
-                      << "flat descritor: " << yDesc_flat << std::endl;
+            MIOPEN_LOG_I(__func__ << std::endl
+                                  << "real descritor: " << yDesc << std::endl
+                                  << "flat descritor: " << yDesc_flat << std::endl);
         }
 #endif
 
@@ -2365,8 +2328,7 @@ void TransformTensor(Handle& handle,
 
         switch(yDim_flat)
         {
-        case 1:
-        {
+        case 1: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2381,8 +2343,7 @@ void TransformTensor(Handle& handle,
 
             break;
         }
-        case 2:
-        {
+        case 2: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2400,8 +2361,7 @@ void TransformTensor(Handle& handle,
 
             break;
         }
-        case 3:
-        {
+        case 3: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2422,8 +2382,7 @@ void TransformTensor(Handle& handle,
 
             break;
         }
-        case 4:
-        {
+        case 4: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),
@@ -2447,8 +2406,7 @@ void TransformTensor(Handle& handle,
 
             break;
         }
-        case 5:
-        {
+        case 5: {
             visit_float(dataTypey, [&](auto as_float) {
                 kernel(x,
                        *as_float(alpha),

@@ -28,7 +28,6 @@
 
 #include <algorithm>
 #include <array>
-#include <array>
 #include <cassert>
 #include <functional>
 #include <memory>
@@ -53,7 +52,7 @@ struct LocalMemArg
     LocalMemArg(size_t _size) : size(_size) {}
     size_t GetSize() const { return size; }
 
-    private:
+private:
     size_t size;
 };
 
@@ -62,7 +61,7 @@ struct OCLSetKernelArg
     template <class I, class T>
     void operator()(cl_kernel kernel, I i, const T& x) const
     {
-        cl_int status =
+        const cl_int status =
             clSetKernelArg(kernel, i, sizeof(T), reinterpret_cast<const void*>(&x)); // NOLINT
         if(status != CL_SUCCESS)
         {
@@ -77,34 +76,36 @@ struct OCLSetKernelArg
         cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
         if(status != CL_SUCCESS)
         {
-            MIOPEN_THROW("Error setting argument #" + std::to_string(i) + " to kernel: " +
-                         OpenCLErrorMessage(status));
+            MIOPEN_THROW("Error setting argument #" + std::to_string(i) +
+                         " to kernel: " + OpenCLErrorMessage(status));
         }
     }
 };
 
 struct OCLKernelInvoke
 {
-    cl_command_queue queue = nullptr;
-    SharedKernelPtr kernel = nullptr;
-    size_t work_dim        = 0;
+    cl_command_queue queue                   = nullptr;
+    SharedKernelPtr kernel                   = nullptr;
+    size_t work_dim                          = 0;
     std::array<size_t, 3> global_work_offset = {};
-    std::array<size_t, 3> global_work_dim    = {};
-    std::array<size_t, 3> local_work_dim     = {};
+    // std::array<size_t, 3> global_work_dim    = {};
+    // std::array<size_t, 3> local_work_dim     = {};
+    std::array<size_t, 3> gdims = {};
+    std::array<size_t, 3> ldims = {};
     std::function<void(cl_event&)> callback;
 
     void operator()(std::vector<OpKernelArg> args) const
     {
         for(size_t idx = 0; idx < args.size(); idx++)
         {
-            auto arg      = args[idx];
-            cl_int status = clSetKernelArg(
+            auto arg            = args[idx];
+            const cl_int status = clSetKernelArg(
                 kernel.get(), idx, arg.size(), reinterpret_cast<const void*>(&arg.buffer[0]));
             if(status != CL_SUCCESS)
             {
                 MIOPEN_THROW("Error setting argument #" + std::to_string(idx) +
-                             " to kernel (size = " + std::to_string(arg.size()) + "): " +
-                             OpenCLErrorMessage(status));
+                             " to kernel (size = " + std::to_string(arg.size()) +
+                             "): " + OpenCLErrorMessage(status));
             }
         }
         run();
@@ -127,7 +128,7 @@ struct OCLKernelInvoke
 class OCLKernel
 {
 
-    public:
+public:
     OCLKernel() {}
     OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
     OCLKernel(ClKernelPtr k, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
@@ -155,6 +156,11 @@ class OCLKernel
         }
     }
 
+    OCLKernel(SharedProgramPtr p, const std::string& kernel_name)
+        : program(p), kernel(CreateKernel(p.get(), kernel_name))
+    {
+    }
+
     OCLKernelInvoke Invoke(cl_command_queue q,
                            std::function<void(cl_event&)> callback = nullptr) const;
 
@@ -165,7 +171,7 @@ class OCLKernel
     inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
     inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
 
-    private:
+private:
     SharedProgramPtr program;
     SharedKernelPtr kernel;
     std::vector<size_t> ldims;

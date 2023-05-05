@@ -50,7 +50,7 @@
 template <typename Tgpu, typename Tref>
 class ActivationDriver : public Driver
 {
-    public:
+public:
     ActivationDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -63,26 +63,26 @@ class ActivationDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetActivationDescriptorFromCmdLineArgs();
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU(); // Verify implements it
 
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
-    int VerifyBackward();
-    int VerifyForward();
-    ~ActivationDriver()
+    int VerifyBackward() override;
+    int VerifyForward() override;
+    ~ActivationDriver() override
     {
 
         miopenDestroyTensorDescriptor(outputTensor);
@@ -91,7 +91,7 @@ class ActivationDriver : public Driver
         miopenDestroyActivationDescriptor(activDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -196,8 +196,8 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t in_sz  = GetTensorSpace(inputTensor);
+    size_t out_sz = GetTensorSpace(outputTensor);
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -246,12 +246,11 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         case MIOPEN_NEURON_ABS:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MIOPEN_NEURON_POWER:
-        {
+        case MIOPEN_NEURON_POWER: {
             double v = -alpha / beta;
             in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
                                           static_cast<Tgpu>((v + 2.0) / beta))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
+                             : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
                                           static_cast<Tgpu>((v - 0.005) / beta));
             break;
         }

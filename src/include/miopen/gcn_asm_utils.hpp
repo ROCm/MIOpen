@@ -26,14 +26,17 @@
 #ifndef GCN_ASM_UTILS_H
 #define GCN_ASM_UTILS_H
 
-#include <string>
-#include <vector>
+#include <miopen/config.h>
+#include <miopen/target_properties.hpp>
 #include <sstream>
+#include <string>
 
-std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
-void AmdgcnAssemble(std::string& source, const std::string& params);
-bool GcnAssemblerHasBug34765();
+#if !MIOPEN_USE_COMGR
+std::string AmdgcnAssemble(const std::string& source,
+                           const std::string& params,
+                           const miopen::TargetProperties& target);
+#endif
 
 template <typename TValue>
 void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
@@ -45,12 +48,5 @@ template <>
 void GenerateClangDefsym<const std::string&>(std::ostream& stream,
                                              const std::string& name,
                                              const std::string& value);
-
-/// @param dir 1: fwd, 0: bwd wrt data. Use 0 for WrW.
-/// Encodes key with default strides (u1v1)
-std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs = -1);
-/// Allows for any strides.
-std::string MakeLutKey(
-    int w, int h, int c, int n, int k, int conv_stride_h, int conv_stride_w, int dir, int CUs = -1);
 
 #endif // GCN_ASM_UTILS_H

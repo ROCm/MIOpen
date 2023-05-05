@@ -26,13 +26,67 @@
 #ifndef MIOPEN_POOLING_HPP_
 #define MIOPEN_POOLING_HPP_
 
-#include "miopen/common.hpp"
+#include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/object.hpp>
 #include <miopen/miopen.h>
 
 #include <vector>
 
 namespace miopen {
+
+// get the previous (less or equal to v) power of 2
+inline int prePow2(int v)
+{
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    return (v + 1) >> 1;
+}
+
+inline std::string get_pooling_index_type_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: {
+        return "uchar";
+    }
+    case miopenIndexUint16: {
+        return "ushort";
+    }
+    case miopenIndexUint32: {
+        return "uint";
+    }
+    case miopenIndexUint64: {
+        return "ulong";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
+inline std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: {
+        return "UCHAR_MAX";
+    }
+    case miopenIndexUint16: {
+        return "USHRT_MAX";
+    }
+    case miopenIndexUint32: {
+        return "UINT_MAX";
+    }
+    case miopenIndexUint64: {
+        return "ULONG_MAX";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
 
 struct Handle;
 struct TensorDescriptor;
@@ -56,19 +110,21 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 
     void SetIndexType(miopenIndexType_t index_type);
 
+    void SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t workspace_index);
+
     miopenPoolingMode_t GetMode() const;
 
     miopenPaddingMode_t GetPaddingMode() const;
 
     miopenIndexType_t GetIndexType() const;
 
+    miopenPoolingWorkspaceIndexMode_t GetWorkspaceIndexMode() const;
+
     const std::vector<int>& GetLengths() const;
 
     const std::vector<int>& GetStrides() const;
 
     const std::vector<int>& GetPads() const;
-
-    miopenPoolingMode_t GetMode();
 
     int GetSize() const;
 
@@ -103,7 +159,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
                             const void* beta,
                             const TensorDescriptor& dxDesc,
                             Data_t dx,
-                            ConstData_t workSpace) const;
+                            Data_t workSpace) const;
 
     friend std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x);
 
@@ -114,7 +170,8 @@ struct PoolingDescriptor : miopenPoolingDescriptor
     miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopenPaddingDefault;
 
-    miopenIndexType_t indexType = miopenIndexUint8;
+    miopenIndexType_t indexType                          = miopenIndexUint8;
+    miopenPoolingWorkspaceIndexMode_t workspaceIndexMode = miopenPoolingWorkspaceIndexMask;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenPoolingDescriptor, miopen::PoolingDescriptor);

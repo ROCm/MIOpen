@@ -23,17 +23,28 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
+
+#if MIOPEN_BACKEND_HIP
+#include <miopen/hipoc_kernel.hpp>
+#endif
+
+#if MIOPEN_USE_MIOPENTENSILE
+#include <miopentensile/gemm.h>
+#endif
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
+#if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
-#include <miopen/hipoc_kernel.hpp>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #include <miopen/perf_field.hpp>
 #endif
 
@@ -42,15 +53,23 @@
 #endif
 
 #include <boost/range/adaptors.hpp>
+#include <tuple> // std::ignore
 
 #if MIOPEN_USE_ROCBLAS
-#define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
-
-#define MIOPEN_ROCBLAS_VERSION_DECIMAL (ROCBLAS_VERSION_MAJOR * 100 + ROCBLAS_VERSION_MINOR)
 
 /// Avoid warnings "The workspace_size and workspace arguments are obsolete" and
 /// "disabled expansion of recursive macro" injected by rocblas headers.
-#define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 204)
+#define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
+
+/// Maintain API compatibility with various rocBLAS version
+#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000)
+
+/// Maintain API compatibility for versions not supporting FP16 alternate implementations
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)
+/// Some 2.42 versions have rocblas_gemm_flags_fp16_alt_impl, but
+/// some do not, and that leads to build errors.
+/// Let's pass literal value as a workaround; there should be no harm.
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_FLAT == 2042000)
 
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
@@ -102,49 +121,49 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
 }
 
 #if MIOPEN_USE_ROCBLAS
-// Enqueue gpu memset for rocblas kernel timing purpose
-// Be careful, will set mem to 0
-static void
-dummy_memset(const Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
+
+inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 {
-    MIOPEN_LOG_I2("dummy gpu memset");
+    MIOPEN_LOG_I2("");
+    rocblas_atomics_mode cur_mode;
+    rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
+    assert(status == rocblas_status::rocblas_status_success);
+    (void)status; // WA till C++17 [[maybe_unused]]
+    if(cur_mode == rocblas_atomics_allowed)
+    {
+        status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
+        assert(status == rocblas_status::rocblas_status_success);
+        (void)status; // WA till C++17 [[maybe_unused]]
+    }
+    return cur_mode;
+}
 
-    std::size_t data_size = 0;
+inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
+{
+    MIOPEN_LOG_I2("");
+    rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
+    assert(status == rocblas_status::rocblas_status_success);
+    (void)status; // WA till C++17 [[maybe_unused]]
+}
 
-    switch(data_type)
-    {
-    case miopenInt8x4:
-    case miopenInt8:
-    {
-        data_size = sizeof(int8_t);
-        break;
-    }
-    case miopenInt32:
-    {
-        data_size = sizeof(int);
-        break;
-    }
-    case miopenBFloat16:
-    {
-        data_size = sizeof(rocblas_bfloat16);
-        break;
-    }
-    case miopenHalf:
-    {
-        data_size = sizeof(half_float::half);
-        break;
-    }
-    case miopenFloat:
-    {
-        data_size = sizeof(float);
-        break;
-    }
-    }
+#endif
 
-    std::size_t sz = mem_len * data_size;
+#if MIOPEN_BACKEND_HIP
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    start = make_hip_event();
+    stop  = make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
 
-    for(std::size_t i = 0; i < ROCBLAS_TIMING_MEMSET_SIZE; i += sz)
-        hipMemsetAsync(mem, 0, sz, handle.GetStream());
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
 }
 #endif
 
@@ -159,18 +178,29 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     switch(Value(MIOPEN_GEMM_ENFORCE_BACKEND{}))
     {
-    case 1: gemm_backend_env  = GemmBackend_t::rocblas; break;
-    case 2: gemm_backend_env  = GemmBackend_t::miopengemm; break;
-    case 3: gemm_backend_env  = GemmBackend_t::nogemmbackend; break;
+    case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
+    case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
+    case 3: gemm_backend_env = GemmBackend_t::nogemmbackend; break;
+    case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
     default: gemm_backend_env = gemm_backend_preferred;
     }
 
 // make sure backend chosen based on env variable is suppported
-#if MIOPEN_USE_ROCBLAS and MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENTENSILE
+    (void)data_type;
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
-    case GemmBackend_t::rocblas: gemm_backend_enforced       = GemmBackend_t::rocblas; break;
+    case GemmBackend_t::rocblas:
+    case GemmBackend_t::miopengemm:
+    case GemmBackend_t::miopentensile: gemm_backend_enforced = GemmBackend_t::miopentensile; break;
+    }
+#elif MIOPEN_USE_ROCBLAS and MIOPEN_USE_MIOPENGEMM
+    switch(gemm_backend_env)
+    {
+    case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
+    case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
             (data_type == miopenFloat) ? GemmBackend_t::miopengemm : GemmBackend_t::rocblas;
@@ -181,6 +211,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     }
@@ -188,6 +219,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::miopentensile:
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
@@ -201,7 +233,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     return gemm_backend_enforced;
 }
 
-miopenStatus_t CallGemmTimeMeasure(Handle& handle,
+miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    GemmDescriptor gemm_desc,
                                    ConstData_t A,
                                    int a_offset,
@@ -209,15 +241,14 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
-                                   FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
+                                   GemmBackend_t gemm_backend,
+                                   bool gfx90a_alt_impl)
 {
     switch(call_gemm_type)
     {
-    case callGemm:
-    {
+    case callGemm: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
@@ -229,9 +260,8 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                      b_offset,
                      C,
                      c_offset,
-                     nullptr,
-                     false,
-                     gemm_backend);
+                     gemm_backend,
+                     gfx90a_alt_impl);
         }
 
         return CallGemm(handle,
@@ -242,12 +272,10 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                         b_offset,
                         C,
                         c_offset,
-                        kcache_key,
-                        time_precision,
-                        gemm_backend);
+                        gemm_backend,
+                        gfx90a_alt_impl);
     }
-    case callGemmStridedBatched:
-    {
+    case callGemmStridedBatched: {
         if(time_precision)
         {
             // rocBLAS need extra warm-up call for accurate timing
@@ -259,9 +287,8 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                    b_offset,
                                    C,
                                    c_offset,
-                                   nullptr,
-                                   false,
-                                   gemm_backend);
+                                   gemm_backend,
+                                   gfx90a_alt_impl);
         }
 
         return CallGemmStridedBatched(handle,
@@ -272,12 +299,10 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                       b_offset,
                                       C,
                                       c_offset,
-                                      kcache_key,
-                                      time_precision,
-                                      gemm_backend);
+                                      gemm_backend,
+                                      gfx90a_alt_impl);
     }
-    case callGemmStridedBatchedSequential:
-    {
+    case callGemmStridedBatchedSequential: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
@@ -289,9 +314,8 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                              b_offset,
                                              C,
                                              c_offset,
-                                             nullptr,
-                                             false,
-                                             gemm_backend);
+                                             gemm_backend,
+                                             gfx90a_alt_impl);
         }
 
         return CallGemmStridedBatchedSequential(handle,
@@ -302,15 +326,141 @@ miopenStatus_t CallGemmTimeMeasure(Handle& handle,
                                                 b_offset,
                                                 C,
                                                 c_offset,
-                                                kcache_key,
-                                                time_precision,
-                                                gemm_backend);
+                                                gemm_backend,
+                                                gfx90a_alt_impl);
     }
     }
     return miopenStatusNotImplemented;
 }
 
-miopenStatus_t CallGemm(Handle& handle,
+#if MIOPEN_USE_MIOPENTENSILE
+miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
+                                     GemmDescriptor gemm_desc,
+                                     ConstData_t A,
+                                     int a_offset,
+                                     ConstData_t B,
+                                     int b_offset,
+                                     Data_t C,
+                                     int c_offset)
+{
+    MIOPEN_LOG_FUNCTION("MIOpenTensile");
+
+    miopen_tensile_type miotsl_in_dtype, miotsl_out_dtype;
+    Data_t ptrA, ptrB, ptrC;
+    switch(gemm_desc.dataType)
+    {
+    case miopenFloat:
+        miotsl_in_dtype = miopen_tensile_type_float;
+        ptrA            = Data_t(reinterpret_cast<const float*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const float*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<float*>(C) + c_offset);
+        break;
+    case miopenHalf:
+        miotsl_in_dtype = miopen_tensile_type_half;
+        ptrA            = Data_t(reinterpret_cast<const half_float::half*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const half_float::half*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<half_float::half*>(C) + c_offset);
+        break;
+    case miopenBFloat16:
+        miotsl_in_dtype = miopen_tensile_type_bfloat16;
+        ptrA            = Data_t(reinterpret_cast<const unsigned short*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const unsigned short*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<unsigned short*>(C) + c_offset);
+        break;
+    case miopenInt32:
+        miotsl_in_dtype = miopen_tensile_type_int32;
+        ptrA            = Data_t(reinterpret_cast<const int32_t*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const int32_t*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
+        break;
+    case miopenInt8:
+    case miopenInt8x4:
+        miotsl_in_dtype = miopen_tensile_type_int8x4;
+        ptrA            = Data_t(reinterpret_cast<const int8_t*>(A) + a_offset);
+        ptrB            = Data_t(reinterpret_cast<const int8_t*>(B) + b_offset);
+        ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
+        break;
+    case miopenDouble:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by MIOpenGEMM.");
+    }
+    if(gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+    {
+        miotsl_out_dtype = miopen_tensile_type_int32;
+    }
+    else
+    {
+        miotsl_out_dtype = miotsl_in_dtype;
+    }
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStart(handle, start, stop);
+#endif
+
+    std::size_t m = gemm_desc.m;
+    std::size_t n = gemm_desc.n;
+    std::size_t k = gemm_desc.k;
+
+    auto mtA_str0  = size_t(gemm_desc.transA ? 1 : gemm_desc.lda);
+    auto mtA_str1  = size_t(gemm_desc.transA ? gemm_desc.lda : 1);
+    auto mtA_b_n   = size_t(gemm_desc.batch_count);
+    auto mtA_b_str = size_t(gemm_desc.strideA);
+    auto mtB_str0  = size_t(gemm_desc.transB ? 1 : gemm_desc.ldb);
+    auto mtB_str1  = size_t(gemm_desc.transB ? gemm_desc.ldb : 1);
+    auto mtB_b_n   = size_t(gemm_desc.batch_count);
+    auto mtB_b_str = size_t(gemm_desc.strideB);
+    auto mtC_str0  = size_t(gemm_desc.ldc);
+    auto mtC_str1  = size_t(1);
+    auto mtC_b_n   = size_t(gemm_desc.batch_count);
+    auto mtC_b_str = size_t(gemm_desc.strideC);
+
+    miopen_tensile_matrix mtA{
+        {m, k}, {mtA_str0, mtA_str1}, {mtA_b_n, mtA_b_str}, miotsl_in_dtype, ptrA};
+    miopen_tensile_matrix mtB{
+        {k, n}, {mtB_str0, mtB_str1}, {mtB_b_n, mtB_b_str}, miotsl_in_dtype, ptrB};
+    miopen_tensile_matrix mtC{
+        {m, n}, {mtC_str0, mtC_str1}, {mtC_b_n, mtC_b_str}, miotsl_out_dtype, ptrC};
+
+    miopen_tensile_status mt_status = miopen_tensile_status_no_solution;
+#if MIOPEN_BACKEND_HIP
+    mt_status = miopen_tensile_gemm_hip(
+        handle.GetStream(), &mtA, &mtB, &mtC, double(gemm_desc.alpha), double(gemm_desc.beta));
+
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStop(handle, start, stop);
+#else
+    (void)handle;
+    (void)mtA;
+    (void)mtB;
+    (void)mtC;
+#endif
+
+    if(mt_status != miopen_tensile_status_success)
+        MIOPEN_THROW(miopenStatusInternalError, "Failed to run miopen_tensile_gemm_hip");
+
+    return miopenStatusSuccess;
+}
+#endif
+
+#if MIOPEN_USE_ROCBLAS
+static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
+{
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL
+    return gfx90aFp16Alt ? rocblas_gemm_flags_fp16_alt_impl : 0;
+#elif USE_GEMM_FLAGS_FP16_ALT_IMPL_242
+    return gfx90aFp16Alt ? 0x4 : 0;
+#else
+    std::ignore = gfx90aFp16Alt;
+    return 0;
+#endif
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL_242 // -warning: macro is not used
+#endif
+}
+#endif // MIOPEN_USE_ROCBLAS
+
+miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
                         int a_offset,
@@ -318,22 +468,22 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        FindDbKCacheKey* kcache_key,
-                        bool enqueue_dummy_kernel,
-                        GemmBackend_t gemm_backend)
+                        GemmBackend_t gemm_backend,
+                        bool gfx90a_alt_impl)
 {
-#if !MIOPEN_USE_ROCBLAS
-    (void)enqueue_dummy_kernel;
-#endif
-
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
+#if MIOPEN_USE_MIOPENTENSILE
+    if(gemm_desc.isColMajor)
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -343,6 +493,12 @@ miopenStatus_t CallGemm(Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -352,29 +508,19 @@ miopenStatus_t CallGemm(Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            if(enqueue_dummy_kernel)
-            {
-                dummy_memset(
-                    handle,
-                    C,
-                    gemm_desc.m * gemm_desc.n,
-                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
-                         ? miopenInt32
-                         : gemm_desc.dataType));
-            }
-
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+            ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -404,12 +550,17 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                rocblas_gemm_flags_pack_int8x4
+#else
+                0
+#endif
+            );
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+        case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -437,12 +588,11 @@ miopenStatus_t CallGemm(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -475,8 +625,7 @@ miopenStatus_t CallGemm(Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -507,24 +656,22 @@ miopenStatus_t CallGemm(Handle& handle,
                 0);
         }
         break;
+
+        case miopenDouble: {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        };
+        break;
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
-
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -533,6 +680,7 @@ miopenStatus_t CallGemm(Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             return miopenStatusNotImplemented;
 
@@ -555,9 +703,6 @@ miopenStatus_t CallGemm(Handle& handle,
 
         const std::string algorithm_name = "MIOpenGEMM";
         const std::string network_config = gemm_desc_to_string();
-
-        if(kcache_key != nullptr)
-            *kcache_key = {algorithm_name, network_config};
 
         auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -616,7 +761,7 @@ miopenStatus_t CallGemm(Handle& handle,
     return miopenStatusUnknownError;
 }
 
-miopenStatus_t CallGemmStridedBatched(Handle& handle,
+miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
@@ -624,22 +769,22 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      FindDbKCacheKey* kcache_key,
-                                      bool enqueue_dummy_kernel,
-                                      GemmBackend_t gemm_backend)
+                                      GemmBackend_t gemm_backend,
+                                      bool gfx90a_alt_impl)
 {
-#if !MIOPEN_USE_ROCBLAS
-    (void)enqueue_dummy_kernel;
-#endif
-
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
+#if MIOPEN_USE_MIOPENTENSILE
+    if(gemm_desc.isColMajor)
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -650,6 +795,12 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -659,29 +810,20 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            if(enqueue_dummy_kernel)
-            {
-                dummy_memset(
-                    handle,
-                    C,
-                    gemm_desc.m * gemm_desc.n * gemm_desc.batch_count,
-                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
-                         ? miopenInt32
-                         : gemm_desc.dataType));
-            }
 
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+            ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -716,12 +858,18 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                rocblas_gemm_flags_pack_int8x4
+#else
+                0
+#endif
+            );
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+
+        case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -754,12 +902,11 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -796,8 +943,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -833,23 +979,22 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                 0);
         }
         break;
+
+        case miopenDouble: {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
 
         return miopenStatusSuccess;
 #else
@@ -859,17 +1004,9 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
-        return CallGemmStridedBatchedSequential(handle,
-                                                gemm_desc,
-                                                A,
-                                                a_offset,
-                                                B,
-                                                b_offset,
-                                                C,
-                                                c_offset,
-                                                kcache_key,
-                                                enqueue_dummy_kernel,
-                                                gemm_backend);
+        std::ignore = gfx90a_alt_impl; // Not supported.
+        return CallGemmStridedBatchedSequential(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
 #else
         return miopenStatusNotImplemented;
 #endif
@@ -879,7 +1016,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     return miopenStatusUnknownError;
 }
 
-miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
+miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 GemmDescriptor gemm_desc,
                                                 ConstData_t A,
                                                 int a_offset,
@@ -887,22 +1024,22 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                FindDbKCacheKey* kcache_key,
-                                                bool enqueue_dummy_kernel,
-                                                GemmBackend_t gemm_backend)
+                                                GemmBackend_t gemm_backend,
+                                                bool gfx90a_alt_impl)
 {
-#if !MIOPEN_USE_ROCBLAS
-    (void)enqueue_dummy_kernel;
-#endif
-
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
 
-    // do row-to-column major conversion here
+// do row-to-column major conversion here
+// add macro to distinguish MIOpenTensile and rocBlas logic
+#if MIOPEN_USE_MIOPENTENSILE
+    if(gemm_desc.isColMajor)
+#else
     if(!gemm_desc.isColMajor)
+#endif
     {
-        gemm_desc.isColMajor = true;
+        gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(gemm_desc.transA, gemm_desc.transB);
@@ -913,6 +1050,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
     switch(gemm_backend)
     {
+    case GemmBackend_t::miopentensile:
+#if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
+        return CallGemmMIOpenTensile(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
+#endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
@@ -922,29 +1065,21 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         HipEventPtr stop  = nullptr;
         if(handle.IsProfilingEnabled())
         {
-            if(enqueue_dummy_kernel)
-            {
-                dummy_memset(
-                    handle,
-                    C,
-                    gemm_desc.m * gemm_desc.n,
-                    ((gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
-                         ? miopenInt32
-                         : gemm_desc.dataType));
-            }
-
-            start = make_hip_event();
-            stop  = make_hip_event();
-            hipEventRecord(start.get(), handle.GetStream());
+            ProfilingRecordStart(handle, start, stop);
         }
 
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+        {
+            cur_mode = DisableRocblasAtomics(handle);
+        }
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
         switch(gemm_desc.dataType)
         {
         case miopenInt8x4:
-        case miopenInt8:
-        {
+        case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -976,13 +1111,18 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0);
+#if USE_GEMM_FLAGS_PACK_INT8X4
+                    rocblas_gemm_flags_pack_int8x4
+#else
+                    0
+#endif
+                );
             }
         }
         break;
         case miopenInt32: break;
-        case miopenHalf:
-        {
+        case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1012,13 +1152,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0);
+                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
             }
         }
         break;
 
-        case miopenBFloat16:
-        {
+        case miopenBFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1053,8 +1192,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
         }
         break;
 
-        case miopenFloat:
-        {
+        case miopenFloat: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1088,23 +1226,22 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
             }
         }
         break;
+
+        case miopenDouble: {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())
-        {
-            hipEventRecord(stop.get(), handle.GetStream());
-            hipEventSynchronize(stop.get());
-            float mS = 0;
-            hipEventElapsedTime(&mS, start.get(), stop.get());
-            handle.ResetKernelTime();
-            handle.AccumKernelTime(mS);
-        }
+            ProfilingRecordStop(handle, start, stop);
 
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
 
         return miopenStatusSuccess;
 #else
@@ -1114,6 +1251,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 
@@ -1136,9 +1274,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
         const std::string algorithm_name = "MIOpenGEMM";
         const std::string network_config = gemm_desc_to_string();
-
-        if(kcache_key != nullptr)
-            *kcache_key = {algorithm_name, network_config};
 
         auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -1247,15 +1382,15 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k =
         in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1272,7 +1407,8 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1300,12 +1436,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1322,7 +1458,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1350,12 +1487,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1372,7 +1509,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1398,16 +1536,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
     int m           = wei_k;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c;
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1424,7 +1562,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1448,16 +1587,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     int m           = in_c;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1474,7 +1613,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // y[i] = w * x[i], i is batch id
@@ -1505,12 +1645,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
     int lda = k;
     int ldb = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1527,7 +1667,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx[i] = transpose(w) * dy[i], i is batch id
@@ -1556,12 +1697,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1578,7 +1719,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
@@ -1607,12 +1749,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1629,7 +1771,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = w * Im2Col(x)
@@ -1655,15 +1798,15 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k = (in_c / groupCount) *
             std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1680,7 +1823,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1709,12 +1853,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1731,7 +1875,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1760,12 +1905,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1782,7 +1927,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1807,16 +1953,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     int m           = wei_k / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c / groupCount;
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c / groupCount;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1833,7 +1979,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1858,16 +2005,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     int m           = in_c / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k / groupCount;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k / groupCount;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1884,7 +2031,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 } // namespace miopen

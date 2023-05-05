@@ -1,30 +1,34 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2020 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #ifndef GUARD_MIOPEN_KERN_DB_HPP_
 #define GUARD_MIOPEN_KERN_DB_HPP_
+
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
 
 #include <miopen/sqlite_db.hpp>
 #include <miopen/bz2.hpp>
@@ -68,8 +72,7 @@ struct KernelConfig
            << ");"
            << "CREATE UNIQUE INDEX IF NOT EXISTS "
            << "`idx_" << KernelConfig::table_name() << "` "
-           << "ON " << KernelConfig::table_name()
-           << "(kernel_name, kernel_args, kernel_hash, uncompressed_size);";
+           << "ON " << KernelConfig::table_name() << "(kernel_name, kernel_args);";
         return ss.str();
     }
     std::string Where() const
@@ -86,18 +89,13 @@ class KernDb : public SQLiteBase<KernDb>
     std::function<std::string(std::string, bool*)> compress_fn;
     std::function<std::string(std::string, unsigned int)> decompress_fn;
 
-    public:
-    KernDb(const std::string& filename_,
-           bool is_system,
-           const std::string& arch,
-           std::size_t num_cu);
+public:
+    KernDb(const std::string& filename_, bool is_system);
     // This constructor is only intended for testing
     KernDb(const std::string& filename_,
-           bool _is_system,
-           const std::string& _arch,
-           std::size_t _num_cu,
-           std::function<std::string(std::string, bool*)> _compress_fn,
-           std::function<std::string(std::string, unsigned int)> _decompress_fn);
+           bool is_system_,
+           std::function<std::string(std::string, bool*)> compress_fn_,
+           std::function<std::string(std::string, unsigned int)> decompress_fn_);
     template <typename T>
     bool RemoveRecordUnsafe(const T& problem_config)
     {
@@ -151,10 +149,10 @@ class KernDb : public SQLiteBase<KernDb>
     }
 
     template <typename T>
-    boost::optional<std::string> StoreRecordUnsafe(const T& problem_config)
+    bool StoreRecordUnsafe(const T& problem_config)
     {
         if(filename.empty())
-            return boost::none;
+            return false;
         auto insert_query = "INSERT OR REPLACE INTO " + T::table_name() +
                             "(kernel_name, kernel_args, kernel_blob, kernel_hash, "
                             "uncompressed_size) VALUES(?, ?, ?, ?, ?);";
@@ -180,9 +178,9 @@ class KernDb : public SQLiteBase<KernDb>
         auto rc = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
-        return problem_config.kernel_blob;
+        return true;
     }
 };
 } // namespace miopen
-
+#endif
 #endif // GUARD_MIOPEN_KERN_DB_HPP_

@@ -40,7 +40,7 @@ namespace miopen {
 
 class InvokerCache
 {
-    public:
+public:
     // network_config, solver_id
     using Key = std::pair<std::string, std::string>;
 
@@ -48,13 +48,16 @@ class InvokerCache
     // For find 1.0
     boost::optional<const Invoker&> GetFound1_0(const std::string& network_config,
                                                 const std::string& algorithm) const;
+    boost::optional<const std::string&> GetFound1_0SolverId(const std::string& network_config,
+                                                            const std::string& algorithm) const;
+
     void Register(const Key& key, const Invoker& invoker);
     // For find 1.0
     void SetAsFound1_0(const std::string& network_config,
                        const std::string& algorithm,
                        const std::string& solver_id);
 
-    private:
+private:
     struct Item
     {
         // algorithm -> solver_id

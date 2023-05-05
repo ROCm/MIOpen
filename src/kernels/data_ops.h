@@ -167,15 +167,15 @@ void readDataVec2(uint lcl_id,
         lvisX &= (g_x < gbl_width && g_y < gbl_height);
         lvisY &= (g_x < gbl_width && g_y < gbl_height);
 #else
-        uint l_x                      = x + lcl_x;
-        uint l_y                      = y + lcl_y;
-        uint lcl_off                  = lcl_base + mad24(l_y, lcl_stride, l_x);
+        uint l_x            = x + lcl_x;
+        uint l_y            = y + lcl_y;
+        uint lcl_off        = lcl_base + mad24(l_y, lcl_stride, l_x);
 #endif
         lcl_data[lcl_off].x = (lvisX) ? gbl_data[gbl_off_v2.x] : (_FLOAT)0;
 #if MLO_N_INPUTS_REMAINDER <= MLO_N_IN_TILES_PERSTACK
         lcl_data[lcl_off].y = (IsLast) ? (_FLOAT)0 : ((lvisY) ? gbl_data[gbl_off_v2.y] : (_FLOAT)0);
 #else
-        lcl_data[lcl_off].y           = (lvisY) ? gbl_data[gbl_off_v2.y] : (_FLOAT)0;
+        lcl_data[lcl_off].y = (lvisY) ? gbl_data[gbl_off_v2.y] : (_FLOAT)0;
 #endif
     }
 }
@@ -267,8 +267,9 @@ void readDataTileVec2(__local _FLOAT2* lcl_data,
                 (invis) ? (_FLOAT2)(padding_val) : (_FLOAT2)(gbl_data[g_off.x], gbl_data[g_off.y]);
 #else
             lcl_data[y_lcl_off + i].x = (invis) ? padding_val : gbl_data[g_off.x];
-            lcl_data[y_lcl_off + i].y =
-                (IsLast) ? (_FLOAT)0 : (invis) ? padding_val : gbl_data[g_off.y];
+            lcl_data[y_lcl_off + i].y = (IsLast)  ? (_FLOAT)0
+                                        : (invis) ? padding_val
+                                                  : gbl_data[g_off.y];
 #endif
         }
     }

@@ -58,28 +58,9 @@ gid_z = 4
 // dwords 0:1 - input buffer pointer
 // dwords 2:3 - weights pointer
 // dwords 4:5 - output buffer pointer
-// dwords 6:7 - debug buffer pointer
 .set in_ptr_off, 0x0
 .set wei_ptr_off, 0x8
 .set out_ptr_off, 0x10
-
-.ifnotdef no_params_file
-    //inliner-include-optional
-    .include "params.ins"
-    .ifndef params_file
-        .set batch_size, 1
-        .set img_width, 128
-        .set img_height, 64
-        .set input_channels, 8
-        .set output_channels, 96
-        .set output_lines_per_wave, 2
-        .set filters_per_wave, 4
-        .set weights_layout, 0 // 0 - KCHW, 1 - CKHW
-        .set reverse_weights, 0 // for backward conv
-        .set enable_debug_output, 0
-        .set limit_wave_cnt, 0
-    .endif
-.endif
 
 .set max_hw_wctn, 15
 .set padding_x, 1
@@ -90,6 +71,21 @@ gid_z = 4
 .set disable_filter_prefetch, 0 // disable prefetch if we dont have enough sgprs to hold all weights
 .set uneven_line_read_mode, 0
 .set uneven_line_write_mode, 0
+
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
 
 block_size_x = 1
 enable_dpp_zero_column_padding = 1
@@ -145,10 +141,6 @@ acc_y_blocks = output_lines_per_wave
     mbufs_per_line = (full_input_chunks+3) / 4 + (partial_input_chunks+3)/4
 .else
     mbufs_per_line = (gprs_per_input_line+3) / 4 // memory buffer instructions per line
-.endif
-.set mbufs_cnt, mbufs_per_line * input_lines_per_wave
-.if mbufs_cnt > max_hw_wctn
-    mbufs_cnt = max_hw_wctn
 .endif
 
 // compute how many lines can we load or store using immediate 12-bit instruction offset
@@ -220,7 +212,8 @@ output_buffer_window = 4 * img_height * img_width
 .if limit_wave_cnt
   .SET_MAX_WAVES_LIMIT limit_wave_cnt
 .endif
-.SGPR_RESERVE_XNACK
+//xnack disabled by default
+//.SGPR_RESERVE_XNACK
 
 // allocate filters
 filter_part_size = weights_per_filter & 0x3
@@ -352,14 +345,6 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
   .set \name, accums + (\k * acc_lines_per_wave + \line) * gprs_per_input_line
 .endm
 
-.if enable_debug_output
-  .VGPR_ALLOC dbg_ptr, 2
-  .VGPR_ALLOC dbg, 16
-  .SGPR_ALLOC dbg_exec_lo
-  .SGPR_ALLOC dbg_exec_hi
-  .SGPR_RESERVE_VCC
-.endif
-
 .GPR_ALLOC_END
 
 
@@ -473,7 +458,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
     .endr
 .endm
 
-.macro .single_vload base, s_offset, count, partial=0
+.macro .single_vload base, s_offset, mbufs_inflight, count, partial=0
     .if ((vals_to_load - \count) >= 0) && vals_to_load > 0
         .if imm_off >= (1 << 12)
             .error "Error: Immediate offset is too large for buffer_load instruction"
@@ -498,40 +483,48 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .endif
         .endif
 
+        \mbufs_inflight = \mbufs_inflight + 1
         vals_to_load = vals_to_load - \count
         vals_loaded = vals_loaded + \count
         imm_off = imm_off + 4 * \count
     .endif
 .endm
 
-.macro .load_input_line base, s_offset
+.macro .load_input_line base, s_offset, mbufs_inflight
     vals_to_load = gprs_per_input_line
     .if uneven_line_read_mode
         vals_to_load = full_input_chunks
     .endif
     vals_loaded = 0
+    
+    .if tuple_alignment && ((\base+vals_loaded) % 2)
+        .single_vload \base, \s_offset, \mbufs_inflight, 1
+    .endif
     .rept (gprs_per_input_line / 4)
-        .single_vload \base, \s_offset, 4
+        .single_vload \base, \s_offset, \mbufs_inflight, 4
     .endr
-    .single_vload \base, \s_offset, 3
-    .single_vload \base, \s_offset, 2
-    .single_vload \base, \s_offset, 1
+    .single_vload \base, \s_offset, \mbufs_inflight, 3
+    .single_vload \base, \s_offset, \mbufs_inflight, 2
+    .single_vload \base, \s_offset, \mbufs_inflight, 1
     .if uneven_line_read_mode
         vals_to_load = partial_input_chunks
+        .if tuple_alignment && ((\base+vals_loaded) % 2)
+            .single_vload \base, \s_offset, \mbufs_inflight, 1, 1
+        .endif
         .rept (gprs_per_input_line / 4)
-            .single_vload \base, \s_offset, 4, 1
+            .single_vload \base, \s_offset, \mbufs_inflight, 4, 1
         .endr
-        .single_vload \base, \s_offset, 3, 1
-        .single_vload \base, \s_offset, 2, 1
-        .single_vload \base, \s_offset, 1, 1
+        .single_vload \base, \s_offset, \mbufs_inflight, 3, 1
+        .single_vload \base, \s_offset, \mbufs_inflight, 2, 1
+        .single_vload \base, \s_offset, \mbufs_inflight, 1, 1
     .endif
     imm_off = imm_off + input_line_stride - 4 * gprs_per_input_line
 .endm
 
-.macro .load_input_lines_on_same_sgpr count
+.macro .load_input_lines_on_same_sgpr count, mbufs_inflight
     .rept \count
         .if lines_to_load > 0
-            .load_input_line line_base, s_off
+            .load_input_line line_base, s_off, \mbufs_inflight
             lines_to_load = lines_to_load -1
             line_base = line_base + gprs_per_input_line
         .endif
@@ -539,12 +532,12 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
     s_off = s_off + 1
 .endm
 
-.macro .load_input base, start_offset=0
+.macro .load_input base, mbufs_inflight, start_offset=0
     lines_to_load = input_lines_per_wave
     line_base = \base
     imm_off = \start_offset
     s_off = img_offset
-    .load_input_lines_on_same_sgpr input_lines_per_sgpr
+    .load_input_lines_on_same_sgpr input_lines_per_sgpr, \mbufs_inflight
 
     .rept additional_input_sgprs
         .if enable_zero_line_padding_on_read
@@ -552,7 +545,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
         .else
             imm_off = 0
         .endif
-        .load_input_lines_on_same_sgpr input_lines_per_additional_sgpr
+        .load_input_lines_on_same_sgpr input_lines_per_additional_sgpr, \mbufs_inflight
     .endr
 .endm
 
@@ -608,26 +601,6 @@ miopenGcnAsmConv3x3U:
 //.text 1
 //.p2align 8
 //.Lfunc_start0:
-  // debug
-  .if enable_debug_output
-    s_load_dwordx2 s[6:7], s[kernarg:kernarg+1], 0x18 // load debug buffer pointer
-    s_waitcnt 0
-    // compute per lane address
-    s_mov_b32 s[dbg_exec_lo], exec_lo
-    s_mov_b32 s[dbg_exec_hi], exec_hi
-    s_mov_b64 exec, -1
-    v_mbcnt_lo_u32_b32 v[dbg_ptr], -1, 0
-    v_mbcnt_hi_u32_b32 v[dbg_ptr], -1, v[dbg_ptr]
-    v_mul_u32_u24 v[dbg_ptr], v[dbg_ptr], 4
-    v_mov_b32 v[dbg_ptr+1], s[7]
-   _v_add_co_u32 v[dbg_ptr], vcc, v[dbg_ptr], s[6]
-    v_addc_u32 v[dbg_ptr+1], vcc, v[dbg_ptr+1], 0, vcc
-    s_mov_b32 exec_lo, s[dbg_exec_lo]
-    s_mov_b32 exec_hi, s[dbg_exec_hi]
-    s_mov_b32 s[gid_x], debug_gid_x //debug output batch
-    s_mov_b32 s[gid_y], debug_gid_y //debug line batch
-    s_mov_b32 s[gid_z], debug_gid_z //debug image
-  .endif
 
   num_wavefronts = output_channels / filters_per_wave
   //to-do add support of uneven_outputs into grouped conv
@@ -728,32 +701,49 @@ miopenGcnAsmConv3x3U:
       s_addc_u32 s[weights_ptr+1], s[weights_ptr+1], 0
   .endif
 
+.macro s_mul_u64_u32 sdst_lo, sdst_hi, ssrc0, ssrc1, vtmp0, vtmp1
+    v_mov_b32 \vtmp0, \ssrc1
+    v_mul_hi_u32 \vtmp1, \ssrc0, \vtmp0
+    v_mul_lo_u32 \vtmp0, \ssrc0, \vtmp0
+    v_readfirstlane_b32 \sdst_hi, \vtmp1
+    v_readfirstlane_b32 \sdst_lo, \vtmp0
+.endm
   // construct input buffer descriptor
+vtmp = linesA
+stmp2 = in_desc+2
+  s_mov_b32 s[tmp], 0
   .if batch_size > 1
-    s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
-    s_add_u32 s[in_desc], s[in_desc], s[tmp] // add input image batch offset
-    s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+    // adds (s[gid_z] * input_feature_map_stride * input_channels)
+    // to input base addr
+    s_mul_i32 s[tmp], s[gid_z], input_channels
   .endif
-  s_mov_b32 s[in_desc+2], input_buffer_window // size
-  s_mov_b32 s[in_desc+3], 0x00027000
-
 .if group_counts > 1
-  s_mul_i32 s[tmp], s[s_group_id], c_group_size * input_feature_map_stride // c_group_offset
-  s_add_u32 s[in_desc], s[in_desc], s[tmp]
-  s_addc_u32 s[in_desc+1], s[in_desc+1], 0
+    // adds (s[s_group_id] * input_feature_map_stride * c_group_size)
+    // to input base addr
+    s_mul_i32  s[stmp2], s[s_group_id], c_group_size
+    s_add_u32 s[tmp], s[tmp], s[stmp2]
+.endif
+.if batch_size > 1 || group_counts > 1
+    s_mul_u64_u32 s[tmp], s[stmp2], s[tmp], input_feature_map_stride, v[vtmp], v[vtmp+1]
+    s_add_u32 s[in_desc], s[in_desc], s[tmp]
+    s_addc_u32 s[in_desc+1], s[in_desc+1], s[stmp2]
 .endif
 
   .if uneven_outputs
     s_mul_i32 s[out_k], s[gid_x], filters_per_wave
   .endif
-  s_mul_i32 s[tmp], s[gid_x], output_feature_map_stride * filters_per_wave // output image filter offset
+
+  s_mul_i32 s[tmp], s[gid_x], filters_per_wave
   .if batch_size > 1 // add output image batch offset
-    s_mul_i32 s[gid_z], s[gid_z], output_feature_map_stride * output_channels
+    s_mul_i32 s[gid_z], s[gid_z], output_channels
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
+  s_mul_u64_u32 s[tmp], s[stmp2], s[tmp], output_feature_map_stride, v[vtmp], v[vtmp+1]
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
-  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0
+  s_addc_u32 s[out_ptr+1], s[out_ptr+1], s[stmp2]
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
+  .GPR_INVALIDATE vtmp
+  .GPR_INVALIDATE stmp2
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x
   .GPR_INVALIDATE gid_y
@@ -764,6 +754,8 @@ miopenGcnAsmConv3x3U:
   .GPR_INVALIDATE s_group_id
   .GPR_INVALIDATE v_group_id
   .GPR_INVALIDATE vtmp_udiv
+  s_mov_b32 s[in_desc+2], input_buffer_window // size
+  s_mov_b32 s[in_desc+3], 0x00027000
 
 
   // zeroing acc
@@ -777,16 +769,18 @@ miopenGcnAsmConv3x3U:
   s_mov_b32 s[loop_cnt], 0
 
 .if disable_filter_prefetch
+  mbufs_cnt_A = 0
   .load_filters filtersA, filtersA_part, 0
-  .load_input linesA
+  .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
 loop_begin:
 
-  .load_input linesB, linesB_start_offset
+  mbufs_cnt_B = 0
+  .load_input linesB, mbufs_cnt_B, linesB_start_offset
   .move_input_ptr 1
 
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
 
   .conv3x3 linesA, filtersA, filtersA_part
   // load 2nd set of filters and adjust weights pointer
@@ -794,10 +788,11 @@ loop_begin:
   .move_wei_ptr filter_c_stride * 2
 
   // load input data and move ptr to next feature map
-  .load_input linesA
+  mbufs_cnt_A = 0
+  .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
   .conv3x3 linesB, filtersB, filtersB_part
   .load_filters filtersA, filtersA_part, 0
 
@@ -806,15 +801,17 @@ loop_end:
   s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
-  .load_input linesB, linesB_start_offset
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  mbufs_cnt_B = 0
+  .load_input linesB, mbufs_cnt_B, linesB_start_offset
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
   .conv3x3 linesA, filtersA, filtersA_part
   .load_filters filtersB, filtersB_part, filter_c_stride
   s_waitcnt 0
   .conv3x3 linesB, filtersB, filtersB_part
 .else
   // load input data and move ptr to next feature map
-  .load_input linesA
+  mbufs_cnt_A = 0
+  .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
   // load set of filters
@@ -823,10 +820,11 @@ loop_end:
 loop_begin:
 
   // load 2nd feature map and move to next feature map
-  .load_input linesB, linesB_start_offset
+  mbufs_cnt_B = 0
+  .load_input linesB, mbufs_cnt_B, linesB_start_offset
   .move_input_ptr 1
 
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
 
   // load 2nd set of filters and adjust weights pointer
   .load_filters filtersB, filtersB_part, filter_c_stride
@@ -836,10 +834,11 @@ loop_begin:
   .conv3x3 linesA, filtersA, filtersA_part
 
   // load input data and move ptr to next feature map
-  .load_input linesA
+  mbufs_cnt_A = 0
+  .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
   // load set of 4 filters
   .load_filters filtersA, filtersA_part, 0
 
@@ -853,8 +852,9 @@ loop_end:
 
 
   // load 2nd feature map and move to next feature map
-  .load_input linesB, linesB_start_offset
-  s_waitcnt vmcnt(1*mbufs_cnt) & lgkmcnt(0)
+  mbufs_cnt_B = 0
+  .load_input linesB, mbufs_cnt_B, linesB_start_offset
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
   .load_filters filtersB, filtersB_part, filter_c_stride
   .conv3x3 linesA, filtersA, filtersA_part
   s_waitcnt 0
@@ -904,6 +904,9 @@ loop_end:
         vals_to_store = gprs_per_output_line
     .endif
     vals_stored = 0
+    .if tuple_alignment && ((\base+vals_stored) % 2)
+       .single_vstore \base, \s_offset, 1
+    .endif
     .rept (gprs_per_output_line / 4)
         .single_vstore \base, \s_offset, 4
     .endr
@@ -913,6 +916,9 @@ loop_end:
 
     .if uneven_line_write_mode
         vals_to_store = partial_output_chunks
+        .if tuple_alignment && ((\base+vals_stored) % 2)
+            .single_vstore \base, \s_offset, 1
+        .endif
         .rept (gprs_per_output_line / 4)
             .single_vstore \base, \s_offset, 4, 1
         .endr
@@ -990,6 +996,32 @@ loop_end:
 .if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
+.amdhsa_kernel miopenGcnAsmConv3x3U
+    //enable_sgpr_kernarg_segment_ptr = 1
+    .amdhsa_user_sgpr_kernarg_segment_ptr 1
+
+    // compute_pgm_rsrc2_tgid_x_en = 1
+    // compute_pgm_rsrc2_tgid_y_en = 1
+    // compute_pgm_rsrc2_tgid_z_en = 1
+    .amdhsa_system_sgpr_workgroup_id_x 1
+    .amdhsa_system_sgpr_workgroup_id_y 1
+    .amdhsa_system_sgpr_workgroup_id_z 1
+
+    .amdhsa_accum_offset ((.AUTO_VGPR_COUNT + 3) / 4) * 4
+    .amdhsa_next_free_vgpr .AUTO_VGPR_COUNT
+    .amdhsa_next_free_sgpr __amdhsa_next_free_sgpr
+    .amdhsa_reserve_vcc __sgpr_reserve_vcc
+    .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+    .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+
+    // compute_pgm_rsrc2_tidig_comp_cnt = 1
+    .amdhsa_system_vgpr_workitem_id 1
+
+    .amdhsa_ieee_mode 0
+    .amdhsa_dx10_clamp 0
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel miopenGcnAsmConv3x3U
     //enable_sgpr_kernarg_segment_ptr = 1
     .amdhsa_user_sgpr_kernarg_segment_ptr 1
@@ -1013,6 +1045,7 @@ loop_end:
     .amdhsa_ieee_mode 0
     .amdhsa_dx10_clamp 0
 .end_amdhsa_kernel
+.endif
 
 .altmacro
 .macro METADATA sc,wc,wg_x

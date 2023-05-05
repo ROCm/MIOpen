@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "test.hpp"
+#include "driver.hpp"
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 
@@ -314,6 +316,7 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static bool ranonce = false;
 
         switch(amode)
@@ -479,7 +482,7 @@ struct cbna_fusion_driver : test_driver
             }
             else
             {
-                exit(EXIT_SUCCESS);
+                exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
             }
 #endif
             output = get_output_tensor(filter, input, weights);

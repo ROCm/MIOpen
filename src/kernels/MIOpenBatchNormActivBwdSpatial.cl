@@ -31,9 +31,11 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-/*#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif*/
+#define MIOPEN_USE_AMDGCN 0
+#if defined(__AMDGCN__) && !(MIO_BN_GFX103X || MIO_BN_GFX110X)
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 1
+#endif
 
 #include "batchnorm_functions.h"
 #include "activation_functions.h"
@@ -69,7 +71,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -167,7 +169,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -245,7 +247,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -416,7 +418,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
     barrier(CLK_GLOBAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);
@@ -532,7 +534,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
                                __global _FLOAT* __restrict bn_out_dev,
                                __global _FLOAT* __restrict bn_dyin_dev
 #endif
-                               )
+)
 {
     unsigned int lid        = get_local_id(0);
     unsigned int grpid      = get_group_id(0);
@@ -610,7 +612,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x2[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y2[MIO_BN_LDS_SIZE];
     lds_reduce2(&ds, &db, (_FLOAT_ACCUM)1.0, lcl_data_x2, lcl_data_y2, lid);

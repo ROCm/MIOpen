@@ -26,28 +26,43 @@
 #ifndef GUARD_MIOPEN_HIPOC_PROGRAM_HPP
 #define GUARD_MIOPEN_HIPOC_PROGRAM_HPP
 
-#include <hip/hip_runtime_api.h>
+#include <miopen/target_properties.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/hipoc_program_impl.hpp>
 #include <boost/filesystem/path.hpp>
+#include <hip/hip_runtime_api.h>
 #include <string>
 
 namespace miopen {
 
-using hipModulePtr = MIOPEN_MANAGE_PTR(hipModule_t, hipModuleUnload);
 struct HIPOCProgramImpl;
 struct HIPOCProgram
 {
     HIPOCProgram();
+    /// This ctor builds the program from source, initializes module.
+    /// Also either CO pathname (typically if offline tools were used)
+    /// or binary blob (if comgr was used to build the program)
+    /// is initialized. GetModule(), GetCodeObjectPathname(),
+    /// GetCodeObjectBlob() return appropriate data after this ctor.
+    /// Other ctors only guarantee to initialize module.
     HIPOCProgram(const std::string& program_name,
                  std::string params,
                  bool is_kernel_str,
-                 std::string dev_name,
+                 const TargetProperties& target,
                  const std::string& kernel_src);
     HIPOCProgram(const std::string& program_name, const boost::filesystem::path& hsaco);
     HIPOCProgram(const std::string& program_name, const std::string& hsaco);
-    std::shared_ptr<const HIPOCProgramImpl> impl;
+    std::shared_ptr<HIPOCProgramImpl> impl;
     hipModule_t GetModule() const;
-    boost::filesystem::path GetBinary() const;
+    /// \return Pathname of CO file, if it resides on the filesystem.
+    /// This function should not be called after FreeCodeObjectFileStorage().
+    boost::filesystem::path GetCodeObjectPathname() const;
+    /// \return Copy of in-memory CO blob.
+    std::string GetCodeObjectBlob() const;
+    /// \return True if CO blob resides in-memory.
+    /// False if CO resides on filesystem.
+    bool IsCodeObjectInMemory() const;
+    void FreeCodeObjectFileStorage();
 };
 } // namespace miopen
 

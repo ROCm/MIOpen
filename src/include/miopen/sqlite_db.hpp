@@ -1,35 +1,41 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #pragma once
 
+#include <miopen/config.h>
+
+#if MIOPEN_ENABLE_SQLITE
+
 #include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/env.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -51,8 +57,15 @@ class path;
 } // namespace boost
 
 namespace miopen {
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
+constexpr bool InMemDb = MIOPEN_EMBED_DB;
+#if MIOPEN_ENABLE_SQLITE_BACKOFF
+const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 10;
+#else
 const auto MIOPEN_SQL_BUSY_TIMEOUT_MS = 60000;
+#endif
 template <class Derived>
 struct SQLiteSerializable
 {
@@ -86,7 +99,7 @@ struct SQLiteSerializable
                            clauses.push_back("(" + name + " = ? )");
                            values.push_back(std::to_string(value));
                        });
-        std::string clause = JoinStrings(clauses, " AND ");
+        const std::string clause = JoinStrings(clauses, " AND ");
         return std::make_tuple(clause, values);
     }
     std::tuple<std::string, std::vector<std::string>> InsertQuery() const
@@ -102,7 +115,7 @@ struct SQLiteSerializable
                            int_names.push_back(name);
                            values.push_back(std::to_string(value));
                        });
-        std::vector<std::string> tokens((values.size()), "?");
+        const std::vector<std::string> tokens((values.size()), "?");
         ;
 
         std::string q = "INSERT OR IGNORE INTO " + Derived::table_name() + "( " +
@@ -155,13 +168,13 @@ class SQLite
     // do we need propagate const
     std::unique_ptr<impl> pImpl;
 
-    public:
+public:
     class Statement
     {
         class impl;
         std::unique_ptr<impl> pImpl;
 
-        public:
+    public:
         Statement(const SQLite& sql, const std::string& query);
         Statement(const SQLite& sql,
                   const std::string& query,
@@ -198,15 +211,16 @@ class SQLite
 template <typename Derived>
 class SQLiteBase
 {
-    protected:
-    public:
-    SQLiteBase(const std::string& filename_,
-               bool is_system,
-               const std::string& arch_,
-               std::size_t num_cu_)
-        : filename(filename_), arch(arch_), num_cu(num_cu_)
+protected:
+public:
+    SQLiteBase(const std::string& filename_, bool is_system_)
+        : filename(filename_), is_system(is_system_)
     {
-        MIOPEN_LOG_I2("Initializing " << (is_system ? "system" : "user") << " database file "
+        if(DisableUserDbFileIO && !is_system)
+            return;
+
+        MIOPEN_LOG_I2("Initializing " << (InMemDb ? "In Memory " : "")
+                                      << (is_system ? "system" : "user") << " database file "
                                       << filename);
 
         if(filename.empty())
@@ -233,24 +247,54 @@ class SQLiteBase
                     boost::filesystem::permissions(directory, boost::filesystem::all_all);
             }
         }
-        sql = std::move(SQLite{filename_, is_system});
+        sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
-            dbInvalid = true;
+            bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
+            dbInvalid  = true;
+            filename   = "";
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
-                MIOPEN_LOG_W("Unable to read system database file:" + filename_ +
-                             " Performance may degrade");
+            {
+                const auto log_level =
+                    (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
+                if(isKDB && (log_level == LoggingLevel::Warning))
+                {
+                    static const auto kdb_message_issued = [&]() {
+                        MIOPEN_LOG_W(
+                            "Missing system database file: "
+                            << filename_
+                            << " Performance may degrade. Please follow instructions to install: "
+                               "https://github.com/ROCmSoftwarePlatform/"
+                               "MIOpen#installing-miopen-kernels-package");
+                        return true;
+                    }();
+                    std::ignore = kdb_message_issued;
+                }
+                else
+                {
+                    MIOPEN_LOG(log_level,
+                               "Unable to read system database file:" + filename_ +
+                                   " Performance may degrade");
+                }
+            }
         }
         else
         {
             dbInvalid = false;
+            if(!is_system && !miopen::IsEnabled(MIOPEN_DEBUG_DISABLE_SQL_WAL{}))
+            {
+                auto res = sql.Exec("PRAGMA journal_mode=WAL;");
+                if(res.empty() || res[0]["journal_mode"] != "wal")
+                {
+                    MIOPEN_LOG_I("SQLite does not support WAL");
+                }
+            }
         }
     }
 
-    static Derived&
-    GetCached(const std::string& path, bool is_system, const std::string& arch, std::size_t num_cu);
+    static Derived& GetCached(const std::string& path, bool is_system);
     // TODO: Fix this for the overhead of having fields per record
 
     inline auto CheckTableColumns(const std::string& tableName,
@@ -280,73 +324,82 @@ class SQLiteBase
     template <typename... U>
     inline auto FindRecord(U&... args)
     {
+        using Ret = decltype(reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...));
+        if(!is_system && DisableUserDbFileIO)
+            return Ret{};
         return reinterpret_cast<Derived*>(this)->FindRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto RemoveRecord(U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto StoreRecord(U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->StoreRecordUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Remove(const U&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return true;
         return reinterpret_cast<Derived*>(this)->RemoveUnsafe(args...);
     }
 
     template <typename... U>
     inline auto Update(const U&... args)
     {
+        using Ret = decltype(reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...));
+        if(!is_system && DisableUserDbFileIO)
+            return Ret{};
         return reinterpret_cast<Derived*>(this)->UpdateUnsafe(args...);
     }
 
     template <typename... U>
-    inline auto Load(U&&... args)
+    inline bool Load(U&&... args)
     {
+        if(!is_system && DisableUserDbFileIO)
+            return false;
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
     std::string filename;
-    std::string arch;
-    size_t num_cu;
     bool dbInvalid;
     SQLite sql;
+    bool is_system;
 };
 
 template <typename Derived>
-Derived& SQLiteBase<Derived>::GetCached(const std::string& path,
-                                        bool is_system,
-                                        const std::string& arch,
-                                        const size_t num_cu)
+Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
-    static const std::lock_guard<std::mutex> lock{mutex};
+    const std::lock_guard<std::mutex> lock{mutex};
 
-    static auto instances = std::map<std::string, Derived*>{};
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static auto instances = std::map<std::string, Derived>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
-        return *(it->second);
+        return it->second;
 
-    instances.emplace(path, new Derived{path, is_system, arch, num_cu}); // NOLINT
-    return *(instances.at(path));
+    instances.emplace(path, Derived{path, is_system});
+    return instances.at(path);
 }
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
-    public:
-    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.0.0";
-    SQLitePerfDb(const std::string& filename_,
-                 bool is_system,
-                 const std::string& arch_,
-                 std::size_t num_cu_);
+public:
+    static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
+    SQLitePerfDb(const std::string& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)
@@ -354,8 +407,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::string clause;
         std::vector<std::string> vals;
         std::tie(clause, vals) = prob_desc.InsertQuery();
-        auto stmt = SQLite::Statement{sql, clause, vals};
-        auto rc   = stmt.Step(sql);
+        auto stmt              = SQLite::Statement{sql, clause, vals};
+        auto rc                = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError,
                          "Failed to insert config: " + sql.ErrorMessage());
@@ -386,6 +439,30 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     {
         if(dbInvalid)
             return boost::none;
+
+        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
+        if(pdb_ovr != nullptr)
+        {
+            MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
+            DbRecord ovr_rec;
+            const auto solv_vals = SplitDelim(pdb_ovr, ':');
+            bool success         = true;
+            for(const auto& solv_val : solv_vals)
+            {
+                const auto vals = SplitDelim(solv_val, ';');
+                if(vals.size() != 2)
+                {
+                    MIOPEN_LOG_W("Invalid value for MIOPEN_DEBUG_PERFDB_OVERRIDE. Format: "
+                                 "<solver1_name>;<params>:<solver2_name>;params");
+                    success = false;
+                    break;
+                }
+                MIOPEN_LOG_I2("Inserting Overriding PDB entry: " << vals[0] << ";" << vals[1]);
+                ovr_rec.SetValues(vals.at(0), vals.at(1));
+            }
+            if(success)
+                return {ovr_rec};
+        }
         std::string clause;
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
@@ -393,12 +470,10 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         auto select_query =
             "SELECT solver, params "
             "FROM perf_db "
-            "INNER JOIN " + problem_config.table_name() + " " 
+            "INNER JOIN " + problem_config.table_name() + " "
             "ON perf_db.config = " + problem_config.table_name() +".id "
             "WHERE "
-            "( " + clause + " )"
-            "AND (arch = '" + arch + "' ) "
-            "AND (num_cu = '" + std::to_string(num_cu) + "');";
+            "( " + clause + " );";
         // clang-format on
         auto stmt = SQLite::Statement{sql, select_query, values};
         DbRecord rec;
@@ -415,7 +490,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         if(rec.GetSize() == 0)
             return boost::none;
         else
-            return boost::optional<DbRecord>(rec);
+            return {rec};
     }
 
     /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
@@ -431,7 +506,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
         // clang-format off
-        auto query = 
+        auto query =
             "DELETE FROM perf_db "
             "WHERE config IN ("
             "SELECT id FROM config WHERE ( "
@@ -444,7 +519,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             return true;
         else
         {
-            std::string msg = "Unable to remove database entry: ";
+            const std::string msg = "Unable to remove database entry: ";
             MIOPEN_LOG_E(msg + sql.ErrorMessage());
             return false;
         }
@@ -463,8 +538,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::string clause;
             std::vector<std::string> vals;
             std::tie(clause, vals) = problem_config.InsertQuery();
-            auto stmt = SQLite::Statement{sql, clause, vals};
-            auto rc   = stmt.Step(sql);
+            auto stmt              = SQLite::Statement{sql, clause, vals};
+            auto rc                = stmt.Step(sql);
             if(rc != SQLITE_DONE)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Failed to insert config: " + sql.ErrorMessage());
@@ -477,21 +552,19 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
             std::ostringstream params;
             values.Serialize(params);
             std::string clause;
-            std::vector<std::string> vals;
+            std::vector<std::string> vals(2);
             std::tie(clause, vals) = problem_config.WhereClause();
 
             // clang-format off
             std::string query =
                 "INSERT OR REPLACE INTO "
-                "perf_db(config, solver, params, arch, num_cu) "
+                "perf_db(config, solver, params) "
                 "VALUES("
                 "(SELECT id FROM " + problem_config.table_name() +  " "
-                "WHERE ( " + clause + " ) ) , ? , ? , ? , ?);";
+                "WHERE ( " + clause + " ) ) , ? , ?);";
             // clang-format on
             vals.push_back(id);
             vals.push_back(params.str());
-            vals.push_back(arch);
-            vals.push_back(std::to_string(num_cu));
             auto stmt = SQLite::Statement{sql, query, vals};
             auto rc   = stmt.Step(sql);
             if(rc != SQLITE_DONE)
@@ -526,7 +599,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
         std::vector<std::string> values;
         std::tie(clause, values) = problem_config.WhereClause();
         // clang-format off
-        auto query = 
+        auto query =
             "DELETE FROM perf_db "
             "WHERE config IN ("
             "SELECT id FROM config WHERE ( "
@@ -562,3 +635,4 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
     }
 };
 } // namespace miopen
+#endif

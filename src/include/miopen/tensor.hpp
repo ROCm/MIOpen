@@ -26,14 +26,20 @@
 #ifndef GUARD_MIOPEN_TENSOR_HPP_
 #define GUARD_MIOPEN_TENSOR_HPP_
 
-#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/object.hpp>
-#include <miopen/each_args.hpp>
-#include <miopen/returns.hpp>
-#include <miopen/errors.hpp>
 
+#include <miopen/common.hpp>
+#include <miopen/each_args.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/functional.hpp>
+#include <miopen/object.hpp>
+#include <miopen/returns.hpp>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
 #include <cassert>
+#include <numeric>
 #include <vector>
 
 namespace miopen {
@@ -41,7 +47,7 @@ namespace miopen {
 template <class T, std::size_t... Ns>
 auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
 {
-    assert(x.size() == sizeof...(Ns));
+    assert(x.size() >= sizeof...(Ns));
     return std::tie(x[Ns]...);
 }
 
@@ -96,6 +102,7 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenBFloat16: return 2;
     case miopenInt8x4:
     case miopenInt8: return 1;
+    case miopenDouble: return 8;
     }
     MIOPEN_THROW("Unknown data type");
 }
@@ -117,38 +124,67 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
-    TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
-    TensorDescriptor(miopenDataType_t t,
-                     std::initializer_list<std::size_t> plens,
-                     std::initializer_list<std::size_t> pstrides);
-    TensorDescriptor(miopenDataType_t t, const int* plens, int size);
-    TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+
+    // This constructor is only used in test/tensor_holder.hpp
+    // clang-format off
+    [[deprecated("Use constructor with lengths instead")]]
+    TensorDescriptor(miopenDataType_t t);
+    // clang-format on
+
+    // It is preferable to use constructors with lengths and strides with the std::size_t
+    // data type, because in this format the data is stored inside the class
+
+    // The delegation constructor should be placed above the target constructor in the
+    // code for better dependency tracking
+
+    TensorDescriptor(miopenDataType_t t, const std::initializer_list<int>& lens_in);
+    TensorDescriptor(miopenDataType_t t, const std::vector<int>& lens_in);
+    TensorDescriptor(miopenDataType_t t, const std::initializer_list<std::size_t>& lens_in);
+    TensorDescriptor(miopenDataType_t t, const std::vector<std::size_t>& lens_in);
 
     TensorDescriptor(miopenDataType_t t,
-                     std::vector<std::size_t> lens_in,
-                     std::vector<std::size_t> strides_in);
+                     miopenTensorLayout_t layout_in,
+                     const std::vector<int>& lens_in);
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
+                     const std::initializer_list<std::size_t>& lens_in);
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
+                     const std::vector<std::size_t>& lens_in);
 
-    template <class Range>
-    TensorDescriptor(miopenDataType_t t, const Range& plens)
-        : lens(plens.begin(), plens.end()), packed(true), type(t)
-    {
-        this->CalculateStrides();
-    }
+    TensorDescriptor(miopenDataType_t t,
+                     const std::vector<int>& lens_in,
+                     const std::vector<int>& strides_in);
+    TensorDescriptor(miopenDataType_t t,
+                     const std::initializer_list<std::size_t>& lens_in,
+                     const std::initializer_list<std::size_t>& strides_in);
+    TensorDescriptor(miopenDataType_t t,
+                     const std::vector<std::size_t>& lens_in,
+                     const std::vector<std::size_t>& strides_in);
 
-    template <class Range1, class Range2, class = decltype(std::declval<Range1>().begin())>
-    TensorDescriptor(miopenDataType_t t, const Range1& plens, const Range2& pstrides)
-        : lens(plens.begin(), plens.end()), strides(pstrides.begin(), pstrides.end()), type(t)
-    {
-        packed = (this->GetElementSize() == this->GetElementSpace());
-    }
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
+                     const std::vector<std::size_t>& lens_in,
+                     const std::vector<std::size_t>& strides_in);
 
-    void CalculateStrides();
+    // Use only for external API
+    static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, int size);
+    static TensorDescriptor
+    MakeDescriptor(miopenDataType_t t, miopenTensorLayout_t layout, const int* plens, int size);
+    static TensorDescriptor
+    MakeDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+
+    bool IsVectorized() const;
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
     int GetSize() const;
 
     miopenDataType_t GetType() const;
+    miopenTensorLayout_t GetLayout_t() const;
+    std::string GetLayout_str() const;
+
+    std::size_t GetVectorLength() const;
 
     std::size_t GetElementSize() const;
 
@@ -173,16 +209,89 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
+    bool IsPossibleLayout(const std::string& labels, const std::string& layout) const;
+
+    static inline std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
+                                                        const std::vector<std::size_t>& strides)
+    {
+        std::vector<std::int64_t> result(lens.size());
+        std::iota(result.begin(), result.end(), 0);
+        std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
+                             return std::make_tuple(strides[x], lens[x]);
+                         }));
+        return result;
+    }
+
+    std::string GetLayout(std::string labels) const
+    {
+        if(*(labels.end() - 1) != 'c')
+        {
+            if(labels.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
+
+            // Copy construct the result string from labels. This allocates the space at one go
+            // and is faster than calling push_back in transform.
+            auto result = labels;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result;
+        }
+        else
+        {
+            const std::string base_label = labels.substr(0, labels.size() - 1);
+            if(base_label.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
+            auto result = base_label;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result + 'c';
+        }
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
-    private:
+    friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
+
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
+
+private:
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
+                     const std::vector<std::size_t>& lens_in,
+                     const std::vector<std::size_t>& strides_in,
+                     bool use_strides);
+
+    void CalculateStrides();
+    void CalculateVectorLength();
+
+    static miopenTensorLayout_t GetDefaultLayout() { return miopenTensorNCHW; };
+
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
 
     bool packed;
+    std::size_t vector_length = 1;
 
-    miopenDataType_t type = miopenFloat;
+    miopenDataType_t type             = miopenFloat;
+    miopenTensorLayout_t tensorLayout = GetDefaultLayout();
 };
+
+template <class TElement>
+constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
+{
+    if(spatial_dims == 3)
+        return miopen::tien<5>(data, 1);
+    else
+        return std::make_tuple(data[0], data[1], static_cast<TElement>(1), data[2], data[3]);
+}
 
 } // namespace miopen
 

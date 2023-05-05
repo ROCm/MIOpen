@@ -1,3 +1,4 @@
+#include <miopen/config.h> // WORKAROUND_BOOST_ISSUE_392
 #include <miopen/rank.hpp>
 #include <miopen/sequences.hpp>
 
@@ -103,7 +104,7 @@ struct NativeImpl<Sequences::IRange>
     bool Next(TestData&) const
     {
         std::cerr << "irange is only for boost" << std::endl;
-        std::exit(-1);
+        std::exit(-1); // NOLINT (concurrency-mt-unsafe)
     }
 };
 
@@ -176,14 +177,10 @@ struct BoostSequence
     constexpr const_iterator begin() const { return arr.begin(); }
     constexpr const_iterator end() const { return arr.end(); }
 
-    private:
-    static constexpr std::size_t count = sizeof...(values);
+private:
+    static constexpr std::size_t count                         = sizeof...(values);
     static constexpr std::array<int, BoostSequence::count> arr = {{values...}};
 };
-
-template <class TValue, TValue... values>
-constexpr std::array<int, BoostSequence<TValue, values...>::count>
-    BoostSequence<TValue, values...>::arr;
 
 template <class Start, class IntegerSequence>
 struct span_impl;
@@ -251,7 +248,9 @@ struct SpeedTestDriver : public test_driver
         case Sequences::Span: RunCore<Sequences::Span>(); break;
         case Sequences::IRange: RunCore<Sequences::IRange>(); break;
         case Sequences::Join: RunCore<Sequences::Join>(); break;
-        case Sequences::Unknown: std::cerr << "Unknown sequence." << std::endl; std::exit(-1);
+        case Sequences::Unknown:
+            std::cerr << "Unknown sequence." << std::endl;
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -264,7 +263,7 @@ struct SpeedTestDriver : public test_driver
         std::cout << "Permitted instances: single, percall, static" << std::endl;
     }
 
-    private:
+private:
     int iterations           = 10;
     Instances instance       = Instances::Unknown;
     Modes mode               = Modes::Unknown;
@@ -318,7 +317,9 @@ struct SpeedTestDriver : public test_driver
         case Modes::Template: Template<seq>(); break;
         case Modes::Native: Native<seq>(); break;
         case Modes::Boost: Boost<seq>(); break;
-        case Modes::Unknown: std::cerr << "Unknown mode." << std::endl; std::exit(-1);
+        case Modes::Unknown:
+            std::cerr << "Unknown mode." << std::endl;
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -389,8 +390,7 @@ struct SpeedTestDriver : public test_driver
         switch(instance)
         {
         case Instances::PerCall: TestCore(rule_getter); break;
-        case Instances::Single:
-        {
+        case Instances::Single: {
             const auto inst = rule_getter();
             TestCore([&inst]() -> const auto& { return inst; });
             break;
@@ -401,7 +401,9 @@ struct SpeedTestDriver : public test_driver
                 return inst;
             });
             break;
-        case Instances::Unknown: std::cerr << "Unknown instance type" << std::endl; std::exit(-1);
+        case Instances::Unknown:
+            std::cerr << "Unknown instance type" << std::endl;
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -432,7 +434,9 @@ struct SpeedTestDriver : public test_driver
         case Sequences::Seq: Test([]() { return RS(MakeSeq(), &TestData::x); }); break;
         case Sequences::Span: Test([]() { return RS(MakeSpan(), &TestData::x); }); break;
         case Sequences::Join: Test([]() { return RS(MakeJoin(), &TestData::x); }); break;
-        case Sequences::IRange: std::cerr << "irange is only for boost" << std::endl; std::exit(-1);
+        case Sequences::IRange:
+            std::cerr << "irange is only for boost" << std::endl;
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -444,7 +448,9 @@ struct SpeedTestDriver : public test_driver
         case Sequences::Seq: Test([]() { return RS(MakeSeq(), TmplMember()); }); break;
         case Sequences::Span: Test([]() { return RS(MakeSpan(), TmplMember()); }); break;
         case Sequences::Join: Test([]() { return RS(MakeJoin(), TmplMember()); }); break;
-        case Sequences::IRange: std::cerr << "irange is only for boost" << std::endl; std::exit(-1);
+        case Sequences::IRange:
+            std::cerr << "irange is only for boost" << std::endl;
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
     }
 
@@ -457,7 +463,7 @@ struct SpeedTestDriver : public test_driver
         case Sequences::Span: Test([]() { return RS(MakeBSpan(), &TestData::x); }); break;
         case Sequences::Join:
             std::cerr << "join is only for nat/std/tmpl" << std::endl;
-            std::exit(-1);
+            std::exit(-1); // NOLINT (concurrency-mt-unsafe)
         case Sequences::IRange: Test([]() { return BoostImpl<Sequences::IRange>{}; }); break;
         }
     }

@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #ifndef GUARD_MIOPEN_DB_HPP_
 #define GUARD_MIOPEN_DB_HPP_
 
@@ -44,18 +44,20 @@ class path;
 
 namespace miopen {
 
-struct RecordPositions;
+struct RecordPositions
+{
+    std::streamoff begin = -1;
+    std::streamoff end   = -1;
+};
+
 class LockFile;
+
+constexpr bool DisableUserDbFileIO = MIOPEN_DISABLE_USERDB;
 
 /// No instance of this class should be used from several threads at the same time.
 class PlainTextDb
 {
-    public:
-    PlainTextDb(const std::string& filename_,
-                bool is_system,
-                const std::string& arch,
-                std::size_t num_cu);
-
+public:
     PlainTextDb(const std::string& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
@@ -141,16 +143,21 @@ class PlainTextDb
         return record->GetValues(id, values);
     }
 
-    private:
-    std::string filename;
-    LockFile& lock_file;
-    const bool warn_if_unreadable;
-
+protected:
+    LockFile& GetLockFile() { return lock_file; }
+    const std::string& GetFileName() const { return filename; }
+    bool IsWarningIfUnreadable() const { return warning_if_unreadable; }
     boost::optional<DbRecord> FindRecordUnsafe(const std::string& key, RecordPositions* pos);
-    bool FlushUnsafe(const DbRecord& record, const RecordPositions* pos);
     bool StoreRecordUnsafe(const DbRecord& record);
     bool UpdateRecordUnsafe(DbRecord& record);
     bool RemoveRecordUnsafe(const std::string& key);
+
+private:
+    std::string filename;
+    LockFile& lock_file;
+    const bool warning_if_unreadable;
+
+    bool FlushUnsafe(const DbRecord& record, const RecordPositions* pos);
 
     template <class T>
     inline boost::optional<DbRecord> FindRecordUnsafe(const T& problem_config)
@@ -160,24 +167,42 @@ class PlainTextDb
     }
 };
 
+template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
+TRet GetDbInstance(rank<1>, const std::string& path, bool is_system)
+{
+    return TDb::GetCached(path, is_system);
+};
+
+template <class TDb>
+TDb GetDbInstance(rank<0>, const std::string& path, bool is_system)
+{
+    return {path, is_system};
+};
+
+template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
+TRet GetDbInstance(const std::string& path, bool is_system = true)
+{
+    return GetDbInstance<TDb>(rank<1>{}, path, is_system);
+}
+
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
-    public:
-    MultiFileDb(const std::string& installed_path,
-                const std::string& user_path,
-                const std::string& arch  = "",
-                const std::size_t num_cu = 0)
-        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu)),
-          _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
+public:
+    MultiFileDb(const std::string& installed_path, const std::string& user_path)
+        : _installed(GetDbInstance<TInstalled>(installed_path, true))
+#if !MIOPEN_DISABLE_USERDB
+          ,
+          _user(GetDbInstance<TUser>(user_path, false))
+#endif
     {
     }
 
     template <bool merge = merge_records, std::enable_if_t<merge>* = nullptr, typename... U>
     auto FindRecord(const U&... args)
     {
-        auto users           = _user.FindRecord(args...);
-        const auto installed = _installed.FindRecord(args...);
+        auto users     = _user.FindRecord(args...);
+        auto installed = _installed.FindRecord(args...);
 
         if(users && installed)
         {
@@ -227,7 +252,6 @@ class MultiFileDb
     {
         if(_user.Load(args...))
             return true;
-
         return _installed.Load(args...);
     }
 
@@ -237,44 +261,35 @@ class MultiFileDb
         return _user.Remove(args...);
     }
 
-    private:
-    template <class TDb, class TRet = decltype(TDb::GetCached("", true, "", 0))>
-    static TRet GetDbInstance(rank<1>,
-                              const std::string& path,
-                              bool warn_if_unreadable,
-                              const std::string& arch,
-                              std::size_t num_cu)
+private:
+    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
+    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
     {
-        return TDb::GetCached(path, warn_if_unreadable, arch, num_cu);
+        return TDb::GetCached(path, warn_if_unreadable);
     };
 
     template <class TDb>
-    static TDb GetDbInstance(rank<0>,
-                             const std::string& path,
-                             bool warn_if_unreadable,
-                             const std::string& arch,
-                             std::size_t num_cu)
+    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
     {
-        return {path, warn_if_unreadable, arch, num_cu};
+        return {path, warn_if_unreadable};
     };
 
-    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}, {}))>
-    static TRet GetDbInstance(const std::string& path,
-                              bool warn_if_unreadable,
-                              const std::string& arch,
-                              const std::size_t num_cu)
+    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
+    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
     {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable, arch, num_cu);
+        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
     }
 
-    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;
-    decltype(MultiFileDb::GetDbInstance<TUser>("", false, "", 0)) _user;
+    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true)) _installed;
+#if !MIOPEN_DISABLE_USERDB
+    decltype(MultiFileDb::GetDbInstance<TUser>("", false)) _user;
+#endif
 };
 
 template <class TInnerDb>
 class DbTimer
 {
-    public:
+public:
     template <class... TArgs>
     DbTimer(TArgs&&... args) : inner(args...)
     {
@@ -322,7 +337,7 @@ class DbTimer
         return Measure("Remove", [&]() { return inner.Remove(args...); });
     }
 
-    private:
+private:
     TInnerDb inner;
 
     template <class TFunc>
@@ -332,7 +347,7 @@ class DbTimer
             return func();
 
         const auto start = std::chrono::high_resolution_clock::now();
-        const auto ret   = func();
+        auto ret         = func();
         const auto end   = std::chrono::high_resolution_clock::now();
         MIOPEN_LOG_I2("Db::" << funcName << " time: " << (end - start).count() * .000001f << " ms");
         return ret;

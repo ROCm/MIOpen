@@ -29,6 +29,31 @@
 .macro KERNEL_DESCRIPTOR_COV3 kernel_name
 .rodata
 .p2align 6
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+.amdgcn.next_free_vgpr = (.AUTO_VGPR_COUNT + 3) / 4 * 4
+.amdgcn.next_free_sgpr = __amdhsa_next_free_sgpr
+
+.amdhsa_kernel \kernel_name
+        .amdhsa_system_sgpr_workgroup_id_x 1
+        .amdhsa_system_sgpr_workgroup_id_y 0
+        .amdhsa_system_sgpr_workgroup_id_z 0
+        .amdhsa_system_vgpr_workitem_id 0
+        .amdhsa_user_sgpr_kernarg_segment_ptr 1
+        .amdhsa_next_free_sgpr .amdgcn.next_free_sgpr
+        .amdhsa_next_free_vgpr .amdgcn.next_free_vgpr
+        .amdhsa_group_segment_fixed_size .AUTO_LDS_BYTE_SIZE
+        .amdhsa_dx10_clamp 0
+        .amdhsa_ieee_mode 0
+        .amdhsa_float_round_mode_32 0
+        .amdhsa_float_round_mode_16_64 0
+        .amdhsa_float_denorm_mode_32 0
+        .amdhsa_float_denorm_mode_16_64 3
+        .amdhsa_reserve_flat_scratch __sgpr_reserve_flatscr
+        .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
+        .amdhsa_reserve_vcc __sgpr_reserve_vcc
+        .amdhsa_accum_offset .amdgcn.next_free_vgpr
+.end_amdhsa_kernel
+.else
 .amdhsa_kernel \kernel_name
         .amdhsa_system_sgpr_workgroup_id_x 1
         .amdhsa_system_sgpr_workgroup_id_y 0
@@ -48,6 +73,7 @@
         .amdhsa_reserve_xnack_mask __sgpr_reserve_xnack
         .amdhsa_reserve_vcc __sgpr_reserve_vcc
 .end_amdhsa_kernel
+.endif
 .endm
 
 /// Concatenating a macro argument with ".kd" is non trivial.
@@ -74,7 +100,7 @@ amdhsa.kernels:
     .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .args:
-    - { .size: 4, .offset:   0, .value_kind: by_value, .value_type: i32, .name: N }
+    - { .size: 4, .offset:   0, .value_kind: by_value, .value_type: i32, .name: BATCHSIZE }
     - { .size: 4, .offset:   4, .value_kind: by_value, .value_type: i32, .name: C }
     - { .size: 4, .offset:   8, .value_kind: by_value, .value_type: i32, .name: H }
     - { .size: 4, .offset:  12, .value_kind: by_value, .value_type: i32, .name: W }

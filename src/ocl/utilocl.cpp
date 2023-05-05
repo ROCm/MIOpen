@@ -32,13 +32,13 @@
 
 #include <boost/range/adaptors.hpp>
 
-#define WG_SIZE 256
+#define WG_SIZE (static_cast<size_t>(256))
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
 #define MAX_LOCAL_MEM 65536
 
 namespace miopen {
 
-float Im2d2ColGPU(Handle& handle,
+float Im2d2ColGPU(const Handle& handle,
                   ConstData_t im,
                   const int im_offset,
                   const int c,
@@ -193,9 +193,68 @@ float Im2d2ColGPU(Handle& handle,
 
         params += GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = 256 * std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
+        const int group_size_x = 256;
+        const std::vector<size_t> vld{group_size_x, 1, 1};
+        size_t group_cnt = std::max(1, (c_pack / num_ch_per_wg)) * static_cast<size_t>(num_blks);
+        size_t global_threads = group_size_x * group_cnt;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+
+        bool use_64bit_buffer_index = false;
+        use_64bit_buffer_index |= group_cnt > INT32_MAX;
+
+        if(extreme_case > MAX_LOCAL_MEM)
+        {
+            // check get_global_id
+            use_64bit_buffer_index |= global_threads > INT32_MAX;
+
+            const size_t in_chw = 1LL * in_h * in_w * c_pack;
+            use_64bit_buffer_index |= in_chw > INT32_MAX;
+
+            const size_t out_hw = 1LL * out_h * out_w;
+            use_64bit_buffer_index |= out_hw > INT32_MAX;
+
+            const size_t col_row = 1LL * wei_w * wei_h * c_pack;
+
+            const size_t tid = col_row * out_hw;
+            use_64bit_buffer_index |= tid > INT32_MAX;
+        }
+        else
+        {
+            if(num_blks == 1 && stride_h * stride_w == 1)
+            {
+                const size_t im_off_id = 1LL * group_cnt * num_ch_per_wg * in_h * in_w;
+                use_64bit_buffer_index |= im_off_id > INT32_MAX;
+
+                const size_t col_y =
+                    (1LL * group_cnt * num_ch_per_wg) * out_h * out_w * wei_h * wei_w;
+                use_64bit_buffer_index |= col_y > INT32_MAX;
+
+                // col_x= out_y * out_w + out_x;
+                // out_y = group_size_x/out_w; out_x = group_size_x % out_w;
+                //  = 255 / out_w * out_w + 255 % out_w;
+                int col_x            = 255 + 255;
+                const size_t col_off = col_y + col_x + (1LL * wei_h * wei_w) * out_h * out_w;
+                use_64bit_buffer_index |= col_off > INT32_MAX;
+            }
+            else
+            {
+                const size_t im_off_id = 1LL * (group_cnt / num_blks) * in_h * in_w;
+                use_64bit_buffer_index |= im_off_id > INT32_MAX;
+
+                const size_t col_x = 1LL * (out_h + 256) * out_w + 256;
+                use_64bit_buffer_index |= col_x > INT32_MAX;
+
+                const size_t col_y = 1LL * c * out_h * out_w * wei_h * wei_w;
+                use_64bit_buffer_index |= col_y > INT32_MAX;
+
+                const size_t col_off = col_y + col_x + (1LL * wei_h * wei_w) * out_h * out_w;
+                use_64bit_buffer_index |= col_off > INT32_MAX;
+            }
+        }
+
+        if(use_64bit_buffer_index)
+            params += " -DUSE_LARGE_BUFFER_INDEX";
+
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_bound_pack,
@@ -219,7 +278,7 @@ float Im2d2ColGPU(Handle& handle,
     return handle.GetKernelTime();
 }
 
-float Im3d2ColGPU(Handle& handle,
+float Im3d2ColGPU(const Handle& handle,
                   ConstData_t im,
                   const int im_offset,
                   const int im_c,
@@ -304,12 +363,13 @@ float Im3d2ColGPU(Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = std::min(
             256 * static_cast<std::size_t>(out_d * out_h * out_w * im_c * wei_d * wei_h * wei_w) /
                 8,
             static_cast<std::size_t>(256) * 1024);
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const size_t local_threads = std::min(global_threads, static_cast<std::size_t>(256));
+        const std::vector<size_t> vld{local_threads, 1, 1};
 
         handle.AddKernel(
             "miopenIm3d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -340,7 +400,7 @@ float Im3d2ColGPU(Handle& handle,
     return handle.GetKernelTime();
 }
 
-float Col2Im2dGPU(Handle& handle,
+float Col2Im2dGPU(const Handle& handle,
                   ConstData_t col,
                   const int out_h,
                   const int out_w,
@@ -403,9 +463,9 @@ float Col2Im2dGPU(Handle& handle,
     {
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_h * in_w;
+        size_t global_threads = static_cast<size_t>(in_c) * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -428,7 +488,7 @@ float Col2Im2dGPU(Handle& handle,
     return handle.GetKernelTime();
 }
 
-float Col2Im3dGPU(Handle& handle,
+float Col2Im3dGPU(const Handle& handle,
                   ConstData_t col,
                   const int out_d,
                   const int out_h,
@@ -450,7 +510,7 @@ float Col2Im3dGPU(Handle& handle,
                   const int in_h,
                   const int in_w,
                   Data_t im,
-                  int im_offset,
+                  std::size_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
@@ -506,11 +566,18 @@ float Col2Im3dGPU(Handle& handle,
     }
     else
     {
+        std::size_t index_size = static_cast<size_t>(in_c) * out_d * out_h * out_w * wei_d * wei_w *
+                                 wei_h * sizeof(ConstData_t);
+
+        const bool use_64_bit_index = index_size > 0xffffffffULL;
+
         std::string params = GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_d * in_h * in_w;
+        params += use_64_bit_index ? " -DMIOPEN_USE_64BIT_INDEX=1" : " -DMIOPEN_USE_64BIT_INDEX=0";
+
+        size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
             "miopenCol2Im3d", network_config, program_name, kernel_name, vld, vgd, params)(
@@ -540,7 +607,7 @@ float Col2Im3dGPU(Handle& handle,
 }
 
 float Im2ColGPU(
-    Handle& handle,
+    const Handle& handle,
     std::size_t spatial_dim,
     ConstData_t im,
     std::size_t im_offset,
@@ -556,8 +623,7 @@ float Im2ColGPU(
 {
     switch(spatial_dim)
     {
-    case 2:
-    {
+    case 2: {
         return Im2d2ColGPU(handle,
                            im,
                            im_offset,
@@ -577,8 +643,7 @@ float Im2ColGPU(
                            col,
                            type);
     }
-    case 3:
-    {
+    case 3: {
         return Im3d2ColGPU(handle,
                            im,
                            im_offset,
@@ -604,13 +669,14 @@ float Im2ColGPU(
                            col,
                            type);
     }
-    default: { MIOPEN_THROW("unsupported convolution dimension");
+    default: {
+        MIOPEN_THROW("unsupported convolution dimension");
     }
     }
 }
 
 float Col2ImGPU(
-    Handle& handle,
+    const Handle& handle,
     std::size_t spatial_dim,
     ConstData_t col,
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& out_spatial,
@@ -626,8 +692,7 @@ float Col2ImGPU(
 {
     switch(spatial_dim)
     {
-    case 2:
-    {
+    case 2: {
         return Col2Im2dGPU(handle,
                            col,
                            out_spatial[0],
@@ -647,8 +712,7 @@ float Col2ImGPU(
                            im_offset,
                            type);
     }
-    case 3:
-    {
+    case 3: {
         return Col2Im3dGPU(handle,
                            col,
                            out_spatial[0],
@@ -674,14 +738,15 @@ float Col2ImGPU(
                            im_offset,
                            type);
     }
-    default: { MIOPEN_THROW("unsupported convolution dimension");
+    default: {
+        MIOPEN_THROW("unsupported convolution dimension");
     }
     }
 
     MIOPEN_THROW("unsupported convolution dimension");
 }
 
-float transpose_NCHW2CNHW(Handle& handle,
+float transpose_NCHW2CNHW(const Handle& handle,
                           int n,
                           int c,
                           int h_in,
@@ -699,114 +764,127 @@ float transpose_NCHW2CNHW(Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
-                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
-                                 "t" + std::to_string(type);
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
-    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        kernel_name += "_opt";
+    std::string params = GetDataTypeKernelParams(type);
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-    if(!kernels.empty())
+    if(type == miopenInt8x4)
     {
-        auto kernel = kernels.front();
-        kernel(in, out);
+        c /= 4;
+        in_offset /= 4;
+        out_offset /= 4;
     }
-    else
+
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
-        std::string params = GetDataTypeKernelParams(type);
+        kernel_name += "_V1";
 
-        if(type == miopenInt8x4)
+        int RD_BLCK   = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_in * w_in) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+
+        std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
+        std::vector<size_t> vgd{MAP_RD, 1, 1};
+
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
-            c /= 4;
-            in_offset /= 4;
-            out_offset /= 4;
-        }
-
-        if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=1 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
-
-            int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
-            int HW_RD        = (h_in * w_in) / RD_BLCK;
-            size_t MAP_RD    = HW_RD * c;
-            size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
-
-            std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
-
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
-            params += " -DH=" + std::to_string(h_in);
-            params += " -DW=" + std::to_string(w_in);
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
-            params += " -DHW_RD=" + std::to_string(HW_RD);
-            params += " -DMAP_RD=" + std::to_string(MAP_RD);
-            params += " -DREAD_TYPE=" + READ_TYPE;
-
-            const std::vector<size_t> vld{lcl_size0, 1, 1};
-            std::vector<size_t> vgd{MAP_RD, 1, 1};
-
-            if(MAP_RD < MAX_ACTIVE_THREADS)
-            {
-                vgd = {MAP_RD, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
-
-            handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+            vgd = {MAP_RD, static_cast<size_t>(n), 1};
+            kernel_name += "_2D_WG";
         }
         else
         {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=1 -DNC_TRANS_CNHW=0";
+            vgd = {MAP_RD, 1, 1};
+            kernel_name += "_1D_WG";
+        }
 
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DHW_IN=" + std::to_string(h_in * w_in);
-            params += " -DHW_OUT=" + std::to_string(h_out * w_out);
-            params += " -DW_IN=" + std::to_string(w_in);
-            params += " -DW_OUT=" + std::to_string(w_out);
-            params += " -DH_STRIDE=" + std::to_string(h_stride);
-            params += " -DW_STRIDE=" + std::to_string(w_stride);
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
+        kernel_name += "_" + READ_TYPE;
 
-            size_t ld0 = WG_SIZE;
-            size_t gd0 = c * h_out * w_out;
-            const std::vector<size_t> vld{ld0, 1, 1};
-            std::vector<size_t> vgd{gd0, 1, 1};
-
-            if(gd0 < MAX_ACTIVE_THREADS)
-            {
-                vgd = {gd0, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
-
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        if(!kernels.empty())
+        {
+            auto kernel  = kernels.front();
+            kernel.ldims = {{vld[0], vld[1], vld[2]}};
+            kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+            kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
+        }
+        else
+        {
             handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_in, w_in);
+        }
+    }
+    else
+    {
+        kernel_name += "_V2";
+
+        const int hw_in  = h_in * w_in;
+        const int hw_out = h_out * w_out;
+
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
+        std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
+
+// disable 3D_WG kernel due to idx calc overhead
+#if 0
+        if((gd0 * c) < MAX_ACTIVE_THREADS)
+        {
+            vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
+            kernel_name += "_3D_WG";
+        }
+        else
+#endif
+        {
+            kernel_name += "_2D_WG";
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        if(!kernels.empty())
+        {
+            auto kernel  = kernels.front();
+            kernel.ldims = {{vld[0], vld[1], vld[2]}};
+            kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+            kernel(in,
+                   out,
+                   in_offset,
+                   out_offset,
+                   w_in,
+                   w_out,
+                   n,
+                   c,
+                   h_stride,
+                   w_stride,
+                   hw_in,
+                   hw_out);
+        }
+        else
+        {
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                in,
+                out,
+                in_offset,
+                out_offset,
+                w_in,
+                w_out,
+                n,
+                c,
+                h_stride,
+                w_stride,
+                hw_in,
+                hw_out);
         }
     }
 
     return handle.GetKernelTime();
 }
 
-float transpose_CNHW2NCHW(Handle& handle,
+float transpose_CNHW2NCHW(const Handle& handle,
                           int n,
                           int c,
                           int h_out,
@@ -824,107 +902,119 @@ float transpose_CNHW2NCHW(Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
-                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "h_stride" + std::to_string(h_stride) + "w_stride" +
-                                 std::to_string(w_stride) + "t" + std::to_string(type);
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
-    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        kernel_name += "_opt";
+    std::string params = GetDataTypeKernelParams(type);
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-    if(!kernels.empty())
+    if(type == miopenInt8x4)
     {
-        auto kernel = kernels.front();
-        kernel(in, out);
+        c /= 4;
+        in_offset /= 4;
+        out_offset /= 4;
     }
-    else
+
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
-        std::string params = GetDataTypeKernelParams(type);
+        kernel_name += "_V1";
 
-        if(type == miopenInt8x4)
+        int RD_BLCK   = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
+        int HW_RD     = (h_out * w_out) / RD_BLCK;
+        size_t MAP_RD = static_cast<size_t>(HW_RD) * c;
+        // size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+
+        std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+
+        const std::vector<size_t> vld{std::min(MAP_RD, WG_SIZE), 1, 1};
+        std::vector<size_t> vgd{MAP_RD, 1, 1};
+
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
-            c /= 4;
-            in_offset /= 4;
-            out_offset /= 4;
-        }
-
-        if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
-        {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=1 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=0";
-
-            int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
-            int HW_RD        = (h_out * w_out) / RD_BLCK;
-            size_t MAP_RD    = HW_RD * c;
-            size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
-
-            std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
-
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
-            params += " -DH=" + std::to_string(h_out);
-            params += " -DW=" + std::to_string(w_out);
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
-            params += " -DHW_RD=" + std::to_string(HW_RD);
-            params += " -DMAP_RD=" + std::to_string(MAP_RD);
-            params += " -DREAD_TYPE=" + READ_TYPE;
-
-            const std::vector<size_t> vld{lcl_size0, 1, 1};
-            std::vector<size_t> vgd{MAP_RD, 1, 1};
-
-            if(MAP_RD < MAX_ACTIVE_THREADS)
-            {
-                vgd = {MAP_RD, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
-
-            handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+            vgd = {MAP_RD, static_cast<size_t>(n), 1};
+            kernel_name += "_2D_WG";
         }
         else
         {
-            params +=
-                " -DNC_TRANS_NCHW_OPT=0 -DNC_TRANS_CNHW_OPT=0 -DNC_TRANS_NCHW=0 -DNC_TRANS_CNHW=1";
+            kernel_name += "_1D_WG";
+        }
 
-            params += " -DN=" + std::to_string(n);
-            params += " -DC=" + std::to_string(c);
-            params += " -DHW_IN=" + std::to_string(h_in * w_in);
-            params += " -DHW_OUT=" + std::to_string(h_out * w_out);
-            params += " -DW_IN=" + std::to_string(w_in);
-            params += " -DW_OUT=" + std::to_string(w_out);
-            params += " -DH_STRIDE=" + std::to_string(h_stride);
-            params += " -DW_STRIDE=" + std::to_string(w_stride);
-            params += " -DIN_OFF=" + std::to_string(in_offset);
-            params += " -DOUT_OFF=" + std::to_string(out_offset);
+        kernel_name += "_" + READ_TYPE;
 
-            size_t ld0 = WG_SIZE;
-            size_t gd0 = c * h_out * w_out;
-            const std::vector<size_t> vld{ld0, 1, 1};
-            std::vector<size_t> vgd{gd0, 1, 1};
-
-            if(gd0 < MAX_ACTIVE_THREADS)
-            {
-                vgd = {gd0, static_cast<size_t>(n), 1};
-                params += " -DIS_2D_WG=1";
-            }
-            else
-            {
-                params += " -DIS_2D_WG=0";
-            }
-
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        if(!kernels.empty())
+        {
+            auto kernel  = kernels.front();
+            kernel.ldims = {{vld[0], vld[1], vld[2]}};
+            kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+            kernel(in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
+        }
+        else
+        {
             handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(in, out);
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                in, out, in_offset, out_offset, RD_BLCK, HW_RD, n, c, h_out, w_out);
+        }
+    }
+    else
+    {
+        kernel_name += "_V2";
+
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
+        const std::vector<size_t> vld{std::min(gd0, WG_SIZE), 1, 1};
+        std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
+
+// disable 3D_WG kernel due to idx calc overhead
+#if 0
+        if(gd0 < MAX_ACTIVE_THREADS)
+        {
+            vgd = {gd0, static_cast<size_t>(n), static_cast<size_t>(c)};
+            kernel_name += "_3D_WG";
+        }
+        else
+#endif
+        {
+            kernel_name += "_2D_WG";
+        }
+
+        const int hw_in  = h_in * w_in;
+        const int hw_out = h_out * w_out;
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        if(!kernels.empty())
+        {
+            auto kernel  = kernels.front();
+            kernel.ldims = {{vld[0], vld[1], vld[1]}};
+            kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+            kernel(in,
+                   out,
+                   in_offset,
+                   out_offset,
+                   w_in,
+                   w_out,
+                   n,
+                   c,
+                   h_stride,
+                   w_stride,
+                   hw_in,
+                   hw_out);
+        }
+        else
+        {
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                in,
+                out,
+                in_offset,
+                out_offset,
+                w_in,
+                w_out,
+                n,
+                c,
+                h_stride,
+                w_stride,
+                hw_in,
+                hw_out);
         }
     }
 
@@ -932,7 +1022,7 @@ float transpose_CNHW2NCHW(Handle& handle,
 }
 
 // NCHW (or NCDHW) to NCHW_C4 (or NCDHW_C4)
-float transpose_NCHW2Vec(Handle& handle,
+float transpose_NCHW2Vec(const Handle& handle,
                          const std::vector<std::size_t>& lens,
                          ConstData_t in,
                          Data_t out,
@@ -986,11 +1076,8 @@ float transpose_NCHW2Vec(Handle& handle,
 
         std::string kernel_name = "transpose_NCHW2Vec";
 
-        const std::vector<size_t> vld{WG_SIZE, 1, 1};
-        std::vector<size_t> vgd{1, 1, 1};
-
-        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
-                                                   : static_cast<int>(vec_size);
+        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                     : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
@@ -1035,22 +1122,25 @@ float transpose_NCHW2Vec(Handle& handle,
         if(!float_equal(beta_fp, 0))
             params += " -DUSE_BETA=1";
 
-        vgd[0] = MAP_RD;
-
-        uint gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
+        const size_t gd0 = MAP_RD;
+        size_t gd1;
 
         /// disable iteration of n due to perf degrade
         /// \to-do fix the perf issue
-        // if(vgd[0] < MAX_ACTIVE_THREADS)
+        // if(gd0 < MAX_ACTIVE_THREADS)
         {
-            vgd[1] = gd1;
+            gd1 = trans ? static_cast<size_t>(n_vec / vec_size) : static_cast<size_t>(n);
             params += " -DIS_2D_WG=1";
         }
         // else
         //{
+        // gd1 = 1;
         // params += " -DIS_2D_WG=0";
         // params += " -DGD_1=" + std::to_string(gd1);
         //}
+
+        const std::vector<size_t> vgd{gd0, gd1, 1};
+        const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
 
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
             in, out, alpha_fp, beta_fp);
@@ -1059,7 +1149,7 @@ float transpose_NCHW2Vec(Handle& handle,
     return handle.GetKernelTime();
 }
 
-float transpose_packed_MN2NM(Handle& handle,
+float transpose_packed_MN2NM(const Handle& handle,
                              int m,
                              int n,
                              int in_offset,
@@ -1071,48 +1161,41 @@ float transpose_packed_MN2NM(Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "n" + std::to_string(n) + "m" + std::to_string(m) + "inoff" +
-                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
-                                 "t" + std::to_string(type);
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_packed_MN2NM";
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
+    std::string params = GetDataTypeKernelParams(type);
+    if(type == miopenInt8x4)
+    {
+        m /= 4;
+        in_offset /= 4;
+        out_offset /= 4;
+    }
+
+    if(!(type == miopenInt8x4 || type == miopenInt8))
+    {
+        MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
+    }
+
+    size_t gd0 = static_cast<size_t>(m) * n;
+    const std::vector<size_t> vld{std::min(WG_SIZE, gd0), 1, 1};
+    std::vector<size_t> vgd{gd0, 1, 1};
+
     if(!kernels.empty())
     {
-        auto kernel = kernels.front();
-        kernel(in, out);
+        auto kernel  = kernels.front();
+        kernel.ldims = {{vld[0], vld[1], vld[1]}};
+        kernel.gdims = {{vgd[0], vgd[1], vgd[2]}};
+        kernel(in, out, n, m, in_offset, out_offset);
     }
     else
     {
-        std::string params = GetDataTypeKernelParams(type);
-        if(type == miopenInt8x4)
-        {
-            m /= 4;
-            in_offset /= 4;
-            out_offset /= 4;
-        }
-
-        if(!(type == miopenInt8x4 || type == miopenInt8))
-        {
-            MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
-        }
-
-        params += " -DNC_TRANS_MN2NM=1";
-
-        params += " -DN=" + std::to_string(n);
-        params += " -DM=" + std::to_string(m);
-        params += " -DIN_OFF=" + std::to_string(in_offset);
-        params += " -DOUT_OFF=" + std::to_string(out_offset);
-
-        size_t ld0 = WG_SIZE;
-        size_t gd0 = m * n;
-        const std::vector<size_t> vld{ld0, 1, 1};
-        std::vector<size_t> vgd{gd0, 1, 1};
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            in, out);
+            in, out, n, m, in_offset, out_offset);
     }
 
     return handle.GetKernelTime();

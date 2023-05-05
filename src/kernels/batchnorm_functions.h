@@ -129,10 +129,24 @@
 #define MIO_BN_MAXN 65
 #endif
 
+// TODO: Spaghetti code!!!
+// MIOPEN_USE_AMDGCN may be defined before this header.
+#ifndef MIOPEN_USE_AMDGCN
+#if defined(__AMDGCN__) && \
+    !((defined(MIO_BN_GFX103X) && MIO_BN_GFX103X) || (defined(MIO_BN_GFX110X) && MIO_BN_GFX110X))
+#define MIOPEN_USE_AMDGCN 1
+#else
+#define MIOPEN_USE_AMDGCN 0
+#endif
+#endif
+
+// MIOPEN_USE_AMDGCN is guaranteed to be defined at this point.
+
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
 #elif(MIO_BN_NODPP == 1 && MIO_BN_VARIANT != 0)
-#undef __AMDGCN__
+#undef MIOPEN_USE_AMDGCN
+#define MIOPEN_USE_AMDGCN 0
 #endif
 
 #ifndef MIO_SAVE_MEAN_VARIANCE
@@ -143,8 +157,17 @@
 #define MIO_RUNNING_RESULT 0
 #endif
 
+#ifndef MIO_BN_GFX103X
+#define MIO_BN_GFX103X 0
+#endif
+
+#ifndef MIO_BN_GFX110X
+#define MIO_BN_GFX110X 0
+#endif
+
 #define UNUSED __attribute__((__unused__))
 
+#if(MIO_BN_VARIANT != 4)
 static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
                                  global _FLOAT_PREC* resultRunningVariance,
                                  double expAvgFactor,
@@ -157,22 +180,15 @@ static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
         mad((_FLOAT_ACCUM)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
     resultRunningMean[channel] =
         (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-    const _FLOAT_ACCUM adjust = (_FLOAT_ACCUM)(
-        (MIO_BN_NHW == 1) ? variance : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
-                                                   ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
-    resultRunningVariance[channel] = (_FLOAT_PREC)(
-        (1 - (_FLOAT_ACCUM)expAvgFactor) * (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
-        (_FLOAT_ACCUM)expAvgFactor * adjust);
-}
-
-static inline void saved_stash(global _FLOAT_PREC* resultSaveMean,
-                               global _FLOAT_PREC* resultSaveInvVariance,
-                               _FLOAT_ACCUM mean,
-                               _FLOAT_ACCUM invVariance,
-                               uint channel)
-{
-    *(resultSaveMean + channel)        = (_FLOAT_PREC)mean;
-    *(resultSaveInvVariance + channel) = (_FLOAT_PREC)invVariance;
+    const _FLOAT_ACCUM adjust =
+        (_FLOAT_ACCUM)((MIO_BN_NHW == 1)
+                           ? variance
+                           : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
+                                         ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
+    resultRunningVariance[channel] =
+        (_FLOAT_PREC)((1 - (_FLOAT_ACCUM)expAvgFactor) *
+                          (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
+                      (_FLOAT_ACCUM)expAvgFactor * adjust);
 }
 
 static inline void running_stash_pa(global _FLOAT_PREC* resultRunningMean,
@@ -196,4 +212,38 @@ static inline void running_stash_pa(global _FLOAT_PREC* resultRunningMean,
     resultRunningVariance[index] =
         (1 - (_FLOAT_PREC)expAvgFactor) * *(resultRunningVariance + index) +
         (_FLOAT_PREC)expAvgFactor * adjust;
+}
+
+#else
+
+static inline void running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
+                                     global _FLOAT_PREC* resultRunningVariance,
+                                     double expAvgFactor,
+                                     _FLOAT_ACCUM mean,
+                                     _FLOAT_ACCUM variance,
+                                     uint channel,
+                                     _FLOAT_ACCUM inhw)
+{
+    _FLOAT_ACCUM pvt_runMean = (_FLOAT_ACCUM)(*(resultRunningMean + channel));
+    _FLOAT_ACCUM pvt_newRunMean =
+        mad((_FLOAT_ACCUM)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+    resultRunningMean[channel] =
+        (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+    const _FLOAT_ACCUM adjust =
+        (_FLOAT_ACCUM)((inhw == 1) ? variance : variance * (1. / (1. - inhw)));
+    resultRunningVariance[channel] =
+        (_FLOAT_PREC)((1 - (_FLOAT_ACCUM)expAvgFactor) *
+                          (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
+                      (_FLOAT_ACCUM)expAvgFactor * adjust);
+}
+#endif
+
+static inline void saved_stash(global _FLOAT_PREC* resultSaveMean,
+                               global _FLOAT_PREC* resultSaveInvVariance,
+                               _FLOAT_ACCUM mean,
+                               _FLOAT_ACCUM invVariance,
+                               uint channel)
+{
+    *(resultSaveMean + channel)        = (_FLOAT_PREC)mean;
+    *(resultSaveInvVariance + channel) = (_FLOAT_PREC)invVariance;
 }

@@ -55,7 +55,7 @@ struct ConvSolution
     std::string solver_id;
     boost::optional<InvokerFactory> invoker_factory;
 
-    size_t workspce_sz;
+    size_t workspace_sz;
     int grp_tile1;       // total number ALUs per group
     int grp_tile0;       // total number ALUs per group
     int in_tile1;        // size of in-tile in local memory
@@ -65,12 +65,13 @@ struct ConvSolution
     int n_out_pix_tiles; // # output pixel tiles per wk-item (ALU)
     int n_in_data_tiles; // # of blocks of different inputs in LDS
     int n_stacks;        // # of diff stacks (part of batch).
+    float weight = 0.0f;
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
           solver_id("<unknown>"),
           invoker_factory(boost::none),
-          workspce_sz(0),
+          workspace_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
           in_tile1(-1),
@@ -88,7 +89,7 @@ struct ConvSolution
 
 std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
 
-void PrecompileSolutions(Handle& h, const std::vector<ConvSolution>& sols);
+void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols);
 
 } // namespace solver
 } // namespace miopen

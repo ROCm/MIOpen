@@ -59,12 +59,12 @@ namespace miopen {
 class KernelCache
 {
 
-    public:
+public:
     using Key        = std::pair<std::string, std::string>;
     using KernelMap  = std::unordered_map<Key, std::vector<Kernel>, SimpleHash>;
     using ProgramMap = std::unordered_map<Key, Program, SimpleHash>;
 
-    Kernel AddKernel(Handle& h,
+    Kernel AddKernel(const Handle& h,
                      const std::string& algorithm,
                      const std::string& network_config,
                      const std::string& program_name,
@@ -83,15 +83,14 @@ class KernelCache
     const std::vector<Kernel>& GetKernels(const std::string& algorithm,
                                           const std::string& network_config);
 
-    bool HasKernels(const std::string& algorithm, const std::string& network_config) const;
-
     bool HasProgram(const std::string& name, const std::string& params) const;
+    void ClearProgram(const std::string& name, const std::string& params);
 
     void AddProgram(Program prog, const std::string& program_name, std::string params);
 
     KernelCache();
 
-    private:
+private:
     KernelMap kernel_map;
     ProgramMap program_map;
 };

@@ -32,6 +32,8 @@
 #define PREC_TYPE T
 #endif
 
+#include "test.hpp"
+#include "driver.hpp"
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 
@@ -95,10 +97,10 @@ struct verify_fwd_batchnorm_spatial_activ
         epsilon      = MIO_BN_TEST_EPSILON;
         expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x.desc, miopenBNSpatial);
-        ssn = ssc = ssh = ssw = 0;
+        ssn = ssc = ssh = ssw        = 0;
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
-        alpha = 1.;
-        beta  = 0.;
+        alpha                        = 1.;
+        beta                         = 0.;
     }
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
@@ -271,12 +273,12 @@ struct verify_bwd_batchnorm_spatial_activ
         epsilon      = MIO_BN_TEST_EPSILON;
         expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x.desc, miopenBNSpatial);
-        ssn = ssc = ssh = ssw = 0;
+        ssn = ssc = ssh = ssw        = 0;
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
-        input_n = input_c = input_h = input_w = 0;
+        input_n = input_c = input_h = input_w        = 0;
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(x.desc.GetLengths());
-        alpha = 1.;
-        beta  = 0.;
+        alpha                                        = 1.;
+        beta                                         = 0.;
     }
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>> cpu() const
@@ -435,10 +437,10 @@ struct verify_fwd_batchnorm_peract_activ
         expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x.desc, miopenBNPerActivation);
         ssn = ssc = ssh = ssw = 0;
-        input_n = input_c = input_h = input_w = 0;
-        std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
-        alpha = 1.;
-        beta  = 0.;
+        input_n = input_c = input_h = input_w        = 0;
+        std::tie(ssn, ssc, ssh, ssw)                 = miopen::tien<4>(derivedBnDesc.GetLengths());
+        alpha                                        = 1.;
+        beta                                         = 0.;
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(x.desc.GetLengths());
     }
 
@@ -612,11 +614,11 @@ struct verify_bwd_batchnorm_peract_activ
         expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, x.desc, miopenBNPerActivation);
         ssn = ssc = ssh = ssw = 0;
-        input_n = input_c = input_h = input_w = 0;
+        input_n = input_c = input_h = input_w        = 0;
         std::tie(ssn, ssc, ssh, ssw)                 = miopen::tien<4>(derivedBnDesc.GetLengths());
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(x.desc.GetLengths());
-        alpha = 1.;
-        beta  = 0.;
+        alpha                                        = 1.;
+        beta                                         = 0.;
     }
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>> cpu() const
@@ -800,8 +802,8 @@ struct na_fusion_driver : test_driver
 
         std::size_t input_n, input_c, input_h, input_w;
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-        this->tolerance = 80 * float(input.desc.GetElementSize());
-        ptr_activdesc   = GetManagedActivDesc();
+        this->tolerance                              = 80 * float(input.desc.GetElementSize());
+        ptr_activdesc                                = GetManagedActivDesc();
         miopenSetActivationDescriptor(ptr_activdesc.get(), activ_mode, alpha, beta, gamma);
         auto&& handle = get_handle();
 

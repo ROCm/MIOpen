@@ -48,7 +48,7 @@
 template <typename Tgpu, typename Tref = Tgpu>
 class DropoutDriver : public Driver
 {
-    public:
+public:
     DropoutDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -59,23 +59,23 @@ class DropoutDriver : public Driver
         data_type        = std::is_same<Tgpu, float16>{} ? miopenHalf : miopenFloat;
     }
 
-    int AddCmdLineArgs();
-    int ParseCmdLineArgs(int argc, char* argv[]);
-    InputFlags& GetInputFlags() { return inflags; }
+    int AddCmdLineArgs() override;
+    int ParseCmdLineArgs(int argc, char* argv[]) override;
+    InputFlags& GetInputFlags() override { return inflags; }
 
-    int GetandSetData();
+    int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine(std::string input_str);
 
-    int AllocateBuffersAndCopy();
+    int AllocateBuffersAndCopy() override;
 
-    int RunForwardGPU();
+    int RunForwardGPU() override;
     int RunForwardCPU();
-    int RunBackwardGPU();
+    int RunBackwardGPU() override;
     int RunBackwardCPU();
-    int VerifyForward();
-    int VerifyBackward();
+    int VerifyForward() override;
+    int VerifyBackward() override;
 
-    ~DropoutDriver()
+    ~DropoutDriver() override
     {
         miopenDestroyTensorDescriptor(inputTensor);
         miopenDestroyTensorDescriptor(outputTensor);
@@ -83,7 +83,7 @@ class DropoutDriver : public Driver
         miopenDestroyDropoutDescriptor(DropoutDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -249,16 +249,16 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpaceSize, sizeof(unsigned char)));
 
-    in = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+    in   = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
                       miopen::deref(inputTensor).GetStrides());
-    din = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+    din  = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
                        miopen::deref(inputTensor).GetStrides());
-    out = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
+    out  = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
                        miopen::deref(outputTensor).GetStrides());
     dout = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
                         miopen::deref(outputTensor).GetStrides());
 
-    outhost = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
+    outhost  = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
     din_host = tensor<Tref>(miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
@@ -451,9 +451,9 @@ int DropoutDriver<Tgpu, Tref>::VerifyForward()
     auto error = miopen::rms_range(outhost.data, out.data);
 
     const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Dropout Failed: " << error << std::endl;
+        std::cout << "Forward Dropout FAILED: " << error << std::endl;
     }
     else
     {
@@ -471,9 +471,9 @@ int DropoutDriver<Tgpu, Tref>::VerifyBackward()
     auto error = miopen::rms_range(din_host.data, din.data);
 
     const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward Dropout Failed: " << error << std::endl;
+        std::cout << "Backward Dropout FAILED: " << error << std::endl;
     }
     else
     {

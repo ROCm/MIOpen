@@ -73,7 +73,7 @@ struct GemmGeometry
                       Data_t c,
                       bool enforce_determinism);
 
-    void RunGemm(Handle& handle,
+    void RunGemm(const Handle& handle,
                  ConstData_t a,
                  ConstData_t b,
                  Data_t c,

@@ -223,7 +223,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
                       << " c_v = " << c_val << " vs g_val = " << g_val
                       << " tolerance = " << allowedEps << std::endl;
-            //   match = 0;
+            match = 0;
         }
     }
 
