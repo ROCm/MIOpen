@@ -459,6 +459,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "TARGET_NAVI32",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
             description: "")
@@ -984,7 +988,7 @@ pipeline {
                 stage('Fp16 Hip All Navi32') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP16 }
                     }
                     options {
                         retry(2)
@@ -1072,6 +1076,19 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
+                    }
+                }
+                stage('Fp32 Hip All Install navi32') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
                     }
