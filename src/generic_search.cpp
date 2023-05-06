@@ -44,7 +44,7 @@ std::chrono::milliseconds GetTuningTimeMax()
     static const auto fallback =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
     static const auto res =
-        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
+        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX, fallback.count())};
     return res;
 }
 
@@ -55,7 +55,7 @@ std::size_t GetTuningThreadsMax()
 #else
     const int def_max = std::thread::hardware_concurrency() / 2;
 #endif
-    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);
+    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL, def_max);
 }
 
 } // namespace solver

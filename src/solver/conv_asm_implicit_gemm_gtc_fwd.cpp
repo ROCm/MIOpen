@@ -1535,7 +1535,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
 #if WORKAROUND_SWDEV_306318
     if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
        (problem.GetInChannels() % 8 != 0))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS))
             return false;
 #endif
 

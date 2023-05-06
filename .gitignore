@@ -1,3 +1,6 @@
+src/kernels/*.db
+src/kernels/*.kdb
+
 # JetBrains IDEs
 .idea/
 build*/

@@ -632,16 +632,25 @@ endif()
 
 target_link_libraries(MIOpen_Static
     PUBLIC
-        nlohmann_json::nlohmann_json
-        Boost::any
-        Boost::container
-        Boost::date_time
-        Boost::filesystem
-        Boost::hof
-        Boost::interprocess
-        Boost::range
-        Boost::thread
-        Boost::variant)
+        nlohmann_json::nlohmann_json)
+
+if(WIN32)
+    target_link_libraries(MIOpen_Static
+        PUBLIC
+            Boost::any
+            Boost::container
+            Boost::date_time
+            Boost::filesystem
+            Boost::hof
+            Boost::interprocess
+            Boost::range
+            Boost::thread
+            Boost::variant)
+else()
+    target_link_libraries(MIOpen_Static
+        PUBLIC
+            Boost::filesystem)
+endif()
 
 set_target_properties(MIOpen_Static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -726,16 +735,18 @@ target_include_directories(MIOpen
 
 target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 
-target_internal_library(MIOpen
-        Boost::any
-        Boost::container
-        Boost::date_time
-        Boost::filesystem
-        Boost::hof
-        Boost::interprocess
-        Boost::range
-        Boost::thread
-        Boost::variant)
+if(WIN32)
+    target_internal_library(MIOpen
+            Boost::any
+            Boost::container
+            Boost::date_time
+            Boost::filesystem
+            Boost::hof
+            Boost::interprocess
+            Boost::range
+            Boost::thread
+            Boost::variant)
+endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 

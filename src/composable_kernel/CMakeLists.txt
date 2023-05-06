@@ -39,7 +39,7 @@ find_package(HIP REQUIRED)
 message(STATUS "Build with HIP ${hip_VERSION}")
 
 ## half
-#find_path(HALF_INCLUDE_DIR half.hpp)
+find_path(HALF_INCLUDE_DIR half.hpp)
 message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 # CMAKE_CXX_FLAGS

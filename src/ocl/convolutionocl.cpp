@@ -212,7 +212,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         });
     }
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY))
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
@@ -497,11 +497,6 @@ std::size_t ConvolutionDescriptor::GetSolutionCount(const ExecutionContext& exec
     return GetSolutionCountFallback(exec_ctx, problem);
 }
 
-        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM);
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT);
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT);
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD);
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
 struct SolutionTimeComparator
 {
     bool operator()(const miopenConvSolution_t& lhs, const miopenConvSolution_t& rhs) const

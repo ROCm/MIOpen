@@ -100,10 +100,10 @@ if(NOT MSVC)
             -Wno-unused-command-line-argument
             -Wno-weak-vtables
             -Wno-covered-switch-default
-            -Wno-unused-result)
+            -Wno-unused-result
             -Wno-unsafe-buffer-usage
             -Wno-deprecated-declarations
-            -Wno-shadow-uncaptured-local
+            -Wno-shadow-uncaptured-local)
     else()
         if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.1")
             list(APPEND __COMPILER_WARNINGS

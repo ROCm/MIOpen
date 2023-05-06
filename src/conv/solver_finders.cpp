@@ -55,7 +55,7 @@ protected:
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
+        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
@@ -83,7 +83,7 @@ protected:
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
+        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
@@ -112,7 +112,7 @@ protected:
                    bool use_winograd_only) const override
     {
         return !use_winograd_only && problem.GetDirection() != conv::Direction::BackwardWeights &&
-               !IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
+               !IsDisabled(MIOPEN_DEBUG_CONV_FFT);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
@@ -138,7 +138,7 @@ protected:
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
+        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
@@ -164,7 +164,7 @@ protected:
                    const conv::ProblemDescription& /*problem*/,
                    bool /*use_winograd_only*/) const override
     {
-        return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
+        return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
@@ -215,7 +215,7 @@ static void EvaluateInvokers(Handle& handle,
                              const InvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH);
     if(arch != nullptr && strlen(arch) > 0)
         return;
 
@@ -318,15 +318,15 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     switch(algo)
     { // clang-format off
     case miopenConvolutionAlgoGEMM:
-        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
+        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM);
     case miopenConvolutionAlgoDirect:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT);
     case miopenConvolutionAlgoFFT:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT);
     case miopenConvolutionAlgoWinograd:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD);
     case miopenConvolutionAlgoImplicitGEMM:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
+        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on

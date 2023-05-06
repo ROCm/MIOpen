@@ -69,10 +69,22 @@ else()
         # MIOpen now depends on SQLite as well
         find_package(PkgConfig)
         pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+        add_library(sqlite3::sqlite3 INTERFACE IMPORTED GLOBAL)
+        target_include_directories(sqlite3::sqlite3 INTERFACE ${SQLITE3_INCLUDE_DIRS})
+        target_compile_options(sqlite3::sqlite3 INTERFACE ${SQLITE3_CFLAGS} ${SQLITE3_CFLAGS_OTHER})
+        target_link_libraries(sqlite3::sqlite3 INTERFACE ${SQLITE3_LIBRARIES})
+        target_link_directories(sqlite3::sqlite3 INTERFACE ${SQLITE3_LIBRARY_DIRS})
+        target_link_options(sqlite3::sqlite3 INTERFACE ${SQLITE3_LDFLAGS} ${SQLITE3_LDFLAGS_OTHER})
     endif()
     find_package(BZip2)
     find_package(nlohmann_json 3.9.1 REQUIRED)
+
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_STATIC_RUNTIME OFF)
+    set(Boost_USE_MULTITHREADED ON)
+    find_package(Boost 1.79 REQUIRED COMPONENTS filesystem system)
 endif()
+
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
@@ -246,8 +258,10 @@ set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: \"${HIP_COMPILER_FLAGS}\"")
+add_definitions(-DHIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}")
 
-add_definitions(-DHIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}"
+if(WIN32)
+    add_definitions(
         -D_MBCS
         -DWIN32
         -DWIN32_LEAN_AND_MEAN
@@ -258,7 +272,11 @@ add_definitions(-DHIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}"
         -D_WIN32_WINNT=0x0601
         -DBOOST_USE_WINDOWS_H)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions -fms-compatibility")
+    add_compile_options(
+            -fdelayed-template-parsing
+            -fms-extensions
+            -fms-compatibility)
+endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -474,14 +492,23 @@ endif()
 # Unpack DB files
 function(unpack_db db_bzip2_file)
     set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
-    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
-    find_program(UNZIPPER lbunzip2 bunzip2)
+    string(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    if(WIN32)
+        find_program(UNZIPPER 7z PATHS "C:/Program Files/7-Zip")
+        if(${UNZIPPER} STREQUAL "UNZIPPER-NOTFOUND")
+            message(FATAL_ERROR "Please install 7-Zip a file archiver from https://www.7-zip.org/.")
+        endif()
+        set(__switches " e")
+    else()
+        find_program(UNZIPPER lbunzip2 bunzip2)
+        set(__switches " -k")
+    endif()
     if(EXISTS "${db_file}")
         # message(WARNING "${db_file} already exists")
     elseif(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER} -k ${db_bzip2_file}")
+        message(STATUS "${UNZIPPER}${__switches} ${db_bzip2_file}")
         execute_process(
-            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
+            COMMAND ${UNZIPPER}${__switches} ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
             RESULT_VARIABLE ret
             )
@@ -493,6 +520,7 @@ function(unpack_db db_bzip2_file)
                 )
         endif()
     endif()
+    unset(__switches)
 endfunction()
 
 file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")

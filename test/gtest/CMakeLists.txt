@@ -24,22 +24,14 @@ function(add_gtest TEST_NAME)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
     endif()
     target_link_libraries(test_${TEST_NAME}
-      PRIVATE
-        gtest_main
-        MIOpen
-        MIOpen_Static
-        Boost::any
-        Boost::container
-        Boost::date_time
-        Boost::filesystem
-        Boost::hof
-        Boost::interprocess
-        Boost::range
-        Boost::thread
-        Boost::variant
-        hip::host
-        nlohmann_json::nlohmann_json
-      )
+        PRIVATE
+            gtest
+            gtest_main
+            MIOpen
+            MIOpen_Static
+            hip::host
+            nlohmann_json::nlohmann_json
+        )
     if(WIN32)
       target_link_libraries(test_${TEST_NAME} PRIVATE bzip2::bzip2)
     else()
@@ -52,11 +44,11 @@ function(add_gtest TEST_NAME)
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(test_${TEST_NAME} PRIVATE miopen_data)
     endif()
-    if(NOT WIN32)
-      # Enable CMake to discover the test binary
-      # TODO: turn on for Windows after enabling all the tests.
-      gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
-    endif()
+#    if(NOT WIN32)
+#      # Enable CMake to discover the test binary
+#      # TODO: turn on for Windows after enabling all the tests.
+#      gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
+#    endif()
     if(MIOPEN_ENABLE_SQLITE)
       target_link_libraries(test_${TEST_NAME} PRIVATE sqlite3::sqlite3)
     endif()
