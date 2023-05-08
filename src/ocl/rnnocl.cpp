@@ -67,13 +67,18 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    handle.ReserveExtraStreamsInPool(1);
+    auto extra_stream_cnt = 2;
+    handle.ReserveExtraStreamsInPool(extra_stream_cnt);
 
+    auto root_stream_id = 0;
     std::vector<hipStream_t> stream_pull;
-    stream_pull.push_back(handle.GetStream());
-    handle.SetStreamFromPool(1);
-    stream_pull.push_back(handle.GetStream());
-    handle.SetStreamFromPool(0);
+    for(int i = 0; i <= extra_stream_cnt; i++)
+    {
+        handle.SetStreamFromPool(i);
+        stream_pull.push_back(handle.GetStream());
+    }
+
+    handle.SetStreamFromPool(root_stream_id);
 
     int total_batch_size = 0;
     std::vector<int> bacc_per_time(seq_len + 1);
@@ -599,13 +604,13 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         }
     };
 
-    auto call_sync_all_stream_pull_to_x = [&stream_pull](int stream_x) {
+    auto call_sync_all_stream_pull_to_root_stream = [&stream_pull, root_stream_id]() {
         const miopen::HipEventPtr main_event = make_hip_fast_event();
-        hipEventRecord(main_event.get(), stream_pull[stream_x]);
+        hipEventRecord(main_event.get(), stream_pull[root_stream_id]);
 
         for(int i = 0; i < stream_pull.size(); i++)
         {
-            if(i != stream_x)
+            if(i != root_stream_id)
                 hipStreamWaitEvent(stream_pull[i], main_event.get(), 0);
         }
     };
@@ -631,8 +636,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             layer_chunk_end_event[layer_id][chunk_id] = make_hip_fast_event();
     }
 
-    std::vector<int> layer_stream_id(nLayers, 1);
-    layer_stream_id[0] = 0;
+    std::vector<int> layer_stream_id(nLayers, 2);
+    layer_stream_id[0] = 1;
 
     auto call_inx_next_chunk_preload = [&](int layer_id) {
         auto start_time = layer_inx_cur_time[layer_id];
@@ -702,10 +707,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     // stage 0 bias and input preload
     // stage 0.2 first chunk compute and preload
     {
-        call_sync_all_stream_pull_to_x(0);
+        call_sync_all_stream_pull_to_root_stream();
         const auto first_layer_id  = 0;
-        const auto stream_id       = layer_stream_id[first_layer_id]; // 0
-        const auto extra_stream_id = 1;
+        const auto stream_id       = layer_stream_id[first_layer_id]; // 1
+        const auto extra_stream_id = 2;
 
         handle.SetStreamFromPool(stream_id);
 
@@ -731,7 +736,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     for(int layer_id = 0; layer_id < nLayers; layer_id++)
     {
 
-        const auto main_stream_id = 0;
+        const auto main_stream_id = 1;
         handle.SetStreamFromPool(main_stream_id);
 
         // check for wich stream was assigned this layer. If it differs from current - set stream
@@ -775,9 +780,9 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         call_hy_cy_update(layer_id);
     }
 
-    hipStreamWaitEvent(stream_pull[0], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
+    handle.SetStreamFromPool(root_stream_id);
+    hipStreamWaitEvent(stream_pull[root_stream_id], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
 
-    handle.SetStreamFromPool(0);
     // output tensor copy
     {
         const std::vector<size_t> y_copy_size{
