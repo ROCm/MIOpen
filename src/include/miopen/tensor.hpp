@@ -241,7 +241,7 @@ struct TensorDescriptor : miopenTensorDescriptor
         }
         else
         {
-            std::string base_label = labels.substr(0, labels.size() - 1);
+            const std::string base_label = labels.substr(0, labels.size() - 1);
             if(base_label.size() != strides.size())
             {
                 MIOPEN_THROW(
@@ -258,6 +258,9 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
+
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
 
 private:
     TensorDescriptor(miopenDataType_t t,

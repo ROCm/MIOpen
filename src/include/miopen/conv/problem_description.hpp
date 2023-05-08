@@ -37,6 +37,8 @@
 
 namespace miopen {
 
+struct ExecutionContext;
+
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
@@ -310,7 +312,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     std::size_t GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
-    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadW() - 1; }
+    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {
@@ -413,6 +415,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;

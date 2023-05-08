@@ -33,6 +33,7 @@
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
+#include <miopen/env.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/par_for.hpp>
 #include <miopen/stringutils.hpp>
@@ -42,10 +43,10 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+
 namespace miopen {
 namespace solver {
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL)
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
@@ -65,7 +66,8 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
+                    max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
                         programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
@@ -551,8 +553,28 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Fusion, solver::fusion::BnFwdTrgActivationFused{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Fusion, solver::fusion::BnBwdTrgActivationFused{}.SolverDbId());
-
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function!
+}
+
+bool ThisSolverIsDeprecatedStatic::IsDisabled(const ConvolutionContext& ctx)
+{
+    static const bool device_is_allowed = [&]() {
+        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
+            return true;
+        const auto device = ctx.GetStream().GetTargetProperties().Name();
+        return device == "gfx803"                       // Fiji
+               || device == "gfx900"                    // Vega10
+               || device == "gfx906"                    // Vega20, MI50/60
+               || device == "gfx908"                    // MI100
+               || device == "gfx90a"                    // MI200
+               || miopen::StartsWith(device, "gfx103"); // Navi2x
+    }();
+    return !device_is_allowed;
 }
 
 } // namespace solver

@@ -63,8 +63,15 @@ public:
 
 namespace miopen {
 
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
 struct ExecutionContext
 {
+    // Solution-specific
+    std::string general_compile_options;
+
     // Operation modes & environment
     bool do_search               = false;
     bool db_update               = false;
@@ -85,10 +92,14 @@ struct ExecutionContext
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext() = default;
     ExecutionContext(Handle* stream_) : stream(stream_) {}
 
-    void DetectRocm();
+    ExecutionContext()                        = default;
+    virtual ~ExecutionContext()               = default;
+    ExecutionContext(const ExecutionContext&) = default;
+
+    ExecutionContext& DetectRocm();
+
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
     {
@@ -161,7 +172,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            const boost::filesystem::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
@@ -251,9 +262,9 @@ struct ExecutionContext
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
         // clang-format off
-	const auto& udb = GetUserDbPath();
-	if(udb.empty())
-		return "";
+        const auto& udb = GetUserDbPath();
+        if(udb.empty())
+            return "";
         boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
@@ -270,22 +281,6 @@ struct ExecutionContext
 
 private:
     Handle* stream = nullptr;
-};
-
-class AutoUseFastDynamicSolutions
-{
-    bool prev_use_dynamic_;
-    ExecutionContext* const ctx;
-
-public:
-    AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
-    {
-        prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
-
-        ctx->use_dynamic_solutions_only = true;
-    }
-
-    ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
 bool IsHipKernelsEnabled();

@@ -8,7 +8,24 @@ MIOpen supports two programming models -
 1. [HIP](https://github.com/ROCm-Developer-Tools/HIP) (Primary Support).
 2. OpenCL.
 
+## Documentation
+
+For a detailed description of the **MIOpen** library see the [Documentation](https://rocmdocs.amd.com/projects/MIOpen/en/latest/).
+
+### How to build documentation
+
+Run the steps below to build documentation locally.
+
+```
+cd docs
+
+pip3 install -r .sphinx/requirements.txt
+
+python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
+```
+
 ## Prerequisites
+
 * More information about ROCm stack via [ROCm Information Portal](https://docs.amd.com/).
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html).
 * Base software stack, which includes:
@@ -45,6 +62,8 @@ Currently both the backends cannot be installed on the same system simultaneousl
 
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
 
+Note that all compiled kernels are locally cached in the folder `$HOME/.cache/miopen/`, so precompiled kernels reduce the startup latency only for the first execution of a neural network. Precompiled kernels do not reduce startup time on subsequent runs.
+
 To install the kernels package for your GPU architecture, use the following command:
 
 ```
@@ -62,6 +81,8 @@ The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen aut
 ```
 
 The above script depends on the __rocminfo__ package to query the GPU architecture.
+
+More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
 
 ## Installing the dependencies
 
@@ -200,27 +221,6 @@ cmake --build . --config Release --target test_tensor
 ./bin/test_tensor
 ```
 
-## Building the documentation
-
-HTML and PDF documentation can be built using:
-
-`cmake --build . --config Release --target doc` **OR** `make doc`
-
-This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.
-
-Documentation is built using generated using [Doxygen](http://www.stack.nl/~dimitri/doxygen/download.html) and should be installed separately.
-
-HTML and PDFs are generated using [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) and [Breathe](https://breathe.readthedocs.io/en/latest/), with the [ReadTheDocs theme](https://github.com/rtfd/sphinx_rtd_theme).
-
-Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:
-
-```
-pip install -r ./requirements.txt
-```
-
-
-Depending on your setup `sudo` may be required for the pip install.
-
 ## Formatting the code
 
 All the code is formatted using clang-format. To format a file, use:
@@ -269,7 +269,6 @@ git commit -m "the message"
 git push
 ```
 
-
 ## Installing the dependencies manually
 
 If Ubuntu v16 is used then the `Boost` packages can also be installed by:
@@ -287,7 +286,6 @@ however, this is not recommended.
 
 The `half` header needs to be installed from [here](http://half.sourceforge.net/). 
 
-
 ## Using docker
 
 The easiest way is to use docker. You can build the top-level docker file:
@@ -304,10 +302,8 @@ Prebuilt docker images can be found on [ROCm's public docker hub here](https://h
 
 ## Citing MIOpen
 
-
 MIOpen's paper is freely available and can be accessed on arXiv:  
 [MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
-
 
 ### Citation BibTeX
 ```
@@ -326,4 +322,3 @@ MIOpen's paper is freely available and can be accessed on arXiv:
 The [porting
 guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
 highlights the key differences between the current cuDNN and MIOpen APIs.
-

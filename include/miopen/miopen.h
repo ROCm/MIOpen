@@ -4833,7 +4833,7 @@ miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 /*! @brief Sets the tuning find option. Default value is zero.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Value of zero means no tuning, value of one means tuning enabled
  * @return           miopenStatus_t
  */
@@ -4841,7 +4841,7 @@ miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
 
 /*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies what order should find results have
  * @return           miopenStatus_t
  */
@@ -4850,12 +4850,34 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies the workspace limit for find call. All solvers exceeding the limit
  * would be ignored.
  * @return           miopenStatus_t
  */
 miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
+
+/*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
+ *
+ * @param options    Options object to update
+ * @param buffer     Specifies the workspace for find call
+ * @param size       Specifies the size of the buffer passed
+ * @return           miopenStatus_t
+ */
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+
+/*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
+ * MIOpen internally, which is not recommended.
+ *
+ * @param options    Options object to update
+ * @param id         Specifies the id of the tensor passed
+ * @param buffer     Specifies the tensor for find call
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer);
 
 /*! @brief The miopenSolution object describes a prepared solution.
  */
@@ -4962,6 +4984,22 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
  * @return         miopenStatus_t
  */
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
+
+/*! @brief Reads id of the solver referred by the solution.
+ *
+ * @param solution Solution to get solver id from
+ * @param solverId Pointer to a location where to write the solver id
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
+
+/*! @brief Gets the convolution algorithm implemented by a solver.
+ *
+ * @param solverId Solver id to get convolution algorithm of
+ * @param result   Pointer to a location where to write the algorithm
+ * @return         miopenStatus_t
+ */
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP

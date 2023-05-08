@@ -850,7 +850,8 @@ struct reduce_driver : test_driver
         };
 
         // Special data generation for NORM1 and NORM2 using a space of limitless number of values.
-        // This method is slower due to the use of GET_RAND(), it is usually used for manual testing
+        // This method is slower due to the use of GET_RAND(), it is usually used for manual
+        // testing
         auto gen_value_3 = [&](auto... is) {
             auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
             auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);

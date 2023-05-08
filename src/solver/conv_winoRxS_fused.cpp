@@ -153,46 +153,47 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-    if(!WinoCommonIsApplicable(context))
+    if(!WinoCommonIsApplicable(context, problem))
         return false;
 
-    const miopen::ConvolutionContext conv_ctx =
-        context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
 
-    if(conv_ctx.problem.IsFp16() &&
+    if(conv_problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
-         StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
     // clang-format off
-    if (!((conv_ctx.problem.kernel_stride_w == 1 || conv_ctx.problem.kernel_stride_w == 2)
-        && conv_ctx.problem.kernel_stride_w == conv_ctx.problem.kernel_stride_h
-        && conv_ctx.problem.kernel_dilation_w == 1
-        && conv_ctx.problem.kernel_dilation_h == 1))
+    if (!((conv_problem.kernel_stride_w == 1 || conv_problem.kernel_stride_w == 2)
+        && conv_problem.kernel_stride_w == conv_problem.kernel_stride_h
+        && conv_problem.kernel_dilation_w == 1
+        && conv_problem.kernel_dilation_h == 1))
         return false;
     // clang-format on
 
-    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
+    const auto group_count = conv_problem.conv_problem.GetGroupCount();
     if(group_count != 1)
         return false;
 
-    const auto W  = conv_ctx.problem.conv_problem.GetInWidth();
-    const auto H  = conv_ctx.problem.conv_problem.GetInHeight();
-    const auto C  = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto N  = conv_ctx.problem.conv_problem.GetInBatchSize();
-    const auto K  = conv_ctx.problem.conv_problem.GetOutChannels();
-    const auto R  = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    const auto S  = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto OH = conv_ctx.problem.conv_problem.GetOutHeight();
-    const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
+    const auto W  = conv_problem.conv_problem.GetInWidth();
+    const auto H  = conv_problem.conv_problem.GetInHeight();
+    const auto C  = conv_problem.conv_problem.GetInChannels();
+    const auto N  = conv_problem.conv_problem.GetInBatchSize();
+    const auto K  = conv_problem.conv_problem.GetOutChannels();
+    const auto R  = conv_problem.conv_problem.GetWeightsHeight();
+    const auto S  = conv_problem.conv_problem.GetWeightsWidth();
+    const auto OH = conv_problem.conv_problem.GetOutHeight();
+    const auto OW = conv_problem.conv_problem.GetOutWidth();
 
-    return IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem)
-               ? IsShaderConstraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
-               : IsShaderConstraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
+    return IsWinogradV21Preferred<2, 3>(name, conv_problem)
+               ? IsShaderConstraintsMetV21(conv_problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderConstraintsMetV30(conv_problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
@@ -201,13 +202,14 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     const int n_groups  = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem);
+    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -217,8 +219,11 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
+    const auto force_cache_bypass = (name == "gfx940") || (name == "gfx941");
+
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
+        {"FORCE_CACHE_BYPASS_ON_STORE", force_cache_bypass},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
@@ -226,8 +231,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
-    const auto kernel_postfix =
-        "_fp32_f2x3_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
+    const auto kernel_postfix = "_fp32_f2x3_stride" + std::to_string(conv_problem.kernel_stride_h);
 
     if(is_gfx9)
     {
@@ -246,8 +250,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto x = conv_problem.conv_problem.GetWeightsWidth();
+    const auto y = conv_problem.conv_problem.GetWeightsHeight();
 
     if(x == 3 && y == 3)
         result.weight = 100;
@@ -258,20 +262,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, unused, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(context,
-                            conv_ctx.problem,
-                            &N,
-                            &C,
-                            &H,
-                            &W,
-                            &K,
-                            &unused,
-                            &out_H,
-                            &out_W,
-                            &R,
-                            &S,
-                            &pad_H,
-                            &pad_W);
+    GetCompiledInParameters(
+        context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
     const int zero = 0;
     int flags      = [&]() {
         constexpr int L_F_BIAS       = 1 << 7;

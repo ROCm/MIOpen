@@ -45,6 +45,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
@@ -56,6 +58,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.Is2d())
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -94,6 +98,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.Is2d())
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;

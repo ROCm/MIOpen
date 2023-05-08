@@ -40,6 +40,8 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!ctx.use_opencl_convolutions)
         return false;
     if(!problem.Is2d())
@@ -104,7 +106,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
         && !(problem.direction.IsForward()
             && problem.IsFp16()
             && problem.kernel_stride_w == 2)
-        && IsValidPerformanceConfig(problem, GetDefaultPerformanceConfig(ctx, problem));
+        && IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
     // clang-format on
 }
 
@@ -113,7 +115,8 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
 /// and some logic from the corresponding opencl kernel source.
 /// The cases which lead to errors can be later omitted from the search.
 /// \todo Get rid the duplication of code where possible.
-bool ConvOclDirectFwd::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
+                                                const ProblemDescription& problem,
                                                 const LegacyPerformanceConfig& config) const
 {
     ConvSolution result;

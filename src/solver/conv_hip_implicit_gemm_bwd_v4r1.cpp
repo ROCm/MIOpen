@@ -580,7 +580,7 @@ void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV4R1::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -731,6 +731,8 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
 #endif
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
@@ -759,6 +761,10 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
+
     int gemm_m = 0;
     int gemm_n = 0;
 
@@ -785,7 +791,9 @@ ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionCon
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValidValue() && config.IsValid(problem);

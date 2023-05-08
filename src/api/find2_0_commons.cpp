@@ -33,6 +33,7 @@
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/solver_id.hpp>
 #include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
@@ -109,6 +110,29 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
     return miopen::try_([&] {
         auto& options_deref           = miopen::deref(options);
         options_deref.workspace_limit = value;
+    });
+}
+
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size)
+{
+    MIOPEN_LOG_FUNCTION(options, buffer, size);
+
+    return miopen::try_([&] {
+        auto& options_deref                  = miopen::deref(options);
+        options_deref.preallocated_workspace = {DataCast(buffer), size};
+    });
+}
+
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer)
+{
+    MIOPEN_LOG_FUNCTION(options, id, buffer);
+
+    return miopen::try_([&] {
+        auto& options_deref = miopen::deref(options);
+        options_deref.preallocated_tensors.emplace(id, DataCast(buffer));
     });
 }
 
@@ -220,7 +244,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 
@@ -244,7 +268,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 
@@ -269,6 +293,30 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
         *time                      = solution_deref.GetTime();
+    });
+}
+
+miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
+{
+    MIOPEN_LOG_FUNCTION(solution, solverId);
+
+    return miopen::try_([&] {
+        const auto& solution_deref = miopen::deref(solution);
+        *solverId                  = solution_deref.GetSolver().Value();
+    });
+}
+
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
+{
+    MIOPEN_LOG_FUNCTION(solverId, result);
+
+    return miopen::try_([&] {
+        const auto id_deref = miopen::solver::Id{solverId};
+
+        if(!id_deref.IsValid() || id_deref.GetPrimitive() != miopen::solver::Primitive::Convolution)
+            MIOPEN_THROW(miopenStatusInvalidValue);
+
+        *result = id_deref.GetAlgo();
     });
 }
 }

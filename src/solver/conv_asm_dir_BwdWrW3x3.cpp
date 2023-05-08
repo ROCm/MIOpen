@@ -62,7 +62,7 @@ inline static bool Inc_1_2_4_8(int& v)
 
 inline static bool Is_1_2_4_8(const int& v) { return v == 1 || v == 2 || v == 4 || v == 8; }
 
-bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do
@@ -81,6 +81,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*
             break;
         reverse_inout = 0;
         // (8 == chunk_size || 16 == chunk_size)
+        // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
         if((chunk_size += 8) <= 16)
             break;
         chunk_size = 8;
@@ -341,6 +342,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
+        return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(!ctx.use_asm_kernels)
         return false;

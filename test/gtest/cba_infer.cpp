@@ -39,7 +39,10 @@
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 {
 };
-//
+
+struct ConvBiasActivInferTestHalf : ConvBiasActivInferTest<half_float::half>
+{
+};
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
@@ -49,15 +52,16 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 {
     auto& handle = get_handle();
     Solver solv{};
-    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
+    const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
+    auto fusion_ctx           = miopen::FusionContext{handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx);
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
+    auto sol = solv.GetSolution(fusion_ctx, fusion_problem);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
@@ -72,15 +76,17 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 {
     auto& handle = get_handle();
     Solver solv{};
-    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
+    const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
+    auto fusion_ctx           = miopen::FusionContext{handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx, solv.GetDefaultPerformanceConfig(fusion_ctx));
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
+    auto sol = solv.GetSolution(
+        fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
@@ -116,7 +122,23 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+
+TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
+{
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1())));
+                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::Values(miopenTensorNCHW)));
+
+INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
+                         ConvBiasActivInferTestHalf,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::Values(miopenTensorNHWC)));
