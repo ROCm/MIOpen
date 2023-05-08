@@ -593,7 +593,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsFp32())
         return false;
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;

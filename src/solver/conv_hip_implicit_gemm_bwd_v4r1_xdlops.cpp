@@ -327,7 +327,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(problem.in_data_type) * GemmKPack;
+        lds_size = (a_block_space + b_block_space) * GetTypeSize(problem.GetInDataType()) * GemmKPack;
     }
     catch(...)
     {
@@ -1026,7 +1026,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ProblemInterpreter::GetInputLeftPadW(problem)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadH(problem)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadW(problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(problem.group_counts) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(problem.GetGroupCount()) +
                 std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +

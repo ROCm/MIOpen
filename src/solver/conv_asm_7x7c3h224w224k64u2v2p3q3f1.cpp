@@ -75,21 +75,21 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     }
 
     // clang-format off
-    return problem.pad_w == 3            // -q
-        && problem.pad_h == 3            // -p
-        && problem.kernel_stride_w == 2    // -v
-        && problem.kernel_stride_h == 2    // -u
-        && problem.kernel_size_w == 7    // -x
-        && problem.kernel_size_h == 7    // -y
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.n_inputs == 3         // -c
-        && problem.n_outputs == 64       // -k
-        && problem.in_width == 224       // -W
-        && problem.in_height == 224      // -H
+    return problem.GetPadW() == 3           // -q
+        && problem.GetPadH() == 3           // -p
+        && problem.GetKernelStrideW() == 2  // -v
+        && problem.GetKernelStrideH() == 2  // -u
+        && problem.GetWeightsWidth() == 7   // -x
+        && problem.GetWeightsHeight() == 7  // -y
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetInChannels() == 3     // -c
+        && problem.GetOutChannels() == 64   // -k
+        && problem.GetInWidth() == 224      // -W
+        && problem.GetInHeight() == 224     // -H
         && problem.IsFp32()
-        && problem.group_counts == 1
-        && problem.in_layout == "NCHW";
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW";
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
@@ -99,11 +99,11 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
 {
     ConvSolution result;
     const int out_w =
-        (problem.in_width + problem.pad_w * 2 + problem.kernel_stride_w - problem.kernel_size_w) /
-        problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+        (problem.GetInWidth() + problem.GetPadW() * 2 + problem.GetKernelStrideW() - problem.GetWeightsWidth()) /
+        problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
     const int out_h =
-        (problem.in_height + problem.pad_h * 2 + problem.kernel_stride_h - problem.kernel_size_h) /
-        problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+        (problem.GetInHeight() + problem.GetPadH() * 2 + problem.GetKernelStrideH() - problem.GetWeightsHeight()) /
+        problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
@@ -117,8 +117,8 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
     constr_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
-    constr_params.g_wk.push_back(problem.batch_sz);
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize());
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
