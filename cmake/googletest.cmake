@@ -1,5 +1,7 @@
 include(FetchContent)
 
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+
 set(GOOGLETEST_DIR "" CACHE STRING "Location of local GoogleTest repo to build against")
 
 if(GOOGLETEST_DIR)
@@ -21,6 +23,7 @@ list(APPEND GTEST_CMAKE_CXX_FLAGS
      -Wno-comma
      -Wno-old-style-cast
      -Wno-deprecated
+     -Wno-unsafe-buffer-usage
 )
 message(STATUS "Suppressing googltest warnings with flags: ${GTEST_CMAKE_CXX_FLAGS}")
 

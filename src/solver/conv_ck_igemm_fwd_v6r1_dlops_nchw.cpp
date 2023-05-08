@@ -48,7 +48,7 @@ static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
 
 } // namespace ck_utility
 
-bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext&)
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ProblemDescription&)
 {
     if(ck_tunable_list_id <
        ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size() - 1)
@@ -84,6 +84,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
@@ -116,11 +118,12 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                                         const ProblemDescription& problem) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
-        if(IsValidPerformanceConfig(problem, i))
+        if(IsValidPerformanceConfig(ctx, problem, i))
         {
             return {i};
         }
@@ -132,7 +135,9 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescriptio
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     return config.IsValid(problem);
 }
@@ -195,7 +200,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspace_sz = GetWorkspaceSize(problem);
+    sol.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -244,7 +249,8 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ProblemDescription& problem) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
         ck_utility::get_ck_convolution_problem_descriptor(problem));

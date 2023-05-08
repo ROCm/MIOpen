@@ -31,10 +31,13 @@
 #include <miopen/names.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/problem_description_base.hpp>
 
 #include <boost/any.hpp>
 
 namespace miopen {
+
+struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
@@ -142,9 +145,10 @@ constexpr TElement GetW5(int spatial_dims, const std::vector<TElement>& data)
 
 namespace conv {
 
-struct ProblemDescription
+struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescription>
+    ,
+                            SQLiteSerializable<ProblemDescription>
 #endif
 {
     ProblemDescription() = default;
@@ -308,7 +312,7 @@ struct ProblemDescription
     }
 
     std::size_t GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
-    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadW() - 1; }
+    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {
@@ -411,6 +415,8 @@ struct ProblemDescription
 
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;

@@ -27,7 +27,6 @@
 #include <miopen/batchnorm/solvers.hpp>
 
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
@@ -113,6 +112,7 @@ BnBwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
+            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
         };
 

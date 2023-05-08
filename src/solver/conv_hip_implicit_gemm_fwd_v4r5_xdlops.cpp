@@ -119,7 +119,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ProblemDescription&)
 {
     do
     {
@@ -863,7 +863,9 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext&
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
     return config.IsReallyValid(problem);
 }
@@ -998,6 +1000,9 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
                                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS{}))
+        return false;
+
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
     if(problem.conv_problem.GetConv().attribute.deterministic)

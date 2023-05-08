@@ -73,6 +73,9 @@ struct TransposeInvokeParams : InvokeParams
         : in(in_), out(out_), in_desc(in_desc_), out_desc(out_desc_)
     {
     }
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct TransposePseudoSolver
@@ -81,6 +84,10 @@ struct TransposePseudoSolver
     virtual std::string GetTranspose() const                                = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& ctx,
                                      const TransposeProblem& problem) const = 0;
+
+protected:
+    TransposePseudoSolver()                             = default;
+    TransposePseudoSolver(const TransposePseudoSolver&) = default;
 };
 
 template <class Derived, class Interface>

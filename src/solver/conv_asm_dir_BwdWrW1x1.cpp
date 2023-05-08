@@ -142,7 +142,7 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     // select fast or full method
@@ -469,6 +469,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!ctx.use_asm_kernels)
         return false;
     if(!problem.Is2d())
@@ -542,7 +544,8 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+                                          const ProblemDescription& problem) const
 {
     if(UseSubsample(problem))
     {
@@ -610,7 +613,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         result.construction_params.push_back(kernel);
     }
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(problem)); // H

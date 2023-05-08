@@ -94,8 +94,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(const ProblemDescription&)
 {
     do
     {
@@ -1099,7 +1098,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
             }
         };
     };
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
     return result;
 }
 
@@ -1107,6 +1106,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS{}))
+        return false;
+
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -1193,7 +1195,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& c
 }
 
 std::size_t ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(
-    const ProblemDescription& problem) const
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;

@@ -738,8 +738,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
         return false;
     return *this == config_list[index];
 }
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {
@@ -874,6 +873,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetDefaultPerformanceConfig(
     return pp;
 }
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const
 {
@@ -896,6 +896,11 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
+
+#if WORKAROUND_ISSUE_1979
+    if(problem.group_counts > 1)
+        return false;
+#endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))

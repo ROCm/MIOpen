@@ -229,6 +229,7 @@ static void MD5_Update(MD5_CTX* ctx, const void* data, size_t size)
     size_t used;
 
     saved_lo = ctx->lo;
+    // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
     if((ctx->lo = (saved_lo + size) & 0x1fffffff) < saved_lo)
         ctx->hi++;
     ctx->hi += size >> 29;
