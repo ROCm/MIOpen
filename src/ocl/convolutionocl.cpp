@@ -112,18 +112,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
   //return;
     ///\todo How make these validation clearly
     if(conv.group_count == 1)
-    {/*
-        std::cout<<"11111111111111111111111"<<std::endl;
-        std::cout<<"****************************xDesc.GetLayout_t(): "<<xDesc.GetLayout_t()<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
-        std::cout<<"****************************conv.group_count: "<<conv.group_count<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
+    {
         if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
@@ -131,10 +120,10 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
            ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
              wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
             (xDesc.GetLengths()[1] != wDesc.GetLengths()[0])))
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");*/
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
     if(conv.group_count > 1)
-    {/*
+    {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
            conv.group_count > xDesc.GetLengths()[1] ||
            (((wDesc.GetLayout_t() == miopenTensorNCHW) ||
@@ -147,25 +136,13 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
             (wDesc.GetLengths()[3] % conv.group_count != 0 ||
              conv.group_count > wDesc.GetLengths()[3])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        std::cout<<"222222222222222222222"<<std::endl;
-        std::cout<<"****************************xDesc.GetLayout_t(): "<<xDesc.GetLayout_t()<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
-        std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
-        std::cout<<"****************************conv.group_count: "<<conv.group_count<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
-        std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
         if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
             (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
            ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
-             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
-            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[0])))
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");*/
+             wDesc.GetLayout_t() == miopenTensorCHWNc8)))
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
 }
 

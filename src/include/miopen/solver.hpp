@@ -5798,7 +5798,6 @@ struct ConvHipImplicitGemmFwdXdlops final
     bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        std::cout<<"calling here"<<std::endl;
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
@@ -5963,7 +5962,8 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops() : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops()
+        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
     PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
@@ -6010,9 +6010,9 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     {
         return GetDefaultPerformanceConfig(ctx.problem);
     }
-    bool
-    IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext& ctx,
+        const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
@@ -6026,8 +6026,9 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
     {
         return GetSolution(ctx, ctx.problem, config);
     }
@@ -6050,8 +6051,8 @@ private:
     bool IsValidPerformanceConfig(const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;
     PerformanceConfigHipImplicitGemmGroupFwdXdlops Search(const ConvolutionContext&,
-                                                     const ProblemDescription&,
-                                                     const AnyInvokeParams& invoke_ctx) const;
+                                                          const ProblemDescription&,
+                                                          const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;

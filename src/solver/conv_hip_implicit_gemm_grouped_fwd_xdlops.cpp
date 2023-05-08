@@ -43,10 +43,10 @@ namespace solver {
 template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
     2,
-    ck::tensor_layout::convolution::NHWGC, //NHWGC1    8 24 24 16   -> 8 24 24 2  8 
-    ck::tensor_layout::convolution::GKYXC, //GK1YXC1,  64 3 3 8(C1) -> 2 32 3  3  8
+    ck::tensor_layout::convolution::NHWGC,
+    ck::tensor_layout::convolution::GKYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK, //NHWGK1     8 24 24 64   -> 8 24 24 2 32
+    ck::tensor_layout::convolution::NHWGK,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -65,33 +65,34 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G        = ProblemInterpreter::GetGroupCountG(problem);
-        N        = ProblemInterpreter::GetBatchN(problem);
-        K1        = ProblemInterpreter::GetOutputChannelK(problem);
-        C1        = ProblemInterpreter::GetInputChannelC(problem);
-        C       = C1/G;
-        K       = K1/G;
-        Hi       = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi       = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho       = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo       = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y        = ProblemInterpreter::GetFilterHeightY(problem);
-        X        = ProblemInterpreter::GetFilterWidthX(problem);
- 
-        input    = {G, N, C, Hi, Wi};
-        output   = {G, N, K, Ho, Wo};
-        weight   = {G, K, C, Y, X};
+        G  = ProblemInterpreter::GetGroupCountG(problem);
+        N  = ProblemInterpreter::GetBatchN(problem);
+        K1 = ProblemInterpreter::GetOutputChannelK(problem);
+        C1 = ProblemInterpreter::GetInputChannelC(problem);
+        C  = C1 / G; // Number of input Channel per group
+        K  = K1 / G; // Number of output Channel per group
+        Hi = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y  = ProblemInterpreter::GetFilterHeightY(problem);
+        X  = ProblemInterpreter::GetFilterWidthX(problem);
+
+        input  = {G, N, C, Hi, Wi};
+        output = {G, N, K, Ho, Wo};
+        weight = {G, K, C, Y, X};
+
         // strides from GNHWC to NHWGC laout
-        in_strides = {C, Hi*Wi*G*C, 1, Wi*G*C, G*C};
-        out_strides = {K, Ho*Wo*G*K, 1, Wo*G*K, G*K};
+        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
+        lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
     int G;
@@ -117,7 +118,7 @@ struct CKArgs
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
-}// ck args namespace
+} // namespace
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
@@ -126,7 +127,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     for(int i = 0; i < conv_ptrs.size(); i++)
-    {  
+    {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               {},
@@ -197,11 +198,11 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescription& problem) const
+bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
+    const ProblemDescription& problem) const
 {
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
-    std::cout<<"***conv_ptrs.size():*** "<<conv_ptrs.size()<<std::endl;
     const auto args = CKArgs{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
@@ -229,18 +230,16 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout<<" ***not here, or you die***  "<<std::endl;
     return false;
 }
 
 namespace {
 
 template <typename DataType>
-void RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config)
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config)
 {
     const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
@@ -257,7 +256,7 @@ void RunCKSolution(
     auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors = data_ctx.tensors;
 
-    auto argument_ptr   = conv_ptr->MakeArgumentPointer(
+    auto argument_ptr = conv_ptr->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.in)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
@@ -280,7 +279,7 @@ void RunCKSolution(
         {},
         {});
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();  
+    const auto enable_profiling = handle.IsProfilingEnabled();
 
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
@@ -291,10 +290,11 @@ void RunCKSolution(
     }
 }
 
-}// namespace
+} // namespace
 #endif
 
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
+    const ProblemDescription& problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
@@ -335,7 +335,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValidValue() const
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(const ProblemDescription& problem) const
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
+    const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
@@ -362,7 +363,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
+    const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -378,14 +380,14 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::Search(const ConvolutionContext& ctx,
-                                     const ProblemDescription& problem,
-                                     const AnyInvokeParams& invoke_ctx) const
+                                          const ProblemDescription& problem,
+                                          const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
-                                                const ProblemDescription& problem) const
+                                                     const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
