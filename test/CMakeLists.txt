@@ -32,14 +32,6 @@ install(FILES  test_perf.py
     DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(MODEL_FILES)
-#list(APPEND MODEL_FILES
-#     perf_models/Resnet50_v1.5_FP32_BS128.txt
-#     perf_models/Resnet50_v1.5_FP32_BS256.txt
-#     perf_models/Resnet50_v1.5_FP32_BS512.txt
-#     perf_models/Resnet50_v1.5_FP16_BS128.txt
-#     perf_models/Resnet50_v1.5_FP16_BS256.txt
-#     perf_models/Resnet50_v1.5_FP16_BS512.txt
-#    )
 file (GLOB model_src perf_models/*.txt)
 foreach (src ${model_src})
     list (APPEND MODEL_FILES ${src})
