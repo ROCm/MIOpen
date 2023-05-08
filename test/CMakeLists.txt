@@ -51,7 +51,8 @@ option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
-option( MIOPEN_TEST_GFX90A "Test on gfx90a" OFF )
+option( MIOPEN_TEST_GFX90A "Test on MI2X0 (gfx90a)" OFF )
+option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx940/1/2)" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
@@ -93,7 +94,7 @@ endif()
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
-if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_HIP_NOGPU))
+if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
@@ -133,6 +134,8 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX908 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx90a")
             set(MIOPEN_TEST_GFX90A ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx94")
+            set(MIOPEN_TEST_GFX94X ON)
         else()
             message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
@@ -158,6 +161,7 @@ message(STATUS "MIOPEN_TEST_GFX900 ${MIOPEN_TEST_GFX900}")
 message(STATUS "MIOPEN_TEST_GFX906 ${MIOPEN_TEST_GFX906}")
 message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
 message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
+message(STATUS "MIOPEN_TEST_GFX94X ${MIOPEN_TEST_GFX94X}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GFX110X ${MIOPEN_TEST_GFX110X}")
 message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
@@ -193,10 +197,12 @@ if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
     set(MIOPENDRIVER_MODE_CONV convfp16)
     set(MIOPENDRIVER_MODE_BN bnormfp16)
+    set(MIOPENDRIVER_MODE_POOL poolfp16)
 elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
     set(MIOPENDRIVER_MODE_CONV convint8)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8 --output_type int8)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32 --output_type int32)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT --output_type float)
@@ -204,11 +210,13 @@ elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
     set(MIOPENDRIVER_MODE_CONV convbfp16)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
+    set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
 else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
     set(MIOPENDRIVER_MODE_CONV conv)
     set(MIOPENDRIVER_MODE_BN bnorm)
+    set(MIOPENDRIVER_MODE_POOL pool)
 endif()
 
 message(STATUS "MIOPEN_TEST_FLOAT ${MIOPEN_TEST_FLOAT}")
@@ -234,9 +242,9 @@ elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
               test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
-              test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a
-              test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a
-              test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a)
+              test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
+              test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
+              test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
   endif()
   if(${CODECOV_TEST})
       list(APPEND SKIP_TESTS test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
@@ -480,9 +488,9 @@ endfunction()
 #   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   Defaults: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
 #
-# GPU types: GFX900, GFX906, GFX908, GFX90A, GFX1030/31, GFX1100/02
+# GPU types: GFX900, GFX906, GFX908, GFX90A, GFX94X, GFX1030/31, GFX1100/02
 #   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   Defaults: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED, GFX110X_DISABLED
+#   Defaults: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX94X_DISABLED, GFX103X_DISABLED, GFX110X_DISABLED
 #
 # Testing mode:
 #   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
@@ -500,7 +508,7 @@ function(add_custom_test NAME)
     set(options
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         GFX900_ENABLED GFX900_DISABLED GFX906_ENABLED GFX906_DISABLED GFX908_ENABLED GFX908_DISABLED
-        GFX103X_ENABLED GFX103X_DISABLED GFX110X_ENABLED GFX110X_DISABLED GFX90A_ENABLED GFX90A_DISABLED
+        GFX103X_ENABLED GFX103X_DISABLED GFX110X_ENABLED GFX110X_DISABLED GFX90A_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX94X_DISABLED
         SKIP_UNLESS_MLIR SKIP_UNLESS_COMPOSABLEKERNEL SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND TEST_TUNING SKIP_XNACK_ON
         OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
@@ -578,6 +586,11 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_GFX90A_ENABLED} ${PARSE_GFX90A_DISABLED} ${GFX90A_TEST_DEFAULT} is_gfx90a_check)
     bool_and_f(${MIOPEN_TEST_GFX90A} ${is_gfx90a_check} is_gfx90a_check)
 
+    set(is_gfx94x_check)
+    set(GFX94X_TEST_DEFAULT FALSE)
+    option_support_check(${PARSE_GFX94X_ENABLED} ${PARSE_GFX94X_DISABLED} ${GFX94X_TEST_DEFAULT} is_gfx94x_check)
+    bool_and_f(${MIOPEN_TEST_GFX94X} ${is_gfx94x_check} is_gfx94x_check)
+
     set(is_gfx103x_check)
     set(GFX103X_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_GFX103X_ENABLED} ${PARSE_GFX103X_DISABLED} ${GFX103X_TEST_DEFAULT} is_gfx103x_check)
@@ -621,7 +634,7 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
-    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check)
+    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check OR is_gfx94x_check)
      AND is_full_check
      AND is_xnack_on_check
      AND is_mlir_check
@@ -667,12 +680,22 @@ if(${CODECOV_TEST})
 endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
-    add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
     )
 
-    add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression_float SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
+        $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x63,42903x14301x63x1 -y 30 -x 30 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
+    )
+
+    add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
@@ -685,7 +708,7 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     )
 
     # Disabled for gfx908 due to WORKAROUND_ISSUE_1787.
-    add_custom_test(test_miopendriver_regression_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
+    add_custom_test(test_miopendriver_regression_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
         # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
@@ -695,14 +718,14 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     set_tests_properties(test_miopendriver_regression_big_tensor
         PROPERTIES TIMEOUT 600)
 
-    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX94X_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for:
         #   [SWDEV-375617] Fix 3d convolution Host API bug
         #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1935
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_regression OCL_DISABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression OCL_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
         # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
         COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
             $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
@@ -756,7 +779,7 @@ set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-da
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
 
-add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
@@ -806,7 +829,7 @@ add_custom_test(test_conv_igemm_mlir_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED INT
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
 
-add_custom_test(test_conv_hip_igemm_xdlops SKIP_UNLESS_ALL OCL_DISABLED HALF_DISABLED FLOAT_DISABLED INT8_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_UNLESS_COMPOSABLEKERNEL
+add_custom_test(test_conv_hip_igemm_xdlops SKIP_UNLESS_ALL OCL_DISABLED HALF_DISABLED FLOAT_DISABLED INT8_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_UNLESS_COMPOSABLEKERNEL
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
@@ -864,91 +887,91 @@ if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
     SET(SAVE_MIOPEN_TEST_FLOAT_ARG ${MIOPEN_TEST_FLOAT_ARG})
     LIST(APPEND MIOPEN_TEST_FLOAT_ARG --disable-forward --disable-backward-data)
-    #Afther fix need to remove '| grep -v "cannot be executed due to incorrect params"'
+    #Afther fix need to remove '| grep -v "No suitable algorithm was found to execute the required convolution"'
 endif()
 
-add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL BF16_ENABLED HALF_ENABLED GFX103X_ENABLED
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 192 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 160 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16   7   7  --weights 128 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  55  55  --weights 96  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 64  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 32  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 192 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 160 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  7   7   --weights 128 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  55  55  --weights 96  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 64  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 32  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 256 64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  73  73  --weights 80  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 14  14  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128  7   7  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 256  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 73  73  --weights 80   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL BF16_ENABLED HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 192 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 160 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16   7   7  --weights 128 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  55  55  --weights 96  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 64  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 32  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 192 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 160 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  7   7   --weights 128 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  55  55  --weights 96  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 64  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 32  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 256 64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  73  73  --weights 80  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 14  14  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128  7   7  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 256  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 73  73  --weights 80   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "No suitable algorithm was found to execute the required convolution"
 # COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128     14  14  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128      7   7  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1 | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	55	55	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	28	28	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	14	14	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	 7	 7	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	    28	28	--weights	512	128	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	160	    73	73	--weights	64	160	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	48	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	16	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	96	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	48	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	128	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	512	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	64	256	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	128	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	32	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	48	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	64	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	192	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	64	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	96	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	16	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	192	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	64	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	96	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	128	512	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	256	512	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	112	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	128	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	144	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	160	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	24	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	32	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	64	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1      | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2      | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  2048    7  7  --weights   192  2048 1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 8    16 14 14 --weights   32   16   1   1   --pads_strides_dilations	1   1	1   1	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128      7   7  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	55	55	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	28	28	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	14	14	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	 7	 7	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	    28	28	--weights	512	128	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	160	    73	73	--weights	64	160	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	48	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	16	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	96	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	48	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	128	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	512	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	64	256	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	128	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	32	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	48	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	64	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	192	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	64	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	96	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	16	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	192	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	64	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	96	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	128	512	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	256	512	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	112	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	128	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	144	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	160	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	24	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	32	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	64	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1      | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2      | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  2048    7  7  --weights   192  2048 1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 8    16 14 14 --weights   32   16   1   1   --pads_strides_dilations	1   1	1   1	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "No suitable algorithm was found to execute the required convolution"
 )
 
 if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
@@ -956,7 +979,7 @@ if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     SET(MIOPEN_TEST_FLOAT_ARG ${SAVE_MIOPEN_TEST_FLOAT_ARG})
 endif()
 
-add_custom_test(test_conv_group SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_conv_group SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
@@ -1016,7 +1039,7 @@ COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	108	108	--weights	63	1	
 
 
 if(MIOPEN_TEST_DEEPBENCH)
-    add_custom_test(test_deepbench_rnn GFX103X_ENABLED GFX110X_ENABLED
+    add_custom_test(test_deepbench_rnn GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 16 --seq-len 50 --vector-len 1760 --hidden-size 1760 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 50 --vector-len 1760 --hidden-size 1760 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 64 --seq-len 50 --vector-len 1760 --hidden-size 1760 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill
@@ -1074,7 +1097,7 @@ if(MIOPEN_TEST_DEEPBENCH)
 endif()
 
 
-add_custom_test(test_rnn_extra SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_rnn_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-hx
 COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-dhy
 COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-hx --no-dhy
@@ -1105,7 +1128,7 @@ COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 3 --
 COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hx --no-dhy --no-hy --no-dhx
 )
 
-add_custom_test(test_gru_extra SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_gru_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx
 COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dhy
 COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy
@@ -1122,7 +1145,7 @@ COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 3 --batch-se
 COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-dhy --no-hy --no-dhx
 )
 
-add_custom_test(test_lstm_extra SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_lstm_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx
 COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dhy
 COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy
@@ -1156,7 +1179,7 @@ COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-s
 )
 
 
-add_custom_test(test_conv_extra SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_conv_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 # COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
@@ -1191,7 +1214,7 @@ COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 -
 if (0) #disabled too many errors
 if(MIOPEN_TEST_LIMIT GREATER 0)
 if(${MIOPEN_USE_MIOPENGEMM} AND (${MIOPEN_hip_VERSION_MAJOR} EQUAL 3) AND (${MIOPEN_hip_VERSION_MINOR} EQUAL 7))
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED
+    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED
     COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1206,7 +1229,7 @@ if(${MIOPEN_USE_MIOPENGEMM} AND (${MIOPEN_hip_VERSION_MAJOR} EQUAL 3) AND (${MIO
     )
     message(STATUS "test_conv3d_extra reduced set")
 else()
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50  50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1222,7 +1245,7 @@ endif()
 endif()
 
 
-add_custom_test(test_conv_trans SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_conv_trans SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	28	28	--weights	128	128	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	256	28	28	--weights	256	256	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	same
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	32	28	28	--weights	32	32	5	5	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	default
@@ -1242,7 +1265,7 @@ COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	100	6	4	4	--weights	6	4	1	1
 )
 
 
-add_custom_test(test_conv_3d SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
+add_custom_test(test_conv_3d SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16   128   4   56    56  --weights   256     4   3  3    3  --pads_strides_dilations  1  1  1    1  1   1    1   1   1  --group-count   32  --cmode conv   --pmode   default
@@ -1334,7 +1357,8 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
+add_custom_test(test_conv_igemm_dynamic_xdlops_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
@@ -1351,19 +1375,22 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIO
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
 )
 
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
 # TODO: disabled for WORKAROUND_ISSUE_1979
-#add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+#add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 #COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
 #COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 17 17 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 --disable-forward --disable-backward-weights
 #COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
 #)
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_float SKIP_UNLESS_ALL HALF_DISABLED FLOAT_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
+add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_float SKIP_UNLESS_ALL HALF_DISABLED FLOAT_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
 # Be careful to add testings for (x=1, y=1, c % 8 != 0) due to WORKAROUND_SWDEV_306318
-add_custom_test(test_conv_igemm_dynamic_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 2048 7 7 --weights 2048 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
@@ -1380,12 +1407,14 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_c
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-backward-data --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_fwd_half SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
+add_custom_test(test_conv_igemm_dynamic_xdlops_fwd_half SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
+add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
@@ -1407,14 +1436,15 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIO
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-data
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_wrw_half SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED FLOAT_DISABLED SKIP_XNACK_ON
+# gfx90a is disabled due to WORKAROUND_ISSUE_1187
+add_custom_test(test_conv_igemm_dynamic_xdlops_wrw_half SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED FLOAT_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -1438,7 +1468,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64  56  56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
@@ -1460,7 +1490,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> 
 #COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 224 224 --weights  63   1 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 3 --disable-backward-data --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -1484,7 +1514,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
@@ -1504,7 +1534,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16 SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -1523,7 +1553,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16 SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -1553,7 +1583,7 @@ set(ARGS_NHWC_WRW
     --fil_layout NHWC
     --out_layout NHWC)
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
@@ -1583,7 +1613,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  ${ARGS_NHWC_WRW}
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
@@ -1611,7 +1641,7 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2 64 19 19 --weights 510 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
 )
 
-add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16 SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
@@ -1802,11 +1832,11 @@ COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> 
 COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
 )
 
-add_custom_test(test_reduce_custom_fp32 GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
+add_custom_test(test_reduce_custom_fp32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(test_reduce_custom_fp32_fp16 HALF_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
+add_custom_test(test_reduce_custom_fp32_fp16 HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1831,7 +1861,7 @@ COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
-    add_custom_test(test_deepbench_conv GFX103X_ENABLED GFX110X_ENABLED
+    add_custom_test(test_deepbench_conv GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1	161	700	--weights	32	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
@@ -1872,7 +1902,7 @@ if(MIOPEN_TEST_DEEPBENCH)
 endif()
 
 if(MIOPEN_TEST_CONV)
-    add_custom_test(test_miopen_conv GFX103X_ENABLED GFX110X_ENABLED
+    add_custom_test(test_miopen_conv GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	32	32	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	3	227	227	--weights	1	3	7	7	--pads_strides_dilations	1	1	1	1	1	1
     COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	64	56	56	--weights	1	64	1	1	--pads_strides_dilations	0	0	2	2	1	1
@@ -1917,7 +1947,7 @@ if(MIOPEN_TEST_CONV)
 endif()
 
 if(MIOPEN_TEST_FLOAT)
-    add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
+    add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
 
 add_custom_test(smoke_solver_ConvFFT GFX103X_ENABLED GFX110X_ENABLED
@@ -1949,7 +1979,7 @@ add_custom_test(smoke_solver_ConvAsm_5x10_7x7 GFX90A_DISABLED SKIP_XNACK_ON
       ${TEST_CONV_VERBOSE_F} --input 1 3 224 224 --weights 64 3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED
+add_custom_test(smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd11x11 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 1 44 44 --weights 1 1 11 11 --pads_strides_dilations 0 0 4 4 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwdGen $<TARGET_FILE:test_conv2d>

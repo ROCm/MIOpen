@@ -28,6 +28,8 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/tensor_layout.hpp>
 
 #include <sstream>
@@ -184,6 +186,19 @@ bool ProblemDescription::IsLayoutDefault() const
     {
         return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
     }
+}
+
+void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
+{
+    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    {
+        ctx.general_compile_options += GetDataTypeKernelParams(GetInDataType());
+        return;
+    }
+
+    MIOPEN_LOG_W("Unsupported data types configuration: "
+                 << GetDataTypeName(GetInDataType()) << "x" << GetDataTypeName(GetWeightsDataType())
+                 << "x" << GetDataTypeName(GetOutDataType()));
 }
 
 } // namespace conv

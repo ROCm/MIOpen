@@ -137,6 +137,7 @@ set( MIOpen_Source
     rnn_api.cpp
     softmax_api.cpp
     solution.cpp
+    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -303,6 +304,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v21_1_3_metadata.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride2.inc
@@ -321,6 +328,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride2.inc
