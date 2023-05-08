@@ -63,6 +63,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -184,7 +185,9 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     {
         auto fallback = bool{};
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
-        if(!sols.empty() && !(findMode.IsHybrid(ctx) && fallback))
+        // override the normal find with immed mode with env var
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             miopen::IsEnabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK{})))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }

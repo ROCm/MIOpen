@@ -247,13 +247,7 @@ protected:
     }
 };
 
-std::unique_ptr<Model> GetModel(const std::string& arch)
-{
-    if(arch == "gfx908")
-        return std::make_unique<Gfx908Model>();
-    MIOPEN_LOG_I2("Immdiate-Mode AI Fallback Inapplicable: device not supported");
-    return nullptr;
-}
+std::unique_ptr<Model> GetModel(const std::string& arch) { return std::make_unique<Gfx908Model>(); }
 
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
                                     const ConvolutionContext& ctx,
