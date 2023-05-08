@@ -27,8 +27,7 @@
 #include <miopen/mt_queue.hpp>
 #include <thread>
 #include <chrono>
-
-#include <stdlib.h>
+#include <random.hpp>
 
 static std::atomic<int> num_prod{};
 
@@ -45,7 +44,7 @@ void producer(int thread_idx, data_t<T>& common_data, ThreadSafeQueue<T>& comp_q
     {
         comp_queue.push(std::move(common_data.at(idx)));
         num_prod++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(RAN_GEN<int>(0, 100)));
     }
 }
 

@@ -181,15 +181,7 @@ struct to_miopen_data_type<uint8_t>
 #define RAND_INTEGER_MAX 120
 #define RAND_INTEGER_MIN -88
 
-static int gen_rand_integer()
-{
-    static const int inited = []() -> int {
-        std::srand(std::time(nullptr));
-        return 1;
-    }();
-    std::ignore = inited;
-    return GET_RAND();
-}
+static int gen_rand_integer() { return GET_RAND(); }
 
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)

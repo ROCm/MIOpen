@@ -212,7 +212,6 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -234,7 +233,6 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {

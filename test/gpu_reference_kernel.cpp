@@ -67,15 +67,7 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
     return layout_string;
 }
 
-static int gen_rand_integer()
-{
-    static const bool once = []() {
-        std::srand(std::time(nullptr));
-        return true;
-    }();
-    std::ignore = once;
-    return GET_RAND();
-}
+static int gen_rand_integer() { return GET_RAND(); }
 
 struct gpu_reference_kernel_base
 {

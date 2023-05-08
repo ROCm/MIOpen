@@ -245,17 +245,7 @@ struct to_miopen_data_type<bfloat16>
 #define RAND_INTEGER_MAX 120
 #define RAND_INTEGER_MIN -88
 
-static int gen_rand_integer()
-{
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static int inited = 0;
-    if(inited == 0)
-    {
-        std::srand(std::time(nullptr));
-        inited = 1;
-    }
-    return GET_RAND();
-}
+static int gen_rand_integer() { return GET_RAND(); }
 
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)

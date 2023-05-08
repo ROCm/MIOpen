@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include "config.hpp"
+#include "random.hpp"
 
 struct GeneratorTensor_1
 {
@@ -23,7 +24,7 @@ struct GeneratorTensor_2
     template <typename... Is>
     float operator()(Is...)
     {
-        return (std::rand() % (max_value - min_value)) + min_value;
+        return RAN_GEN<float>(min_value, max_value);
     }
 };
 
@@ -36,9 +37,7 @@ struct GeneratorTensor_3
     template <typename... Is>
     float operator()(Is...)
     {
-        float tmp = float(std::rand()) / float(RAND_MAX);
-
-        return min_value + tmp * (max_value - min_value);
+        return RAN_GEN<float>(min_value, max_value);
     }
 };
 

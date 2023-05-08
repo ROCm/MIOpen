@@ -96,7 +96,6 @@ struct verify_forward_train_bn_spatial
         }
         else
         {
-            srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -263,7 +262,6 @@ struct verify_forward_train_bn_spatial
         }
         else
         {
-            srand(0);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -1142,7 +1140,6 @@ struct batch_norm_spatial_driver : test_driver
         }
         else
         {
-            srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
