@@ -84,13 +84,14 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ProblemDescription& problem) co
     // to-do add support of uneven_outputs into grouped conv
     bool uneven_outputs = (problem.GetOutChannels() % filters_per_wave) != 0;
     auto num_wavefronts = problem.GetOutChannels() / filters_per_wave;
-    if(problem.GetGroupCount() > 1 && (uneven_outputs || (num_wavefronts % problem.GetGroupCount() != 0)))
+    if(problem.GetGroupCount() > 1 &&
+       (uneven_outputs || (num_wavefronts % problem.GetGroupCount() != 0)))
         return false;
 
     // Count the number of VGPRs required.
     const auto img_width  = problem.GetInWidth();
     const auto img_height = problem.GetInHeight();
-    int n                  = 0;
+    int n                 = 0;
 
     const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
     if(enable_zero_line_padding_on_read)
@@ -199,14 +200,16 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     constexpr auto TIB                         = GIB * 1024;
     constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
     constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
-    const auto IN_FEATURE_COUNT  = static_cast<int64_t>(problem.GetBatchSize()) * problem.GetInChannels();
-    const auto OUT_FEATURE_COUNT = static_cast<int64_t>(problem.GetBatchSize()) * problem.GetOutChannels();
-    const auto IN_IMG_SZ         = ELEM_SZ * problem.GetInHeight() * problem.GetInWidth();
-    const auto OUT_IMG_SZ        = ELEM_SZ * problem.GetOutHeight() * problem.GetOutWidth();
-    const auto IN_BUF_SZ         = IN_IMG_SZ * IN_FEATURE_COUNT;
-    const auto OUT_BUF_SZ        = OUT_IMG_SZ * OUT_FEATURE_COUNT;
-    const auto WEI_BUF_SZ = ELEM_SZ * problem.GetInChannels() * problem.GetOutChannels() * problem.GetWeightsHeight() *
-                            problem.GetWeightsWidth();
+    const auto IN_FEATURE_COUNT =
+        static_cast<int64_t>(problem.GetBatchSize()) * problem.GetInChannels();
+    const auto OUT_FEATURE_COUNT =
+        static_cast<int64_t>(problem.GetBatchSize()) * problem.GetOutChannels();
+    const auto IN_IMG_SZ  = ELEM_SZ * problem.GetInHeight() * problem.GetInWidth();
+    const auto OUT_IMG_SZ = ELEM_SZ * problem.GetOutHeight() * problem.GetOutWidth();
+    const auto IN_BUF_SZ  = IN_IMG_SZ * IN_FEATURE_COUNT;
+    const auto OUT_BUF_SZ = OUT_IMG_SZ * OUT_FEATURE_COUNT;
+    const auto WEI_BUF_SZ = ELEM_SZ * problem.GetInChannels() * problem.GetOutChannels() *
+                            problem.GetWeightsHeight() * problem.GetWeightsWidth();
     // clang-format off
     return problem.GetPadW() == 1
         && problem.GetPadH() == 1
@@ -296,9 +299,9 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     construction_params.l_wk.push_back(1);
     construction_params.l_wk.push_back(1);
 
-    construction_params.g_wk.push_back(
-        static_cast<size_t>(active_lanes * ((problem.GetOutChannels() + pcfg->filters_per_wave - 1) /
-                                            pcfg->filters_per_wave)));
+    construction_params.g_wk.push_back(static_cast<size_t>(
+        active_lanes *
+        ((problem.GetOutChannels() + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave)));
     construction_params.g_wk.push_back((problem.GetInHeight() + pcfg->output_lines_per_wave - 1) /
                                        pcfg->output_lines_per_wave);
     construction_params.g_wk.push_back(problem.GetBatchSize());

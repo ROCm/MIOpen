@@ -271,8 +271,8 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const auto wi = problem.GetInWidth();
     const auto c  = problem.GetInChannels();
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -400,7 +400,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
             const auto& config = config_list[i];
             if(!(((problem.IsFp16() && problem.GetVectorLength() == 4) &&
                   config.precision == "Halfx4") ||
-                 ((problem.IsFp16() && problem.GetVectorLength() == 8) && config.precision == "Halfx8")))
+                 ((problem.IsFp16() && problem.GetVectorLength() == 8) &&
+                  config.precision == "Halfx8")))
                 continue;
 
             if(!((problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
@@ -477,17 +478,17 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
          (problem.IsNCHWc_CHWNc() && tensor_layout == "nchwc_cyxkc")))
         return false;
 
-    const auto c         = problem.GetInChannels();
-    const auto k         = problem.GetOutChannels();
-    const auto group     = problem.GetGroupCount();
+    const auto c          = problem.GetInChannels();
+    const auto k          = problem.GetOutChannels();
+    const auto group      = problem.GetGroupCount();
     const auto stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
     const auto stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
     const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
     const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h     = problem.GetPadH();
-    const auto pad_w     = problem.GetPadW();
-    const auto y         = problem.GetWeightsHeight();
-    const auto x         = problem.GetWeightsWidth();
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);

@@ -42,7 +42,10 @@ namespace solver {
 // 4. adjust dilation to 1 if filter size is 1
 struct ProblemInterpreter
 {
-    static auto GetGroupCountG(const ProblemDescription& problem) { return problem.GetGroupCount(); }
+    static auto GetGroupCountG(const ProblemDescription& problem)
+    {
+        return problem.GetGroupCount();
+    }
 
     static auto GetBatchN(const ProblemDescription& problem) { return problem.GetBatchSize(); }
 
@@ -136,7 +139,10 @@ struct ProblemInterpreter
         return problem.direction.IsForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
-    static auto GetFilterDepthZ(const ProblemDescription& problem) { return problem.GetWeightsDepth(); }
+    static auto GetFilterDepthZ(const ProblemDescription& problem)
+    {
+        return problem.GetWeightsDepth();
+    }
 
     static auto GetFilterLayout(const ProblemDescription& problem)
     {
@@ -148,7 +154,10 @@ struct ProblemInterpreter
         return problem.GetWeightsHeight();
     }
 
-    static auto GetFilterWidthX(const ProblemDescription& problem) { return problem.GetWeightsWidth(); }
+    static auto GetFilterWidthX(const ProblemDescription& problem)
+    {
+        return problem.GetWeightsWidth();
+    }
 
     // adjust conv_stride_d to 1 if Do is 1
     static auto GetAdjustedConvolutionStrideD(const ProblemDescription& problem)

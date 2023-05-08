@@ -68,25 +68,29 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
     {
         // Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
         // during kernel compilation, due to compiler bug
-        workaround =
-            workaround ||
-            (problem.GetOutDataType() == miopenHalf &&
-             ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 && problem.GetPadW() == 3) ||
-              (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 && problem.GetPadW() == 2) ||
-              (problem.GetWeightsWidth() == 11 && problem.GetWeightsHeight() == 11 && problem.GetPadW() == 5) ||
-              (problem.GetWeightsWidth() == 11 && problem.GetWeightsHeight() == 11 && problem.GetPadW() == 2) ||
-              (problem.GetWeightsWidth() == 11 && problem.GetWeightsHeight() == 11 && problem.GetPadW() == 1)));
+        workaround = workaround || (problem.GetOutDataType() == miopenHalf &&
+                                    ((problem.GetWeightsWidth() == 7 &&
+                                      problem.GetWeightsHeight() == 7 && problem.GetPadW() == 3) ||
+                                     (problem.GetWeightsWidth() == 7 &&
+                                      problem.GetWeightsHeight() == 7 && problem.GetPadW() == 2) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 5) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 2) ||
+                                     (problem.GetWeightsWidth() == 11 &&
+                                      problem.GetWeightsHeight() == 11 && problem.GetPadW() == 1)));
 
         // Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
         // OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
         // However, when compiled with older OpenCL that comes with rocm 1.8, this config
         // would pass
         workaround =
-            workaround ||
-            (problem.GetOutDataType() == miopenFloat &&
-             ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 && problem.GetPadW() == 3) ||
-              (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 && problem.GetPadW() == 1)) &&
-             (problem.GetOutHeight() % 112 == 0 || problem.GetOutWidth() % 112 == 0));
+            workaround || (problem.GetOutDataType() == miopenFloat &&
+                           ((problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
+                             problem.GetPadW() == 3) ||
+                            (problem.GetWeightsWidth() == 7 && problem.GetWeightsHeight() == 7 &&
+                             problem.GetPadW() == 1)) &&
+                           (problem.GetOutHeight() % 112 == 0 || problem.GetOutWidth() % 112 == 0));
 
         // Workaround for issue 1479
         // The compiler issue causes the correctness failure of particular config
@@ -355,11 +359,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     result.out_pix_tile1 = problem.GetWeightsHeight();
 
     // n of wavefronts per group
-    int n_waves = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (problem.GetInWidth() > 8))
-                      ? 4
-                  : (problem.GetInWidth() <= 16) ? 1
-                                             : 2;
-    int GRP_SZ  = hw_wave_sz * n_waves;
+    int n_waves =
+        ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (problem.GetInWidth() > 8)) ? 4
+        : (problem.GetInWidth() <= 16)                                                      ? 1
+                                                                                            : 2;
+    int GRP_SZ = hw_wave_sz * n_waves;
     result.n_in_data_tiles =
         (problem.GetInWidth() <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
@@ -369,7 +373,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     static const int read_unit = (problem.GetOutWidth() % 4 == 0)   ? 4
                                  : (problem.GetOutWidth() % 3 == 0) ? 3
                                  : (problem.GetOutWidth() % 2 == 0) ? 2
-                                                                : 1;
+                                                                    : 1;
 
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -397,8 +401,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
         return {miopenStatusNotInitialized};
     }
 
-    int out_n_vert_read_loops = static_cast<int>(
-        std::ceil(static_cast<float>(problem.GetOutHeight()) / static_cast<float>(out_n_vert_reads)));
+    int out_n_vert_read_loops = static_cast<int>(std::ceil(
+        static_cast<float>(problem.GetOutHeight()) / static_cast<float>(out_n_vert_reads)));
 
     // When a row is split into chunks, each chunk should fully cover the entire filter in
     // horizontal dir
@@ -433,9 +437,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
             : read_unit;
 
     // Compute in -> out in kernel i.e. dy
-    int in_width_chunk = (out_n_horizon_read_loops == 1)
-                             ? problem.GetInWidth()
-                             : (out_n_horizon_reads + problem.GetPadW() - problem.GetWeightsWidth() + 1);
+    int in_width_chunk =
+        (out_n_horizon_read_loops == 1)
+            ? problem.GetInWidth()
+            : (out_n_horizon_reads + problem.GetPadW() - problem.GetWeightsWidth() + 1);
     int in_width_last_chunk_valid_pixels =
         (out_n_horizon_read_loops == 1) ? 0 : (problem.GetInWidth() % in_width_chunk);
 
@@ -464,7 +469,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
 
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
-    total_out_maps     = (total_out_maps > problem.GetInChannels()) ? problem.GetInChannels() : total_out_maps;
+    total_out_maps =
+        (total_out_maps > problem.GetInChannels()) ? problem.GetInChannels() : total_out_maps;
 
     result.grp_tile0 = GRP_SZ;
     result.grp_tile1 = 1;
@@ -537,7 +543,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DMLO_IN_EXTENT1=") + std::to_string(out_n_vert_reads) +
         std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(out_n_vert_read_loops) +
         std::string(" -DMLO_IN_WIDTH_CHUNK=") +
-        std::to_string((out_n_horizon_read_loops == 1) ? problem.GetOutWidth() : out_n_horizon_reads) +
+        std::to_string((out_n_horizon_read_loops == 1) ? problem.GetOutWidth()
+                                                       : out_n_horizon_reads) +
         std::string(" -DMLO_IN_WIDTH_N_LOOPS=") + std::to_string(out_n_horizon_read_loops) +
         std::string(" -DMLO_IN_WIDTH_LAST_CHUNK_VALID_READ_UNITS=") +
         std::to_string(out_horizon_last_chunk_valid_read_units) +
@@ -580,7 +587,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
 
         if(problem.GetGroupCount() > 1)
         {
-            gbl_wk0 *= (((problem.GetOutChannels() / problem.GetGroupCount()) + result.n_in_data_tiles - 1) /
+            gbl_wk0 *= (((problem.GetOutChannels() / problem.GetGroupCount()) +
+                         result.n_in_data_tiles - 1) /
                         result.n_in_data_tiles);
 
             kernel.kernel_file = "MIOpenGroupConvBwdWrW_LxG_P53.cl";
@@ -588,7 +596,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
         }
         else
         {
-            gbl_wk0 *= ((problem.GetOutChannels() + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
+            gbl_wk0 *=
+                ((problem.GetOutChannels() + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
 
             kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
             kernel.kernel_name = "MIOpenCvBwdWrW";

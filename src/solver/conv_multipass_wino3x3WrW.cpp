@@ -67,16 +67,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)           \
-    const auto C     = (problem).GetBatchSize();      \
-    const auto N     = (problem).GetOutChannels();     \
-    const auto K     = (problem).GetInChannels();      \
+#define DEFINE_SHADER_ALIASES(problem)               \
+    const auto C     = (problem).GetBatchSize();     \
+    const auto N     = (problem).GetOutChannels();   \
+    const auto K     = (problem).GetInChannels();    \
     const auto out_H = (problem).GetWeightsHeight(); \
-    const auto out_W = (problem).GetWeightsWidth(); \
-    const auto R     = (problem).GetInHeight();     \
-    const auto S     = (problem).GetInWidth();      \
-    const auto H     = (problem).GetOutHeight();    \
-    const auto W     = (problem).GetOutWidth();     \
+    const auto out_W = (problem).GetWeightsWidth();  \
+    const auto R     = (problem).GetInHeight();      \
+    const auto S     = (problem).GetInWidth();       \
+    const auto H     = (problem).GetOutHeight();     \
+    const auto W     = (problem).GetOutWidth();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>

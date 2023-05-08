@@ -299,10 +299,10 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     // Borrowed from non-padded version of v4
-    InBlockCopySrcDataPerRead_B = problem.GetWeightsWidth() > 1
-                                      ? std::min(InBlockCopySrcDataPerRead_B,
-                                                 GetReadWriteVectorSize(problem.GetDilationW()))
-                                      : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B =
+        problem.GetWeightsWidth() > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
+            : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     const auto WeiBlockCopyDstDataPerWrite_K =

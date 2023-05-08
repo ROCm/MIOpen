@@ -418,11 +418,11 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
                                          const int b)
 {
     int gemm_k_global_split = 0;
-    const auto n           = problem.GetBatchSize();
-    const auto k           = problem.GetInChannels();
-    const auto c           = problem.GetOutChannels();
-    const auto y           = problem.GetWeightsHeight();
-    const auto x           = problem.GetWeightsWidth();
+    const auto n            = problem.GetBatchSize();
+    const auto k            = problem.GetInChannels();
+    const auto c            = problem.GetOutChannels();
+    const auto y            = problem.GetWeightsHeight();
+    const auto x            = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = c * y * x;
@@ -534,20 +534,20 @@ static inline std::tuple<bool, // is valid
                          int>  // gemm_k_split
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const auto n         = problem.GetBatchSize();
-    const auto k         = problem.GetInChannels();
-    const auto c         = problem.GetOutChannels();
-    const auto ho        = problem.GetInHeight();
-    const auto wo        = problem.GetInWidth();
-    const auto y         = problem.GetWeightsHeight();
-    const auto x         = problem.GetWeightsWidth();
+    const auto n          = problem.GetBatchSize();
+    const auto k          = problem.GetInChannels();
+    const auto c          = problem.GetOutChannels();
+    const auto ho         = problem.GetInHeight();
+    const auto wo         = problem.GetInWidth();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
     const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
     const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h     = problem.GetPadH();
-    const auto pad_w     = problem.GetPadW();
-    const auto precision = problem.IsFp16() ? miopenHalf : miopenFloat;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto precision  = problem.IsFp16() ? miopenHalf : miopenFloat;
 
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;

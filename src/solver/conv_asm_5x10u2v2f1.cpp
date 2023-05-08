@@ -115,12 +115,12 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w =
-        (problem.GetInWidth() + problem.GetPadW() * 2 + problem.GetKernelStrideW() - problem.GetWeightsWidth()) /
-        problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h =
-        (problem.GetInHeight() + problem.GetPadH() * 2 + problem.GetKernelStrideH() - problem.GetWeightsHeight()) /
-        problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w = (problem.GetInWidth() + problem.GetPadW() * 2 + problem.GetKernelStrideW() -
+                       problem.GetWeightsWidth()) /
+                      problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h = (problem.GetInHeight() + problem.GetPadH() * 2 + problem.GetKernelStrideH() -
+                       problem.GetWeightsHeight()) /
+                      problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", problem.GetInHeight());

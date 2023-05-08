@@ -56,15 +56,16 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     LegacyPerformanceConfig result{};
     result.in_tile0 = (problem.GetInWidth() <= 8)    ? 8
                       : (problem.GetInWidth() <= 16) ? 16
-                                                 : 32; // size of input data per ALU plane
+                                                     : 32; // size of input data per ALU plane
     result.in_tile1 = (problem.GetInHeight() <= 8)    ? 8
                       : (problem.GetInHeight() <= 16) ? 16
-                                                  : 32; // size of input data per ALU plane
+                                                      : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(problem.GetKernelStrideW(),
                  ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 = std::max(problem.GetKernelStrideH(), ((result.in_tile1 == 8) ? 1 : 2)); //
+    result.out_pix_tile1 =
+        std::max(problem.GetKernelStrideH(), ((result.in_tile1 == 8) ? 1 : 2)); //
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -77,7 +78,8 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
     if(problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
-       problem.GetGroupCount() == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       problem.GetGroupCount() ==
+           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
         // version
@@ -108,7 +110,9 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
                 else
                 {
                     result.out_pix_tile0 =
-                        (((problem.GetOutWidth() & 1) != 0) || ((problem.GetInWidth() & 1) != 0)) ? 1 : 2;
+                        (((problem.GetOutWidth() & 1) != 0) || ((problem.GetInWidth() & 1) != 0))
+                            ? 1
+                            : 2;
                 }
             }
 
@@ -341,7 +345,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     long long runs_left = 0, total_runs = 0;
 
     if(problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
-       problem.GetGroupCount() == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       problem.GetGroupCount() ==
+           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
         int n_grp_tiles0 = 3;
@@ -395,7 +400,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                 else
                 {
                     out_pix_tl_cnt =
-                        (((problem.GetOutWidth() & 1) != 0) || ((problem.GetInWidth() & 1) != 0)) ? 1 : 2;
+                        (((problem.GetOutWidth() & 1) != 0) || ((problem.GetInWidth() & 1) != 0))
+                            ? 1
+                            : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;
@@ -405,7 +412,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
             n_out_tiles_rg[0] = 2;
             n_out_tiles_rg[1] = (problem.GetOutChannels() % 64 == 0)   ? 6
                                 : (problem.GetOutChannels() % 32 == 0) ? 5
-                                                                : 4;
+                                                                       : 4;
 
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (problem.GetInChannels() % 8 == 0) ? 3 : 2;

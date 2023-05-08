@@ -140,7 +140,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         }
         else
         */
-        if(4 * ((problem.GetOutChannels() + 15) / 16) * ((problem.GetInChannels() + 15) / 16) >= 512)
+        if(4 * ((problem.GetOutChannels() + 15) / 16) * ((problem.GetInChannels() + 15) / 16) >=
+           512)
         {
             n_lcl_in_maps = 16;
         }
@@ -218,18 +219,20 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         int read_unit = 4;
         // subsampled input
-        int in_width          = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
-        int in_height         = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
-        int in_stride         = (n_passes > 1) ? problem.GetInStride() : problem.GetOutStride();
-        int in_channel_stride = (n_passes > 1) ? in_stride * in_height : problem.GetOutChannelStride();
-        int in_batch_stride =
-            (n_passes > 1) ? in_channel_stride * problem.GetOutChannels() : problem.GetOutBatchStride();
+        int in_width  = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
+        int in_height = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
+        int in_stride = (n_passes > 1) ? problem.GetInStride() : problem.GetOutStride();
+        int in_channel_stride =
+            (n_passes > 1) ? in_stride * in_height : problem.GetOutChannelStride();
+        int in_batch_stride    = (n_passes > 1) ? in_channel_stride * problem.GetOutChannels()
+                                                : problem.GetOutBatchStride();
         int out_batch_stride   = problem.GetInBatchStride();
         int out_channel_stride = problem.GetInChannelStride();
         int out_stride         = problem.GetInStride();
-        int wei_batch_stride =
-            problem.GetInChannels() * problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight();
-        int wei_channel_stride = problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight();
+        int wei_batch_stride   = problem.GetInChannels() * problem.GetOutChannels() *
+                               problem.GetWeightsWidth() * problem.GetWeightsHeight();
+        int wei_channel_stride =
+            problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight();
         int max_loads_per_readunit = (out_channel_stride / read_unit) * problem.GetBatchSize();
 
         // limited shape size shows better performance with ead_uint == 3
@@ -251,23 +254,29 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         if(problem.GetPadW() > 0)
         {
-            in_pad_min_x = problem.GetKernelStrideW() - (problem.GetPadW() % problem.GetKernelStrideW());
+            in_pad_min_x =
+                problem.GetKernelStrideW() - (problem.GetPadW() % problem.GetKernelStrideW());
             // In case PAD == STRIDE
             in_pad_min_x = in_pad_min_x % problem.GetKernelStrideW();
 
-            out_pad_min_x = (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
-            out_pad_width = (problem.GetOutWidth() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
-                            problem.GetKernelStrideW();
+            out_pad_min_x =
+                (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
+            out_pad_width =
+                (problem.GetOutWidth() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
+                problem.GetKernelStrideW();
         }
         if(problem.GetPadH() > 0)
         {
-            in_pad_min_y = problem.GetKernelStrideH() - (problem.GetPadH() % problem.GetKernelStrideH());
+            in_pad_min_y =
+                problem.GetKernelStrideH() - (problem.GetPadH() % problem.GetKernelStrideH());
             // In case PAD == STRIDE
             in_pad_min_y = in_pad_min_y % problem.GetKernelStrideH();
 
-            out_pad_min_y = (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
-            out_pad_height = (problem.GetOutHeight() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
-                             problem.GetKernelStrideH();
+            out_pad_min_y =
+                (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
+            out_pad_height =
+                (problem.GetOutHeight() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
+                problem.GetKernelStrideH();
         }
 
         if(problem.GetPadW() > 0 || problem.GetPadH() > 0 ||

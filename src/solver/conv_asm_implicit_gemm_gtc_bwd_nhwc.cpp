@@ -429,8 +429,8 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
     const auto gemm_m = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
     const auto gemm_n = c / group;
@@ -804,8 +804,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const auto ho = problem.GetInHeight();
     const auto wo = problem.GetInWidth();
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -941,16 +941,16 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    const auto hi     = problem.GetOutHeight();
-    const auto wi     = problem.GetOutWidth();
-    const auto n      = problem.GetBatchSize();
-    const auto k      = problem.GetInChannels();
-    const auto c      = problem.GetOutChannels();
-    const auto ho     = problem.GetInHeight();
-    const auto wo     = problem.GetInWidth();
-    const auto y      = problem.GetWeightsHeight();
-    const auto x      = problem.GetWeightsWidth();
-    const auto group  = problem.GetGroupCount();
+    const auto hi      = problem.GetOutHeight();
+    const auto wi      = problem.GetOutWidth();
+    const auto n       = problem.GetBatchSize();
+    const auto k       = problem.GetInChannels();
+    const auto c       = problem.GetOutChannels();
+    const auto ho      = problem.GetInHeight();
+    const auto wo      = problem.GetInWidth();
+    const auto y       = problem.GetWeightsHeight();
+    const auto x       = problem.GetWeightsWidth();
+    const auto group   = problem.GetGroupCount();
     const auto is_nchw = problem.IsLayoutDefault();
 
     size_t size_trans_input  = 0;

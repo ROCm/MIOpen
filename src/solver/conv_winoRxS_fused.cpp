@@ -231,7 +231,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
-    const auto kernel_postfix = "_fp32_f2x3_stride" + std::to_string(conv_problem.GetKernelStrideH());
+    const auto kernel_postfix =
+        "_fp32_f2x3_stride" + std::to_string(conv_problem.GetKernelStrideH());
 
     if(is_gfx9)
     {

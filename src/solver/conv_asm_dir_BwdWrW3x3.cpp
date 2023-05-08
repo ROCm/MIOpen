@@ -161,9 +161,11 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
            (problem.GetInChannels() % (GetCPerWave() * problem.GetGroupCount()) != 0))
             return false;
     }
-    if((problem.GetOutChannels() % (64 / chunk_size) != 0) && (problem.GetInChannels() % (64 / chunk_size) != 0))
+    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels() % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) % GetCPerWave() != 0)
+    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) % GetCPerWave() !=
+       0)
         return false;
     if(!(chunk_size * k_per_wave <= 64))
         return false;
@@ -176,8 +178,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
     if((reverse_inout != 0) && !IsReverseInOutAllowed(problem))
         return false;
     {
-        const int accums_cnt = (problem.GetWeightsWidth() * problem.GetWeightsHeight() * GetCPerWave() *
-                                k_per_wave * chunk_size) /
+        const int accums_cnt = (problem.GetWeightsWidth() * problem.GetWeightsHeight() *
+                                GetCPerWave() * k_per_wave * chunk_size) /
                                64;
         assert(chunk_size);
         const int out_w_vec =
@@ -250,21 +252,25 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
     limit_wave_cnt = 0;
 
     chunk_size = (problem.GetOutWidth() < 48) ? 8 : 16;
-    if((problem.GetOutChannels() % (64 / chunk_size) != 0) && (problem.GetInChannels() % (64 / chunk_size) != 0))
+    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels() % (64 / chunk_size) != 0))
         chunk_size = 16; // Fixup for correctness
 
     reverse_inout = 0;
-    if(IsReverseInOutAllowed(problem) && ((problem.GetOutChannels() % 4 != 0) || (problem.GetOutWidth() < 8)))
+    if(IsReverseInOutAllowed(problem) &&
+       ((problem.GetOutChannels() % 4 != 0) || (problem.GetOutWidth() < 8)))
         reverse_inout = 1;
 
-    const auto c_k = problem.GetOutChannels() * problem.GetInChannels() / problem.GetGroupCount(); // C*K
+    const auto c_k =
+        problem.GetOutChannels() * problem.GetInChannels() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
         k_per_wave = 1;
     else if(c_k < 16384)
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave != 0)
+    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave !=
+          0)
         k_per_wave /= 2; // Fixup for correctness
 
     if(c_k <= 512)
@@ -368,7 +374,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 #if WORKAROUND_ISSUE_532
-    if(StartsWith(name, "gfx9") && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))
+    if(StartsWith(name, "gfx9") &&
+       (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))
         return false;
 #endif
 
@@ -443,8 +450,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", problem.GetOutChannels()); // C
     GenerateClangDefsym(options, "output_channels", problem.GetInChannels()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());  // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());       // S
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "stride_h", problem.GetKernelStrideH());
@@ -491,7 +498,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "group_counts", problem.GetGroupCount());
 
     const int k_group_size =
-        problem.GetInChannels() / (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
+        problem.GetInChannels() /
+        (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
         problem.GetGroupCount();
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
     GenerateClangDefsym(options, "k_group_size_is_power_of_two", k_group_size_is_power_of_two);
@@ -510,12 +518,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetCPerWave() / problem.GetGroupCount());
+        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetCPerWave() /
+                              problem.GetGroupCount());
         kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetKPerWave() / problem.GetGroupCount());
+        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetKPerWave() /
+                              problem.GetGroupCount());
         kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetCPerWave());
     }
 

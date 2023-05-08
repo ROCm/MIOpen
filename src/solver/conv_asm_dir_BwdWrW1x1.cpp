@@ -366,10 +366,12 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
                                                       const ProblemDescription& problem)
 {
     short_store =
-        (problem.GetOutDataType() == miopenHalf || problem.GetOutDataType() == miopenBFloat16) ? 1 : 0;
+        (problem.GetOutDataType() == miopenHalf || problem.GetOutDataType() == miopenBFloat16) ? 1
+                                                                                               : 0;
     read_size = 4;
     n_per_gpr =
-        (problem.GetBatchSize() >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4 : 1;
+        (problem.GetBatchSize() >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4
+                                                                                               : 1;
     data_prefetch      = 1;
     const auto c_k_256 = problem.GetOutChannels() * problem.GetInChannels() / 256; // C*K/256
     if(c_k_256 < 2)
@@ -549,8 +551,9 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
 {
     if(UseSubsample(problem))
     {
-        int data_len        = GetTypeSize(problem.GetOutDataType());
-        int in_batch_stride = problem.GetInStride() * problem.GetInHeight() * problem.GetOutChannels();
+        int data_len = GetTypeSize(problem.GetOutDataType());
+        int in_batch_stride =
+            problem.GetInStride() * problem.GetInHeight() * problem.GetOutChannels();
         return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize() * data_len;
     }
     else
@@ -570,13 +573,15 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     if(UseSubsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride = problem.GetInStride() * problem.GetInHeight() * problem.GetOutChannels();
-        int write_unit      = (problem.GetInWidth() % 4 == 0)   ? 4
-                              : (problem.GetInWidth() % 3 == 0) ? 3
-                              : (problem.GetInWidth() % 2 == 0) ? 2
-                                                            : 1;
-        int n_grp0_size0    = 256;
+        int in_batch_stride =
+            problem.GetInStride() * problem.GetInHeight() * problem.GetOutChannels();
+        int write_unit   = (problem.GetInWidth() % 4 == 0)   ? 4
+                           : (problem.GetInWidth() % 3 == 0) ? 3
+                           : (problem.GetInWidth() % 2 == 0) ? 2
+                                                             : 1;
+        int n_grp0_size0 = 256;
 
+        // clang-format off
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
@@ -590,6 +595,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetOutChannelStride()) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetOutStride()) +
             ctx.general_compile_options;
+        // clang-format on
 
         KernelInfo kernel;
 
@@ -625,8 +631,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", problem.GetOutChannels()); // C
     GenerateClangDefsym(options, "output_channels", problem.GetInChannels()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight()); // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());  // S
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "weights_layout", 0);
@@ -638,7 +644,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "acc_type", 1);
     const unsigned int buf_type = problem.GetOutDataType() == miopenHalf    ? 2
                                   : problem.GetOutDataType() == miopenFloat ? 1
-                                                                         : 3;
+                                                                            : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int
@@ -708,7 +714,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(MemLayout::NCHW, problem.GetInChannels(), problem.GetOutChannels(), 1, 1, 1, data_len);
+    buff_info fbuf(
+        MemLayout::NCHW, problem.GetInChannels(), problem.GetOutChannels(), 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
     GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);

@@ -228,7 +228,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1))
+        if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 &&
+             problem.GetKernelStrideH() == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
@@ -285,8 +286,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                      problem.GetInWidth(),
                                      problem.GetDilationH(),
                                      problem.GetDilationW(),
-                                     problem.GetBatchSize(),    // N
-                                     problem.GetInChannels(),   // K
+                                     problem.GetBatchSize(),  // N
+                                     problem.GetInChannels(), // K
                                      problem.GetOutHeight(),
                                      problem.GetOutWidth(),
                                      problem.GetWeightsHeight(),
@@ -303,9 +304,9 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                      problem.GetWeightsWidth(),
                                      problem.GetKernelStrideH(),
                                      problem.GetKernelStrideW(),
-                                     problem.GetInChannels(),   // C
-                                     problem.GetOutChannels(),  // K
-                                     problem.GetInHeight(),     // HxW
+                                     problem.GetInChannels(),  // C
+                                     problem.GetOutChannels(), // K
+                                     problem.GetInHeight(),    // HxW
                                      problem.GetInWidth(),
                                      problem.GetOutHeight(), // OHxOW
                                      problem.GetOutWidth(),

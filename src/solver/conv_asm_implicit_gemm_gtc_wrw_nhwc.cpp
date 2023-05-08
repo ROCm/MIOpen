@@ -546,17 +546,17 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     }
 #endif
 
-    const auto k         = problem.GetInChannels();
-    const auto c         = problem.GetOutChannels();
-    const auto y         = problem.GetWeightsHeight();
-    const auto x         = problem.GetWeightsWidth();
+    const auto k          = problem.GetInChannels();
+    const auto c          = problem.GetOutChannels();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
     const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
     const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h     = problem.GetPadH();
-    const auto pad_w     = problem.GetPadW();
-    const auto group     = problem.GetGroupCount();
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto group      = problem.GetGroupCount();
 
     const auto num_cu             = ctx.GetStream().GetMaxComputeUnits();
     const auto non_split_gridsize = 600;
@@ -745,16 +745,16 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
            vector_store != 1)
             return false;
 
-    const auto k         = problem.GetInChannels();
-    const auto c         = problem.GetOutChannels();
-    const auto y         = problem.GetWeightsHeight();
-    const auto x         = problem.GetWeightsWidth();
+    const auto k          = problem.GetInChannels();
+    const auto c          = problem.GetOutChannels();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
     const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
     const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h     = problem.GetPadH();
-    const auto pad_w     = problem.GetPadW();
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
     const auto precision =
         problem.IsFp16() ? miopenHalf : (problem.IsBfp16() ? miopenBFloat16 : miopenFloat);
     const auto group = problem.GetGroupCount();
@@ -916,16 +916,16 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
 size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    const auto hi     = problem.GetOutHeight();
-    const auto wi     = problem.GetOutWidth();
-    const auto n      = problem.GetBatchSize();
-    const auto k      = problem.GetInChannels();
-    const auto c      = problem.GetOutChannels();
-    const auto ho     = problem.GetInHeight();
-    const auto wo     = problem.GetInWidth();
-    const auto y      = problem.GetWeightsHeight();
-    const auto x      = problem.GetWeightsWidth();
-    const auto group  = problem.GetGroupCount();
+    const auto hi      = problem.GetOutHeight();
+    const auto wi      = problem.GetOutWidth();
+    const auto n       = problem.GetBatchSize();
+    const auto k       = problem.GetInChannels();
+    const auto c       = problem.GetOutChannels();
+    const auto ho      = problem.GetInHeight();
+    const auto wo      = problem.GetInWidth();
+    const auto y       = problem.GetWeightsHeight();
+    const auto x       = problem.GetWeightsWidth();
+    const auto group   = problem.GetGroupCount();
     const auto is_nchw = problem.IsLayoutDefault();
 
     size_t size_trans_input  = 0;
@@ -993,8 +993,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const auto x     = problem.GetWeightsWidth();
     const auto group = problem.GetGroupCount();
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
@@ -1009,9 +1009,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         gemm_k_global_splits = 1;
 
     // compute workload for 1 workgroup and update gemmk splits (remove the ones compute 0 data)
-    size_t gemmk =
-        integer_divide_ceil(static_cast<size_t>(problem.GetBatchSize() / splits_4G), min_n_per_block) *
-        problem.GetInHeight() * problem.GetInWidth();
+    size_t gemmk = integer_divide_ceil(static_cast<size_t>(problem.GetBatchSize() / splits_4G),
+                                       min_n_per_block) *
+                   problem.GetInHeight() * problem.GetInWidth();
     size_t gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
     gemmk_per_wg         = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;

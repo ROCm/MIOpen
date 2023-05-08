@@ -344,7 +344,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     {
         if(!(waves_c_in_group <= problem.GetInChannels()))
             return false;
-        const int c_per_wave      = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
+        const int c_per_wave = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
         const int c_per_last_wave = problem.GetInChannels() - (c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
@@ -610,8 +610,9 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&,
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {
-        int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
-                              (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
+        int in_batch_stride =
+            AsmImgWidth(problem) * AsmImgHeight(problem) *
+            (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
         int data_len = GetTypeSize(problem.GetOutDataType());
         return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize() * data_len;
     }
@@ -638,8 +639,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     if(UseSubsample(problem) || UseUpsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
-                              (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
+        int in_batch_stride =
+            AsmImgWidth(problem) * AsmImgHeight(problem) *
+            (UseSubsample(problem) ? problem.GetInChannels() : problem.GetOutChannels());
         int write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
                          : (AsmImgWidth(problem) % 3 == 0) ? 3
                          : (AsmImgWidth(problem) % 2 == 0) ? 2
@@ -647,6 +649,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
 
         int n_grp0_size0 = 256;
 
+        // clang-format off
         const auto subsample_kernel_compilation_options =
             std::string(" -DDATA_TYPE=") +
             (problem.GetInDataType() == miopenHalf ? "ushort" : "float") +
@@ -664,6 +667,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride()) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetInStride()) +
             ctx.general_compile_options;
+        // clang-format on
 
         ss_us_kernel.l_wk.push_back(n_grp0_size0);
         ss_us_kernel.l_wk.push_back(1);
@@ -694,11 +698,11 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "img_w", AsmImgWidth(problem));  // W
 
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize());               // N
-    GenerateClangDefsym(options, "input_channels", problem.GetInChannels());    // C
-    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels());         // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());          // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());           // S
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize());        // N
+    GenerateClangDefsym(options, "input_channels", problem.GetInChannels());   // C
+    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());         // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
@@ -855,8 +859,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         main_kernel.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(problem) * AsmImgWidth(problem), hw_per_wave));
 
-    main_kernel.g_wk.push_back(
-        divide_round_plus_inf(problem.GetOutChannels(), pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
+    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetOutChannels(),
+                                                     pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetBatchSize(), n_images_per_wave));
 

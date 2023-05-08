@@ -327,7 +327,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(problem.GetInDataType()) * GemmKPack;
+        lds_size =
+            (a_block_space + b_block_space) * GetTypeSize(problem.GetInDataType()) * GemmKPack;
     }
     catch(...)
     {

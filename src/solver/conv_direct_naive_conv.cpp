@@ -52,8 +52,10 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 // Check tensor data type respectively
 bool IsInputFp32(const ProblemDescription& problem)
 {
-    return (problem.GetInDataType() == miopenFloat && problem.GetWeightsDataType() == miopenFloat) ||
-           (problem.GetOutDataType() == miopenFloat && problem.GetWeightsDataType() == miopenFloat) ||
+    return (problem.GetInDataType() == miopenFloat &&
+            problem.GetWeightsDataType() == miopenFloat) ||
+           (problem.GetOutDataType() == miopenFloat &&
+            problem.GetWeightsDataType() == miopenFloat) ||
            (problem.GetInDataType() == miopenFloat && problem.GetOutDataType() == miopenFloat);
 }
 bool IsInputFp16(const ProblemDescription& problem)
@@ -68,7 +70,8 @@ bool IsInputBfp16(const ProblemDescription& problem)
             problem.GetWeightsDataType() == miopenBFloat16) ||
            (problem.GetOutDataType() == miopenBFloat16 &&
             problem.GetWeightsDataType() == miopenBFloat16) ||
-           (problem.GetInDataType() == miopenBFloat16 && problem.GetOutDataType() == miopenBFloat16);
+           (problem.GetInDataType() == miopenBFloat16 &&
+            problem.GetOutDataType() == miopenBFloat16);
 }
 bool IsInputInt8(const ProblemDescription& problem)
 {

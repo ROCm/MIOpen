@@ -131,9 +131,11 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     //     pad_w = problem.GetWeightsWidth() - 1 - pad_w;
     //     pad_h = problem.GetWeightsHeight() - 1 - pad_h;
     // }
-    auto group_counts      = problem.GetGroupCount();
-    result.n_in_data_tiles = std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles = std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
+    auto group_counts = problem.GetGroupCount();
+    result.n_in_data_tiles =
+        std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
+    result.n_out_pix_tiles =
+        std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
@@ -192,7 +194,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     // int n_out_tile_blocks1 = (problem.GetOutHeight() + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
-    n_out_tiles_perstack     = std::min(n_out_tiles_perstack, problem.GetOutChannels() / group_counts);
+    n_out_tiles_perstack = std::min(n_out_tiles_perstack, problem.GetOutChannels() / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
     const auto mlo_filter_size0 = static_cast<long long>(problem.GetWeightsWidth());
@@ -292,8 +294,10 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         pad_h = problem.GetWeightsHeight() - 1 - pad_h;
     }
 
-    result.n_in_data_tiles = std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles = std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
+    result.n_in_data_tiles =
+        std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
+    result.n_out_pix_tiles =
+        std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
@@ -373,8 +377,10 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         std::to_string(static_cast<long long>(problem.GetKernelStrideH())) +
         std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(problem.GetOutChannels())) +
-        std::string(" -DMLO_N_INPUTS=") + std::to_string(static_cast<long long>(problem.GetInChannels())) +
-        std::string(" -DMLO_BATCH_SZ=") + std::to_string(static_cast<long long>(problem.GetBatchSize())) +
+        std::string(" -DMLO_N_INPUTS=") +
+        std::to_string(static_cast<long long>(problem.GetInChannels())) +
+        std::string(" -DMLO_BATCH_SZ=") +
+        std::to_string(static_cast<long long>(problem.GetBatchSize())) +
         std::string(" -DMLO_OUT_WIDTH=") +
         std::to_string(static_cast<long long>(problem.GetOutWidth())) +
         std::string(" -DMLO_OUT_HEIGHT=") +
@@ -385,7 +391,8 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         std::to_string(static_cast<long long>(problem.GetOutChannelStride())) +
         std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string(static_cast<long long>(problem.GetOutStride())) +
-        std::string(" -DMLO_IN_WIDTH=") + std::to_string(static_cast<long long>(problem.GetInWidth())) +
+        std::string(" -DMLO_IN_WIDTH=") +
+        std::to_string(static_cast<long long>(problem.GetInWidth())) +
         std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(static_cast<long long>(problem.GetInHeight())) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
@@ -449,11 +456,12 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         MIOPEN_LOG_E("n_out_tiles_perstack == 0");
         return {miopenStatusInternalError};
     }
-    size_t gbl_wk1 = group_counts >= 2
-                         ? (((problem.GetOutChannels() / group_counts + n_out_tiles_perstack - 1) /
-                             n_out_tiles_perstack) *
-                            group_counts)
-                         : ((problem.GetOutChannels() + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
+    size_t gbl_wk1 =
+        group_counts >= 2
+            ? (((problem.GetOutChannels() / group_counts + n_out_tiles_perstack - 1) /
+                n_out_tiles_perstack) *
+               group_counts)
+            : ((problem.GetOutChannels() + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
     size_t gbl_wk2 = (problem.GetBatchSize() + result.n_stacks - 1) / result.n_stacks;
 
     kernel_params.g_wk.push_back(gbl_wk0 * kernel_params.l_wk[0]);
@@ -481,7 +489,8 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& ctx,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(problem.GetBias()));
+            std::string(" -DMLO_CONV_BIAS=") +
+            std::to_string(static_cast<long long>(problem.GetBias()));
     }
 
     return result;

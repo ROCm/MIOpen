@@ -383,7 +383,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
     if(!(n_mult <= total_n_blocks))
         return false;
 
-    const auto c_per_wave      = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
+    const auto c_per_wave = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
     const auto c_per_last_wave = problem.GetInChannels() - (c_per_wave * (waves_c_in_group - 1));
 
     if(problem.direction.IsBackwardData() && !(problem.GetOutChannels() % k_mult == 0))
@@ -407,8 +407,10 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
                        1,
                        GetTypeSize(problem.GetOutDataType()));
         int n_miss = n_mult * GetNPerGpr() - 1;
-        if((static_cast<long>(problem.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
-           (static_cast<long>(problem.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+        if((static_cast<long>(problem.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
+               (1LL << 31) ||
+           (static_cast<long>(problem.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
+               (1LL << 31))
             return false;
     }
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
@@ -577,8 +579,10 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
         const int eurictic_init_max_chunk_size = 16;
         const int n_miss = eurictic_init_min_n_mult * (64 / eurictic_init_max_chunk_size) - 1;
 
-        if((static_cast<long>(config.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
-           (static_cast<long>(config.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+        if((static_cast<long>(config.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
+               (1LL << 31) ||
+           (static_cast<long>(config.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
+               (1LL << 31))
             ok = false;
     }
     return ok;
@@ -636,11 +640,11 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "out_w", problem.GetOutWidth());  // W
 
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize());               // N
-    GenerateClangDefsym(options, "input_channels", problem.GetInChannels());    // C
-    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels());         // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());          // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());           // S
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize());        // N
+    GenerateClangDefsym(options, "input_channels", problem.GetInChannels());   // C
+    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());         // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);

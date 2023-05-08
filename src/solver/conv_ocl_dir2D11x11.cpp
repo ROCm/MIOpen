@@ -73,7 +73,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // major parameters
     int LG2_WAVE_SZ = mloLg2(hw_wave_sz);
     int wei_cstride = problem.GetWeightsWidth() * problem.GetWeightsHeight();
-    int wei_bstride = (is_forward ? problem.GetInChannels() : problem.GetOutChannels()) * wei_cstride;
+    int wei_bstride =
+        (is_forward ? problem.GetInChannels() : problem.GetOutChannels()) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -87,8 +88,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
 
     int N_FILTER_SPLITS0 =
         ((problem.GetWeightsWidth() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW());
-    int N_FILTER_SPLITS1 =
-        ((problem.GetWeightsHeight() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH());
+    int N_FILTER_SPLITS1 = ((problem.GetWeightsHeight() + problem.GetKernelStrideH() - 1) /
+                            problem.GetKernelStrideH());
 
     static const int data_multiplier0 =
 // win runs Catalyst right now
@@ -106,9 +107,11 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * problem.GetKernelStrideH();
 
     int in_pix_tile0 =
-        (is_forward) ? 1 : (result.out_pix_tile0 / problem.GetKernelStrideW() - 1) + N_FILTER_SPLITS0;
+        (is_forward) ? 1
+                     : (result.out_pix_tile0 / problem.GetKernelStrideW() - 1) + N_FILTER_SPLITS0;
     int in_pix_tile1 =
-        (is_forward) ? 1 : (result.out_pix_tile1 / problem.GetKernelStrideH() - 1) + N_FILTER_SPLITS1;
+        (is_forward) ? 1
+                     : (result.out_pix_tile1 / problem.GetKernelStrideH() - 1) + N_FILTER_SPLITS1;
 
     result.in_tile1 = 1;
     result.in_tile0 = 1;
@@ -124,7 +127,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // processing arrangement
     // generate full output width
     // extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
-    int PROCESING_WIDTH = ((problem.GetOutWidth() + result.out_pix_tile0 - 1) / result.out_pix_tile0);
+    int PROCESING_WIDTH =
+        ((problem.GetOutWidth() + result.out_pix_tile0 - 1) / result.out_pix_tile0);
 
     int OUT_EXTENT1 = std::min(problem.GetOutHeight(), (GRP_SZ / PROCESING_WIDTH));
 
@@ -186,19 +190,23 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
 
     // calc bwd grid
     int n_out_pix_tiles1 =
-        (problem.GetOutHeight() + result.out_pix_tile1 - 1 + 2 * problem.GetPadH()) / result.out_pix_tile1;
+        (problem.GetOutHeight() + result.out_pix_tile1 - 1 + 2 * problem.GetPadH()) /
+        result.out_pix_tile1;
     int n_out_pix_tiles0 =
-        (problem.GetOutWidth() + result.out_pix_tile0 - 1 + 2 * problem.GetPadW()) / result.out_pix_tile0;
+        (problem.GetOutWidth() + result.out_pix_tile0 - 1 + 2 * problem.GetPadW()) /
+        result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
     // calculate lcl mem size for backward data
     int n_out_tiles_rows_pgrp =
         std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
     int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
-    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / problem.GetKernelStrideH() - 1) +
-                   N_FILTER_SPLITS1 + 1;
-    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / problem.GetKernelStrideW() - 1) +
-                   N_FILTER_SPLITS0;
+    int in_data1 =
+        ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / problem.GetKernelStrideH() - 1) +
+        N_FILTER_SPLITS1 + 1;
+    int in_data0 =
+        ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / problem.GetKernelStrideW() - 1) +
+        N_FILTER_SPLITS0;
 
     int lcl_wei_sz = wei_cstride * result.n_out_pix_tiles;
 #ifndef _WIN32

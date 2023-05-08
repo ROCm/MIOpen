@@ -282,10 +282,10 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ExecutionContex
 
 static int GetGemmkGroups(const ProblemDescription& problem)
 {
-    const auto k    = problem.GetInChannels();
-    const auto c    = problem.GetOutChannels();
-    const auto y    = problem.GetWeightsHeight();
-    const auto x    = problem.GetWeightsWidth();
+    const auto k     = problem.GetInChannels();
+    const auto c     = problem.GetOutChannels();
+    const auto y     = problem.GetWeightsHeight();
+    const auto x     = problem.GetWeightsWidth();
     const auto GemmN = c * y * x;
 
     int GemmKPerBlock = 4;
@@ -391,8 +391,8 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         kernel_reduction.kernel_name = "wrw_reduction_hip";
         kernel_reduction.g_wk.clear();
         int block_size_reduction = 256;
-        int grid_size_redcution  = problem.GetOutChannels() * problem.GetInChannels() * problem.GetWeightsHeight() *
-                                  problem.GetWeightsWidth() /
+        int grid_size_redcution  = problem.GetOutChannels() * problem.GetInChannels() *
+                                  problem.GetWeightsHeight() * problem.GetWeightsWidth() /
                                   (reduction_per_thread * block_size_reduction);
         kernel_reduction.g_wk.push_back(static_cast<std::size_t>(grid_size_redcution) *
                                         block_size_reduction);

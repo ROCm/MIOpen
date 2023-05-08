@@ -243,15 +243,16 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride = static_cast<size_t>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
+    size_t wei_cstride =
+        static_cast<size_t>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
     size_t wei_bstride = (problem.GetOutChannels() / problem.GetGroupCount()) * wei_cstride;
 
     // number  of batch iterations
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
 
     // guard not to grab too much system memory
-    if(n_batch_blks < 1 ||
-       (wei_bstride * problem.GetInChannels() * n_batch_blks) > ctx.GetStream().GetMaxMemoryAllocSize())
+    if(n_batch_blks < 1 || (wei_bstride * problem.GetInChannels() * n_batch_blks) >
+                               ctx.GetStream().GetMaxMemoryAllocSize())
     {
         return false;
     }
@@ -334,10 +335,10 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     }
 
     // check LDS consumption
-    size_t wei_per_wkitem =
-        (problem.GetWeightsWidth() <= 7 || (((problem.GetWeightsWidth() / 2) * 2) != problem.GetWeightsWidth()))
-            ? problem.GetWeightsWidth()
-            : problem.GetWeightsWidth() / 2;
+    size_t wei_per_wkitem = (problem.GetWeightsWidth() <= 7 ||
+                             (((problem.GetWeightsWidth() / 2) * 2) != problem.GetWeightsWidth()))
+                                ? problem.GetWeightsWidth()
+                                : problem.GetWeightsWidth() / 2;
 
     {
         size_t n_lcl_batchs   = N_STACKS;
@@ -525,10 +526,11 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
     if(n_batch_blks > 1)
     {
         const auto n_input_channels_per_group = problem.GetOutChannels() / problem.GetGroupCount();
-        const auto wei_cstride                = problem.GetWeightsWidth() * problem.GetWeightsHeight();
-        const auto wei_bstride                = n_input_channels_per_group * wei_cstride;
-        int data_len                          = GetTypeSize(problem.GetOutDataType());
-        return static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(problem.GetInChannels()) *
+        const auto wei_cstride = problem.GetWeightsWidth() * problem.GetWeightsHeight();
+        const auto wei_bstride = n_input_channels_per_group * wei_cstride;
+        int data_len           = GetTypeSize(problem.GetOutDataType());
+        return static_cast<std::size_t>(wei_bstride) *
+               static_cast<std::size_t>(problem.GetInChannels()) *
                static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
     }
     else
@@ -553,17 +555,18 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     result.n_in_data_tiles    = 1;
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     size_t total_out_maps     = config.n_out_channels_per_tile * config.n_out_channels_tiles;
-    size_t wei_per_wkitem =
-        (problem.GetWeightsWidth() <= 7 || (((problem.GetWeightsWidth() / 2) * 2) != problem.GetWeightsWidth()))
-            ? problem.GetWeightsWidth()
-            : problem.GetWeightsWidth() / 2;
+    size_t wei_per_wkitem     = (problem.GetWeightsWidth() <= 7 ||
+                             (((problem.GetWeightsWidth() / 2) * 2) != problem.GetWeightsWidth()))
+                                    ? problem.GetWeightsWidth()
+                                    : problem.GetWeightsWidth() / 2;
 
     // each wave is a filter row
     std::string READ_TYPE =
         (config.read_size == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((config.read_size));
-    size_t aligned_out_scan_lane =
-        std::ceil(static_cast<float>(problem.GetInWidth()) / config.read_size); // image aligned scan
-    size_t n_out_blk = std::ceil(static_cast<float>(problem.GetInHeight()) / config.n_out_rows_in_lcl);
+    size_t aligned_out_scan_lane = std::ceil(static_cast<float>(problem.GetInWidth()) /
+                                             config.read_size); // image aligned scan
+    size_t n_out_blk =
+        std::ceil(static_cast<float>(problem.GetInHeight()) / config.n_out_rows_in_lcl);
     size_t in_lcl_height =
         (config.n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight();
     size_t in_lcl_width = 0;
@@ -723,8 +726,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.l_wk.push_back(1);
 
         assert(utility_read_unit != 0);
-        int gbl_ut_wk0 =
-            static_cast<int>(static_cast<int>(wei_bstride) * problem.GetInChannels() / utility_read_unit);
+        int gbl_ut_wk0 = static_cast<int>(static_cast<int>(wei_bstride) * problem.GetInChannels() /
+                                          utility_read_unit);
 
         kernel.g_wk.push_back(gbl_ut_wk0);
         kernel.g_wk.push_back(1);

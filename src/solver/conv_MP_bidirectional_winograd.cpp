@@ -89,28 +89,28 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
             solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(problem)                       \
-    const auto group_cnt = (problem).GetGroupCount();          \
-    const auto N         = (problem).GetBatchSize();              \
-    const int K           = (problem).GetOutChannels() / group_cnt; \
-    const int C           = (problem).GetInChannels() / group_cnt;  \
-    const auto R         = (problem).GetWeightsHeight();         \
-    const auto S         = (problem).GetWeightsWidth();         \
-    const auto H         = (problem).GetInHeight();             \
-    const auto W         = (problem).GetInWidth();              \
-    const auto out_H     = (problem).GetOutHeight();            \
+#define DEFINE_SHADER_ALIASES(problem)                             \
+    const auto group_cnt = (problem).GetGroupCount();              \
+    const auto N         = (problem).GetBatchSize();               \
+    const int K          = (problem).GetOutChannels() / group_cnt; \
+    const int C          = (problem).GetInChannels() / group_cnt;  \
+    const auto R         = (problem).GetWeightsHeight();           \
+    const auto S         = (problem).GetWeightsWidth();            \
+    const auto H         = (problem).GetInHeight();                \
+    const auto W         = (problem).GetInWidth();                 \
+    const auto out_H     = (problem).GetOutHeight();               \
     const auto out_W     = (problem).GetOutWidth();
 
 #if MIOPEN_BACKEND_HIP
-#define GENERATE_MAIN_OPTIONS(options)                                      \
-    GenerateClangDefsym((options), "acc_type", 1);                          \
-    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);             \
-    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);             \
-    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);             \
-    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);          \
-    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);          \
-    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);           \
-    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);           \
+#define GENERATE_MAIN_OPTIONS(options)                                         \
+    GenerateClangDefsym((options), "acc_type", 1);                             \
+    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);                \
+    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                \
+    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                \
+    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);             \
+    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);             \
+    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);              \
+    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);              \
     GenerateClangDefsym((options), "fdilation_w", problem.GetKernelStrideW()); \
     GenerateClangDefsym((options), "fdilation_h", problem.GetKernelStrideH());
 
@@ -381,8 +381,8 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                                                  bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H    = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-    const int pad_W    = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+    const int pad_H = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+    const int pad_W = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
     const int n_groups = ctx.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(problem)
     DEFINE_GETXFORMHWSIZE()
