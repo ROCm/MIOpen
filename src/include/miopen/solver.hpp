@@ -4729,10 +4729,12 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     {
     }
     void HeuristicInit(const ProblemDescription&);
-    bool SetNextValue(const ConvolutionContext& ctx) { return SetNextValue(ctx.problem); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
     bool IsValid(const ProblemDescription&) const;
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
@@ -4751,45 +4753,26 @@ private:
 struct ConvHipImplicitGemmGroupFwdXdlops final
     : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
-    // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::GetDefaultPerformanceConfig;
-    using ConvTunableSolver::GetSolution;
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::IsValidPerformanceConfig;
-    using ConvTunableSolver::Search;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlops>();
     }
 
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
-    {
-        return GetDefaultPerformanceConfig(ctx.problem);
-    }
-    bool IsValidPerformanceConfig(
-        const ConvolutionContext& ctx,
-        const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
-    {
-        return IsValidPerformanceConfig(ctx.problem, config);
-    }
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
-    {
-        return Search(ctx, ctx.problem, invoke_ctx);
-    }
-    bool IsApplicable(const ConvolutionContext& ctx) const override
-    {
-        return IsApplicable(ctx, ctx.problem);
-    }
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    ConvSolution
-    GetSolution(const ConvolutionContext& ctx,
-                const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
-    {
-        return GetSolution(ctx, ctx.problem, config);
-    }
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
     // Magic Number Alert:
     // Naive convolutions have GetWti() that return very small value (0.01f).
     // This allows MIOpen to use Naive Solvers if no other applicable Solvers
@@ -4800,21 +4783,12 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     // Since we would like to us CK before naive, and use it instead (because
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
 
 private:
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ProblemDescription&) const;
-    bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops Search(const ConvolutionContext&,
-                                                          const ProblemDescription&,
-                                                          const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;
-
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
 };

@@ -363,7 +363,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
+ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
     const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
@@ -372,6 +372,7 @@ ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
