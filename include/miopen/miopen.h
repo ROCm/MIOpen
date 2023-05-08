@@ -111,6 +111,12 @@ typedef enum
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
 
+typedef enum
+{
+    miopenF8RoundingModeStandard   = 0,
+    miopenF8RoundingModeStochastic = 1,
+} miopenF8RoundingMode_t;
+
 /*! @brief Get character string for an error code.
  *
  * A function which returns a NULL terminated character string of the error code.
@@ -339,7 +345,9 @@ typedef enum
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
-    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+    miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
+    miopenFloat8  = 7,
+    miopenBFloat8 = 8
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -573,6 +581,8 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE = 2,
+    MIOPEN_CONVOLUTION_ATTRIB_COMPUTE_TYPE      = 3,
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
