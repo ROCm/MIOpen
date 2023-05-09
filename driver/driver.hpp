@@ -29,8 +29,12 @@
 #include "half.hpp"
 
 #include "random.hpp"
+using half = half_float::half;
+#include <miopen/hip_float8.h>
 
 using float16 = half_float::half;
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 #include "InputFlags.hpp"
 #include <algorithm>
@@ -157,12 +161,13 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
-       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
-       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
-       arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
-       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
+       arg != "convfp8" && arg != "convbfp8" && arg != "CBAInfer" && arg != "CBAInferfp16" &&
+       arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
+       arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
+       arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" &&
+       arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" && arg != "dropout" &&
+       arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" && arg != "reduce" &&
+       arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();
@@ -243,6 +248,16 @@ template <>
 inline void Driver::InitDataType<bfloat16>()
 {
     data_type = miopenBFloat16;
+}
+template <>
+inline void Driver::InitDataType<float8>()
+{
+    data_type = miopenFloat8;
+}
+template <>
+inline void Driver::InitDataType<bfloat8>()
+{
+    data_type = miopenBFloat8;
 }
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.
