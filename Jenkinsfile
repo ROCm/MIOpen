@@ -140,6 +140,7 @@ def cmake_build(Map conf=[:]){
     // Only archive from master or develop
     if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
+        archiveArtifacts artifacts: "build/*.rpm", allowEmptyArchive: true, fingerprint: true
         stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
 }
