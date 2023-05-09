@@ -781,7 +781,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
     }
 
     handle.SetStreamFromPool(root_stream_id);
-    hipStreamWaitEvent(stream_pull[root_stream_id], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
+    hipStreamWaitEvent(
+        stream_pull[root_stream_id], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
 
     // output tensor copy
     {
