@@ -453,7 +453,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
                                                                                        problem)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || StartsWith(name, "gfx94"))
         return false;
     if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
