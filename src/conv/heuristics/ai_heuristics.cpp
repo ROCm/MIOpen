@@ -247,7 +247,7 @@ protected:
     }
 };
 
-std::unique_ptr<Model> GetModel(const std::string& arch) { return std::make_unique<Gfx908Model>(); }
+std::unique_ptr<Model> GetModel(const std::string& ) { return std::make_unique<Gfx908Model>(); }
 
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
                                     const ConvolutionContext& ctx,
