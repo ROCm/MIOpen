@@ -48,8 +48,9 @@ std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<
 {
     std::vector<V> values = {};
     values.reserve(keys.size());
-    for(const U& key : keys)
-        values.emplace_back(map.at(key));
+    std::transform(keys.begin(), keys.end(), std::back_inserter(values), [&](const U& key) {
+        return map.at(key);
+    });
     return values;
 }
 } // namespace common
