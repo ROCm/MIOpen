@@ -1351,19 +1351,19 @@ static std::tuple<bool, // is suitable kernel found
 FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const auto& n         = problem.batch_sz;
-    const auto& c         = problem.n_inputs;
-    const auto& k         = problem.n_outputs;
-    const auto& ho        = problem.out_height;
-    const auto& wo        = problem.out_width;
-    const auto stride_h   = problem.in_height > 1 ? problem.kernel_stride_h : 1;
-    const auto stride_w   = problem.in_width > 1 ? problem.kernel_stride_w : 1;
-    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    const auto& pad_h     = problem.pad_h;
-    const auto& pad_w     = problem.pad_w;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
+    const auto n          = problem.GetBatchSize();
+    const auto c          = problem.GetInChannels();
+    const auto k          = problem.GetOutChannels();
+    const auto ho         = problem.GetOutHeight();
+    const auto wo         = problem.GetOutWidth();
+    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
@@ -1524,7 +1524,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -1533,7 +1533,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((problem.kernel_size_h == 1) && (problem.kernel_size_w == 1) && (problem.n_inputs % 8 != 0))
+    if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
+       (problem.GetInChannels() % 8 != 0))
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
             return false;
 #endif

@@ -52,29 +52,32 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 // Check tensor data type respectively
 bool IsInputFp32(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
-           (problem.out_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
-           (problem.in_data_type == miopenFloat && problem.out_data_type == miopenFloat);
+    return (problem.GetInDataType() == miopenFloat &&
+            problem.GetWeightsDataType() == miopenFloat) ||
+           (problem.GetOutDataType() == miopenFloat &&
+            problem.GetWeightsDataType() == miopenFloat) ||
+           (problem.GetInDataType() == miopenFloat && problem.GetOutDataType() == miopenFloat);
 }
 bool IsInputFp16(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
-           (problem.out_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
-           (problem.in_data_type == miopenHalf && problem.out_data_type == miopenHalf);
+    return (problem.GetInDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
+           (problem.GetOutDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
+           (problem.GetInDataType() == miopenHalf && problem.GetOutDataType() == miopenHalf);
 }
 bool IsInputBfp16(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenBFloat16 &&
-            problem.weights_data_type == miopenBFloat16) ||
-           (problem.out_data_type == miopenBFloat16 &&
-            problem.weights_data_type == miopenBFloat16) ||
-           (problem.in_data_type == miopenBFloat16 && problem.out_data_type == miopenBFloat16);
+    return (problem.GetInDataType() == miopenBFloat16 &&
+            problem.GetWeightsDataType() == miopenBFloat16) ||
+           (problem.GetOutDataType() == miopenBFloat16 &&
+            problem.GetWeightsDataType() == miopenBFloat16) ||
+           (problem.GetInDataType() == miopenBFloat16 &&
+            problem.GetOutDataType() == miopenBFloat16);
 }
 bool IsInputInt8(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
-           (problem.out_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
-           (problem.in_data_type == miopenInt8 && problem.out_data_type == miopenInt8);
+    return (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
+           (problem.GetOutDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
+           (problem.GetInDataType() == miopenInt8 && problem.GetOutDataType() == miopenInt8);
 }
 bool IsAccFp64(const ProblemDescription& problem)
 {
@@ -84,20 +87,20 @@ bool IsAccInt32(const ProblemDescription& problem) { return IsInputInt8(problem)
 bool IsOutputFp32(const ProblemDescription& problem)
 {
     return problem.IsFp32() ||
-           (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
-            problem.out_data_type == miopenFloat);
+           (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
+            problem.GetOutDataType() == miopenFloat);
 }
 bool IsOutputFp16(const ProblemDescription& problem) { return problem.IsFp16(); }
 bool IsOutputBfp16(const ProblemDescription& problem) { return problem.IsBfp16(); }
 bool IsOutputInt8(const ProblemDescription& problem)
 {
-    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
-           problem.out_data_type == miopenInt8;
+    return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
+           problem.GetOutDataType() == miopenInt8;
 }
 bool IsOutputInt32(const ProblemDescription& problem)
 {
-    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
-           problem.out_data_type == miopenInt32;
+    return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
+           problem.GetOutDataType() == miopenInt32;
 }
 
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)

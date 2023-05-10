@@ -142,7 +142,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     }
 
     const auto in_type  = PDI::GetInputDataType(problem);
-    const auto fil_type = problem.weights_data_type;
+    const auto fil_type = problem.GetWeightsDataType();
     auto out_type       = PDI::GetOutputDataType(problem);
 
     // In case this is int8 convolution, ignore the output type and always request int32_t as
