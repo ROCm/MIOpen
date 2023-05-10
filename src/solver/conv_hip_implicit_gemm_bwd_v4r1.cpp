@@ -754,7 +754,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())

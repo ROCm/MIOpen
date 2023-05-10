@@ -70,29 +70,29 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     }
 
     // clang-format off
-    return problem.pad_w == 1
-        && problem.pad_h == 1
-        && problem.kernel_size_w == 3
-        && problem.kernel_size_h == 3
-        && problem.kernel_stride_w == 1
-        && problem.kernel_stride_h == 1
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.batch_sz < std::pow(2, 16)
-        && problem.n_inputs < std::pow(2, 16)
-        && problem.n_outputs < std::pow(2, 16)
-        && problem.in_height < std::pow(2, 16)
-        && problem.in_width < std::pow(2, 16)
+    return problem.GetPadW() == 1
+        && problem.GetPadH() == 1
+        && problem.GetWeightsWidth() == 3
+        && problem.GetWeightsHeight() == 3
+        && problem.GetKernelStrideW() == 1
+        && problem.GetKernelStrideH() == 1
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetBatchSize() < std::pow(2, 16)
+        && problem.GetInChannels() < std::pow(2, 16)
+        && problem.GetOutChannels() < std::pow(2, 16)
+        && problem.GetInHeight() < std::pow(2, 16)
+        && problem.GetInWidth() < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
-        && (problem.n_inputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
-        && (problem.n_outputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
-        && (problem.n_inputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
-        && (problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
-        && problem.n_inputs % 2 == 0
-        && problem.n_inputs >= (device_is_gfx8 ? 16 : 18)
+        && (problem.GetInChannels() * problem.GetInHeight() * problem.GetInWidth()) <= std::pow(2, 28)
+        && (problem.GetOutChannels() * problem.GetInHeight() * problem.GetInWidth()) <= std::pow(2, 28)
+        && (problem.GetInChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight()) <= std::pow(2, 28)
+        && (problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight()) <= std::pow(2, 28)
+        && problem.GetInChannels() % 2 == 0
+        && problem.GetInChannels() >= (device_is_gfx8 ? 16 : 18)
         && problem.IsFp32()
-        && problem.group_counts == 1
-        && problem.in_layout == "NCHW";
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW";
         /// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
