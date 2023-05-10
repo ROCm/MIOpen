@@ -82,7 +82,7 @@ struct CKArgs
         output = {G, N, K, Ho, Wo};
         weight = {G, K, C, Y, X};
 
-        // strides from GNHWC to NHWGC laout
+        // strides from NHWGC to GNCHW laout
         in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
         out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};

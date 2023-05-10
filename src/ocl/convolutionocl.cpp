@@ -70,7 +70,6 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
 {
-  //return;
     ///\todo How make these validation clearly
     if(conv.group_count == 1)
     {
