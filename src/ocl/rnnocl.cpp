@@ -2185,10 +2185,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
 
-    bool stream_is_notnull = (handle.GetStream() != nullptr);
-
-    if(stream_is_notnull && rnnMode == miopenLSTM && algoMode == miopenRNNdefault && !use_dropout &&
-       nLayers > 1 && dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
+    if(rnnMode == miopenLSTM && algoMode == miopenRNNdefault && !use_dropout && nLayers > 1 &&
+       dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
        !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})) && xDesc[0].GetType() == miopenFloat &&
        seqLen >= 32)
     {
