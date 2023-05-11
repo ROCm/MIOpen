@@ -415,6 +415,42 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
                              const PerformanceConfigConvAsm1x1U&) const override;
 };
 
+struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
+{
+    PerformanceConfigConvBiasActivAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
+    PerformanceConfigConvBiasActivAsm1x1U()
+        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
+};
+
+// Fused solver
+struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
+
+    bool IsApplicable(const ConvolutionContext& params,
+                      const ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& params,
+                            const ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
+    PerformanceConfigConvBiasActivAsm1x1U
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const PerformanceConfigConvBiasActivAsm1x1U&) const override;
+    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
+                                                 const ProblemDescription&,
+                                                 const AnyInvokeParams& invoke_ctx) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const ProblemDescription& problem,
+                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override;
+};
+
 struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1x1UV2>
 {
     // ----------------- // Full set          Optimized       Spare
@@ -1167,6 +1203,50 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
                              const PerformanceConvMlirIgemmXdlops&) const override;
 };
 
+struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
+    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
+{
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmKPerBlock; // 2^n[4..16]
+
+    int GemmMPerWave; // [4, 16, 32, 64]
+    int GemmNPerWave; // [4, 16, 32, 64]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32()
+        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+    }
+
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool SetNextValue(const ConvolutionContext& config);
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const;
+
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+};
+
 struct ConvHipImplicitGemmV4R4WrW final : ConvTunableSolver<PerformanceImplicitGemmV4R4WrW>
 {
     const std::string& SolverDbId() const override
@@ -1234,6 +1314,57 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConvMlirIgemmXdlops&) const override;
+};
+
+struct PerformanceImplicitGemmXdlops : PerfConfigBase<PerformanceImplicitGemmXdlops>
+{
+    int BPerBlock; // 2^n[8..16]
+    int KPerBlock; // 2^n[32..128]
+    int EPerBlock; // 2^n[4..16]
+    int EBlocks;   // 2*n[1..64]
+    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
+
+    int GemmMPerWave;
+    int GemmNPerWave;
+
+    int InBlockCopyClusterLengths_E; // 2^n[4..16]
+    int InBlockCopyClusterLengths_B; // 2^n[8..16]
+
+    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
+    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmXdlops(int, int, int, int, int, int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmXdlops()
+        : PerformanceImplicitGemmXdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmXdlops(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.BPerBlock, "BPerBlock");
+        f(self.KPerBlock, "KPerBlock");
+        f(self.EPerBlock, "EPerBlock");
+        f(self.EBlocks, "EBlocks");
+        f(self.EPACKSize, "EPACKSize");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
+        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
+        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
+        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
+    }
+
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool SetNextValue(const ConvolutionContext& config);
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmXdlops& other) const;
 };
 
 struct PerformanceImplicitGemmForwardV4R4Xdlops
@@ -1530,6 +1661,52 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
     Search(const ConvolutionContext&,
            const ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
+};
+
+struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
+    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsWrWFp32>
+{
+    int GemmMPerBlock; // 2^n[32..128]
+    int GemmNPerBlock; // 2^n[8..16]
+    int GemmKPerBlock; // 2^n[4..16]
+    int GemmKBlocks;   // 2^n[1..64]
+
+    int GemmMPerWave; // [4, 16, 32, 64]
+    int GemmNPerWave; // [4, 16, 32, 64]
+
+    bool use_spare_set;
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(int, int, int, int, int, int, bool);
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32()
+        : PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+
+    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(bool spare);
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.GemmMPerBlock, "GemmMPerBlock");
+        f(self.GemmNPerBlock, "GemmNPerBlock");
+        f(self.GemmKPerBlock, "GemmKPerBlock");
+        f(self.GemmKBlocks, "GemmKBlocks");
+        f(self.GemmMPerWave, "GemmMPerWave");
+        f(self.GemmNPerWave, "GemmNPerWave");
+    }
+
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool SetNextValue(const ConvolutionContext& config);
+    bool IsValid(const ConvolutionContext& ctx) const;
+    bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
+
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<int, int, int, int, bool>
+    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
@@ -1966,6 +2143,21 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const LegacyPerformanceConfig&) const override;
+
+protected:
+    bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem) const;
+};
+
+struct ConvOclDirectFwdFused final : ConvOclDirectFwd
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvOclDirectFwdFused>();
+    }
+
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const ProblemDescription& problem,
+                             const LegacyPerformanceConfig& searched_params) const override;
 };
 
 struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
@@ -2061,6 +2253,7 @@ struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigCon
     }
     bool IsValid(const ConvolutionContext&) const;
     bool operator==(const PerformanceConfigConvBinWinogradRxS& other) const;
+    std::string ToString() const override;
 };
 
 template <int Winodata, int Winofilter>
@@ -2124,6 +2317,32 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
     ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const override;
+};
+
+struct ConvBinWinogradRxSf2x3g1Fused final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
+    }
+
+    bool IsApplicable(const ConvolutionContext& params,
+                      const ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const ProblemDescription& problem) const override;
+};
+
+struct ConvBinWinogradRxSFused final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradRxSFused>();
+    }
+
+    bool IsApplicable(const ConvolutionContext& params,
+                      const ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const ProblemDescription& problem) const override;
 };
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
@@ -3331,9 +3550,17 @@ private:
 struct GemmWrw1x1_stride1 final : GemmWrwBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
+
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
+    {
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+    }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
@@ -3348,6 +3575,7 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     }
 
 private:
+    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 
@@ -4712,12 +4940,6 @@ private:
 
 struct AnySolver;
 
-// Use struct as a syntactic sugar to make the intent as clear as possible.
-struct ThisSolverIsDeprecatedStatic
-{
-    static bool IsDisabled(const ConvolutionContext& ctx);
-};
-
 } // namespace solver
 } // namespace miopen
 
@@ -4739,6 +4961,10 @@ struct mlo_construct_direct2D_fusion : mlo_construct_base
 
     bool IsAutoTuneEnabled() const { return _ctx.do_search; }
 
+    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
+    {
+        params = _ctx;
+    }
     miopen::solver::ConvSolution FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
                                               const miopen::AnyInvokeParams& invoke_ctx);
 };

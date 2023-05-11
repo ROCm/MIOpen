@@ -28,18 +28,24 @@
 
 #include "ford.hpp"
 #include "network_data.hpp"
+#include "serialize.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
-
-#include "serialize.hpp"
-
 #include <half.hpp>
+
+//#include <hip/hip_bfloat16.h>
+// using __half       = half_float::half;
+using half = half_float::half;
+#include <miopen/hip_float8.h>
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
 #include <iomanip>
 #include <fstream>
-
+//#include <driver.hpp>
 template <class F>
 void visit_tensor_size(std::size_t n, F f)
 {
@@ -102,6 +108,16 @@ struct miopen_type<int8_t> : std::integral_constant<miopenDataType_t, miopenInt8
 
 template <>
 struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
+{
+};
+
+template <>
+struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
+{
+};
+
+template <>
+struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
 {
 };
 
@@ -397,6 +413,22 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
     // TODO: Compute float
     return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
+
+// This is needed since there is no TensorDescriptor(miopenDataType_t t, const size_t* plens, int
+// size) constructor
+template <class T>
+tensor<T> make_tensor(const std::vector<std::size_t>& dims)
+{
+    std::vector<int> tmpDims;
+
+    tmpDims.resize(dims.size());
+
+    for(int i = 0; i < tmpDims.size(); i++)
+        tmpDims[i] = static_cast<int>(dims[i]);
+
+    return tensor<T>{miopen::TensorDescriptor{
+        miopen_type<T>{}, tmpDims.data(), static_cast<int>(tmpDims.size())}};
+};
 
 template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)

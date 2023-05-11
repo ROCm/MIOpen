@@ -56,6 +56,23 @@ constexpr std::is_same<T, U> is_same(const T&)
     return {};
 }
 
+struct tensor_elem_gen_integer
+{
+    unsigned long max_value = 17;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        static_assert(sizeof...(Ts) < 6,
+                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
+        assert(max_value > 0);
+        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
+        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
+        return static_cast<double>(dot % max_value);
+    }
+};
+
 struct tensor_elem_gen_checkboard_sign
 {
     template <class... Ts>
@@ -275,6 +292,8 @@ struct test_driver
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
+        case miopenFloat8: ss << "--float8"; break;
+        case miopenBFloat8: ss << "--bfloat8"; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -302,6 +321,8 @@ struct test_driver
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
+        case miopenFloat8: ret.emplace_back("--float8"); break;
+        case miopenBFloat8: ret.emplace_back("--bfloat8"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -871,6 +892,21 @@ struct test_driver
         {
             return std::make_pair(cpu, gpu);
         }
+    }
+
+    template <class V, class... Ts>
+    auto verify_eps(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        return verify_impl(
+            [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
+                CHECK(miopen::range_distance(cpu) == miopen::range_distance(gpu));
+
+                double threshold = v.epsilon() * tolerance;
+                error            = {miopen::rms_range(cpu, gpu)};
+                return error.front() <= threshold;
+            },
+            v,
+            xs...);
     }
 
     template <class V, class... Ts>
