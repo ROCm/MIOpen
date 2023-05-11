@@ -176,6 +176,15 @@ struct HandleImpl
         return StreamPtr{result, &hipStreamDestroy};
     }
 
+    StreamPtr create_stream_non_blocking()
+    {
+        hipStream_t result;
+        auto status = hipStreamCreateWithFlags(&result, hipStreamNonBlocking);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
+        return StreamPtr{result, &hipStreamDestroy};
+    }
+
     static StreamPtr reference_stream(hipStream_t s) { return StreamPtr{s, null_deleter{}}; }
 
     void elapsed_time(hipEvent_t start, hipEvent_t stop)
@@ -326,7 +335,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     if(last_stream_id < cnt)
         for(; last_stream_id < cnt; last_stream_id++)
         {
-            auto new_stream = this->impl->create_stream();
+            auto new_stream = this->impl->create_stream_non_blocking();
 #if MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
