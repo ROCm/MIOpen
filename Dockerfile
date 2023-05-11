@@ -41,6 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     doxygen \
     gdb \
     git \
+    lbzip2 \
     lcov \
     libncurses5-dev \
     llvm-amdgpu \
@@ -104,7 +105,7 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
 
 RUN ccache -s 
 # Install doc requirements
-ADD doc/requirements.txt /doc-requirements.txt
+ADD docs/.sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build

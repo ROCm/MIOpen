@@ -25,6 +25,10 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.11 )
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
@@ -461,12 +465,13 @@ endif()
 function(unpack_db db_bzip2_file)
     set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
     STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    find_program(UNZIPPER lbunzip2 bunzip2)
     if(EXISTS "${db_file}")
         # message(WARNING "${db_file} already exists")
     elseif(EXISTS "${db_bzip2_file}")
-        message(STATUS "bunzip2 -k ${db_bzip2_file}")
+        message(STATUS "${UNZIPPER} -k ${db_bzip2_file}")
         execute_process(
-            COMMAND bunzip2 -k ${db_bzip2_file}
+            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
             RESULT_VARIABLE ret
             )
@@ -786,7 +791,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(addkernels)
-add_subdirectory(doc)
 add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
