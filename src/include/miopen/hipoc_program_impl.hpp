@@ -43,6 +43,8 @@ struct HIPOCProgramImpl
 
     HIPOCProgramImpl(const std::string& program_name, const std::string& blob);
 
+    HIPOCProgramImpl(const std::string& program_name, const std::vector<uint8_t>& blob);
+
     HIPOCProgramImpl(const std::string& program_name,
                      std::string params,
                      bool is_kernel_str,

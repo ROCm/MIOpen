@@ -101,7 +101,8 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               std::string params,
                               std::size_t cache_index,
                               bool is_kernel_miopengemm_str,
-                              const std::string& kernel_src)
+                              const std::string& kernel_src,
+                              Program* program_out)
 {
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
@@ -122,6 +123,9 @@ Kernel KernelCache::AddKernel(const Handle& h,
         program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
+
+    if(program_out != nullptr)
+        *program_out = program;
 
     Kernel kernel{};
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});

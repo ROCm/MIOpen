@@ -25,6 +25,14 @@ inline void WriteFile(const std::vector<char>& content, const boost::filesystem:
         MIOPEN_THROW("Failed to write to file");
 }
 
+inline void WriteFile(const std::vector<uint8_t>& content, const boost::filesystem::path& name)
+{
+    // std::cerr << "Write file: " << name << std::endl;
+    const FilePtr f{std::fopen(name.string().c_str(), "w")};
+    if(std::fwrite(&content[0], 1, content.size(), f.get()) != content.size())
+        MIOPEN_THROW("Failed to write to file");
+}
+
 } // namespace miopen
 
 #endif

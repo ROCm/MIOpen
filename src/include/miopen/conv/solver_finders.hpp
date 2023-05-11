@@ -80,12 +80,11 @@ protected:
 
 const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();
 
-void ConvFindCore(const AnyInvokeParams& invoke_ctx,
-                  DbRecord& record,
-                  const ConvolutionContext& ctx,
-                  const ProblemDescription& problem,
-                  bool use_winograd_only,
-                  const std::vector<std::unique_ptr<SolversFinder>>& finders);
+std::vector<Solution> ConvFindCore(const AnyInvokeParams& invoke_ctx,
+                                   const ConvolutionContext& ctx,
+                                   const ProblemDescription& problem,
+                                   bool use_winograd_only,
+                                   const std::vector<std::unique_ptr<SolversFinder>>& finders);
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 } // namespace miopen

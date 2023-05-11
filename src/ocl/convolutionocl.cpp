@@ -23,12 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <miopen/convolution.hpp>
+
 #include <miopen/algorithm.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/conv/solver_finders.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/config.h>
-#include <miopen/convolution.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
@@ -38,6 +40,7 @@
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/solution.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/util.hpp>
@@ -153,27 +156,30 @@ CompileSolution(solver::Id solver_id, ExecutionContext ctx, const conv::ProblemD
 }
 
 /// Keep only the best within algorithm, remove all others.
-static void ShrinkToFind10Results(std::vector<PerfField>& found)
+static void ShrinkToFind10Results(std::vector<Solution>& found)
 {
-    std::vector<PerfField> out;
-    std::sort(begin(found), end(found));
+    std::sort(std::begin(found), std::end(found), [](auto&& l, auto&& r) {
+        return l.GetTime() < r.GetTime();
+    });
+
+    std::vector<Solution> out;
     for(const auto& f : found)
     {
         // If an algo already resides in out, then skip solver.
-        if(std::find_if(out.begin(), out.end(), [&](const auto& o) {
-               return o.algorithm == f.algorithm;
-           }) != out.end())
+        auto algo_eq = [&](auto&& o) { return o.GetSolver().GetAlgo() == f.GetSolver().GetAlgo(); };
+        if(std::find_if(std::begin(out), std::end(out), algo_eq) != std::end(out))
             continue;
         out.emplace_back(f);
     }
-    found = out;
+    found = std::move(out);
 }
 
-static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
-                                                     const conv::ProblemDescription& problem,
-                                                     const AnyInvokeParams& invoke_ctx)
+std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      const AnyInvokeParams& invoke_ctx,
+                                      std::size_t max_solutions)
 {
-    auto results         = std::vector<PerfField>{};
+    auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
@@ -193,36 +199,51 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         /// \todo Consider if we need (and want to spend time) for this.
         const auto id = solver::Id{sol->solution_id};
         CompileSolution(id, ctx, problem);
-        results.push_back(
-            {id.GetAlgo(problem.GetDirection()), id.ToString(), sol->time, sol->workspace_size});
+        results.push_back({id, sol->time, sol->workspace_size});
     }
     else
     {
-        results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
+        results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
             auto conv_ctx                       = ConvolutionContext{ctx};
             conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             auto legacy_problem                 = ProblemDescription(problem);
 
-            ConvFindCore(invoke_ctx,
-                         record,
-                         conv_ctx,
-                         legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
-                         GetConvSolverFinders());
+            return ConvFindCore(invoke_ctx,
+                                conv_ctx,
+                                legacy_problem,
+                                conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
+                                GetConvSolverFinders());
         });
     }
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
-        MIOPEN_THROW(
-            miopenStatusGpuOperationsSkipped,
-            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
-
     ShrinkToFind10Results(results);
+    results.resize(std::min(results.size(), max_solutions));
 
     for(const auto& entry : results)
-        MIOPEN_LOG_I(entry.algorithm << "\t" << entry.time << "\t" << entry.workspace);
+        MIOPEN_LOG_I(entry.GetSolver().GetAlgo(problem.GetDirection())
+                     << "\t" << entry.GetTime() << "\t" << entry.GetWorkspaceSize());
 
     return results;
+}
+
+template <class FieldType>
+static inline void FillFindReturnParameters(const std::vector<Solution>& results,
+                                            FieldType miopenConvAlgoPerf_t::*field,
+                                            const char* log_start,
+                                            int* const returned_algo_count,
+                                            miopenConvAlgoPerf_t* perf_results)
+{
+    *returned_algo_count = static_cast<int>(results.size());
+
+    for(int i = 0; i < *returned_algo_count; i++)
+    {
+        perf_results[i].*field = static_cast<FieldType>(results[i].GetSolver().GetAlgo());
+        perf_results[i].time   = results[i].GetTime();
+        perf_results[i].memory = results[i].GetWorkspaceSize();
+    }
+
+    MIOPEN_LOG_I(log_start << " Chosen Algorithm: " << results[0].GetSolver().ToString() << " , "
+                           << results[0].GetWorkspaceSize() << ", " << results[0].GetTime());
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -267,7 +288,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
@@ -275,17 +296,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
-
-    for(int i = 0; i < *returnedAlgoCount; i++)
-    {
-        perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(results[i].algorithm);
-        perfResults[i].time     = results[i].time;
-        perfResults[i].memory   = results[i].workspace;
-    }
-
-    MIOPEN_LOG_I("FW Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
-                                         << ", " << results[0].time);
+    FillFindReturnParameters(
+        results, &miopenConvAlgoPerf_t::fwd_algo, "FW", returnedAlgoCount, perfResults);
 }
 
 void ValidateConvTensors(const ConvTensors& tensors)
@@ -774,7 +786,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
@@ -782,17 +794,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
-
-    for(int i = 0; i < *returnedAlgoCount; i++)
-    {
-        perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(results[i].algorithm);
-        perfResults[i].time          = results[i].time;
-        perfResults[i].memory        = results[i].workspace;
-    }
-
-    MIOPEN_LOG_I("BWD Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
-                                          << ", " << results[0].time);
+    FillFindReturnParameters(
+        results, &miopenConvAlgoPerf_t::bwd_data_algo, "BWD", returnedAlgoCount, perfResults);
 }
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
@@ -983,7 +986,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
@@ -991,16 +994,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
 
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
-
-    for(int i = 0; i < *returnedAlgoCount; i++)
-    {
-        perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(results[i].algorithm);
-        perfResults[i].time             = results[i].time;
-        perfResults[i].memory           = results[i].workspace;
-    }
-    MIOPEN_LOG_I("BWrW Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
-                                           << ", " << results[0].time);
+    FillFindReturnParameters(
+        results, &miopenConvAlgoPerf_t::bwd_data_algo, "BWrW", returnedAlgoCount, perfResults);
 }
 
 static void ConvWrwCheckNumerics(const Handle& handle,

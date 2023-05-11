@@ -226,7 +226,8 @@ public:
 #endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels) const;
+                           const std::vector<solver::KernelInfo>& kernels,
+                           std::vector<Program>* programs_out = nullptr) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,

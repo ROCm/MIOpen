@@ -178,6 +178,10 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+    virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
+    {
+        return *GetSolution(ctx, problem).invoker_factory;
+    }
 };
 
 /// Typedef for convolution solvers
@@ -219,6 +223,12 @@ struct ConvTunableSolverBase : SolverMixin<ConvolutionContext, ProblemDescriptio
     virtual ConvSolution GetSolution(const ConvolutionContext& ctx,
                                      const ProblemDescription& problem,
                                      const PerfConfig& config) const = 0;
+    virtual InvokerFactory GetInvokerFactory(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem,
+                                             const PerfConfig& config) const
+    {
+        return *GetSolution(ctx, problem, config).invoker_factory;
+    }
 };
 
 template <class PerformanceConfig>
@@ -2686,12 +2696,18 @@ struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const;
+    InvokerFactory GetInvokerFactory(const ConvolutionContext& ctx,
+                                     const ProblemDescription& problem) const
+    {
+        return *GetSolution(ctx, problem).invoker_factory;
+    }
 
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
     using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
     using ConvOclBwdWrW2<1>::GetSolution;
+    using ConvOclBwdWrW2<1>::GetInvokerFactory;
 };
 
 struct ConvOclBwdWrW53 final : ConvSolver

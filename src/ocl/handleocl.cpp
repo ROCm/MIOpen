@@ -343,8 +343,11 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
+    std::ignore = programs_out;
+
     std::vector<Kernel> built;
     for(auto& k : kernels)
     {
