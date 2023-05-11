@@ -75,6 +75,7 @@ struct FusionDescription
     }
 
 #if !MIOPEN_ENABLE_SQLITE
+    /// \todo This function will be necessary for tuning of fusions
     void Serialize(std::ostream& stream) const
     {
         auto conv_problem = GetConvProblem(0, conv::Direction::Forward);

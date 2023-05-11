@@ -49,10 +49,6 @@
 #include <thread>
 #include <vector>
 
-#if MIOPEN_EMBED_DB
-#error "MIOPEN_EMBED_DB = On"
-#endif
-
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()

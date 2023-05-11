@@ -30,11 +30,11 @@
 
 #include <miopen/md5.hpp>
 #include "test.hpp"
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_ENABLE_SQLITE_KERN_CACHE
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 #include "random.hpp"
 #endif
 
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_ENABLE_SQLITE_KERN_CACHE
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
 std::string random_string(size_t length)
 {
     auto randchar = []() -> char {
@@ -154,7 +154,7 @@ int main()
 {
     check_cache_file();
     check_cache_str();
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_ENABLE_SQLITE_KERN_CACHE
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
     check_bz2_compress();
     check_bz2_decompress();
     check_kern_db();
