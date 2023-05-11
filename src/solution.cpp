@@ -299,6 +299,20 @@ void to_json(nlohmann::json& json, const Solution& solution)
         json[fields::PerfCfg] = *solution.perf_cfg;
 
 #if MIOPEN_BACKEND_HIP
+    if(solution.kernels.empty())
+    {
+        MIOPEN_LOG_I("Internal non-critical error: solution lacks kernels information. This would "
+                     "slowdown the next miopenRunSolution call.");
+        return;
+    }
+
+    {
+        const auto& first_program = solution.kernels.front().program;
+        if(!first_program.IsCodeObjectInMemory() && !first_program.IsCodeObjectInFile())
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Subsequent serialization of a deserialized solution is not supported.");
+    }
+
     auto programs         = std::vector<Program>{};
     auto prepared_kernels = std::vector<SerializedSolutionKernelInfo>{};
 
@@ -339,6 +353,9 @@ void to_json(nlohmann::json& json, const Solution& solution)
         }
         else
         {
+            // Programs that have been loaded from cache are internally interpreted
+            // as read from file with a correct path.
+
             using Iterator      = std::istream_iterator<uint8_t>;
             constexpr auto mode = std::ios::binary | std::ios::ate;
             const auto path     = program.GetCodeObjectPathname();

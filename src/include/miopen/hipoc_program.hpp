@@ -64,6 +64,7 @@ struct HIPOCProgram
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
+    bool IsCodeObjectInFile() const;
     void FreeCodeObjectFileStorage();
 
     friend bool operator==(const HIPOCProgram& l, const HIPOCProgram& r)

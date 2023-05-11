@@ -405,10 +405,15 @@ const std::vector<char>& HIPOCProgram::GetCodeObjectBlobAsVector() const { retur
 
 void HIPOCProgram::FreeCodeObjectFileStorage()
 {
-    impl->dir = boost::none;
-    impl->hsaco_file.clear();
+    if(impl->dir.has_value())
+    {
+        impl->dir = boost::none;
+        impl->hsaco_file.clear();
+    }
 }
 
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
+
+bool HIPOCProgram::IsCodeObjectInFile() const { return !impl->hsaco_file.empty(); }
 
 } // namespace miopen

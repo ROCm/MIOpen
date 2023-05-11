@@ -132,6 +132,7 @@ struct Solution : miopenSolution
     }
 
     const std::optional<Invoker>& GetInvoker() const { return invoker; }
+    const std::vector<KernelInfo>& GetKernels() const { return kernels; }
 
 private:
     float time                     = 0;
