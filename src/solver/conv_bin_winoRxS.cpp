@@ -199,8 +199,8 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
         && W < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && problem.pad_w < std::pow(2, 16)
-        && problem.pad_h < std::pow(2, 16)
+        && problem.GetPadW() < std::pow(2, 16)
+        && problem.GetPadH() < std::pow(2, 16)
         && S < std::pow(2, 16)
         && R < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
@@ -228,7 +228,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(problem.IsFp32() && problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1))
+        if(!(problem.IsFp32() && problem.GetKernelStrideW() == 1 &&
+             problem.GetKernelStrideH() == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
@@ -267,13 +268,13 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     }
 
     // clang-format off
-    if (! (problem.kernel_stride_w <= 2 // -u inp_u 1 or 2
-        && problem.kernel_stride_w == problem.kernel_stride_h
-        && problem.kernel_dilation_w == 1
-        && problem.kernel_dilation_h == 1
-        && problem.bias == 0
-        && problem.group_counts == 1
-        && problem.in_layout == "NCHW"))
+    if (! (problem.GetKernelStrideW() <= 2 // -u inp_u 1 or 2
+        && problem.GetKernelStrideW() == problem.GetKernelStrideH()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
+        && problem.GetBias() == 0
+        && problem.GetGroupCount() == 1
+        && problem.GetInLayout() == "NCHW"))
         return false;
     // clang-format on
 
@@ -281,17 +282,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.in_height,
-                                     problem.in_width,
-                                     problem.kernel_dilation_h,
-                                     problem.kernel_dilation_w,
-                                     problem.batch_sz, // N
-                                     problem.n_inputs, // K
-                                     problem.out_height,
-                                     problem.out_width,
-                                     problem.kernel_size_h,
-                                     problem.kernel_size_w,
-                                     problem.n_outputs, // C
+                                     problem.GetInHeight(),
+                                     problem.GetInWidth(),
+                                     problem.GetDilationH(),
+                                     problem.GetDilationW(),
+                                     problem.GetBatchSize(),  // N
+                                     problem.GetInChannels(), // K
+                                     problem.GetOutHeight(),
+                                     problem.GetOutWidth(),
+                                     problem.GetWeightsHeight(),
+                                     problem.GetWeightsWidth(),
+                                     problem.GetOutChannels(), // C
                                      fp16,
                                      2);
     }
@@ -299,17 +300,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.kernel_size_h, // RxS
-                                     problem.kernel_size_w,
-                                     problem.kernel_stride_h,
-                                     problem.kernel_stride_w,
-                                     problem.n_inputs,  // C
-                                     problem.n_outputs, // K
-                                     problem.in_height, // HxW
-                                     problem.in_width,
-                                     problem.out_height, // OHxOW
-                                     problem.out_width,
-                                     problem.batch_sz, // N
+                                     problem.GetWeightsHeight(), // RxS
+                                     problem.GetWeightsWidth(),
+                                     problem.GetKernelStrideH(),
+                                     problem.GetKernelStrideW(),
+                                     problem.GetInChannels(),  // C
+                                     problem.GetOutChannels(), // K
+                                     problem.GetInHeight(),    // HxW
+                                     problem.GetInWidth(),
+                                     problem.GetOutHeight(), // OHxOW
+                                     problem.GetOutWidth(),
+                                     problem.GetBatchSize(), // N
                                      fp16,
                                      3);
     }
@@ -345,7 +346,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
             kernel.kernel_file += "v14_3_3";
         kernel.kernel_file += "_fp16dot_stride";
 
-        if(problem.kernel_stride_w == 2)
+        if(problem.GetKernelStrideW() == 2)
         {
             if(problem.direction.IsForward())
                 kernel.kernel_file += "2_dec";
@@ -366,7 +367,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
-        if(problem.kernel_stride_w == 2)
+        if(problem.GetKernelStrideW() == 2)
         {
             if(problem.direction.IsForward())
                 kernel.kernel_file += "_stride_2_dec";
@@ -390,8 +391,8 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
         int reserved                = 0;
         int* reserved_ptr           = nullptr;
         using dataType              = float;
-        int pad_H                   = problem.pad_h;
-        int pad_W                   = problem.pad_w;
+        int pad_H                   = problem.GetPadH();
+        int pad_W                   = problem.GetPadW();
         int d_N_stride              = H * W * static_cast<int>(sizeof(dataType));
         int d_C_stride              = C * d_N_stride;
         int f_K_stride              = out_H * out_W * static_cast<int>(sizeof(dataType));
