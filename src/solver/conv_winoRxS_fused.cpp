@@ -65,7 +65,7 @@ template <int Winodata, int Winofilter>
 inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {
     return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
-           !(IS3X2 && problem.kernel_stride_w == 2);
+           !(IS3X2 && problem.GetKernelStrideW() == 2);
 }
 
 inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
@@ -88,8 +88,8 @@ inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
     uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
 
     auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
-                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+    auto stride_one = problem.GetKernelStrideH() == 1 && problem.GetKernelStrideW() == 1 &&
+                      problem.GetDilationH() == 1 && problem.GetDilationW() == 1;
 
     // clang-format off
     // Check implementation limits.
@@ -102,8 +102,8 @@ inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
         && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && problem.pad_w < std::pow(2, 16)
-        && problem.pad_h < std::pow(2, 16)
+        && problem.GetPadW() < std::pow(2, 16)
+        && problem.GetPadH() < std::pow(2, 16)
         && C * R * S < std::pow(2, 22)
         && K * R * S < std::pow(2, 28)
         && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
@@ -134,8 +134,8 @@ inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
         && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && problem.pad_w < std::pow(2, 16)
-        && problem.pad_h < std::pow(2, 16)
+        && problem.GetPadW() < std::pow(2, 16)
+        && problem.GetPadH() < std::pow(2, 16)
         && H * W < std::pow(2, 29)
         && K * R * S < std::pow(2, 28)
         && (C + 1) * H * W < std::pow(2, 30)
@@ -170,10 +170,10 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
         return false;
 
     // clang-format off
-    if (!((conv_problem.kernel_stride_w == 1 || conv_problem.kernel_stride_w == 2)
-        && conv_problem.kernel_stride_w == conv_problem.kernel_stride_h
-        && conv_problem.kernel_dilation_w == 1
-        && conv_problem.kernel_dilation_h == 1))
+    if (!((conv_problem.GetKernelStrideW() == 1 || conv_problem.GetKernelStrideW() == 2)
+        && conv_problem.GetKernelStrideW() == conv_problem.GetKernelStrideH()
+        && conv_problem.GetDilationW() == 1
+        && conv_problem.GetDilationH() == 1))
         return false;
     // clang-format on
 
@@ -231,7 +231,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
-    const auto kernel_postfix = "_fp32_f2x3_stride" + std::to_string(conv_problem.kernel_stride_h);
+    const auto kernel_postfix =
+        "_fp32_f2x3_stride" + std::to_string(conv_problem.GetKernelStrideH());
 
     if(is_gfx9)
     {

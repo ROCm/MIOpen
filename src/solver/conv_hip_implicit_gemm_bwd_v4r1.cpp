@@ -731,6 +731,8 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
 #endif
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
@@ -752,7 +754,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
