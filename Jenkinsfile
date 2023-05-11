@@ -140,6 +140,7 @@ def cmake_build(Map conf=[:]){
     // Only archive from master or develop
     if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" || env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
+        archiveArtifacts artifacts: "build/*.rpm", allowEmptyArchive: true, fingerprint: true
         stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
 }
@@ -508,6 +509,25 @@ pipeline {
             agent{ label rocmnode("nogpu") }
             steps{
                 getDockerImage()
+            }
+        }
+        stage("Packages") {
+            when {
+                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
+            }
+            parallel {
+                stage('OpenCL Package') {
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", needs_gpu:false)
+                    }
+                }
+                stage("HIP Package") {
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
+                    }
+                }
             }
         }
         stage("Static checks") {
@@ -1135,25 +1155,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
-                    }
-                }
-            }
-        }
-        stage("Packages") {
-            when {
-                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
-            }
-            parallel {
-                stage('OpenCL Package') {
-                    agent{ label rocmnode("nogpu") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", needs_gpu:false)
-                    }
-                }
-                stage("HIP Package") {
-                    agent{ label rocmnode("nogpu") }
-                    steps{
-                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
                     }
                 }
             }
