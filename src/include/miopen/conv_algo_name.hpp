@@ -40,6 +40,13 @@ enum class Direction
     BackwardWeights,
 };
 
+enum class TensorType
+{
+    Input,
+    Weights,
+    Output
+};
+
 } // namespace conv
 
 miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);

@@ -252,6 +252,8 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    if(problem.IsTensorsCasted() || problem.IsFp8())
+        return false;
 
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -390,6 +392,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                                          0,
                                                          workSpace,
                                                          x_t_size,
+                                                         nullptr,
                                                          GemmBackend_t::miopentensile,
                                                          conv_params.gfx90aFp16alt);
                 }
@@ -404,6 +407,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                            wksp_offset,
                                            workSpace,
                                            x_t_size,
+                                           nullptr,
                                            GemmBackend_t::miopentensile,
                                            conv_params.gfx90aFp16alt);
                 }
@@ -419,6 +423,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                         wksp_offset,
                                         workSpace,
                                         x_t_size,
+                                        nullptr,
                                         time_precision,
                                         group_count > 1 ? callGemmStridedBatched : callGemm,
                                         GemmBackend_t::miopentensile,
@@ -524,6 +529,8 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    if(problem.IsTensorsCasted() || problem.IsFp8())
+        return false;
 
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
@@ -623,6 +630,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                            0,
                                            y,
                                            out_offset,
+                                           nullptr,
                                            GemmBackend_t::miopentensile,
                                            conv_params.gfx90aFp16alt);
                 }
@@ -636,6 +644,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                                       0,
                                                       y,
                                                       out_offset,
+                                                      nullptr,
                                                       time_precision,
                                                       callGemm,
                                                       GemmBackend_t::miopentensile,
@@ -780,6 +789,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                              in_offset,
                                                              y,
                                                              out_offset,
+                                                             nullptr,
                                                              GemmBackend_t::miopentensile,
                                                              conv_params.gfx90aFp16alt);
                     }
@@ -793,6 +803,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                           in_offset,
                                                           y,
                                                           out_offset,
+                                                          nullptr,
                                                           time_precision,
                                                           callGemmStridedBatched,
                                                           GemmBackend_t::miopentensile,
@@ -864,6 +875,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                          0,
                                                          y,
                                                          0,
+                                                         nullptr,
                                                          GemmBackend_t::miopentensile,
                                                          conv_params.gfx90aFp16alt);
                 }
@@ -877,6 +889,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                       0,
                                                       y,
                                                       0,
+                                                      nullptr,
                                                       time_precision,
                                                       callGemmStridedBatched,
                                                       GemmBackend_t::miopentensile,
@@ -1135,6 +1148,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                         wksp_offset,
                         y,
                         0,
+                        nullptr,
                         time_precision,
                         conv.group_count > 1 ? callGemmStridedBatched : callGemm,
                         (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
@@ -1154,6 +1168,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                                              0,
                                                              y,
                                                              out_offset,
+                                                             nullptr,
                                                              GemmBackend_t::miopentensile,
                                                              conv_params.gfx90aFp16alt);
                     else
@@ -1166,6 +1181,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                             wksp_offset,
                             y,
                             out_offset,
+                            nullptr,
                             (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                                 ? GemmBackend_t::rocblas
                                 : GemmBackend_t::miopengemm,

@@ -700,7 +700,19 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
-/*! @brief Get size of N-dimensional tensor
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be cast to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 dataype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+
+/*! @brief Set shape of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
@@ -4994,22 +5006,6 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
  * @return         miopenStatus_t
  */
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
-
-/*! @brief Reads id of the solver referred by the solution.
- *
- * @param solution Solution to get solver id from
- * @param solverId Pointer to a location where to write the solver id
- * @return         miopenStatus_t
- */
-miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
-
-/*! @brief Gets the convolution algorithm implemented by a solver.
- *
- * @param solverId Solver id to get convolution algorithm of
- * @param result   Pointer to a location where to write the algorithm
- * @return         miopenStatus_t
- */
-miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
