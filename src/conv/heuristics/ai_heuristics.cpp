@@ -27,12 +27,15 @@
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
+#include <filesystem>
 
 namespace miopen {
 namespace ai {
 namespace common {
 nlohmann::json LoadJSON(const std::string& path)
 {
+    if(!std::filesystem::exists(path))
+        MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
     return nlohmann::json::parse(std::ifstream(path));
 }
 template <typename U, typename V>
@@ -129,7 +132,10 @@ protected:
     const size_t offset;
     static std::string ModelPath(const std::string& arch)
     {
-        return GetSystemDbPath() + "/" + arch + ".tn.model";
+        const auto file_path = GetSystemDbPath() + "/" + arch + ".tn.model";
+        if(!std::filesystem::exists(file_path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
+        return file_path;
     }
     virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
 };
