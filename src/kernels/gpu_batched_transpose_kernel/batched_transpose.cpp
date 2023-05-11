@@ -28,6 +28,8 @@
 #include <hip/hip_fp16.h>
 #endif
 
+#include "hip_float8.h"
+
 #ifndef BATCHED_TRANSPOSE_OCCUPANCY
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
 #endif
@@ -39,6 +41,75 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
+
+#define BT_FLAG_DEFAULT 0
+#define BT_FLAG_CVT_FP16_FP8_FP16 0x1
+#define BT_FLAG_CVT_FP16_BF8_FP16 0x2
+#define BT_FLAG_CVT_BF16_FP8_BF16 0x3
+#define BT_FLAG_CVT_BF16_BF8_BF16 0x4
+
+template <typename IntType>
+__device__ uint32_t psudo_rng(const IntType& x, const uint32_t& idx, const uint32_t& seed)
+{
+    // https://github.com/ROCmSoftwarePlatform/tensorflow-upstream/blob/fp8_quant/tensorflow/stream_executor/rocm/rocm_helpers.cu.cc#L39
+    uint32_t drop_bits = uint32_t(x) & 0xFFFFu;
+    if constexpr(sizeof(IntType) == 4)
+        drop_bits ^= x >> 16;
+    drop_bits = ((drop_bits & 31) << 11) | (drop_bits >> 5);
+    drop_bits *= 0x7000149;
+    uint32_t rng = (drop_bits ^ 0x13371337 ^ (idx * 229791) ^ seed);
+    return rng;
+}
+
+template <typename T>
+__device__ void cvt_pixel_with_flag(T& /*src*/,
+                                    const uint32_t& /*flag*/,
+                                    const uint32_t& /*stoch*/,
+                                    const uint32_t& /*idx*/,
+                                    const uint32_t& /*seed*/)
+{
+}
+
+template <>
+__device__ void cvt_pixel_with_flag<ushort>(ushort& src,
+                                            const uint32_t& flag,
+                                            const uint32_t& stoch,
+                                            const uint32_t& idx,
+                                            const uint32_t& seed)
+{
+    if(flag == BT_FLAG_CVT_FP16_FP8_FP16)
+    {
+        half src_fp = *reinterpret_cast<half*>(&src);
+        float8 cvt_fp;
+        if(stoch)
+        {
+            cvt_fp = float8(
+                src_fp, miopen_f8::hip_f8_rounding_mode::stochastic, psudo_rng(src, idx, seed));
+        }
+        else
+        {
+            cvt_fp = float8(src_fp);
+        }
+        half dst_fp = static_cast<half>(cvt_fp);
+        src         = *reinterpret_cast<ushort*>(&dst_fp);
+    }
+    else if(flag == BT_FLAG_CVT_FP16_BF8_FP16)
+    {
+        half src_fp = *reinterpret_cast<half*>(&src);
+        bfloat8 cvt_fp;
+        if(stoch)
+        {
+            cvt_fp = bfloat8(
+                src_fp, miopen_f8::hip_f8_rounding_mode::stochastic, psudo_rng(src, idx, seed));
+        }
+        else
+        {
+            cvt_fp = bfloat8(src_fp);
+        }
+        half dst_fp = static_cast<half>(cvt_fp);
+        src         = *reinterpret_cast<uint16_t*>(&dst_fp);
+    }
+}
 
 inline __device__ uint32_t magic_div_u32(const uint32_t& numer,
                                          const uint32_t& magic,
@@ -214,7 +285,10 @@ inline __device__ void batched_transpose_16x16(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     /*
      * assume src is batch * height * width, dst is batch * width * height
@@ -244,7 +318,9 @@ inline __device__ void batched_transpose_16x16(T* dst,
         {
             size_t src_index = static_cast<size_t>(dim_in) * height * width +
                                static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
-            smem[i_src_h * smem_stride + i_src_w] = src[src_index];
+            T src_tmp = src[src_index];
+            cvt_pixel_with_flag(src_tmp, flag, stoch, static_cast<uint32_t>(src_index), seed);
+            smem[i_src_h * smem_stride + i_src_w] = src_tmp;
         }
         __syncthreads();
 
@@ -272,7 +348,10 @@ inline __device__ void batched_transpose_32x16(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     /*
      * assume src is batch * height * width, dst is batch * width * height
@@ -304,10 +383,12 @@ inline __device__ void batched_transpose_32x16(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_src[0] = src[src_index];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width)
         {
             v_src[1] = src[src_index + 16];
+            cvt_pixel_with_flag(v_src[1], flag, stoch, static_cast<uint32_t>(src_index + 16), seed);
         }
         smem[i_src_h * smem_stride + i_src_w]                    = v_src[0];
         smem[i_src_h * smem_stride + i_src_w + 16 * smem_stride] = v_src[1];
@@ -345,7 +426,10 @@ inline __device__ void batched_transpose_16x32(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     /*
      * assume src is batch * height * width, dst is batch * width * height
@@ -377,10 +461,13 @@ inline __device__ void batched_transpose_16x32(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_src[0] = src[src_index];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if((g_src_h + 16) < height && g_src_w < width)
         {
             v_src[1] = src[src_index + 16 * width];
+            cvt_pixel_with_flag(
+                v_src[1], flag, stoch, static_cast<uint32_t>(src_index + 16 * width), seed);
         }
         smem[i_src_h * smem_stride + i_src_w]                    = v_src[0];
         smem[i_src_h * smem_stride + i_src_w + 16 * smem_stride] = v_src[1];
@@ -418,7 +505,10 @@ inline __device__ void batched_transpose_32x32(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     /*
      * assume src is batch * height * width, dst is batch * width * height
@@ -449,18 +539,24 @@ inline __device__ void batched_transpose_32x32(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_src.x = src[src_index];
+            cvt_pixel_with_flag(v_src.x, flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width)
         {
             v_src.z = src[src_index + 16];
+            cvt_pixel_with_flag(v_src.z, flag, stoch, static_cast<uint32_t>(src_index + 16), seed);
         }
         if((g_src_h + 16) < height && g_src_w < width)
         {
             v_src.y = src[src_index + 16 * width];
+            cvt_pixel_with_flag(
+                v_src.y, flag, stoch, static_cast<uint32_t>(src_index + 16 * width), seed);
         }
         if((g_src_h + 16) < height && (g_src_w + 16) < width)
         {
             v_src.w = src[src_index + 16 * width + 16];
+            cvt_pixel_with_flag(
+                v_src.w, flag, stoch, static_cast<uint32_t>(src_index + 16 * width + 16), seed);
         }
         smem[i_src_h * smem_stride + i_src_w] = v_src;
         __syncthreads();
@@ -503,7 +599,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -517,7 +616,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -552,7 +654,24 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x2<ushort>(ushort*
                                static_cast<size_t>(g_src_w);
             v_a = p_src[src_index];
             v_b = p_src[src_index + width_2];
-            v_pack_b32_f16_2x2(v_a_pack, v_b_pack, v_a, v_b);
+
+            using vec_t   = typename mapped_vector_type<ushort, 2>::type;
+            vec_t v_a_tmp = *reinterpret_cast<vec_t*>(&v_a);
+            vec_t v_b_tmp = *reinterpret_cast<vec_t*>(&v_b);
+
+            cvt_pixel_with_flag(
+                v_a_tmp.x, flag, stoch, static_cast<uint32_t>(src_index * 2 + 0), seed);
+            cvt_pixel_with_flag(
+                v_a_tmp.y, flag, stoch, static_cast<uint32_t>(src_index * 2 + 1), seed);
+            cvt_pixel_with_flag(
+                v_b_tmp.x, flag, stoch, static_cast<uint32_t>((src_index + width_2) * 2 + 0), seed);
+            cvt_pixel_with_flag(
+                v_b_tmp.y, flag, stoch, static_cast<uint32_t>((src_index + width_2) * 2 + 1), seed);
+
+            v_pack_b32_f16_2x2(v_a_pack,
+                               v_b_pack,
+                               *reinterpret_cast<float*>(&v_a_tmp),
+                               *reinterpret_cast<float*>(&v_b_tmp));
 
             smem[i_src_w * smem_stride + i_src_h]                    = v_a_pack;
             smem[i_src_w * smem_stride + i_src_h + 16 * smem_stride] = v_b_pack;
@@ -588,7 +707,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -602,7 +724,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -635,11 +760,17 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x2<ushort>(ushort*
         {
             v_src[0] = p_src[src_index];
             v_src[2] = p_src[src_index + width];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
+            cvt_pixel_with_flag(
+                v_src[2], flag, stoch, static_cast<uint32_t>(src_index + width), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width)
         {
             v_src[1] = p_src[src_index + 16];
             v_src[3] = p_src[src_index + width + 16];
+            cvt_pixel_with_flag(v_src[1], flag, stoch, static_cast<uint32_t>(src_index + 16), seed);
+            cvt_pixel_with_flag(
+                v_src[3], flag, stoch, static_cast<uint32_t>(src_index + width + 16), seed);
         }
 
         float v_pack[2];
@@ -684,7 +815,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x1(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -698,7 +832,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x1<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -728,17 +865,37 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_2x1<ushort>(ushort*
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
         __syncthreads();
 
+        ushort2 v_src_buf[2];
         if(g_src_h < height && g_src_w < width_2)
         {
-            v_src[0] = p_src[src_index];
+            v_src[0]     = p_src[src_index];
+            v_src_buf[0] = *reinterpret_cast<ushort2*>(&v_src[0]);
+            cvt_pixel_with_flag(
+                v_src_buf[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_src_buf[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
         }
         if((g_src_h + 16) < height && g_src_w < width_2)
         {
-            v_src[1] = p_src[src_index + 16 * width_2];
+            v_src[1]     = p_src[src_index + 16 * width_2];
+            v_src_buf[1] = *reinterpret_cast<ushort2*>(&v_src[1]);
+            cvt_pixel_with_flag(v_src_buf[1].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_src_buf[1].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2) + 1),
+                                seed);
         }
 
         float v_pack[2];
-        v_pack_b32_f16_2x2(v_pack[0], v_pack[1], v_src[0], v_src[1]);
+        v_pack_b32_f16_2x2(v_pack[0],
+                           v_pack[1],
+                           *reinterpret_cast<float*>(&v_src_buf[0]),
+                           *reinterpret_cast<float*>(&v_src_buf[1]));
 
         smem[i_src_w * smem_stride + i_src_h]                    = v_pack[0];
         smem[i_src_w * smem_stride + i_src_h + 16 * smem_stride] = v_pack[1];
@@ -784,7 +941,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x1(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -798,7 +958,10 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x1<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -835,18 +998,24 @@ inline __device__ void batched_transpose_32x32_pack_2x2_ediv_1x1<ushort>(ushort*
         if(g_src_h < height && g_src_w < width)
         {
             v_src[0] = p_src[src_index];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width)
         {
             v_src[1] = p_src[src_index + 16];
+            cvt_pixel_with_flag(v_src[1], flag, stoch, static_cast<uint32_t>(src_index + 16), seed);
         }
         if((g_src_h + 16) < height && g_src_w < width)
         {
             v_src[2] = p_src[src_index + 16 * width];
+            cvt_pixel_with_flag(
+                v_src[2], flag, stoch, static_cast<uint32_t>(src_index + 16 * width), seed);
         }
         if((g_src_h + 16) < height && (g_src_w + 16) < width)
         {
             v_src[3] = p_src[src_index + 16 * width + 16];
+            cvt_pixel_with_flag(
+                v_src[3], flag, stoch, static_cast<uint32_t>(src_index + 16 * width + 16), seed);
         }
 
         float v_pack[2];
@@ -902,7 +1071,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_4x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -916,7 +1088,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_4x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[64 * smem_stride];
@@ -954,8 +1129,52 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_4x2<ushort>(ushort*
                                static_cast<size_t>(g_src_w);
             v_a = p_src[src_index];
             v_b = p_src[src_index + width_4];
-            v_pack_b32_f16_2x2(v_pack[0], v_pack[1], v_a.x, v_b.x);
-            v_pack_b32_f16_2x2(v_pack[2], v_pack[3], v_a.y, v_b.y);
+
+            using vec_t = typename mapped_vector_type<ushort, 2>::type;
+            vec_t v_tmp[4];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_a.x);
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_a.y);
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_b.x);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_b.y);
+
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(4 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(4 * src_index + 1), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].x, flag, stoch, static_cast<uint32_t>(4 * src_index + 2), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].y, flag, stoch, static_cast<uint32_t>(4 * src_index + 3), seed);
+
+            cvt_pixel_with_flag(v_tmp[2].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[2].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 2),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 3),
+                                seed);
+
+            v_pack_b32_f16_2x2(v_pack[0],
+                               v_pack[1],
+                               *reinterpret_cast<float*>(&v_tmp[0]),
+                               *reinterpret_cast<float*>(&v_tmp[2]));
+            v_pack_b32_f16_2x2(v_pack[2],
+                               v_pack[3],
+                               *reinterpret_cast<float*>(&v_tmp[1]),
+                               *reinterpret_cast<float*>(&v_tmp[3]));
 
             smem[i_src_w * smem_stride + i_src_h]                    = v_pack[0];
             smem[i_src_w * smem_stride + i_src_h + 16 * smem_stride] = v_pack[1];
@@ -1022,7 +1241,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1036,7 +1258,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     //__shared__ float smem[64 * smem_stride];
@@ -1073,20 +1298,62 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x2<ushort>(ushort*
         float v_src[4];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_2 +
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[4];
         if(g_src_h < height && g_src_w < width_2)
         {
             v_src[0] = p_src[src_index];
             v_src[1] = p_src[src_index + width_2];
+
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0]);
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[1]);
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
+            cvt_pixel_with_flag(v_tmp[1].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[1].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 1),
+                                seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width_2)
         {
             v_src[2] = p_src[src_index + 16];
             v_src[3] = p_src[src_index + width_2 + 16];
+
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_src[2]);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_src[3]);
+            cvt_pixel_with_flag(
+                v_tmp[2].x, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[2].y, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 1), seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2 + 16) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2 + 16) + 1),
+                                seed);
         }
 
         float4 v_pack;
-        v_pack_b32_f16_2x2(v_pack.x, v_pack.y, v_src[0], v_src[1]);
-        v_pack_b32_f16_2x2(v_pack.z, v_pack.w, v_src[2], v_src[3]);
+        v_pack_b32_f16_2x2(v_pack.x,
+                           v_pack.y,
+                           *reinterpret_cast<float*>(&v_tmp[0]),
+                           *reinterpret_cast<float*>(&v_tmp[1]));
+        v_pack_b32_f16_2x2(v_pack.z,
+                           v_pack.w,
+                           *reinterpret_cast<float*>(&v_tmp[2]),
+                           *reinterpret_cast<float*>(&v_tmp[3]));
 
         smem[i_src_w * smem_stride + i_src_h] = v_pack;
         __syncthreads();
@@ -1123,7 +1390,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x1(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1137,7 +1407,10 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x1<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float4 smem[16 * smem_stride];
@@ -1172,26 +1445,66 @@ inline __device__ void batched_transpose_64x32_pack_4x2_ediv_2x1<ushort>(ushort*
         float v_src[4];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_2 +
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[4];
         if(g_src_h < height && g_src_w < width_2)
         {
             v_src[0] = p_src[src_index];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0]);
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width_2)
         {
             v_src[2] = p_src[src_index + 16];
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_src[2]);
+            cvt_pixel_with_flag(
+                v_tmp[2].x, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[2].y, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 1), seed);
         }
         if((g_src_h + 16) < height && g_src_w < width_2)
         {
             v_src[1] = p_src[src_index + 16 * width_2];
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[1]);
+            cvt_pixel_with_flag(v_tmp[1].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[1].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2) + 1),
+                                seed);
         }
         if((g_src_h + 16) < height && (g_src_w + 16) < width_2)
         {
             v_src[3] = p_src[src_index + 16 * width_2 + 16];
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_src[3]);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2 + 16) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 16 * width_2 + 16) + 1),
+                                seed);
         }
 
         float4 v_pack;
-        v_pack_b32_f16_2x2(v_pack.x, v_pack.y, v_src[0], v_src[1]);
-        v_pack_b32_f16_2x2(v_pack.z, v_pack.w, v_src[2], v_src[3]);
+        v_pack_b32_f16_2x2(v_pack.x,
+                           v_pack.y,
+                           *reinterpret_cast<float*>(&v_tmp[0]),
+                           *reinterpret_cast<float*>(&v_tmp[1]));
+        v_pack_b32_f16_2x2(v_pack.z,
+                           v_pack.w,
+                           *reinterpret_cast<float*>(&v_tmp[2]),
+                           *reinterpret_cast<float*>(&v_tmp[3]));
 
         smem[i_src_w * smem_stride + i_src_h] = v_pack;
         __syncthreads();
@@ -1243,7 +1556,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x4(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1257,7 +1573,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x4<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     //__shared__ float smem[64 * smem_stride];
@@ -1320,8 +1639,58 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x4<ushort>(ushort*
             v[1] = p_src[src_index + width_2];
             v[2] = p_src[src_index + 2 * width_2];
             v[3] = p_src[src_index + 3 * width_2];
-            v_pack_b32_f16_2x2(v_pack.x, v_pack.z, v[0], v[1]);
-            v_pack_b32_f16_2x2(v_pack.y, v_pack.w, v[2], v[3]);
+
+            using vec_t = typename mapped_vector_type<ushort, 2>::type;
+            vec_t v_tmp[4];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v[0]);
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v[1]);
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v[2]);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v[3]);
+
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
+            cvt_pixel_with_flag(v_tmp[1].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[1].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 1),
+                                seed);
+
+            cvt_pixel_with_flag(v_tmp[2].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 2 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[2].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 2 * width_2) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 3 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 3 * width_2) + 1),
+                                seed);
+
+            v_pack_b32_f16_2x2(v_pack.x,
+                               v_pack.z,
+                               *reinterpret_cast<float*>(&v_tmp[0]),
+                               *reinterpret_cast<float*>(&v_tmp[1]));
+            v_pack_b32_f16_2x2(v_pack.y,
+                               v_pack.w,
+                               *reinterpret_cast<float*>(&v_tmp[2]),
+                               *reinterpret_cast<float*>(&v_tmp[3]));
 
             smem[i_src_w * smem_stride + i_src_h] = v_pack;
 #endif
@@ -1369,7 +1738,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1383,7 +1755,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     //__shared__ float smem[64 * smem_stride];
@@ -1415,20 +1790,67 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_2x2<ushort>(ushort*
         float v_src[4];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_2 +
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[4];
+
         if(g_src_h < height && g_src_w < width_2)
         {
             v_src[0] = p_src[src_index];
             v_src[1] = p_src[src_index + width_2];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0]);
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[1]);
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
+            cvt_pixel_with_flag(v_tmp[1].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[1].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 1),
+                                seed);
         }
         if((g_src_h + 32) < height && g_src_w < width_2)
         {
             v_src[2] = p_src[src_index + 32 * width_2];
             v_src[3] = p_src[src_index + 33 * width_2];
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_src[2]);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_src[3]);
+            cvt_pixel_with_flag(v_tmp[2].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[2].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2) + 1),
+                                seed);
         }
 
         float4 v_pack;
-        v_pack_b32_f16_2x2(v_pack.x, v_pack.z, v_src[0], v_src[1]);
-        v_pack_b32_f16_2x2(v_pack.y, v_pack.w, v_src[2], v_src[3]);
+        v_pack_b32_f16_2x2(v_pack.x,
+                           v_pack.z,
+                           *reinterpret_cast<float*>(&v_tmp[0]),
+                           *reinterpret_cast<float*>(&v_tmp[1]));
+        v_pack_b32_f16_2x2(v_pack.y,
+                           v_pack.w,
+                           *reinterpret_cast<float*>(&v_tmp[2]),
+                           *reinterpret_cast<float*>(&v_tmp[3]));
 
         smem[i_src_w * smem_stride + i_src_h] = v_pack;
 
@@ -1466,7 +1888,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_1x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1480,7 +1905,10 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_1x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     //__shared__ float smem[64 * smem_stride];
@@ -1523,21 +1951,35 @@ inline __device__ void batched_transpose_32x64_pack_2x4_ediv_1x2<ushort>(ushort*
         {
             v_src[0] = p_src[src_index];
             v_src[2] = p_src[src_index + width];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
+            cvt_pixel_with_flag(
+                v_src[2], flag, stoch, static_cast<uint32_t>(src_index + width), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width)
         {
             v_src[1] = p_src[src_index + 16];
             v_src[3] = p_src[src_index + width + 16];
+            cvt_pixel_with_flag(v_src[1], flag, stoch, static_cast<uint32_t>(src_index + 16), seed);
+            cvt_pixel_with_flag(
+                v_src[3], flag, stoch, static_cast<uint32_t>(src_index + width + 16), seed);
         }
         if((g_src_h + 32) < height && g_src_w < width)
         {
             v_src[4] = p_src[src_index + 32 * width];
             v_src[6] = p_src[src_index + 33 * width];
+            cvt_pixel_with_flag(
+                v_src[4], flag, stoch, static_cast<uint32_t>(src_index + 32 * width), seed);
+            cvt_pixel_with_flag(
+                v_src[6], flag, stoch, static_cast<uint32_t>(src_index + 33 * width), seed);
         }
         if((g_src_h + 32) < height && (g_src_w + 16) < width)
         {
             v_src[5] = p_src[src_index + 32 * width + 16];
             v_src[7] = p_src[src_index + 33 * width + 16];
+            cvt_pixel_with_flag(
+                v_src[5], flag, stoch, static_cast<uint32_t>(src_index + 32 * width + 16), seed);
+            cvt_pixel_with_flag(
+                v_src[7], flag, stoch, static_cast<uint32_t>(src_index + 33 * width + 16), seed);
         }
 
         float4 v_pack;
@@ -1588,7 +2030,10 @@ inline __device__ void batched_transpose_16x64_pack_1x4_ediv_1x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1602,7 +2047,10 @@ inline __device__ void batched_transpose_16x64_pack_1x4_ediv_1x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -1644,11 +2092,18 @@ inline __device__ void batched_transpose_16x64_pack_1x4_ediv_1x2<ushort>(ushort*
         {
             v_src[0] = p_src[src_index];
             v_src[1] = p_src[src_index + width];
+            cvt_pixel_with_flag(v_src[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
+            cvt_pixel_with_flag(
+                v_src[1], flag, stoch, static_cast<uint32_t>(src_index + width), seed);
         }
         if((g_src_h + 32) < height && g_src_w < width)
         {
             v_src[2] = p_src[src_index + 32 * width];
             v_src[3] = p_src[src_index + 33 * width];
+            cvt_pixel_with_flag(
+                v_src[2], flag, stoch, static_cast<uint32_t>(src_index + 32 * width), seed);
+            cvt_pixel_with_flag(
+                v_src[3], flag, stoch, static_cast<uint32_t>(src_index + 33 * width), seed);
         }
 
         ushort2 v_pack_tmp[2];
@@ -1696,7 +2151,10 @@ inline __device__ void batched_transpose_64x16_pack_4x1_ediv_2x1(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1710,7 +2168,10 @@ inline __device__ void batched_transpose_64x16_pack_4x1_ediv_2x1<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float smem[32 * smem_stride];
@@ -1739,17 +2200,30 @@ inline __device__ void batched_transpose_64x16_pack_4x1_ediv_2x1<ushort>(ushort*
         float v_src[2];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_2 +
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[2];
         if(g_src_h < height && g_src_w < width_2)
         {
             v_src[0] = p_src[src_index];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0]);
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width_2)
         {
             v_src[1] = p_src[src_index + 16];
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[1]);
+            cvt_pixel_with_flag(
+                v_tmp[1].x, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].y, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 1), seed);
         }
 
-        smem[i_src_w * smem_stride + i_src_h]                    = v_src[0];
-        smem[i_src_w * smem_stride + i_src_h + 16 * smem_stride] = v_src[1];
+        smem[i_src_w * smem_stride + i_src_h] = *reinterpret_cast<float*>(&v_tmp[0]);
+        smem[i_src_w * smem_stride + i_src_h + 16 * smem_stride] =
+            *reinterpret_cast<float*>(&v_tmp[1]);
 
         __syncthreads();
 
@@ -1791,7 +2265,10 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_4x4(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1805,7 +2282,10 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_4x4<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     //__shared__ float smem[64 * smem_stride];
@@ -1845,19 +2325,113 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_4x4<ushort>(ushort*
         float2 v_src[4];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_4 +
                            static_cast<size_t>(g_src_h) * width_4 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[8];
         if(g_src_h < height && g_src_w < width_4)
         {
             v_src[0] = p_src[src_index];
             v_src[1] = p_src[src_index + width_4];
             v_src[2] = p_src[src_index + 2 * width_4];
             v_src[3] = p_src[src_index + 3 * width_4];
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0].x);
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[0].y);
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_src[1].x);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_src[1].y);
+            v_tmp[4] = *reinterpret_cast<vec_t*>(&v_src[2].x);
+            v_tmp[5] = *reinterpret_cast<vec_t*>(&v_src[2].y);
+            v_tmp[6] = *reinterpret_cast<vec_t*>(&v_src[3].x);
+            v_tmp[7] = *reinterpret_cast<vec_t*>(&v_src[3].y);
+
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(4 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(4 * src_index + 1), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].x, flag, stoch, static_cast<uint32_t>(4 * src_index + 2), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].y, flag, stoch, static_cast<uint32_t>(4 * src_index + 3), seed);
+
+            cvt_pixel_with_flag(v_tmp[2].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[2].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 2),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + width_4) + 3),
+                                seed);
+
+            cvt_pixel_with_flag(v_tmp[4].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 2 * width_4) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[4].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 2 * width_4) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[5].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 2 * width_4) + 2),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[5].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 2 * width_4) + 3),
+                                seed);
+
+            cvt_pixel_with_flag(v_tmp[6].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 3 * width_4) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[6].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 3 * width_4) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[7].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 3 * width_4) + 2),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[7].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(4 * (src_index + 3 * width_4) + 3),
+                                seed);
         }
 
         float2 v_pack[4];
-        v_pack_b32_f16_2x2(v_pack[0].x, v_pack[1].x, v_src[0].x, v_src[1].x);
-        v_pack_b32_f16_2x2(v_pack[2].x, v_pack[3].x, v_src[0].y, v_src[1].y);
-        v_pack_b32_f16_2x2(v_pack[0].y, v_pack[1].y, v_src[2].x, v_src[3].x);
-        v_pack_b32_f16_2x2(v_pack[2].y, v_pack[3].y, v_src[2].y, v_src[3].y);
+        v_pack_b32_f16_2x2(v_pack[0].x,
+                           v_pack[1].x,
+                           *reinterpret_cast<float*>(&v_tmp[0]),
+                           *reinterpret_cast<float*>(&v_tmp[2]));
+        v_pack_b32_f16_2x2(v_pack[2].x,
+                           v_pack[3].x,
+                           *reinterpret_cast<float*>(&v_tmp[1]),
+                           *reinterpret_cast<float*>(&v_tmp[3]));
+        v_pack_b32_f16_2x2(v_pack[0].y,
+                           v_pack[1].y,
+                           *reinterpret_cast<float*>(&v_tmp[4]),
+                           *reinterpret_cast<float*>(&v_tmp[6]));
+        v_pack_b32_f16_2x2(v_pack[2].y,
+                           v_pack[3].y,
+                           *reinterpret_cast<float*>(&v_tmp[5]),
+                           *reinterpret_cast<float*>(&v_tmp[7]));
 
         smem[i_src_w * smem_stride + i_src_h] =
             make_float4(v_pack[0].x, v_pack[0].y, v_pack[1].x, v_pack[1].y);
@@ -1897,7 +2471,10 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_2x2(T* /*dst*/,
                                                                  uint32_t /*magic_h*/,
                                                                  uint32_t /*shift_h*/,
                                                                  uint32_t /*magic_w*/,
-                                                                 uint32_t /*shift_w*/)
+                                                                 uint32_t /*shift_w*/,
+                                                                 uint32_t /*flag*/,
+                                                                 uint32_t /*stoch*/,
+                                                                 uint32_t /*seed*/)
 {
 }
 
@@ -1911,7 +2488,10 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_2x2<ushort>(ushort*
                                                                          uint32_t magic_h,
                                                                          uint32_t shift_h,
                                                                          uint32_t magic_w,
-                                                                         uint32_t shift_w)
+                                                                         uint32_t shift_w,
+                                                                         uint32_t flag,
+                                                                         uint32_t stoch,
+                                                                         uint32_t seed)
 {
     constexpr auto smem_stride = 17;
     __shared__ float4 smem[32 * smem_stride];
@@ -1950,32 +2530,126 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_2x2<ushort>(ushort*
         float v_src[8];
         size_t src_index = static_cast<size_t>(dim_in) * height * width_2 +
                            static_cast<size_t>(g_src_h) * width_2 + static_cast<size_t>(g_src_w);
+        using vec_t = typename mapped_vector_type<ushort, 2>::type;
+        vec_t v_tmp[8];
         if(g_src_h < height && g_src_w < width_2)
         {
             v_src[0] = p_src[src_index];
             v_src[2] = p_src[src_index + width_2];
+
+            v_tmp[0] = *reinterpret_cast<vec_t*>(&v_src[0]);
+            v_tmp[2] = *reinterpret_cast<vec_t*>(&v_src[2]);
+            cvt_pixel_with_flag(
+                v_tmp[0].x, flag, stoch, static_cast<uint32_t>(2 * src_index + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[0].y, flag, stoch, static_cast<uint32_t>(2 * src_index + 1), seed);
+            cvt_pixel_with_flag(v_tmp[2].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[2].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2) + 1),
+                                seed);
         }
         if(g_src_h < height && (g_src_w + 16) < width_2)
         {
             v_src[1] = p_src[src_index + 16];
             v_src[3] = p_src[src_index + width_2 + 16];
+
+            v_tmp[1] = *reinterpret_cast<vec_t*>(&v_src[1]);
+            v_tmp[3] = *reinterpret_cast<vec_t*>(&v_src[3]);
+            cvt_pixel_with_flag(
+                v_tmp[1].x, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 0), seed);
+            cvt_pixel_with_flag(
+                v_tmp[1].y, flag, stoch, static_cast<uint32_t>(2 * (src_index + 16) + 1), seed);
+            cvt_pixel_with_flag(v_tmp[3].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2 + 16) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[3].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + width_2 + 16) + 1),
+                                seed);
         }
         if((g_src_h + 32) < height && g_src_w < width_2)
         {
             v_src[4] = p_src[src_index + 32 * width_2];
             v_src[6] = p_src[src_index + 33 * width_2];
+
+            v_tmp[4] = *reinterpret_cast<vec_t*>(&v_src[4]);
+            v_tmp[6] = *reinterpret_cast<vec_t*>(&v_src[6]);
+            cvt_pixel_with_flag(v_tmp[4].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[4].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[6].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[6].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2) + 1),
+                                seed);
         }
         if((g_src_h + 32) < height && (g_src_w + 16) < width_2)
         {
             v_src[5] = p_src[src_index + 32 * width_2 + 16];
             v_src[7] = p_src[src_index + 33 * width_2 + 16];
+
+            v_tmp[5] = *reinterpret_cast<vec_t*>(&v_src[5]);
+            v_tmp[7] = *reinterpret_cast<vec_t*>(&v_src[7]);
+            cvt_pixel_with_flag(v_tmp[5].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2 + 16) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[5].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 32 * width_2 + 16) + 1),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[7].x,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2 + 16) + 0),
+                                seed);
+            cvt_pixel_with_flag(v_tmp[7].y,
+                                flag,
+                                stoch,
+                                static_cast<uint32_t>(2 * (src_index + 33 * width_2 + 16) + 1),
+                                seed);
         }
 
         float2 v_pack[4];
-        v_pack_b32_f16_2x2(v_pack[0].x, v_pack[1].x, v_src[0], v_src[2]);
-        v_pack_b32_f16_2x2(v_pack[2].x, v_pack[3].x, v_src[1], v_src[3]);
-        v_pack_b32_f16_2x2(v_pack[0].y, v_pack[1].y, v_src[4], v_src[6]);
-        v_pack_b32_f16_2x2(v_pack[2].y, v_pack[3].y, v_src[5], v_src[7]);
+        v_pack_b32_f16_2x2(v_pack[0].x,
+                           v_pack[1].x,
+                           *reinterpret_cast<float*>(&v_tmp[0]),
+                           *reinterpret_cast<float*>(&v_tmp[2]));
+        v_pack_b32_f16_2x2(v_pack[2].x,
+                           v_pack[3].x,
+                           *reinterpret_cast<float*>(&v_tmp[1]),
+                           *reinterpret_cast<float*>(&v_tmp[3]));
+        v_pack_b32_f16_2x2(v_pack[0].y,
+                           v_pack[1].y,
+                           *reinterpret_cast<float*>(&v_tmp[4]),
+                           *reinterpret_cast<float*>(&v_tmp[6]));
+        v_pack_b32_f16_2x2(v_pack[2].y,
+                           v_pack[3].y,
+                           *reinterpret_cast<float*>(&v_tmp[5]),
+                           *reinterpret_cast<float*>(&v_tmp[7]));
 
         smem[i_src_w * smem_stride + i_src_h] =
             make_float4(v_pack[0].x, v_pack[0].y, v_pack[1].x, v_pack[1].y);
@@ -2028,7 +2702,10 @@ inline __device__ void batched_transpose_4x256(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     uint32_t h_dim = (height + 255) >> 8;
     uint32_t w_dim = (width + 3) >> 2;
@@ -2049,18 +2726,22 @@ inline __device__ void batched_transpose_4x256(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf[0] = src[src_index];
+            cvt_pixel_with_flag(v_buf[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if(g_src_h < height && (g_src_w + 1) < width)
         {
             v_buf[1] = src[src_index + 1];
+            cvt_pixel_with_flag(v_buf[1], flag, stoch, static_cast<uint32_t>(src_index + 1), seed);
         }
         if(g_src_h < height && (g_src_w + 2) < width)
         {
             v_buf[2] = src[src_index + 2];
+            cvt_pixel_with_flag(v_buf[2], flag, stoch, static_cast<uint32_t>(src_index + 2), seed);
         }
         if(g_src_h < height && (g_src_w + 3) < width)
         {
             v_buf[3] = src[src_index + 3];
+            cvt_pixel_with_flag(v_buf[3], flag, stoch, static_cast<uint32_t>(src_index + 3), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 8) + threadIdx.x;
@@ -2097,7 +2778,10 @@ inline __device__ void batched_transpose_256x4(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     uint32_t h_dim = (height + 3) >> 2;
     uint32_t w_dim = (width + 255) >> 8;
@@ -2118,18 +2802,25 @@ inline __device__ void batched_transpose_256x4(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf[0] = src[src_index];
+            cvt_pixel_with_flag(v_buf[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if((g_src_h + 1) < height && g_src_w < width)
         {
             v_buf[1] = src[src_index + width];
+            cvt_pixel_with_flag(
+                v_buf[1], flag, stoch, static_cast<uint32_t>(src_index + width), seed);
         }
         if((g_src_h + 2) < height && g_src_w < width)
         {
             v_buf[2] = src[src_index + 2 * width];
+            cvt_pixel_with_flag(
+                v_buf[2], flag, stoch, static_cast<uint32_t>(src_index + 2 * width), seed);
         }
         if((g_src_h + 3) < height && g_src_w < width)
         {
             v_buf[3] = src[src_index + 3 * width];
+            cvt_pixel_with_flag(
+                v_buf[3], flag, stoch, static_cast<uint32_t>(src_index + 3 * width), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 2);
@@ -2166,7 +2857,10 @@ inline __device__ void batched_transpose_4x128(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     uint32_t h_dim = (height + 127) >> 7;
     uint32_t w_dim = (width + 3) >> 2;
@@ -2187,10 +2881,12 @@ inline __device__ void batched_transpose_4x128(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf[0] = src[src_index];
+            cvt_pixel_with_flag(v_buf[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if(g_src_h < height && (g_src_w + 2) < width)
         {
             v_buf[1] = src[src_index + 2];
+            cvt_pixel_with_flag(v_buf[1], flag, stoch, static_cast<uint32_t>(src_index + 2), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 7) + (threadIdx.x & 127);
@@ -2219,7 +2915,10 @@ inline __device__ void batched_transpose_128x4(T* dst,
                                                uint32_t magic_h,
                                                uint32_t shift_h,
                                                uint32_t magic_w,
-                                               uint32_t shift_w)
+                                               uint32_t shift_w,
+                                               uint32_t flag,
+                                               uint32_t stoch,
+                                               uint32_t seed)
 {
     uint32_t h_dim = (height + 3) >> 2;
     uint32_t w_dim = (width + 127) >> 7;
@@ -2240,10 +2939,13 @@ inline __device__ void batched_transpose_128x4(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf[0] = src[src_index];
+            cvt_pixel_with_flag(v_buf[0], flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
         if((g_src_h + 2) < height && g_src_w < width)
         {
             v_buf[1] = src[src_index + 2 * width];
+            cvt_pixel_with_flag(
+                v_buf[1], flag, stoch, static_cast<uint32_t>(src_index + 2 * width), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 2) + (threadIdx.x >> 7);
@@ -2272,7 +2974,10 @@ inline __device__ void batched_transpose_4x64(T* dst,
                                               uint32_t magic_h,
                                               uint32_t shift_h,
                                               uint32_t magic_w,
-                                              uint32_t shift_w)
+                                              uint32_t shift_w,
+                                              uint32_t flag,
+                                              uint32_t stoch,
+                                              uint32_t seed)
 {
     uint32_t h_dim = (height + 63) >> 6;
     uint32_t w_dim = (width + 3) >> 2;
@@ -2293,6 +2998,7 @@ inline __device__ void batched_transpose_4x64(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf = src[src_index];
+            cvt_pixel_with_flag(v_buf, flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 6) + (threadIdx.x & 63);
@@ -2317,7 +3023,10 @@ inline __device__ void batched_transpose_64x4(T* dst,
                                               uint32_t magic_h,
                                               uint32_t shift_h,
                                               uint32_t magic_w,
-                                              uint32_t shift_w)
+                                              uint32_t shift_w,
+                                              uint32_t flag,
+                                              uint32_t stoch,
+                                              uint32_t seed)
 {
     uint32_t h_dim = (height + 3) >> 2;
     uint32_t w_dim = (width + 63) >> 6;
@@ -2338,6 +3047,7 @@ inline __device__ void batched_transpose_64x4(T* dst,
         if(g_src_h < height && g_src_w < width)
         {
             v_buf = src[src_index];
+            cvt_pixel_with_flag(v_buf, flag, stoch, static_cast<uint32_t>(src_index), seed);
         }
 
         uint32_t g_dst_h = (dim_ih << 2) + (threadIdx.x >> 6);
@@ -2364,7 +3074,10 @@ inline __device__ void batched_transpose_64x4(T* dst,
                                                             uint32_t magic_h,                  \
                                                             uint32_t shift_h,                  \
                                                             uint32_t magic_w,                  \
-                                                            uint32_t shift_w)                  \
+                                                            uint32_t shift_w,                  \
+                                                            uint32_t flag,                     \
+                                                            uint32_t stoch,                    \
+                                                            uint32_t seed)                     \
     {                                                                                          \
         batched_transpose_##tile_trait<cast_data_type>(reinterpret_cast<cast_data_type*>(dst), \
                                                        reinterpret_cast<cast_data_type*>(src), \
@@ -2375,7 +3088,10 @@ inline __device__ void batched_transpose_64x4(T* dst,
                                                        magic_h,                                \
                                                        shift_h,                                \
                                                        magic_w,                                \
-                                                       shift_w);                               \
+                                                       shift_w,                                \
+                                                       flag,                                   \
+                                                       stoch,                                  \
+                                                       seed);                                  \
     }
 
 DEFINE_BATCHED_TRANSPOSE_KERNEL(16x16, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)

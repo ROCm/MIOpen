@@ -84,8 +84,6 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
-        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
@@ -102,6 +100,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(problem.conv_problem.IsTensorsCasted())
         return false;
 
     {
