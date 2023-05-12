@@ -153,6 +153,6 @@
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 16
+#define MIOPEN_GOLDEN_DB_VERSION -
 
 #endif // GUARD_CONFIG_H_IN
