@@ -132,9 +132,9 @@ int mlo_construct_norm::mloConstructFwd()
         const std::string name = _ctx.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
-            MIOPEN_LOG_I("Workaround for #1057: "
-                         << name << ',' << miopen::GetDataTypeName(_problem.in_data_type) << ','
-                         << MAP_SZ4 << ',' << read_unit);
+            MIOPEN_LOG_I("Workaround for #1057: " << name << ','
+                                                  << miopen::GetDataTypeName(_problem.in_data_type)
+                                                  << ',' << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
@@ -145,11 +145,10 @@ int mlo_construct_norm::mloConstructFwd()
     int scale_batch_stride   = _problem.out_batch_stride;
     int scale                = (doBackward()) ? 1 : 0;
 
-    auto g_wk_width = static_cast<int>((_problem.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
+    auto g_wk_width  = static_cast<int>((_problem.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                                        (_grp_tile0 * _out_pix_tile0));
-    auto g_wk_height =
-        static_cast<int>((_problem.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
-                         (_grp_tile1 * _out_pix_tile1));
+    auto g_wk_height = static_cast<int>((_problem.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
+                                        (_grp_tile1 * _out_pix_tile1));
     int OUT_VERT_ALIGNED =
         (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _problem.out_height) ? 1 : 0;
     int OUT_HORIZ_ALIGNED =
@@ -157,8 +156,7 @@ int mlo_construct_norm::mloConstructFwd()
     // currently always 1
     int DIVBY4 = (MAP_SZ4 * read_unit == _problem.in_width * _problem.in_height) ? 1 : 0;
     int C1x1_PIXLEFT =
-        (DIVBY4 == 1) ? 0
-                      : _problem.in_width * _problem.in_height - (MAP_SZ4 - 1) * read_unit;
+        (DIVBY4 == 1) ? 0 : _problem.in_width * _problem.in_height - (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
@@ -301,6 +299,7 @@ int mlo_construct_norm::mloConstructBwd()
     if(pre_pad < 0 || pad < 0)
         MIOPEN_THROW("Wrong LRN kernel size");
 
+    // clang-format off
     _comp_options =
         std::string(" -DMLO_LRN_KERNEL_SZ=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
@@ -363,6 +362,7 @@ int mlo_construct_norm::mloConstructBwd()
         std::to_string(static_cast<long long>(_problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(_problem.n_outputs)) + getGeneralCompOptions();
+    // clang-format on
 
     _kernel_file = "MIOpenLRNBwd.cl";
 
