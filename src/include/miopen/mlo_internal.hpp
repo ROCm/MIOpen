@@ -184,31 +184,6 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
     x.mloConstruct();
 }
 
-template <class T>
-auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindSolution();
-}
-
-template <class T, class U>
-auto FindFirstSolution(T& x, U& solvers, const miopen::AnyInvokeParams& invoke_ctx)
-    -> decltype(x.FindSolution(solvers, invoke_ctx))
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindSolution(solvers, invoke_ctx);
-}
-
-template <class T>
-auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindAllSolutions();
-}
-
 bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
                      const miopen::ProblemDescription& problem);
 
@@ -305,16 +280,6 @@ struct mlo_construct_base
         _problem.group_counts      = 1;
     }
 
-    mlo_construct_base(const miopen::TensorDescriptor& in,
-                       const miopen::TensorDescriptor& weights,
-                       const miopen::TensorDescriptor& out,
-                       const miopen::ConvolutionDescriptor& conv,
-                       miopen::conv::Direction dir,
-                       bool do_bias = false)
-        : _problem(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
-    {
-    }
-
     void detectRocm() { _ctx.DetectRocm(); }
     void setupFloats() { _problem.conv_problem.SetupFloats(_ctx); }
 
@@ -329,25 +294,9 @@ struct mlo_construct_base
     }
 
     /*
-     * return direction: true - forward, false - backward
-     */
-    inline bool isForwardDirection() const
-    {
-        if(!_problem.direction.IsKnown())
-            MIOPEN_THROW("!_problem.direction.IsKnown()");
-        return _problem.direction.IsForward(); // convolutions: backward data OR wrw otherwise
-    }
-
-    /*
      * set library stream
      */
     inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
-
-    // MD: Hack to get the key outside of mlo_internal
-    int mloBuildConf_Key(std::string& conf_key) const
-    {
-        return _problem.mloBuildConf_Key(conf_key);
-    }
 
     std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
 
