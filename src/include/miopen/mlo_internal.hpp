@@ -280,9 +280,6 @@ struct mlo_construct_base
         _problem.group_counts      = 1;
     }
 
-    void detectRocm() { _ctx.DetectRocm(); }
-    void setupFloats() { _problem.conv_problem.SetupFloats(_ctx); }
-
     miopen::PerformanceDb GetDb() const;
 
     /*
@@ -301,7 +298,7 @@ struct mlo_construct_base
     std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
 
 protected:
-    miopen::ProblemDescription _problem;
+    miopen::ProblemDescriptionCompat _problem;
     miopen::ConvolutionContext _ctx;
 
     const char* _db_path = nullptr;
@@ -501,22 +498,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setTopDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setBotDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     /*

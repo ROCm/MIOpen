@@ -70,6 +70,8 @@ struct ProblemDescription
 #endif
 {
     conv::ProblemDescription conv_problem;
+
+    // TODO make private
     int spatial_dims      = 2;
     int n_inputs          = 0;
     int in_height         = 0;
@@ -221,6 +223,7 @@ struct ProblemDescription
         void Set(conv::Direction value) { v = value; }
 
         friend struct ProblemDescription;
+        friend struct ProblemDescriptionCompat;
     } direction;
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
@@ -260,6 +263,7 @@ struct ProblemDescription
     ProblemDescription() = default;
 
     // Temporary, for compatibility with some parts of code.
+    // TODO remove
     ProblemDescription(miopen::conv::Direction dir) { direction.Set(dir); }
 
     ProblemDescription(const TensorDescriptor& in,
@@ -278,6 +282,65 @@ struct ProblemDescription
         obj.Serialize(os);
         return os;
     }
+
+    int mloBuildConf_Key(std::string& conf_key) const;
+
+    NetworkConfig BuildConfKey() const
+    {
+        std::string ret;
+        mloBuildConf_Key(ret);
+        return NetworkConfig{ret};
+    }
+};
+
+// TODO remove this
+struct ProblemDescriptionCompat
+{
+    int spatial_dims      = 2; // GetSpatialDims()
+    int n_inputs          = 0; // GetInChannels()
+    int in_height         = 0; // GetInHeight()
+    int in_width          = 0; // GetInWidth()
+    int in_depth          = 0; // GetInDepth()
+    //int vectorLength      = 1; // GetVectorLength() TODO add check to solver that vectorLength == 1
+    int kernel_size_h     = 0; // GetWeightsHeight()
+    int kernel_size_w     = 0; // GetWeightsWidth()
+    int kernel_size_d     = 0; // GetWeightsDepth()
+    int n_outputs         = 0; // GetOutChannels()
+    int out_height        = 0; // GetOutHeight()
+    int out_width         = 0; // GetOutWidth()
+    int out_depth         = 0; // GetOutDepth()
+    int batch_sz          = 0; // GetInBatchSize()
+    int pad_h             = 0; // GetPadH()
+    int pad_w             = 0; // GetPadW()
+    //int pad_d             = 0; // GetPadD()
+    int kernel_stride_h   = 0; // GetKernelStrideH()
+    int kernel_stride_w   = 0; // GetKernelStrideW()
+    //int kernel_stride_d   = 0; // GetKernelStrideD()
+    int kernel_dilation_h = 0; // GetDilationH()
+    int kernel_dilation_w = 0; // GetDilationW()
+    //int kernel_dilation_d = 0; // GetDilationD()
+    int bias              = 0; // GetBias()
+    std::string in_layout; // GetInLayout()
+    //std::string weights_layout; // GetWeightsLayout()
+    std::string out_layout; // GetOutLayout()
+    miopenDataType_t in_data_type      = miopenFloat; // GetInDataType()
+    //miopenDataType_t weights_data_type = miopenFloat; // GetWeightsDataType()
+    miopenDataType_t out_data_type     = miopenFloat; // GetOutDataType()
+    size_t bot_sz                      = 0; // GetInSize()
+    size_t top_sz                      = 0; // GetOutSize()
+    size_t weights_sz                  = 0; // GetWeightsSize()
+    size_t bias_sz                     = 0; // GetBias()
+    int in_stride                      = 0; // GetInStrideH()
+    int out_stride                     = 0; // GetOutStrideH()
+    int in_channel_stride              = 0; // GetInChannelStride()
+    int in_batch_stride                = 0; // GetInBatchStride()
+    int out_channel_stride             = 0; // GetOutChannelStride()
+    int out_batch_stride               = 0; // GetOutBatchStride()
+    int group_counts                   = 0; // GetGroupCount()
+
+    ProblemDescriptionCompat(miopen::conv::Direction dir) { direction.Set(dir); }
+
+    ProblemDescription::Direction direction;
 
     /*
      * set top tensor
@@ -317,7 +380,6 @@ struct ProblemDescription
     /*
      *  set bot tensor
      */
-
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,
@@ -350,6 +412,7 @@ struct ProblemDescription
         //			_tens_layout = layout;
         //			_tens_data_format = data_type;
     }
+
     /*
      * set top df tensor
      */
@@ -372,7 +435,6 @@ struct ProblemDescription
     /*
      *  set bot df tensor
      */
-
     void setBotDfDescr(const std::string& /*layout*/,
                        miopenDataType_t /*data_type*/,
                        int batch,
@@ -387,15 +449,6 @@ struct ProblemDescription
     {
         batch_sz = batch;
         n_inputs = channels;
-    }
-
-    int mloBuildConf_Key(std::string& conf_key) const;
-
-    NetworkConfig BuildConfKey() const
-    {
-        std::string ret;
-        mloBuildConf_Key(ret);
-        return NetworkConfig{ret};
     }
 };
 
