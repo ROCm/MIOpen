@@ -533,8 +533,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx        = ConvolutionContext{exec_ctx};
-    const auto legacy_ctx = ProblemDescription{problem};
+    const auto ctx            = ConvolutionContext{exec_ctx};
+    const auto legacy_problem = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -550,7 +550,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
         const static std::string arch = exec_ctx.GetStream().GetDeviceName();
-        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        auto solvers                  = ai::immed_mode::PredictSolver(legacy_problem, ctx, arch);
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");
