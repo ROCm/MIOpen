@@ -343,9 +343,6 @@ def RunPerfTest(Map conf=[:]){
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
                     sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm --override ${params.PERF_TEST_OVERRRIDE}"
-                }else
-                {
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 }
                 sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
