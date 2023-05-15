@@ -100,6 +100,8 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
     miopenDataType_t dataType;
+    miopenRNNPaddingMode_t paddingMode = miopenRNNIONotPadded;
+
     std::size_t typeSize;
     miopenDropoutDescriptor_t dropoutDesc{};
 
@@ -166,6 +168,8 @@ struct RNNDescriptor : miopenRNNDescriptor
                       int biasID,
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias) const;
+
+    void SetPaddingmode(miopenRNNPaddingMode_t paddingMode);
 
     void GetLayerParamOffset(int layer,
                              const TensorDescriptor& xDesc,

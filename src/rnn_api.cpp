@@ -421,6 +421,14 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
     });
 }
 
+extern "C" miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                  miopenRNNPaddingMode_t paddingMode)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, paddingMode);
+    return miopen::try_([&] { miopen::deref(rnnDesc).SetPaddingmode(paddingMode);
+    });
+}
+
 static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
                       const miopenRNNDescriptor_t rnnDesc,
                       const int seqLength,
