@@ -83,8 +83,9 @@ template <class T>
 struct Max
 {
     using dataType = T;
-
+#if !defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !defined(_WIN32)
     __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Lowest(); };
+#endif
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
@@ -108,8 +109,9 @@ template <class T>
 struct Min
 {
     using dataType = T;
-
+#if !defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !defined(_WIN32)
     __device__ static constexpr T GetReductionZeroVal() { return NumericLimits<T>::Max(); };
+#endif
 
     __device__ inline constexpr void operator()(T& a, T b) const
     {
