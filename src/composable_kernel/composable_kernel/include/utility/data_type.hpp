@@ -11,7 +11,9 @@
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef float float_t;
+#if !defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !defined(_WIN32)
 #include <limits> // std::numeric_limits
+#endif
 
 #else
 #include <cstdint> // int8_t, int16_t
@@ -1026,11 +1028,13 @@ struct inner_product_with_conversion
 template <typename T>
 struct NumericLimits
 {
+#if !defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !defined(_WIN32)
     __host__ __device__ static constexpr T Min() { return std::numeric_limits<T>::min(); }
 
     __host__ __device__ static constexpr T Max() { return std::numeric_limits<T>::max(); }
 
     __host__ __device__ static constexpr T Lowest() { return std::numeric_limits<T>::lowest(); }
+#endif
 };
 
 template <>
