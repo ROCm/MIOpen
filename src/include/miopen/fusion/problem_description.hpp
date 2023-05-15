@@ -78,7 +78,8 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         ProblemDescription::Visit(conv_prob, f);
     }
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, bool do_bias = false) const
+    miopen::ProblemDescription
+    GetConvProblem(size_t idx, conv::Direction dir, bool do_bias = false) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
