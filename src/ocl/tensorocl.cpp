@@ -167,11 +167,15 @@ void OpTensor3d(const Handle& handle,
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
 
-    int num_wg_orig = num_wg;
-    int max_num_wg  = 4096;
-    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
-
+    int max_num_wg       = 4096;
     size_t local_threads = 256;
+
+    static constexpr int work_per_thread_generic = 4;
+    const int total_work_generic                 = num_wg * work_per_wg;
+    const int num_wg_generic                     = std::clamp(
+        total_work_generic / int(local_threads) / work_per_thread_generic, 1, max_num_wg);
+
+    num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     std::string network_config{};
 
@@ -265,9 +269,7 @@ void OpTensor3d(const Handle& handle,
         }
         else
         {
-
-            network_config += std::to_string(max_num_wg) + "-" + std::to_string(local_threads) +
-                              "x" + std::to_string(num_wg);
+            network_config += std::to_string(local_threads) + "x" + std::to_string(num_wg_generic);
 
             auto&& kernels = handle.GetKernels("Op3dTensorGeneric", network_config);
 
@@ -292,11 +294,10 @@ void OpTensor3d(const Handle& handle,
                        miopen_alpha1,
                        miopen_beta,
                        bitmap,
-                       work_per_wg,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(num_wg_orig));
+                       int(total_work_generic));
 
                 return;
             }
@@ -377,12 +378,9 @@ void OpTensor3d(const Handle& handle,
         else
         {
             // Special case for adding tensors in place
-            size_t global_threads;
-            global_threads = num_wg * local_threads;
-            const std::vector<size_t> vgd{global_threads, 1, 1};
+            const std::vector<size_t> vgd{num_wg_generic * local_threads, 1, 1};
 
             parms += " -DUSE_3D_TENSOR_GENERIC";
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
             handle.AddKernel("Op3dTensorGeneric",
                              network_config,
@@ -407,11 +405,10 @@ void OpTensor3d(const Handle& handle,
                                     miopen_alpha1,
                                     miopen_beta,
                                     bitmap,
-                                    work_per_wg,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg_orig));
+                                    int(total_work_generic));
         }
     });
 }

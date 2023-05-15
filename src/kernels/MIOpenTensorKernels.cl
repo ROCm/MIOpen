@@ -710,83 +710,31 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
                                 const MIOPEN_TYPE alpha1,
                                 const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
-                                const int work_per_wg,
                                 const long Aoffset,
                                 const long Boffset,
                                 const long Coffset,
-                                const int num_wg)
+                                const int total_work)
 {
-    int gid = get_group_id(0);
+    const global MIOPEN_TYPE* a_off = a + Aoffset;
+    const global MIOPEN_TYPE* b_off = b + Boffset;
+    global MIOPEN_TYPE* c_off       = c + Coffset;
 
-    global MIOPEN_TYPE* a_off = a + Aoffset;
-    global MIOPEN_TYPE* b_off = b + Boffset;
-    global MIOPEN_TYPE* c_off = c + Coffset;
+    const int b_nstride_res = b_nstride * ((bitmap >> 2) & 1);
+    const int b_cstride_res = b_cstride * ((bitmap >> 1) & 1);
+    const int b_hstride_res = ((bitmap >> 0) & 1);
 
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    if(beta == (MIOPEN_TYPE)0)
+    for(int gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
     {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
+        int o_h = gid % c_h;
+        int o_c = (gid / c_h) % c_c;
+        int o_n = (gid / c_h) / c_c;
 
-            int lid     = get_local_id(0);
-            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
-            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
+        int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
+        int bindex = o_n * b_nstride_res + o_c * b_cstride_res + o_h * b_hstride_res;
+        int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
 
-            int o_h_gid_off = gid % b_h;
-            int o_c_gid_off = (gid / b_h) % b_c;
-            int o_n_gid_off = (gid / b_h) / b_c;
-
-            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-            while(lid < work_per_wg)
-            {
-                int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
-                int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-                int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
-
-                int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
-                int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
-
-                c_off[cindex] =
-                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-
-                lid += get_local_size(0);
-            }
-        }
-    }
-    else
-    {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
-
-            int lid     = get_local_id(0);
-            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
-            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
-
-            int o_h_gid_off = gid % b_h;
-            int o_c_gid_off = (gid / b_h) % b_c;
-            int o_n_gid_off = (gid / b_h) / b_c;
-
-            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-            while(lid < work_per_wg)
-            {
-                int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
-                int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-                int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
-
-                int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
-                int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
-
-                c_off[cindex] =
-                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-
-                lid += get_local_size(0);
-            }
-        }
+        c_off[cindex] =
+            MIOPEN_TENSOR_OP(a_off[cindex] * alpha0, b_off[bindex] * alpha1) + c_off[cindex] * beta;
     }
 }
 
