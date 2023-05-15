@@ -92,10 +92,8 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
                                                                    const FusionDescription& problem,
                                                                    const AnyInvokeParams&) const
 {
-    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
-    conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
-                           ((conv_problem.GetOutDataType() == miopenHalf) ? 2 : 4);
+    const bool do_bias = true;
+    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward, do_bias);
     const auto conv_ctx = context.GetConvContext(conv_problem);
 
     if(!conv_problem.direction.IsForward())

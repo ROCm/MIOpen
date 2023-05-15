@@ -71,7 +71,7 @@ struct ProblemDescription
 {
     conv::ProblemDescription conv_problem;
 
-    // TODO make private
+private:
     int spatial_dims      = 2;
     int n_inputs          = 0;
     int in_height         = 0;
@@ -114,6 +114,7 @@ struct ProblemDescription
     int out_batch_stride               = 0;
     int group_counts                   = 0;
 
+public:
     int GetSpatialDims() const { return spatial_dims; }
     int GetInChannels() const { return n_inputs; }
     int GetInHeight() const { return in_height; }
@@ -262,10 +263,6 @@ struct ProblemDescription
 
     ProblemDescription() = default;
 
-    // Temporary, for compatibility with some parts of code.
-    // TODO remove
-    ProblemDescription(miopen::conv::Direction dir) { direction.Set(dir); }
-
     ProblemDescription(const TensorDescriptor& in,
                        const TensorDescriptor& weights,
                        const TensorDescriptor& out,
@@ -293,8 +290,12 @@ struct ProblemDescription
     }
 };
 
+// For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
 // TODO remove this
 struct ProblemDescriptionCompat
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<ProblemDescriptionCompat>
+#endif
 {
     int spatial_dims = 2; // GetSpatialDims()
     int n_inputs     = 0; // GetInChannels()
@@ -313,24 +314,24 @@ struct ProblemDescriptionCompat
     int batch_sz      = 0; // GetInBatchSize()
     int pad_h         = 0; // GetPadH()
     int pad_w         = 0; // GetPadW()
-    // int pad_d             = 0; // GetPadD()
+    int pad_d             = 0; // GetPadD()
     int kernel_stride_h = 0; // GetKernelStrideH()
     int kernel_stride_w = 0; // GetKernelStrideW()
-    // int kernel_stride_d   = 0; // GetKernelStrideD()
+    int kernel_stride_d   = 0; // GetKernelStrideD()
     int kernel_dilation_h = 0; // GetDilationH()
     int kernel_dilation_w = 0; // GetDilationW()
-    // int kernel_dilation_d = 0; // GetDilationD()
+    int kernel_dilation_d = 0; // GetDilationD()
     int bias = 0;          // GetBias()
     std::string in_layout; // GetInLayout()
     // std::string weights_layout; // GetWeightsLayout()
     std::string out_layout;                      // GetOutLayout()
     miopenDataType_t in_data_type = miopenFloat; // GetInDataType()
-    // miopenDataType_t weights_data_type = miopenFloat; // GetWeightsDataType()
+    miopenDataType_t weights_data_type = miopenFloat; // GetWeightsDataType()
     miopenDataType_t out_data_type = miopenFloat; // GetOutDataType()
     size_t bot_sz                  = 0;           // GetInSize()
     size_t top_sz                  = 0;           // GetOutSize()
     size_t weights_sz              = 0;           // GetWeightsSize()
-    size_t bias_sz                 = 0;           // GetBias()
+    size_t bias_sz                 = 0;           // GetBiasSize()
     int in_stride                  = 0;           // GetInStrideH()
     int out_stride                 = 0;           // GetOutStrideH()
     int in_channel_stride          = 0;           // GetInChannelStride()
@@ -339,6 +340,18 @@ struct ProblemDescriptionCompat
     int out_batch_stride           = 0;           // GetOutBatchStride()
     int group_counts               = 0;           // GetGroupCount()
 
+    static std::string table_name()
+    {
+        return ProblemDescription::table_name();
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        ProblemDescription::Visit(self, f);
+    }
+
+    ProblemDescriptionCompat() = default;
     ProblemDescriptionCompat(miopen::conv::Direction dir) { direction.Set(dir); }
 
     ProblemDescription::Direction direction;

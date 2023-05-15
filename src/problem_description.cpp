@@ -149,7 +149,7 @@ ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
       bot_sz(conv_problem.GetInSize()),
       top_sz(conv_problem.GetOutSize()),
       weights_sz(conv_problem.GetWeightsSize()),
-      bias_sz(conv_problem.GetBias()),
+      bias_sz(conv_problem.GetBiasSize()),
       in_stride(conv_problem.GetInStrideH()),
       out_stride(conv_problem.GetOutStrideH()),
       in_channel_stride(conv_problem.GetInChannelStride()),

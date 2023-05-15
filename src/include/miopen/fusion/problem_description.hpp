@@ -78,7 +78,7 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         ProblemDescription::Visit(conv_prob, f);
     }
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
+    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, bool do_bias = false) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -90,13 +90,13 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
                                               conv_op.filter_desc,
                                               out_desc,
                                               conv_op.base_desc /* conv desc */,
-                                              dir};
+                                              dir,
+                                              do_bias ? 1 : 0};
         }
         else
         {
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
-        return {};
     }
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
