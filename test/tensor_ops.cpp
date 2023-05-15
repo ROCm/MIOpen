@@ -130,8 +130,8 @@ struct verify_tensor_ops
                        cten[cindex + CtenOffset],
                        aindex + AtenOffset,
                        aten[aindex + AtenOffset],
-                       bindex + Btenoffset,
-                       bten[bindex + Btenoffset]);
+                       bindex + BtenOffset,
+                       bten[bindex + BtenOffset]);
 #endif
                 cten[cindex + CtenOffset] =
                     // add_elem(aten[aindex + AtenOffset] * palpha0, bten[bindex + BtenOffset] *
