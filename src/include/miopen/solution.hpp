@@ -128,6 +128,10 @@ struct Solution : miopenSolution
             kernel.local_work_dims  = kernels_[i].l_wk;
             kernels.emplace_back(std::move(kernel));
         }
+#else
+        std::ignore = invoker_;
+        std::ignore = programs;
+        std::ignore = kernels_;
 #endif
     }
 
