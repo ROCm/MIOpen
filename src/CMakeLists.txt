@@ -221,6 +221,7 @@ set( MIOpen_Source
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
+    solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
