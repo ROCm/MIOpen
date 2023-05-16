@@ -157,7 +157,9 @@ public:
     int GetOutBatchStride() const { return out_batch_stride; }
     int GetGroupCount() const { return group_counts; }
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+#endif
 
     bool IsLayoutDefault() const;
 
@@ -165,6 +167,7 @@ public:
 
     bool IsLayoutNCHWC() const;
 
+#if MIOPEN_ENABLE_SQLITE
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
@@ -208,6 +211,8 @@ public:
                                                             : "W";
         f(dir, "direction");
     }
+#endif
+
     struct Direction
     {
     public:
@@ -226,6 +231,7 @@ public:
         friend struct ProblemDescription;
         friend struct ProblemDescriptionCompat;
     } direction;
+
     int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
     int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
 
