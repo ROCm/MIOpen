@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #else
-#include <miopen/db.hpp>
+#include <miopen/readonlyramdb.hpp>
 #endif
 #include <miopen/conv/context.hpp>
 #include <miopen/handle.hpp>
