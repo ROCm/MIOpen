@@ -132,9 +132,9 @@ int mlo_construct_norm::mloConstructFwd()
         const std::string name = _ctx.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
-            MIOPEN_LOG_I("Workaround for #1057: " << name << ','
-                                                  << miopen::GetDataTypeName(_problem.GetInDataType())
-                                                  << ',' << MAP_SZ4 << ',' << read_unit);
+            MIOPEN_LOG_I("Workaround for #1057: "
+                         << name << ',' << miopen::GetDataTypeName(_problem.GetInDataType()) << ','
+                         << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
@@ -145,10 +145,11 @@ int mlo_construct_norm::mloConstructFwd()
     int scale_batch_stride   = _problem.GetOutBatchStride();
     int scale                = (doBackward()) ? 1 : 0;
 
-    auto g_wk_width  = static_cast<int>((_problem.GetOutWidth() + _grp_tile0 * _out_pix_tile0 - 1) /
+    auto g_wk_width = static_cast<int>((_problem.GetOutWidth() + _grp_tile0 * _out_pix_tile0 - 1) /
                                        (_grp_tile0 * _out_pix_tile0));
-    auto g_wk_height = static_cast<int>((_problem.GetOutHeight() + _grp_tile1 * _out_pix_tile1 - 1) /
-                                        (_grp_tile1 * _out_pix_tile1));
+    auto g_wk_height =
+        static_cast<int>((_problem.GetOutHeight() + _grp_tile1 * _out_pix_tile1 - 1) /
+                         (_grp_tile1 * _out_pix_tile1));
     int OUT_VERT_ALIGNED =
         (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _problem.GetOutHeight()) ? 1 : 0;
     int OUT_HORIZ_ALIGNED =
@@ -156,7 +157,8 @@ int mlo_construct_norm::mloConstructFwd()
     // currently always 1
     int DIVBY4 = (MAP_SZ4 * read_unit == _problem.GetInWidth() * _problem.GetInHeight()) ? 1 : 0;
     int C1x1_PIXLEFT =
-        (DIVBY4 == 1) ? 0 : _problem.GetInWidth() * _problem.GetInHeight() - (MAP_SZ4 - 1) * read_unit;
+        (DIVBY4 == 1) ? 0
+                      : _problem.GetInWidth() * _problem.GetInHeight() - (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
