@@ -90,14 +90,6 @@ struct ProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const;
 
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-
 private:
     Direction direction;
     ActivationDescriptor activDesc;
