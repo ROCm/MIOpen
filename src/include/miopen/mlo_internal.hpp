@@ -498,22 +498,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(_problem.spatial_dims, *this, tensor);
+        return miopen::setTopDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(_problem.spatial_dims, *this, tensor);
+        return miopen::setBotDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
     }
 
     /*

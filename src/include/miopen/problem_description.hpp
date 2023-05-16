@@ -358,8 +358,8 @@ struct ProblemDescriptionCompat
     int GetWeightsWidth() const { return kernel_size_w; }
     int GetWeightsDepth() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
-    // int GetOutHeight() const { return out_height; }
-    // int GetOutWidth() const { return out_width; }
+    int GetOutHeight() const { return out_height; }
+    int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
     int GetPadH() const { return pad_h; }
@@ -382,12 +382,12 @@ struct ProblemDescriptionCompat
     // size_t GetOutSize() const { return top_sz; }
     // size_t GetWeightsSize() const { return weights_sz; }
     // size_t GetBiasSize() const { return bias_sz; }
-    // int GetInStride() const { return in_stride; }
-    // int GetOutStride() const { return out_stride; }
-    // int GetInChannelStride() const { return in_channel_stride; }
-    // int GetInBatchStride() const { return in_batch_stride; }
-    // int GetOutChannelStride() const { return out_channel_stride; }
-    // int GetOutBatchStride() const { return out_batch_stride; }
+    int GetInStride() const { return in_stride; }
+    int GetOutStride() const { return out_stride; }
+    int GetInChannelStride() const { return in_channel_stride; }
+    int GetInBatchStride() const { return in_batch_stride; }
+    int GetOutChannelStride() const { return out_channel_stride; }
+    int GetOutBatchStride() const { return out_batch_stride; }
     int GetGroupCount() const { return group_counts; }
 
 #if MIOPEN_ENABLE_SQLITE
