@@ -346,6 +346,7 @@ struct ProblemDescriptionCompat
     int out_batch_stride               = 0;           // GetOutBatchStride()
     int group_counts                   = 0;           // GetGroupCount()
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return ProblemDescription::table_name(); }
 
     template <class Self, class F>
@@ -353,6 +354,7 @@ struct ProblemDescriptionCompat
     {
         ProblemDescription::Visit(self, f);
     }
+#endif
 
     ProblemDescriptionCompat() = default;
     ProblemDescriptionCompat(miopen::conv::Direction dir) { direction.Set(dir); }
