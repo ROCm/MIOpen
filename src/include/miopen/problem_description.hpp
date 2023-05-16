@@ -203,8 +203,8 @@ public:
         if(!self.direction.IsKnown())
             MIOPEN_THROW("!direction.IsKnown()");
         f(self.GetInLayout(), "layout");
-        std::string data_type =
-            EncodeDataTypesForKey(self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
+        std::string data_type = EncodeDataTypesForKey(
+            self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
         f(data_type, "data_type");
         std::string dir = self.direction.IsForward()        ? "F"
                           : self.direction.IsBackwardData() ? "B"
@@ -259,12 +259,14 @@ public:
     bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
     {
-        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" && GetOutLayout() == "NCHWc";
+        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" &&
+               GetOutLayout() == "NCHWc";
     }
 
     bool IsNCHWc_CHWNc() const
     {
-        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" && GetOutLayout() == "NCHWc";
+        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" &&
+               GetOutLayout() == "NCHWc";
     }
 
     ProblemDescription() = default;
@@ -338,8 +340,8 @@ struct ProblemDescriptionCompat
     size_t top_sz                      = 0;
     size_t weights_sz                  = 0;
     size_t bias_sz                     = 0;
-    int in_stride                      = 0;           // GetInStrideH()
-    int out_stride                     = 0;           // GetOutStrideH()
+    int in_stride                      = 0; // GetInStrideH()
+    int out_stride                     = 0; // GetOutStrideH()
     int in_channel_stride              = 0;
     int in_batch_stride                = 0;
     int out_channel_stride             = 0;
@@ -351,14 +353,14 @@ struct ProblemDescriptionCompat
     int GetInHeight() const { return in_height; }
     int GetInWidth() const { return in_width; }
     int GetInDepth() const { return in_depth; }
-    //int GetVectorLength() const { return vectorLength; }
+    // int GetVectorLength() const { return vectorLength; }
     int GetWeightsHeight() const { return kernel_size_h; }
     int GetWeightsWidth() const { return kernel_size_w; }
     int GetWeightsDepth() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
-    //int GetOutHeight() const { return out_height; }
-    //int GetOutWidth() const { return out_width; }
-    //int GetOutDepth() const { return out_depth; }
+    // int GetOutHeight() const { return out_height; }
+    // int GetOutWidth() const { return out_width; }
+    // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
@@ -371,21 +373,21 @@ struct ProblemDescriptionCompat
     int GetDilationD() const { return kernel_dilation_d; }
     int GetBias() const { return bias; }
     std::string GetInLayout() const { return in_layout; }
-    //std::string GetWeightsLayout() const { return weights_layout; }
-    //std::string GetOutLayout() const { return out_layout; }
+    // std::string GetWeightsLayout() const { return weights_layout; }
+    // std::string GetOutLayout() const { return out_layout; }
     miopenDataType_t GetInDataType() const { return in_data_type; }
     miopenDataType_t GetWeightsDataType() const { return weights_data_type; }
     miopenDataType_t GetOutDataType() const { return out_data_type; }
-    //size_t GetInSize() const { return bot_sz; }
-    //size_t GetOutSize() const { return top_sz; }
-    //size_t GetWeightsSize() const { return weights_sz; }
-    //size_t GetBiasSize() const { return bias_sz; }
-    //int GetInStride() const { return in_stride; }
-    //int GetOutStride() const { return out_stride; }
-    //int GetInChannelStride() const { return in_channel_stride; }
-    //int GetInBatchStride() const { return in_batch_stride; }
-    //int GetOutChannelStride() const { return out_channel_stride; }
-    //int GetOutBatchStride() const { return out_batch_stride; }
+    // size_t GetInSize() const { return bot_sz; }
+    // size_t GetOutSize() const { return top_sz; }
+    // size_t GetWeightsSize() const { return weights_sz; }
+    // size_t GetBiasSize() const { return bias_sz; }
+    // int GetInStride() const { return in_stride; }
+    // int GetOutStride() const { return out_stride; }
+    // int GetInChannelStride() const { return in_channel_stride; }
+    // int GetInBatchStride() const { return in_batch_stride; }
+    // int GetOutChannelStride() const { return out_channel_stride; }
+    // int GetOutBatchStride() const { return out_batch_stride; }
     int GetGroupCount() const { return group_counts; }
 
 #if MIOPEN_ENABLE_SQLITE

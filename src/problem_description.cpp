@@ -36,11 +36,13 @@ bool ProblemDescription::IsLayoutNHWC() const
 {
     if(GetSpatialDims() == 2)
     {
-        return (GetInLayout() == "NHWC") && (GetOutLayout() == "NHWC") && (GetWeightsLayout() == "NHWC");
+        return (GetInLayout() == "NHWC") && (GetOutLayout() == "NHWC") &&
+               (GetWeightsLayout() == "NHWC");
     }
     else
     {
-        return (GetInLayout() == "NDHWC") && (GetOutLayout() == "NDHWC") && (GetWeightsLayout() == "NDHWC");
+        return (GetInLayout() == "NDHWC") && (GetOutLayout() == "NDHWC") &&
+               (GetWeightsLayout() == "NDHWC");
     }
 }
 
