@@ -33,7 +33,9 @@
 #include <miopen/expanduser.hpp>
 #include <miopen/miopen.h>
 #include <miopen/version.h>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/kern_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>

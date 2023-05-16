@@ -617,8 +617,8 @@ endif()
 
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
-        solver/mlir_common.cpp
         mlir_build.cpp
+        solver/mlir_common.cpp
         conv/invokers/mlir_impl_gemm.cpp
         )
 endif()
@@ -696,8 +696,11 @@ add_library(MIOpen SHARED
         rnn_api.cpp
         softmax_api.cpp
         tensor_api.cpp
-        $<TARGET_OBJECTS:MIOpen_Static>
-        $<TARGET_OBJECTS:sqlite_memvfs>)
+        $<TARGET_OBJECTS:MIOpen_Static>)
+
+if(MIOPEN_ENABLE_SQLITE)        
+        target_sources(MIOpen PRIVATE $<TARGET_OBJECTS:sqlite_memvfs>)
+endif()
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
