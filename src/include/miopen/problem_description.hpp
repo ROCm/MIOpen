@@ -174,27 +174,27 @@ public:
         if(!self.direction.IsKnown())
             MIOPEN_THROW("!direction.IsKnown()");
         // The column names match the driver command line argument names
-        f(self.spatial_dims, "spatial_dim");
-        f(self.n_inputs, "in_channels");
-        f(self.in_height, "in_h");
-        f(self.in_width, "in_w");
-        f(self.in_depth, "in_d");
-        f(self.kernel_size_h, "fil_h");
-        f(self.kernel_size_w, "fil_w");
-        f(self.kernel_size_d, "fil_d");
-        f(self.n_outputs, "out_channels");
-        f(self.batch_sz, "batchsize");
-        f(self.pad_h, "pad_h");
-        f(self.pad_w, "pad_w");
-        f(self.pad_d, "pad_d");
-        f(self.kernel_stride_h, "conv_stride_h");
-        f(self.kernel_stride_w, "conv_stride_w");
-        f(self.kernel_stride_d, "conv_stride_d");
-        f(self.kernel_dilation_h, "dilation_h");
-        f(self.kernel_dilation_w, "dilation_w");
-        f(self.kernel_dilation_d, "dilation_d");
-        f(self.bias, "bias");
-        f(self.group_counts, "group_count");
+        f(self.GetSpatialDims(), "spatial_dim");
+        f(self.GetInChannels(), "in_channels");
+        f(self.GetInHeight(), "in_h");
+        f(self.GetInWidth(), "in_w");
+        f(self.GetInDepth(), "in_d");
+        f(self.GetWeightsHeight(), "fil_h");
+        f(self.GetWeightsWidth(), "fil_w");
+        f(self.GetWeightsDepth(), "fil_d");
+        f(self.GetOutChannels(), "out_channels");
+        f(self.GetBatchSize(), "batchsize");
+        f(self.GetPadH(), "pad_h");
+        f(self.GetPadW(), "pad_w");
+        f(self.GetPadD(), "pad_d");
+        f(self.GetKernelStrideH(), "conv_stride_h");
+        f(self.GetKernelStrideW(), "conv_stride_w");
+        f(self.GetKernelStrideD(), "conv_stride_d");
+        f(self.GetDilationH(), "dilation_h");
+        f(self.GetDilationW(), "dilation_w");
+        f(self.GetDilationD(), "dilation_d");
+        f(self.GetBias(), "bias");
+        f(self.GetGroupCount(), "group_count");
     }
 
     template <class Self>
@@ -202,9 +202,9 @@ public:
     {
         if(!self.direction.IsKnown())
             MIOPEN_THROW("!direction.IsKnown()");
-        f(self.in_layout, "layout");
+        f(self.GetInLayout(), "layout");
         std::string data_type =
-            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
+            EncodeDataTypesForKey(self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
         f(data_type, "data_type");
         std::string dir = self.direction.IsForward()        ? "F"
                           : self.direction.IsBackwardData() ? "B"
@@ -232,39 +232,39 @@ public:
         friend struct ProblemDescriptionCompat;
     } direction;
 
-    int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
-    int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
+    int GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
+    int GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
     bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
 
-    bool Is2d() const { return spatial_dims == 2; }
-    bool Is3d() const { return spatial_dims == 3; }
+    bool Is2d() const { return GetSpatialDims() == 2; }
+    bool Is3d() const { return GetSpatialDims() == 3; }
 
     bool IsFp32() const
     {
-        return in_data_type == miopenFloat && weights_data_type == miopenFloat &&
-               out_data_type == miopenFloat;
+        return GetInDataType() == miopenFloat && GetWeightsDataType() == miopenFloat &&
+               GetOutDataType() == miopenFloat;
     }
     bool IsFp16() const
     {
-        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
-               out_data_type == miopenHalf;
+        return GetInDataType() == miopenHalf && GetWeightsDataType() == miopenHalf &&
+               GetOutDataType() == miopenHalf;
     }
     bool IsBfp16() const
     {
-        return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
-               out_data_type == miopenBFloat16;
+        return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
+               GetOutDataType() == miopenBFloat16;
     }
     bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
     {
-        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
+        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" && GetOutLayout() == "NCHWc";
     }
 
     bool IsNCHWc_CHWNc() const
     {
-        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
+        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" && GetOutLayout() == "NCHWc";
     }
 
     ProblemDescription() = default;
@@ -303,48 +303,90 @@ struct ProblemDescriptionCompat
     : SQLiteSerializable<ProblemDescriptionCompat>
 #endif
 {
-    int spatial_dims = 2; // GetSpatialDims()
-    int n_inputs     = 0; // GetInChannels()
-    int in_height    = 0; // GetInHeight()
-    int in_width     = 0; // GetInWidth()
-    int in_depth     = 0; // GetInDepth()
-    // TODO add check to solver that vectorLength == 1
-    // int vectorLength      = 1; // GetVectorLength()
-    int kernel_size_h     = 0; // GetWeightsHeight()
-    int kernel_size_w     = 0; // GetWeightsWidth()
-    int kernel_size_d     = 0; // GetWeightsDepth()
-    int n_outputs         = 0; // GetOutChannels()
-    int out_height        = 0; // GetOutHeight()
-    int out_width         = 0; // GetOutWidth()
-    int out_depth         = 0; // GetOutDepth()
+    int spatial_dims = 2;
+    int n_inputs     = 0;
+    int in_height    = 0;
+    int in_width     = 0;
+    int in_depth     = 0;
+    // TODO add check to solver that vectorLength = 1
+    // int vectorLength      = 1;
+    int kernel_size_h     = 0;
+    int kernel_size_w     = 0;
+    int kernel_size_d     = 0;
+    int n_outputs         = 0;
+    int out_height        = 0;
+    int out_width         = 0;
+    int out_depth         = 0;
     int batch_sz          = 0; // GetInBatchSize()
-    int pad_h             = 0; // GetPadH()
-    int pad_w             = 0; // GetPadW()
-    int pad_d             = 0; // GetPadD()
-    int kernel_stride_h   = 0; // GetKernelStrideH()
-    int kernel_stride_w   = 0; // GetKernelStrideW()
-    int kernel_stride_d   = 0; // GetKernelStrideD()
-    int kernel_dilation_h = 0; // GetDilationH()
-    int kernel_dilation_w = 0; // GetDilationW()
-    int kernel_dilation_d = 0; // GetDilationD()
-    int bias              = 0; // GetBias()
-    std::string in_layout;     // GetInLayout()
-    // std::string weights_layout; // GetWeightsLayout()
-    std::string out_layout;                           // GetOutLayout()
-    miopenDataType_t in_data_type      = miopenFloat; // GetInDataType()
-    miopenDataType_t weights_data_type = miopenFloat; // GetWeightsDataType()
-    miopenDataType_t out_data_type     = miopenFloat; // GetOutDataType()
-    size_t bot_sz                      = 0;           // GetInSize()
-    size_t top_sz                      = 0;           // GetOutSize()
-    size_t weights_sz                  = 0;           // GetWeightsSize()
-    size_t bias_sz                     = 0;           // GetBiasSize()
+    int pad_h             = 0;
+    int pad_w             = 0;
+    int pad_d             = 0;
+    int kernel_stride_h   = 0;
+    int kernel_stride_w   = 0;
+    int kernel_stride_d   = 0;
+    int kernel_dilation_h = 0;
+    int kernel_dilation_w = 0;
+    int kernel_dilation_d = 0;
+    int bias              = 0;
+    std::string in_layout;
+    // std::string weights_layout;
+    std::string out_layout;
+    miopenDataType_t in_data_type      = miopenFloat;
+    miopenDataType_t weights_data_type = miopenFloat;
+    miopenDataType_t out_data_type     = miopenFloat;
+    size_t bot_sz                      = 0;
+    size_t top_sz                      = 0;
+    size_t weights_sz                  = 0;
+    size_t bias_sz                     = 0;
     int in_stride                      = 0;           // GetInStrideH()
     int out_stride                     = 0;           // GetOutStrideH()
-    int in_channel_stride              = 0;           // GetInChannelStride()
-    int in_batch_stride                = 0;           // GetInBatchStride()
-    int out_channel_stride             = 0;           // GetOutChannelStride()
-    int out_batch_stride               = 0;           // GetOutBatchStride()
-    int group_counts                   = 0;           // GetGroupCount()
+    int in_channel_stride              = 0;
+    int in_batch_stride                = 0;
+    int out_channel_stride             = 0;
+    int out_batch_stride               = 0;
+    int group_counts                   = 0;
+
+    int GetSpatialDims() const { return spatial_dims; }
+    int GetInChannels() const { return n_inputs; }
+    int GetInHeight() const { return in_height; }
+    int GetInWidth() const { return in_width; }
+    int GetInDepth() const { return in_depth; }
+    //int GetVectorLength() const { return vectorLength; }
+    int GetWeightsHeight() const { return kernel_size_h; }
+    int GetWeightsWidth() const { return kernel_size_w; }
+    int GetWeightsDepth() const { return kernel_size_d; }
+    int GetOutChannels() const { return n_outputs; }
+    //int GetOutHeight() const { return out_height; }
+    //int GetOutWidth() const { return out_width; }
+    //int GetOutDepth() const { return out_depth; }
+    int GetBatchSize() const { return batch_sz; }
+    int GetPadH() const { return pad_h; }
+    int GetPadW() const { return pad_w; }
+    int GetPadD() const { return pad_d; }
+    int GetKernelStrideH() const { return kernel_stride_h; }
+    int GetKernelStrideW() const { return kernel_stride_w; }
+    int GetKernelStrideD() const { return kernel_stride_d; }
+    int GetDilationH() const { return kernel_dilation_h; }
+    int GetDilationW() const { return kernel_dilation_w; }
+    int GetDilationD() const { return kernel_dilation_d; }
+    int GetBias() const { return bias; }
+    std::string GetInLayout() const { return in_layout; }
+    //std::string GetWeightsLayout() const { return weights_layout; }
+    //std::string GetOutLayout() const { return out_layout; }
+    miopenDataType_t GetInDataType() const { return in_data_type; }
+    miopenDataType_t GetWeightsDataType() const { return weights_data_type; }
+    miopenDataType_t GetOutDataType() const { return out_data_type; }
+    //size_t GetInSize() const { return bot_sz; }
+    //size_t GetOutSize() const { return top_sz; }
+    //size_t GetWeightsSize() const { return weights_sz; }
+    //size_t GetBiasSize() const { return bias_sz; }
+    //int GetInStride() const { return in_stride; }
+    //int GetOutStride() const { return out_stride; }
+    //int GetInChannelStride() const { return in_channel_stride; }
+    //int GetInBatchStride() const { return in_batch_stride; }
+    //int GetOutChannelStride() const { return out_channel_stride; }
+    //int GetOutBatchStride() const { return out_batch_stride; }
+    int GetGroupCount() const { return group_counts; }
 
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return ProblemDescription::table_name(); }

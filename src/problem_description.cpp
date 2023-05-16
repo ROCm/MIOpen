@@ -34,22 +34,22 @@ bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutD
 
 bool ProblemDescription::IsLayoutNHWC() const
 {
-    if(spatial_dims == 2)
+    if(GetSpatialDims() == 2)
     {
-        return (in_layout == "NHWC") && (out_layout == "NHWC") && (weights_layout == "NHWC");
+        return (GetInLayout() == "NHWC") && (GetOutLayout() == "NHWC") && (GetWeightsLayout() == "NHWC");
     }
     else
     {
-        return (in_layout == "NDHWC") && (out_layout == "NDHWC") && (weights_layout == "NDHWC");
+        return (GetInLayout() == "NDHWC") && (GetOutLayout() == "NDHWC") && (GetWeightsLayout() == "NDHWC");
     }
 }
 
 bool ProblemDescription::IsLayoutNCHWC() const
 {
-    return ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
-            (weights_layout == "NCHWc")) ||
-           ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
-            (weights_layout == "CHWNc"));
+    return ((GetSpatialDims() == 2) && (GetInLayout() == "NCHWc") && (GetOutLayout() == "NCHWc") &&
+            (GetWeightsLayout() == "NCHWc")) ||
+           ((GetSpatialDims() == 2) && (GetInLayout() == "NCHWc") && (GetOutLayout() == "NCHWc") &&
+            (GetWeightsLayout() == "CHWNc"));
 }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
@@ -62,26 +62,26 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     // Problem description with non-default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
-    stream << n_inputs;
-    stream << sep << PrintDHW(sep, spatial_dims, in_depth, in_height, in_width);
-    stream << sep << PrintDHW('x', spatial_dims, kernel_size_d, kernel_size_h, kernel_size_w);
-    stream << sep << n_outputs;
-    stream << sep << PrintDHW(sep, spatial_dims, out_depth, out_height, out_width);
-    stream << sep << batch_sz;
-    stream << sep << PrintDHW('x', spatial_dims, pad_d, pad_h, pad_w);
-    stream << sep << PrintDHW('x', spatial_dims, kernel_stride_d, kernel_stride_h, kernel_stride_w);
-    stream << sep << PrintDHW('x', spatial_dims, kernel_dilation_d, kernel_dilation_h, kernel_dilation_w);
-    stream << sep << bias;
-    if ((in_layout == "NCHW" && weights_layout == "NCHW" && out_layout == "NCHW")
-        || (in_layout == "NCDHW" && weights_layout == "NCDHW" && out_layout == "NCDHW"))
+    stream << GetInChannels();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
+    stream << sep << GetOutChannels();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
+    stream << sep << GetBatchSize();
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
+    stream << sep << GetBias();
+    if ((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW")
+        || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
-        stream << sep << in_layout;
+        stream << sep << GetInLayout();
     } else {
-        stream << sep << in_layout;
-        stream << sep << weights_layout;
-        stream << sep << out_layout;
+        stream << sep << GetInLayout();
+        stream << sep << GetWeightsLayout();
+        stream << sep << GetOutLayout();
     }
-    stream << sep << EncodeDataTypesForKey(in_data_type, weights_data_type, out_data_type);
+    stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
     stream << sep << (direction.IsForward() ? "F" : direction.IsBackwardData() ? "B" : "W");
     // clang-format on
     // New performance config entries shall come into variable/optional part of db key.
@@ -89,8 +89,8 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     std::ostringstream optional;
     {
         // Group count > 1 identifies Group/Depthwise modes.
-        if(group_counts != 1)
-            optional << 'g' << group_counts;
+        if(GetGroupCount() != 1)
+            optional << 'g' << GetGroupCount();
     }
     if(!optional.str().empty())
     {
