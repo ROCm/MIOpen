@@ -86,6 +86,10 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<double>{});
         break;
     }
+    case miopenFloat8:
+    case miopenBFloat8: {
+        break;
+    }
     }
 }
 
