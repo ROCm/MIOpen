@@ -494,7 +494,6 @@ pipeline {
 
     environment{
         extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
-        high_log_env    = " MIOPEN_LOG_LEVEL=7 "
         Fp16_flags      = " -DMIOPEN_TEST_HALF=On"
         Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags      = " -DMIOPEN_TEST_INT8=On"
@@ -966,7 +965,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_envs: high_log_env, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Install All gfx90a') {
@@ -979,7 +978,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_envs: high_log_env, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {

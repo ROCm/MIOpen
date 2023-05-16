@@ -279,7 +279,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        MIOPEN_LOG_I("FW Algorithm String: " << results[i].algorithm);
         perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(results[i].algorithm);
         perfResults[i].time     = results[i].time;
         perfResults[i].memory   = results[i].workspace;
@@ -613,7 +612,6 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
 
     for(const auto& pair : fdb_record)
     {
-        MIOPEN_LOG_I("Resolver Algorithm String: " << pair.second.algorithm);
         const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
         if(IsAlgorithmDisabled(algo))
             continue;
@@ -788,7 +786,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        MIOPEN_LOG_I("BWD Algorithm String: " << results[i].algorithm);
         perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(results[i].algorithm);
         perfResults[i].time          = results[i].time;
         perfResults[i].memory        = results[i].workspace;
@@ -998,7 +995,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        MIOPEN_LOG_I("WRW Algorithm String: " << results[i].algorithm);
         perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(results[i].algorithm);
         perfResults[i].time             = results[i].time;
         perfResults[i].memory           = results[i].workspace;
