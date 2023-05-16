@@ -966,7 +966,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test + high_log_env, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_envs: high_log_env, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Install All gfx90a') {
@@ -979,7 +979,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test + high_log_env, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_envs: high_log_env, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {
