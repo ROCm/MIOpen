@@ -27,7 +27,9 @@
 
 #include <miopen/config.h>
 
-#if MIOPEN_ENABLE_SQLITE
+#if !MIOPEN_ENABLE_SQLITE
+#error "MIOPEN_ENABLE_SQLITE = Off"
+#endif
 
 #include <miopen/db_record.hpp>
 #include <miopen/db.hpp>
@@ -635,4 +637,3 @@ public:
     }
 };
 } // namespace miopen
-#endif
