@@ -108,6 +108,50 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
+void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
+                                               const FusionDescription& problem,
+                                               miopen::OperatorArgs& params,
+                                               AnyInvokeParams& fused_invoker)
+{
+    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
+    conv_problem.bias    = 1;
+    conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
+                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
+    const auto conv_ctx = context.GetConvContext(conv_problem);
+
+    if(!conv_problem.direction.IsForward())
+        MIOPEN_THROW("Only inference supported.");
+
+    auto& handle = conv_ctx.GetStream();
+
+    const auto bias_buf = handle.Create(conv_problem.bias_sz);
+    const auto in_buf   = handle.Create(conv_problem.bot_sz);
+    const auto wei_buf  = handle.Create(conv_problem.weights_sz);
+    const auto out_buf  = handle.Create(conv_problem.top_sz);
+
+    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+
+    auto conv_data = std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_buf.get());
+    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_buf.get());
+
+    const float activ_alpha = static_cast<double>(0.5f);
+    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_gamma = static_cast<double>(0.5f);
+    auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+        activ_alpha, activ_beta, activ_gamma);
+
+    params.SetArg(0, std::move(conv_data));
+    params.SetArg(1, std::move(bias_data));
+    params.SetArg(2, std::move(activ_data));
+
+    fused_invoker = miopen::fusion::FusionInvokeParams(params,
+                                                       conv_problem.conv_problem.GetIn(),
+                                                       in_buf.get(),
+                                                       conv_problem.conv_problem.GetOut(),
+                                                       out_buf.get(),
+                                                       gfx90aaltimpl);
+}
+
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),

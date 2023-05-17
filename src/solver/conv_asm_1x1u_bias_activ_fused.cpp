@@ -92,35 +92,13 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
                                                                    const FusionDescription& problem,
                                                                    const AnyInvokeParams&) const
 {
-    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
-    conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
-                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
-    const auto conv_ctx = context.GetConvContext(conv_problem);
-
-    if(!conv_problem.direction.IsForward())
-        MIOPEN_THROW("Only inference supported.");
-
+    AnyInvokeParams fused_invoker;
+    miopen::OperatorArgs params;
     /// Workaround: Fused conv API does not pass user-allocated buffers here,
     /// but we need these buffers for search.
-    auto& handle = conv_ctx.GetStream();
+    AllocateConvBiasActivFusionInvokerBufffer(context, problem, params, fused_invoker);
 
-    const auto bias_buf = handle.Create(conv_problem.bias_sz);
-    const auto in_buf   = handle.Create(conv_problem.bot_sz);
-    const auto wei_buf  = handle.Create(conv_problem.weights_sz);
-    const auto out_buf  = handle.Create(conv_problem.top_sz);
-
-    auto tensors             = FusedConvDataTensors{};
-    tensors.in               = in_buf.get();
-    tensors.w                = wei_buf.get();
-    tensors.out              = out_buf.get();
-    tensors.inDesc           = conv_problem.conv_problem.GetIn();
-    tensors.wDesc            = conv_problem.conv_problem.GetWeights();
-    tensors.outDesc          = conv_problem.conv_problem.GetOut();
-    tensors.bias             = bias_buf.get();
-    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
-    const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
-    return GenericSearch(*this, context, problem, fused_invoke_ctx);
+    return GenericSearch(*this, context, problem, fused_invoker);
 }
 
 ConvSolution
