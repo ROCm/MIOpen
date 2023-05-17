@@ -384,7 +384,7 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
             MIOPEN_LOG_I(filename + " database invalid");
         return;
     }
-    ProblemDescriptionCompat prob_desc{conv::Direction::Forward};
+    ProblemDescription prob_desc{};
     if(!is_system)
     {
         SQLite::result_type res;

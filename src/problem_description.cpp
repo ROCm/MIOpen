@@ -56,8 +56,6 @@ bool ProblemDescription::IsLayoutNCHWC() const
 
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
-    if(!direction.IsKnown())
-        MIOPEN_THROW("!direction.IsKnown()");
     const auto sep = '-';
     // Problem description with default NCHW-NCHW-NCHW layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
@@ -114,51 +112,6 @@ ProblemDescription::ProblemDescription(const TensorDescriptor& in,
 
 ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
     : conv_problem(std::move(desc)),
-      spatial_dims(conv_problem.GetSpatialDims()),
-
-      n_inputs(conv_problem.GetInChannels()),
-      in_height(conv_problem.GetInHeight()),
-      in_width(conv_problem.GetInWidth()),
-      in_depth(conv_problem.GetInDepth()),
-      vectorLength(conv_problem.GetVectorLength()),
-
-      kernel_size_h(conv_problem.GetWeightsHeight()),
-      kernel_size_w(conv_problem.GetWeightsWidth()),
-      kernel_size_d(conv_problem.GetWeightsDepth()),
-
-      n_outputs(conv_problem.GetOutChannels()),
-      out_height(conv_problem.GetOutHeight()),
-      out_width(conv_problem.GetOutWidth()),
-      out_depth(conv_problem.GetOutDepth()),
-
-      batch_sz(conv_problem.GetInBatchSize()),
-      pad_h(conv_problem.GetPadH()),
-      pad_w(conv_problem.GetPadW()),
-      pad_d(conv_problem.GetPadD()),
-      kernel_stride_h(conv_problem.GetKernelStrideH()),
-      kernel_stride_w(conv_problem.GetKernelStrideW()),
-      kernel_stride_d(conv_problem.GetKernelStrideD()),
-      kernel_dilation_h(conv_problem.GetDilationH()),
-      kernel_dilation_w(conv_problem.GetDilationW()),
-      kernel_dilation_d(conv_problem.GetDilationD()),
-      bias(conv_problem.GetBias()),
-      in_layout(conv_problem.GetInLayout()),
-      weights_layout(conv_problem.GetWeightsLayout()),
-      out_layout(conv_problem.GetOutLayout()),
-      in_data_type(conv_problem.GetInDataType()),
-      weights_data_type(conv_problem.GetWeightsDataType()),
-      out_data_type(conv_problem.GetOutDataType()),
-      bot_sz(conv_problem.GetInSize()),
-      top_sz(conv_problem.GetOutSize()),
-      weights_sz(conv_problem.GetWeightsSize()),
-      bias_sz(conv_problem.GetBiasSize()),
-      in_stride(conv_problem.GetInStrideH()),
-      out_stride(conv_problem.GetOutStrideH()),
-      in_channel_stride(conv_problem.GetInChannelStride()),
-      in_batch_stride(conv_problem.GetInBatchStride()),
-      out_channel_stride(conv_problem.GetOutChannelStride()),
-      out_batch_stride(conv_problem.GetOutBatchStride()),
-      group_counts(conv_problem.GetGroupCount()),
       direction(conv_problem.GetDirection())
 {
 }
