@@ -137,10 +137,12 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
     if(programs_out != nullptr)
         programs_out->resize(kernels.size());
 
-    for(auto& k : kernels)
+    for(auto i = 0; i < kernels.size(); ++i)
     {
-        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        auto& k              = kernels[i];
         Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
+        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
 
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
