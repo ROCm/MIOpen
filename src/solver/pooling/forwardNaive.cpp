@@ -42,13 +42,11 @@ namespace pooling {
 #if HOST_IMPL
 namespace {
 
-/*template <typename T, typename Index>
-void HostKernel()
-{
-}*/
-
 template <typename T, typename Index>
-void RunHost(int pooling_method,
+void RunHost(int b,
+             int o,
+             int i,
+             int pooling_method,
              int pad_d,
              int pool_stride_d,
              int filter_size_d,
@@ -63,8 +61,6 @@ void RunHost(int pooling_method,
              bool do_backward,
              Index* ref_mask_ptr,
              int index_position,
-             int n_batchs,
-             int n_outputs,
              int bot_depth,
              int bot_height,
              int bot_width,
@@ -75,7 +71,6 @@ void RunHost(int pooling_method,
              int bot_n_stride,
              int top_depth,
              int top_height,
-             int top_width,
              int top_w_stride,
              int top_h_stride,
              int top_d_stride,
@@ -89,99 +84,86 @@ void RunHost(int pooling_method,
 {
     const T MAX_VAL = std::numeric_limits<T>::max();
 
-    for(int b = 0; b < n_batchs; b++)
+    for(int j = 0; j < top_height; j++)
     {
-        for(int o = 0; o < n_outputs; o++)
+        for(int k = 0; k < top_depth; k++)
         {
-            for(int k = 0; k < top_depth; k++)
+            double res;
+            if(pooling_method == MLO_POOLING_OP_MAX)
+                res = -MAX_VAL;
+            else
+                res = 0;
+
+            int dstart = k * pool_stride_d - pad_d;
+            int hstart = j * pool_stride_h - pad_h;
+            int wstart = i * pool_stride_w - pad_w;
+            int dend   = std::min(dstart + filter_size_d, bot_depth);
+            int hend   = std::min(hstart + filter_size_h, bot_height);
+            int wend   = std::min(wstart + filter_size_w, bot_width);
+            dstart     = std::max(dstart, 0);
+            hstart     = std::max(hstart, 0);
+            wstart     = std::max(wstart, 0);
+
+            int pool_size;
+            if(pooling_method == MLO_POOLING_OP_AVE)
+                pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+            else
+                pool_size = filter_size_w * filter_size_h * filter_size_d;
+            pool_size            = (pool_size == 0) ? 1 : pool_size;
+            size_t res_index_gpu = 0;
+            bool found           = false;
+            for(int d = dstart; d < dend; ++d)
             {
-                for(int j = 0; j < top_height; j++)
+                for(int h = hstart; h < hend; ++h)
                 {
-                    for(int i = 0; i < top_width; i++)
+                    for(int w = wstart; w < wend; ++w)
                     {
-                        double res;
+                        size_t bot_index = b * bot_n_stride + o * bot_c_stride + d * bot_d_stride +
+                                           h * bot_h_stride + w * bot_w_stride;
                         if(pooling_method == MLO_POOLING_OP_MAX)
-                            res = -MAX_VAL;
-                        else
-                            res = 0;
-
-                        int dstart = k * pool_stride_d - pad_d;
-                        int hstart = j * pool_stride_h - pad_h;
-                        int wstart = i * pool_stride_w - pad_w;
-                        int dend   = std::min(dstart + filter_size_d, bot_depth);
-                        int hend   = std::min(hstart + filter_size_h, bot_height);
-                        int wend   = std::min(wstart + filter_size_w, bot_width);
-                        dstart     = std::max(dstart, 0);
-                        hstart     = std::max(hstart, 0);
-                        wstart     = std::max(wstart, 0);
-
-                        int pool_size;
-                        if(pooling_method == MLO_POOLING_OP_AVE)
-                            pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
-                        else
-                            pool_size = filter_size_w * filter_size_h * filter_size_d;
-                        pool_size            = (pool_size == 0) ? 1 : pool_size;
-                        size_t res_index_gpu = 0;
-                        bool found           = false;
-                        for(int d = dstart; d < dend; ++d)
                         {
-                            for(int h = hstart; h < hend; ++h)
+                            if(bot_ptr[bot_index] > res)
                             {
-                                for(int w = wstart; w < wend; ++w)
-                                {
-                                    size_t bot_index = b * bot_n_stride + o * bot_c_stride +
-                                                       d * bot_d_stride + h * bot_h_stride +
-                                                       w * bot_w_stride;
-                                    if(pooling_method == MLO_POOLING_OP_MAX)
-                                    {
-                                        if(bot_ptr[bot_index] > res)
-                                        {
-                                            res = static_cast<T>(bot_ptr[bot_index]);
-                                            res_index_gpu =
-                                                index_position == 1
-                                                    ? (d * bot_height * bot_width + h * bot_width +
-                                                       w)
-                                                    : ((d - k * pool_stride_d + pad_d) *
-                                                       filter_size_w * filter_size_h) +
-                                                          ((h - j * pool_stride_h + pad_h) *
-                                                           filter_size_w) +
-                                                          (w - i * pool_stride_w + pad_w);
-                                            if(do_backward)
-                                                found = true;
-                                        }
-                                    }
-                                    else // Average
-                                    {
-                                        res += bot_ptr[bot_index];
-                                    }
-                                }
+                                res = static_cast<T>(bot_ptr[bot_index]);
+                                res_index_gpu =
+                                    index_position == 1
+                                        ? (d * bot_height * bot_width + h * bot_width + w)
+                                        : ((d - k * pool_stride_d + pad_d) * filter_size_w *
+                                           filter_size_h) +
+                                              ((h - j * pool_stride_h + pad_h) * filter_size_w) +
+                                              (w - i * pool_stride_w + pad_w);
+                                if(do_backward)
+                                    found = true;
                             }
                         }
-
-                        if(pooling_method == MLO_POOLING_OP_MAX && do_backward)
+                        else // Average
                         {
-                            if(!found)
-                                res_index_gpu = std::numeric_limits<uint8_t>::max();
-
-                            const size_t mask_gpu_index = b * mask_n_stride + o * mask_c_stride +
-                                                          k * mask_d_stride + j * mask_h_stride +
-                                                          i * mask_w_stride;
-                            ref_mask_ptr[mask_gpu_index] = res_index_gpu;
+                            res += bot_ptr[bot_index];
                         }
-
-                        if(pooling_method == MLO_POOLING_OP_AVE ||
-                           pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
-                        {
-                            res /= pool_size;
-                        }
-                        const size_t top_index = b * top_n_stride + o * top_c_stride +
-                                                 k * top_d_stride + j * top_h_stride +
-                                                 i * top_w_stride;
-
-                        out_ptr[top_index] = static_cast<T>(res);
                     }
                 }
             }
+
+            if(pooling_method == MLO_POOLING_OP_MAX && do_backward)
+            {
+                if(!found)
+                    res_index_gpu = std::numeric_limits<uint8_t>::max();
+
+                const size_t mask_gpu_index = b * mask_n_stride + o * mask_c_stride +
+                                              k * mask_d_stride + j * mask_h_stride +
+                                              i * mask_w_stride;
+                ref_mask_ptr[mask_gpu_index] = res_index_gpu;
+            }
+
+            if(pooling_method == MLO_POOLING_OP_AVE ||
+               pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
+            {
+                res /= pool_size;
+            }
+            const size_t top_index = b * top_n_stride + o * top_c_stride + k * top_d_stride +
+                                     j * top_h_stride + i * top_w_stride;
+
+            out_ptr[top_index] = static_cast<T>(res);
         }
     }
 }
@@ -232,44 +214,53 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
     MIOPEN_LOG_T("hipMemcpy bot: " << rc << ' ' << bot_host.data() << ' '
                                    << (bot_host.size() * sizeof(bot_host[0])));
 
-    RunHost<T, Index>(args.pooling_method,
-                      args.pad_d,
-                      args.stride_d,
-                      args.filter_d,
-                      args.pad_h,
-                      args.stride_h,
-                      args.filter_h,
-                      args.pad_w,
-                      args.stride_w,
-                      args.filter_w,
-                      bot_host.data(),
-                      top_host.data(),
-                      args.save_index,
-                      mask_host.data(),
-                      args.index_mode,
-                      args.n_batchs,
-                      args.n_outputs,
-                      args.bot_depth,
-                      args.bot_height,
-                      args.bot_width,
-                      args.bot_w_stride,
-                      args.bot_h_stride,
-                      args.bot_d_stride,
-                      args.bot_c_stride,
-                      args.bot_n_stride,
-                      args.top_depth,
-                      args.top_height,
-                      args.top_width,
-                      args.top_w_stride,
-                      args.top_h_stride,
-                      args.top_d_stride,
-                      args.top_c_stride,
-                      args.top_n_stride,
-                      args.mask_w_stride,
-                      args.mask_h_stride,
-                      args.mask_d_stride,
-                      args.mask_c_stride,
-                      args.mask_n_stride);
+    for(int b = 0; b < args.n_batchs; b++)
+    {
+        for(int o = 0; o < args.n_outputs; o++)
+        {
+            for(int i = 0; i < args.top_width; i++)
+            {
+                RunHost<T, Index>(b,
+                                  o,
+                                  i,
+                                  args.pooling_method,
+                                  args.pad_d,
+                                  args.stride_d,
+                                  args.filter_d,
+                                  args.pad_h,
+                                  args.stride_h,
+                                  args.filter_h,
+                                  args.pad_w,
+                                  args.stride_w,
+                                  args.filter_w,
+                                  bot_host.data(),
+                                  top_host.data(),
+                                  args.save_index,
+                                  mask_host.data(),
+                                  args.index_mode,
+                                  args.bot_depth,
+                                  args.bot_height,
+                                  args.bot_width,
+                                  args.bot_w_stride,
+                                  args.bot_h_stride,
+                                  args.bot_d_stride,
+                                  args.bot_c_stride,
+                                  args.bot_n_stride,
+                                  args.top_depth,
+                                  args.top_height,
+                                  args.top_w_stride,
+                                  args.top_h_stride,
+                                  args.top_d_stride,
+                                  args.top_c_stride,
+                                  args.top_n_stride,
+                                  args.mask_w_stride,
+                                  args.mask_h_stride,
+                                  args.mask_d_stride,
+                                  args.mask_c_stride,
+                                  args.mask_n_stride);
+            }
+        }
+    }
 
     rc = hipMemcpy(
         params.y, top_host.data(), top_host.size() * sizeof(top_host[0]), hipMemcpyHostToDevice);
