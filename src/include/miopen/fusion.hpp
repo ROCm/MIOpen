@@ -256,6 +256,8 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    Data_t y);
 struct FusionContext;
 struct FusionDescription;
+/// Workaround: Fused conv API does not pass user-allocated buffers during compile time,
+/// This function allocates buffer to get rid of the issue.
 void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
                                                const FusionDescription& problem,
                                                miopen::OperatorArgs& params,
