@@ -137,7 +137,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
     if(programs_out != nullptr)
         programs_out->resize(kernels.size());
 
-    std::vector<Kernel> built;
     for(auto& k : kernels)
     {
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
