@@ -70,63 +70,17 @@ struct conv2d_driver : conv_driver<T>
     }
 };
 
-class MyTestSuite : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>> {};    
-/*
-set(MIOPEN_EMBED_TEST_ARG ${MIOPEN_TEST_FLOAT_ARG} --disable-validation --verbose)
-# WORKAROUND for issue #874
-set(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0)
-set(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
-set(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1W MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
-# WORKAROUND for issue #1008
-set(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2 MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0)
-*/ 
-
-/*
-env vars:
-add_custom_test(test_conv_embed_db TEST_PERF_DB_RECORD_NOT_FOUND GFX908_DISABLED GFX90A_DISABLED
-*/
-
+class MyTestSuite : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>> {}; 
 
                                                                    
 TEST_P(MyTestSuite, MyTest)                                           
 {                                                                     
-
+#if MIOPEN_EMBED_DB
   //SKIP_UNLESS_COMPOSABLEKERNEL
 	//SKIP_UNLESS_ALL???
-  //TEST_PERF_DB_RECORD_NOT_FOUND check
+  //TEST_PERF_DB_RECORD_NOT_FOUND checks for test string to make it pass/fail
+  //MIOPEN_EMBED_DB is set with -DMIOPEN_EMBED_DB=1 compile flag
 
-
-  std::unordered_map<std::string, std::string> env_vars = {};
-  env_vars["MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2"] = "0"; 
-  env_vars["MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1"] = "0"; //F
-  env_vars["MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1"] = "0"; //W, FW
-  env_vars["GFX908_DISABLED"] = "1"; 
-  env_vars["GFX90A_DISABLED"] = "1"; 
-  env_vars["GFX94X_ENABLED"] = "1"; 
-  env_vars["GFX103X_ENABLED"] = "1"; 
-  env_vars["GFX110X_ENABLED"] = "1"; 
-  env_vars["HALF_ENABLED"] = "1"; 
-  env_vars["INT8_ENABLED"] = "1"; 
-  env_vars["OCL_DISABLED"] = "1"; 
-
-  //IMPLICITGEMM_MLIR_ENV_BASE
-  env_vars["MIOPEN_FIND_MODE"] = "normal";
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmFwd";
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmBwd";
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmWrW";
-  env_vars["FIND_MODE"] = "normal"; //IMPLICITGEMM_MLIR_ENV_BASE
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmFwdXdlops";
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmBwdXdlops";
-	env_vars["MIOPEN_DEBUG_FIND_ONLY_SOLVER"] = "ConvMlirIgemmWrWXdlops";
-
-  std::unordered_map<std::string, std::string> xtra_args = {};
-  xtra_args["MIOPEN_TEST_FLOAT_ARG"] = "--disable-validation --verbose";
-
-  //MIOPEN_TEST_FLOAT_ARGS + 
-	xtra_args["TEST_CONV_VERBOSE_F"] = "--verbose --disable-backward-data --disable-backward-weights";
-	xtra_args["TEST_CONV_VERBOSE_B"] = "--verbose --disable-forward --disable-backward-weights";
-	xtra_args["TEST_CONV_VERBOSE_W"] = "--verbose --disable-forward --disable-backward-data";
-  xtra_args["MIOPEN_TEST_FLOAT_ARG"] = "--disable-forward --disable-backward-data";
 
   //std::cout << "Example Test Param: " << GetParam() << std::endl;     
   const auto& handle = get_handle();                                  
@@ -136,46 +90,39 @@ TEST_P(MyTestSuite, MyTest)
       GTEST_SKIP();
   }
 
-  //auto [vec, cmd] = GetParam();
   auto tple = GetParam();
   std::cout << "Tuple size: " << std::tuple_size<decltype(tple)>::value << std::endl;
-  auto vec = std::get<0>(tple);
-  for(const auto &elem : vec)
+  auto env_vars = std::get<0>(tple);
+  for(auto &elem : env_vars){
     std::cout << elem << std::endl;
+    putenv(elem.data());
+  }
 
   auto cmd = std::get<1>(tple);
   std::cout << cmd << std::endl;
 
-  /*
-  for elem in param[0,n-2]
-		if elem in env_vars.keys set env var
-    if elem in xtra_args prepend xtra cmd to driver
-    if elem=="TEST_PERF_DB_RECORD_NOT_FOUND" check output
-  */
+  std::stringstream ss(cmd);
+  std::istream_iterator<std::string> begin(ss);
+  std::istream_iterator<std::string> end;
+  std::vector<std::string> tokens(begin, end);
+  std::vector<const char*> ptrs;
+  
+  for (std::string const& str : tokens) {
+      ptrs.push_back(str.data());
+  }
+  test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
 
+#else
+GTEST_SKIP();
+#endif
 
-  //std::stringstream ss(param);
-  //std::istream_iterator<std::string> begin(ss);
-  //std::istream_iterator<std::string> end;
-  //std::vector<std::string> tokens(begin, end);
-  //std::vector<const char*> ptrs;
-   
-  //for (std::string const& str : tokens) {
-  //    ptrs.push_back(str.data());
-  //    //std::cout << str.data() << std::endl;
-  //}
-  //std::cout << "PTR SIZE: " << ptrs.size() << std::endl;
-
-  //test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-
-
-}
-
+};
 
 INSTANTIATE_TEST_SUITE_P(MyGroup, MyTestSuite,
                          testing::Values(
-														std::make_tuple<std::vector<std::string>, std::string>({"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1"}, "--disable-validation --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ")
-												));
+                            std::make_tuple<std::vector<std::string>, std::string>({"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"}, std::string(std::getenv("MIOPEN_TEST_FLOAT_ARG")) + " --disable-validation --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ")
+                        ));
+
 
 //std::vector<std::string>{"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1", "--disable-validation --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
 /*
