@@ -111,8 +111,7 @@ ProblemDescription::ProblemDescription(const TensorDescriptor& in,
 }
 
 ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
-    : conv_problem(std::move(desc)),
-      direction(conv_problem.GetDirection())
+    : conv_problem(std::move(desc)), direction(conv_problem.GetDirection())
 {
 }
 
