@@ -216,8 +216,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() *
-            GetInWidth() * GetInElementSize();
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
+               GetInElementSize();
     }
 
     // Out getters

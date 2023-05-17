@@ -188,18 +188,9 @@ struct ProblemDescription
     bool Is2d() const { return conv_problem.Is2d(); }
     bool Is3d() const { return conv_problem.Is3d(); }
 
-    bool IsFp32() const
-    {
-        return conv_problem.IsFp32();
-    }
-    bool IsFp16() const
-    {
-        return conv_problem.IsFp16();
-    }
-    bool IsBfp16() const
-    {
-        return conv_problem.IsBfp16();
-    }
+    bool IsFp32() const { return conv_problem.IsFp32(); }
+    bool IsFp16() const { return conv_problem.IsFp16(); }
+    bool IsBfp16() const { return conv_problem.IsBfp16(); }
     bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
     {
