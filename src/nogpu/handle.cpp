@@ -129,12 +129,20 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
+    std::vector<Kernel> built;
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
     std::vector<Kernel> built;
     for(auto& k : kernels)
     {
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -143,7 +151,10 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        false,
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
