@@ -254,6 +254,12 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const ActivationDescriptor& activationDesc,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
+struct FusionContext;
+struct FusionDescription;
+void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
+                                               const FusionDescription& problem,
+                                               miopen::OperatorArgs& params,
+                                               AnyInvokeParams& fused_invoker);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
