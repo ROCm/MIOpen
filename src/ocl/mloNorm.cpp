@@ -301,7 +301,6 @@ int mlo_construct_norm::mloConstructBwd()
     if(pre_pad < 0 || pad < 0)
         MIOPEN_THROW("Wrong LRN kernel size");
 
-    // clang-format off
     _comp_options =
         std::string(" -DMLO_LRN_KERNEL_SZ=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
@@ -364,7 +363,6 @@ int mlo_construct_norm::mloConstructBwd()
         std::to_string(static_cast<long long>(_problem.GetInChannels())) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(_problem.GetOutChannels())) + getGeneralCompOptions();
-    // clang-format on
 
     _kernel_file = "MIOpenLRNBwd.cl";
 

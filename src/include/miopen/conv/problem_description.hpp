@@ -216,10 +216,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        // clang-format off
         return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() *
             GetInWidth() * GetInElementSize();
-        // clang-format on
     }
 
     // Out getters
@@ -250,10 +248,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        // clang-format off
         return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
                GetOutWidth() * GetOutElementSize();
-        // clang-format on
     }
 
     // Weights getters
@@ -295,10 +291,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        // clang-format off
         return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
                GetWeightsWidth() * GetWeightsElementSize();
-        // clang-format on
     }
 
     const TensorDescriptor& GetIn() const { return in; }
@@ -326,6 +320,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool Is2d() const { return GetSpatialDims() == 2; }
+    bool Is3d() const { return GetSpatialDims() == 3; }
 
     bool IsFp32() const
     {

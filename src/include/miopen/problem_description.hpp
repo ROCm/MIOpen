@@ -114,7 +114,7 @@ struct ProblemDescription
     int GetGroupCount() const { return conv_problem.GetGroupCount(); }
 
 #if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
+    static std::string table_name() { return conv::ProblemDescription::table_name(); }
 #endif
 
     bool IsLayoutDefault() const;
@@ -185,23 +185,20 @@ struct ProblemDescription
     bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
     bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
 
-    bool Is2d() const { return GetSpatialDims() == 2; }
-    bool Is3d() const { return GetSpatialDims() == 3; }
+    bool Is2d() const { return conv_problem.Is2d(); }
+    bool Is3d() const { return conv_problem.Is3d(); }
 
     bool IsFp32() const
     {
-        return GetInDataType() == miopenFloat && GetWeightsDataType() == miopenFloat &&
-               GetOutDataType() == miopenFloat;
+        return conv_problem.IsFp32();
     }
     bool IsFp16() const
     {
-        return GetInDataType() == miopenHalf && GetWeightsDataType() == miopenHalf &&
-               GetOutDataType() == miopenHalf;
+        return conv_problem.IsFp16();
     }
     bool IsBfp16() const
     {
-        return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
-               GetOutDataType() == miopenBFloat16;
+        return conv_problem.IsBfp16();
     }
     bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
