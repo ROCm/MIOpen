@@ -31,13 +31,21 @@
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
 
+#define HOST_IMPL 1
+
 namespace miopen {
 
 namespace solver {
 
 namespace pooling {
 
+#if HOST_IMPL
 namespace {
+
+/*template <typename T, typename Index>
+void HostKernel()
+{
+}*/
 
 template <typename T, typename Index>
 void RunHost(int pooling_method,
@@ -50,40 +58,35 @@ void RunHost(int pooling_method,
              int pad_w,
              int pool_stride_w,
              int filter_size_w,
-             const miopen::TensorDescriptor& bot,
-             const miopen::TensorDescriptor& top,
              const T* bot_ptr,
              T* out_ptr,
              bool do_backward,
              Index* ref_mask_ptr,
-             int index_position)
+             int index_position,
+             int n_batchs,
+             int n_outputs,
+             int bot_depth,
+             int bot_height,
+             int bot_width,
+             int bot_w_stride,
+             int bot_h_stride,
+             int bot_d_stride,
+             int bot_c_stride,
+             int bot_n_stride,
+             int top_depth,
+             int top_height,
+             int top_width,
+             int top_w_stride,
+             int top_h_stride,
+             int top_d_stride,
+             int top_c_stride,
+             int top_n_stride,
+             int mask_w_stride,
+             int mask_h_stride,
+             int mask_d_stride,
+             int mask_c_stride,
+             int mask_n_stride)
 {
-
-    const auto spatial_dim = bot.GetLengths().size() - 2;
-
-    int n_batchs, n_outputs, bot_depth, bot_height, bot_width;
-    int bot_w_stride, bot_h_stride, bot_d_stride, bot_c_stride, bot_n_stride;
-
-    int top_depth, top_height, top_width;
-    int top_w_stride, top_h_stride, top_d_stride, top_c_stride, top_n_stride;
-
-    std::tie(n_batchs, n_outputs, bot_depth, bot_height, bot_width) =
-        miopen::GetNCDHW(spatial_dim, bot.GetLengths());
-    std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
-        miopen::GetNCDHW(spatial_dim, bot.GetStrides());
-
-    std::tie(std::ignore, std::ignore, top_depth, top_height, top_width) =
-        miopen::GetNCDHW(spatial_dim, top.GetLengths());
-    std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
-        miopen::GetNCDHW(spatial_dim, top.GetStrides());
-
-    // Mask data is always NCDHW
-    constexpr const int mask_w_stride = 1;
-    const int mask_h_stride           = mask_w_stride * top_width;
-    const int mask_d_stride           = mask_h_stride * top_height;
-    const int mask_c_stride           = mask_d_stride * top_depth;
-    const int mask_n_stride           = mask_c_stride * n_outputs;
-
     const T MAX_VAL = std::numeric_limits<T>::max();
 
     for(int b = 0; b < n_batchs; b++)
@@ -197,6 +200,15 @@ struct arguments_t // Syntax sugar.
     int filter_w;
     bool save_index;
     int index_mode;
+    int n_batchs, n_outputs, bot_depth, bot_height, bot_width;
+    int bot_w_stride, bot_h_stride, bot_d_stride, bot_c_stride, bot_n_stride;
+    int top_depth, top_height, top_width;
+    int top_w_stride, top_h_stride, top_d_stride, top_c_stride, top_n_stride;
+    int mask_w_stride;
+    int mask_h_stride;
+    int mask_d_stride;
+    int mask_c_stride;
+    int mask_n_stride;
 };
 
 template <typename T, typename Index>
@@ -230,13 +242,34 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                       args.pad_w,
                       args.stride_w,
                       args.filter_w,
-                      bot,
-                      top,
                       bot_host.data(),
                       top_host.data(),
                       args.save_index,
                       mask_host.data(),
-                      args.index_mode);
+                      args.index_mode,
+                      args.n_batchs,
+                      args.n_outputs,
+                      args.bot_depth,
+                      args.bot_height,
+                      args.bot_width,
+                      args.bot_w_stride,
+                      args.bot_h_stride,
+                      args.bot_d_stride,
+                      args.bot_c_stride,
+                      args.bot_n_stride,
+                      args.top_depth,
+                      args.top_height,
+                      args.top_width,
+                      args.top_w_stride,
+                      args.top_h_stride,
+                      args.top_d_stride,
+                      args.top_c_stride,
+                      args.top_n_stride,
+                      args.mask_w_stride,
+                      args.mask_h_stride,
+                      args.mask_d_stride,
+                      args.mask_c_stride,
+                      args.mask_n_stride);
 
     rc = hipMemcpy(
         params.y, top_host.data(), top_host.size() * sizeof(top_host[0]), hipMemcpyHostToDevice);
@@ -257,6 +290,7 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
 }
 
 } // namespace
+#endif // HOST_IMPL
 
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
@@ -311,23 +345,44 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
     const auto index_mode = pooling.GetWorkspaceIndexMode();
     const auto index_type = pooling.GetIndexType();
 
+    const auto spatial_dim = is2d ? 2 : 3;
+    int n_batchs, n_outputs, bot_depth, bot_height, bot_width;
+    int bot_w_stride, bot_h_stride, bot_d_stride, bot_c_stride, bot_n_stride;
+    std::tie(n_batchs, n_outputs, bot_depth, bot_height, bot_width) =
+        miopen::GetNCDHW(spatial_dim, bot.GetLengths());
+    std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
+        miopen::GetNCDHW(spatial_dim, bot.GetStrides());
+
+    int top_depth, top_height, top_width;
+    int top_w_stride, top_h_stride, top_d_stride, top_c_stride, top_n_stride;
+    std::tie(std::ignore, std::ignore, top_depth, top_height, top_width) =
+        miopen::GetNCDHW(spatial_dim, top.GetLengths());
+    std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
+        miopen::GetNCDHW(spatial_dim, top.GetStrides());
+
+    // Mask data is always NCDHW
+    constexpr const int mask_w_stride = 1;
+    const int mask_h_stride           = mask_w_stride * top_width;
+    const int mask_d_stride           = mask_h_stride * top_height;
+    const int mask_c_stride           = mask_d_stride * top_depth;
+    const int mask_n_stride           = mask_c_stride * n_outputs;
+
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
+#if !HOST_IMPL
+#else  // HOST_IMPL
             std::ignore            = kernels;
             std::ignore            = handle;
             auto params            = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
-            const arguments_t args = {pooling_method,
-                                      pad_d,
-                                      stride_d,
-                                      filter_d,
-                                      pad_h,
-                                      stride_h,
-                                      filter_h,
-                                      pad_w,
-                                      stride_w,
-                                      filter_w,
-                                      save_index,
-                                      index_mode};
+            const arguments_t args = {
+                pooling_method, pad_d,         stride_d,      filter_d,      pad_h,
+                stride_h,       filter_h,      pad_w,         stride_w,      filter_w,
+                save_index,     index_mode,    n_batchs,      n_outputs,     bot_depth,
+                bot_height,     bot_width,     bot_w_stride,  bot_h_stride,  bot_d_stride,
+                bot_c_stride,   bot_n_stride,  top_depth,     top_height,    top_width,
+                top_w_stride,   top_h_stride,  top_d_stride,  top_c_stride,  top_n_stride,
+                mask_w_stride,  mask_h_stride, mask_d_stride, mask_c_stride, mask_n_stride,
+            };
 
             if(bot.GetType() == miopenFloat)
             {
@@ -370,6 +425,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
                 MIOPEN_THROW(miopenStatusInternalError,
                              "PoolingForwardNaive: unsupported data type");
             }
+#endif // HOST_IMPL
         };
     };
 
