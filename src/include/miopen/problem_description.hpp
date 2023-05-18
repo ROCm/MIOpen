@@ -37,7 +37,6 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -233,9 +232,12 @@ struct ProblemDescription
     }
 };
 
-// For mlo_construct_base and test_sqlite_perfdb
+// For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
 // TODO remove this
 struct ProblemDescriptionCompat
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<ProblemDescription>
+#endif
 {
     int spatial_dims = 2;
     int n_inputs     = 0;
@@ -323,6 +325,8 @@ struct ProblemDescriptionCompat
     int GetGroupCount() const { return group_counts; }
 
 #if MIOPEN_ENABLE_SQLITE
+    static std::string table_name() { return ProblemDescription::table_name(); }
+
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {

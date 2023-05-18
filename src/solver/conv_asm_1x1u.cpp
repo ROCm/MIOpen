@@ -298,6 +298,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
         return false;
     if(sequence_length > 1)
     {
+        assert(elements_in_dword > 0);
+        // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
         if((k_mult % elements_in_dword) != 0)
             return false;
         if(problem.direction.IsBackwardData() && !(problem.GetOutChannels() % k_mult == 0))
@@ -346,6 +348,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
             return false;
         const int c_per_wave = (problem.GetInChannels() + waves_c_in_group - 1) / waves_c_in_group;
         const int c_per_last_wave = problem.GetInChannels() - (c_per_wave * (waves_c_in_group - 1));
+        assert(c_mult > 0);
+        // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
     }
@@ -548,6 +552,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
+    assert(elements_in_dword > 0);
     // clang-format off
     const int img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     bool ok = (problem.GetPadW() == 0       // -q  pad_w
@@ -559,6 +564,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
+        // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
         && problem.GetInChannels() % elements_in_dword == 0
         && problem.GetOutChannels() % elements_in_dword == 0
         && problem.GetInLayout() == "NCHW"

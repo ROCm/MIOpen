@@ -84,6 +84,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(AllGemmWorkspaceSize(ctx, problem));
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return 0;
 #endif
 }
