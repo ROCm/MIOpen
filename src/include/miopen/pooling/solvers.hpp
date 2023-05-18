@@ -69,6 +69,7 @@ struct PoolingForwardNd final : PoolingSolver
 struct PoolingForwardNaive final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNaive>(); }
+    bool IsDynamic() const override { return true; }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
