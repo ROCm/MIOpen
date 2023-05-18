@@ -34,6 +34,10 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_DUMP_TRANS)
 
 #define FWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
@@ -795,15 +799,45 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 
     if(is_nchw)
     {
+        const auto is_stochastic =
+            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
+            miopenF8RoundingModeStochastic;
+        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+        const uint32_t fp8_seed_out = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
 
-        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.in_data_type, n, c, hi, wi);
-        TransposeSolutionDefault2Nhwc trans_weight(ctx,
-                                                   problem.weights_data_type,
-                                                   k,
-                                                   c / group,
-                                                   y,
-                                                   x); // group * k_per_group as batch for weight
-        TransposeSolutionNhwc2Default trans_output(ctx, problem.out_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_input(
+            ctx,
+            problem.in_data_type,
+            n,
+            c,
+            hi,
+            wi,
+            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
+                                                       problem.conv_problem.GetInCastType()),
+            is_stochastic,
+            fp8_seed_inp);
+        TransposeSolutionDefault2Nhwc trans_weight(
+            ctx,
+            problem.weights_data_type,
+            k,
+            c / group,
+            y,
+            x,
+            GetImplGemmDynamicNHWCBatchedTransposeFlag(
+                problem.conv_problem.GetWeightsDataType(),
+                problem.conv_problem
+                    .GetWeightsCastType()), // group * k_per_group as batch for weight
+            is_stochastic,
+            fp8_seed_wei);
+        TransposeSolutionNhwc2Default trans_output(
+            ctx, problem.out_data_type, n, k, ho, wo, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_out);
 
         if(!trans_input.IsSkippable())
             size_trans_input = trans_input.GetOutputTensorSize();
@@ -857,6 +891,16 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
         return false;
 
     if(!ctx.rmv.IsV3())
+        return false;
+
+    if(problem.IsTensorsCasted() &&
+       !(problem.IsLayoutDefault() &&
+         (*problem.conv_problem.GetInCastType() == miopenFloat8 ||
+          *problem.conv_problem.GetInCastType() == miopenBFloat8 ||
+          *problem.conv_problem.GetWeightsCastType() == miopenFloat8 ||
+          *problem.conv_problem.GetWeightsCastType() == miopenBFloat8 ||
+          *problem.conv_problem.GetOutCastType() == miopenFloat8 ||
+          *problem.conv_problem.GetOutCastType() == miopenBFloat8)))
         return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -944,33 +988,72 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         const auto& y     = problem.kernel_size_h;
         const auto& x     = problem.kernel_size_w;
         const auto& group = problem.group_counts;
+        const auto is_stochastic =
+            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
+            miopenF8RoundingModeStochastic;
+        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+        const uint32_t fp8_seed_out = static_cast<uint32_t>(
+            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
+                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
 
-        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.in_data_type, n, c, hi, wi);
-        TransposeSolutionDefault2Nhwc trans_weight(ctx,
-                                                   problem.weights_data_type,
-                                                   k,
-                                                   c / group,
-                                                   y,
-                                                   x); // group * k_per_group as batch for weight
-        TransposeSolutionNhwc2Default trans_output(ctx, problem.out_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_input(
+            ctx,
+            problem.in_data_type,
+            n,
+            c,
+            hi,
+            wi,
+            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
+                                                       problem.conv_problem.GetInCastType()),
+            is_stochastic,
+            fp8_seed_inp);
+        TransposeSolutionDefault2Nhwc trans_weight(
+            ctx,
+            problem.weights_data_type,
+            k,
+            c / group,
+            y,
+            x,
+            GetImplGemmDynamicNHWCBatchedTransposeFlag(
+                problem.conv_problem.GetWeightsDataType(),
+                problem.conv_problem
+                    .GetWeightsCastType()), // group * k_per_group as batch for weight
+            is_stochastic,
+            fp8_seed_wei);
+        TransposeSolutionNhwc2Default trans_output(
+            ctx, problem.out_data_type, n, k, ho, wo, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_out);
 
         if(!trans_input.IsSkippable())
         {
             result.construction_params.push_back(trans_input.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", inp trans:" << trans_input.GetKernelName();
+                msg << ", inp trans:" << trans_input.GetKernelName() << "["
+                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
+                           problem.conv_problem.GetInDataType(),
+                           problem.conv_problem.GetInCastType())
+                    << "]";
         }
         if(!trans_weight.IsSkippable())
         {
             result.construction_params.push_back(trans_weight.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", wei trans:" << trans_weight.GetKernelName();
+                msg << ", wei trans:" << trans_weight.GetKernelName() << "["
+                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
+                           problem.conv_problem.GetWeightsDataType(),
+                           problem.conv_problem.GetWeightsCastType())
+                    << "]";
         }
         if(!trans_output.IsSkippable())
         {
             result.construction_params.push_back(trans_output.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", out trans:" << trans_output.GetKernelName();
+                msg << ", out trans:" << trans_output.GetKernelName() << "[" << BT_FLAG_DEFAULT
+                    << "]";
         }
     }
 
