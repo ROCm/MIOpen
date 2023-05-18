@@ -42,7 +42,6 @@
 __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      __global _FLOAT* top_ptr,
                                      __global index_t* mask_ptr,
-                                     int pooling_method,
                                      int save_index,
                                      int index_mode,
                                      uint pad_d,
@@ -83,12 +82,12 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
     {
         for(uint k = 0; k < top_d; ++k)
         {
-            _FLOAT_ACCUM res;
-            if(pooling_method == MLO_POOLING_OP_MAX)
-                res = (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
-            else
-                res = (_FLOAT_ACCUM)(0);
-
+            _FLOAT_ACCUM res =
+#if AVERAGE_OPS
+                (_FLOAT_ACCUM)(0);
+#else // MAX
+                (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
+#endif
             const int int_dstart = k * pool_d_stride - pad_d;
             const int int_hstart = j * pool_h_stride - pad_h;
             const int int_wstart = i * pool_w_stride - pad_w;
@@ -99,13 +98,12 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
             const uint hstart    = (uint)max(int_hstart, 0);
             const uint wstart    = (uint)max(int_wstart, 0);
 
-            uint pool_size;
-            if(pooling_method == MLO_POOLING_OP_AVE)
-                pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
-            else
-                pool_size = filter_w * filter_h * filter_d;
-            pool_size = (pool_size == 0) ? 1 : pool_size;
-
+#if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+            uint pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+            pool_size      = (pool_size == 0) ? 1 : pool_size;
+#else // MAX or AVE_INCLUSIVE
+            const uint pool_size = filter_w * filter_h * filter_d;
+#endif
             bool found = false; // This may remain false if the input tensor
                                 // contains only NaNs and -INFs.
             uint d_save = 0;
@@ -122,29 +120,29 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                                  + (size_t)(d * bot_d_stride) //
                                                  + (size_t)(h * bot_h_stride) //
                                                  + (size_t)(w * bot_w_stride);
-                        if(pooling_method == MLO_POOLING_OP_MAX)
+#if AVERAGE_OPS
+                        res += bot_ptr[bot_index];
+#else // MAX
+                        if(bot_ptr[bot_index] > res)
                         {
-                            if(bot_ptr[bot_index] > res)
+                            res = bot_ptr[bot_index];
+                            if(save_index)
                             {
-                                res = bot_ptr[bot_index];
-                                if(save_index)
-                                {
-                                    found  = true;
-                                    d_save = d;
-                                    h_save = h;
-                                    w_save = w;
-                                }
+                                found  = true;
+                                d_save = d;
+                                h_save = h;
+                                w_save = w;
                             }
                         }
-                        else // Average
-                        {
-                            res += bot_ptr[bot_index];
-                        }
+#endif
                     }
                 }
             }
 
-            if(pooling_method == MLO_POOLING_OP_MAX && save_index)
+#if AVERAGE_OPS
+            res *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
+#else // MAX
+            if(save_index)
             {
                 index_t res_index = 0;
 
@@ -177,12 +175,7 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                           + (size_t)(i * mask_w_stride);
                 mask_ptr[mask_index] = res_index;
             }
-
-            if(pooling_method == MLO_POOLING_OP_AVE ||
-               pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
-            {
-                res *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
-            }
+#endif
             const size_t top_index = b * top_n_stride             //
                                      + o * top_c_stride           //
                                      + (size_t)(k * top_d_stride) //
