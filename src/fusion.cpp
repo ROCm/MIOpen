@@ -221,11 +221,16 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     {
         if(op->kind() == miopenFusionOpConvForward)
         {
-            auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(op);
+            auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*op);
             TensorDescriptor opd;
-            ptr->GetOutputDesc(opd);
-            size_t tmp_sz = ptr->base_desc.ForwardGetWorkSpaceSize(
-                handle, ptr->filter_desc, ptr->input_desc, opd);
+            conv_op.GetOutputDesc(opd);
+            const auto ctx     = ExecutionContext{&handle};
+            const auto problem = conv::ProblemDescription{conv_op.input_desc,
+                                                          conv_op.filter_desc,
+                                                          opd,
+                                                          conv_op.base_desc,
+                                                          conv::Direction::Forward};
+            const auto tmp_sz  = conv_op.base_desc.GetWorkSpaceSize(ctx, problem);
             if(tmp_sz > workSpaceSize)
                 workSpaceSize = tmp_sz;
         }

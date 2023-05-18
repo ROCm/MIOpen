@@ -245,9 +245,9 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
-    if(conv_problem.pad_h != conv_problem.pad_w)
+    if(conv_problem.GetPadH() != conv_problem.GetPadW())
         return false;
-    if(conv_problem.pad_h != 0)
+    if(conv_problem.GetPadH() != 0)
         return false;
     if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
         return false;
