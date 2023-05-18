@@ -42,8 +42,11 @@ struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
                                   uint32_t n_,
                                   uint32_t c_,
                                   uint32_t h_,
-                                  uint32_t w_)
-        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
+                                  uint32_t w_,
+                                  uint32_t flag_,
+                                  bool stochastic_,
+                                  uint32_t seed_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_, flag_, stochastic_, seed_)
     {
     }
 };
@@ -55,8 +58,11 @@ struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
                                   uint32_t n_,
                                   uint32_t c_,
                                   uint32_t h_,
-                                  uint32_t w_)
-        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
+                                  uint32_t w_,
+                                  uint32_t flag_,
+                                  bool stochastic_,
+                                  uint32_t seed_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_, flag_, stochastic_, seed_)
     {
     }
 };

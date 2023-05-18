@@ -208,12 +208,14 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenHalf: return (2);
     case miopenFloat: return (4);
     case miopenDouble: return (8);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8: return (1);
     case miopenInt8x4: return (4);
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
     default:
-        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
+        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4, float8, bfloat8 data type is supported.");
     };
 };
 
@@ -268,8 +270,10 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32: return (static_cast<int>('O'));
-    default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported.");
+    default: MIOPEN_THROW("Only float, half, bfloat16, float8, bfloat8 data type is supported.");
     };
 };
 
@@ -307,6 +311,8 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     case miopenInt8: return DataTypeEnum_t::Int8;
     case miopenInt8x4: return DataTypeEnum_t::Int8x4;
     case miopenInt32: return DataTypeEnum_t::Int32;
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };

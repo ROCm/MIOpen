@@ -382,6 +382,25 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
     return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
+void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem)
+{
+    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
+    {
+        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
+    }
+    else if(problem.IsFp8()) // For fp8 any tensor can be fp8 or bfp8
+    {
+        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
+    }
+    else
+    {
+        MIOPEN_LOG_W("Unsupported data types configuration: "
+                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.out_data_type));
+    }
+}
+
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
     if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)

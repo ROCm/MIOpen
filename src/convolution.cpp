@@ -354,9 +354,8 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
-                 ? (yType)
-                 : xDesc.GetType()), // TODO: This function overrides the output type with
-                                     // essentially the input which is incorrect.
+                 ? (yType == miopenInt32 ? yType : miopenFloat)
+                 : xDesc.GetType()),
             xDesc.GetLayout_t(),
             out_lens,
             out_strides};
@@ -454,7 +453,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         }
         MIOPEN_LOG_I(solutions.front().workspace_size);
         return solutions.front().workspace_size;
-    }
+}
 
     auto conv_ctx = ConvolutionContext{ctx};
     size_t workspace_size;
@@ -465,18 +464,18 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         {
             conv_ctx.use_dynamic_solutions_only = true;
             workspace_size                      = GetWorkSpaceSizeWinograd(conv_ctx, problem);
-        }
+    }
         else
-        {
+    {
             workspace_size = std::max({GetWorkSpaceSizeFFT(conv_ctx, problem),
                                        GetWorkSpaceSizeGEMM(conv_ctx, problem),
                                        GetWorkSpaceSizeDirect(conv_ctx, problem),
                                        GetWorkSpaceSizeImplicitGemm(conv_ctx, problem),
                                        GetWorkSpaceSizeWinograd(conv_ctx, problem)});
-        }
     }
+}
     else
-    {
+{
         workspace_size = std::max({GetWorkSpaceSizeGEMM(conv_ctx, problem),
                                    GetWorkSpaceSizeDirectWrW(conv_ctx, problem),
                                    GetWorkSpaceSizeImplicitGemmWrW(conv_ctx, problem),
@@ -542,6 +541,17 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                              std::to_string(value));
         deterministic.value = value;
     }
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
+    {
+        const auto rounding_mode = static_cast<miopenF8RoundingMode_t>(value);
+        if(rounding_mode != miopenF8RoundingModeStochastic &&
+           rounding_mode != miopenF8RoundingModeStandard)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attempt to set invalid value for "
+                         "MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE" +
+                             std::to_string(value));
+        fp8rounding_mode.rounding_mode = rounding_mode;
+    }
     else
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -554,6 +564,8 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
         return gfx90aFp16alt.value;
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
+        return static_cast<int>(fp8rounding_mode.rounding_mode);
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
         return deterministic.value;
     MIOPEN_THROW(miopenStatusBadParm,
