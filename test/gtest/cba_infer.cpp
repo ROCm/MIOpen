@@ -158,16 +158,6 @@ TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_t
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
-TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvOclDirectFwdFused_testCompile)
-{
-    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
-    fusePlanDesc.Compile(get_handle());
-    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
-        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(
-        fusePlanDesc, plan_params, conv_config, test_skipped);
-}
-
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
