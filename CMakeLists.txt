@@ -498,26 +498,21 @@ function(unpack_db db_bzip2_file)
         if(${UNZIPPER} STREQUAL "UNZIPPER-NOTFOUND")
             message(FATAL_ERROR "Please install 7-Zip a file archiver from https://www.7-zip.org/.")
         endif()
-        set(__switches " e")
+        set(__switches e)
     else()
         find_program(UNZIPPER lbunzip2 bunzip2)
-        set(__switches " -fk")
+        set(__switches -fk)
     endif()
-    if(EXISTS "${db_file}")
-        # message(WARNING "${db_file} already exists")
-    elseif(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER}${__switches} ${db_bzip2_file}")
+    if(NOT EXISTS ${db_file} AND EXISTS ${db_bzip2_file})
         execute_process(
-            COMMAND ${UNZIPPER}${__switches} ${db_bzip2_file}
+            COMMAND "${UNZIPPER}" ${__switches} ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
-            RESULT_VARIABLE ret
-            )
+            RESULT_VARIABLE ret)
         if(NOT ret EQUAL "0")
             message(WARNING "${db_file} could not be extracted, file is empty!")
             execute_process(
                 COMMAND touch ${db_file}
-                WORKING_DIRECTORY ${KERNELS_DIR}
-                )
+                WORKING_DIRECTORY ${KERNELS_DIR})
         endif()
     endif()
     unset(__switches)
