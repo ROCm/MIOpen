@@ -47,11 +47,28 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8()))
         return false;
 
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.IsTensorsCasted())
+    {
+        auto test_cast = [&](const TensorDescriptor& desc) {
+            if(desc.GetCastType())
+            {
+                const auto cast_type = *desc.GetCastType();
+                if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
+                    return false;
+            }
+            // all tested tensors must have cast type set
+            return true;
+        };
+        if(test_cast(problem.GetIn()))
+            return false;
+        if(test_cast(problem.GetOut()))
+            return false;
+    }
 
     return true;
 }
@@ -104,6 +121,12 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
+    const auto is_f8    = [&]() {
+        if(kernel.kernel_file == "fp8_naive_conv.cpp")
+            return true;
+        else
+            return false;
+    }();
 
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -112,26 +135,49 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
-
-                handle.Run(kern)(tensors.x,
-                                 tensors.dw,
-                                 tensors.dy,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                if(is_f8)
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     tensors.dy,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group,
+                                     problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                         miopenF8RoundingModeStochastic,
+                                     problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                else
+                    handle.Run(kern)(tensors.x,
+                                     tensors.dw,
+                                     tensors.dy,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 

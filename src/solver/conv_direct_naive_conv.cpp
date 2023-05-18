@@ -29,6 +29,8 @@
 #include <miopen/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+
 #include <ostream>
 
 namespace miopen {
@@ -100,6 +102,23 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.out_data_type == miopenInt32;
 }
 
+/*
+ * These return strings are synced with the kernel source file
+ */
+std::string TypeToString(miopenDataType_t data_type)
+{
+    if(data_type == miopenFloat)
+        return "float";
+    if(data_type == miopenHalf)
+        return "half";
+    if(data_type == miopenFloat8)
+        return "float8";
+    if(data_type == miopenBFloat8)
+        return "bfloat8";
+    if(data_type == miopenDouble)
+        return "double";
+    MIOPEN_THROW("Unimplemented type in FP8 kernels");
+}
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
@@ -130,7 +149,13 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(IsInputFp32(problem))
+    if(problem.IsFp8() || problem.IsTensorsCasted())
+    {
+        kernel_name << TypeToString(ProblemInterpreter::GetInputDataType(problem));
+        kernel_name << "_" << TypeToString(problem.GetWeightsDataType());
+        kernel_name << "_" << TypeToString(ProblemInterpreter::GetOutputDataType(problem));
+    }
+    else if(IsInputFp32(problem))
         kernel_name << "float_";
     else if(IsInputFp16(problem))
         kernel_name << "half_";
@@ -164,9 +189,23 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name == "gfx906" || device_name == "gfx908")
+    {
+        if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
+           !problem.IsTensorsCasted())
+            return "naive_conv_gcn.s";
+    }
+    if(problem.IsFp8() || problem.IsTensorsCasted())
+        return "fp8_naive_conv.cpp";
+    return "naive_conv.cpp";
+}
 
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem)
 {
     std::string filename = ConvDirectNaiveConvKernelFile();
     if(miopen::EndsWith(filename, ".s"))
@@ -175,7 +214,25 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
         return options.str();
     }
-    return ctx.general_compile_options;
+    std::ostringstream ss;
+    ss << ctx.general_compile_options;
+    if(problem.IsFp8() || problem.IsTensorsCasted())
+    {
+        ss << " -DINPUT_TYPE=" << TypeToString(ProblemInterpreter::GetInputDataType(problem));
+        ss << " -DWEIGHTS_TYPE=" << TypeToString(problem.GetWeightsDataType());
+        ss << " -DOUTPUT_TYPE=" << TypeToString(ProblemInterpreter::GetOutputDataType(problem));
+        const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
+        if(in_cast_type)
+            ss << " -DINPUT_CAST_TYPE=" << TypeToString(*in_cast_type);
+        if(problem.GetWeights().GetCastType())
+            ss << " -DWEIGHTS_CAST_TYPE=" << TypeToString(*(problem.GetWeights().GetCastType()));
+        const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
+        if(out_cast_type)
+            ss << " -DOUTPUT_CAST_TYPE=" << TypeToString(*out_cast_type);
+        ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
+        ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
+    }
+    return ss.str();
 }
 
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
