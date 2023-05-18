@@ -997,6 +997,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         break;
 
         case miopenFloat8: {
+#ifdef USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1046,9 +1047,11 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 );
 #pragma clang diagnostic pop
             }
+#endif
             break;
         }
         case miopenBFloat8: {
+#ifdef USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1096,6 +1099,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 );
 #pragma clang diagnostic pop
             }
+#endif
             break;
         }
         case miopenDouble: {
