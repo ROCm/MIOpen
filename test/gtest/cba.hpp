@@ -86,6 +86,11 @@ struct ConvTestCase
     }
 };
 
+std::vector<ConvTestCase> GetNetworkForFusionCompileStepTest()
+{
+    return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1}};
+}
+
 std::vector<ConvTestCase> GetNetwork1()
 {
     // pyt_mlperf_resnet50v1.5

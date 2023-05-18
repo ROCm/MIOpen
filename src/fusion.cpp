@@ -469,6 +469,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
+    // tmp_sols is collection of all the solvers that isApplicable for the fusion_problem.
     const auto tmp_sols = solvers.SearchForAllSolutions(
         fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     std::vector<miopen::solver::ConvSolution> sols;
