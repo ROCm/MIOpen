@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -11,8 +11,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ *all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -23,41 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONV_ALGO_NAME_HPP
-#define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+#pragma once
 
-#include <string>
-#include <miopen/errors.hpp>
+#define CAT_I(a, b) a##b
+#define CAT(a, b) CAT_I(a, b)
 
-namespace miopen {
+#ifndef INPUT_TYPE
+#define INPUT_TYPE half
+#endif
 
-namespace conv {
+#ifndef OUTPUT_TYPE
+#define OUTPUT_TYPE half
+#endif
 
-enum class Direction
-{
-    Forward,
-    BackwardData,
-    BackwardWeights,
-};
+#ifndef WEIGHTS_TYPE
+#define WEIGHTS_TYPE half
+#endif
 
-enum class TensorType
-{
-    Input,
-    Weights,
-    Output
-};
+#ifndef INPUT_CAST_TYPE
+#define INPUT_CAST_TYPE float8
+#endif
 
-} // namespace conv
+#ifndef WEIGHTS_CAST_TYPE
+#define WEIGHTS_CAST_TYPE float8
+#endif
 
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
+#ifndef OUTPUT_CAST_TYPE
+#define OUTPUT_CAST_TYPE float8
+#endif
 
-std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
-std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo, conv::Direction dir);
+#ifndef ACCUMULATOR_TYPE
+#define ACCUMULATOR_TYPE double
+#endif
 
-bool IsValidConvolutionDirAlgo(const std::string& s);
+#define KERNEL_NAME_SUFFIX CAT(CAT(INPUT_TYPE, _), CAT(CAT(WEIGHTS_TYPE, _), OUTPUT_TYPE))
 
-} // namespace miopen
-
-#endif // GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+#define FWD_KERNEL_NAME CAT(naive_conv_fwd_nchw_, KERNEL_NAME_SUFFIX)
+#define BWD_KERNEL_NAME CAT(naive_conv_bwd_nchw_, KERNEL_NAME_SUFFIX)
+#define WRW_KERNEL_NAME CAT(naive_conv_wrw_nchw_, KERNEL_NAME_SUFFIX)

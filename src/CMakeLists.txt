@@ -28,7 +28,7 @@ cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
 if(MIOPEN_ENABLE_SQLITE)
-    add_subdirectory(sqlite)
+add_subdirectory(sqlite)
 endif()
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
@@ -42,6 +42,9 @@ option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
 set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
     Normal Fast Hybrid FastHybrid DynamicHybrid)
+
+#option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
+option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
@@ -198,6 +201,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_mlir_igemm_bwd.cpp
     solver/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv_mlir_igemm_fwd.cpp
@@ -267,6 +271,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
         include/miopen/implicitgemm_params.hpp
+        kernels/gpu_reference_kernel/fp8_kern_types.h
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.inc
@@ -368,6 +373,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/bfloat16_dev.hpp
         kernels/float_types.h
         kernels/workaround_issue_1431.hpp
+        kernels/hip_f8_impl.h
+        kernels/hip_float8.h
         )
 
     set(MIOPEN_KERNELS
@@ -380,6 +387,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
+        kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
@@ -644,10 +652,10 @@ endif()
 
 # build library
 if(MIOPEN_ENABLE_SQLITE)
-    add_library( MIOpen
-        ${MIOpen_Source}
-        $<TARGET_OBJECTS:sqlite_memvfs>
-        )
+add_library( MIOpen
+    ${MIOpen_Source}
+    $<TARGET_OBJECTS:sqlite_memvfs>
+    )
 else()
     add_library( MIOpen
         ${MIOpen_Source}

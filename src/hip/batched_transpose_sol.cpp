@@ -288,14 +288,37 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
     return best_kernel;
 }
 
+static inline std::vector<BatchedTransposeParam>
+GetAllApplicable(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t width)
+{
+    std::vector<BatchedTransposeParam> applicable_kernel_list;
+    const auto& kernel_list = GetKernelList(data_size);
+    for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
+    {
+        if(!IsApplicable(batch, height, width, &(*it)))
+            continue;
+        applicable_kernel_list.emplace_back(*it);
+    }
+    return applicable_kernel_list;
+}
+
 } // namespace batched_transpose
 
 BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
                                                    miopenDataType_t data_type_,
                                                    uint32_t batch_,
                                                    uint32_t height_,
-                                                   uint32_t width_)
-    : data_type(data_type_), batch(batch_), height(height_), width(width_)
+                                                   uint32_t width_,
+                                                   uint32_t flag_,
+                                                   bool stoch_,
+                                                   uint32_t seed_)
+    : data_type(data_type_),
+      batch(batch_),
+      height(height_),
+      width(width_),
+      flag(flag_),
+      fp8_stochastic_rounding(stoch_),
+      fp8_rounding_seed(seed_)
 {
     if(data_type == miopenInt8x4 || data_type == miopenDouble)
         MIOPEN_THROW("These data type are not supported");
@@ -318,6 +341,10 @@ solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
     solver::KernelInfo kernel;
     kernel.kernel_file = "batched_transpose.cpp";
     kernel.kernel_name = kernel_name;
+    std::ostringstream ss;
+    ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING
+       << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
+    kernel.comp_options = ss.str();
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
     kernel.g_wk.push_back(1);
@@ -359,6 +386,9 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     opArgs.emplace_back(static_cast<uint32_t>(magic_h.shift));
     opArgs.emplace_back(magic_w.magic);
     opArgs.emplace_back(static_cast<uint32_t>(magic_w.shift));
+    opArgs.emplace_back(flag);
+    opArgs.emplace_back(fp8_stochastic_rounding); // stoch
+    opArgs.emplace_back(fp8_rounding_seed);       // seed
 
     return opArgs;
 }
@@ -373,12 +403,18 @@ bool BatchedTransposeSolution::IsSkippable() const
 {
     // If height or width is 1, actually no need to do transpose.
     // But nonthing prevent you from DO transpose...
-    return height == 1 || width == 1;
+    return (height == 1 || width == 1) && (flag == BT_FLAG_DEFAULT);
 }
 
 size_t BatchedTransposeSolution::GetOutputTensorSize() const
 {
     return miopen::GetTypeSize(data_type) * batch * height * width;
+}
+
+std::vector<BatchedTransposeParam> BatchedTransposeSolution::GetApplicableParams() const
+{
+    std::size_t data_size = miopen::GetTypeSize(data_type);
+    return batched_transpose::GetAllApplicable(data_size, batch, height, width);
 }
 
 } // namespace miopen

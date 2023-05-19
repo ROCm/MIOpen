@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -11,8 +11,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ *all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -23,41 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONV_ALGO_NAME_HPP
-#define GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+#include "conv2d_fp8.hpp"
 
-#include <string>
-#include <miopen/errors.hpp>
-
-namespace miopen {
-
-namespace conv {
-
-enum class Direction
-{
-    Forward,
-    BackwardData,
-    BackwardWeights,
-};
-
-enum class TensorType
-{
-    Input,
-    Weights,
-    Output
-};
-
-} // namespace conv
-
-miopenConvFwdAlgorithm_t StringToConvolutionFwdAlgo(const std::string& s);
-miopenConvBwdDataAlgorithm_t StringToConvolutionBwdDataAlgo(const std::string& s);
-miopenConvBwdWeightsAlgorithm_t StringToConvolutionBwdWeightsAlgo(const std::string& s);
-
-std::string ConvolutionAlgoToString(miopenConvAlgorithm_t algo);
-std::string ConvolutionAlgoToDirectionalString(miopenConvAlgorithm_t algo, conv::Direction dir);
-
-bool IsValidConvolutionDirAlgo(const std::string& s);
-
-} // namespace miopen
-
-#endif // GUARD_MIOPEN_CONV_ALGO_NAME_HPP
+int main(int argc, const char* argv[]) { test_drive<convfp8_driver>(argc, argv); }

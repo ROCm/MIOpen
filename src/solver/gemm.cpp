@@ -252,6 +252,8 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    if(problem.IsTensorsCasted() || problem.IsFp8())
+        return false;
 
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
@@ -524,6 +526,8 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
+    if(problem.IsTensorsCasted() || problem.IsFp8())
+        return false;
 
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&

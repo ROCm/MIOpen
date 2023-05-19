@@ -47,12 +47,30 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8() ||
+         problem.IsFp8()))
         return false;
 
     if(!problem.direction.IsForward())
         return false;
 
+    if(problem.IsTensorsCasted())
+    {
+        auto test_cast = [&](const TensorDescriptor& desc) {
+            if(desc.GetCastType())
+            {
+                const auto cast_type = *desc.GetCastType();
+                if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
+                    return false;
+            }
+            // all tested tensors must have cast type set
+            return true;
+        };
+        if(test_cast(problem.GetIn()))
+            return false;
+        if(test_cast(problem.GetWeights()))
+            return false;
+    }
     return true;
 }
 
@@ -61,28 +79,28 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
 {
     ConvSolution result;
 
-    int di          = problem.GetInDepth();
-    int hi          = problem.GetInHeight();
-    int wi          = problem.GetInWidth();
-    int n           = problem.GetBatchSize();
-    int k           = problem.GetOutChannels();
-    int c           = problem.GetInChannels();
-    int do_         = problem.GetOutDepth();
-    int ho          = problem.GetOutHeight();
-    int wo          = problem.GetOutWidth();
-    int sz          = problem.GetKernelStrideD();
-    int sy          = problem.GetKernelStrideH();
-    int sx          = problem.GetKernelStrideW();
-    int dz          = problem.GetDilationD();
-    int dy          = problem.GetDilationH();
-    int dx          = problem.GetDilationW();
-    int pz          = problem.GetPadD();
-    int py          = problem.GetPadH();
-    int px          = problem.GetPadW();
-    int fz          = problem.GetWeightsDepth();
-    int fy          = problem.GetWeightsHeight();
-    int fx          = problem.GetWeightsWidth();
-    int group       = problem.GetGroupCount();
+    int di          = problem.in_depth;
+    int hi          = problem.in_height;
+    int wi          = problem.in_width;
+    int n           = problem.batch_sz;
+    int k           = problem.n_outputs;
+    int c           = problem.n_inputs;
+    int do_         = problem.out_depth;
+    int ho          = problem.out_height;
+    int wo          = problem.out_width;
+    int sz          = problem.kernel_stride_d;
+    int sy          = problem.kernel_stride_h;
+    int sx          = problem.kernel_stride_w;
+    int dz          = problem.kernel_dilation_d;
+    int dy          = problem.kernel_dilation_h;
+    int dx          = problem.kernel_dilation_w;
+    int pz          = problem.pad_d;
+    int py          = problem.pad_h;
+    int px          = problem.pad_w;
+    int fz          = problem.kernel_size_d;
+    int fy          = problem.kernel_size_h;
+    int fx          = problem.kernel_size_w;
+    int group       = problem.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
 
@@ -105,6 +123,12 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
     KernelInfo kernel;
 
     kernel.kernel_file = ConvDirectNaiveConvKernelFile();
+    const auto is_f8   = [&]() {
+        if(kernel.kernel_file == "fp8_naive_conv.cpp")
+            return true;
+        else
+            return false;
+    }();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -125,26 +149,54 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
-
-                handle.Run(kern)(tensors.in,
-                                 tensors.w,
-                                 tensors.out,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                if(is_f8)
+                {
+                    handle.Run(kern)(
+                        tensors.in,
+                        tensors.w,
+                        tensors.out,
+                        hi,
+                        wi,
+                        n,
+                        k_per_group,
+                        c_per_group,
+                        ho,
+                        wo,
+                        sy,
+                        sx,
+                        dy,
+                        dx,
+                        py,
+                        px,
+                        fy,
+                        fx,
+                        group,
+                        problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                            miopenF8RoundingModeStochastic,
+                        problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
+                else
+                {
+                    handle.Run(kern)(tensors.in,
+                                     tensors.w,
+                                     tensors.out,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 

@@ -154,6 +154,27 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
     }
 }
 
+miopenDataType_t DataTypeFromShortString(const std::string& type)
+{
+    static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
+        {"fp32", miopenFloat},
+        {"fp16", miopenHalf},
+        {"bf16", miopenBFloat16},
+        {"fp8", miopenFloat8},
+        {"bf8", miopenBFloat8}};
+
+    const auto res = conv_map.find(type);
+    if(res != conv_map.end())
+    {
+        return res->second;
+    }
+    else
+    {
+        printf("Invalid compute/cast type short hand supplied\n");
+        exit(-1);
+    }
+}
+
 template <typename T>
 bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 {
@@ -625,7 +646,17 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
+    if(inflags.GetValueStr("in_cast_type") != "-1")
+    {
+        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("in_cast_type"));
+        miopenSetTensorCastType(inputTensor, in_cast_type);
+    }
     SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
+    if(inflags.GetValueStr("wei_cast_type") != "-1")
+    {
+        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("wei_cast_type"));
+        miopenSetTensorCastType(weightTensor, in_cast_type);
+    }
 
     if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
     {
@@ -657,6 +688,11 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     miopenDataType_t y_type =
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
+    if(inflags.GetValueStr("out_cast_type") != "-1")
+    {
+        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
+        miopenSetTensorCastType(outputTensor, in_cast_type);
+    }
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -820,6 +856,14 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n<valid name>   Immediate mode, build and run specified solution"
                          "\n<invalid name> Use Find() API",
                          "string");
+    inflags.AddInputFlag(
+        "compute_type", 'M', "-1", "Compute type for convolution, default to not set", "string");
+    inflags.AddInputFlag(
+        "in_cast_type", 'U', "-1", "Cast type for input tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
 
     return 0;
 }
@@ -1048,6 +1092,14 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         convDesc, spatial_dim, pads.data(), conv_strides.data(), conv_dilations.data(), mode);
 
     miopenSetConvolutionGroupCount(convDesc, group_count);
+    if(inflags.GetValueStr("compute_type") != "-1")
+    {
+        miopenDataType_t compute_type =
+            DataTypeFromShortString(inflags.GetValueStr("compute_type"));
+        // miopenSetConvolutionComputeType(convDesc, compute_type);
+        miopenSetConvolutionAttribute(
+            convDesc, MIOPEN_CONVOLUTION_ATTRIB_COMPUTE_TYPE, static_cast<int>(compute_type));
+    }
 
     if(mode == miopenTranspose)
     {
@@ -1114,6 +1166,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     bool is_transform = IsInputTensorTransform();
     bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
+    bool is_fp8       = data_type == miopenFloat8;
     size_t in_sz      = GetTensorSize(inputTensor);
     size_t wei_sz     = GetTensorSize(weightTensor);
     size_t out_sz     = GetTensorSize(outputTensor);
@@ -1476,8 +1529,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_fwd)
     {
-        out_dev = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tgpu)));
+        out_dev = std::unique_ptr<GPUMem>(new GPUMem(
+            ctx, out_sz, is_int8 ? sizeof(float) : (is_fp8 ? sizeof(half) : sizeof(Tgpu))));
         status |=
             (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
     }

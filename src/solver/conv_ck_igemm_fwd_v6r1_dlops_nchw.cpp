@@ -98,18 +98,20 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
-    if(problem.GetGroupCount() != 1)
+    if(problem.group_counts != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(problem.conv_problem.IsTensorsCasted())
         return false;
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
         const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-        if(!(problem.GetInSize() < max_index_range && problem.GetWeightsSize() < max_index_range &&
-             problem.GetOutSize() < max_index_range))
+        if(!(problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
+             problem.top_sz < max_index_range))
             return false;
     }
 
