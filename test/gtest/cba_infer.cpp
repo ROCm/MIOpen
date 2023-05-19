@@ -148,6 +148,7 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
+#if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
 {
     setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
@@ -157,6 +158,15 @@ TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_t
     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+
+INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
+                         ConvBiasActivInferTestFloatFusionCompileStep,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
+                                          testing::Values(miopenTensorNCHW)));
+
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
@@ -170,8 +180,3 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                                           testing::ValuesIn(GetNetwork1()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
-                         ConvBiasActivInferTestFloatFusionCompileStep,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
-                                          testing::Values(miopenTensorNCHW)));
