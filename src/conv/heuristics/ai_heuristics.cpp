@@ -214,7 +214,7 @@ public:
 protected:
     std::vector<float> ToFeatures(const ProblemDescription& problem) const override
     {
-        const auto conv_problem     = problem.conv_problem;
+        const auto& conv_problem     = problem.conv_problem;
         const bool isFwd            = conv_problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
             static_cast<float>(isFwd ? conv_problem.GetInChannels()
