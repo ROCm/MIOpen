@@ -350,7 +350,7 @@ public:
     {
     }
     virtual ~Model() = default;
-    fdeep::tensors Encode(std::vector<float> features, std::size_t dim) const
+    fdeep::tensors Encode(std::vector<float>& features, std::size_t dim) const
     {
         fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
         return encoder.predict({input_tensor});
