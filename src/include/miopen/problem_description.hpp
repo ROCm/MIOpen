@@ -236,7 +236,7 @@ struct ProblemDescription
 // TODO remove this
 struct ProblemDescriptionCompat
 #if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescription>
+    : SQLiteSerializable<ProblemDescriptionCompat>
 #endif
 {
     int spatial_dims = 2;
