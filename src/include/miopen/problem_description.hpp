@@ -120,7 +120,7 @@ struct ProblemDescription
 
     bool IsLayoutNHWC() const;
 
-    bool IsLayoutNCHWC() const;
+    bool IsLayoutNCHWc() const;
 
 #if MIOPEN_ENABLE_SQLITE
     template <class Self>

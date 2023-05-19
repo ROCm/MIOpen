@@ -188,6 +188,26 @@ bool ProblemDescription::IsLayoutDefault() const
     }
 }
 
+bool ProblemDescription::IsLayoutNHWC() const
+{
+    if(GetSpatialDims() == 2)
+    {
+        return (in_layout == "NHWC") && (out_layout == "NHWC") && (weights_layout == "NHWC");
+    }
+    else
+    {
+        return (in_layout == "NDHWC") && (out_layout == "NDHWC") && (weights_layout == "NDHWC");
+    }
+}
+
+bool ProblemDescription::IsLayoutNCHWc() const
+{
+    return ((GetSpatialDims() == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "NCHWc")) ||
+           ((GetSpatialDims() == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "CHWNc"));
+}
+
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 {
     if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())

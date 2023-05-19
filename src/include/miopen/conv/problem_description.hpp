@@ -359,6 +359,8 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsLayoutDefault() const;
+    bool IsLayoutNHWC() const;
+    bool IsLayoutNCHWc() const;
 
     void HeuristicUpdateLayouts();
 

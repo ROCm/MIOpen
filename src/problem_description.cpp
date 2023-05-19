@@ -34,24 +34,12 @@ bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutD
 
 bool ProblemDescription::IsLayoutNHWC() const
 {
-    if(GetSpatialDims() == 2)
-    {
-        return (GetInLayout() == "NHWC") && (GetOutLayout() == "NHWC") &&
-               (GetWeightsLayout() == "NHWC");
-    }
-    else
-    {
-        return (GetInLayout() == "NDHWC") && (GetOutLayout() == "NDHWC") &&
-               (GetWeightsLayout() == "NDHWC");
-    }
+    return conv_problem.IsLayoutNHWC();
 }
 
-bool ProblemDescription::IsLayoutNCHWC() const
+bool ProblemDescription::IsLayoutNCHWc() const
 {
-    return ((GetSpatialDims() == 2) && (GetInLayout() == "NCHWc") && (GetOutLayout() == "NCHWc") &&
-            (GetWeightsLayout() == "NCHWc")) ||
-           ((GetSpatialDims() == 2) && (GetInLayout() == "NCHWc") && (GetOutLayout() == "NCHWc") &&
-            (GetWeightsLayout() == "CHWNc"));
+    return conv_problem.IsLayoutNCHWc();
 }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
