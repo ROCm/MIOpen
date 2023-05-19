@@ -88,7 +88,7 @@ struct Metadata
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
-                    std::vector<float>& features,
+                    const std::vector<float>& features,
                     std::function<bool(int, int)> validator);
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING

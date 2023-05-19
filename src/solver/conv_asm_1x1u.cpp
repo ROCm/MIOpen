@@ -419,16 +419,17 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
     static const std::size_t n      = 8;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    if(ai::tuning::ModelSetParams(
-           arch, solver, TransformFeatures(problem, n), [&](int idx, int value) {
-               return this->ModelApplyToken(idx, value, problem);
-           }))
+    std::vector<float> features     = TransformFeatures(problem, n);
+    if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
+           return this->ModelApplyToken(idx, value, problem);
+       }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
     }
 }
 #endif
+
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());

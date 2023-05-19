@@ -86,21 +86,23 @@ size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
     else
         return direction_encodings.at("F");
 }
-size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
+
+size_t Metadata::EncodePrecision(const miopenDataType_t& data_type) const
 {
     if(data_type == miopenBFloat16)
         return precision_encodings.at("BF16");
     else if(data_type == miopenHalf)
         return precision_encodings.at("FP16");
-    else
+    else if(data_type == miopenFloat)
         return precision_encodings.at("FP32");
+    MIOPEN_THROW("Unsupported data type passed through TunaNet applicability check");
 }
+
 size_t Metadata::EncodeLayout(const std::string& layout) const
 {
-    if(layout == "NCDHW")
-        return layout_encodings.at("NCDHW");
-    else
-        return layout_encodings.at("NCHW");
+    if(layout != "NCDHW" && layout != "NCHW")
+        MIOPEN_THROW("Unsupported layout passed through TunaNet applicability check");
+    return layout_encodings.at(layout);
 }
 
 class Model
@@ -214,7 +216,7 @@ public:
 protected:
     std::vector<float> ToFeatures(const ProblemDescription& problem) const override
     {
-        const auto& conv_problem     = problem.conv_problem;
+        const auto& conv_problem    = problem.conv_problem;
         const bool isFwd            = conv_problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
             static_cast<float>(isFwd ? conv_problem.GetInChannels()
@@ -350,7 +352,7 @@ public:
     {
     }
     virtual ~Model() = default;
-    fdeep::tensors Encode(std::vector<float>& features, std::size_t dim) const
+    fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim) const
     {
         fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
         return encoder.predict({input_tensor});
