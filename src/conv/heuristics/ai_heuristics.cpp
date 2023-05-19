@@ -372,11 +372,19 @@ private:
     const fdeep::model decoder;
     static std::string EncoderPath(const std::string& arch, const std::string& solver)
     {
-        return GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+        const std::string path =
+            GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+        if(!std::filesystem::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path;
     }
     static std::string DecoderPath(const std::string& arch, const std::string& solver)
     {
-        return GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
+        const std::string path =
+            GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
+        if(!std::filesystem::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path;
     }
 };
 
