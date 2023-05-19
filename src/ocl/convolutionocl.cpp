@@ -578,8 +578,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 
     // WTI Fallback
-    if(interim
-           .empty()) // if TunaNet is not enabled or produces no applicable solvers fallback to WTI
+    // if TunaNet is not enabled or produces no applicable solvers then fallback to WTI
+    if(interim.empty())
     {
         MIOPEN_LOG_I2("Using WTI Fallback");
         const auto wti2time = [](const float& wti) {
