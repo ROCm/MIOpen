@@ -187,7 +187,7 @@ public:
         const auto& data_type = problem.conv_problem.GetInDataType();
         if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
         {
-            MIOPEN_LOG_I2("TunaNet Inapplicable: Unsupported precision");
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Unsupported data type");
             return false;
         }
 
