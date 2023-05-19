@@ -32,15 +32,9 @@ int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 
 bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutDefault(); }
 
-bool ProblemDescription::IsLayoutNHWC() const
-{
-    return conv_problem.IsLayoutNHWC();
-}
+bool ProblemDescription::IsLayoutNHWC() const { return conv_problem.IsLayoutNHWC(); }
 
-bool ProblemDescription::IsLayoutNCHWc() const
-{
-    return conv_problem.IsLayoutNCHWc();
-}
+bool ProblemDescription::IsLayoutNCHWc() const { return conv_problem.IsLayoutNCHWc(); }
 
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
