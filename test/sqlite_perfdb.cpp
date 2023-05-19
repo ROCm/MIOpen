@@ -152,7 +152,7 @@ struct ProblemData : SQLiteSerializable<ProblemData>
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        decltype(prob)::Visit(self.prob, f);
+        ProblemDescriptionCompat::Visit(self.prob, f);
     }
 };
 
