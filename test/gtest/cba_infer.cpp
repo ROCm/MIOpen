@@ -165,7 +165,6 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                                           testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
                                           testing::Values(miopenTensorNCHW)));
 
-
 #endif
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
@@ -179,4 +178,3 @@ INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1()),
                                           testing::Values(miopenTensorNHWC)));
-

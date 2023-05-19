@@ -108,10 +108,10 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
-                                               const FusionDescription& problem,
-                                               miopen::OperatorArgs& params,
-                                               AnyInvokeParams& fused_invoker)
+void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
+                                              const FusionDescription& problem,
+                                              miopen::OperatorArgs& params,
+                                              AnyInvokeParams& fused_invoker)
 {
     auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
@@ -134,9 +134,9 @@ void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
     auto conv_data = std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_buf.get());
     auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_buf.get());
 
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    const float activ_alpha = 0.5f;
+    const float activ_beta  = 0.5f;
+    const float activ_gamma = 0.5f;
     auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
         activ_alpha, activ_beta, activ_gamma);
 

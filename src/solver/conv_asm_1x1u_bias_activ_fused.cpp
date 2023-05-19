@@ -96,7 +96,7 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     miopen::OperatorArgs params;
     /// Workaround: Fused conv API does not pass user-allocated buffers here,
     /// but we need these buffers for search.
-    AllocateConvBiasActivFusionInvokerBufffer(context, problem, params, fused_invoker);
+    AllocateConvBiasActivFusionInvokerBuffer(context, problem, params, fused_invoker);
 
     return GenericSearch(*this, context, problem, fused_invoker);
 }
