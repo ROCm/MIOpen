@@ -47,7 +47,7 @@ std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
     return reversed_map;
 }
 template <typename U, typename V>
-std::vector<V> LookupValues(const std::vector<U> keys, const std::unordered_map<U, V>& map)
+std::vector<V> LookupValues(const std::vector<U>& keys, const std::unordered_map<U, V>& map)
 {
     std::vector<V> values = {};
     values.reserve(keys.size());
