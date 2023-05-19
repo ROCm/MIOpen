@@ -77,22 +77,32 @@ struct CKArgs
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
+        Di = ProblemInterpreter::GetInputDepthDi(problem);
+        Do = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {G, N, C, Hi, Wi};
-        output = {G, N, K, Ho, Wo};
-        weight = {G, K, C, Y, X};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        //in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+        //out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+        //wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+        out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+        wei_strides = {K * Z * Y * X * C, Z* Y * X * C, 1, Y * X * C, X * C, C};
+        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
+        lPadding    = {ProblemInterpreter::GetInputLeftPadD(problem),
+                    ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
     int G;
@@ -103,20 +113,23 @@ struct CKArgs
     int K1;
     int Hi;
     int Wi;
+    int Di;
     int Ho;
     int Wo;
+    int Do;
     int Y;
     int X;
-    std::array<ck::index_t, 5> input;
-    std::array<ck::index_t, 5> in_strides;
-    std::array<ck::index_t, 5> output;
-    std::array<ck::index_t, 5> out_strides;
-    std::array<ck::index_t, 5> weight;
-    std::array<ck::index_t, 5> wei_strides;
-    std::array<ck::index_t, 2> strides;
-    std::array<ck::index_t, 2> dilation;
-    std::array<ck::index_t, 2> lPadding;
-    std::array<ck::index_t, 2> rPadding;
+    int Z;
+    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 3> strides;
+    std::array<ck::index_t, 3> dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 } // namespace
 
@@ -405,7 +418,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
     if(!problem.direction.IsForward())
         return false;
-    if(!problem.Is2d())
+    if(!problem.Is3d())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
