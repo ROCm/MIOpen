@@ -400,7 +400,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
-                    std::vector<float> features,
+                    const std::vector<float>& features,
                     std::function<bool(int, int)> validator)
 {
     auto model             = GetModel(arch, solver);
