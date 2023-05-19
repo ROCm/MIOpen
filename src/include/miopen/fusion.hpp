@@ -258,10 +258,10 @@ struct FusionContext;
 struct FusionDescription;
 /// Workaround: Fused conv API does not pass user-allocated buffers during compile time,
 /// This function allocates buffer to get rid of the issue.
-void AllocateConvBiasActivFusionInvokerBufffer(const FusionContext& context,
-                                               const FusionDescription& problem,
-                                               miopen::OperatorArgs& params,
-                                               AnyInvokeParams& fused_invoker);
+void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
+                                              const FusionDescription& problem,
+                                              miopen::OperatorArgs& params,
+                                              AnyInvokeParams& fused_invoker);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
