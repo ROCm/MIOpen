@@ -42,7 +42,7 @@ template <typename U, typename V>
 std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
 {
     std::unordered_map<V, U> reversed_map = {};
-    for(auto& it : map)
+    for(const auto& it : map)
         reversed_map.emplace(make_pair(it.second, it.first));
     return reversed_map;
 }
