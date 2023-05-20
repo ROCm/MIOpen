@@ -39,11 +39,19 @@
 #endif
 #include "float_types.h"
 
+typedef unsigned long arg_size_t;
+
+#if AVERAGE_OPS
+#define ARG_UNUSED_FOR_AVERAGE __attribute__((__unused__))
+#else
+#define ARG_UNUSED_FOR_AVERAGE
+#endif
+
 __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      __global _FLOAT* top_ptr,
-                                     __global index_t* mask_ptr,
-                                     int save_index,
-                                     int index_mode,
+                                     ARG_UNUSED_FOR_AVERAGE __global index_t* mask_ptr,
+                                     ARG_UNUSED_FOR_AVERAGE int save_index,
+                                     ARG_UNUSED_FOR_AVERAGE int index_mode,
                                      uint pad_d,
                                      uint pool_d_stride,
                                      uint filter_d,
@@ -59,20 +67,20 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      uint bot_w_stride,
                                      uint bot_h_stride,
                                      uint bot_d_stride,
-                                     size_t bot_c_stride,
-                                     size_t bot_n_stride,
+                                     arg_size_t bot_c_stride,
+                                     arg_size_t bot_n_stride,
                                      uint top_d,
                                      uint top_h,
                                      uint top_w_stride,
                                      uint top_h_stride,
                                      uint top_d_stride,
-                                     size_t top_c_stride,
-                                     size_t top_n_stride,
-                                     uint mask_w_stride,
-                                     uint mask_h_stride,
-                                     uint mask_d_stride,
-                                     size_t mask_c_stride,
-                                     size_t mask_n_stride)
+                                     arg_size_t top_c_stride,
+                                     arg_size_t top_n_stride,
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_w_stride,
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_h_stride,
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_d_stride,
+                                     ARG_UNUSED_FOR_AVERAGE arg_size_t mask_c_stride,
+                                     ARG_UNUSED_FOR_AVERAGE arg_size_t mask_n_stride)
 {
     const uint b = get_global_id(0);
     const uint o = get_global_id(1);
@@ -82,12 +90,6 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
     {
         for(uint k = 0; k < top_d; ++k)
         {
-            _FLOAT_ACCUM res =
-#if AVERAGE_OPS
-                (_FLOAT_ACCUM)(0);
-#else // MAX
-                (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
-#endif
             const int int_dstart = k * pool_d_stride - pad_d;
             const int int_hstart = j * pool_h_stride - pad_h;
             const int int_wstart = i * pool_w_stride - pad_w;
@@ -101,14 +103,19 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
             uint pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
             pool_size      = (pool_size == 0) ? 1 : pool_size;
-#else // MAX or AVE_INCLUSIVE
+#elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
             const uint pool_size = filter_w * filter_h * filter_d;
 #endif
-            bool found = false; // This may remain false if the input tensor
-                                // contains only NaNs and -INFs.
-            uint d_save = 0;
-            uint h_save = 0;
-            uint w_save = 0;
+
+#if AVERAGE_OPS
+            _FLOAT_ACCUM res = (_FLOAT_ACCUM)(0);
+#else // MAX
+            _FLOAT_ACCUM res     = (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
+            bool found           = false; // May remain false if bot contains only NaNs/-INFs.
+            uint d_save          = 0;
+            uint h_save          = 0;
+            uint w_save          = 0;
+#endif
             for(uint d = dstart; d < dend; ++d)
             {
                 for(uint h = hstart; h < hend; ++h)

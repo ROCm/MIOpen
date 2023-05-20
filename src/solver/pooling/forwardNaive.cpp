@@ -42,6 +42,19 @@ namespace pooling {
 #if HOST_IMPL
 namespace {
 
+template<typename T> T RoundUpNearestPower2(T v);
+
+inline uint32_t RoundUpNearestPower2(uint32_t v)
+{
+    --v;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    return ++v;
+}
+
 template <typename T, typename Index>
 void RunHost(uint32_t b,
              uint32_t o,
@@ -413,13 +426,12 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
         auto build_params = KernelBuildParameters{
             {"MLO_POOLING_OP_ID", pooling_method}, // We need this at compile time in order to
                                                    // engage mixed precision only when necessary.
-            {"MLO_POOLING_INDEX_TYPE", get_pooling_index_type_name(pooling.GetIndexType())},
+            {"MLO_POOLING_INDEX_TYPE", get_pooling_index_type_name(index_type)},
         };
         build_params << GetDataTypeKBP(bot.GetType());
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
-        // [Informative] The total number of kernels required to cover all the supported pooling
-        // configs:
+        // [Informative] The total number of kernels required to cover all the configs:
         // - 3: the number of supported operations
         // - 4: the number of supported index types
         // - 2: the number of supported data types
@@ -429,17 +441,58 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
         kernel.g_wk.push_back(n_batchs);
         kernel.g_wk.push_back(n_outputs);
         kernel.g_wk.push_back(top_w);
-        // local_work_size is not needed as there is no need for synchronization between workitems.
-        kernel.l_wk.push_back(0);
+        // There is no need for synchronization between workitems.
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
 
         result.construction_params.push_back(kernel);
     }
-#endif
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
-#if !HOST_IMPL
+            decltype(auto) kernel = handle.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
+
+            kernel(params.x,
+                   params.y,
+                   params.workspace,
+                   save_index,
+                   index_mode,
+                   pad_d,
+                   stride_d,
+                   filter_d,
+                   pad_h,
+                   stride_h,
+                   filter_h,
+                   pad_w,
+                   stride_w,
+                   filter_w,
+                   bot_d,
+                   bot_h,
+                   bot_w,
+                   bot_w_stride,
+                   bot_h_stride,
+                   bot_d_stride,
+                   bot_c_stride,
+                   bot_n_stride,
+                   top_d,
+                   top_h,
+                   top_w_stride,
+                   top_h_stride,
+                   top_d_stride,
+                   top_c_stride,
+                   top_n_stride,
+                   mask_w_stride,
+                   mask_h_stride,
+                   mask_d_stride,
+                   mask_c_stride,
+                   mask_n_stride);
+        };
+    };
 #else  // HOST_IMPL
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
             std::ignore            = kernels;
             std::ignore            = handle;
             auto params            = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
@@ -494,10 +547,9 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
                 MIOPEN_THROW(miopenStatusInternalError,
                              "PoolingForwardNaive: unsupported data type");
             }
-#endif // HOST_IMPL
         };
     };
-
+#endif // HOST_IMPL
     return result;
 }
 
