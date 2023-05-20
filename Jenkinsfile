@@ -377,11 +377,9 @@ def CheckPerfDbValid(Map conf=[:]){
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
 /// DataType := { Fp16 | Bf16 | Int8 | Fp32 }
-/// Backend := { Hip | OpenCL | HipNoGPU}
+/// Backend := { Hip | HipNoGPU}
 /// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
-///     For the OpenCL backend, "Clang" implies the system x86 compiler.
-///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
@@ -426,10 +424,6 @@ pipeline {
         booleanParam(
             name: "BUILD_FULL_TESTS",
             defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "BUILD_FULL_TESTS_OCL",
-            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
@@ -480,10 +474,6 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "OPENCL_BACKEND",
-            defaultValue: false,
-            description: "Enable OpenCL backend stages")
-        booleanParam(
             name: "PERF_TEST",
             defaultValue: false,
             description: "Enable performance testing stages")
@@ -516,12 +506,6 @@ pipeline {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
             parallel {
-                stage('OpenCL Package') {
-                    agent{ label rocmnode("nogpu") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", needs_gpu:false)
-                    }
-                }
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
                     steps{
@@ -539,16 +523,6 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false)
-                    }
-                }
-                stage('OpenCL Tidy') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/opt/rocm -DBUILD_DEV=On .."
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
@@ -615,45 +589,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
-               stage('Fp32 OpenCL Debug + Codecov AnyGPU') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
-                    }
-                }
-                stage('Fp32 OpenCL gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets)
-                    }
-                }
-                stage('Fp32 OpenCL gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets)
-                    }
-                }
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
@@ -678,19 +613,6 @@ pipeline {
                     agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
-                    }
-                }
-                stage('Fp32 OpenCL Debug gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env)
                     }
                 }
                 stage('Fp32 Hip Debug gfx908') {
@@ -826,32 +748,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
             parallel{
-                stage('Fp16 OpenCL Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
-                    }
-                }
-                stage('Int8 OpenCL Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
-                    }
-                }
                 stage('Fp16 Hip Vega20') {
                     when {
                         beforeAgent true
@@ -1093,68 +989,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
-                    }
-                }
-            }
-        }
-        stage("Full Tests - OpenCL") {
-            when {
-                expression { params.BUILD_FULL_TESTS_OCL}
-            }
-            environment{
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-            }
-            parallel{
-                stage('Fp32 OpenCL Install All') {
-                    when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
-                    }
-                }
-                stage('Fp32 OpenCL All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test)
-                    }
-                }
-                stage('Fp32 OpenCL All gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_cmd: Navi21_build_cmd)
-                    }
-                }
-                stage('Fp32 OpenCL Install All gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
                     }
                 }
             }
