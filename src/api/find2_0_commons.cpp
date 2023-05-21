@@ -141,7 +141,7 @@ miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options, bo
     MIOPEN_LOG_FUNCTION(options, attach);
 
     return miopen::try_([&] {
-        auto& options_deref = miopen::deref(options);
+        auto& options_deref           = miopen::deref(options);
         options_deref.attach_binaries = attach;
     });
 }

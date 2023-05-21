@@ -223,10 +223,10 @@ boost::filesystem::path LoadBinary(const TargetProperties& target,
 }
 
 boost::filesystem::path SaveBinary(const boost::filesystem::path& binary_path,
-                const TargetProperties& target,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str)
+                                   const TargetProperties& target,
+                                   const std::string& name,
+                                   const std::string& args,
+                                   bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
     {
