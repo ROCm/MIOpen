@@ -212,7 +212,8 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
                                               const std::vector<solver::ConvSolution>& solutions,
                                               const AlgorithmName& algorithm_name,
                                               const NetworkConfig& network_config,
-                                              const InvokeParams& invoke_ctx)
+                                              const InvokeParams& invoke_ctx,
+                                              bool force_attach_binary)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
@@ -247,8 +248,9 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
         std::vector<Program> programs;
-        const auto invoker =
-            handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params, &programs);
+        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
+                                                   sol.construction_params,
+                                                   force_attach_binary ? &programs : nullptr);
 
         try
         {
@@ -278,7 +280,10 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
                               << ", workspace_sz = " << selected.workspace_sz);
 
     auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
-    solution.SetInvoker(best_invoker, best_programs, selected.construction_params);
+    if(force_attach_binary)
+        solution.SetInvoker(best_invoker, best_programs, selected.construction_params);
+    else
+        solution.SetInvoker(best_invoker, {}, {});
     return {{solution}};
 }
 
@@ -286,7 +291,8 @@ std::vector<Solution> ConvFindCore(const AnyInvokeParams& invoke_ctx,
                                    const ConvolutionContext& ctx,
                                    const ProblemDescription& problem,
                                    bool use_winograd_only,
-                                   const std::vector<std::unique_ptr<SolversFinder>>& finders)
+                                   const std::vector<std::unique_ptr<SolversFinder>>& finders,
+                                   bool force_attach_binary)
 {
     auto& handle = ctx.GetStream();
 
@@ -318,7 +324,7 @@ std::vector<Solution> ConvFindCore(const AnyInvokeParams& invoke_ctx,
         all.reserve(total);
         for(const auto& ss : solutions)
             AppendPointersToElements(ss.second, all);
-        PrecompileSolutions(handle, all);
+        PrecompileSolutions(handle, all, force_attach_binary);
     }
 
     if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
@@ -335,7 +341,8 @@ std::vector<Solution> ConvFindCore(const AnyInvokeParams& invoke_ctx,
 
     for(const auto& ss : solutions)
     {
-        auto evaluated = EvaluateInvokers(handle, ss.second, ss.first, network_config, invoke_ctx);
+        auto evaluated = EvaluateInvokers(
+            handle, ss.second, ss.first, network_config, invoke_ctx, force_attach_binary);
 
         ret.insert(ret.end(),
                    std::make_move_iterator(evaluated.begin()),

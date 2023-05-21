@@ -301,8 +301,8 @@ void to_json(nlohmann::json& json, const Solution& solution)
 #if MIOPEN_BACKEND_HIP
     if(solution.kernels.empty())
     {
-        MIOPEN_LOG_I("Internal non-critical error: solution lacks kernels information. This would "
-                     "slowdown the next miopenRunSolution call.");
+        MIOPEN_LOG_I2("Solution lacks kernels information. This would slowdown the first "
+                      "miopenRunSolution call after miopenLoadSolution.");
         return;
     }
 
@@ -347,13 +347,16 @@ void to_json(nlohmann::json& json, const Solution& solution)
 
         if(program.IsCodeObjectInMemory())
         {
+            // With disabled cache programs after build would be attached as a char vector. Same for
+            // the sqlite cache.
+
             const auto chars = program.GetCodeObjectBlobAsVector();
             binary.resize(chars.size());
             std::memcpy(binary.data(), chars.data(), chars.size());
         }
-        else
+        else if(program.IsCodeObjectInFile())
         {
-            // Programs that have been loaded from cache are internally interpreted
+            // Programs that have been loaded from file cache are internally interpreted
             // as read from file with a correct path.
 
             using Iterator      = std::istream_iterator<uint8_t>;
@@ -366,6 +369,10 @@ void to_json(nlohmann::json& json, const Solution& solution)
             file.seekg(0, std::ios::beg);
             binary.reserve(fileSize);
             binary.insert(binary.begin(), Iterator{file}, Iterator{});
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError);
         }
 
         programs_json.emplace_back(std::move(binary));

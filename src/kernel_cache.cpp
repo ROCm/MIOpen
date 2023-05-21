@@ -108,35 +108,43 @@ Kernel KernelCache::AddKernel(const Handle& h,
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
         MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
 
-    Program program;
+    const auto program = [&] {
+        auto program_it = program_map.find(std::make_pair(program_name, params));
+        if(program_it != program_map.end())
+        {
+            auto& program = program_it->second;
 
-    auto program_it = program_map.find(std::make_pair(program_name, params));
-    if(program_it != program_map.end())
-    {
-        program = program_it->second;
-    }
-    else
-    {
-        if(!is_kernel_miopengemm_str) // default value
-            is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
-                                       algorithm.find("GEMM") != std::string::npos;
-        program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
-        program_map[std::make_pair(program_name, params)] = program;
-    }
+            if(program_out != nullptr && !program.IsCodeObjectInMemory() &&
+               !program.IsCodeObjectInFile())
+            {
+                // We need the binaries attached to the program.
+                // This may happen if someone calls immediate mode and then find 2.0 with request
+                // for binaries.
+                program =
+                    h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src, true);
+            }
+
+            return program;
+        }
+        else
+        {
+            if(!is_kernel_miopengemm_str) // default value
+                is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
+                                           algorithm.find("GEMM") != std::string::npos;
+            auto program = h.LoadProgram(
+                program_name, params, is_kernel_miopengemm_str, kernel_src, program_out != nullptr);
+
+            program_map[std::make_pair(program_name, params)] = program;
+            return program;
+        }
+    }();
 
     if(program_out != nullptr)
         *program_out = program;
 
-    Kernel kernel{};
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        kernel = Kernel{program, kernel_name};
-    }
-    else
-    {
-        kernel = Kernel{program, kernel_name, vld, vgd};
-    }
+    auto kernel            = (arch != nullptr && strlen(arch) > 0) ? Kernel{program, kernel_name}
+                                                                   : Kernel{program, kernel_name, vld, vgd};
 
     if(!network_config.empty() && !algorithm.empty())
     {

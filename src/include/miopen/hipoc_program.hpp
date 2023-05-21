@@ -65,7 +65,10 @@ struct HIPOCProgram
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
     bool IsCodeObjectInFile() const;
+    bool IsCodeObjectInTempFile() const;
     void FreeCodeObjectFileStorage();
+    void AttachBinary(std::vector<char> binary);
+    void AttachBinary(boost::filesystem::path binary);
 
     friend bool operator==(const HIPOCProgram& l, const HIPOCProgram& r)
     {

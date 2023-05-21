@@ -491,7 +491,8 @@ KernelInvoke Handle::Run(Kernel k) const
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
     this->impl->set_ctx();
 
@@ -512,25 +513,41 @@ Program Handle::LoadProgram(const std::string& program_name,
             program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
 
-// Save to cache
+        // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory()
-                               ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
+        std::string binary;
+        if(!p.IsCodeObjectInMemory())
+            binary = miopen::LoadFile(p.GetCodeObjectPathname().string());
+
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob() : binary,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params,
                            is_kernel_str);
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+            p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
+        p.FreeCodeObjectFileStorage();
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         if(p.IsCodeObjectInMemory())
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
-#endif
+        auto cache_path = miopen::SaveBinary(
+            path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+
         p.FreeCodeObjectFileStorage();
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            if(miopen::IsCacheDisabled())
+                p.AttachBinary(miopen::LoadFileAsVector(p.GetCodeObjectPathname()));
+            else
+                p.AttachBinary(std::move(cache_path));
+        }
+#endif
         return p;
     }
     else

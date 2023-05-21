@@ -300,7 +300,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto invoke_ctx =
         MakeConvInvokeParams(x_desc, x, w_desc, w, y_desc, y, workspace, workspace_size);
 
-    auto results = FindConvolution(ctx, conv_problem, invoke_ctx, max_solutions);
+    auto results =
+        FindConvolution(ctx, conv_problem, invoke_ctx, max_solutions, options.attach_binaries);
 
     for(auto& result : results)
     {
@@ -318,8 +319,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                 legacy_ctx, conv_problem, db, invoke_ctx);
 
             std::vector<Program> programs;
-            auto invoker = handle.PrepareInvoker(
-                *conv_solution.invoker_factory, conv_solution.construction_params, &programs);
+            auto invoker = handle.PrepareInvoker(*conv_solution.invoker_factory,
+                                                 conv_solution.construction_params,
+                                                 options.attach_binaries ? &programs : nullptr);
 
             result.SetInvoker(std::move(invoker), programs, conv_solution.construction_params);
         }

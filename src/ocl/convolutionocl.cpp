@@ -177,7 +177,8 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
 std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
-                                      std::size_t max_solutions)
+                                      std::size_t max_solutions,
+                                      bool force_attach_binary)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -212,7 +213,8 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                 conv_ctx,
                                 legacy_problem,
                                 conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
-                                GetConvSolverFinders());
+                                GetConvSolverFinders(),
+                                force_attach_binary);
         });
     }
 
@@ -288,7 +290,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
@@ -786,7 +788,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
@@ -986,7 +988,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
         // Changes to this message lead to failures in test_conv_for_implicit_gemm

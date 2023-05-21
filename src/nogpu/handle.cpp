@@ -181,8 +181,11 @@ KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
+    std::ignore = force_attach_binary;
+
     if(!miopen::EndsWith(program_name, ".mlir"))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();

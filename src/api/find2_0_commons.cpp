@@ -136,6 +136,16 @@ miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options
     });
 }
 
+miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options, bool attach)
+{
+    MIOPEN_LOG_FUNCTION(options, attach);
+
+    return miopen::try_([&] {
+        auto& options_deref = miopen::deref(options);
+        options_deref.attach_binaries = attach;
+    });
+}
+
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
                                    miopenFindOptions_t options,

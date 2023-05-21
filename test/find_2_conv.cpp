@@ -54,6 +54,7 @@ struct Find2Test : test_driver
     int tune;
     bool preallocate;
     std::size_t workspace_limit;
+    bool attach_binaries;
 
     Find2Test()
     {
@@ -73,7 +74,8 @@ struct Find2Test : test_driver
             }));
 
         add(tune, "tune", generate_data({0, 1}));
-        add(preallocate, "preallocate", generate_data({0, 1}));
+        add(preallocate, "preallocate", generate_data({1, 0}));
+        add(attach_binaries, "attach_binaries", generate_data({1, 0}));
     }
 
     void run()
@@ -182,6 +184,8 @@ private:
             EXPECT_EQUAL(miopenSetFindOptionResultsOrder(options, miopenFindResultsOrderByTime),
                          miopenStatusSuccess);
             EXPECT_EQUAL(miopenSetFindOptionWorkspaceLimit(options, workspace_limit),
+                         miopenStatusSuccess);
+            EXPECT_EQUAL(miopenSetFindOptionAttachBinaries(options, attach_binaries),
                          miopenStatusSuccess);
 
             Allocator::ManageDataPtr workspace_dev;

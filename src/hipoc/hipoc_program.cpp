@@ -416,4 +416,13 @@ bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); 
 
 bool HIPOCProgram::IsCodeObjectInFile() const { return !impl->hsaco_file.empty(); }
 
+bool HIPOCProgram::IsCodeObjectInTempFile() const { return impl->dir.has_value(); }
+
+void HIPOCProgram::AttachBinary(std::vector<char> binary) { impl->binary = std::move(binary); }
+
+void HIPOCProgram::AttachBinary(boost::filesystem::path binary)
+{
+    impl->hsaco_file = std::move(binary);
+}
+
 } // namespace miopen

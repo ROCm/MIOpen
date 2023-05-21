@@ -397,8 +397,12 @@ KernelInvoke Handle::Run(Kernel k) const
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
+    // Binary serialization is not supported on OpenCL anyway
+    std::ignore = force_attach_binary;
+
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,

@@ -49,6 +49,7 @@ struct FindOptions : miopenFindOptions
     std::size_t workspace_limit            = std::numeric_limits<std::size_t>::max();
     std::unordered_map<miopenTensorArgumentId_t, Data_t> preallocated_tensors;
     std::optional<Workspace> preallocated_workspace;
+    bool attach_binaries = false;
 };
 
 } // namespace miopen
