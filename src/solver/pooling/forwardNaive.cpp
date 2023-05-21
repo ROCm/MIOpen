@@ -331,6 +331,22 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
 {
+#if MIOPEN_BACKEND_OPENCL
+    /// \ref naive_pooling_max_grid_size
+    /// Prevent UB.
+    {
+        const auto& top   = problem.GetYDesc();
+        const auto n_dims = top.GetSize() - 2;
+        if(!(2 <= n_dims && n_dims <= 3))
+            return false;
+        uint32_t n, top_c, top_d, top_h;
+        std::tie(n, top_c, top_d, top_h, std::ignore) = miopen::GetNCDHW(n_dims, top.GetLengths());
+        if(n > 1024 || top_c > 1024)
+            return false;
+        if((n_dims == 2 ? top_h : top_d) > 1024)
+            return false;
+    }
+#endif
     return problem.GetDirection() == miopen::pooling::Direction::Forward   //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType() //
            && (problem.GetXDesc().GetType() == miopenFloat                 //
@@ -419,23 +435,29 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
     const size_t mask_c_stride   = static_cast<size_t>(mask_d_stride) * top_d;
     const size_t mask_n_stride   = mask_c_stride * top_c;
 
-    // About optimal grid size. The simplest way is to map the problem onto grid is 1:1 mapping of
-    // N,C and top.D onto grid dimensions.
-    //
-    // However, this would waste 1 dimension of grid for 2D convolutions, i.e. the grid size would
-    // be N*C*1, which might be too small and lead to under-utilization of GPU. If we exchange D
-    // with H then the grid size for 2D problem would be N*C*H, but for 3D problem the kernel will
-    // access memory in a scattered way, which would affect performance again. Current design choice
-    // is using separate 2D and 3D kernels (via build-time parameter) and N*C*H grid for 2D.
-    //
-    // Another problem with this simple approach is finding out the optimal workgroup size.
-    // The trivial solution is {1,1,1}, but this would lead to under-utilization of GPU, because
-    // in this case only 1 thread out of the 64/32 available in the wavefront will be used.
-    //
-    // We have to use workroup which is:
-    // After multiplication by some integer, gives exactly grid (wk.x*I = grid.x, wk.y*J = grid.y,
-    // wk.z*K = grid.z). Does not exceed the workgroup size limitations imposed by the HIP/OCL
-    // runtime. The workgroup size (x*y*z) is as near as possible to the multiple of 64.
+    /// About optimal grid size. The simplest way is to map the problem onto grid is 1:1 mapping of
+    /// N,C and top.D onto grid dimensions.
+    ///
+    /// However, this would waste 1 dimension of grid for 2D convolutions, i.e. the grid size would
+    /// be N*C*1, which might be too small and lead to under-utilization of GPU. If we exchange D
+    /// with H then the grid size for 2D problem would be N*C*H, but for 3D problem the kernel will
+    /// access memory in a scattered way, which would affect performance again. Current design
+    /// choice is using separate 2D and 3D kernels (via build-time parameter) and N*C*H grid for 2D.
+    ///
+    /// \anchor naive_pooling_max_grid_size
+    /// \assumption Max grid size is >= 2^32-1 (4G-1) i.e. std::max<unint32_t>.
+    /// Currently this limitation is valid for both ROCm HIP runtimes,
+    /// but for ROCm OpenCL the limitation is {1024,1024,1024} which is 1G-1
+    /// total and also means that N, C, D should not exceed 1024.
+    ///
+    /// Another problem with this simple approach is finding out the optimal workgroup size.
+    /// The trivial solution is {1,1,1}, but this would lead to under-utilization of GPU, because
+    /// in this case only 1 thread out of the 64/32 available in the wavefront will be used.
+    ///
+    /// We have to use workroup which is:
+    /// After multiplication by some integer, gives exactly grid (wk.x*I = grid.x, wk.y*J = grid.y,
+    /// wk.z*K = grid.z). Does not exceed the workgroup size limitations imposed by the HIP/OCL
+    /// runtime. The workgroup size (x*y*z) is as near as possible to the multiple of 64.
 
 #if !HOST_IMPL
     {
