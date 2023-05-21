@@ -549,15 +549,15 @@ Program Handle::LoadProgram(const std::string& program_name,
                 path, this->GetTargetProperties(), program_name, params, is_kernel_str);
         }
 
-        p.FreeCodeObjectFileStorage();
-
         if(force_attach_binary && p.IsCodeObjectInTempFile())
         {
-            if(miopen::IsCacheDisabled())
-                p.AttachBinary(miopen::LoadFileAsVector(p.GetCodeObjectPathname()));
+            if(cache_path.empty())
+                p.AttachBinary(LoadFileAsVector(p.GetCodeObjectPathname()));
             else
                 p.AttachBinary(std::move(cache_path));
         }
+
+        p.FreeCodeObjectFileStorage();
 #endif
         return p;
     }
