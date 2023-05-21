@@ -535,13 +535,19 @@ Program Handle::LoadProgram(const std::string& program_name,
             p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
         p.FreeCodeObjectFileStorage();
 #else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
-        if(p.IsCodeObjectInMemory())
-            miopen::WriteFile(p.GetCodeObjectBlob(), path);
-        else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        auto cache_path = miopen::SaveBinary(
-            path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        boost::filesystem::path cache_path;
+
+        // If cache is disabled we don't need to dump binary and move it there
+        if(!miopen::IsCacheDisabled())
+        {
+            auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+            if(p.IsCodeObjectInMemory())
+                miopen::WriteFile(p.GetCodeObjectBlob(), path);
+            else
+                boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            cache_path = miopen::SaveBinary(
+                path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        }
 
         p.FreeCodeObjectFileStorage();
 
