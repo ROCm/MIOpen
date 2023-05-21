@@ -69,7 +69,7 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      uint bot_d_stride,
                                      arg_size_t bot_c_stride,
                                      arg_size_t bot_n_stride,
-                                     uint top_d,
+                                     uint top_w,
                                      uint top_h,
                                      uint top_w_stride,
                                      uint top_h_stride,
@@ -84,11 +84,11 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
 {
     const uint b = get_global_id(0);
     const uint o = get_global_id(1);
-    const uint i = get_global_id(2);
+    const uint k = get_global_id(2);
 
     for(uint j = 0; j < top_h; ++j)
     {
-        for(uint k = 0; k < top_d; ++k)
+        for(uint i = 0; i < top_w; ++i)
         {
             const int int_dstart = k * pool_d_stride - pad_d;
             const int int_hstart = j * pool_h_stride - pad_h;

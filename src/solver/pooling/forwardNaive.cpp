@@ -31,7 +31,7 @@
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-#define HOST_IMPL 1
+#define HOST_IMPL 0
 
 namespace miopen {
 
@@ -39,13 +39,14 @@ namespace solver {
 
 namespace pooling {
 
-#if HOST_IMPL
 namespace {
 
-template<typename T> T RoundUpNearestPower2(T v);
+#if 0
+template<typename T> T RoundUpNearestPower2(T v) = delete;
 
 inline uint32_t RoundUpNearestPower2(uint32_t v)
 {
+    assert(v > 0);
     --v;
     v |= v >> 1;
     v |= v >> 2;
@@ -54,11 +55,13 @@ inline uint32_t RoundUpNearestPower2(uint32_t v)
     v |= v >> 16;
     return ++v;
 }
+#endif
 
+#if HOST_IMPL
 template <typename T, typename Index>
 void RunHost(uint32_t b,
              uint32_t o,
-             uint32_t i,
+             uint32_t k,
              const T* bot_ptr,
              T* top_ptr,
              Index* mask_ptr,
@@ -82,7 +85,7 @@ void RunHost(uint32_t b,
              uint32_t bot_d_stride,
              size_t bot_c_stride,
              size_t bot_n_stride,
-             uint32_t top_d,
+             uint32_t top_w,
              uint32_t top_h,
              uint32_t top_w_stride,
              uint32_t top_h_stride,
@@ -99,7 +102,7 @@ void RunHost(uint32_t b,
 
     for(uint32_t j = 0; j < top_h; ++j)
     {
-        for(uint32_t k = 0; k < top_d; ++k)
+        for(uint32_t i = 0; i < top_w; ++i)
         {
             double res;
             if(pooling_method == MLO_POOLING_OP_MAX)
@@ -222,7 +225,7 @@ struct arguments_t // Syntax sugar.
     uint32_t filter_w;
     bool save_index;
     int index_mode;
-    uint32_t n_batchs, n_outputs, bot_d, bot_h, bot_w;
+    uint32_t n_batchs, top_c, bot_d, bot_h, bot_w;
     uint32_t bot_w_stride, bot_h_stride, bot_d_stride;
     size_t bot_c_stride, bot_n_stride;
     uint32_t top_d, top_h, top_w;
@@ -258,13 +261,13 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
 
     for(uint32_t b = 0; b < args.n_batchs; ++b)
     {
-        for(uint32_t o = 0; o < args.n_outputs; ++o)
+        for(uint32_t o = 0; o < args.top_c; ++o)
         {
-            for(uint32_t i = 0; i < args.top_w; ++i)
+            for(uint32_t k = 0; k < args.top_d; ++k)
             {
                 RunHost<T, Index>(b,
                                   o,
-                                  i,
+                                  k,
                                   bot_host.data(),
                                   top_host.data(),
                                   mask_host.data(),
@@ -288,7 +291,7 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                                   args.bot_d_stride,
                                   args.bot_c_stride,
                                   args.bot_n_stride,
-                                  args.top_d,
+                                  args.top_w,
                                   args.top_h,
                                   args.top_w_stride,
                                   args.top_h_stride,
@@ -321,9 +324,9 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
     rc = hipDeviceSynchronize();
     MIOPEN_LOG_T("hipDeviceSynchronize 2: " << rc);
 }
+#endif // HOST_IMPL
 
 } // namespace
-#endif // HOST_IMPL
 
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
@@ -393,18 +396,18 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
     /// requires it because the total number of muls is 4.
 
     const auto spatial_dim = is2d ? 2 : 3;
-    uint32_t n_batchs, n_outputs, bot_d, bot_h, bot_w;
+    uint32_t n_batchs, bot_d, bot_h, bot_w;
     uint32_t bot_w_stride, bot_h_stride, bot_d_stride;
     size_t bot_c_stride, bot_n_stride;
-    std::tie(n_batchs, n_outputs, bot_d, bot_h, bot_w) =
+    std::tie(n_batchs, std::ignore, bot_d, bot_h, bot_w) =
         miopen::GetNCDHW(spatial_dim, bot.GetLengths());
     std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
         miopen::GetNCDHW(spatial_dim, bot.GetStrides());
 
-    uint32_t top_d, top_h, top_w;
+    uint32_t top_c, top_d, top_h, top_w;
     uint32_t top_w_stride, top_h_stride, top_d_stride;
     size_t top_c_stride, top_n_stride;
-    std::tie(std::ignore, std::ignore, top_d, top_h, top_w) =
+    std::tie(std::ignore, top_c, top_d, top_h, top_w) =
         miopen::GetNCDHW(spatial_dim, top.GetLengths());
     std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
         miopen::GetNCDHW(spatial_dim, top.GetStrides());
@@ -414,7 +417,25 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
     const uint32_t mask_h_stride = mask_w_stride * top_w;
     const uint32_t mask_d_stride = mask_h_stride * top_h;
     const size_t mask_c_stride   = static_cast<size_t>(mask_d_stride) * top_d;
-    const size_t mask_n_stride   = mask_c_stride * n_outputs;
+    const size_t mask_n_stride   = mask_c_stride * top_c;
+
+    // About optimal grid size. The simplest way is to map the problem onto grid is 1:1 mapping of
+    // N,C and top.D onto grid dimensions.
+    //
+    // However, this would waste 1 dimension of grid for 2D convolutions, i.e. the grid size would
+    // be N*C*1, which might be too small and lead to under-utilization of GPU. If we exchange D
+    // with H then the grid size for 2D problem would be N*C*H, but for 3D problem the kernel will
+    // access memory in a scattered way, which would affect performance again. Current design choice
+    // is using separate 2D and 3D kernels (via build-time parameter) and N*C*H grid for 2D.
+    //
+    // Another problem with this simple approach is finding out the optimal workgroup size.
+    // The trivial solution is {1,1,1}, but this would lead to under-utilization of GPU, because
+    // in this case only 1 thread out of the 64/32 available in the wavefront will be used.
+    //
+    // We have to use workroup which is:
+    // After multiplication by some integer, gives exactly grid (wk.x*I = grid.x, wk.y*J = grid.y,
+    // wk.z*K = grid.z). Does not exceed the workgroup size limitations imposed by the HIP/OCL
+    // runtime. The workgroup size (x*y*z) is as near as possible to the multiple of 64.
 
 #if !HOST_IMPL
     {
@@ -439,8 +460,8 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
         // The solver is dynamic.
 
         kernel.g_wk.push_back(n_batchs);
-        kernel.g_wk.push_back(n_outputs);
-        kernel.g_wk.push_back(top_w);
+        kernel.g_wk.push_back(top_c);
+        kernel.g_wk.push_back(top_d);
         // There is no need for synchronization between workitems.
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
@@ -476,7 +497,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
                    bot_d_stride,
                    bot_c_stride,
                    bot_n_stride,
-                   top_d,
+                   top_w,
                    top_h,
                    top_w_stride,
                    top_h_stride,
@@ -499,7 +520,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
             const arguments_t args = {
                 pooling_method, pad_d,         stride_d,      filter_d,      pad_h,
                 stride_h,       filter_h,      pad_w,         stride_w,      filter_w,
-                save_index,     index_mode,    n_batchs,      n_outputs,     bot_d,
+                save_index,     index_mode,    n_batchs,      top_c,         bot_d,
                 bot_h,          bot_w,         bot_w_stride,  bot_h_stride,  bot_d_stride,
                 bot_c_stride,   bot_n_stride,  top_d,         top_h,         top_w,
                 top_w_stride,   top_h_stride,  top_d_stride,  top_c_stride,  top_n_stride,
