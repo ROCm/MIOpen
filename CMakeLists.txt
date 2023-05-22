@@ -520,7 +520,7 @@ endfunction()
 
 # Both the lists below should be in sync always
 list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
-list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 list(LENGTH ARCH_LST FULL_LEN)
 math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
