@@ -147,7 +147,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
         || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
         stream << sep << GetInLayout();
-    }else {
+    } else {
         stream << sep << GetInLayout();
         stream << sep << GetWeightsLayout();
         stream << sep << GetOutLayout();
