@@ -137,10 +137,7 @@ struct ProblemDescription
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
         bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
 
-        std::string GetStr() const
-        {
-            return IsForward() ? "F" : IsBackwardData() ? "B" : "W";
-        }
+        std::string GetStr() const { return IsForward() ? "F" : IsBackwardData() ? "B" : "W"; }
 
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
@@ -149,10 +146,7 @@ struct ProblemDescription
         conv::Direction v = conv::Direction::Forward;
     } direction;
 
-    std::string GetDirectionStr() const
-    {
-        return direction.GetStr();
-    }
+    std::string GetDirectionStr() const { return direction.GetStr(); }
 
     int GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
     int GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
@@ -200,10 +194,7 @@ struct ProblemDescription
 
     void BuildConfKey(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
-    {
-        return conv_problem.BuildConfKey();
-    }
+    NetworkConfig BuildConfKey() const { return conv_problem.BuildConfKey(); }
 };
 
 // For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
@@ -313,10 +304,7 @@ struct ProblemDescriptionCompat
 
     ProblemDescription::Direction direction;
 
-    std::string GetDirectionStr() const
-    {
-        return direction.GetStr();
-    }
+    std::string GetDirectionStr() const { return direction.GetStr(); }
 
     /*
      * set top tensor
