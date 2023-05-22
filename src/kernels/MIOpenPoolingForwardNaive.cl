@@ -62,15 +62,17 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      ARG_UNUSED_FOR_AVERAGE __global index_t* mask_ptr,
                                      ARG_UNUSED_FOR_AVERAGE int save_index,
                                      ARG_UNUSED_FOR_AVERAGE int index_mode,
-                                     uint pad_d,
-                                     uint pool_d_stride,
                                      uint filter_d,
-                                     uint pad_h,
-                                     uint pool_h_stride,
                                      uint filter_h,
-                                     uint pad_w,
-                                     uint pool_w_stride,
                                      uint filter_w,
+                                     uint filter_d_stride,
+                                     uint filter_h_stride,
+                                     uint filter_w_stride,
+                                     uint filter_d_pad,
+                                     uint filter_h_pad,
+                                     uint filter_w_pad,
+                                     uint all_n,
+                                     uint all_c,
                                      uint bot_d,
                                      uint bot_h,
                                      uint bot_w,
@@ -79,8 +81,6 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      uint bot_d_stride,
                                      uint bot_h_stride,
                                      uint bot_w_stride,
-                                     uint n_batchs,
-                                     uint top_c,
                                      ARG_UNUSED_FOR_2D uint top_d,
                                      uint top_h,
                                      uint top_w,
@@ -96,11 +96,11 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      ARG_UNUSED_FOR_AVERAGE uint mask_w_stride)
 {
     const uint b = get_global_id(0);
-    if(!(b < n_batchs))
+    if(!(b < all_n))
         return;
 
     const uint o = get_global_id(1);
-    if(!(o < top_c))
+    if(!(o < all_c))
         return;
 
 #if MLO_POOLING_IS2D_KERNEL
@@ -119,9 +119,9 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
 #endif
     for(uint i = 0; i < top_w; ++i)
     {
-        const int int_dstart = k * pool_d_stride - pad_d;
-        const int int_hstart = j * pool_h_stride - pad_h;
-        const int int_wstart = i * pool_w_stride - pad_w;
+        const int int_dstart = k * filter_d_stride - filter_d_pad;
+        const int int_hstart = j * filter_h_stride - filter_h_pad;
+        const int int_wstart = i * filter_w_stride - filter_w_pad;
         const uint dend      = (uint)min(int_dstart + (int)filter_d, (int)bot_d);
         const uint hend      = (uint)min(int_hstart + (int)filter_h, (int)bot_h);
         const uint wend      = (uint)min(int_wstart + (int)filter_w, (int)bot_w);
@@ -197,10 +197,10 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                               + h_save * bot_w       //
                                               + w_save);
                     else
-                        res_index = (index_t)(                                           //
-                            ((d_save - k * pool_d_stride + pad_d) * filter_w * filter_h) //
-                            + ((h_save - j * pool_h_stride + pad_h) * filter_w)          //
-                            + (w_save - i * pool_w_stride + pad_w)                       //
+                        res_index = (index_t)(                                                    //
+                            ((d_save - k * filter_d_stride + filter_d_pad) * filter_w * filter_h) //
+                            + ((h_save - j * filter_h_stride + filter_h_pad) * filter_w)          //
+                            + (w_save - i * filter_w_stride + filter_w_pad)                       //
                         );
                 }
 

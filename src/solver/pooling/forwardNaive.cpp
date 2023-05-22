@@ -77,15 +77,17 @@ void RunHost(uint32_t b,
              int pooling_method,
              bool save_index,
              int index_mode,
-             uint32_t pad_d,
-             uint32_t pool_d_stride,
              uint32_t filter_d,
-             uint32_t pad_h,
-             uint32_t pool_h_stride,
              uint32_t filter_h,
-             uint32_t pad_w,
-             uint32_t pool_w_stride,
              uint32_t filter_w,
+             uint32_t filter_d_stride,
+             uint32_t filter_h_stride,
+             uint32_t filter_w_stride,
+             uint32_t filter_d_pad,
+             uint32_t filter_h_pad,
+             uint32_t filter_w_pad,
+             uint32_t all_n,
+             uint32_t all_c,
              uint32_t bot_d,
              uint32_t bot_h,
              uint32_t bot_w,
@@ -94,8 +96,6 @@ void RunHost(uint32_t b,
              uint32_t bot_d_stride,
              uint32_t bot_h_stride,
              uint32_t bot_w_stride,
-             uint32_t n_batchs,
-             uint32_t top_c,
              uint32_t top_d,
              uint32_t top_h,
              uint32_t top_w,
@@ -111,9 +111,9 @@ void RunHost(uint32_t b,
              uint32_t mask_w_stride)
 {
     const T MAX_VAL = std::numeric_limits<T>::max();
-    if(!(b < n_batchs))
+    if(!(b < all_n))
         return;
-    if(!(o < top_c))
+    if(!(o < all_c))
         return;
     if(!(kj < (is2d_kernel ? top_h : top_d)))
         return;
@@ -131,9 +131,9 @@ void RunHost(uint32_t b,
             else
                 res = 0;
 
-            const int int_dstart = k * pool_d_stride - pad_d;
-            const int int_hstart = j * pool_h_stride - pad_h;
-            const int int_wstart = i * pool_w_stride - pad_w;
+            const int int_dstart = k * filter_d_stride - filter_d_pad;
+            const int int_hstart = j * filter_h_stride - filter_h_pad;
+            const int int_wstart = i * filter_w_stride - filter_w_pad;
             const uint32_t dend =
                 std::min(int_dstart + static_cast<int>(filter_d), static_cast<int>(bot_d));
             const uint32_t hend =
@@ -204,10 +204,10 @@ void RunHost(uint32_t b,
                         res_index =
                             static_cast<Index>(d_save * bot_h * bot_w + h_save * bot_w + w_save);
                     else
-                        res_index = static_cast<Index>(                                  //
-                            ((d_save - k * pool_d_stride + pad_d) * filter_w * filter_h) //
-                            + ((h_save - j * pool_h_stride + pad_h) * filter_w)          //
-                            + (w_save - i * pool_w_stride + pad_w)                       //
+                        res_index = static_cast<Index>(                                           //
+                            ((d_save - k * filter_d_stride + filter_d_pad) * filter_w * filter_h) //
+                            + ((h_save - j * filter_h_stride + filter_h_pad) * filter_w)          //
+                            + (w_save - i * filter_w_stride + filter_w_pad)                       //
                         );
                     // NOLINTEND(bugprone-misplaced-widening-cast)
                 }
@@ -238,18 +238,18 @@ void RunHost(uint32_t b,
 struct arguments_t // Syntax sugar.
 {
     int pooling_method;
-    uint32_t pad_d;
-    uint32_t stride_d;
+    uint32_t filter_d_pad;
+    uint32_t filter_d_stride;
     uint32_t filter_d;
-    uint32_t pad_h;
-    uint32_t stride_h;
+    uint32_t filter_h_pad;
+    uint32_t filter_h_stride;
     uint32_t filter_h;
-    uint32_t pad_w;
-    uint32_t stride_w;
+    uint32_t filter_w_pad;
+    uint32_t filter_w_stride;
     uint32_t filter_w;
     bool save_index;
     int index_mode;
-    uint32_t n_batchs, top_c, bot_d, bot_h, bot_w;
+    uint32_t all_n, all_c, bot_d, bot_h, bot_w;
     uint32_t bot_w_stride, bot_h_stride, bot_d_stride;
     size_t bot_c_stride, bot_n_stride;
     uint32_t top_d, top_h, top_w;
@@ -301,15 +301,17 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                                   args.pooling_method,
                                   args.save_index,
                                   args.index_mode,
-                                  args.pad_d,
-                                  args.stride_d,
                                   args.filter_d,
-                                  args.pad_h,
-                                  args.stride_h,
                                   args.filter_h,
-                                  args.pad_w,
-                                  args.stride_w,
                                   args.filter_w,
+                                  args.filter_d_stride,
+                                  args.filter_h_stride,
+                                  args.filter_w_stride,
+                                  args.filter_d_pad,
+                                  args.filter_h_pad,
+                                  args.filter_w_pad,
+                                  args.all_n,
+                                  args.all_c,
                                   args.bot_d,
                                   args.bot_h,
                                   args.bot_w,
@@ -318,8 +320,6 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                                   args.bot_d_stride,
                                   args.bot_h_stride,
                                   args.bot_w_stride,
-                                  args.n_batchs,
-                                  args.top_c,
                                   args.top_d,
                                   args.top_h,
                                   args.top_w,
@@ -369,9 +369,10 @@ bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
         const auto n_dims = top.GetSize() - 2;
         if(!(2 <= n_dims && n_dims <= 3))
             return false;
-        uint32_t n, top_c, top_d, top_h;
-        std::tie(n, top_c, top_d, top_h, std::ignore) = miopen::GetNCDHW(n_dims, top.GetLengths());
-        if(n > 1024 || top_c > 1024)
+        uint32_t all_n, all_c, top_d, top_h;
+        std::tie(all_n, all_c, top_d, top_h, std::ignore) =
+            miopen::GetNCDHW(n_dims, top.GetLengths());
+        if(all_n > 1024 || all_c > 1024)
             return false;
         if((n_dims == 2 ? top_h : top_d) > 1024)
             return false;
@@ -409,15 +410,15 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     const auto& pads    = pooling.GetPads();
 
     // This also deduces 3D (DHW) parameters from 2D (HW) descriptor.
-    const uint32_t filter_w = lengths[is2d ? 1 : 2];
-    const uint32_t filter_h = lengths[is2d ? 0 : 1];
-    const uint32_t filter_d = is2d ? 1 : lengths[0];
-    const uint32_t stride_w = strides[is2d ? 1 : 2];
-    const uint32_t stride_h = strides[is2d ? 0 : 1];
-    const uint32_t stride_d = is2d ? (stride_h * filter_d) : strides[0];
-    const uint32_t pad_w    = pads[is2d ? 1 : 2];
-    const uint32_t pad_h    = pads[is2d ? 0 : 1];
-    const uint32_t pad_d    = is2d ? 0 : pads[0];
+    const uint32_t filter_w        = lengths[is2d ? 1 : 2];
+    const uint32_t filter_h        = lengths[is2d ? 0 : 1];
+    const uint32_t filter_d        = is2d ? 1 : lengths[0];
+    const uint32_t filter_w_stride = strides[is2d ? 1 : 2];
+    const uint32_t filter_h_stride = strides[is2d ? 0 : 1];
+    const uint32_t filter_d_stride = is2d ? (filter_h_stride * filter_d) : strides[0];
+    const uint32_t filter_w_pad    = pads[is2d ? 1 : 2];
+    const uint32_t filter_h_pad    = pads[is2d ? 0 : 1];
+    const uint32_t filter_d_pad    = is2d ? 0 : pads[0];
 
     const int pooling_method = (pooling.GetMode() == miopenPoolingMax) ? MLO_POOLING_OP_MAX
                                : (pooling.GetMode() == miopenPoolingAverage)
@@ -442,19 +443,18 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     /// requires it because the total number of muls is 4.
 
     const auto spatial_dim = is2d ? 2 : 3;
-    uint32_t n_batchs, bot_d, bot_h, bot_w;
+    uint32_t all_n, all_c, bot_d, bot_h, bot_w;
+    std::tie(all_n, all_c, bot_d, bot_h, bot_w) = miopen::GetNCDHW(spatial_dim, bot.GetLengths());
     uint32_t bot_w_stride, bot_h_stride, bot_d_stride;
     size_t bot_c_stride, bot_n_stride;
-    std::tie(n_batchs, std::ignore, bot_d, bot_h, bot_w) =
-        miopen::GetNCDHW(spatial_dim, bot.GetLengths());
     std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
         miopen::GetNCDHW(spatial_dim, bot.GetStrides());
 
-    uint32_t top_c, top_d, top_h, top_w;
+    uint32_t top_d, top_h, top_w;
+    std::tie(std::ignore, std::ignore, top_d, top_h, top_w) =
+        miopen::GetNCDHW(spatial_dim, top.GetLengths());
     uint32_t top_w_stride, top_h_stride, top_d_stride;
     size_t top_c_stride, top_n_stride;
-    std::tie(std::ignore, top_c, top_d, top_h, top_w) =
-        miopen::GetNCDHW(spatial_dim, top.GetLengths());
     std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
         miopen::GetNCDHW(spatial_dim, top.GetStrides());
 
@@ -463,7 +463,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     const uint32_t mask_h_stride = mask_w_stride * top_w;
     const uint32_t mask_d_stride = mask_h_stride * top_h;
     const size_t mask_c_stride   = static_cast<size_t>(mask_d_stride) * top_d;
-    const size_t mask_n_stride   = mask_c_stride * top_c;
+    const size_t mask_n_stride   = mask_c_stride * all_c;
 
     /// About optimal grid size. The simplest way is to map the problem onto grid is 1:1 mapping of
     /// N,C and top.D onto grid dimensions.
@@ -502,15 +502,10 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     assert(IsPower2(wavesize));
 #endif
 
-    const auto is2d_kernel = (top_d == 1); // 2D and optimize for 3D where D is 1.
-    const auto g0          = RoundUpNearestPower2(n_batchs);
-    const auto g1          = RoundUpNearestPower2(top_c);
+    const auto is2d_kernel = (top_d == 1); // For 2D + optimize for 3D where the 1st dim is 1.
+    const auto g0          = RoundUpNearestPower2(all_n);
+    const auto g1          = RoundUpNearestPower2(all_c);
     const auto g2          = RoundUpNearestPower2(is2d_kernel ? top_h : top_d);
-
-#define P(t) #t << ' ' << t << ' '
-    //#define P1(t) MIOPEN_LOG_I( P(t) )
-    MIOPEN_LOG_I(P(n_batchs) << P(top_c) << P(top_h) << P(top_d));
-    MIOPEN_LOG_I(P(g0) << P(g1) << P(g2));
 
     auto work_left = wavesize / 1;
     const auto w0  = (g0 < work_left) ? g0 : work_left;
@@ -562,15 +557,17 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
                    params.workspace,
                    save_index,
                    index_mode,
-                   pad_d,
-                   stride_d,
                    filter_d,
-                   pad_h,
-                   stride_h,
                    filter_h,
-                   pad_w,
-                   stride_w,
                    filter_w,
+                   filter_d_stride,
+                   filter_h_stride,
+                   filter_w_stride,
+                   filter_d_pad,
+                   filter_h_pad,
+                   filter_w_pad,
+                   all_n,
+                   all_c,
                    bot_d,
                    bot_h,
                    bot_w,
@@ -579,8 +576,6 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
                    bot_d_stride,
                    bot_h_stride,
                    bot_w_stride,
-                   n_batchs,
-                   top_c,
                    top_d,
                    top_h,
                    top_w,
@@ -609,19 +604,19 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
             auto params            = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
             const arguments_t args = {
                 pooling_method,
-                pad_d,
-                stride_d,
+                filter_d_pad,
+                filter_d_stride,
                 filter_d,
-                pad_h,
-                stride_h,
+                filter_h_pad,
+                filter_h_stride,
                 filter_h,
-                pad_w,
-                stride_w,
+                filter_w_pad,
+                filter_w_stride,
                 filter_w,
                 save_index,
                 index_mode,
-                n_batchs,
-                top_c,
+                all_n,
+                all_c,
                 bot_d,
                 bot_h,
                 bot_w,
