@@ -83,8 +83,7 @@ struct ProblemDescription
     int GetOutHeight() const { return conv_problem.GetOutHeight(); }
     int GetOutWidth() const { return conv_problem.GetOutWidth(); }
     int GetOutDepth() const { return conv_problem.GetOutDepth(); }
-    int GetBatchSize() const { return conv_problem.GetInBatchSize(); }
-    int GetInBatchSize() const { return conv_problem.GetInBatchSize(); }
+    int GetBatchSize() const { return conv_problem.GetBatchSize(); }
     int GetPadH() const { return conv_problem.GetPadH(); }
     int GetPadW() const { return conv_problem.GetPadW(); }
     int GetPadD() const { return conv_problem.GetPadD(); }
@@ -228,7 +227,7 @@ struct ProblemDescriptionCompat
     int out_height        = 0;
     int out_width         = 0;
     int out_depth         = 0;
-    int batch_sz          = 0; // GetInBatchSize()
+    int batch_sz          = 0;
     int pad_h             = 0;
     int pad_w             = 0;
     int pad_d             = 0;
@@ -271,7 +270,6 @@ struct ProblemDescriptionCompat
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    int GetInBatchSize() const { return batch_sz; }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
     int GetPadD() const { return pad_d; }

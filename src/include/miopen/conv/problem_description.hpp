@@ -191,6 +191,7 @@ struct ProblemDescription : ProblemDescriptionBase
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
+    std::size_t GetBatchSize() const { return GetInBatchSize(); } // alias of GetInBatchSize()
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInHeight() const { return GetH5(GetSpatialDims(), in.GetLengths()); }
@@ -400,7 +401,7 @@ struct ProblemDescription : ProblemDescriptionBase
         f(self.GetWeightsWidth(), "fil_w");
         f(self.GetWeightsDepth(), "fil_d");
         f(self.GetOutChannels(), "out_channels");
-        f(self.GetInBatchSize(), "batchsize");
+        f(self.GetBatchSize(), "batchsize");
         f(self.GetPadH(), "pad_h");
         f(self.GetPadW(), "pad_w");
         f(self.GetPadD(), "pad_d");
