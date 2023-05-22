@@ -65,6 +65,21 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 } // namespace
 
+std::string ProblemDescription::GetDirectionStr() const
+{
+    std::string s;
+
+    switch(GetDirection())
+    {
+    case Direction::Forward: s = "F"; break;
+    case Direction::BackwardData: s = "B"; break;
+    case Direction::BackwardWeights: s = "W"; break;
+    default: assert(false);
+    }
+
+    return s;
+}
+
 void ProblemDescription::HeuristicUpdateLayouts()
 {
     const std::string labels = tensor_layout_get_default(in_layout.size());
@@ -117,13 +132,7 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
               'x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
-
-    switch(GetDirection())
-    {
-    case Direction::Forward: ss << 'x' << "F"; break;
-    case Direction::BackwardData: ss << 'x' << "B"; break;
-    case Direction::BackwardWeights: ss << 'x' << "W"; break;
-    }
+    ss << 'x' << GetDirectionStr();
 
     conf_key = ss.str();
 }
@@ -156,13 +165,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
         stream << sep << GetOutLayout();
     }
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
-
-    switch(GetDirection())
-    {
-    case Direction::Forward: stream << sep << "F"; break;
-    case Direction::BackwardData: stream << sep << "B"; break;
-    case Direction::BackwardWeights: stream << sep << "W"; break;
-    }
+    stream << sep << GetDirectionStr();
 
     // clang-format on
     // New performance config entries shall come into variable/optional part of db key.

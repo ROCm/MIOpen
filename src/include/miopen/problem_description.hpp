@@ -84,6 +84,7 @@ struct ProblemDescription
     int GetOutWidth() const { return conv_problem.GetOutWidth(); }
     int GetOutDepth() const { return conv_problem.GetOutDepth(); }
     int GetBatchSize() const { return conv_problem.GetInBatchSize(); }
+    int GetInBatchSize() const { return conv_problem.GetInBatchSize(); }
     int GetPadH() const { return conv_problem.GetPadH(); }
     int GetPadW() const { return conv_problem.GetPadW(); }
     int GetPadD() const { return conv_problem.GetPadD(); }
@@ -123,44 +124,10 @@ struct ProblemDescription
     bool IsLayoutNCHWc() const;
 
 #if MIOPEN_ENABLE_SQLITE
-    template <class Self>
-    static void Visit(Self&& self, std::function<void(int, std::string)> f)
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
     {
-        // The column names match the driver command line argument names
-        f(self.GetSpatialDims(), "spatial_dim");
-        f(self.GetInChannels(), "in_channels");
-        f(self.GetInHeight(), "in_h");
-        f(self.GetInWidth(), "in_w");
-        f(self.GetInDepth(), "in_d");
-        f(self.GetWeightsHeight(), "fil_h");
-        f(self.GetWeightsWidth(), "fil_w");
-        f(self.GetWeightsDepth(), "fil_d");
-        f(self.GetOutChannels(), "out_channels");
-        f(self.GetBatchSize(), "batchsize");
-        f(self.GetPadH(), "pad_h");
-        f(self.GetPadW(), "pad_w");
-        f(self.GetPadD(), "pad_d");
-        f(self.GetKernelStrideH(), "conv_stride_h");
-        f(self.GetKernelStrideW(), "conv_stride_w");
-        f(self.GetKernelStrideD(), "conv_stride_d");
-        f(self.GetDilationH(), "dilation_h");
-        f(self.GetDilationW(), "dilation_w");
-        f(self.GetDilationD(), "dilation_d");
-        f(self.GetBias(), "bias");
-        f(self.GetGroupCount(), "group_count");
-    }
-
-    template <class Self>
-    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
-    {
-        f(self.GetInLayout(), "layout");
-        std::string data_type = EncodeDataTypesForKey(
-            self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
-        f(data_type, "data_type");
-        std::string dir = self.direction.IsForward()        ? "F"
-                          : self.direction.IsBackwardData() ? "B"
-                                                            : "W";
-        f(dir, "direction");
+        conv::ProblemDescription::Visit(self, f);
     }
 #endif
 
@@ -171,12 +138,22 @@ struct ProblemDescription
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
         bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
 
+        std::string GetStr() const
+        {
+            return IsForward() ? "F" : IsBackwardData() ? "B" : "W";
+        }
+
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
 
     private:
         conv::Direction v = conv::Direction::Forward;
     } direction;
+
+    std::string GetDirectionStr() const
+    {
+        return direction.GetStr();
+    }
 
     int GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
     int GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
@@ -294,6 +271,7 @@ struct ProblemDescriptionCompat
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
+    int GetInBatchSize() const { return batch_sz; }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
     int GetPadD() const { return pad_d; }
@@ -336,6 +314,11 @@ struct ProblemDescriptionCompat
     ProblemDescriptionCompat(miopen::conv::Direction dir) : direction(dir) {}
 
     ProblemDescription::Direction direction;
+
+    std::string GetDirectionStr() const
+    {
+        return direction.GetStr();
+    }
 
     /*
      * set top tensor

@@ -299,7 +299,10 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetWeights() const { return weights; }
     const TensorDescriptor& GetOut() const { return out; }
     const ConvolutionDescriptor& GetConv() const { return conv; }
+
     Direction GetDirection() const { return direction; }
+    std::string GetDirectionStr() const;
+
     int GetBias() const { return bias; }
 
     std::size_t GetBiasSize() const
@@ -384,37 +387,41 @@ struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
 
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
-        // Todo: shouldn't sqlitedb serialization support 3d convs?
-        f(std::to_string(self.GetInChannels()), "in_channels");
-        f(std::to_string(self.GetInHeight()), "in_h");
-        f(std::to_string(self.GetInWidth()), "in_w");
-        f(std::to_string(self.GetWeightsHeight()), "filter_h");
-        f(std::to_string(self.GetWeightsWidth()), "filter_w");
-        f(std::to_string(self.GetOutChannels()), "out_channels");
-        f(std::to_string(self.GetInBatchSize()), "batchsize");
-        f(std::to_string(self.GetPadH()), "pad_h");
-        f(std::to_string(self.GetPadW()), "pad_w");
-        f(std::to_string(self.GetKernelStrideH()), "conv_stride_1");
-        f(std::to_string(self.GetKernelStrideW()), "conv_stride_0");
-        f(std::to_string(self.GetDilationH()), "dilation_h");
-        f(std::to_string(self.GetDilationW()), "dilation_w");
-        f(std::to_string(self.GetBias()), "bias");
-        f("'" + self.GetInLayout() + "'", "layout");
+        // The column names match the driver command line argument names
+        f(self.GetSpatialDims(), "spatial_dim");
+        f(self.GetInChannels(), "in_channels");
+        f(self.GetInHeight(), "in_h");
+        f(self.GetInWidth(), "in_w");
+        f(self.GetInDepth(), "in_d");
+        f(self.GetWeightsHeight(), "fil_h");
+        f(self.GetWeightsWidth(), "fil_w");
+        f(self.GetWeightsDepth(), "fil_d");
+        f(self.GetOutChannels(), "out_channels");
+        f(self.GetInBatchSize(), "batchsize");
+        f(self.GetPadH(), "pad_h");
+        f(self.GetPadW(), "pad_w");
+        f(self.GetPadD(), "pad_d");
+        f(self.GetKernelStrideH(), "conv_stride_h");
+        f(self.GetKernelStrideW(), "conv_stride_w");
+        f(self.GetKernelStrideD(), "conv_stride_d");
+        f(self.GetDilationH(), "dilation_h");
+        f(self.GetDilationW(), "dilation_w");
+        f(self.GetDilationD(), "dilation_d");
+        f(self.GetBias(), "bias");
+        f(self.GetGroupCount(), "group_count");
+    }
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    {
+        f(self.GetInLayout(), "layout");
         std::string data_type = EncodeDataTypesForKey(
             self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
-        f("'" + data_type + "'", "data_type");
-
-        switch(self.GetDirection())
-        {
-        case Direction::Forward: f("'F'", "direction"); break;
-        case Direction::BackwardData: f("'B'", "direction"); break;
-        case Direction::BackwardWeights: f("'W'", "direction"); break;
-        }
-
-        f(std::to_string(self.GetGroupCount()), "group_count");
+        f(data_type, "data_type");
+        f(self.GetDirectionStr(), "direction");
     }
 #endif
 
