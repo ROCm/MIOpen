@@ -214,6 +214,18 @@ bool ProblemDescription::IsLayoutNCHWc() const
             (weights_layout == "CHWNc"));
 }
 
+bool ProblemDescription::IsNCHWc_NCHWc() const
+    {
+        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" &&
+               GetOutLayout() == "NCHWc";
+    }
+
+bool ProblemDescription::IsNCHWc_CHWNc() const
+{
+    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" &&
+            GetOutLayout() == "NCHWc";
+}
+
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 {
     if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())

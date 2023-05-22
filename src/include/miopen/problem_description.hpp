@@ -148,8 +148,8 @@ struct ProblemDescription
 
     std::string GetDirectionStr() const { return direction.GetStr(); }
 
-    int GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
-    int GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
+    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
+    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
 
     bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
     bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
@@ -161,16 +161,15 @@ struct ProblemDescription
     bool IsFp16() const { return conv_problem.IsFp16(); }
     bool IsBfp16() const { return conv_problem.IsBfp16(); }
     bool IsInt8() const { return conv_problem.IsInt8(); }
+
     bool IsNCHWc_NCHWc() const
     {
-        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" &&
-               GetOutLayout() == "NCHWc";
+        return conv_problem.IsNCHWc_NCHWc();
     }
 
     bool IsNCHWc_CHWNc() const
     {
-        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" &&
-               GetOutLayout() == "NCHWc";
+        return conv_problem.IsNCHWc_CHWNc();
     }
 
     ProblemDescription() = default;
