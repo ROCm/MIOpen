@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
@@ -489,92 +489,103 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
+find_program(UNZIPPER lbzcat bzcat REQUIRED)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/kernels)
+
 # Unpack DB files
 function(unpack_db db_bzip2_file)
-    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
-    string(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
-    if(WIN32)
-        find_program(UNZIPPER 7z PATHS "C:/Program Files/7-Zip")
-        if(${UNZIPPER} STREQUAL "UNZIPPER-NOTFOUND")
-            message(FATAL_ERROR "Please install 7-Zip a file archiver from https://www.7-zip.org/.")
-        endif()
-        set(__switches e)
-    else()
-        find_program(UNZIPPER lbunzip2 bunzip2)
-        set(__switches -fk)
-    endif()
-    if(NOT EXISTS ${db_file} AND EXISTS ${db_bzip2_file})
+    get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/src/kernels/${__fname})
+        message(STATUS "Installing ${CMAKE_BINARY_DIR}/src/kernels/${__fname}")
         execute_process(
-            COMMAND "${UNZIPPER}" ${__switches} ${db_bzip2_file}
-            WORKING_DIRECTORY ${KERNELS_DIR}
-            RESULT_VARIABLE ret)
-        if(NOT ret EQUAL "0")
-            message(WARNING "${db_file} could not be extracted, file is empty!")
-            execute_process(
-                COMMAND touch ${db_file}
-                WORKING_DIRECTORY ${KERNELS_DIR})
-        endif()
+            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/src/kernels/${__fname}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src/kernels
+            COMMAND_ERROR_IS_FATAL ANY)
     endif()
-    unset(__switches)
+    unset(__fname)
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
-foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
-endforeach()
+set(BZIP_FILES
+        gfx1030_36.db.bz2
+        gfx900_56.db.bz2
+        gfx906_60.db.bz2
+        gfx90878.db.bz2
+        gfx90a68.db.bz2
+        gfx90a6e.db.bz2
+        gfx1030_36.HIP.fdb.txt.bz2
+        gfx803_36.HIP.fdb.txt.bz2
+        gfx803_36.OpenCL.fdb.txt.bz2
+        gfx803_64.HIP.fdb.txt.bz2
+        gfx803_64.OpenCL.fdb.txt.bz2
+        gfx900_56.HIP.fdb.txt.bz2
+        gfx900_56.OpenCL.fdb.txt.bz2
+        gfx900_64.HIP.fdb.txt.bz2
+        gfx900_64.OpenCL.fdb.txt.bz2
+        gfx906_60.HIP.fdb.txt.bz2
+        gfx906_60.OpenCL.fdb.txt.bz2
+        gfx906_64.HIP.fdb.txt.bz2
+        gfx906_64.OpenCL.fdb.txt.bz2
+        gfx90878.HIP.fdb.txt.bz2
+        gfx90878.OpenCL.fdb.txt.bz2
+        gfx90a68.HIP.fdb.txt.bz2
+        gfx90a6e.HIP.fdb.txt.bz2
+    )
 
-file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
-foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
+foreach(__bzip_file ${BZIP_FILES})
+    unpack_db(${CMAKE_SOURCE_DIR}/src/kernels/${__bzip_file})
 endforeach()
 
 # Begin KDB component install 
-function(install_kdb)
-    set(oneValueArgs NAME COMPONENT_NAME)
-    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
-
-    if(PARSE_NAME)
-        set(FILE_NAME ${PARSE_NAME})
-    endif()
-    string(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
-    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
-    if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
-    else()
-        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
-        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-        rocm_install(FILES
-            src/kernels/${FILE_NAME}.kdb
-        DESTINATION ${DATA_INSTALL_DIR}/db
-        COMPONENT ${PARSE_COMPONENT_NAME})
+function(install_kdb FILE_NAME COMPONENT_NAME)
+    get_filename_component(__file_name ${FILE_NAME} NAME_WLE)
+    if (NOT EXISTS ${CMAKE_BINARY_DIR}/src/kernels/${__file_name})
+        file(READ ${FILE_NAME} __contents LIMIT 7)
+        if(__contents STREQUAL "version")
+            message(FATAL_ERROR "GIT LFS: file not pulled down: ${FILE_NAME}")
+        endif()
+        message(STATUS "Installing ${CMAKE_BINARY_DIR}/src/kernels/${__file_name}")
+        execute_process(
+            COMMAND ${UNZIPPER} -k ${FILE_NAME}
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/src/kernels/${__file_name}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src/kernels
+            COMMAND_ERROR_IS_FATAL ANY)
+        rocm_install(FILES ${CMAKE_BINARY_DIR}/src/kernels/${__file_name}
+                     DESTINATION ${DATA_INSTALL_DIR}/db
+                     COMPONENT ${COMPONENT_NAME})
+        unset(__contents)
+        unset(__file_name)
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
-list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+set(KDB_BZ2_FILES
+    gfx1030_36.kdb.bz2
+    gfx900_56.kdb.bz2
+    gfx900_64.kdb.bz2
+    gfx906_60.kdb.bz2
+    gfx906_64.kdb.bz2
+    gfx90878.kdb.bz2
+    gfx90a68.kdb.bz2
+    gfx90a6e.kdb.bz2
+)
 
-list(LENGTH ARCH_LST FULL_LEN)
-math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
+set(COMPONENT_LST
+    gfx1030-36kdb
+    gfx900-56kdb
+    gfx900_64kdb
+    gfx906-60kdb
+    gfx906-64kdb
+    gfx908-120kdb
+    gfx90a-104kdb
+    gfx90a-110kdb
+)
 
-
-foreach(IDX RANGE ${ARCH_LST_LEN})
-    list(GET ARCH_LST ${IDX} ARCH_NAME)
-    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
-    install_kdb(
-        NAME ${ARCH_NAME}
-        COMPONENT_NAME ${ARCH_FILE_NAME}
-    )
+foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
+    install_kdb(${CMAKE_SOURCE_DIR}/src/kernels/${__file} ${__component})
 endforeach()
 
-if(LFS_MISSING_FILES)
-    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
-    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
-    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
-else()
-    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
-endif()
+set(CPACK_COMPONENTS_ALL ${COMPONENT_LST})
 
 #end kdb package creation
 

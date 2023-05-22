@@ -702,7 +702,14 @@ if(MIOPEN_ENABLE_SQLITE)
         target_sources(MIOpen PRIVATE $<TARGET_OBJECTS:sqlite_memvfs>)
 endif()
 
-rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
+if(NOT WIN32)
+    rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
+endif()
+
+find_package(zstd)
+if(zstd_FOUND)
+    target_link_libraries(MIOpen PRIVATE zstd::libzstd_shared)
+endif()
 
 if(CLANG_TIDY_EXE)
     clang_tidy_check(MIOpen)
