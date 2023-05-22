@@ -56,26 +56,27 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                                                            : MLO_POOLING_OP_AVE_INCLUSIVE);
 
     ss << "m" + std::to_string(pooling_method);
-
-    if(direction == Direction::Forward)
-    {
-        // This is used only in Forward to distinguish between inference and training.
-        ss << "_i" << static_cast<int>(save_index);
-    }
-    ss << "_dt" << dyDesc.GetType();
-    ss << "_xd" << get_vect_config(xDesc.GetLengths());
-    ss << "_xs" << get_vect_config(xDesc.GetStrides());
-    ss << "_yd" << get_vect_config(yDesc.GetLengths());
-    ss << "_ys" << get_vect_config(yDesc.GetStrides());
-    ss << "_dxd" << get_vect_config(dxDesc.GetLengths());
-    ss << "_dxs" << get_vect_config(dxDesc.GetStrides());
-    ss << "_dyd" << get_vect_config(dyDesc.GetLengths());
-    ss << "_dys" << get_vect_config(dyDesc.GetStrides());
+    ss << "_dt" << xDesc.GetType();
     ss << "_ker" << get_vect_config(pooling.lens);
     ss << "_str" << get_vect_config(pooling.strides);
     ss << "_pad" << get_vect_config(pooling.pads);
     ss << "_it" << pooling.GetIndexType();
-    ss << "_wsidx" << pooling.GetWorkspaceIndexMode();
+    ss << "_im" << pooling.GetWorkspaceIndexMode();
+    if(direction == Direction::Forward)
+    {
+        ss << "_is" << static_cast<int>(save_index);
+    }
+    ss << "_xd" << get_vect_config(xDesc.GetLengths());
+    ss << "_xs" << get_vect_config(xDesc.GetStrides());
+    ss << "_yd" << get_vect_config(yDesc.GetLengths());
+    ss << "_ys" << get_vect_config(yDesc.GetStrides());
+    if(direction == Direction::Backward)
+    {
+        ss << "_dxd" << get_vect_config(dxDesc.GetLengths());
+        ss << "_dxs" << get_vect_config(dxDesc.GetStrides());
+        ss << "_dyd" << get_vect_config(dyDesc.GetLengths());
+        ss << "_dys" << get_vect_config(dyDesc.GetStrides());
+    }
 
     return NetworkConfig{ss.str()};
 }
