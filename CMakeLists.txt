@@ -519,7 +519,7 @@ function(install_kdb)
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
+list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
 list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 list(LENGTH ARCH_LST FULL_LEN)
