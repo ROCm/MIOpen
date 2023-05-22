@@ -39,13 +39,23 @@
 #endif
 #include "float_types.h"
 
-typedef unsigned long arg_size_t;
+#ifndef MLO_POOLING_IS2D_KERNEL
+#error "MLO_POOLING_IS2D_KERNEL must be defined"
+#endif
 
 #if AVERAGE_OPS
 #define ARG_UNUSED_FOR_AVERAGE __attribute__((__unused__))
 #else
 #define ARG_UNUSED_FOR_AVERAGE
 #endif
+
+#if MLO_POOLING_IS2D_KERNEL
+#define ARG_UNUSED_FOR_2D __attribute__((__unused__))
+#else
+#define ARG_UNUSED_FOR_2D
+#endif
+
+typedef unsigned long arg_size_t;
 
 __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      __global _FLOAT* top_ptr,
@@ -64,51 +74,70 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                                      uint bot_d,
                                      uint bot_h,
                                      uint bot_w,
-                                     uint bot_w_stride,
-                                     uint bot_h_stride,
-                                     uint bot_d_stride,
-                                     arg_size_t bot_c_stride,
                                      arg_size_t bot_n_stride,
-                                     uint top_w,
+                                     arg_size_t bot_c_stride,
+                                     uint bot_d_stride,
+                                     uint bot_h_stride,
+                                     uint bot_w_stride,
+                                     uint n_batchs,
+                                     uint top_c,
+                                     ARG_UNUSED_FOR_2D uint top_d,
                                      uint top_h,
-                                     uint top_w_stride,
-                                     uint top_h_stride,
-                                     uint top_d_stride,
-                                     arg_size_t top_c_stride,
+                                     uint top_w,
                                      arg_size_t top_n_stride,
-                                     ARG_UNUSED_FOR_AVERAGE uint mask_w_stride,
-                                     ARG_UNUSED_FOR_AVERAGE uint mask_h_stride,
-                                     ARG_UNUSED_FOR_AVERAGE uint mask_d_stride,
+                                     arg_size_t top_c_stride,
+                                     uint top_d_stride,
+                                     uint top_h_stride,
+                                     uint top_w_stride,
+                                     ARG_UNUSED_FOR_AVERAGE arg_size_t mask_n_stride,
                                      ARG_UNUSED_FOR_AVERAGE arg_size_t mask_c_stride,
-                                     ARG_UNUSED_FOR_AVERAGE arg_size_t mask_n_stride)
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_d_stride,
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_h_stride,
+                                     ARG_UNUSED_FOR_AVERAGE uint mask_w_stride)
 {
     const uint b = get_global_id(0);
-    const uint o = get_global_id(1);
-    const uint k = get_global_id(2);
+    if(!(b < n_batchs))
+        return;
 
+    const uint o = get_global_id(1);
+    if(!(o < top_c))
+        return;
+
+#if MLO_POOLING_IS2D_KERNEL
+    // When we want 2D kernel, run only inner loop.
+    // Fix k to 0 and take current j from the grid.
+    const uint k = 0; // top_d == 1
+    const uint j = get_global_id(2);
+    if(!(j < top_h))
+        return;
+#else
+    const uint k = get_global_id(2);
+    if(!(k < top_d))
+        return;
     for(uint j = 0; j < top_h; ++j)
     {
-        for(uint i = 0; i < top_w; ++i)
-        {
-            const int int_dstart = k * pool_d_stride - pad_d;
-            const int int_hstart = j * pool_h_stride - pad_h;
-            const int int_wstart = i * pool_w_stride - pad_w;
-            const uint dend      = (uint)min(int_dstart + (int)filter_d, (int)bot_d);
-            const uint hend      = (uint)min(int_hstart + (int)filter_h, (int)bot_h);
-            const uint wend      = (uint)min(int_wstart + (int)filter_w, (int)bot_w);
-            const uint dstart    = (uint)max(int_dstart, 0);
-            const uint hstart    = (uint)max(int_hstart, 0);
-            const uint wstart    = (uint)max(int_wstart, 0);
+#endif
+    for(uint i = 0; i < top_w; ++i)
+    {
+        const int int_dstart = k * pool_d_stride - pad_d;
+        const int int_hstart = j * pool_h_stride - pad_h;
+        const int int_wstart = i * pool_w_stride - pad_w;
+        const uint dend      = (uint)min(int_dstart + (int)filter_d, (int)bot_d);
+        const uint hend      = (uint)min(int_hstart + (int)filter_h, (int)bot_h);
+        const uint wend      = (uint)min(int_wstart + (int)filter_w, (int)bot_w);
+        const uint dstart    = (uint)max(int_dstart, 0);
+        const uint hstart    = (uint)max(int_hstart, 0);
+        const uint wstart    = (uint)max(int_wstart, 0);
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-            uint pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
-            pool_size      = (pool_size == 0) ? 1 : pool_size;
+        uint pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+        pool_size      = (pool_size == 0) ? 1 : pool_size;
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
             const uint pool_size = filter_w * filter_h * filter_d;
 #endif
 
 #if AVERAGE_OPS
-            _FLOAT_ACCUM res = (_FLOAT_ACCUM)(0);
+        _FLOAT_ACCUM res = (_FLOAT_ACCUM)(0);
 #else // MAX
             _FLOAT_ACCUM res     = (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
             bool found           = false; // May remain false if bot contains only NaNs/-INFs.
@@ -116,19 +145,19 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
             uint h_save          = 0;
             uint w_save          = 0;
 #endif
-            for(uint d = dstart; d < dend; ++d)
+        for(uint d = dstart; d < dend; ++d)
+        {
+            for(uint h = hstart; h < hend; ++h)
             {
-                for(uint h = hstart; h < hend; ++h)
+                for(uint w = wstart; w < wend; ++w)
                 {
-                    for(uint w = wstart; w < wend; ++w)
-                    {
-                        const size_t bot_index = b * bot_n_stride             //
-                                                 + o * bot_c_stride           //
-                                                 + (size_t)(d * bot_d_stride) //
-                                                 + (size_t)(h * bot_h_stride) //
-                                                 + (size_t)(w * bot_w_stride);
+                    const size_t bot_index = b * bot_n_stride             //
+                                             + o * bot_c_stride           //
+                                             + (size_t)(d * bot_d_stride) //
+                                             + (size_t)(h * bot_h_stride) //
+                                             + (size_t)(w * bot_w_stride);
 #if AVERAGE_OPS
-                        res += bot_ptr[bot_index];
+                    res += bot_ptr[bot_index];
 #else // MAX
                         if(bot_ptr[bot_index] > res)
                         {
@@ -142,12 +171,12 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                             }
                         }
 #endif
-                    }
                 }
             }
+        }
 
 #if AVERAGE_OPS
-            res *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
+        res *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
 #else // MAX
             if(save_index)
             {
@@ -183,13 +212,15 @@ __kernel void mloPoolingForwardNaive(const __global _FLOAT* bot_ptr,
                 mask_ptr[mask_index] = res_index;
             }
 #endif
-            const size_t top_index = b * top_n_stride             //
-                                     + o * top_c_stride           //
-                                     + (size_t)(k * top_d_stride) //
-                                     + (size_t)(j * top_h_stride) //
-                                     + (size_t)(i * top_w_stride);
+        const size_t top_index = b * top_n_stride             //
+                                 + o * top_c_stride           //
+                                 + (size_t)(k * top_d_stride) //
+                                 + (size_t)(j * top_h_stride) //
+                                 + (size_t)(i * top_w_stride);
 
-            top_ptr[top_index] = (_FLOAT)res;
-        }
+        top_ptr[top_index] = (_FLOAT)res;
     }
+#if !MLO_POOLING_IS2D_KERNEL
+}
+#endif
 }

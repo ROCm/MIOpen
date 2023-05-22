@@ -32,7 +32,7 @@
 #include <miopen/pooling/solvers.hpp>
 
 #define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCmSoftwarePlatform/MIFin/issues/80
-#define HOST_IMPL 1
+#define HOST_IMPL 0
 
 namespace miopen {
 
@@ -490,9 +490,13 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     /// sizes, let's round grid dims to be a power of 2. The extra positions in the grid (due to
     /// rounding) are to be skipped by the kernels.
     /// * Assumption: WAVESIZE is power of 2.
+    ///
+    /// The workgroup size does not have the restrictions imposed by synchronization between
+    /// workitems because the kernel does not require synchronization.
 
 #if WORKAROUND_ISSUE_MIFIN_80
     const uint32_t wavesize = 64;
+    std::ignore             = context;
 #else
     const auto wavesize = static_cast<uint32_t>(context.GetStream().GetWavefrontWidth());
     assert(IsPower2(wavesize));
@@ -531,20 +535,19 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
         build_params << GetDataTypeKBP(bot.GetType());
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
-        // [Informative] The total number of kernels required to cover all the configs:
-        // - 3: the number of supported operations
-        // - 4: the number of supported index types
-        // - 2: the number of supported data types
-        // The total number of kernels is 3*4*2=24.
-        // The solver is dynamic.
+        // [Informative] The total number of kernels required to cover the whole
+        // forward pooling problem space is 3*4*2*2 = 48. The solver is dynamic.
+        // * 3: the number of supported operations
+        // * 4: the number of supported index types
+        // * 2: the number of supported data types
+        // * 2: 2D and 3D kernels
 
-        kernel.g_wk.push_back(n_batchs);
-        kernel.g_wk.push_back(top_c);
-        kernel.g_wk.push_back(top_d);
-        // There is no need for synchronization between workitems.
-        kernel.l_wk.push_back(1);
-        kernel.l_wk.push_back(1);
-        kernel.l_wk.push_back(1);
+        kernel.g_wk.push_back(g0);
+        kernel.g_wk.push_back(g1);
+        kernel.g_wk.push_back(g2);
+        kernel.l_wk.push_back(w0);
+        kernel.l_wk.push_back(w1);
+        kernel.l_wk.push_back(w2);
 
         result.construction_params.push_back(kernel);
     }
@@ -571,23 +574,26 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
                    bot_d,
                    bot_h,
                    bot_w,
-                   bot_w_stride,
-                   bot_h_stride,
-                   bot_d_stride,
-                   bot_c_stride,
                    bot_n_stride,
-                   top_w,
+                   bot_c_stride,
+                   bot_d_stride,
+                   bot_h_stride,
+                   bot_w_stride,
+                   n_batchs,
+                   top_c,
+                   top_d,
                    top_h,
-                   top_w_stride,
-                   top_h_stride,
-                   top_d_stride,
-                   top_c_stride,
+                   top_w,
                    top_n_stride,
-                   mask_w_stride,
-                   mask_h_stride,
-                   mask_d_stride,
+                   top_c_stride,
+                   top_d_stride,
+                   top_h_stride,
+                   top_w_stride,
+                   mask_n_stride,
                    mask_c_stride,
-                   mask_n_stride);
+                   mask_d_stride,
+                   mask_h_stride,
+                   mask_w_stride);
         };
     };
 #else  // HOST_IMPL
