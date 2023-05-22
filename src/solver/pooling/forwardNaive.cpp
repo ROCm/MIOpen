@@ -24,14 +24,15 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
+#include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/pooling.hpp>
+#include <miopen/pooling/invoke_params.hpp>
 #include <miopen/pooling/solvers.hpp>
 
-#include <miopen/pooling/invoke_params.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/pooling.hpp>
-#include <miopen/kernel_build_params.hpp>
-
-#define HOST_IMPL 0
+#define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCmSoftwarePlatform/MIFin/issues/80
+#define HOST_IMPL 1
 
 namespace miopen {
 
@@ -41,8 +42,16 @@ namespace pooling {
 
 namespace {
 
-#if 0
-template<typename T> T RoundUpNearestPower2(T v) = delete;
+#if !MIOPEN_NDEBUG
+template <typename T>
+bool IsPower2(T v)
+{
+    return (v != 0) && ((v & (v - 1)) == 0);
+}
+#endif
+
+template <typename T>
+T RoundUpNearestPower2(T v) = delete;
 
 inline uint32_t RoundUpNearestPower2(uint32_t v)
 {
@@ -55,16 +64,16 @@ inline uint32_t RoundUpNearestPower2(uint32_t v)
     v |= v >> 16;
     return ++v;
 }
-#endif
 
 #if HOST_IMPL
 template <typename T, typename Index>
 void RunHost(uint32_t b,
              uint32_t o,
-             uint32_t k,
+             uint32_t kj,
              const T* bot_ptr,
              T* top_ptr,
              Index* mask_ptr,
+             bool is2d_kernel,
              int pooling_method,
              bool save_index,
              int index_mode,
@@ -80,27 +89,39 @@ void RunHost(uint32_t b,
              uint32_t bot_d,
              uint32_t bot_h,
              uint32_t bot_w,
-             uint32_t bot_w_stride,
-             uint32_t bot_h_stride,
-             uint32_t bot_d_stride,
-             size_t bot_c_stride,
              size_t bot_n_stride,
-             uint32_t top_w,
+             size_t bot_c_stride,
+             uint32_t bot_d_stride,
+             uint32_t bot_h_stride,
+             uint32_t bot_w_stride,
+             uint32_t n_batchs,
+             uint32_t top_c,
+             uint32_t top_d,
              uint32_t top_h,
-             uint32_t top_w_stride,
-             uint32_t top_h_stride,
-             uint32_t top_d_stride,
-             size_t top_c_stride,
+             uint32_t top_w,
              size_t top_n_stride,
-             uint32_t mask_w_stride,
-             uint32_t mask_h_stride,
-             uint32_t mask_d_stride,
+             size_t top_c_stride,
+             uint32_t top_d_stride,
+             uint32_t top_h_stride,
+             uint32_t top_w_stride,
+             size_t mask_n_stride,
              size_t mask_c_stride,
-             size_t mask_n_stride)
+             uint32_t mask_d_stride,
+             uint32_t mask_h_stride,
+             uint32_t mask_w_stride)
 {
     const T MAX_VAL = std::numeric_limits<T>::max();
+    if(!(b < n_batchs))
+        return;
+    if(!(o < top_c))
+        return;
+    if(!(kj < (is2d_kernel ? top_h : top_d)))
+        return;
 
-    for(uint32_t j = 0; j < top_h; ++j)
+    // When we want 2D kernel, run outer loop once with j = k, and value of k fixed to 0.
+    uint32_t k = (is2d_kernel ? 0 : kj);
+
+    for(uint32_t j = (is2d_kernel ? kj : 0); j < top_h; ++j)
     {
         for(uint32_t i = 0; i < top_w; ++i)
         {
@@ -208,6 +229,9 @@ void RunHost(uint32_t b,
 
             top_ptr[top_index] = static_cast<T>(res);
         }
+
+        if(is2d_kernel)
+            break; // Execute outer loop once for 2D.
     }
 }
 
@@ -236,6 +260,8 @@ struct arguments_t // Syntax sugar.
     uint32_t mask_d_stride;
     size_t mask_c_stride;
     size_t mask_n_stride;
+    uint32_t g0, g1, g2;
+    bool is2d_kernel;
 };
 
 template <typename T, typename Index>
@@ -259,11 +285,11 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
     MIOPEN_LOG_T("hipMemcpy bot: " << rc << ' ' << bot_host.data() << ' '
                                    << (bot_host.size() * sizeof(bot_host[0])));
 
-    for(uint32_t b = 0; b < args.n_batchs; ++b)
+    for(uint32_t b = 0; b < args.g0; ++b)
     {
-        for(uint32_t o = 0; o < args.top_c; ++o)
+        for(uint32_t o = 0; o < args.g1; ++o)
         {
-            for(uint32_t k = 0; k < args.top_d; ++k)
+            for(uint32_t k = 0; k < args.g2; ++k)
             {
                 RunHost<T, Index>(b,
                                   o,
@@ -271,6 +297,7 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                                   bot_host.data(),
                                   top_host.data(),
                                   mask_host.data(),
+                                  args.is2d_kernel,
                                   args.pooling_method,
                                   args.save_index,
                                   args.index_mode,
@@ -286,23 +313,26 @@ void RunGpuEmulation(miopen::pooling::FwdInvokeParams& params,
                                   args.bot_d,
                                   args.bot_h,
                                   args.bot_w,
-                                  args.bot_w_stride,
-                                  args.bot_h_stride,
-                                  args.bot_d_stride,
-                                  args.bot_c_stride,
                                   args.bot_n_stride,
-                                  args.top_w,
+                                  args.bot_c_stride,
+                                  args.bot_d_stride,
+                                  args.bot_h_stride,
+                                  args.bot_w_stride,
+                                  args.n_batchs,
+                                  args.top_c,
+                                  args.top_d,
                                   args.top_h,
-                                  args.top_w_stride,
-                                  args.top_h_stride,
-                                  args.top_d_stride,
-                                  args.top_c_stride,
+                                  args.top_w,
                                   args.top_n_stride,
-                                  args.mask_w_stride,
-                                  args.mask_h_stride,
-                                  args.mask_d_stride,
+                                  args.top_c_stride,
+                                  args.top_d_stride,
+                                  args.top_h_stride,
+                                  args.top_w_stride,
+                                  args.mask_n_stride,
                                   args.mask_c_stride,
-                                  args.mask_n_stride);
+                                  args.mask_d_stride,
+                                  args.mask_h_stride,
+                                  args.mask_w_stride);
             }
         }
     }
@@ -363,7 +393,7 @@ bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
 }
 
 ConvSolution
-PoolingForwardNaive::GetSolution(const ExecutionContext&,
+PoolingForwardNaive::GetSolution(const ExecutionContext& context,
                                  const miopen::pooling::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
@@ -445,19 +475,45 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
     /// choice is using separate 2D and 3D kernels (via build-time parameter) and N*C*H grid for 2D.
     ///
     /// \anchor naive_pooling_max_grid_size
-    /// \assumption Max grid size is >= 2^32-1 (4G-1) i.e. std::max<unint32_t>.
-    /// Currently this limitation is valid for both ROCm HIP runtimes,
-    /// but for ROCm OpenCL the limitation is {1024,1024,1024} which is 1G-1
-    /// total and also means that N, C, D should not exceed 1024.
+    /// * Assumption: Max grid size is >= 2^32-1 (4G-1) i.e. std::max<unint32_t>.
+    ///   Currently this limitation is valid for both ROCm HIP runtimes,
+    ///   but for ROCm OpenCL the limitation is {1024,1024,1024} which is 1G-1
+    ///   total and also means that N, C, D should not exceed 1024.
     ///
     /// Another problem with this simple approach is finding out the optimal workgroup size.
     /// The trivial solution is {1,1,1}, but this would lead to under-utilization of GPU, because
     /// in this case only 1 thread out of the 64/32 available in the wavefront will be used.
+    /// Let's use workgroup size (w0*w1*w2) = WAVESIZE.
     ///
-    /// We have to use workroup which is:
-    /// After multiplication by some integer, gives exactly grid (wk.x*I = grid.x, wk.y*J = grid.y,
-    /// wk.z*K = grid.z). Does not exceed the workgroup size limitations imposed by the HIP/OCL
-    /// runtime. The workgroup size (x*y*z) is as near as possible to the multiple of 64.
+    /// We have to use workroup which is, after multiplication by some integer, gives exactly grid
+    /// (w0*I == g0, w1*J == g1, w2*K == g2). In order to simplify computation of the workgroup
+    /// sizes, let's round grid dims to be a power of 2. The extra positions in the grid (due to
+    /// rounding) are to be skipped by the kernels.
+    /// * Assumption: WAVESIZE is power of 2.
+
+#if WORKAROUND_ISSUE_MIFIN_80
+    const uint32_t wavesize = 64;
+#else
+    const auto wavesize = static_cast<uint32_t>(context.GetStream().GetWavefrontWidth());
+    assert(IsPower2(wavesize));
+#endif
+
+    const auto is2d_kernel = (top_d == 1); // 2D and optimize for 3D where D is 1.
+    const auto g0          = RoundUpNearestPower2(n_batchs);
+    const auto g1          = RoundUpNearestPower2(top_c);
+    const auto g2          = RoundUpNearestPower2(is2d_kernel ? top_h : top_d);
+
+#define P(t) #t << ' ' << t << ' '
+    //#define P1(t) MIOPEN_LOG_I( P(t) )
+    MIOPEN_LOG_I(P(n_batchs) << P(top_c) << P(top_h) << P(top_d));
+    MIOPEN_LOG_I(P(g0) << P(g1) << P(g2));
+
+    auto work_left = wavesize / 1;
+    const auto w0  = (g0 < work_left) ? g0 : work_left;
+    work_left /= w0;
+    const auto w1 = (g1 < work_left) ? g1 : work_left;
+    work_left /= w1;
+    const auto w2 = (g2 < work_left) ? g2 : work_left;
 
 #if !HOST_IMPL
     {
@@ -470,6 +526,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
             {"MLO_POOLING_OP_ID", pooling_method}, // We need this at compile time in order to
                                                    // engage mixed precision only when necessary.
             {"MLO_POOLING_INDEX_TYPE", get_pooling_index_type_name(index_type)},
+            {"MLO_POOLING_IS2D_KERNEL", static_cast<int>(is2d_kernel)},
         };
         build_params << GetDataTypeKBP(bot.GetType());
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
@@ -534,19 +591,56 @@ PoolingForwardNaive::GetSolution(const ExecutionContext&,
         };
     };
 #else  // HOST_IMPL
+    std::ignore = context;
+    std::ignore = w0;
+    std::ignore = w1;
+    std::ignore = w2;
+
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& raw_params) {
             std::ignore            = kernels;
             std::ignore            = handle;
             auto params            = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
             const arguments_t args = {
-                pooling_method, pad_d,         stride_d,      filter_d,      pad_h,
-                stride_h,       filter_h,      pad_w,         stride_w,      filter_w,
-                save_index,     index_mode,    n_batchs,      top_c,         bot_d,
-                bot_h,          bot_w,         bot_w_stride,  bot_h_stride,  bot_d_stride,
-                bot_c_stride,   bot_n_stride,  top_d,         top_h,         top_w,
-                top_w_stride,   top_h_stride,  top_d_stride,  top_c_stride,  top_n_stride,
-                mask_w_stride,  mask_h_stride, mask_d_stride, mask_c_stride, mask_n_stride,
+                pooling_method,
+                pad_d,
+                stride_d,
+                filter_d,
+                pad_h,
+                stride_h,
+                filter_h,
+                pad_w,
+                stride_w,
+                filter_w,
+                save_index,
+                index_mode,
+                n_batchs,
+                top_c,
+                bot_d,
+                bot_h,
+                bot_w,
+                bot_w_stride,
+                bot_h_stride,
+                bot_d_stride,
+                bot_c_stride,
+                bot_n_stride,
+                top_d,
+                top_h,
+                top_w,
+                top_w_stride,
+                top_h_stride,
+                top_d_stride,
+                top_c_stride,
+                top_n_stride,
+                mask_w_stride,
+                mask_h_stride,
+                mask_d_stride,
+                mask_c_stride,
+                mask_n_stride,
+                g0,
+                g1,
+                g2,
+                is2d_kernel,
             };
 
             if(bot.GetType() == miopenFloat)
