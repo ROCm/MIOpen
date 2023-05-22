@@ -215,15 +215,13 @@ bool ProblemDescription::IsLayoutNCHWc() const
 }
 
 bool ProblemDescription::IsNCHWc_NCHWc() const
-    {
-        return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" &&
-               GetOutLayout() == "NCHWc";
-    }
+{
+    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" && GetOutLayout() == "NCHWc";
+}
 
 bool ProblemDescription::IsNCHWc_CHWNc() const
 {
-    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" &&
-            GetOutLayout() == "NCHWc";
+    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" && GetOutLayout() == "NCHWc";
 }
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const

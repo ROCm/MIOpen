@@ -162,15 +162,9 @@ struct ProblemDescription
     bool IsBfp16() const { return conv_problem.IsBfp16(); }
     bool IsInt8() const { return conv_problem.IsInt8(); }
 
-    bool IsNCHWc_NCHWc() const
-    {
-        return conv_problem.IsNCHWc_NCHWc();
-    }
+    bool IsNCHWc_NCHWc() const { return conv_problem.IsNCHWc_NCHWc(); }
 
-    bool IsNCHWc_CHWNc() const
-    {
-        return conv_problem.IsNCHWc_CHWNc();
-    }
+    bool IsNCHWc_CHWNc() const { return conv_problem.IsNCHWc_CHWNc(); }
 
     ProblemDescription() = default;
 
