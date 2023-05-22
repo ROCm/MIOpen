@@ -21,7 +21,7 @@ miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::stringstream& netw
     ProblemDescription conv_problem = GetConvProblem();
 
     std::string conv_config;
-    conv_problem.mloBuildConf_Key(conv_config);
+    conv_problem.BuildConfKey(conv_config);
     network_config << conv_config;
     return miopenStatusSuccess;
 }

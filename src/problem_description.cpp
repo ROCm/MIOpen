@@ -8,16 +8,9 @@
 
 namespace miopen {
 
-std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)>&& manipulator)
-{
-    manipulator(stream);
-    return stream;
-}
-
-int ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
+void ProblemDescription::BuildConfKey(std::string& conf_key) const
 {
     conv_problem.BuildConfKey(conf_key);
-    return (0);
 }
 
 bool ProblemDescription::IsLayoutDefault() const { return conv_problem.IsLayoutDefault(); }

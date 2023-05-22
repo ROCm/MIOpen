@@ -222,13 +222,11 @@ struct ProblemDescription
         return os;
     }
 
-    int mloBuildConf_Key(std::string& conf_key) const;
+    void BuildConfKey(std::string& conf_key) const;
 
     NetworkConfig BuildConfKey() const
     {
-        std::string ret;
-        mloBuildConf_Key(ret);
-        return NetworkConfig{ret};
+        return conv_problem.BuildConfKey();
     }
 };
 

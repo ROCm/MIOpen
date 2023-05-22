@@ -45,6 +45,7 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
 }
 
 namespace conv {
+namespace {
 
 std::function<void(std::ostream&)>
 PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
@@ -61,6 +62,8 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
     manipulator(stream);
     return stream;
 }
+
+} // namespace
 
 void ProblemDescription::HeuristicUpdateLayouts()
 {
