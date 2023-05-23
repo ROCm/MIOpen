@@ -363,15 +363,35 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void HeuristicInit(const ProblemDescription&);
-    bool IsValidValue() const;
+    void StaticHeuristic(const ProblemDescription& problem);
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    void
+    RunParmeterPredictionModel(const ConvolutionContext&, const ProblemDescription&, bool& valid);
+    bool ModelApplyToken(int index, int value, const ProblemDescription&);
+#endif
+    bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription&) const;
+    bool IsValid(const ProblemDescription& problem) const { return IsValidImpl(problem, 8); }
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
+
+private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    bool IsPartiallyValid(const ProblemDescription& problem, int sequence_length) const
+    {
+        return IsValidImpl(problem, sequence_length);
+    }
+    bool IsPartiallyValidValue(int sequence_length) const
+    {
+        return IsValidValueImpl(sequence_length);
+    }
+#endif
+    bool IsValidImpl(const ProblemDescription& problem, int sequence_length) const;
+    bool IsValidValueImpl(int sequence_length) const;
 };
 
 struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
@@ -2328,9 +2348,11 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     static int GetSolverWinoXformHWSize(const ProblemDescription& problem, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.kernel_stride_h);
+            return WinoDataH +
+                   (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.GetKernelStrideH());
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.kernel_stride_w);
+            return WinoDataW +
+                   (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.GetKernelStrideW());
     }
 
 private:
@@ -4691,6 +4713,12 @@ private:
 };
 
 struct AnySolver;
+
+// Use struct as a syntactic sugar to make the intent as clear as possible.
+struct ThisSolverIsDeprecatedStatic
+{
+    static bool IsDisabled(const ConvolutionContext& ctx);
+};
 
 } // namespace solver
 } // namespace miopen
