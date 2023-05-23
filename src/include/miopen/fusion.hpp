@@ -261,7 +261,7 @@ struct FusionDescription;
 void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
                                               const FusionDescription& problem,
                                               miopen::OperatorArgs& params,
-                                              AnyInvokeParams& fused_invoker);
+                                              AnyInvokeParams& invoke_params);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
