@@ -77,7 +77,7 @@ Metadata::Metadata(const std::string& arch)
 {
 }
 
-size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
+size_t Metadata::EncodeDirection(miopen::conv::Direction dir) const
 {
     if(dir == conv::Direction::BackwardWeights)
         return direction_encodings.at("W");
@@ -87,7 +87,7 @@ size_t Metadata::EncodeDirection(const miopen::conv::Direction& dir) const
         return direction_encodings.at("F");
 }
 
-size_t Metadata::EncodePrecision(const miopenDataType_t& data_type) const
+size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
 {
     if(data_type == miopenBFloat16)
         return precision_encodings.at("BF16");

@@ -66,8 +66,8 @@ public:
     const std::vector<float> features_mean;
     const std::vector<float> features_std;
     Metadata(const std::string& arch);
-    size_t EncodeDirection(const miopen::conv::Direction& dir) const;
-    size_t EncodePrecision(const miopenDataType_t& data_type) const;
+    size_t EncodeDirection(miopen::conv::Direction dir) const;
+    size_t EncodePrecision(miopenDataType_t data_type) const;
     size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
