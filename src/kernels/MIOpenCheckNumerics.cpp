@@ -67,26 +67,6 @@ __device__ void atomicMin(float* __restrict__ target, float val)
         current        = *(reinterpret_cast<float*>(&i_current));
     } while(current != expected);
 }
-#if 0
-// std::function cannot be passed as an arg since the () operator is host only! 
-__device__ void casOp(float* __restrict__ target, float val, std::function<float(float, float)> op)
-{
-    float current, expected, next;
-
-    current = *target;
-    do
-    {
-        expected = current;
-        next = op(current, val);
-        if(next == current)
-            break;
-        const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
-        const auto i_next = *(reinterpret_cast<unsigned int*>(&next));
-        auto i_current = atomicCAS(reinterpret_cast<unsigned int*>(target), i_expected,i_next);
-        current = *(reinterpret_cast<float *>(&i_current));
-    } while (current != expected);
-}
-#endif
 
 template <typename T, typename U>
 __global__ void check_numerics(T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)

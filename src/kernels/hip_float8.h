@@ -1,3 +1,28 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ *all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #pragma once
 // FP8 header version 0.4, 2021/05/11
 #ifdef __HIP_PLATFORM_HCC__
@@ -47,46 +72,6 @@ enum class hip_f8_rounding_mode
     stochastic
 };
 } // namespace miopen_f8
-
-#if 0
-// bias mode bit implementation
-//
-// For MI100 simulation purpose, we keep a copy of it on the host and device
-// (MI300 HW implementation will be different)
-//
-// The bias mode should only be accessed via its get/set routines.
-// The set routine sets both copies to the same value, keeping them in sync
-// The get routine will return the device copy for device functions and
-// the host copy for host functions
-//
-// "bias mode optimial"
-//    => "bias mode bit" = 1
-//    => bias = 16 for 152, 8 for 143
-//    => NAN/INF are represented as negative_zero
-//
-// "bias mode ieee"
-//    => "bias mode bit" = 0
-//    => bias = 15 for 152, 7 for 143
-//    => NAN/INF are represented as per IEEE conventions
-
-#ifdef __HIP_PLATFORM_HCC__
-__device__ bool hip_f8_bias_mode_bit_device;
-bool hip_f8_bias_mode_bit_host;
-__global__ void set_hip_f8_bias_mode_bit(bool v) { hip_f8_bias_mode_bit_device = v; }
-
-void set_hip_f8_bias_mode_ieee()
-{
-    hipLaunchKernelGGL(set_hip_f8_bias_mode_bit, dim3(1), dim3(1), 0, 0, false);
-    hip_f8_bias_mode_bit_host = false;
-}
-
-void set_hip_f8_bias_mode_optimal()
-{
-    hipLaunchKernelGGL(set_hip_f8_bias_mode_bit, dim3(1), dim3(1), 0, 0, true);
-    hip_f8_bias_mode_bit_host = true;
-}
-#endif
-#endif
 
 namespace miopen_f8 {
 inline HIP_HOST_DEVICE bool get_hip_f8_bias_mode()
@@ -600,31 +585,11 @@ struct hip_f8x4
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
 
-    // constructor from hip_bfloat16
-#if 0
-    HIP_HOST_DEVICE hip_f8x4(hip_bfloat16 v0,
-                             hip_bfloat16 v1         = hip_bfloat16(0.0f),
-                             hip_bfloat16 v2         = hip_bfloat16(0.0f),
-                             hip_bfloat16 v3         = hip_bfloat16(0.0f),
-                             miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
-                             uint32_t rng            = 0);
-    HIP_HOST_DEVICE hip_f8x4(hip_bfloat16x2 v,
-                             miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
-                             uint32_t rng            = 0);
-    HIP_HOST_DEVICE hip_f8x4(hip_bfloat16x4 v,
-                             miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
-                             uint32_t rng            = 0);
-#endif
-
     // convert to float32x4
     inline HIP_HOST_DEVICE operator float32x4() const;
 
     // convert to halfx4
     inline HIP_HOST_DEVICE operator halfx4() const;
-#if 0
-    // convert to hip_bfloat16x4
-    inline HIP_HOST_DEVICE operator hip_bfloat16x4() const;
-#endif
 };
 
 template <miopen_f8::hip_f8_type T>

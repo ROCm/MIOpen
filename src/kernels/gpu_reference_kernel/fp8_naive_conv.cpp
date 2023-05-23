@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,32 +35,6 @@
 
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
-
-#if 0
-template <typename T, int we, int wm>
-__device___ void Quant8_inplace(T* _p, int32_t count, bool stoch, uint32_t seed) {
-  int i = threadIdx.x + blockIdx.x * blockDim.x;
-  typedef typename std::conditional<sizeof(T)==2, uint16_t, uint32_t>::type IT;
-  typedef typename std::conditional<sizeof(T)==2, __half, float>::type FT;
-  IT* p = (IT*) _p;
-  FT* fp = (FT*) _p;
-  IT x = p[i];
-
-  uint8_t y;
-  if(!stoch)
-    y = hip_f8_impl::cast_to_f8<wm,we,FT,false,true>(fp[i]);
-  else {
-    uint32_t drop_bits = uint32_t(x) & 0xFFFFu;
-    if(sizeof(x)==4)
-      drop_bits ^= x>>16;
-    drop_bits = ((drop_bits & 31)<<11) | (drop_bits>>5);
-    drop_bits *= 0x7000149;
-    uint32_t rng = (drop_bits ^ 0x13371337 ^ (i*229791) ^ seed);
-    y = hip_f8_impl::cast_to_f8<wm,we,FT,false,true,true>(fp[i], rng);
-  }
-  fp[i] = hip_f8_impl::cast_from_f8<wm,we,FT,false>(y);
-}
-#endif
 
 template <typename T>
 inline __device__ uint32_t draft_rng(T x, uint32_t seed)
