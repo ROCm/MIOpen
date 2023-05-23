@@ -30,7 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-
+#include <miopen/datatype.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -102,23 +102,6 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.out_data_type == miopenInt32;
 }
 
-/*
- * These return strings are synced with the kernel source file
- */
-std::string TypeToString(miopenDataType_t data_type)
-{
-    if(data_type == miopenFloat)
-        return "float";
-    if(data_type == miopenHalf)
-        return "half";
-    if(data_type == miopenFloat8)
-        return "float8";
-    if(data_type == miopenBFloat8)
-        return "bfloat8";
-    if(data_type == miopenDouble)
-        return "double";
-    MIOPEN_THROW("Unimplemented type in FP8 kernels");
-}
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
@@ -151,9 +134,9 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     if(problem.IsFp8() || problem.IsTensorsCasted())
     {
-        kernel_name << TypeToString(ProblemInterpreter::GetInputDataType(problem));
-        kernel_name << "_" << TypeToString(problem.GetWeightsDataType());
-        kernel_name << "_" << TypeToString(ProblemInterpreter::GetOutputDataType(problem));
+        kernel_name << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        kernel_name << "_" << miopen::GetDataType(problem.GetWeightsDataType());
+        kernel_name << "_" << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
     }
     else if(IsInputFp32(problem))
         kernel_name << "float_";
@@ -218,17 +201,20 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
     ss << ctx.general_compile_options;
     if(problem.IsFp8() || problem.IsTensorsCasted())
     {
-        ss << " -DINPUT_TYPE=" << TypeToString(ProblemInterpreter::GetInputDataType(problem));
-        ss << " -DWEIGHTS_TYPE=" << TypeToString(problem.GetWeightsDataType());
-        ss << " -DOUTPUT_TYPE=" << TypeToString(ProblemInterpreter::GetOutputDataType(problem));
+        ss << " -DINPUT_TYPE="
+           << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        ss << " -DWEIGHTS_TYPE=" << miopen::GetDataType(problem.GetWeightsDataType());
+        ss << " -DOUTPUT_TYPE="
+           << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
         const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
         if(in_cast_type)
-            ss << " -DINPUT_CAST_TYPE=" << TypeToString(*in_cast_type);
+            ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
         if(problem.GetWeights().GetCastType())
-            ss << " -DWEIGHTS_CAST_TYPE=" << TypeToString(*(problem.GetWeights().GetCastType()));
+            ss << " -DWEIGHTS_CAST_TYPE="
+               << miopen::GetDataType(*(problem.GetWeights().GetCastType()));
         const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
-            ss << " -DOUTPUT_CAST_TYPE=" << TypeToString(*out_cast_type);
+            ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
         ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
         ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
     }
