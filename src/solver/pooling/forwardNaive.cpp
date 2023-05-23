@@ -242,7 +242,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
         // * 3: the number of supported operations
         // * 4: the number of supported index types
         // * 2: the number of supported data types
-        // * 2: 2D and 3D kernels
+        // * 2: 2D and 3D kernels (optimization)
 
         kernel.g_wk.push_back(g0);
         kernel.g_wk.push_back(g1);
