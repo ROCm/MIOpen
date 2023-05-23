@@ -156,7 +156,8 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     case miopenFloat8: use_fp8 = 1; break;
     case miopenBFloat8: use_bf8 = 1; break;
     default:
-        MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
+        MIOPEN_THROW(
+            "Only float, half, bfloat16, int8, int8x4, float8, bfloat8 data type is supported.");
         break;
     }
 
@@ -171,6 +172,10 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
         {"MIOPEN_USE_INT32", use_int32},
         {"MIOPEN_USE_RNE_BFLOAT16", use_rne_bfloat16},
     };
+    if(use_fp8)
+        kbp.Define("MIOPEN_USE_FP8", use_fp8);
+    if(use_bfp8)
+        kbp.Define("MIOPEN_USE_BFP8", use_bf8);
     if(use_fp64 != 0)
         kbp.Define("MIOPEN_USE_FP64", use_fp64);
     return kbp;

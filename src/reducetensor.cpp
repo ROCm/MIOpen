@@ -311,6 +311,8 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     case miopenInt8: return DataTypeEnum_t::Int8;
     case miopenInt8x4: return DataTypeEnum_t::Int8x4;
     case miopenInt32: return DataTypeEnum_t::Int32;
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };
