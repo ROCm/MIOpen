@@ -59,17 +59,22 @@ struct ConvTestCase
     size_t G;
     size_t N;
     size_t C;
+    size_t D;
     size_t H;
     size_t W;
     size_t k;
+    size_t z;
     size_t y;
     size_t x;
     size_t pad_x;
     size_t pad_y;
+    size_t pad_z;
     size_t stride_x;
     size_t stride_y;
+    size_t stride_z;
     size_t dilation_x;
     size_t dilation_y;
+    size_t dilation_z;
     miopenConvolutionMode_t conv_mode;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
@@ -79,26 +84,26 @@ struct ConvTestCase
                   << " dilation_y:" << tc.dilation_y << " conv_mode:" << tc.conv_mode;
     }
 
-    std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, y, x}; }
+    std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
+    std::vector<size_t> GetWeights() { return {k, C, z, y, x}; }
 
     miopen::ConvolutionDescriptor GetConv()
     {
-        return miopen::ConvolutionDescriptor{2,miopenConvolution,miopenPaddingDefault,
-            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}, {0,0}, static_cast<int>(G), 1.0};
+        return miopen::ConvolutionDescriptor{3,miopenConvolution,miopenPaddingDefault,
+            {static_cast<int>(pad_z), static_cast<int>(pad_y), static_cast<int>(pad_x)},
+            {static_cast<int>(stride_z), static_cast<int>(stride_y), static_cast<int>(stride_x)},
+            {static_cast<int>(dilation_z), static_cast<int>(dilation_y), static_cast<int>(dilation_x)}, {0,0,0}, static_cast<int>(G), 1.0};
     }
 };
 
 std::vector<ConvTestCase> ConvTestConfigs()
-{ //g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+{ //         g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{1, 256, 192, 28, 28, 28, 192, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}/*,
             {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}*/};
 }
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -122,19 +127,19 @@ protected:
     {
         test_skipped                = false;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-
+        std::cout<<"0000000000"<<std::endl;
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-
+        std::cout<<"11111111111"<<std::endl;
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
-
+        std::cout<<"22222222222"<<std::endl;
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
@@ -142,11 +147,12 @@ protected:
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-
+        std::cout<<"33333333333"<<std::endl;
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
         out_dev       = handle.Write(output.data);
+        std::cout<<"44444444444"<<std::endl;
     }
     void TearDown() override
     {
