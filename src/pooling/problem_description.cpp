@@ -34,6 +34,8 @@ namespace miopen {
 
 namespace pooling {
 
+namespace {
+
 template <typename T>
 std::string get_vect_config(const std::vector<T>& v)
 {
@@ -44,6 +46,8 @@ std::string get_vect_config(const std::vector<T>& v)
     }
     return str;
 }
+
+} // namespace
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {

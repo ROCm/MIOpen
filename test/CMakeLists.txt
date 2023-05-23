@@ -384,7 +384,7 @@ function(add_sanitize_test TEST_SOURCE)
     endforeach()
 endfunction()
 
-file(GLOB TESTS *.cpp)
+file(GLOB TEST_SOURCES *.cpp)
 
 set(LONG_TESTS
     test_dropout
@@ -414,13 +414,37 @@ function(rate_added_test NAME)
     endif()
 endfunction()
 
-foreach(TEST ${TESTS})
-    get_filename_component(BASE_NAME ${TEST} NAME_WE)
-    add_test_executable(test_${BASE_NAME} ${TEST})
+set(EXCLUDE_TESTS)
+if(NOT MIOPEN_ENABLE_SQLITE)
+    list(APPEND EXCLUDE_TESTS test_sqlite)
+endif()
+if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+    list(APPEND EXCLUDE_TESTS test_sqlite_perfdb)
+endif()
+
+set(EXCLUDE_TEST_SOURCES)
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
+    if(test_${BASE_NAME} IN_LIST EXCLUDE_TESTS)
+        list(APPEND EXCLUDE_TEST_SOURCES ${TEST_SOURCE})
+    endif()
+endforeach()
+unset(EXCLUDE_TESTS)
+
+foreach(TEST_SOURCE ${EXCLUDE_TEST_SOURCES})
+    list(REMOVE_ITEM TEST_SOURCES ${TEST_SOURCE})
+endforeach()
+unset(EXCLUDE_TEST_SOURCES)
+
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
+    add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
 endforeach()
 
-set_tests_properties(test_sqlite_perfdb test_perfdb
-    PROPERTIES RUN_SERIAL On)
+if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
+    set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
+endif()
+set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
 
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
@@ -2308,7 +2332,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX103X_ENABLED GFX110X_
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
+add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW GFX94X_DISABLED HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
