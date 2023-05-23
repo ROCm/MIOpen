@@ -714,7 +714,8 @@ __kernel void Op3dTensorGeneric(const global MIOPEN_TYPE* a,
                                 const long Aoffset,
                                 const long Boffset,
                                 const long Coffset,
-                                const int total_work)
+                                const int total_work,
+                                const int use_beta)
 {
     const global MIOPEN_TYPE* a_off = a + Aoffset;
     const global MIOPEN_TYPE* b_off = b + Boffset;
@@ -734,8 +735,8 @@ __kernel void Op3dTensorGeneric(const global MIOPEN_TYPE* a,
         int bindex = o_n * b_nstride_res + o_c * b_cstride_res + o_h * b_hstride_res;
         int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride;
 
-        c_off[cindex] =
-            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1) + c_off[cindex] * beta;
+        MIOPEN_TYPE res = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1);
+        c_off[cindex]   = use_beta == 1 ? c_off[cindex] * beta + res : res;
     }
 }
 

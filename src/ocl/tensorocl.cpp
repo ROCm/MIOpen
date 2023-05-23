@@ -298,7 +298,8 @@ void OpTensor3d(const Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(total_work_generic));
+                       int(total_work_generic),
+                       float_equal(miopen_beta, 0.0) ? 0 : 1);
 
                 return;
             }
@@ -410,7 +411,8 @@ void OpTensor3d(const Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(total_work_generic));
+                                    int(total_work_generic),
+                                    float_equal(miopen_beta, 0.0) ? 0 : 1);
         }
     });
 }
