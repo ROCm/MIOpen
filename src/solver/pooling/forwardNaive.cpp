@@ -50,9 +50,9 @@ bool IsPower2(T v)
 #endif
 
 template <typename T>
-T RoundUpNearestPower2(T v) = delete;
+T RoundUpNearestPower2Positive(T v) = delete;
 
-inline uint32_t RoundUpNearestPower2(uint32_t v)
+inline uint32_t RoundUpNearestPower2Positive(uint32_t v)
 {
     assert(v > 0);
     --v;
@@ -61,7 +61,7 @@ inline uint32_t RoundUpNearestPower2(uint32_t v)
     v |= v >> 4;
     v |= v >> 8;
     v |= v >> 16;
-    return ++v;
+    return std::max(++v, 1U); // Shut clang-tidy.
 }
 
 } // namespace
@@ -211,9 +211,9 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
 #endif
 
     const auto is2d_kernel = (top_d == 1); // For 2D + optimize for 3D where the 1st dim is 1.
-    const auto g0          = RoundUpNearestPower2(all_n);
-    const auto g1          = RoundUpNearestPower2(all_c);
-    const auto g2          = RoundUpNearestPower2(is2d_kernel ? top_h : top_d);
+    const auto g0          = RoundUpNearestPower2Positive(all_n);
+    const auto g1          = RoundUpNearestPower2Positive(all_c);
+    const auto g2          = RoundUpNearestPower2Positive(is2d_kernel ? top_h : top_d);
 
     auto work_left = wavesize / 1;
     const auto w0  = (g0 < work_left) ? g0 : work_left;
