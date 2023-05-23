@@ -324,8 +324,14 @@ struct tensor_ops_driver : test_driver
 
     void run()
     {
-        if(tensorlens_ac.size() == tensorlens_b.size() && tensorlens_ac >= tensorlens_b)
+        if(tensorlens_ac.size() == tensorlens_b.size())
         {
+            for(size_t idx = 0; idx < tensorlens_b.size(); ++idx)
+            {
+                if((tensorlens_b[idx] != 1) && (tensorlens_ac[idx] != tensorlens_b[idx]))
+                    return;
+            }
+
             tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac, packed);
             tensor<T> bTensor = get_subtensors(super_b, tensorlens_b, packed);
             tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac, packed);
