@@ -111,12 +111,12 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
                                               const FusionDescription& problem,
                                               miopen::OperatorArgs& params,
-                                              AnyInvokeParams& fused_invoker)
+                                              AnyInvokeParams& invoke_params)
 {
-    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
-    conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
-                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
+    auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    conv_problem.bias = 1;
+    conv_problem.bias_sz =
+        static_cast<size_t>(conv_problem.n_outputs) * GetTypeSize(conv_problem.out_data_type);
     const auto conv_ctx = context.GetConvContext(conv_problem);
 
     if(!conv_problem.direction.IsForward())
@@ -124,10 +124,10 @@ void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
 
     auto& handle = conv_ctx.GetStream();
 
-    const auto bias_buf = handle.Create(conv_problem.bias_sz);
-    const auto in_buf   = handle.Create(conv_problem.bot_sz);
-    const auto wei_buf  = handle.Create(conv_problem.weights_sz);
-    const auto out_buf  = handle.Create(conv_problem.top_sz);
+    const auto bias_buf = handle.Create(conv_problem.GetBiasSize());
+    const auto in_buf   = handle.Create(conv_problem.GetInSize());
+    const auto wei_buf  = handle.Create(conv_problem.GetWeightsSize());
+    const auto out_buf  = handle.Create(conv_problem.GetOutSize());
 
     const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
@@ -144,7 +144,7 @@ void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
     params.SetArg(1, std::move(bias_data));
     params.SetArg(2, std::move(activ_data));
 
-    fused_invoker = miopen::fusion::FusionInvokeParams(params,
+    invoke_params = miopen::fusion::FusionInvokeParams(params,
                                                        conv_problem.conv_problem.GetIn(),
                                                        in_buf.get(),
                                                        conv_problem.conv_problem.GetOut(),
@@ -474,7 +474,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
-    // tmp_sols is collection of all the solvers that isApplicable for the fusion_problem.
+    // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
+    // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
         fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     std::vector<miopen::solver::ConvSolution> sols;
