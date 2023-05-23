@@ -693,19 +693,20 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
 
 #ifdef USE_3D_TENSOR_GENERIC
 // NCH
-__kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
+__kernel void Op3dTensorGeneric(const global MIOPEN_TYPE* a,
                                 const int a_nstride,
                                 const int a_cstride,
-                                global MIOPEN_TYPE* b,
-                                const int b_c,
-                                const int b_h,
+                                const int a_hstride,
+                                const global MIOPEN_TYPE* b,
                                 const int b_nstride,
                                 const int b_cstride,
+                                const int b_hstride,
                                 global MIOPEN_TYPE* c,
                                 const int c_c,
                                 const int c_h,
                                 const int c_nstride,
                                 const int c_cstride,
+                                const int c_hstride,
                                 const MIOPEN_TYPE alpha0,
                                 const MIOPEN_TYPE alpha1,
                                 const MIOPEN_TYPE beta,
@@ -721,7 +722,7 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
 
     const int b_nstride_res = b_nstride * ((bitmap >> 2) & 1);
     const int b_cstride_res = b_cstride * ((bitmap >> 1) & 1);
-    const int b_hstride_res = ((bitmap >> 0) & 1);
+    const int b_hstride_res = b_hstride * ((bitmap >> 0) & 1);
 
     for(int gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
     {
@@ -729,12 +730,12 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
         int o_c = (gid / c_h) % c_c;
         int o_n = (gid / c_h) / c_c;
 
-        int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
+        int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride;
         int bindex = o_n * b_nstride_res + o_c * b_cstride_res + o_h * b_hstride_res;
-        int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
+        int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride;
 
         c_off[cindex] =
-            MIOPEN_TENSOR_OP(a_off[cindex] * alpha0, b_off[bindex] * alpha1) + c_off[cindex] * beta;
+            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1) + c_off[cindex] * beta;
     }
 }
 
