@@ -40,7 +40,7 @@ namespace pooling {
 
 namespace {
 
-#if !MIOPEN_NDEBUG
+#if !MIOPEN_NDEBUG && !WORKAROUND_ISSUE_MIFIN_80
 template <typename T>
 bool IsPower2(T v)
 {
