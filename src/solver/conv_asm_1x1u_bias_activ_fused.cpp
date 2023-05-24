@@ -88,16 +88,11 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
-                                                                   const FusionDescription& problem,
-                                                                   const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U
+ConvBiasActivAsm1x1U::Search(const FusionContext& context,
+                             const FusionDescription& problem,
+                             const AnyInvokeParams& invoke_params) const
 {
-    AnyInvokeParams invoke_params;
-    miopen::OperatorArgs params;
-    /// Workaround: Fused conv API does not pass user-allocated buffers here,
-    /// but we need these buffers for search.
-    AllocateConvBiasActivFusionInvokerBuffer(context, problem, params, invoke_params);
-
     return GenericSearch(*this, context, problem, invoke_params);
 }
 
