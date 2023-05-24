@@ -469,10 +469,15 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
+    AnyInvokeParams invoke_params;
+    miopen::OperatorArgs params;
+    // /// Workaround: Fused conv API does not pass user-allocated buffers here,
+    // /// but we need these buffers for search.
+    AllocateConvBiasActivFusionInvokerBuffer(fusion_ctx, fusion_problem, params, invoke_params);
     // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
-        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
+        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), invoke_params);
     std::vector<miopen::solver::ConvSolution> sols;
     // Filter for Solvers
     if(conv_fwd_algo)
