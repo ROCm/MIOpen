@@ -207,7 +207,6 @@ std::string WriteNop(kernel_type_t kern_type)
 void test_warnings(kernel_type_t kern_type)
 {
     auto&& h = get_handle();
-#if MIOPEN_BUILD_DEV
     if(kern_type == miopenOpenCLKernelType)
         EXPECT(throws([&] {
             h.AddKernel("GEMM", "", WriteNop(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
@@ -227,10 +226,6 @@ void test_warnings(kernel_type_t kern_type)
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));
-#else
-    (void)kern_type;
-    (void)h; // To silence warnings.
-#endif
 }
 
 void test_arch_name()

@@ -32,7 +32,6 @@
 #cmakedefine01 MIOPEN_USE_MIOPENTENSILE
 #cmakedefine01 MIOPEN_USE_MIOPENGEMM
 #cmakedefine01 MIOPEN_USE_ROCBLAS
-#cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
 
 #cmakedefine01 MIOPEN_ENABLE_SQLITE
@@ -95,7 +94,7 @@
 
 // Installable builds are those which aren't intended for debugging.
 // We damp down some diagnostic messages (Error -> Warning) etc.
-#define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG && !MIOPEN_BUILD_DEV)
+#define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG)
 
 #define MIOPEN_ALLOC_BUFFERS 0
 

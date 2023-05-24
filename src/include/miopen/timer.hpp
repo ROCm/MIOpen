@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_TIMER_HPP_
 
 #include <miopen/logger.hpp>
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DEV_MODE)
 
 namespace miopen {
 
@@ -50,25 +51,19 @@ private:
 
 class CompileTimer
 {
-#if MIOPEN_BUILD_DEV
     Timer timer;
-#endif
+
 public:
     CompileTimer()
     {
-#if MIOPEN_BUILD_DEV
-        timer.start();
-#endif
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+            timer.start();
     }
     void Log(const std::string& s1, const std::string& s2 = {})
     {
-#if MIOPEN_BUILD_DEV
-        MIOPEN_LOG_I2(s1 << (s2.empty() ? "" : " ") << s2
-                         << " Compile Time, ms: " << timer.elapsed_ms());
-#else
-        (void)s1;
-        (void)s2;
-#endif
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+            MIOPEN_LOG_I2(s1 << (s2.empty() ? "" : " ") << s2
+                             << " Compile Time, ms: " << timer.elapsed_ms());
     }
 };
 

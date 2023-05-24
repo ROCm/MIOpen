@@ -24,7 +24,7 @@ def show_node_info() {
 }
 
 //default
-// CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=/usr/local -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release ..
+// CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=/usr/local -DCMAKE_BUILD_TYPE=release ..
 //
 def cmake_build(Map conf=[:]){
 
@@ -54,9 +54,7 @@ def cmake_build(Map conf=[:]){
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args
-    } else{
-        setup_args = ' -DBUILD_DEV=On' + setup_args
+        setup_args = " -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args
     }
 
     // test_flags = ctest -> MIopen flags
@@ -135,10 +133,11 @@ def cmake_build(Map conf=[:]){
     """
 
     echo cmd
+    sh env // Check to see if the correct env vars are there
     sh cmd
 
     // Only archive from master or develop
-    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" ||
+    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "main" ||
         env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH || params.PERF_TEST_BRANCH_OVERRIDE)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
         archiveArtifacts artifacts: "build/*.rpm", allowEmptyArchive: true, fingerprint: true
@@ -520,6 +519,7 @@ pipeline {
         Full_test       = " -DMIOPEN_TEST_ALL=On"
         Smoke_targets = "check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
+        MIOPEN_DEBUG_DEV_MODE = "1"
     }
     stages{
         stage('Build Docker'){
@@ -552,7 +552,7 @@ pipeline {
                 stage('Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
+                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{

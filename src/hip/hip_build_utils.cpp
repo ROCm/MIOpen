@@ -39,6 +39,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_VERBOSE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DEV_MODE)
 
 namespace miopen {
 
@@ -90,17 +91,18 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
 #endif
 
-#if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
     {
-        params += " -v";
+        if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+        {
+            params += " -v";
+        }
+        if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+        {
+            params += " -gline-tables-only";
+            params += " -save-temps";
+        }
     }
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
-    {
-        params += " -gline-tables-only";
-        params += " -save-temps";
-    }
-#endif
 
     // hip version
     params +=

@@ -321,7 +321,7 @@ function(add_test_command NAME EXE)
             add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
         endif()
     endif()
-    set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
+    set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "MIOPEN_DEBUG_DEV_MODE=1;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
 endfunction()
 
 separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})

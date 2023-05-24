@@ -59,6 +59,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_USE_HIPRTC)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DEV_MODE)
 
 #define MIOPEN_WORKAROUND_ISSUE_1359 1
 
@@ -323,20 +324,18 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 
     if(miopen::EndsWith(filename, ".cpp"))
     {
-#if MIOPEN_BUILD_DEV
-        params += " -Werror" + HipKernelWarningsString();
-#else
-        params += " -Wno-everything";
-#endif
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+            params += " -Werror" + HipKernelWarningsString();
+        else
+            params += " -Wno-everything";
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-#if MIOPEN_BUILD_DEV
-        params +=
-            " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
-#else
-        params += " -Wno-everything";
-#endif
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+            params += " -Werror" +
+                      (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+        else
+            params += " -Wno-everything";
     }
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.

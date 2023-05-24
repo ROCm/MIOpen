@@ -39,6 +39,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_SYSTEM_DB_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DEV_MODE)
 
 namespace miopen {
 
@@ -67,15 +68,16 @@ std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
-#if MIOPEN_BUILD_DEV
-        return "${MIOPEN_SYSTEM_DB_PATH}";
-#else
     {
-        // Get the module path and construct the db path
-        static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
-        return lib_path;
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+            return "${MIOPEN_SYSTEM_DB_PATH}";
+        else
+        {
+            // Get the module path and construct the db path
+            static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
+            return lib_path;
+        }
     }
-#endif
     else
         return p;
 }

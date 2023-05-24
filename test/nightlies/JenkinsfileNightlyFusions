@@ -59,7 +59,7 @@ pipeline {
     agent none
     environment{
         image = "miopenrocm"
-        buildflag = '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=releasewithdebug -DCMAKE_PREFIX_PATH=/opt/rocm'
+        buildflag = '  -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=releasewithdebug -DCMAKE_PREFIX_PATH=/opt/rocm'
     }
     stages{
         stage("HIP Release Fusions fp32"){

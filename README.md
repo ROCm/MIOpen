@@ -156,10 +156,10 @@ cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
 
 ### System Performance Database and User Database
 
-The default path to the System PerfDb is `miopen/share/miopen/db/` within install location. The default path to the User PerfDb is `~/.config/miopen/`. For development purposes, setting `BUILD_DEV` will change default path to both database files to the source directory:
+The default path to the System PerfDb is `miopen/share/miopen/db/` within install location. The default path to the User PerfDb is `~/.config/miopen/`. For development purposes, setting the environment variable `MIOPEN_DEBUG_DEV_MODE` will change default path to both database files to the source directory:
 
 ```
-cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
+cmake -DMIOPEN_BACKEND=OpenCL ..
 ```
 
 Database paths can be explicitly customized by means of `MIOPEN_SYSTEM_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.

@@ -141,7 +141,6 @@ void set_device(int id)
         MIOPEN_THROW("Error setting device");
 }
 
-#if MIOPEN_BUILD_DEV
 int set_default_device()
 {
     int n;
@@ -154,7 +153,6 @@ int set_default_device()
     set_device(pid % n);
     return (pid % n);
 }
-#endif
 
 } // namespace
 
@@ -283,13 +281,16 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
 Handle::Handle() : impl(std::make_unique<HandleImpl>())
 {
     meopenHandle_current_stream_id = 0;
-#if MIOPEN_BUILD_DEV
-    this->impl->device      = set_default_device();
-    this->impl->root_stream = impl->create_stream();
-#else
-    this->impl->device = get_device_id();
-    this->impl->root_stream = HandleImpl::reference_stream(nullptr);
-#endif
+    if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+    {
+        this->impl->device      = set_default_device();
+        this->impl->root_stream = impl->create_stream();
+    }
+    else
+    {
+        this->impl->device      = get_device_id();
+        this->impl->root_stream = HandleImpl::reference_stream(nullptr);
+    }
     auto root_stream = this->impl->root_stream.get();
     this->impl->extra_stream_map.emplace(root_stream, HandleImpl::MultiStreamResourses());
 

@@ -46,6 +46,7 @@
 #include <vector>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DEV_MODE)
 
 namespace miopen {
 
@@ -188,12 +189,13 @@ ClProgramPtr LoadProgram(cl_context ctx,
     if(miopen::EndsWith(program_name, ".cpp"))
     {
         boost::optional<miopen::TmpDir> dir(program_name);
-#if MIOPEN_BUILD_DEV
-        params += " -Werror";
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+        {
+            params += " -Werror";
 #ifdef __linux__
-        params += HipKernelWarningsString();
+            params += HipKernelWarningsString();
 #endif
-#endif
+        }
         auto hsaco_file = HipBuild(dir, program_name, source, params, target);
         // load the hsaco file as a data stream and then load the binary
         std::string buf;
@@ -213,12 +215,13 @@ ClProgramPtr LoadProgram(cl_context ctx,
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
         if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
-#if MIOPEN_BUILD_DEV
-        params += " -Werror";
+        if(miopen::IsEnabled(MIOPEN_DEBUG_DEV_MODE{}))
+        {
+            params += " -Werror";
 #ifdef __linux__
-        params += is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString();
+            params += is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString();
 #endif
-#endif
+        }
         params += " -cl-std=CL1.2";
         MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);
         BuildProgram(result.get(), device, params);
