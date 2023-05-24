@@ -292,7 +292,15 @@ bool PerformanceConfigConvAsm1x1U::IsValidValueImpl(const int sequence_length) c
 bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem,
                                                const int sequence_length) const
 {
-    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
+    const auto in_data_type = problem.GetInDataType();
+    /// Clang-Tidy assumption:
+    /// (in_data_type == miopenDouble)  ==>
+    /// (elements_in_dword == 0) ==>
+    /// division by zero
+    if(in_data_type == miopenDouble)
+        MIOPEN_THROW(miopenStatusInternalError);
+
+    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(in_data_type));
     const auto img_hw            = problem.GetOutHeight() * problem.GetOutWidth();
     if(!IsValidValueImpl(sequence_length))
         return false;
@@ -431,7 +439,16 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 #endif
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
-    const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
+    const auto in_data_type = problem.GetInDataType();
+    /// Clang-Tidy assumption:
+    /// (in_data_type == miopenDouble)  ==>
+    /// (elements_in_dword == 0) ==>
+    /// (c_mult == 0) ==>
+    /// division by zero
+    if(in_data_type == miopenDouble)
+        MIOPEN_THROW(miopenStatusInternalError);
+
+    const auto elements_in_dword = 4 / GetTypeSize(in_data_type);
     read_size                    = 4;
     k_mult                       = 16;
     chunks_per_wave              = static_cast<int>(read_size * elements_in_dword);
@@ -559,7 +576,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
-        && problem.GetInChannels() % elements_in_dword == 0
+        && problem.GetInChannels() % elements_in_dword == 0  // NOLINT
         && problem.GetOutChannels() % elements_in_dword == 0
         && problem.GetInLayout() == "NCHW"
         && problem.GetGroupCount() == 1
