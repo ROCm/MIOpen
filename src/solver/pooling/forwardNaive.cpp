@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/pooling.hpp>
@@ -69,23 +68,6 @@ inline uint32_t RoundUpNearestPower2Positive(uint32_t v)
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
 {
-#if MIOPEN_BACKEND_OPENCL
-    /// \ref naive_pooling_max_grid_size
-    /// Prevent UB.
-    {
-        const auto& top   = problem.GetYDesc();
-        const auto n_dims = top.GetSize() - 2;
-        if(!(2 <= n_dims && n_dims <= 3))
-            return false;
-        uint32_t all_n, all_c, top_d, top_h;
-        std::tie(all_n, all_c, top_d, top_h, std::ignore) =
-            miopen::GetNCDHW(n_dims, top.GetLengths());
-        if(all_n > 1024 || all_c > 1024)
-            return false;
-        if((n_dims == 2 ? top_h : top_d) > 1024)
-            return false;
-    }
-#endif
     return problem.GetDirection() == miopen::pooling::Direction::Forward   //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType() //
            && (problem.GetXDesc().GetType() == miopenFloat                 //
@@ -184,9 +166,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     ///
     /// \anchor naive_pooling_max_grid_size
     /// * Assumption: Max grid size is >= 2^32-1 (4G-1) i.e. std::max<unint32_t>.
-    ///   Currently this limitation is valid for both ROCm HIP runtimes,
-    ///   but for ROCm OpenCL the limitation is {1024,1024,1024} which is 1G-1
-    ///   total and also means that N, C, D should not exceed 1024.
+    ///   Currently this limitation is valid for both ROCm HIP and OCL runtimes.
     ///
     /// Another problem with this simple approach is finding out the optimal workgroup size.
     /// The trivial solution is {1,1,1}, but this would lead to under-utilization of GPU, because
