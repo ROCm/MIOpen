@@ -30,7 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-
+#include <miopen/datatype.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -102,23 +102,6 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.out_data_type == miopenInt32;
 }
 
-/*
- * These return strings are synced with the kernel source file
- */
-std::string TypeToString(miopenDataType_t data_type)
-{
-    if(data_type == miopenFloat)
-        return "float";
-    if(data_type == miopenHalf)
-        return "half";
-    if(data_type == miopenFloat8)
-        return "float8";
-    if(data_type == miopenBFloat8)
-        return "bfloat8";
-    if(data_type == miopenDouble)
-        return "double";
-    MIOPEN_THROW("Unimplemented type in FP8 kernels");
-}
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
@@ -151,9 +134,9 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     if(problem.IsFp8() || problem.IsTensorsCasted())
     {
-        kernel_name << TypeToString(ConvolutionContextInterpreter::GetInputDataType(ctx));
-        kernel_name << "_" << TypeToString(ctx.GetWeightsDataType());
-        kernel_name << "_" << TypeToString(ConvolutionContextInterpreter::GetOutputDataType(ctx));
+        kernel_name << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        kernel_name << "_" << miopen::GetDataType(problem.GetWeightsDataType());
+        kernel_name << "_" << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
     }
     else if(IsInputFp32(problem))
         kernel_name << "float_";
@@ -195,18 +178,19 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name == "gfx906" || device_name == "gfx908")
     {
-        if(ctx.rmv.IsV3() && ctx.IsLayoutDefault() && !problem.IsFp8() &&
+        if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
            !problem.IsTensorsCasted())
             return "naive_conv_gcn.s";
     }
-    if(problem.IsFp8() || cproblemtx.IsTensorsCasted())
+    if(problem.IsFp8() || problem.IsTensorsCasted())
         return "fp8_naive_conv.cpp";
     return "naive_conv.cpp";
 }
 
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile();
+    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
@@ -215,26 +199,25 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     }
     std::ostringstream ss;
     ss << ctx.general_compile_options;
-    if(ctx.IsFp8() || ctx.IsTensorsCasted())
+    if(problem.IsFp8() || problem.IsTensorsCasted())
     {
         ss << " -DINPUT_TYPE="
-           << TypeToString(ConvolutionContextInterpreter::GetInputDataType(ctx));
-        ss << " -DWEIGHTS_TYPE=" << TypeToString(ctx.GetWeightsDataType());
+           << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        ss << " -DWEIGHTS_TYPE=" << miopen::GetDataType(problem.GetWeightsDataType());
         ss << " -DOUTPUT_TYPE="
-           << TypeToString(ConvolutionContextInterpreter::GetOutputDataType(ctx));
-        const auto in_cast_type = ConvolutionContextInterpreter::GetInputCastType(ctx);
+           << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
+        const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
         if(in_cast_type)
-            ss << " -DINPUT_CAST_TYPE=" << TypeToString(*in_cast_type);
-        if(ctx.GetWeights().GetCastType())
-            ss << " -DWEIGHTS_CAST_TYPE=" << TypeToString(*(ctx.GetWeights().GetCastType()));
-        const auto out_cast_type = ConvolutionContextInterpreter::GetOutputCastType(ctx);
+            ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
+        if(problem.GetWeights().GetCastType())
+            ss << " -DWEIGHTS_CAST_TYPE="
+               << miopen::GetDataType(*(problem.GetWeights().GetCastType()));
+        const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
-            ss << " -DOUTPUT_CAST_TYPE=" << TypeToString(*out_cast_type);
-        const auto comp_type = ctx.GetConv().compute_type;
+            ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
         ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
-        ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
-        if(comp_type != miopenImplicitType)
-            ss << " -DACCUMULATOR_TYPE=" << TypeToString(ctx.GetConv().compute_type);
+        // ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
+        // ss << " -DACCUMULATOR_TYPE=" << miopen::GetDataType(problem.GetConv().compute_type);
         // else
         //     Let the kernel choose its accumulator (double for naive kernels )
     }
