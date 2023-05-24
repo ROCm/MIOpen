@@ -45,6 +45,16 @@ struct conv2d_driver : conv_driver<T>
     }
 };
 
+std::string GetFloatArg()
+{
+    static const auto tmp = std::getenv("MIOPEN_TEST_FLOAT_ARG");
+    if(tmp == nullptr)
+    {
+        return "";
+    }
+    return tmp;
+};
+
 void GetArgs(const std::tuple<std::vector<std::string>, std::string>& param,
              std::vector<std::string>& tokens)
 {
@@ -56,7 +66,6 @@ void GetArgs(const std::tuple<std::vector<std::string>, std::string>& param,
     }
 
     auto cmd = std::get<1>(param);
-    std::cout << cmd << std::endl;
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
@@ -65,17 +74,17 @@ void GetArgs(const std::tuple<std::vector<std::string>, std::string>& param,
         tokens.push_back(*begin++);
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>>
+class Conv2dHalf : public testing::TestWithParam<std::vector<std::tuple<std::vector<std::string>, std::string>>>
 {
 };
-class Conv2dInt8 : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>>
+class Conv2dInt8 : public testing::TestWithParam<std::vector<std::tuple<std::vector<std::string>, std::string>>>
 {
 };
 class Conv2dBFloat16
-    : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>>
+    : public testing::TestWithParam<std::vector<std::tuple<std::vector<std::string>, std::string>>>
 {
 };
-class Conv2dFloat : public testing::TestWithParam<std::tuple<std::vector<std::string>, std::string>>
+class Conv2dFloat : public testing::TestWithParam<std::vector<std::tuple<std::vector<std::string>, std::string>>>
 {
 };
 TEST_P(Conv2dFloat, FloatTest)
@@ -83,27 +92,27 @@ TEST_P(Conv2dFloat, FloatTest)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-
-    if(!miopen::StartsWith(handle.GetDeviceName(), "gfx906") ||
-       ((std::getenv("MIOPEN_TEST_FLOAT_ARG") != nullptr) &&
-        !(strcmp(std::getenv("MIOPEN_TEST_FLOAT_ARG"), "--float") == 0)))
+    if(!miopen::StartsWith(handle.GetDeviceName(), "gfx908") || GetFloatArg() != "--float")
     {
         GTEST_SKIP();
     }
     else
     {
-        auto param = GetParam();
-        std::vector<std::string> tokens;
-        GetArgs(param, tokens);
-        std::vector<const char*> ptrs;
+        auto params = GetParam();
+        for(const auto& test_value : params)
+        {
+            std::vector<std::string> tokens;
+            GetArgs(test_value, tokens);
+            std::vector<const char*> ptrs;
 
-        for(std::string const& str : tokens)
-            ptrs.push_back(str.data());
+            for(std::string const& str : tokens)
+                ptrs.push_back(str.data());
 
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
+            testing::internal::CaptureStderr();
+            test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+            auto capture = testing::internal::GetCapturedStderr();
+            EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
+        }
     }
 
 #else
@@ -111,566 +120,83 @@ TEST_P(Conv2dFloat, FloatTest)
 #endif
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+std::vector<std::tuple<std::vector<std::string>, std::string>> GetTestCases(const std::string& precision)
 {
-#if MIOPEN_EMBED_DB
-
-    const auto& handle = get_handle();
-    if(!miopen::StartsWith(handle.GetDeviceName(), "gfx906") ||
-       ((std::getenv("MIOPEN_TEST_FLOAT_ARG") != nullptr) &&
-        !(strcmp(std::getenv("MIOPEN_TEST_FLOAT_ARG"), "--half") == 0)))
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        auto param = GetParam();
-        std::vector<std::string> tokens;
-        GetArgs(param, tokens);
-        std::vector<const char*> ptrs;
-
-        for(std::string const& str : tokens)
-            ptrs.push_back(str.data());
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
-
-TEST_P(Conv2dInt8, Int8Test)
+const std::vector<std::tuple<std::vector<std::string>, std::string>> test_cases =
 {
-#if MIOPEN_EMBED_DB
-
-    const auto& handle = get_handle();
-    if(!miopen::StartsWith(handle.GetDeviceName(), "gfx906") ||
-       ((std::getenv("MIOPEN_TEST_FLOAT_ARG") != nullptr) &&
-        !(strcmp(std::getenv("MIOPEN_TEST_FLOAT_ARG"), "--int8") == 0)))
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        auto param = GetParam();
-        std::vector<std::string> tokens;
-        GetArgs(param, tokens);
-        std::vector<const char*> ptrs;
-
-        for(std::string const& str : tokens)
-            ptrs.push_back(str.data());
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-    }
-
-#else
-    GTEST_SKIP();
-#endif
+    // clang-format off
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
+        precision + " --disable-validation --verbose --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
+        precision + " --disable-validation --verbose --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
+         "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
+        precision + " --disable-validation --verbose --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
+    std::make_tuple<std::vector<std::string>, std::string>(
+        {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0", "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
+        precision + " --disable-validation --verbose --input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1")
+    // clang-format on
 };
 
-TEST_P(Conv2dBFloat16, BFloat16Test)
-{
-#if MIOPEN_EMBED_DB
-
-    const auto& handle = get_handle();
-    if(!miopen::StartsWith(handle.GetDeviceName(), "gfx906") ||
-       ((std::getenv("MIOPEN_TEST_FLOAT_ARG") != nullptr) &&
-        !(strcmp(std::getenv("MIOPEN_TEST_FLOAT_ARG"), "--bfloat16") == 0)))
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        auto param = GetParam();
-        std::vector<std::string> tokens;
-        GetArgs(param, tokens);
-        std::vector<const char*> ptrs;
-
-        for(std::string const& str : tokens)
-            ptrs.push_back(str.data());
-
-        testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-        auto capture = testing::internal::GetCapturedStderr();
-        EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-    }
-
-#else
-    GTEST_SKIP();
-#endif
-};
+    return test_cases;
+}
 
 INSTANTIATE_TEST_SUITE_P(
     Conv2dGroup,
     Conv2dFloat,
-    testing::Values(
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 1024 14 14 --weights 2048 "
-            "1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 1024 14 14 --weights 256 "
-            "1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --float --disable-validation --verbose --input 128 128 28 28 --weights 128 128 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 128 28 28 --weights 512 128 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 2048 7 7 --weights 512 2048 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 256 14 14 --weights 1024 256 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 256 14 14 --weights 256 256 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 256 56 56 --weights 128 256 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --float --disable-validation --verbose --input 128 256 56 56 --weights 512 256 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 256 56 56 --weights 64 256 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --float --disable-validation --verbose --input 128 3 230 230   --weights 64 3 7 7 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 512 28 28 --weights 1024 512 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 512 28 28 --weights 128 512 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 512 28 28 --weights 256 512 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 512 7 7   --weights 2048 512 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 512 7 7   --weights 512 512 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 64 56 56 --weights 256 64 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 64 56 56 --weights 64 64 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --float --disable-validation --verbose --input 128 64 56 56 --weights 64 64 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1")));
-
-INSTANTIATE_TEST_SUITE_P(
-    Conv2dGroup,
-    Conv2dHalf,
-    testing::Values(
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 1024 14 14 --weights 2048 "
-             "1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 1024 14 14 --weights 256 "
-             "1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --half --disable-validation --verbose --input 128 128 28 28 --weights 128 128 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 128 28 28 --weights 512 128 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 2048 7 7 --weights 512 2048 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 256 14 14 --weights 1024 256 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 256 14 14 --weights 256 256 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 256 56 56 --weights 128 256 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --half --disable-validation --verbose --input 128 256 56 56 --weights 512 256 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 256 56 56 --weights 64 256 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --half --disable-validation --verbose --input 128 3 230 230   --weights 64 3 7 7 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 512 28 28 --weights 1024 512 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 512 28 28 --weights 128 512 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --half --disable-validation --verbose --input 128 512 28 28 --weights 256 512 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 512 7 7   --weights 2048 512 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 512 7 7   --weights 512 512 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 64 56 56 --weights 256 64 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 64 56 56 --weights 64 64 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --half --disable-validation --verbose --input 128 64 56 56 --weights 64 64 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1")));
-
-INSTANTIATE_TEST_SUITE_P(
-    Conv2dGroup,
-    Conv2dInt8,
-    testing::Values(
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 1024 14 14 --weights 2048 "
-             "1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 1024 14 14 --weights 256 "
-             "1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --int8 --disable-validation --verbose --input 128 128 28 28 --weights 128 128 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 128 28 28 --weights 512 128 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 2048 7 7 --weights 512 2048 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 256 14 14 --weights 1024 256 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 256 14 14 --weights 256 256 3 3 "
-             "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 256 56 56 --weights 128 256 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --int8 --disable-validation --verbose --input 128 256 56 56 --weights 512 256 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 256 56 56 --weights 64 256 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-             " --int8 --disable-validation --verbose --input 128 3 230 230   --weights 64 3 7 7 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 512 28 28 --weights 1024 512 1 1 "
-             "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --int8 --disable-validation --verbose --input 128 512 28 28 --weights 128 512 1 1 "
-             "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 512 28 28 --weights 256 512 1 1 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 512 7 7   --weights 2048 512 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 512 7 7   --weights 512 512 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 64 56 56 --weights 256 64 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 64 56 56 --weights 64 64 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --int8 --disable-validation --verbose --input 128 64 56 56 --weights 64 64 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1")));
-
-INSTANTIATE_TEST_SUITE_P(
-    Conv2dGroup,
-    Conv2dBFloat16,
-    testing::Values(
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --bfloat16 --disable-validation --verbose --input 128 1024 14 14 --weights 2048 "
-             "1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-             " --bfloat16 --disable-validation --verbose --input 128 1024 14 14 --weights 256 "
-             "1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 "
-            "1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 128 28 28 --weights 128 128 3 "
-            "3 --pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 1024 14 14 --weights 512 1024 "
-            "1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 128 28 28 --weights 512 128 1 "
-            "1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 2048 7 7 --weights 512 2048 1 "
-            "1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 256 14 14 --weights 1024 256 1 "
-            "1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 256 14 14 --weights 256 256 3 "
-            "3 --pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 256 56 56 --weights 128 256 1 "
-            "1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 256 56 56 --weights 512 256 1 "
-            "1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 256 56 56 --weights 64 256 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 3 230 230   --weights 64 3 7 7 "
-            "--pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --bfloat16 --disable-validation --verbose --input 128 512 28 28 --weights 1024 512 "
-             "1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-             " --bfloat16 --disable-validation --verbose --input 128 512 28 28 --weights 128 512 1 "
-             "1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 512 28 28 --weights 256 512 1 "
-            "1 --pads_strides_dilations 0 0 2 2 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-           " --bfloat16 --disable-validation --verbose --input 128 512 7 7   --weights 2048 512 "
-           "1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 512 7 7   --weights 512 512 3 "
-            "3 --pads_strides_dilations 1 1 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-           " --bfloat16 --disable-validation --verbose --input 128 64 56 56 --weights 256 64 1 1 "
-           "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 64 56 56 --weights 64 64 1 1 "
-            "--pads_strides_dilations 0 0 1 1 1 1"),
-        std::make_tuple<std::vector<std::string>, std::string>(
-            {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0",
-             "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0"},
-            " --bfloat16 --disable-validation --verbose --input 128 64 56 56 --weights 64 64 3 3 "
-            "--pads_strides_dilations 1 1 1 1 1 1")));
+    testing::Values(GetTestCases("--float")
+    ));
