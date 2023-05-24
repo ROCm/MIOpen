@@ -639,7 +639,7 @@ pipeline {
                 stage('Fp32 Hip Debug AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 || params.TARGET_NAVI32 }  }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 || params.TARGET_NAVI32 }
                     }
                     options {
                         retry(2)
