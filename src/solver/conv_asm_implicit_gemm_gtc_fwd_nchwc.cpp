@@ -31,8 +31,11 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/util_sol.hpp>
+#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC_AI_HEUR)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 // #define DEBUG_IGEMM_ASM_FWD_NCHWC_CHECK_VALID_TILE_LIST
@@ -631,6 +634,31 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
         conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
     return result;
 }
+
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+bool PerformanceConfigImplicitGemmGTCfwdnchwc::ModelApplyToken(
+    int index, int value, const ProblemDescription& problem
+)
+{
+    switch(index)
+    {
+        case 0: precision = value; break; //int
+        case 1: tensor_layout = value; break; //int
+        case 2: nxe = value; break; 
+        case 3: 
+            tensor_a_thhread_lengths[0] = value;
+            break;
+        case 4:
+            tensor_b_thread_lengths[0] = value;
+            break;
+        case 5: use_spare_set = static_cast<bool>(value); break;
+        case 6: index = value; break;
+        default: return false;
+        
+    }
+    return this->IsValid(problem);
+}
+
 
 } // namespace solver
 } // namespace miopen
