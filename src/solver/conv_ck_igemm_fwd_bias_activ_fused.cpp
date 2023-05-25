@@ -289,6 +289,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
 
@@ -342,6 +344,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -429,6 +433,8 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -461,6 +467,8 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenInt8x4:
             case miopenBFloat16:
             case miopenDouble:
+            case miopenFloat8:
+            case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
             }
         };

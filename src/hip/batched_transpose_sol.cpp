@@ -343,7 +343,6 @@ solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
     kernel.kernel_name = kernel_name;
     std::ostringstream ss;
     ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
-    //<< " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
     kernel.comp_options = ss.str();
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
