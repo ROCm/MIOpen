@@ -211,10 +211,10 @@ private:
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
         const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                ConvolutionDescriptor{},
-                                                conv::Direction::Forward};
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      ConvolutionDescriptor{},
+                                                      conv::Direction::Forward};
         auto ctx           = ConvolutionContext{};
         ctx.SetStream(&get_handle());
         context_filler(ctx);

@@ -680,8 +680,9 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     auto sol = solver_id.GetSolver();
     if(!sol.MayNeedWorkspace())
         return 0;
-    const auto problem = conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx           = ConvolutionContext{};
+    const auto problem =
+        conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))

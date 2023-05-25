@@ -82,7 +82,10 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     for(int direction = 1; direction >= 0; --direction)
     {
         const auto dir = static_cast<miopen::conv::Direction>(direction);
-        const auto problem = (dir == miopen::conv::Direction::Forward) ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir} : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
+        const auto problem =
+            (dir == miopen::conv::Direction::Forward)
+                ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir}
+                : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
         auto ctx                    = miopen::ConvolutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
@@ -132,11 +135,10 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    const auto conv_problem =
-        miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    const auto problem =
-        miopen::ProblemDescription{conv_problem};
-    auto ctx = miopen::ConvolutionContext{};
+    const auto conv_problem = miopen::conv::ProblemDescription{
+        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{conv_problem};
+    auto ctx           = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
