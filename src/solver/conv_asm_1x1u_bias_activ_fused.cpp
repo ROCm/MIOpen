@@ -28,7 +28,6 @@
 #include <limits>
 #include <cassert>
 
-#include <miopen/conv/fused_data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
