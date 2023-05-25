@@ -4763,9 +4763,10 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext&,
                                 const ProblemDescription&) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const ProblemDescription&,
-                                  const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
     Search(const ConvolutionContext&,
            const ProblemDescription&,
