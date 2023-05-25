@@ -477,7 +477,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
-    if(fusion_problem.fusion_plan_desc->op_map.size() >= 3 &&
+    const FindEnforce enforce;
+    if(enforce.IsSearch(fusion_ctx) && fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
        (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
        (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
        (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
@@ -496,6 +497,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         //     Convolution + BatchNorm
         //     Convolution + Activation
         //     GEMM + Activation
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }
     // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
