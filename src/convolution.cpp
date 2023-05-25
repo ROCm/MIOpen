@@ -58,6 +58,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
 namespace miopen {
 
+namespace {
+
 std::size_t GetMaxWorkSpaceSize(const std::vector<std::pair<std::string, std::size_t>>& values)
 {
     std::size_t sz = 0;
@@ -144,6 +146,8 @@ std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ConvolutionContext& ct
         return 0;
     return GetMaxWorkSpaceSize(FindImplicitGemmWrWWorkspaceSizes(ctx, problem));
 }
+
+} // namespace
 
 ConvolutionDescriptor::ConvolutionDescriptor(std::size_t spatial_dim,
                                              miopenConvolutionMode_t c_mode,
@@ -394,35 +398,6 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::Convolut
         return false;
 
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
-}
-
-std::size_t
-ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc) const
-{
-#if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-        return 0;
-
-    const auto problem =
-        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    const auto ctx                  = ConvolutionContext{};
-    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, problem);
-
-    if(!gemm_ws_sz_pairs.empty())
-    {
-        decltype(auto) gemm_ws_szs =
-            gemm_ws_sz_pairs | boost::adaptors::transformed([](const auto& p) { return p.second; });
-        return *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
-    }
-#else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
-#endif
-
-    return 0;
 }
 
 std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,

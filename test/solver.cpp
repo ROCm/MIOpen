@@ -210,7 +210,7 @@ private:
         const std::initializer_list<size_t>& in,
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
-        const auto problem = ProblemDescription{TensorDescriptor{miopenFloat, in},
+        const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
                                                 TensorDescriptor{miopenFloat, in},
                                                 TensorDescriptor{miopenFloat, in},
                                                 ConvolutionDescriptor{},

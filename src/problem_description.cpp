@@ -24,6 +24,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     return conv_problem.Serialize(stream);
 }
 
+#if 0
 ProblemDescription::ProblemDescription(const TensorDescriptor& in,
                                        const TensorDescriptor& weights,
                                        const TensorDescriptor& out,
@@ -35,6 +36,7 @@ ProblemDescription::ProblemDescription(const TensorDescriptor& in,
                              : conv::ProblemDescription{out, weights, in, conv, dir, bias_})
 {
 }
+#endif
 
 ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
     : conv_problem(std::move(desc)), direction(conv_problem.GetDirection())

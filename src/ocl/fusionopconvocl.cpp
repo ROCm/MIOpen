@@ -7,7 +7,7 @@ ProblemDescription ConvForwardOpDescriptor::GetConvProblem()
     TensorDescriptor o_desc;
     GetOutputDesc(o_desc);
 
-    ProblemDescription conv_problem(
+    conv::ProblemDescription conv_problem(
         input_desc, filter_desc, o_desc, base_desc, miopen::conv::Direction::Forward);
 
     return conv_problem;
