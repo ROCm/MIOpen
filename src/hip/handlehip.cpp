@@ -563,7 +563,12 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
     else
     {
-        return HIPOCProgram{program_name, hsaco};
+        auto p = HIPOCProgram{program_name, hsaco};
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        if(force_attach_binary)
+            p.AttachBinary(std::vector<char>{hsaco.data(), hsaco.data() + hsaco.size()});
+#endif
+        return p;
     }
 }
 
