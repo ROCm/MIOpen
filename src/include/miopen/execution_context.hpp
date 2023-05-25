@@ -28,9 +28,7 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
-#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
-#endif
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
@@ -65,15 +63,8 @@ public:
 
 namespace miopen {
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
-
 struct ExecutionContext
 {
-    // Solution-specific
-    std::string general_compile_options;
-
     // Operation modes & environment
     bool do_search               = false;
     bool db_update               = false;
@@ -100,8 +91,7 @@ struct ExecutionContext
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
 
-    ExecutionContext& DetectRocm();
-
+    void DetectRocm();
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
     {
@@ -264,10 +254,10 @@ struct ExecutionContext
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
         // clang-format off
-        const auto& udb = GetUserDbPath();
-        if(udb.empty())
-            return "";
-        boost::filesystem::path pdb_path(udb);
+	const auto& udb = GetUserDbPath();
+	if(udb.empty())
+		return "";
+        const boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
@@ -283,6 +273,22 @@ struct ExecutionContext
 
 private:
     Handle* stream = nullptr;
+};
+
+class AutoUseFastDynamicSolutions
+{
+    bool prev_use_dynamic_;
+    ExecutionContext* const ctx;
+
+public:
+    AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
+    {
+        prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
+
+        ctx->use_dynamic_solutions_only = true;
+    }
+
+    ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
 bool IsHipKernelsEnabled();

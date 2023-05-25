@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #else
-#include <miopen/readonlyramdb.hpp>
+#include <miopen/db.hpp>
 #endif
 #include <miopen/conv/context.hpp>
 #include <miopen/handle.hpp>
@@ -316,7 +316,7 @@ struct mlo_construct_base
     }
 
     void detectRocm() { _ctx.DetectRocm(); }
-    void setupFloats() { _problem.conv_problem.SetupFloats(_ctx); }
+    void setupFloats() { _ctx.SetupFloats(_problem); }
 
     miopen::PerformanceDb GetDb() const;
 
@@ -552,22 +552,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setTopDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setBotDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(_problem.GetSpatialDims(), *this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_problem.spatial_dims, *this, tensor);
     }
 
     /*

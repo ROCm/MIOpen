@@ -1038,9 +1038,6 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS{}))
         return false;
 
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
-        return false;
-
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
@@ -1095,14 +1092,13 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsFp32())
     {
-        if((problem.GetInChannels() == 3 && problem.GetOutChannels() == 1 &&
-            problem.GetInWidth() == 227 && problem.GetInHeight() == 227 &&
-            problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3) //
-           || (problem.GetInChannels() == 64 && problem.GetOutChannels() == 1 &&
-               problem.GetInWidth() == 112 && problem.GetInHeight() == 112 &&
-               problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3 &&
-               problem.GetKernelStrideW() >= 2 && problem.GetKernelStrideH() >= 2 &&
-               problem.GetDilationW() >= 3 && problem.GetDilationH() >= 3))
+        if((problem.n_inputs == 3 && problem.n_outputs == 1 && problem.in_width == 227 &&
+            problem.in_height == 227 && problem.kernel_size_w == 3 && problem.kernel_size_h == 3) //
+           ||
+           (problem.n_inputs == 64 && problem.n_outputs == 1 && problem.in_width == 112 &&
+            problem.in_height == 112 && problem.kernel_size_w == 3 && problem.kernel_size_h == 3 &&
+            problem.kernel_stride_w >= 2 && problem.kernel_stride_h >= 2 &&
+            problem.kernel_dilation_w >= 3 && problem.kernel_dilation_h >= 3))
         {
             return false;
         }

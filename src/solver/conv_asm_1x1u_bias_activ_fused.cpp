@@ -94,8 +94,8 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
 {
     auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
-                           ((conv_problem.GetOutDataType() == miopenHalf) ? 2 : 4);
+    conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
+                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
     const auto conv_ctx = context.GetConvContext(conv_problem);
 
     if(!conv_problem.direction.IsForward())
@@ -105,10 +105,10 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     /// but we need these buffers for search.
     auto& handle = conv_ctx.GetStream();
 
-    const auto bias_buf = handle.Create(conv_problem.GetBiasSize());
-    const auto in_buf   = handle.Create(conv_problem.GetInSize());
-    const auto wei_buf  = handle.Create(conv_problem.GetWeightsSize());
-    const auto out_buf  = handle.Create(conv_problem.GetOutSize());
+    const auto bias_buf = handle.Create(conv_problem.bias_sz);
+    const auto in_buf   = handle.Create(conv_problem.bot_sz);
+    const auto wei_buf  = handle.Create(conv_problem.weights_sz);
+    const auto out_buf  = handle.Create(conv_problem.top_sz);
 
     auto tensors             = FusedConvDataTensors{};
     tensors.in               = in_buf.get();
@@ -267,9 +267,9 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
-    if(conv_problem.GetPadH() != conv_problem.GetPadW())
+    if(conv_problem.pad_h != conv_problem.pad_w)
         return false;
-    if(conv_problem.GetPadH() != 0)
+    if(conv_problem.pad_h != 0)
         return false;
     if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
         return false;

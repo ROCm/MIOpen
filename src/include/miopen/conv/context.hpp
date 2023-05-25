@@ -38,8 +38,13 @@ namespace miopen {
 /// TODO: These two entities should be made separate.
 struct ConvolutionContext : ExecutionContext
 {
+    // Solution-specific
+    std::string general_compile_options;
+
     ConvolutionContext() = default;
     explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
+
+    void SetupFloats(const ProblemDescription& problem);
 
 public:
     bool is_for_generic_search = false;

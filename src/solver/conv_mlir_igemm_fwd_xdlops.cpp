@@ -155,6 +155,7 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
         return false;
 
     GemmBThreadCopyMoreGemmKPack = true;
+    GemmAThreadCopyMoreGemmK     = true;
     do
     {
         if(!NextFlag<false, true>(GemmAThreadCopyMoreGemmK))

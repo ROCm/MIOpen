@@ -1006,6 +1006,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
                 rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose
@@ -1050,8 +1051,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #endif
             break;
         }
+
         case miopenBFloat8: {
 #ifdef USE_ROCBLAS_GEMM_EX3
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1102,6 +1105,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #endif
             break;
         }
+
         case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");

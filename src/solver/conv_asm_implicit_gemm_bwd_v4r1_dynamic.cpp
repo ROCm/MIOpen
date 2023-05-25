@@ -44,21 +44,21 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& pr
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
     // refer to ProblemInterpreter, in bwd most dimension is reversed
-    int hi          = problem.GetOutHeight();
-    int wi          = problem.GetOutWidth();
-    int n           = problem.GetBatchSize();
-    int k           = problem.GetInChannels();
-    int c           = problem.GetOutChannels();
-    int ho          = problem.GetInHeight();
-    int wo          = problem.GetInWidth();
-    int stride_h    = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w    = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h  = problem.GetWeightsHeight() > 1? problem.GetDilationH() : 1;
-    int dilation_w  = problem.GetWeightsWidth() > 1? problem.GetDilationW() : 1;
-    int pad_h       = problem.GetPadH();
-    int pad_w       = problem.GetPadW();
-    int y           = problem.GetWeightsHeight();
-    int x           = problem.GetWeightsWidth();
+    int hi          = problem.out_height;
+    int wi          = problem.out_width;
+    int n           = problem.batch_sz;
+    int k           = problem.n_inputs;
+    int c           = problem.n_outputs;
+    int ho          = problem.in_height;
+    int wo          = problem.in_width;
+    int stride_h    = problem.in_height > 1 ? problem.kernel_stride_h : 1;
+    int stride_w    = problem.in_width > 1 ? problem.kernel_stride_w : 1;
+    int dilation_h  = problem.kernel_size_h > 1? problem.kernel_dilation_h : 1;
+    int dilation_w  = problem.kernel_size_w > 1? problem.kernel_dilation_w : 1;
+    int pad_h       = problem.pad_h;
+    int pad_w       = problem.pad_w;
+    int y           = problem.kernel_size_h;
+    int x           = problem.kernel_size_w;
 
     int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -152,7 +152,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.GetGroupCount() != 1)
+    if(problem.group_counts != 1)
         return false;
 
     if(!problem.IsLayoutDefault())

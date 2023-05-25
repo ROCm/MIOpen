@@ -45,8 +45,6 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
-        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
@@ -67,13 +65,13 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
        problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    std::size_t n         = problem.GetBatchSize();
-    std::size_t k         = problem.GetOutChannels() / problem.GetGroupCount();
-    std::size_t c         = problem.GetInChannels() / problem.GetGroupCount();
-    std::size_t y         = problem.GetWeightsHeight();
-    std::size_t x         = problem.GetWeightsWidth();
-    std::size_t ho        = problem.GetOutHeight();
-    std::size_t wo        = problem.GetOutWidth();
+    std::size_t n         = problem.batch_sz;
+    std::size_t k         = problem.n_outputs / problem.group_counts;
+    std::size_t c         = problem.n_inputs / problem.group_counts;
+    std::size_t y         = problem.kernel_size_h;
+    std::size_t x         = problem.kernel_size_w;
+    std::size_t ho        = problem.out_height;
+    std::size_t wo        = problem.out_width;
     std::size_t eMultiple = (problem.IsFp16() || problem.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
@@ -110,13 +108,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n  = problem.GetBatchSize();
-    const auto k  = problem.GetInChannels() / problem.GetGroupCount();  // unswap
-    const auto c  = problem.GetOutChannels() / problem.GetGroupCount(); // unswap
-    const auto y  = problem.GetWeightsHeight();
-    const auto x  = problem.GetWeightsWidth();
-    const auto ho = problem.GetInHeight(); // unswap
-    const auto wo = problem.GetInWidth();  // unswap
+    const auto& n  = problem.batch_sz;
+    const auto& k  = problem.n_inputs / problem.group_counts;  // unswap
+    const auto& c  = problem.n_outputs / problem.group_counts; // unswap
+    const auto& y  = problem.kernel_size_h;
+    const auto& x  = problem.kernel_size_w;
+    const auto& ho = problem.in_height; // unswap
+    const auto& wo = problem.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv     = c;
@@ -196,23 +194,23 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ProblemDescription
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetOutChannels();
-    const auto c               = problem.GetInChannels();
-    const auto hi              = problem.GetInHeight();
-    const auto wi              = problem.GetInWidth();
-    const auto ho              = problem.GetOutHeight();
-    const auto wo              = problem.GetOutWidth();
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
-    const auto conv_stride_h   = problem.GetKernelStrideH();
-    const auto conv_stride_w   = problem.GetKernelStrideW();
-    const auto conv_dilation_h = problem.GetDilationH();
-    const auto conv_dilation_w = problem.GetDilationW();
+    const auto& n               = problem.batch_sz;
+    const auto& k               = problem.n_outputs;
+    const auto& c               = problem.n_inputs;
+    const auto& hi              = problem.in_height;
+    const auto& wi              = problem.in_width;
+    const auto& ho              = problem.out_height;
+    const auto& wo              = problem.out_width;
+    const auto& y               = problem.kernel_size_h;
+    const auto& x               = problem.kernel_size_w;
+    const auto& conv_stride_h   = problem.kernel_stride_h;
+    const auto& conv_stride_w   = problem.kernel_stride_w;
+    const auto& conv_dilation_h = problem.kernel_dilation_h;
+    const auto& conv_dilation_w = problem.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    const auto left_pad_h = problem.GetPadH();
-    const auto left_pad_w = problem.GetPadW();
+    const auto& left_pad_h = problem.pad_h;
+    const auto& left_pad_w = problem.pad_w;
 
     const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
     const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
@@ -231,7 +229,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
 
     const auto& block_size = ThreadPerLevel1Cluster;
 
-    const auto group_counts = problem.GetGroupCount();
+    const auto& group_counts = problem.group_counts;
 
     const auto& grid_size = (b / b_per_block) * (k / k_per_block);
 
@@ -299,11 +297,11 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     // Borrowed from non-padded version of v4
-    InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth() > 1
-            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
-            : InBlockCopySrcDataPerRead_B;
-    InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = problem.kernel_size_w > 1
+                                      ? std::min(InBlockCopySrcDataPerRead_B,
+                                                 GetReadWriteVectorSize(problem.kernel_dilation_w))
+                                      : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     const auto WeiBlockCopyDstDataPerWrite_K =
         problem.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
@@ -401,23 +399,23 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // retrieve dimension from ProblemDescription
     // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetInChannels();  // unswap
-    const auto c               = problem.GetOutChannels(); // unswap
-    const auto hi              = problem.GetOutHeight();   // unswap
-    const auto wi              = problem.GetOutWidth();    // unswap
-    const auto ho              = problem.GetInHeight();    // unswap
-    const auto wo              = problem.GetInWidth();     // unswap
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
-    const auto conv_stride_h   = problem.GetKernelStrideH();
-    const auto conv_stride_w   = problem.GetKernelStrideW();
-    const auto conv_dilation_h = problem.GetDilationH();
-    const auto conv_dilation_w = problem.GetDilationW();
+    const auto& n               = problem.batch_sz;
+    const auto& k               = problem.n_inputs;   // unswap
+    const auto& c               = problem.n_outputs;  // unswap
+    const auto& hi              = problem.out_height; // unswap
+    const auto& wi              = problem.out_width;  // unswap
+    const auto& ho              = problem.in_height;  // unswap
+    const auto& wo              = problem.in_width;   // unswap
+    const auto& y               = problem.kernel_size_h;
+    const auto& x               = problem.kernel_size_w;
+    const auto& conv_stride_h   = problem.kernel_stride_h;
+    const auto& conv_stride_w   = problem.kernel_stride_w;
+    const auto& conv_dilation_h = problem.kernel_dilation_h;
+    const auto& conv_dilation_w = problem.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    const auto left_pad_h = problem.GetPadH();
-    const auto left_pad_w = problem.GetPadW();
+    const auto& left_pad_h = problem.pad_h;
+    const auto& left_pad_w = problem.pad_w;
 
     const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
     const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
@@ -425,7 +423,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     const auto& right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
     const auto& right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
 
-    const auto group_counts = problem.GetGroupCount();
+    const auto& group_counts = problem.group_counts;
 
     // equivalent dimension for bwd-wrw
     const auto& n_eqv  = c / group_counts;
@@ -461,7 +459,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    if(problem.GetGroupCount() > 1)
+    if(problem.group_counts > 1)
     {
         // clang-format off
         construction_parameters.kernel_file =
@@ -515,10 +513,10 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // clang-format off
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth() > 1
-            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
+        problem.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
-    InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     // clang-format off
     construction_parameters.comp_options =

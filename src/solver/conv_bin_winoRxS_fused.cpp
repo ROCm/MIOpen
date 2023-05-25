@@ -87,7 +87,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
 
     size_t padded_y = 0;
     size_t padded_x = 0;
-    if(conv_problem.GetKernelStrideH() == 1)
+    if(conv_problem.kernel_stride_h == 1)
     {
         if(y <= 3)
         {
@@ -102,7 +102,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
             padded_x = Ceiling(x, 3);
         }
     }
-    else if(conv_problem.GetKernelStrideH() == 2)
+    else if(conv_problem.kernel_stride_h == 2)
     {
         padded_y = Ceiling(y, 6);
         if(x % 6 == 1)
@@ -117,9 +117,9 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
         return false;
 
     // clang-format off
-    return conv_problem.GetKernelStrideH() == conv_problem.GetKernelStrideW()
-        && conv_problem.GetDilationH() == 1
-        && conv_problem.GetDilationW() == 1 
+    return conv_problem.kernel_stride_h == conv_problem.kernel_stride_w
+        && conv_problem.kernel_dilation_h == 1
+        && conv_problem.kernel_dilation_w == 1 
         && (C * x * y) <= std::pow(2, 28)
         && (K * x * y) <= std::pow(2, 28)
         && (K * OH * OW) <= std::pow(2, 28)
@@ -164,11 +164,11 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
     const auto y        = conv_problem.conv_problem.GetWeightsHeight();
 
     kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
-    if(conv_problem.GetKernelStrideH() == 1)
+    if(conv_problem.kernel_stride_h == 1)
     {
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7.s";
     }
-    else if(conv_problem.GetKernelStrideH() == 2)
+    else if(conv_problem.kernel_stride_h == 2)
     {
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7_stride_2.s";
     }

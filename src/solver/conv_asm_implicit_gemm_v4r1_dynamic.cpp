@@ -130,10 +130,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& p
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const auto n  = problem.GetBatchSize();
-    const auto k  = problem.GetOutChannels();
-    const auto ho = problem.GetOutHeight();
-    const auto wo = problem.GetOutWidth();
+    const auto& n  = problem.batch_sz;
+    const auto& k  = problem.n_outputs;
+    const auto& ho = problem.out_height;
+    const auto& wo = problem.out_width;
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -214,7 +214,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.GetGroupCount() != 0)
+    if(KBlockWork % problem.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -298,7 +298,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.GetGroupCount() != 1)
+    if(problem.group_counts != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -340,10 +340,10 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.GetGroupCount() != 1)
+    if(problem.group_counts != 1)
         return false;
 
-    if((problem.GetWeightsHeight() != 1) || (problem.GetWeightsWidth() != 1))
+    if((problem.kernel_size_h != 1) || (problem.kernel_size_w != 1))
         return false;
 
     if(!problem.IsLayoutDefault())

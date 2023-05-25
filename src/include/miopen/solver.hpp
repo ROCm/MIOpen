@@ -3555,13 +3555,6 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
-    }
-    bool MayNeedWorkspace() const override { return true; }
-
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
@@ -3575,7 +3568,6 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     }
 
 private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 

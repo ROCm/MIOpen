@@ -27,9 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
-if(MIOPEN_ENABLE_SQLITE)
 add_subdirectory(sqlite)
-endif()
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -141,7 +139,6 @@ set( MIOpen_Source
     rnn_api.cpp
     softmax_api.cpp
     solution.cpp
-    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -310,12 +307,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v21_1_3_metadata.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride2.inc
@@ -334,12 +325,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride2.inc
@@ -388,7 +373,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenCheckNumerics.cpp
-        kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
         kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
@@ -651,16 +635,10 @@ if(MIOPEN_USE_MLIR)
 endif()
 
 # build library
-if(MIOPEN_ENABLE_SQLITE)
 add_library( MIOpen
     ${MIOpen_Source}
     $<TARGET_OBJECTS:sqlite_memvfs>
     )
-else()
-    add_library( MIOpen
-        ${MIOpen_Source}
-        )
-endif()
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 

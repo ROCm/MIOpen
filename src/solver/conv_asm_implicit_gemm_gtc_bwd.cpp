@@ -789,22 +789,22 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(problem);
 
     // so far, "group" is only supported by bwd fp16 kernels
-    const auto group      = problem.IsFp16() ? problem.GetGroupCount() : 1;
-    const auto hi         = problem.GetOutHeight();
-    const auto wi         = problem.GetOutWidth();
-    const auto n          = problem.GetBatchSize();
-    const auto k          = problem.GetInChannels() / group;
-    const auto c          = problem.GetOutChannels() / group;
-    const auto ho         = problem.GetInHeight();
-    const auto wo         = problem.GetInWidth();
-    const auto stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h      = problem.GetPadH();
-    const auto pad_w      = problem.GetPadW();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const auto group      = problem.IsFp16() ? problem.group_counts : 1;
+    const auto hi         = problem.out_height;
+    const auto wi         = problem.out_width;
+    const auto n          = problem.batch_sz;
+    const auto k          = problem.n_inputs / group;
+    const auto c          = problem.n_outputs / group;
+    const auto ho         = problem.in_height;
+    const auto wo         = problem.in_width;
+    const auto stride_h   = problem.out_height > 1 ? problem.kernel_stride_h : 1;
+    const auto stride_w   = problem.out_width > 1 ? problem.kernel_stride_w : 1;
+    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    const auto pad_h      = problem.pad_h;
+    const auto pad_w      = problem.pad_w;
+    const auto y          = problem.kernel_size_h;
+    const auto x          = problem.kernel_size_w;
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -999,7 +999,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext
         return false;
 
     // So far, "group" is not supported by the bwd fp32 kernels
-    if(problem.IsFp32() && problem.GetGroupCount() != 1)
+    if(problem.IsFp32() && problem.group_counts != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
