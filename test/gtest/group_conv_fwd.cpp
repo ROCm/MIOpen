@@ -52,7 +52,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     Solver solv{};
 
     const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};   
+        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
     const auto problem = miopen::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
@@ -64,11 +64,11 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     if(!solv.IsApplicable(ctx, problem))
     {
         test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId() << "ConvHipImplicitGemmFwdXdlops Not Applicable for this problem"
+        GTEST_SKIP() << solv.SolverDbId()
+                     << "ConvHipImplicitGemmFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::DataInvokeParams{
-        tensors, nullptr, 0, false};
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -82,14 +82,14 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 TEST_P(ConvFwdSolverTestFloat, CKGroupConvFwd)
 {
     SolverFwd<miopen::solver::ConvHipImplicitGemmGroupFwdXdlops>(input.desc,
-                                           in_dev.get(),
-                                           weights.desc,
-                                           wei_dev.get(),
-                                           output.desc,
-                                           out_dev.get(),
-                                           conv_desc,
-                                           conv_config,
-                                           test_skipped);
+                                                                 in_dev.get(),
+                                                                 weights.desc,
+                                                                 wei_dev.get(),
+                                                                 output.desc,
+                                                                 out_dev.get(),
+                                                                 conv_desc,
+                                                                 conv_config,
+                                                                 test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
