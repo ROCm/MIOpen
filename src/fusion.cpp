@@ -113,6 +113,7 @@ void AllocateConvBiasActivFusionInvokerBuffer(const FusionContext& context,
                                               miopen::OperatorArgs& params,
                                               AnyInvokeParams& invoke_params)
 {
+    MIOPEN_LOG_I2("Calling function AllocateConvBiasActivFusionInvokerBuffer");
     auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias = 1;
     conv_problem.bias_sz =
@@ -471,9 +472,26 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
-    // /// Workaround: Fused conv API does not pass user-allocated buffers here,
-    // /// but we need these buffers for search.
-    AllocateConvBiasActivFusionInvokerBuffer(fusion_ctx, fusion_problem, params, invoke_params);
+    if(fusion_problem.fusion_plan_desc->op_map.size() >= 3 &&
+       (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        // Workaround: Fused API does not pass user-allocated buffers,
+        // but we need these buffers during SearchForAllSolutions search.
+        // Since, SearchForAllSolutions invokes kernel launch.
+        AllocateConvBiasActivFusionInvokerBuffer(fusion_ctx, fusion_problem, params, invoke_params);
+        MIOPEN_LOG_I2("Done allocating buffer for conv+bias+activ fusion");
+    }
+    else
+    {
+        // handle the rest of the fusion operators cases
+        // eg: Convolution + Bias + BatchNorm + Activation,
+        //     Convolution + BatchNorm + Activation
+        //     Convolution + BatchNorm
+        //     Convolution + Activation
+        //     GEMM + Activation
+    }
     // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
