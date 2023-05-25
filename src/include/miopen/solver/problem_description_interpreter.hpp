@@ -136,6 +136,18 @@ struct ProblemInterpreter
         return problem.direction.IsForward() ? problem.in_data_type : problem.out_data_type;
     }
 
+    static auto GetInputCastType(const ProblemDescription& problem)
+    {
+        return problem.direction.IsForward() ? problem.GetIn().GetCastType()
+                                             : problem.GetOut().GetCastType();
+    }
+
+    static auto GetOutputCastType(const ProblemDescription& problem)
+    { // TODO: same logic as above?
+        return problem.direction.IsForward() ? problem.GetIn().GetCastType()
+                                             : problem.GetOut().GetCastType();
+    }
+
     static auto GetFilterDepthZ(const ProblemDescription& problem) { return problem.kernel_size_d; }
 
     static auto GetFilterLayout(const ProblemDescription& problem)

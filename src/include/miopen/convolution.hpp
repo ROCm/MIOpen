@@ -45,10 +45,12 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
+#include <random>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
-
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)
 namespace miopen {
 
 namespace conv {
@@ -99,6 +101,34 @@ struct ConvolutionAttribute
         friend void to_json(nlohmann::json& json, const Gfx90aFp16alt& attribute);
         friend void from_json(const nlohmann::json& json, Gfx90aFp16alt& attribute);
     } gfx90aFp16alt;
+
+    struct FP8RoundingMode
+    {
+        miopenF8RoundingMode_t rounding_mode = miopenF8RoundingModeStochastic;
+        uint32_t seed                        = std::rand();
+        friend struct ConvolutionAttribute;
+
+        inline miopenF8RoundingMode_t Get() const
+        {
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}))
+                return static_cast<miopenF8RoundingMode_t>(
+                    miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}));
+            return rounding_mode;
+        }
+
+        inline uint32_t GetSeed() const
+        {
+            // assert(rounding_mode == miopenF8RoundingModeStochastic);
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{});
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFF);
+            return distribution(gen);
+        }
+
+        inline void SetSeed(const uint32_t s) { seed = s; }
+    } fp8rounding_mode;
 
     class Deterministic
     {

@@ -190,6 +190,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
+    boost::optional<miopenDataType_t> GetInCastType() const { return in.GetCastType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
@@ -224,6 +225,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
+    boost::optional<miopenDataType_t> GetOutCastType() const { return out.GetCastType(); }
     std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutChannels() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutDepth() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
@@ -258,6 +260,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
+    boost::optional<miopenDataType_t> GetWeightsCastType() const { return weights.GetCastType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
@@ -346,6 +349,15 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
                (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
+    }
+    bool IsFp8() const
+    {
+        return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
+               GetOutDataType() == miopenFloat8;
+    }
+    bool IsTensorsCasted() const
+    {
+        return GetInCastType() || GetWeightsCastType() || GetOutCastType();
     }
 
     // To be used in Solvers that do not implement ALT FP16 kernels.

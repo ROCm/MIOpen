@@ -190,7 +190,7 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
                                              const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile();
+    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
@@ -212,11 +212,13 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
         if(problem.GetWeights().GetCastType())
             ss << " -DWEIGHTS_CAST_TYPE="
                << miopen::GetDataType(*(problem.GetWeights().GetCastType()));
+        /*
         const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
             ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
         ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
         ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
+        */
     }
     return ss.str();
 }

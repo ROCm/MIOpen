@@ -1911,6 +1911,10 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
     case miopenInt8x4:
         MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
+    case miopenFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
+    case miopenBFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }

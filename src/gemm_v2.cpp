@@ -995,6 +995,18 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         }
         break;
+
+        case miopenFloat8: {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenFloat8 data type not supported by MIOpenGEMM.");
+        }
+        break;
+
+        case miopenBFloat8: {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenBFloat8 data type not supported by MIOpenGEMM.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())

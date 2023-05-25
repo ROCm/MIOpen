@@ -108,7 +108,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -120,7 +120,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
     const auto is_f8    = [&]() {
         if(kernel.kernel_file == "fp8_naive_conv.cpp")
             return true;

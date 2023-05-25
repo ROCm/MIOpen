@@ -34,7 +34,7 @@
 #include <miopen/functional.hpp>
 #include <miopen/object.hpp>
 #include <miopen/returns.hpp>
-
+#include <boost/optional.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
@@ -187,6 +187,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
+    boost::optional<miopenDataType_t> GetCastType() const;
+    void SetCastType(const miopenDataType_t cast_type_);
 
     std::size_t GetElementSize() const;
 
@@ -282,7 +284,8 @@ private:
     bool packed;
     std::size_t vector_length = 1;
 
-    miopenDataType_t type             = miopenFloat;
+    miopenDataType_t type = miopenFloat;
+    boost::optional<miopenDataType_t> cast_type;
     miopenTensorLayout_t tensorLayout = GetDefaultLayout();
 };
 

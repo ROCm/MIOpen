@@ -121,7 +121,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -139,7 +139,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
         else
             return false;
     }();
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

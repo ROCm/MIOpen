@@ -700,6 +700,18 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be cast to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 dataype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+
 /*! @brief Get size of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
