@@ -7,6 +7,14 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
+enum class Precision
+{
+    Float,
+    Half,
+    Int8,
+    BFloat16
+};
+
 std::string GetFloatArg()
 {
     static const auto tmp = std::getenv("MIOPEN_TEST_FLOAT_ARG");
@@ -48,6 +56,35 @@ class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
+void Run2dDriver(Precision prec)
+{
+
+    std::vector<TestCase> params;
+    switch(prec)
+    {
+    case Precision::Float: params = Conv2dFloat::GetParam(); break;
+    case Precision::Half: params = Conv2dHalf::GetParam(); break;
+    case Precision::Int8: params = Conv2dInt8::GetParam(); break;
+    case Precision::BFloat16: params = Conv2dBFloat16::GetParam(); break;
+    default: params = Conv2dFloat::GetParam();
+    }
+
+    for(const auto& test_value : params)
+    {
+        std::vector<std::string> tokens;
+        GetArgs(test_value, tokens);
+        std::vector<const char*> ptrs;
+
+        for(std::string const& str : tokens)
+            ptrs.push_back(str.data());
+
+        testing::internal::CaptureStderr();
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        auto capture = testing::internal::GetCapturedStderr();
+        EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
+    }
+};
+
 TEST_P(Conv2dFloat, FloatTest)
 {
 #if MIOPEN_EMBED_DB
@@ -59,21 +96,7 @@ TEST_P(Conv2dFloat, FloatTest)
     }
     else
     {
-        auto params = GetParam();
-        for(const auto& test_value : params)
-        {
-            std::vector<std::string> tokens;
-            GetArgs(test_value, tokens);
-            std::vector<const char*> ptrs;
-
-            for(std::string const& str : tokens)
-                ptrs.push_back(str.data());
-
-            testing::internal::CaptureStderr();
-            test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-            auto capture = testing::internal::GetCapturedStderr();
-            EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-        }
+        Run2dDriver(Precision::Float);
     }
 
 #else
@@ -92,21 +115,7 @@ TEST_P(Conv2dHalf, HalfTest)
     }
     else
     {
-        auto params = GetParam();
-        for(const auto& test_value : params)
-        {
-            std::vector<std::string> tokens;
-            GetArgs(test_value, tokens);
-            std::vector<const char*> ptrs;
-
-            for(std::string const& str : tokens)
-                ptrs.push_back(str.data());
-
-            testing::internal::CaptureStderr();
-            test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-            auto capture = testing::internal::GetCapturedStderr();
-            EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-        }
+        Run2dDriver(Precision::Half);
     }
 
 #else
@@ -125,21 +134,7 @@ TEST_P(Conv2dInt8, Int8Test)
     }
     else
     {
-        auto params = GetParam();
-        for(const auto& test_value : params)
-        {
-            std::vector<std::string> tokens;
-            GetArgs(test_value, tokens);
-            std::vector<const char*> ptrs;
-
-            for(std::string const& str : tokens)
-                ptrs.push_back(str.data());
-
-            testing::internal::CaptureStderr();
-            test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-            auto capture = testing::internal::GetCapturedStderr();
-            EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-        }
+        Run2dDriver(Precision::Int8);
     }
 
 #else
@@ -158,27 +153,14 @@ TEST_P(Conv2dBFloat16, BFloat16Test)
     }
     else
     {
-        auto params = GetParam();
-        for(const auto& test_value : params)
-        {
-            std::vector<std::string> tokens;
-            GetArgs(test_value, tokens);
-            std::vector<const char*> ptrs;
-
-            for(std::string const& str : tokens)
-                ptrs.push_back(str.data());
-
-            testing::internal::CaptureStderr();
-            test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
-            auto capture = testing::internal::GetCapturedStderr();
-            EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
-        }
+        Run2dDriver(Precision::BFloat16);
     }
 
 #else
     GTEST_SKIP();
 #endif
 };
+
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
     const std::vector<TestCase> test_cases = {
