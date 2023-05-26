@@ -108,11 +108,11 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-auto MakeConvBiasActivFusionInvokeParams(const FusionContext& context,
-                                         const FusionDescription& problem,
-                                         miopen::OperatorArgs& params)
+static auto MakeConvBiasActivFusionInvokeParams(const FusionContext& context,
+                                                const FusionDescription& problem,
+                                                miopen::OperatorArgs& params)
 {
-    MIOPEN_LOG_I2("Calling function AllocateConvBiasActivFusionInvokerBuffer");
+    MIOPEN_LOG_I2("Calling function MakeConvBiasActivFusionInvokeParams");
     auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
     conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
@@ -474,7 +474,7 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         // Workaround: Fused API does not pass user-allocated buffers,
         // but we need these buffers during SearchForAllSolutions.
         // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
-        MIOPEN_LOG_I2("Allocating buffer for conv+bias+activ fusion");
+        MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
         return MakeConvBiasActivFusionInvokeParams(fusion_ctx, fusion_problem, params);
     }
     else
@@ -486,7 +486,7 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         //     Convolution + Activation
         //     GEMM + Activation
         //
-        MIOPEN_LOG_I2("Allocating buffer for given fusion operators is not supported yet.");
+        MIOPEN_LOG_I2("Allocating buffers for given fusion operators is not supported yet.");
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
 }
@@ -503,7 +503,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     const FindEnforce enforce;
     if(enforce.IsSearch(fusion_ctx))
         invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, params);
-    // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
+    // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
         fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), invoke_params);
