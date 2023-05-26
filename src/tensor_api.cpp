@@ -54,8 +54,12 @@ extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDesc
                                                                 const int* lens,
                                                                 int num_lens)
 {
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<int, int> lens_in(lens, num_lens);
+        MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens_in.values, num_lens);
+    }
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
     return miopen::try_([&] {
         miopen::deref(tensorDesc) =
             miopen::TensorDescriptor::MakeDescriptor(dataType, tensorLayout, lens, num_lens);
