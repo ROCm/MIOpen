@@ -410,7 +410,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& c
     if(!problem.IsLayoutNHWC())
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    if(!(arch == "gfx908"))
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
