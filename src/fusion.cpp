@@ -478,18 +478,19 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
     const FindEnforce enforce;
-    if(enforce.IsSearch(fusion_ctx) && fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
+    bool tuning = enforce.IsSearch(fusion_ctx);
+    if(tuning && fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
        (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
        (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
        (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
     {
         // Workaround: Fused API does not pass user-allocated buffers,
-        // but we need these buffers during SearchForAllSolutions search.
-        // Since, SearchForAllSolutions invokes kernel launch.
+        // but we need these buffers during SearchForAllSolutions.
+        // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
         AllocateConvBiasActivFusionInvokerBuffer(fusion_ctx, fusion_problem, params, invoke_params);
         MIOPEN_LOG_I2("Done allocating buffer for conv+bias+activ fusion");
     }
-    else
+    else if(tuning /* logic to check fusion ops */)
     {
         // handle the rest of the fusion operators cases
         // eg: Convolution + Bias + BatchNorm + Activation,
@@ -497,6 +498,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         //     Convolution + BatchNorm
         //     Convolution + Activation
         //     GEMM + Activation
+        //
+        MIOPEN_LOG_I2("Allocating buffer for given fusion operators is not supported yet.");
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
     // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
