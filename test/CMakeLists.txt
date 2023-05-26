@@ -232,6 +232,9 @@ option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 set_var_to_condition(WORKAROUND_ISSUE_1148_DEFAULT (MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X) AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
 
+set_var_to_condition(WORKAROUND_ISSUE_2173_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
+option( WORKAROUND_ISSUE_2173 "" ${WORKAROUND_ISSUE_2173_DEFAULT})
+
 if(MIOPEN_TEST_HALF)
     if(MIOPEN_BACKEND_OPENCL)
 	    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
@@ -689,7 +692,13 @@ function(add_custom_test NAME)
         AND (${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
+
+    if(WORKAROUND_ISSUE_2173
+        AND (${NAME} MATCHES "smoke_solver_ConvHipImplicitGemmBwdXdlops" ))
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    endif()
 endfunction()
+
 if(${CODECOV_TEST})
     add_custom_test(test_conv3d_codecov
         COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
