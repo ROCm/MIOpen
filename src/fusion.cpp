@@ -471,7 +471,6 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
                                    const FusionDescription& fusion_problem,
                                    miopen::OperatorArgs& params)
 {
-    AnyInvokeParams invoke_params;
     if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
        (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
        (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
@@ -480,8 +479,8 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         // Workaround: Fused API does not pass user-allocated buffers,
         // but we need these buffers during SearchForAllSolutions.
         // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
-        invoke_params = MakeConvBiasActivFusionInvokeParams(fusion_ctx, fusion_problem, params);
-        MIOPEN_LOG_I2("Done allocating buffer for conv+bias+activ fusion");
+        MIOPEN_LOG_I2("Allocating buffer for conv+bias+activ fusion");
+        return MakeConvBiasActivFusionInvokeParams(fusion_ctx, fusion_problem, params);
     }
     else
     {
@@ -495,7 +494,6 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         MIOPEN_LOG_I2("Allocating buffer for given fusion operators is not supported yet.");
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
-    return invoke_params;
 }
 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
