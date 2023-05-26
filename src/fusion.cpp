@@ -462,19 +462,12 @@ static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
     ss << op_config.str();
     return NetworkConfig{ss.str()};
 }
-
-miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
+void InitializeBuffer(const FusionContext& fusion_ctx,
+                      const FusionDescription& fusion_problem,
+                      miopen::OperatorArgs& params,
+                      AnyInvokeParams& invoke_params)
 {
-    miopenStatus_t status = miopenStatusUnknownError;
-    const auto solvers    = GetFusedSolvers();
-    auto fusion_ctx       = FusionContext{handle};
-    auto fusion_problem   = FusionDescription{this};
-    fusion_ctx.DetectRocm();
-    AnyInvokeParams invoke_params;
-    miopen::OperatorArgs params;
-    const FindEnforce enforce;
-    bool tuning = enforce.IsSearch(fusion_ctx);
-    if(tuning && fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
+    if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
        (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
        (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
        (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
@@ -485,7 +478,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         AllocateConvBiasActivFusionInvokerBuffer(fusion_ctx, fusion_problem, params, invoke_params);
         MIOPEN_LOG_I2("Done allocating buffer for conv+bias+activ fusion");
     }
-    else if(tuning /* logic to check fusion ops */)
+    else
     {
         // handle the rest of the fusion operators cases
         // eg: Convolution + Bias + BatchNorm + Activation,
@@ -497,6 +490,20 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I2("Allocating buffer for given fusion operators is not supported yet.");
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
+}
+
+miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
+{
+    miopenStatus_t status = miopenStatusUnknownError;
+    const auto solvers    = GetFusedSolvers();
+    auto fusion_ctx       = FusionContext{handle};
+    auto fusion_problem   = FusionDescription{this};
+    fusion_ctx.DetectRocm();
+    AnyInvokeParams invoke_params;
+    miopen::OperatorArgs params;
+    const FindEnforce enforce;
+    if(enforce.IsSearch(fusion_ctx))
+        InitializeBuffer(fusion_ctx, fusion_problem, params, invoke_params);
     // tmp_sols is collection of all the ConvSolution that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
