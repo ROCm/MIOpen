@@ -47,7 +47,7 @@ protected:
         tensor<G> output_tensor =
             tensor<G>(test_case.data_type, test_case.layout, test_case.output);
 
-        const bool is_forward = (test_case.direction == conv::Direction::Forward);
+        const bool is_forward = (test_case.direction == miopen::conv::Direction::Forward);
         const auto conv_problem =
             miopen::conv::ProblemDescription(is_forward ? input_tensor.desc : output_tensor.desc,
                                              weight_tensor.desc,
