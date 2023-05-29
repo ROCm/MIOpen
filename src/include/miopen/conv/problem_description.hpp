@@ -29,13 +29,17 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/names.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/tensor.hpp>
 #include <miopen/problem_description_base.hpp>
 
 #include <boost/any.hpp>
 
 namespace miopen {
+
+struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
@@ -380,7 +384,9 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
@@ -413,6 +419,9 @@ struct ProblemDescription : ProblemDescriptionBase
 
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
+#endif
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;
