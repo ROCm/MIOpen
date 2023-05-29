@@ -190,6 +190,8 @@ struct ProblemDescription
     void BuildConfKey(std::string& conf_key) const;
 
     NetworkConfig BuildConfKey() const { return conv_problem.BuildConfKey(); }
+
+    void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
 };
 
 // For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
