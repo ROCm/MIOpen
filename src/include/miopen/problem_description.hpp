@@ -168,15 +168,6 @@ struct ProblemDescription
 
     ProblemDescription() = default;
 
-#if 0
-    ProblemDescription(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       conv::Direction dir,
-                       int bias_ = 0);
-#endif
-
     ProblemDescription(conv::ProblemDescription desc);
 
     void Serialize(std::ostream& stream) const;
