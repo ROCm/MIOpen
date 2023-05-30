@@ -108,11 +108,12 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-static auto MakeConvBiasActivFusionInvokeParams(const FusionContext& context,
-                                                const FusionDescription& problem,
-                                                miopen::OperatorArgs& params)
+static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+    const FusionContext& context,
+    const FusionDescription& problem,
+    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+    miopen::OperatorArgs& params)
 {
-    MIOPEN_LOG_I2("Calling function MakeConvBiasActivFusionInvokeParams");
     auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
     conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
@@ -124,15 +125,25 @@ static auto MakeConvBiasActivFusionInvokeParams(const FusionContext& context,
 
     auto& handle = conv_ctx.GetStream();
 
-    const auto bias_buf = handle.Create(conv_problem.GetBiasSize());
-    const auto in_buf   = handle.Create(conv_problem.GetInSize());
-    const auto wei_buf  = handle.Create(conv_problem.GetWeightsSize());
-    const auto out_buf  = handle.Create(conv_problem.GetOutSize());
+    invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetInSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
+
+    MIOPEN_LOG_FUNCTION(invoke_bufs[0].get(),
+                        conv_problem.GetBiasSize(),
+                        invoke_bufs[1].get(),
+                        conv_problem.GetInSize(),
+                        invoke_bufs[2].get(),
+                        conv_problem.GetWeightsSize(),
+                        invoke_bufs[3].get(),
+                        conv_problem.GetOutSize());
 
     const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
-    auto conv_data = std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_buf.get());
-    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_buf.get());
+    auto conv_data =
+        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
+    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get());
 
     const float activ_alpha = 0.5f;
     const float activ_beta  = 0.5f;
@@ -146,9 +157,9 @@ static auto MakeConvBiasActivFusionInvokeParams(const FusionContext& context,
 
     return miopen::fusion::FusionInvokeParams(params,
                                               conv_problem.conv_problem.GetIn(),
-                                              in_buf.get(),
+                                              invoke_bufs[1].get(),
                                               conv_problem.conv_problem.GetOut(),
-                                              out_buf.get(),
+                                              invoke_bufs[3].get(),
                                               gfx90aaltimpl);
 }
 
@@ -464,6 +475,7 @@ static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
 
 static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
                                    const FusionDescription& fusion_problem,
+                                   std::vector<Allocator::ManageDataPtr>& invoke_bufs,
                                    miopen::OperatorArgs& params)
 {
     if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
@@ -475,7 +487,8 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         // but we need these buffers during SearchForAllSolutions.
         // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
         MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
-        return MakeConvBiasActivFusionInvokeParams(fusion_ctx, fusion_problem, params);
+        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+            fusion_ctx, fusion_problem, invoke_bufs, params);
     }
     else
     {
@@ -500,9 +513,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
+    std::vector<Allocator::ManageDataPtr> invoke_bufs;
     const FindEnforce enforce;
+    // If we are tuning, then we need to allocate buffers.
     if(enforce.IsSearch(fusion_ctx))
-        invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, params);
+        invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
     // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
