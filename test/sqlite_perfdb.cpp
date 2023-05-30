@@ -95,7 +95,7 @@ static Random& Rnd()
 
 struct ProblemData : SQLiteSerializable<ProblemData>
 {
-    ProblemDescriptionCompat prob;
+    ProblemDescriptionCompatTemporary prob;
 
     struct NoInit
     {
@@ -152,7 +152,7 @@ struct ProblemData : SQLiteSerializable<ProblemData>
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        ProblemDescriptionCompat::Visit(self.prob, f);
+        ProblemDescriptionCompatTemporary::Visit(self.prob, f);
     }
 };
 

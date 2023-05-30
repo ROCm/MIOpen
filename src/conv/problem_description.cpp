@@ -208,10 +208,7 @@ bool ProblemDescription::IsLayoutNHWC() const
 
 bool ProblemDescription::IsLayoutNCHWc() const
 {
-    return ((GetSpatialDims() == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
-            (weights_layout == "NCHWc")) ||
-           ((GetSpatialDims() == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
-            (weights_layout == "CHWNc"));
+    return GetSpatialDims() == 2 && (IsNCHWc_NCHWc() || IsNCHWc_CHWNc());
 }
 
 bool ProblemDescription::IsNCHWc_NCHWc() const

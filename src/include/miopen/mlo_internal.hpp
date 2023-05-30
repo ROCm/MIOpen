@@ -298,7 +298,7 @@ struct mlo_construct_base
     std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
 
 protected:
-    miopen::ProblemDescriptionCompat _problem;
+    miopen::ProblemDescriptionCompatTemporary _problem;
     miopen::ConvolutionContext _ctx;
 
     const char* _db_path = nullptr;

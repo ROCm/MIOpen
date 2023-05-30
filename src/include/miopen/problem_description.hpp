@@ -187,9 +187,9 @@ struct ProblemDescription
 
 // For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
 // TODO remove this
-struct ProblemDescriptionCompat
+struct ProblemDescriptionCompatTemporary
 #if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescriptionCompat>
+    : SQLiteSerializable<ProblemDescriptionCompatTemporary>
 #endif
 {
     int spatial_dims = 2;
@@ -287,8 +287,8 @@ struct ProblemDescriptionCompat
     }
 #endif
 
-    ProblemDescriptionCompat() = default;
-    ProblemDescriptionCompat(miopen::conv::Direction dir) : direction(dir) {}
+    ProblemDescriptionCompatTemporary() = default;
+    ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
 
     ProblemDescription::Direction direction;
 
