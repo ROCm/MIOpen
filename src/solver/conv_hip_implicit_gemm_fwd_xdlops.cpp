@@ -339,9 +339,11 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    if(!IsXdlopsSupport(ctx))
         return false;
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
     if(!IsIndexRangeLargeEnough(problem))

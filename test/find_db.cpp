@@ -29,6 +29,8 @@
 #include "get_handle.hpp"
 
 #include <miopen/convolution.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/temp_file.hpp>
@@ -101,7 +103,10 @@ private:
     {
         MIOPEN_LOG_I("Starting backward find-db test.");
 
-        auto workspace_size = filter.BackwardDataGetWorkSpaceSize(handle, w.desc, y.desc, x.desc);
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -132,7 +137,10 @@ private:
     {
         std::cout << "Starting forward find-db test." << std::endl;
 
-        auto workspace_size = filter.ForwardGetWorkSpaceSize(handle, w.desc, x.desc, y.desc);
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -163,8 +171,10 @@ private:
     {
         MIOPEN_LOG_I("Starting wrw find-db test.");
 
-        auto workspace_size =
-            filter.BackwardWeightsGetWorkSpaceSize(handle, y.desc, x.desc, w.desc);
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = conv::ProblemDescription{
+            y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;

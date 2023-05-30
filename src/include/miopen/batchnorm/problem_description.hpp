@@ -176,14 +176,6 @@ struct ProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const;
 
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-
 private:
     Direction direction;
     miopenBatchNormMode_t bn_mode;
@@ -191,8 +183,19 @@ private:
     TensorDescriptor yOrDyDesc;
     TensorDescriptor dxDesc;
     TensorDescriptor scaleBiasDesc;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
     double expAvgFactor = 0;
     double epsilon;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
     bool resultsave        = false;
     bool resultrunning     = false;
     bool useSaved          = false;
