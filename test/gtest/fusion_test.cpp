@@ -28,21 +28,22 @@
 
 #if MIOPEN_BACKEND_HIP // equiv to hipInit(0)?
 
-std::vector<int> strides(std::vector<int> v) 
+std::vector<int> strides(std::vector<int> dims)
 {
-    std::vector<int> v2(4);
-    int d=1;
-    for(int i=3; i>=0; i--) {
-        v2[i] = d;
-        d *= v[i];
+    std::vector<int> strides_array(4);
+    int d = 1;
+    for(int i = 3; i >= 0; --i)
+    {
+        strides_array[i] = d;
+        d *= dims[i];
     }
-    return v2;
+    return strides_array;
 }
 
 void upload(float*& pd, const std::vector<float>& v)
 {
-    hipMalloc(&pd, v.size()*4);
-    hipMemcpy(pd, &v[0], v.size()*4, hipMemcpyHostToDevice);
+    hipMalloc(&pd, v.size() * 4);
+    hipMemcpy(pd, &v[0], v.size() * 4, hipMemcpyHostToDevice);
 }
 
 class FusionTestApi : public ::testing::Test
@@ -52,54 +53,47 @@ protected:
     {
         // hipInit(0);
 
-        miopenCreateWithStream(&handle, (hipStream_t)(nullptr));
+        miopenCreateWithStream(&handle, (hipStream_t)(0));
         miopenSetStream(handle, nullptr);
 
         miopenCreateTensorDescriptor(&filter);
         miopenCreateTensorDescriptor(&bias);
         miopenCreateTensorDescriptor(&in);
         miopenCreateTensorDescriptor(&out);
-       
 
+        // Set layer descriptors.
         miopenSetTensorDescriptor(filter, miopenFloat, 4, dims_f.data(), strides(dims_f).data());
         miopenSetTensorDescriptor(bias, miopenFloat, 4, dims_b.data(), strides(dims_b).data());
         miopenSetTensorDescriptor(in, miopenFloat, 4, dims_i.data(), strides(dims_i).data());
         miopenSetTensorDescriptor(out, miopenFloat, 4, dims_o.data(), strides(dims_o).data());
         miopenCreateConvolutionDescriptor(&conv);
-        miopenInitConvolutionNdDescriptor(conv,
-            2, zeros.data(), ones.data(),
-            ones.data(), miopenConvolution);
+        miopenInitConvolutionNdDescriptor(
+            conv, 2, zeros.data(), ones.data(), ones.data(), miopenConvolution);
         miopenSetConvolutionGroupCount(conv, 1);
 
+        // Prepare fusion plan.
         miopenCreateFusionPlan(&fusion_plan, miopenVerticalFusion, in);
         miopenCreateOpConvForward(fusion_plan, &conv_op, conv, filter);
         miopenCreateOpBiasForward(fusion_plan, &bias_op, bias);
         miopenCreateOperatorArgs(&fusion_args);
-       
-        h_filter.resize(dims_f[0]*dims_f[1]);
-        for(auto& x: h_filter)
+
+        for(auto& x : h_filter1)
             x = 1.0;
-        upload(d_filter, h_filter);
+        upload(d_filter1, h_filter1);
 
-
-        h_filter2.resize(dims_f[0]*dims_f[1]);
-        for(auto& x: h_filter2)
+        for(auto& x : h_filter2)
             x = 2.0;
         upload(d_filter2, h_filter2);
 
-        h_bias.resize(dims_b[0]*dims_b[1]);
-        for(auto& x: h_bias)
+        for(auto& x : h_bias)
             x = 0.0;
         upload(d_bias, h_bias);
 
-        h_input.resize(dims_i[0]*dims_i[1]*dims_i[2]*dims_i[3]);
-        for(auto& x: h_input)
+        for(auto& x : h_input)
             x = 1.0;
         upload(d_input, h_input);
 
-        hipMalloc(&d_output, dims_o[0]*dims_o[1]*dims_o[2]*dims_o[3]*4);
-        h_output.resize(dims_o[0]*dims_o[1]*dims_o[2]*dims_o[3]);
-
+        hipMalloc(&d_output, dims_o[0] * dims_o[1] * dims_o[2] * dims_o[3] * 4);
     }
 
     miopenHandle_t handle = nullptr;
@@ -109,53 +103,51 @@ protected:
     miopenTensorDescriptor_t filter, bias, in, out;
     miopenConvolutionDescriptor_t conv;
 
-    std::vector<int> dims_f{ 64, 64, 1, 1};
-    std::vector<int> dims_i{ 1, 64, 7, 7 };
-    std::vector<int> dims_o{ 1, 64, 7, 7 };
-    std::vector<int> dims_b{ 64, 1, 1, 1 };
-    std::vector<int> zeros{ 0, 0, 0, 0};
-    std::vector<int> ones{ 1, 1, 1, 1};
+    std::vector<int> dims_f{64, 64, 1, 1};
+    std::vector<int> dims_i{1, 64, 7, 7};
+    std::vector<int> dims_o{1, 64, 7, 7};
+    std::vector<int> dims_b{64, 1, 1, 1};
+    std::vector<int> zeros{0, 0, 0, 0};
+    std::vector<int> ones{1, 1, 1, 1};
 
     miopenFusionOpDescriptor_t conv_op, bias_op;
 
     float alpha = 1.0, beta = 0.0;
-    float* d_filter;
-    std::vector<float> h_filter;
+    float* d_filter1;
+    std::vector<float> h_filter1 = std::vector<float>(dims_f[0] * dims_f[1]);
 
     float* d_filter2;
-    std::vector<float> h_filter2;
+    std::vector<float> h_filter2 = std::vector<float>(dims_f[0] * dims_f[1]);
 
     float* d_bias;
-    std::vector<float> h_bias;
+    std::vector<float> h_bias = std::vector<float>(dims_b[0] * dims_b[1]);
 
     float* d_input;
-    std::vector<float> h_input;
+    std::vector<float> h_input = std::vector<float>(dims_i[0] * dims_i[1] * dims_i[2] * dims_i[3]);
 
     float* d_output;
-    std::vector<float> h_output;
-
+    std::vector<float> h_output = std::vector<float>(dims_o[0] * dims_o[1] * dims_o[2] * dims_o[3]);
 };
 
 TEST_F(FusionTestApi, TestFusionPlanCompilation)
 {
     EXPECT_EQ(miopenCompileFusionPlan(handle, fusion_plan), 0);
-    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter), 0);
+    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter1), 0);
     EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(handle, fusion_plan, 
-        in, d_input, out, d_output, fusion_args), 0);
-    hipMemcpy(&h_output[0], d_output, h_output.size()*4, hipMemcpyDeviceToHost);
+    EXPECT_EQ(miopenExecuteFusionPlan(handle, fusion_plan, in, d_input, out, d_output, fusion_args),
+              0);
+    hipMemcpy(&h_output[0], d_output, h_output.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
     EXPECT_EQ(h_output[0], 64);
 
+    // Change fusion parameters (filter), see if it still works properly.
     EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter2), 0);
     EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(handle, fusion_plan, 
-        in, d_input, out, d_output, fusion_args), 0);
-    hipMemcpy(&h_output[0], d_output, h_output.size()*4, hipMemcpyDeviceToHost);
+    EXPECT_EQ(miopenExecuteFusionPlan(handle, fusion_plan, in, d_input, out, d_output, fusion_args),
+              0);
+    hipMemcpy(&h_output[0], d_output, h_output.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
     EXPECT_EQ(h_output[0], 128);
-
 }
-
 
 #endif
