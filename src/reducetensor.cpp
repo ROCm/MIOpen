@@ -215,8 +215,7 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
     default:
-        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4, float8, bfloat8 data type "
-                     "is supported.");
+        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
     };
 };
 

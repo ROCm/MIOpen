@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#if 0
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
@@ -375,3 +376,4 @@ void PerformanceImplicitGemmXdlops::HeuristicInit(const ProblemDescription& prob
 
 } // namespace solver
 } // namespace miopen
+#endif

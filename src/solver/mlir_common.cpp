@@ -58,8 +58,8 @@ static const char* DTypeName(miopenDataType_t ty)
     case miopenInt32: return "i32";
     case miopenInt8: return "i8";
     case miopenInt8x4: return "i8x4";
-    case miopenFloat8: return "fp8";
-    case miopenBFloat8:; return "bf8";
+    case miopenFloat8:
+    case miopenBFloat8: break;
     }
     MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
@@ -144,7 +144,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
     }
 
     const auto in_type  = PDI::GetInputDataType(problem);
-    const auto fil_type = problem.weights_data_type;
+    const auto fil_type = problem.GetWeightsDataType();
     auto out_type       = PDI::GetOutputDataType(problem);
 
     // In case this is int8 convolution, ignore the output type and always request int32_t as

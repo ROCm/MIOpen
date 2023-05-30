@@ -66,8 +66,6 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.IsTensorsCasted() || problem.IsFp8())
-        return false;
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));
 #else
     std::ignore = ctx;
@@ -155,7 +153,6 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
         return false;
 
     GemmBThreadCopyMoreGemmKPack = true;
-    GemmAThreadCopyMoreGemmK     = true;
     do
     {
         if(!NextFlag<false, true>(GemmAThreadCopyMoreGemmK))

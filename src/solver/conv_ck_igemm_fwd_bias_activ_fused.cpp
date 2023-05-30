@@ -283,14 +283,14 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     switch(conv_prob.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_prob); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
 
@@ -338,14 +338,14 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -427,14 +427,14 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -461,14 +461,14 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
                 break;
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:
             case miopenDouble:
-            case miopenFloat8:
-            case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
             }
         };

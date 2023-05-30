@@ -216,8 +216,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
-    auto ret           = std::vector<Solution>{};
+    auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
@@ -235,6 +234,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& w = buffers.at(miopenTensorConvolutionW);
     const auto& y = buffers.at(miopenTensorConvolutionY);
 
+    const auto conv_problem =
+        conv_desc.mode == miopenTranspose ? MakeTransposed().AsConvolution() : AsConvolution();
+
     std::size_t workspace_size;
     Allocator::ManageDataPtr owned_workspace;
     Data_t workspace;
@@ -246,29 +248,10 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
     else
     {
-        const auto workspace_max = [&]() {
-            switch(direction)
-            {
-            case miopenProblemDirectionForward:
-                if(conv_desc.mode == miopenTranspose)
-                    return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-                return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-            case miopenProblemDirectionBackward:
-                if(conv_desc.mode == miopenTranspose)
-                    return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-                return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-            case miopenProblemDirectionBackwardWeights:
-                if(conv_desc.mode == miopenTranspose)
-                    return conv_desc.BackwardWeightsGetWorkSpaceSize(
-                        handle, x_desc, y_desc, w_desc);
-                return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
-            default: MIOPEN_THROW(miopenStatusNotImplemented);
-            }
-        }();
-
-        workspace_size  = std::min(options.workspace_limit, workspace_max);
-        owned_workspace = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
-        workspace       = owned_workspace.get();
+        const auto workspace_max = conv_desc.GetWorkSpaceSize({&handle}, conv_problem);
+        workspace_size           = std::min(options.workspace_limit, workspace_max);
+        owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
+        workspace                = owned_workspace.get();
     }
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
@@ -350,12 +333,11 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto conv_problem = actual.AsConvolution();
-    const auto netcfg       = conv_problem.BuildConfKey();
-    const auto conv_prob    = ProblemDescription{conv_problem};
-    auto conv_ctx           = ConvolutionContext{{&handle}};
+    const auto legacy_problem = ProblemDescription{conv_problem};
+    const auto netcfg         = conv_problem.BuildConfKey();
+    auto conv_ctx             = ConvolutionContext{{&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats(conv_prob);
+    conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
 
@@ -369,11 +351,11 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetPerfConfig(
-            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_prob, db));
+            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, legacy_problem, db));
         solution.SetProblem(*this);
-        MIOPEN_LOG_I("Found solvution: " << solution.GetSolver().ToString() << " , "
-                                         << solution.GetWorkspaceSize() << ", "
-                                         << solution.GetTime());
+        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
+                                        << solution.GetWorkspaceSize() << ", "
+                                        << solution.GetTime());
 
         ret.emplace_back(std::move(solution));
     }

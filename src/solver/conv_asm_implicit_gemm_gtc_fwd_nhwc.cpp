@@ -325,18 +325,18 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
-    const auto& n     = problem.batch_sz;
-    const auto& k     = problem.n_outputs;
-    const auto& ho    = problem.out_height;
-    const auto& wo    = problem.out_width;
-    const auto& group = problem.group_counts;
+    const auto n     = problem.GetBatchSize();
+    const auto k     = problem.GetOutChannels();
+    const auto ho    = problem.GetOutHeight();
+    const auto wo    = problem.GetOutWidth();
+    const auto group = problem.GetGroupCount();
 
-    const auto& hi = problem.in_height;
-    const auto& wi = problem.in_width;
-    const auto& c  = problem.n_inputs;
+    const auto hi = problem.GetInHeight();
+    const auto wi = problem.GetInWidth();
+    const auto c  = problem.GetInChannels();
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
     const auto gemm_m = (n / splits_4G) * ho * wo;
     const auto gemm_n = k / group;
@@ -479,20 +479,20 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
     }
 #endif
 
-    const auto& n         = problem.batch_sz;
-    const auto& c         = problem.n_inputs;
-    const auto& k         = problem.n_outputs;
-    const auto& ho        = problem.out_height;
-    const auto& wo        = problem.out_width;
-    const auto stride_h   = problem.in_height > 1 ? problem.kernel_stride_h : 1;
-    const auto stride_w   = problem.in_width > 1 ? problem.kernel_stride_w : 1;
-    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    const auto& pad_h     = problem.pad_h;
-    const auto& pad_w     = problem.pad_w;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
-    const auto& group     = problem.group_counts;
+    const auto n          = problem.GetBatchSize();
+    const auto c          = problem.GetInChannels();
+    const auto k          = problem.GetOutChannels();
+    const auto ho         = problem.GetOutHeight();
+    const auto wo         = problem.GetOutWidth();
+    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
+    const auto group      = problem.GetGroupCount();
 
     size_t gemm_m = static_cast<size_t>(n) * ho * wo;
     size_t gemm_n = k / group;
@@ -640,15 +640,17 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdXdlopsNHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
+    if(index < config_list.size() && *this == config_list[index])
+        return true;
+    return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const ProblemDescription& problem) const
 {
@@ -663,25 +665,25 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    const auto& c         = problem.n_inputs;
-    const auto& k         = problem.n_outputs;
-    const auto& group     = problem.group_counts;
-    const auto stride_h   = problem.in_height > 1 ? problem.kernel_stride_h : 1;
-    const auto stride_w   = problem.in_width > 1 ? problem.kernel_stride_w : 1;
-    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    const auto& pad_h     = problem.pad_h;
-    const auto& pad_w     = problem.pad_w;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
+    const auto c          = problem.GetInChannels();
+    const auto k          = problem.GetOutChannels();
+    const auto group      = problem.GetGroupCount();
+    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
 
-    const auto& n  = problem.batch_sz;
-    const auto& ho = problem.out_height;
-    const auto& wo = problem.out_width;
-    const auto& hi = problem.in_height;
-    const auto& wi = problem.in_width;
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    const auto n   = problem.GetBatchSize();
+    const auto ho  = problem.GetOutHeight();
+    const auto wo  = problem.GetOutWidth();
+    const auto hi  = problem.GetInHeight();
+    const auto wi  = problem.GetInWidth();
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -701,7 +703,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        // in case k split too large
+        // Todo: Check with dev to make sure this is correct       // in case k split too large
         if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
             return false;
         // if both 1, indicate padded c support
@@ -777,16 +779,16 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    const auto& hi        = problem.in_height;
-    const auto& wi        = problem.in_width;
-    const auto& n         = problem.batch_sz;
-    const auto& k         = problem.n_outputs;
-    const auto& c         = problem.n_inputs;
-    const auto& ho        = problem.out_height;
-    const auto& wo        = problem.out_width;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
-    const auto& group     = problem.group_counts;
+    const auto hi         = problem.GetInHeight();
+    const auto wi         = problem.GetInWidth();
+    const auto n          = problem.GetBatchSize();
+    const auto k          = problem.GetOutChannels();
+    const auto c          = problem.GetInChannels();
+    const auto ho         = problem.GetOutHeight();
+    const auto wo         = problem.GetOutWidth();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
+    const auto group      = problem.GetGroupCount();
     const auto is_nchw    = problem.IsLayoutDefault();
     size_t workspace_size = 0;
 
@@ -814,7 +816,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 
         TransposeSolutionDefault2Nhwc trans_input(
             ctx,
-            problem.in_data_type,
+            problem.GetInDataType(),
             n,
             c,
             hi,
@@ -825,7 +827,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
             fp8_seed_inp);
         TransposeSolutionDefault2Nhwc trans_weight(
             ctx,
-            problem.weights_data_type,
+            problem.GetWeightsDataType(),
             k,
             c / group,
             y,
@@ -836,8 +838,15 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
                     .GetWeightsCastType()), // group * k_per_group as batch for weight
             is_stochastic,
             fp8_seed_wei);
-        TransposeSolutionNhwc2Default trans_output(
-            ctx, problem.out_data_type, n, k, ho, wo, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_out);
+        TransposeSolutionNhwc2Default trans_output(ctx,
+                                                   problem.GetOutDataType(),
+                                                   n,
+                                                   k,
+                                                   ho,
+                                                   wo,
+                                                   BT_FLAG_DEFAULT,
+                                                   is_stochastic,
+                                                   fp8_seed_out);
 
         if(!trans_input.IsSkippable())
             size_trans_input = trans_input.GetOutputTensorSize();
@@ -870,7 +879,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
         return false;
 
 #if WORKAROUND_ISSUE_1979
-    if(problem.group_counts > 1)
+    if(problem.GetGroupCount() > 1)
         return false;
 #endif
 
@@ -907,14 +916,14 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(problem.in_height,
-                                   problem.in_width,
-                                   problem.out_height,
-                                   problem.out_width,
-                                   problem.batch_sz,
-                                   problem.n_outputs,
-                                   problem.n_inputs,
-                                   miopen::GetTypeSize(problem.in_data_type)))
+    if(0 == igemm_split_batch_size(problem.GetInHeight(),
+                                   problem.GetInWidth(),
+                                   problem.GetOutHeight(),
+                                   problem.GetOutWidth(),
+                                   problem.GetBatchSize(),
+                                   problem.GetOutChannels(),
+                                   problem.GetInChannels(),
+                                   miopen::GetTypeSize(problem.GetInDataType())))
         return false;
 
     return true;
@@ -978,16 +987,16 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     if(is_nchw)
     {
-        const auto& hi    = problem.in_height;
-        const auto& wi    = problem.in_width;
-        const auto& n     = problem.batch_sz;
-        const auto& k     = problem.n_outputs;
-        const auto& c     = problem.n_inputs;
-        const auto& ho    = problem.out_height;
-        const auto& wo    = problem.out_width;
-        const auto& y     = problem.kernel_size_h;
-        const auto& x     = problem.kernel_size_w;
-        const auto& group = problem.group_counts;
+        const auto hi    = problem.GetInHeight();
+        const auto wi    = problem.GetInWidth();
+        const auto n     = problem.GetBatchSize();
+        const auto k     = problem.GetOutChannels();
+        const auto c     = problem.GetInChannels();
+        const auto ho    = problem.GetOutHeight();
+        const auto wo    = problem.GetOutWidth();
+        const auto y     = problem.GetWeightsHeight();
+        const auto x     = problem.GetWeightsWidth();
+        const auto group = problem.GetGroupCount();
         const auto is_stochastic =
             problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
             miopenF8RoundingModeStochastic;
@@ -1003,7 +1012,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
         TransposeSolutionDefault2Nhwc trans_input(
             ctx,
-            problem.in_data_type,
+            problem.GetInDataType(),
             n,
             c,
             hi,
@@ -1014,7 +1023,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
             fp8_seed_inp);
         TransposeSolutionDefault2Nhwc trans_weight(
             ctx,
-            problem.weights_data_type,
+            problem.GetWeightsDataType(),
             k,
             c / group,
             y,
@@ -1025,8 +1034,15 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
                     .GetWeightsCastType()), // group * k_per_group as batch for weight
             is_stochastic,
             fp8_seed_wei);
-        TransposeSolutionNhwc2Default trans_output(
-            ctx, problem.out_data_type, n, k, ho, wo, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_out);
+        TransposeSolutionNhwc2Default trans_output(ctx,
+                                                   problem.GetOutDataType(),
+                                                   n,
+                                                   k,
+                                                   ho,
+                                                   wo,
+                                                   BT_FLAG_DEFAULT,
+                                                   is_stochastic,
+                                                   fp8_seed_out);
 
         if(!trans_input.IsSkippable())
         {

@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+#if 0
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/data_invoke_params.hpp>
@@ -918,3 +918,4 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext
 
 } // namespace solver
 } // namespace miopen
+#endif

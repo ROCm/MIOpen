@@ -306,7 +306,7 @@ inline static bool NextLinear(int& v)
 
 static inline uint32_t
 GetImplGemmDynamicNHWCBatchedTransposeFlag(miopenDataType_t data_type,
-                                           const boost::optional<miopenDataType_t>& cast_type)
+                                           const std::optional<miopenDataType_t>& cast_type)
 {
     if(cast_type)
     {

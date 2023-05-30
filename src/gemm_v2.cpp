@@ -48,6 +48,7 @@
 #include <rocblas.h>
 #else
 #include <rocblas/rocblas.h>
+#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
 #endif
 #include <miopen/perf_field.hpp>
 #endif
@@ -997,7 +998,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         break;
 
         case miopenFloat8: {
-#ifdef USE_ROCBLAS_GEMM_EX3
+#if USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1048,13 +1049,14 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 );
 #pragma clang diagnostic pop
             }
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
 #endif
             break;
         }
 
         case miopenBFloat8: {
-#ifdef USE_ROCBLAS_GEMM_EX3
-
+#if USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1102,6 +1104,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 );
 #pragma clang diagnostic pop
             }
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support bf8 data type");
 #endif
             break;
         }

@@ -26,6 +26,7 @@
 #pragma once
 
 #include "conv_common.hpp"
+#include <miopen/conv/problem_description.hpp>
 
 template <typename T>
 struct convfp8_driver : conv_driver<T>
@@ -53,7 +54,6 @@ struct convfp8_driver : conv_driver<T>
     using conv_driver<T>::trans_output_pads;
     using conv_driver<T>::show_command;
     using conv_driver<T>::gen_float;
-    using conv_driver<T>::immed;
     using conv_driver<T>::enable_fdb;
     using conv_driver<T>::do_forward;
     using conv_driver<T>::search;
@@ -467,15 +467,22 @@ struct convfp8_driver : conv_driver<T>
                     const auto tmp = float8(scalar_gen_random_float{-0.5, 0.5}());
                     return static_cast<float>(tmp);
                 };
+                const auto problem =
+                    miopen::conv::ProblemDescription(input.desc,
+                                                     weights.desc,
+                                                     output.desc,
+                                                     filter,
+                                                     miopen::conv::Direction::Forward);
+                const auto ctx = [&] {
+                    auto tmp = ExecutionContext{get_handle()};
+                    tmp.DetectRocm();
+                    problem.SetupFloats(tmp);
+                    return tmp;
+                }();
 
-                auto ctx = miopen::ConvolutionContext(input.desc,
-                                                      weights.desc,
-                                                      output.desc,
-                                                      filter,
-                                                      miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
+                bool skip_forward = is_int8 && !IsGemmAplicable(ctx, problem);
                 if(skip_forward)
                 {
                     show_command();
@@ -506,11 +513,6 @@ struct convfp8_driver : conv_driver<T>
                               << " Bytes to write all necessary tensors to GPU. GPU has "
                               << device_mem << " Bytes of memory." << std::endl;
                     return;
-                }
-
-                if(immed)
-                {
-                    miopen::debug::testing_find_db_enabled = enable_fdb;
                 }
 
                 conv_stats stats;

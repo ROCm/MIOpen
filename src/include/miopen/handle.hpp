@@ -112,8 +112,6 @@ struct Handle : miopenHandle
                            bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
 
-    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
-
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config) const

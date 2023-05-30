@@ -340,7 +340,7 @@ std::size_t TensorDescriptor::GetElementSize() const
 
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 
-boost::optional<miopenDataType_t> TensorDescriptor::GetCastType() const { return this->cast_type; }
+std::optional<miopenDataType_t> TensorDescriptor::GetCastType() const { return this->cast_type; }
 
 void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
 {

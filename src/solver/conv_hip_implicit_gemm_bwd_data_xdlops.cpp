@@ -260,12 +260,12 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -304,12 +304,12 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -382,12 +382,12 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -417,12 +417,12 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
             case miopenFloat:
                 RunCKSolution<float>(handle, primitive_parameters, problem, config);
                 break;
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:
-            case miopenFloat8:
-            case miopenBFloat8:
             case miopenDouble: break;
             }
         };

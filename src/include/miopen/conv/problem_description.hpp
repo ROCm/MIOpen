@@ -29,13 +29,17 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/names.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/tensor.hpp>
 #include <miopen/problem_description_base.hpp>
 
 #include <boost/any.hpp>
 
 namespace miopen {
+
+struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
@@ -188,7 +192,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
-    boost::optional<miopenDataType_t> GetInCastType() const { return in.GetCastType(); }
+    std::optional<miopenDataType_t> GetInCastType() const { return in.GetCastType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
@@ -223,7 +227,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
-    boost::optional<miopenDataType_t> GetOutCastType() const { return out.GetCastType(); }
+    std::optional<miopenDataType_t> GetOutCastType() const { return out.GetCastType(); }
     std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutChannels() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutDepth() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
@@ -258,7 +262,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
-    boost::optional<miopenDataType_t> GetWeightsCastType() const { return weights.GetCastType(); }
+    std::optional<miopenDataType_t> GetWeightsCastType() const { return weights.GetCastType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
@@ -394,7 +398,9 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
+
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
@@ -427,6 +433,9 @@ struct ProblemDescription : ProblemDescriptionBase
 
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
+#endif
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;

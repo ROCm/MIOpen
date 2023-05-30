@@ -28,12 +28,14 @@
 
 #include "ford.hpp"
 #include "network_data.hpp"
-#include "serialize.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
+
+#include "serialize.hpp"
+
 #include <half.hpp>
 
 using half = half_float::half;
@@ -417,15 +419,7 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
 template <class T>
 tensor<T> make_tensor(const std::vector<std::size_t>& dims)
 {
-    std::vector<int> tmpDims;
-
-    tmpDims.resize(dims.size());
-
-    for(int i = 0; i < tmpDims.size(); i++)
-        tmpDims[i] = static_cast<int>(dims[i]);
-
-    return tensor<T>{miopen::TensorDescriptor{
-        miopen_type<T>{}, tmpDims.data(), static_cast<int>(tmpDims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 };
 
 template <class T, class X>

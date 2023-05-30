@@ -26,7 +26,6 @@
 #ifndef GUARD_MIOPEN_DATATYPE_HPP
 #define GUARD_MIOPEN_DATATYPE_HPP
 
-#include <miopen/conv_algo_name.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/visit_float.hpp>
 

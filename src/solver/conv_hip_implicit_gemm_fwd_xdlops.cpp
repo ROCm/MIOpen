@@ -244,11 +244,11 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ProblemDescr
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -281,11 +281,11 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ProblemDescription
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -359,11 +359,11 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -396,11 +396,11 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
             case miopenFloat:
                 RunCKSolution<float>(handle, primitive_parameters, problem, config);
                 break;
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:
-            case miopenFloat8:
-            case miopenBFloat8:
             case miopenDouble: break;
             }
         };

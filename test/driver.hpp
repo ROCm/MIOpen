@@ -56,6 +56,7 @@ constexpr std::is_same<T, U> is_same(const T&)
     return {};
 }
 
+#if 0
 struct tensor_elem_gen_integer
 {
     unsigned long max_value = 17;
@@ -72,7 +73,7 @@ struct tensor_elem_gen_integer
         return static_cast<double>(dot % max_value);
     }
 };
-
+#endif
 struct tensor_elem_gen_checkboard_sign
 {
     template <class... Ts>

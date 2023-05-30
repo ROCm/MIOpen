@@ -429,6 +429,9 @@ struct transpose_invoke_param : public miopen::InvokeParams
         : InvokeParams{type_}, src(src_), dst(dst_), stoch(stoch_), seed(seed_)
     {
     }
+
+    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return 0; }
 };
 
 template <typename T, typename TRANSPOSE_SOL, uint32_t FLAG = 0, uint32_t STOCH = 0>
