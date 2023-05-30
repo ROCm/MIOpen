@@ -295,7 +295,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
     if(elements_in_dword == 0) // For clang-tidy
         MIOPEN_THROW(miopenStatusInternalError);
-    const auto img_hw            = problem.GetOutHeight() * problem.GetOutWidth();
+    const auto img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     if(!IsValidValueImpl(sequence_length))
         return false;
     if(sequence_length > 1)
@@ -436,14 +436,14 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
     if(elements_in_dword == 0) // For clang-tidy
         MIOPEN_THROW(miopenStatusInternalError);
-    read_size                    = 4;
-    k_mult                       = 16;
-    chunks_per_wave              = static_cast<int>(read_size * elements_in_dword);
-    chunk_size                   = 16;
-    n_mult                       = 2;
-    c_mult                       = elements_in_dword;
-    waves_c_in_group             = 1;
-    waves_k_in_group             = 1;
+    read_size        = 4;
+    k_mult           = 16;
+    chunks_per_wave  = static_cast<int>(read_size * elements_in_dword);
+    chunk_size       = 16;
+    n_mult           = 2;
+    c_mult           = elements_in_dword;
+    waves_c_in_group = 1;
+    waves_k_in_group = 1;
 
     if(!IsValid(problem))
     {
