@@ -130,15 +130,6 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
     invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
 
-    MIOPEN_LOG_FUNCTION(invoke_bufs[0].get(),
-                        conv_problem.GetBiasSize(),
-                        invoke_bufs[1].get(),
-                        conv_problem.GetInSize(),
-                        invoke_bufs[2].get(),
-                        conv_problem.GetWeightsSize(),
-                        invoke_bufs[3].get(),
-                        conv_problem.GetOutSize());
-
     const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
     auto conv_data =
