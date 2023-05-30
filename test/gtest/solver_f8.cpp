@@ -87,9 +87,8 @@ TEST_P(ConvFwdGemmTestFp8, GemmFwdFp8)
                                               conv_config,
                                               test_skipped);
 }
-code
 
-    INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                             ConvFwdGemmTestFp8,
-                             testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                              testing::ValuesIn(ConvTestConfigs())));
+INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
+                         ConvFwdGemmTestFp8,
+                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(ConvTestConfigs())));
