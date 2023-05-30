@@ -57,7 +57,8 @@ struct Exception : std::exception
 std::string OpenCLErrorMessage(int error, const std::string& msg = "");
 std::string HIPErrorMessage(int error, const std::string& msg = "");
 
-#define MIOPEN_THROW(...)                                                    \
+#define MIOPEN_THROW(...) \
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-do-while)                     \
     do                                                                       \
     {                                                                        \
         throw miopen::Exception(__VA_ARGS__).SetContext(__FILE__, __LINE__); \
