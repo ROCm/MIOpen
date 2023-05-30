@@ -131,7 +131,7 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
 
     MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get() << " , size: " << conv_problem.GetBiasSize()
-                               << " , in addres: " << invoke_bufs[1].get()
+                               << " , in addr: " << invoke_bufs[1].get()
                                << " , size: " << conv_problem.GetInSize()
                                << " , weigth addr: " << invoke_bufs[2].get()
                                << " , size: " << conv_problem.GetWeightsSize() << " , out addr: "
