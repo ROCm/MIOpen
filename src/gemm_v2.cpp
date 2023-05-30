@@ -1041,10 +1041,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
                     0, // int32_t           solution_index,
                     rocblas_gemm_flags::
-                        rocblas_gemm_flags_stochastic_rounding // Depend on application,
-                                                               // 0: IEEE-RNE
-                                                               // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
-                                                               // // uint32_t flags
+                        rocblas_gemm_flags_none // Depend on application,
+                                                // 0: IEEE-RNE
+                                                // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
+                                                // // uint32_t flags
                 );
 #pragma clang diagnostic pop
             }
@@ -1095,10 +1095,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                               // rocblas_compute_type_f8_f8_f32   //
                                               // rocblas_computetype compute_type,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
-                    0, // int32_t           solution_index,
-                    rocblas_gemm_flags::rocblas_gemm_flags_stochastic_rounding // Depend on
-                                                                               // application, 0:
-                                                                               // IEEE-RNE
+                    0,                                          // int32_t           solution_index,
+                    rocblas_gemm_flags::rocblas_gemm_flags_none // Depend on
+                                                                // application, 0:
+                                                                // IEEE-RNE
                 );
 #pragma clang diagnostic pop
             }

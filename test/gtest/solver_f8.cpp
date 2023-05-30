@@ -47,11 +47,12 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
     const auto tensors =
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-    auto ctx = miopen::ConvolutionContext{
+    const auto problem = miopen::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
+    auto ctx = miopen::ConvolutionContext{};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
-    if(!solv.IsApplicable(ctx))
+    if(!solv.IsApplicable(ctx, problem))
     {
         test_skipped = true;
         GTEST_SKIP() << /*solv.SolverDbId() <<*/ "GemmFwd1x1_0_1 Not Applicable for this problem"
@@ -66,8 +67,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     // invoker(handle, invoke_params);
     // rout.data = handle.Read<Tout>(out_dev, rout.data.size());
 
-    ASSERT_TRUE(solv.IsApplicable(ctx));
-    auto sol = solv.GetSolution(ctx);
+    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
+    auto sol = solv.GetSolution(ctx, problem);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
