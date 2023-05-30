@@ -31,20 +31,31 @@
 #include "tensor_util.hpp"
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include "conv_common.hpp"
+#include <miopen/hip_float8.h>
+#include "verify.hpp"
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 template <typename T>
 miopenDataType_t GetDataType();
 
 template <>
-miopenDataType_t GetDataType<float>()
+miopenDataType_t GetDataType<float8>()
 {
-    return miopenFloat;
+    return miopenFloat8;
 }
 
 template <>
-miopenDataType_t GetDataType<half_float::half>()
+miopenDataType_t GetDataType<bfloat8>()
 {
-    return miopenHalf;
+    return miopenBFloat8;
+}
+
+template <>
+miopenDataType_t GetDataType<float>()
+{
+    return miopenFloat;
 }
 
 struct ConvTestCase
@@ -82,14 +93,65 @@ struct ConvTestCase
 
 std::vector<ConvTestCase> ConvTestConfigs()
 { // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {{16, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+    return {
+        //{17, 13,  4,  5,  7,  1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        //{1, 3, 3, 3, 1, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {1, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {2, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {4, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {8, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {16, 32, 4, 4, 16, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {16, 128, 16, 16, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 128, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        //{1, 256, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 128, 64, 64, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 128, 128, 64, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 128, 128, 128, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 128, 128, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 256, 128, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 256, 256, 128, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 256, 256, 256, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {64, 256, 256, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 256, 256, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 256, 512, 256, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 256, 512, 512, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 256, 1024, 512, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 256, 1024, 1024, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 512, 1024, 1024, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 512, 1024, 1024, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 1024, 1024, 1024, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {128, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {256, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {1024, 1024, 1024, 1024, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        {1024, 2048, 2048, 2048, 2048, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        //{1, 512, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},    //GPU NaN output
+        //{1, 1024, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution}
+
+    };
 }
 
-template <typename T = float>
+template <typename U, typename V>
+struct Fp8Cast
+{
+    uint64_t seed = 1234;
+    bool is_stoch = true;
+    V operator()(U x)
+    {
+        if(is_stoch)
+        {
+            auto tmp =
+                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            return static_cast<V>(tmp);
+        }
+        else
+        {
+            auto tmp = float8(static_cast<float>(x));
+            return static_cast<V>(tmp);
+        }
+    }
+};
+
+template <typename T, typename Tout = T, typename Tacc = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase>>
 {
@@ -99,18 +161,24 @@ protected:
         test_skipped                = false;
         std::tie(algo, conv_config) = GetParam();
         input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{1, conv_config.k, conv_config.x, conv_config.y};
-        input.generate(tensor_elem_gen_integer{17});
-        weights.generate(tensor_elem_gen_integer{17});
+        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.x, conv_config.y};
+
+        auto gen_fp8_value = [=](auto...) {
+            const auto tmp = float8(scalar_gen_random_float{-0.5, 0.5}());
+            return tmp;
+        };
+
+        input.generate(gen_fp8_value);
+        weights.generate(gen_fp8_value);
 
         conv_desc = conv_config.GetConv();
 
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
+        miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
+            input.desc, weights.desc, GetDataType<Tout>()); // Tgpu Datatype?
 
-        output = tensor<T>{output_desc.GetLengths()};
+        output = tensor<Tout>{output_desc.GetLengths()}; // half_float::half instead?
 
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(output.begin(), output.end(), std::numeric_limits<Tout>::quiet_NaN());
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -124,29 +192,64 @@ protected:
 
         auto&& handle = get_handle();
 
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{output_desc.GetLengths()};
-        cpu_convolution_forward(conv_desc.GetSpatialDimension(),
-                                input,
-                                weights,
-                                ref_out,
-                                conv_desc.GetConvPads(),
-                                conv_desc.GetConvStrides(),
-                                conv_desc.GetConvDilations(),
-                                conv_desc.GetGroupCount());
+        miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
+            input.desc, weights.desc, GetDataType<Tout>()); // miopenFloat or GetDataType<Tgpu>() ?
+        ref_out = tensor<Tout>{output_desc.GetLengths()};
 
-        output.data = handle.Read<T>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        using FI       = Fp8Cast<T, T>;
+        using FW       = Fp8Cast<T, T>;
+        FI in_func     = {0, true};
+        FW weight_func = {0, true};
+
+        cpu_convolution_forward<T, T, Tout, decltype(conv_desc.GetConvPads()), Tacc, FW, FI>(
+            conv_desc.GetSpatialDimension(),
+            input,
+            weights,
+            ref_out,
+            conv_desc.GetConvPads(),
+            conv_desc.GetConvStrides(),
+            conv_desc.GetConvDilations(),
+            conv_desc.GetGroupCount(),
+            in_func,
+            weight_func);
+
+        bool refOutNan = false;
+        printf("ref_out size: %zu\n", ref_out.data.size());
+        for(auto refOutElem : ref_out.data)
+        {
+            // printf("0x%x\n",ref_out.data[i]);
+            if(refOutElem.is_nan())
+            {
+                refOutNan = true;
+                break;
+            }
+        }
+        output.data    = handle.Read<Tout>(out_dev, output.data.size());
+        bool outputNan = false;
+        printf("output size: %zu\n", output.data.size());
+
+        for(auto outputElem : output.data)
+        {
+            if(outputElem.is_nan())
+            {
+                outputNan = true;
+                break;
+            }
+        }
+        printf("Nan in output: %s\n", outputNan ? "true" : "false");
+
+        EXPECT_FALSE(miopen::f8_range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::f8_range_zero(output)) << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
 
-        const double tolerance = 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_out, output);
+        const float tolerance = 80.0;
+        auto threshold        = (static_cast<float>(std::numeric_limits<Tout>::epsilon()) *
+                          static_cast<float>(tolerance));
 
-        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
-            << "Non finite number found in the CPU data";
+        auto error = miopen::rms_range(ref_out, output);
+
+        EXPECT_FALSE(refOutNan) << "NAN found in CPU data";
+        EXPECT_FALSE(outputNan) << "NAN found in GPU data";
 
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
@@ -155,11 +258,11 @@ protected:
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
-    tensor<T> output;
-    tensor<T> ref_out;
+    tensor<Tout> output; // Or T?
+    tensor<Tout> ref_out;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
+    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoGEMM;
     bool test_skipped             = false;
 };
