@@ -589,11 +589,11 @@ pipeline {
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
+                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
-                        CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", needs_gpu:false, build_install: "true")
                         echo "skip perf db valid check"
                     }
                 }
