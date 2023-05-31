@@ -133,22 +133,47 @@ bool IsNetworked(unsigned long ft)
 #undef CASE_RET_STRING
 #endif // __linux__
 
-bool IsNetworkedFilesystem(const boost::filesystem::path& path)
+bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
 {
 #ifdef __linux__
+    // Non-DEV builds put user databases in ~/.config/miopen by default; the binary cache is placed
+    // in ~/.cache/miopen. If these directories do not exist, this is not a problem, because the
+    // library creates them as needed.
+    //
+    // The problem is that statfs doesn't work in this case, and we need to determine the type of FS
+    // _before_ the databases are created.
+    //
+    // Solution (A): Just create_directories if path doesn't exist. It looks like a hack: if the
+    // path is on NFS, then the library will not use it, but will create directories (which is not
+    // good). And this function should not have any side effects on the file system.
+    //
+    // Solution (B): Traverse the input path up to the first existing directory, then check that
+    // directory. Stop after some fixed number of iterations to protect against possible file system
+    // problems. Let's use this solution for now.
+    auto path = path_;
+    for(int i = 0; i < 32; ++i)
+    {
+        if(boost::filesystem::exists(path))
+            break;
+        MIOPEN_LOG_NQI2("Path does not exist: '" << path.string() << '\'');
+        path = path.parent_path();
+        if(path.empty())
+            break;
+    }
     struct statfs stat;
     const int rc = statfs(path.c_str(), &stat);
     if(rc != 0)
     {
         // NOLINTNEXTLINE (concurrency-mt-unsafe)
-        MIOPEN_LOG_NQE("rc = " << rc << ", '" << strerror(errno) << "'");
+        MIOPEN_LOG_NQE("statfs('" << path.string() << "') rc = " << rc << ", '" << strerror(errno)
+                                  << "'");
         return false;
     }
     MIOPEN_LOG_NQI("Filesystem type at '" << path.string() << "' is: 0x" << std::hex << stat.f_type
                                           << " '" << Stringize(stat.f_type) << '\'');
     return IsNetworked(stat.f_type);
 #else
-    std::ignore = path;
+    std::ignore = path_;
     return false;
 #endif // __linux__
 }
