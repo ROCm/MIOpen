@@ -58,11 +58,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 #endif
 
-miopen::PerformanceDb mlo_construct_base::GetDb() const
-{
-    return {db_path(), _ctx.GetUserPerfDbPath()};
-}
-
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};

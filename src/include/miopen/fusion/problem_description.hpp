@@ -96,7 +96,7 @@ struct FusionDescription
 
     // This and the following method should be moved to the Ops once the return type can be unified
     miopen::ProblemDescription
-    GetConvProblem(size_t idx, conv::Direction dir, bool do_bias = false) const
+    GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -109,7 +109,7 @@ struct FusionDescription
                                                     out_desc,
                                                     conv_op.base_desc /* conv desc */,
                                                     dir,
-                                                    do_bias ? 1 : 0};
+                                                    bias};
         }
         else
         {

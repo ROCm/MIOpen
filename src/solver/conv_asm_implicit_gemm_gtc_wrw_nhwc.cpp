@@ -645,11 +645,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     else
     {
         /// \todo Fix this
-        /// Clang-Tidy assumption:
-        /// (n_per_block == 0)  ==>
-        /// (n_per_block == config.gemm_n_per_block) ==>
-        /// (config.gemm_n_per_block == 0)  ==>
-        /// division by zero in GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel()
+        /// clang-tidy: DIV/0 in GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel()
         if(n_per_block == 0)
             MIOPEN_THROW(miopenStatusInternalError);
 

@@ -47,14 +47,17 @@ protected:
         tensor<G> output_tensor =
             tensor<G>(test_case.data_type, test_case.layout, test_case.output);
 
-        const bool is_forward = (test_case.direction == miopen::conv::Direction::Forward);
-        const auto conv_problem =
-            miopen::conv::ProblemDescription(is_forward ? input_tensor.desc : output_tensor.desc,
-                                             weight_tensor.desc,
-                                             is_forward ? output_tensor.desc : input_tensor.desc,
-                                             test_case.GetConv(),
-                                             test_case.direction);
-        problem = miopen::ProblemDescription(conv_problem);
+        problem = (test_case.direction == miopen::conv::Direction::Forward)
+            ? miopen::conv::ProblemDescription(input_tensor.desc,
+                                               weight_tensor.desc,
+                                               output_tensor.desc,
+                                               test_case.GetConv(),
+                                               test_case.direction);
+            : miopen::conv::ProblemDescription(output_tensor.desc,
+                                               weight_tensor.desc,
+                                               input_tensor.desc,
+                                               test_case.GetConv(),
+                                               test_case.direction);
 
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;

@@ -261,9 +261,9 @@ FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
 
 struct mlo_construct_base
 {
-    mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _problem(dir)
+    mlo_construct_base(miopen::conv::Direction dir) : _problem(dir)
     {
-        _problem.bias              = (do_bias) ? 1 : 0;
+        _problem.bias              = 0;
         _problem.pad_w             = 1;
         _problem.pad_h             = 1;
         _problem.kernel_size_d     = 3;
@@ -280,8 +280,6 @@ struct mlo_construct_base
         _problem.group_counts      = 1;
     }
 
-    miopen::PerformanceDb GetDb() const;
-
     /*
      * get common compiler options
      */
@@ -295,13 +293,9 @@ struct mlo_construct_base
      */
     inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
 
-    std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
-
 protected:
     miopen::ProblemDescriptionCompatTemporary _problem;
     miopen::ConvolutionContext _ctx;
-
-    const char* _db_path = nullptr;
 };
 
 #define MLO_POOLING_OP_AVE 0

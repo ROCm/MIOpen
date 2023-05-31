@@ -293,7 +293,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
                                                const int sequence_length) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
-    if(elements_in_dword == 0) // For clang-tidy
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
         MIOPEN_THROW(miopenStatusInternalError);
     const auto img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     if(!IsValidValueImpl(sequence_length))
@@ -434,7 +434,7 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
-    if(elements_in_dword == 0) // For clang-tidy
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
         MIOPEN_THROW(miopenStatusInternalError);
     read_size        = 4;
     k_mult           = 16;
@@ -552,7 +552,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
-    if(elements_in_dword == 0) // For clang-tidy (false positive)
+    if(elements_in_dword == 0) // For clang-tidy (false positive DIV/0)
         MIOPEN_THROW(miopenStatusInternalError);
     // clang-format off
     const int img_hw = problem.GetOutHeight() * problem.GetOutWidth();
