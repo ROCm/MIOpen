@@ -48,16 +48,16 @@ protected:
             tensor<G>(test_case.data_type, test_case.layout, test_case.output);
 
         problem = (test_case.direction == miopen::conv::Direction::Forward)
-            ? miopen::conv::ProblemDescription(input_tensor.desc,
-                                               weight_tensor.desc,
-                                               output_tensor.desc,
-                                               test_case.GetConv(),
-                                               test_case.direction);
-            : miopen::conv::ProblemDescription(output_tensor.desc,
-                                               weight_tensor.desc,
-                                               input_tensor.desc,
-                                               test_case.GetConv(),
-                                               test_case.direction);
+                      ? miopen::conv::ProblemDescription(input_tensor.desc,
+                                                         weight_tensor.desc,
+                                                         output_tensor.desc,
+                                                         test_case.GetConv(),
+                                                         test_case.direction)
+                      : miopen::conv::ProblemDescription(output_tensor.desc,
+                                                         weight_tensor.desc,
+                                                         input_tensor.desc,
+                                                         test_case.GetConv(),
+                                                         test_case.direction);
 
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;

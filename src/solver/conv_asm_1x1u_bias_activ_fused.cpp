@@ -92,7 +92,7 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
                                                                    const FusionDescription& problem,
                                                                    const AnyInvokeParams&) const
 {
-    const int bias = 1;
+    const int bias      = 1;
     auto conv_problem   = problem.GetConvProblem(0, conv::Direction::Forward, bias);
     const auto conv_ctx = context.GetConvContext(conv_problem);
 

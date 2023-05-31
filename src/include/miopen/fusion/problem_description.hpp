@@ -95,8 +95,7 @@ struct FusionDescription
 #endif
 
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription
-    GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
+    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
