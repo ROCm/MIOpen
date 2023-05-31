@@ -120,9 +120,6 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
                            GetTypeSize(conv_problem.GetOutDataType());
     const auto conv_ctx = context.GetConvContext(conv_problem);
 
-    if(!conv_problem.direction.IsForward())
-        MIOPEN_THROW("Only inference supported.");
-
     auto& handle = conv_ctx.GetStream();
 
     invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
