@@ -683,7 +683,9 @@ endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+# Work around : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+#               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
