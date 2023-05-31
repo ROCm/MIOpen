@@ -593,7 +593,7 @@ pipeline {
 
                     }
                     steps{
-                        CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", needs_gpu:false, build_install: "true")
+                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, build_install: "true")
                         echo "skip perf db valid check"
                     }
                 }
