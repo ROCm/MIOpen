@@ -659,6 +659,17 @@ bool PerformanceConfigImplicitGemmGTCfwdnchwc::ModelApplyToken(
     return this->IsValid(problem);
 }
 
-
+static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& Problem)
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
+        return false;
+    
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(device_name != "gfx1030")
+        return false;
+        
+    if(!problem.IsLayoutNCHWC())
+        return false;
+}
 } // namespace solver
 } // namespace miopen
