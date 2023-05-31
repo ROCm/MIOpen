@@ -23,13 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#pragma once
 #include <miopen/miopen.h>
-#include "../tensor_holder.hpp"
-#include <gtest/gtest.h>
-#include <miopen/solver.hpp>
-#include "get_handle.hpp"
 #include <gtest/cba.hpp>
-#include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/conv_algo_name.hpp>
 
 struct AIModelTestCase
 {

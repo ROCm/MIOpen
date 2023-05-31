@@ -32,12 +32,14 @@
 namespace miopen {
 namespace ai {
 namespace common {
+
 nlohmann::json LoadJSON(const std::string& path)
 {
     if(!std::filesystem::exists(path))
         MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
     return nlohmann::json::parse(std::ifstream(path));
 }
+
 template <typename U, typename V>
 std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
 {
@@ -46,6 +48,7 @@ std::unordered_map<V, U> ReverseMap(const std::unordered_map<U, V>& map)
         reversed_map.emplace(make_pair(it.second, it.first));
     return reversed_map;
 }
+
 template <typename U, typename V>
 std::vector<V> LookupValues(const std::vector<U>& keys, const std::unordered_map<U, V>& map)
 {

@@ -65,7 +65,7 @@ AnyRamDb& AnyRamDb::GetCached(const std::string& path)
     if(it != instances.end())
         return *it->second;
 
-    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
+    // The AnyRamDb objects allocated here by "new" shall be alive during
     // the calling app lifetime. Size of each is very small, and there couldn't
     // be many of them (max number is number of _different_ GPU board installed
     // in the user's system, which is _one_ for now). Therefore the total

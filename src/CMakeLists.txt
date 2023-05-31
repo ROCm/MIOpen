@@ -132,7 +132,6 @@ set( MIOpen_Source
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
-    anyramdb.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     rnn.cpp
@@ -236,6 +235,7 @@ set( MIOpen_Source
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
+    list(APPEND MIOpen_Source anyramdb.cpp)
 endif()
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)

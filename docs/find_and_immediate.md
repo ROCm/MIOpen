@@ -143,7 +143,7 @@ The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.
 
 ### 1. AI-based Heuristic Fallback (Default)
 
-If MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON, which it is by default, Immediate Mode's behavior on a database miss is to use an AI-based heurisitic to pick the optimal solution. First, the applicability of the AI-based heuristic for the given configuration is checked. If the heuristic is applicable, it feeds various parameters of the given configuration into a neural network which has been tuned to predict the optimal solution with 90.93% accuracy.
+If MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON, which it is by default, Immediate Mode's behavior on a database miss is to use an AI-based heurisitic to pick the optimal solution. First, the applicability of the AI-based heuristic for the given configuration is checked. If the heuristic is applicable, it feeds various parameters of the given configuration into a neural network which has been tuned to predict the optimal solution with 90% accuracy.
 
 ### 2. Weighted Throughput Index Based Fallback
 
