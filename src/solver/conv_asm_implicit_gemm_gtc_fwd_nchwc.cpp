@@ -671,5 +671,24 @@ static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescri
     if(!problem.IsLayoutNCHWC())
         return false;
 }
+static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
+{
+    assert(n == 9);
+    std::vector<float> features(n * n, 0.0f);
+    features[0] = problem.IsFp32() ? 2.0f : 1.0f;
+
+    int offset = (problem.direction.IsForward() ? 1:2);
+    features[offset * n + offset] = 1.0f;
+
+    features[2 * n + 2] = static_cast<float>(problem.GetInChannels());
+    features[3 * n + 3] = static_cast<float>(problem.GetOutChannels());
+    features[4 * n + 4] = static_cast<float>(problem.GetInHeight());
+    features[5 * n + 5] = static_cast<float>(problem.GetOutWidth());
+    features[6 * n + 6] = static_cast<float>(problem.GetOutHeight());
+    features[7 * n + 7] = static_cast<float>(problem.GetOutWidth());
+    features[8 * n + 8] = static_cast<float>(problem.GetoutBatchSize());
+
+    return features;
+}
 } // namespace solver
 } // namespace miopen
