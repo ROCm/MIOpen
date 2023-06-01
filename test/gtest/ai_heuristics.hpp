@@ -24,38 +24,15 @@
  *
  *******************************************************************************/
 
-#ifndef GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
-#define GAURD_MIOPEN_TUNING_HEURISTIC_HPP_
-
+#pragma once
 #include <miopen/miopen.h>
-#include <miopen/conv/context.hpp>
-#include <miopen/solver.hpp>
-#include <unordered_map>
-#include <typeinfo>
-#include <string>
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+#include <gtest/cba.hpp>
+#include <miopen/conv_algo_name.hpp>
 
-namespace miopen {
-namespace ai {
-namespace tuning {
-
-struct PerfTuningModel
+struct AIModelTestCase
 {
-    struct impl;
-    std::unique_ptr<impl> pImpl;
-
-    PerfTuningModel();
-    ~PerfTuningModel();
-    PerfTuningModel(PerfTuningModel&&) noexcept;
-    PerfTuningModel(const std::string& arch, const std::string& solver);
-    PerfTuningModel& operator=(PerfTuningModel&&) noexcept;
-    bool ModelSetParams(std::function<bool(int, int)> validator,
-                        const std::vector<float>& features) const;
-    size_t GetNumParams() const;
+    struct ConvTestCase conv;
+    miopen::conv::Direction direction;
+    miopenDataType_t data_type;
+    miopenTensorLayout_t layout;
 };
-
-} // namespace tuning
-} // namespace ai
-} // namespace miopen
-#endif
-#endif

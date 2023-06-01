@@ -64,7 +64,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI based heuristics")
+set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -154,6 +155,10 @@ else()
 endif()
 
 if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        message(FATAL_ERROR "AI-based fallback for Immediate Mode cannot be used \
+        with database embedding")
+    endif()
     if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
         message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
     endif()
