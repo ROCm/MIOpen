@@ -32,7 +32,7 @@
 #include "get_handle.hpp"
 #include "group_conv3d_fwd.hpp"
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
+struct ConvFwdSolverTest3D : ConvFwdSolverTest<float>
 {
 };
 
@@ -79,7 +79,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
-TEST_P(ConvFwdSolverTestFloat, CKGroupConvFwd)
+TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
 {
     SolverFwd<miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
                                            in_dev.get(),
@@ -93,7 +93,7 @@ TEST_P(ConvFwdSolverTestFloat, CKGroupConvFwd)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
+                         ConvFwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));

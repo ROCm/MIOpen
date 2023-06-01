@@ -78,10 +78,10 @@ struct ConvTestCase
     miopenConvolutionMode_t conv_mode;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
-        return os << " G: " <<tc.G<<" N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
-                  << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y << " conv_mode:" << tc.conv_mode;
+        return os << " G: " <<tc.G<< " N: " << tc.N <<" C:" << tc.C << " D: " << tc.D << " H:" << tc.H << " W:" << tc.W
+                  << " k: " << tc.k << " z: " << tc.z << " y:" << tc.y << " x:" << tc.x << " pad_z:" << tc.pad_z << " pad_y:" << tc.pad_y
+                  << " pad_x:" << tc.pad_x << " stride_z:" << tc.stride_z << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
+                  << " dilation_z:" << tc.dilation_z << " dilation_y:" << tc.dilation_y << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode;
     }
 
     std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
@@ -98,8 +98,10 @@ struct ConvTestCase
 
 std::vector<ConvTestCase> ConvTestConfigs()
 { //         g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 256, 192, 28, 28, 28, 192, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}/*,
-            {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}
+            /*{1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},

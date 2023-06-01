@@ -43,10 +43,10 @@ namespace solver {
 template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
     3,
-    ck::tensor_layout::convolution::GNDHWC,
-    ck::tensor_layout::convolution::GKZYXC,
+    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::KZYXGC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::GNDHWK,
+    ck::tensor_layout::convolution::NDHWGK,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -89,9 +89,12 @@ struct CKArgs
         //in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
         //out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
         //wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
-        out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
-        wei_strides = {K * Z * Y * X * C, Z* Y * X * C, 1, Y * X * C, X * C, C};
+        //in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+        //out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+        //wei_strides = {K * Z * Y * X * C, Z* Y * X * C, 1, Y * X * C, X * C, C};
+        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        wei_strides = {C, Z * Y * X * G * C, 1, Y * X * G * C, X * G * C, G * C};
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                     ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
