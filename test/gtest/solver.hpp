@@ -32,6 +32,8 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
+#include <miopen/hip_float8.h>
+
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -47,6 +49,17 @@ miopenDataType_t GetDataType<half_float::half>()
     return miopenHalf;
 }
 
+template <>
+miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>()
+{
+    return miopenFloat8;
+}
+
+template <>
+miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>()
+{
+    return miopenBFloat8;
+}
 struct ConvTestCase
 {
     size_t N;
@@ -110,7 +123,7 @@ protected:
 
         output = tensor<T>{output_desc.GetLengths()};
 
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -136,13 +149,16 @@ protected:
                                 conv_desc.GetConvDilations(),
                                 conv_desc.GetGroupCount());
 
-        output.data = handle.Read<T>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        output.data         = handle.Read<T>(out_dev, output.data.size());
+        const auto zero_chk = [](T x) { return static_cast<T>(x) == static_cast<T>(0.0); };
+        EXPECT_FALSE(std::all_of(ref_out.begin(), ref_out.end(), zero_chk))
+            << "Cpu data is all zeros";
+        EXPECT_FALSE(std::all_of(output.begin(), output.end(), zero_chk))
+            << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
 
         const double tolerance = 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
+        double threshold       = static_cast<float>(std::numeric_limits<T>::epsilon()) * tolerance;
         auto error             = miopen::rms_range(ref_out, output);
 
         EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)

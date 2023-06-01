@@ -71,9 +71,7 @@ enum class hip_f8_rounding_mode
     standard,
     stochastic
 };
-} // namespace miopen_f8
 
-namespace miopen_f8 {
 inline HIP_HOST_DEVICE bool get_hip_f8_bias_mode()
 {
 #if MIOPEN_FP8_IEEE_EXPONENT_BIAS
@@ -410,6 +408,58 @@ struct hip_f8
         }
     }
 }; // end of class hip_f8
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
+                                                      const miopen_f8::hip_f8<T>& rhs)
+{
+    lhs *= rhs;
+    return lhs;
+}
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
+                                                      const miopen_f8::hip_f8<T>& rhs)
+{
+    lhs += rhs;
+    return lhs;
+}
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
+                                                      const miopen_f8::hip_f8<T>& rhs)
+{
+    lhs -= rhs;
+    return lhs;
+}
+
+template <miopen_f8::hip_f8_type T, typename U>
+inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(U lhs, const miopen_f8::hip_f8<T>& rhs)
+{
+    const auto tmp = static_cast<U>(rhs);
+    return static_cast<miopen_f8::hip_f8<T>>(lhs - tmp);
+}
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE bool operator<(const miopen_f8::hip_f8<T>& lhs,
+                                      const miopen_f8::hip_f8<T>& rhs)
+{
+    return static_cast<float>(lhs) < static_cast<float>(rhs);
+}
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
+                                      const miopen_f8::hip_f8<T>& rhs)
+{
+    return static_cast<float>(lhs) > static_cast<float>(rhs);
+}
+
+template <miopen_f8::hip_f8_type T>
+inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
+{
+    v.data = v.data & 0x7f;
+    return v;
+}
 } // namespace miopen_f8
 
 // define numeric limits for the new data type
@@ -474,60 +524,7 @@ public:
             F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
     }
 };
-} // namespace std
 
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
-{
-    lhs *= rhs;
-    return lhs;
-}
-
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
-{
-    lhs += rhs;
-    return lhs;
-}
-
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
-{
-    lhs -= rhs;
-    return lhs;
-}
-
-template <miopen_f8::hip_f8_type T, typename U>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(U lhs, const miopen_f8::hip_f8<T>& rhs)
-{
-    const auto tmp = static_cast<U>(rhs);
-    return static_cast<miopen_f8::hip_f8<T>>(lhs - tmp);
-}
-
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE bool operator<(const miopen_f8::hip_f8<T>& lhs,
-                                      const miopen_f8::hip_f8<T>& rhs)
-{
-    return static_cast<float>(lhs) < static_cast<float>(rhs);
-}
-
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
-                                      const miopen_f8::hip_f8<T>& rhs)
-{
-    return static_cast<float>(lhs) > static_cast<float>(rhs);
-}
-
-namespace std {
-template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
-{
-    v.data = v.data & 0x7f;
-    return v;
-}
 } // namespace std
 
 template <miopen_f8::hip_f8_type T>

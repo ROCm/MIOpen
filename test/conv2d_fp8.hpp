@@ -27,6 +27,7 @@
 
 #include "conv_common.hpp"
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/mlo_internal.hpp>
 
 template <typename T>
 struct convfp8_driver : conv_driver<T>
@@ -288,9 +289,14 @@ struct convfp8_driver : conv_driver<T>
 
         return true;
     }
+#if 0
     std::size_t workspace_size()
     {
         auto& handle = get_handle();
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = ConvProblemDescription{
+            input.desc, weights.desc, rout.desc
+        }
         auto output  = get_output_tensor(filter, input, weights, out_layout);
         size_t total_mem;
         bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
@@ -336,6 +342,7 @@ struct convfp8_driver : conv_driver<T>
         }
         return total_mem;
     }
+#endif
     template <typename U, typename V>
     struct Fp8Cast
     {
@@ -474,13 +481,12 @@ struct convfp8_driver : conv_driver<T>
                                                      filter,
                                                      miopen::conv::Direction::Forward);
                 const auto ctx = [&] {
-                    auto tmp = ExecutionContext{get_handle()};
+                    auto& handle = get_handle();
+                    auto tmp     = miopen::ConvolutionContext{&handle};
                     tmp.DetectRocm();
                     problem.SetupFloats(tmp);
                     return tmp;
                 }();
-
-                ctx.SetStream(&get_handle());
 
                 bool skip_forward = is_int8 && !IsGemmAplicable(ctx, problem);
                 if(skip_forward)
@@ -502,7 +508,7 @@ struct convfp8_driver : conv_driver<T>
                 {
                     return;
                 }
-
+#if 0
                 size_t total_mem  = workspace_size();
                 size_t device_mem = get_handle().GetGlobalMemorySize();
 
@@ -514,7 +520,7 @@ struct convfp8_driver : conv_driver<T>
                               << device_mem << " Bytes of memory." << std::endl;
                     return;
                 }
-
+#endif
                 conv_stats stats;
 
                 using Tacc    = float;
@@ -532,17 +538,18 @@ struct convfp8_driver : conv_driver<T>
                 {
                     input.generate(gen_fp8_value);
                     weights.generate(gen_fp8_value);
-                    conv_driver<T>::verify_eps(verify_forward_conv_fp8<T, Tacc, Tout, FI, FW>{
-                        input,
-                        weights,
-                        output,
-                        filter,
-                        stats,
-                        0,
-                        search,
-                        init_val /*init*/,
-                        FI{seed, is_stoch} /*in cast*/,
-                        FW{seed, is_stoch} /* weight cast*/});
+                    conv_driver<T>::verify_eps(
+                        verify_forward_conv_fp8<ConvApi::Immediate, T, Tacc, Tout, FI, FW>{
+                            input,
+                            weights,
+                            output,
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            init_val /*init*/,
+                            FI{seed, is_stoch} /*in cast*/,
+                            FW{seed, is_stoch} /* weight cast*/});
                 }
 
                 if(do_backward_data && !skip_backward_data)
@@ -551,16 +558,17 @@ struct convfp8_driver : conv_driver<T>
                     output.generate(gen_fp8_value);
                     weights.generate(gen_fp8_value);
                     conv_driver<T>::verify_eps(
-                        verify_backward_data_conv_fp8<T, Tacc, Tout, FW, FO>{input,
-                                                                             weights,
-                                                                             output,
-                                                                             filter,
-                                                                             stats,
-                                                                             0,
-                                                                             search,
-                                                                             init_val,
-                                                                             FW{seed, is_stoch},
-                                                                             FI{seed, is_stoch}});
+                        verify_backward_data_conv_fp8<ConvApi::Immediate, T, Tacc, Tout, FW, FO>{
+                            input,
+                            weights,
+                            output,
+                            filter,
+                            stats,
+                            0,
+                            search,
+                            init_val,
+                            FW{seed, is_stoch},
+                            FI{seed, is_stoch}});
                 }
 
                 if(do_backward_weights && !skip_backward_weights)
@@ -568,7 +576,7 @@ struct convfp8_driver : conv_driver<T>
                     output.generate(gen_fp8_value);
 
                     conv_driver<T>::verify_eps(
-                        verify_backward_weights_conv_fp8<T, Tacc, Tout, FI, FO>{
+                        verify_backward_weights_conv_fp8<ConvApi::Immediate, T, Tacc, Tout, FI, FO>{
                             input,
                             weights,
                             output,
