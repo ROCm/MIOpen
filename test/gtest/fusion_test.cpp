@@ -28,7 +28,11 @@
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
 
-#if MIOPEN_BACKEND_HIP // equiv to hipInit(0)?
+#include "tensor_util.hpp"
+#include "get_handle.hpp"
+#include "verify.hpp"
+
+#if MIOPEN_BACKEND_HIP
 
 std::vector<int> strides(std::vector<int> dims)
 {
@@ -42,18 +46,25 @@ std::vector<int> strides(std::vector<int> dims)
     return strides_array;
 }
 
-void upload(float*& pd, const std::vector<float>& v)
-{
-    hipMalloc(&pd, v.size() * 4);
-    hipMemcpy(pd, &v[0], v.size() * 4, hipMemcpyHostToDevice);
-}
-
 class FusionTestApi : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        // hipInit(0);
+        test_skipped = false;
+
+        dims_f = {64, 64, 1, 1};
+        dims_i = {1, 64, 7, 7};
+        dims_o = {1, 64, 7, 7};
+        dims_b = {64, 1, 1, 1};
+        zeros = {0, 0, 0, 0};
+        ones = {1, 1, 1, 1};
+
+        h_filter1 = tensor<float>{dims_f, strides(dims_f)};
+        h_filter2 = tensor<float>{dims_f, strides(dims_f)};
+        h_bias    = tensor<float>{dims_b, strides(dims_b)};
+        h_input   = tensor<float>{dims_i, strides(dims_i)};
+        h_output  = tensor<float>{dims_o, strides(dims_o)};
 
         miopenCreateConvolutionDescriptor(&conv);
         miopenInitConvolutionNdDescriptor(
@@ -61,87 +72,109 @@ protected:
         miopenSetConvolutionGroupCount(conv, 1);
 
         // Prepare fusion plan.
-        miopenCreateFusionPlan(&fusion_plan, miopenVerticalFusion, &in);
-        miopenCreateOpConvForward(fusion_plan, &conv_op, conv, &filter);
-        miopenCreateOpBiasForward(fusion_plan, &bias_op, &bias);
+        miopenCreateFusionPlan(&fusion_plan, miopenVerticalFusion, &h_input.desc);
+        miopenCreateOpConvForward(fusion_plan, &conv_op, conv, &h_filter1.desc);
+        miopenCreateOpBiasForward(fusion_plan, &bias_op, &h_bias.desc);
         miopenCreateOperatorArgs(&fusion_args);
 
-        for(auto& x : h_filter1)
+        auto&& handle = get_handle();
+        for(auto& x : h_filter1.data)
             x = 1.0;
-        upload(d_filter1, h_filter1);
-        // d_filter1 = handle.Write(h_filter1.data());
+        d_filter1 = handle.Write(h_filter1.data);
 
-        for(auto& x : h_filter2)
+        for(auto& x : h_filter2.data)
             x = 2.0;
-        upload(d_filter2, h_filter2);
+        d_filter2 = handle.Write(h_filter2.data);
 
-        for(auto& x : h_bias)
+        for(auto& x : h_bias.data)
             x = 0.0;
-        upload(d_bias, h_bias);
+        d_bias = handle.Write(h_bias.data);
 
-        for(auto& x : h_input)
+        for(auto& x : h_input.data)
             x = 1.0;
-        upload(d_input, h_input);
+        d_input = handle.Write(h_input.data);
 
-        hipMalloc(&d_output, dims_o[0] * dims_o[1] * dims_o[2] * dims_o[3] * 4);
+        d_output = handle.Write(h_output.data); // not sure
     }
-    
-    miopen::Handle handle{nullptr};
 
+    // void TearDown() override
+    // {
+    //     if(test_skipped)
+    //         return;
+
+    //     auto&& handle = get_handle();
+    //     h_output.data = handle.Read<float>(d_output, h_output.data.size());
+    //     ref_out = tensor<float>{h_output.desc.GetLengths()};
+
+    //     EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+    //     EXPECT_FALSE(miopen::range_zero(h_output)) << "Gpu data is all zeros";
+    //     EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(h_output));
+
+    //     const double tolerance = 80;
+    //     double threshold       = std::numeric_limits<float>::epsilon() * tolerance;
+    //     auto error             = miopen::rms_range(ref_out, h_output);
+
+    //     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+    //         << "Non finite number found in the CPU data";
+
+    //     EXPECT_TRUE(error < threshold)
+    //         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+    // }
+    
     miopenFusionPlanDescriptor_t fusion_plan;
     miopenOperatorArgs_t fusion_args;
     miopenConvolutionDescriptor_t conv;
 
-    std::vector<int> dims_f{64, 64, 1, 1};
-    std::vector<int> dims_i{1, 64, 7, 7};
-    std::vector<int> dims_o{1, 64, 7, 7};
-    std::vector<int> dims_b{64, 1, 1, 1};
-    std::vector<int> zeros{0, 0, 0, 0};
-    std::vector<int> ones{1, 1, 1, 1};
-
-    miopen::TensorDescriptor filter = miopen::TensorDescriptor(miopenFloat, dims_f, strides(dims_f));
-    miopen::TensorDescriptor bias   = miopen::TensorDescriptor(miopenFloat, dims_b, strides(dims_b));
-    miopen::TensorDescriptor in     = miopen::TensorDescriptor(miopenFloat, dims_i, strides(dims_i));
-    miopen::TensorDescriptor out    = miopen::TensorDescriptor(miopenFloat, dims_o, strides(dims_o));
+    std::vector<int> dims_f;
+    std::vector<int> dims_i;
+    std::vector<int> dims_o;
+    std::vector<int> dims_b;
+    std::vector<int> zeros;
+    std::vector<int> ones;
 
     miopenFusionOpDescriptor_t conv_op, bias_op;
 
     float alpha = 1.0, beta = 0.0;
-    float* d_filter1;
-    std::vector<float> h_filter1 = std::vector<float>(dims_f[0] * dims_f[1]);
 
-    float* d_filter2;
-    std::vector<float> h_filter2 = std::vector<float>(dims_f[0] * dims_f[1]);
+    tensor<float> h_filter1;
+    miopen::Allocator::ManageDataPtr d_filter1;
 
-    float* d_bias;
-    std::vector<float> h_bias = std::vector<float>(dims_b[0] * dims_b[1]);
+    tensor<float> h_filter2;
+    miopen::Allocator::ManageDataPtr d_filter2;
 
-    float* d_input;
-    std::vector<float> h_input = std::vector<float>(dims_i[0] * dims_i[1] * dims_i[2] * dims_i[3]);
+    tensor<float> h_bias;
+    miopen::Allocator::ManageDataPtr d_bias;
 
-    float* d_output;
-    std::vector<float> h_output = std::vector<float>(dims_o[0] * dims_o[1] * dims_o[2] * dims_o[3]);
+    tensor<float> h_input;
+    miopen::Allocator::ManageDataPtr d_input;
+
+    tensor<float> h_output;
+    miopen::Allocator::ManageDataPtr d_output;
+
+    tensor<float> ref_out;
+    bool test_skipped = false;
 };
 
 TEST_F(FusionTestApi, TestFusionPlanCompilation)
 {
+    auto&& handle = get_handle();
     EXPECT_EQ(miopenCompileFusionPlan(&handle, fusion_plan), 0);
-    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter1), 0);
-    EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &in, d_input, &out, d_output, fusion_args),
+    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter1.get()), 0);
+    EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias.get()), 0);
+    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &h_input.desc, d_input.get(), &h_output.desc, d_output.get(), fusion_args),
               0);
-    hipMemcpy(&h_output[0], d_output, h_output.size() * 4, hipMemcpyDeviceToHost);
+    hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
-    EXPECT_EQ(h_output[0], 64);
+    EXPECT_EQ(h_output.data[0], 64);
 
     // Change fusion parameters (filter), see if it still works properly.
-    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter2), 0);
-    EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &in, d_input, &out, d_output, fusion_args),
+    EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter2.get()), 0);
+    EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias.get()), 0);
+    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &h_input.desc, d_input.get(), &h_output.desc, d_output.get(), fusion_args),
               0);
-    hipMemcpy(&h_output[0], d_output, h_output.size() * 4, hipMemcpyDeviceToHost);
+    hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
-    EXPECT_EQ(h_output[0], 128);
+    EXPECT_EQ(h_output.data[0], 128);
 }
 
 #endif
