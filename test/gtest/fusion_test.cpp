@@ -34,18 +34,6 @@
 
 #if MIOPEN_BACKEND_HIP
 
-std::vector<int> strides(std::vector<int> dims)
-{
-    std::vector<int> strides_array(4);
-    int d = 1;
-    for(int i = 3; i >= 0; --i)
-    {
-        strides_array[i] = d;
-        d *= dims[i];
-    }
-    return strides_array;
-}
-
 class FusionTestApi : public ::testing::Test
 {
 protected:
@@ -57,14 +45,14 @@ protected:
         dims_i = {1, 64, 7, 7};
         dims_o = {1, 64, 7, 7};
         dims_b = {64, 1, 1, 1};
-        zeros = {0, 0, 0, 0};
-        ones = {1, 1, 1, 1};
+        zeros  = {0, 0, 0, 0};
+        ones   = {1, 1, 1, 1};
 
-        h_filter1 = tensor<float>{dims_f, strides(dims_f)};
-        h_filter2 = tensor<float>{dims_f, strides(dims_f)};
-        h_bias    = tensor<float>{dims_b, strides(dims_b)};
-        h_input   = tensor<float>{dims_i, strides(dims_i)};
-        h_output  = tensor<float>{dims_o, strides(dims_o)};
+        h_filter1 = tensor<float>(dims_f);
+        h_filter2 = tensor<float>(dims_f);
+        h_bias    = tensor<float>(dims_b);
+        h_input   = tensor<float>(dims_i);
+        h_output  = tensor<float>(dims_o);
 
         miopenCreateConvolutionDescriptor(&conv);
         miopenInitConvolutionNdDescriptor(
@@ -97,30 +85,6 @@ protected:
         d_output = handle.Write(h_output.data); // not sure
     }
 
-    // void TearDown() override
-    // {
-    //     if(test_skipped)
-    //         return;
-
-    //     auto&& handle = get_handle();
-    //     h_output.data = handle.Read<float>(d_output, h_output.data.size());
-    //     ref_out = tensor<float>{h_output.desc.GetLengths()};
-
-    //     EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-    //     EXPECT_FALSE(miopen::range_zero(h_output)) << "Gpu data is all zeros";
-    //     EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(h_output));
-
-    //     const double tolerance = 80;
-    //     double threshold       = std::numeric_limits<float>::epsilon() * tolerance;
-    //     auto error             = miopen::rms_range(ref_out, h_output);
-
-    //     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
-    //         << "Non finite number found in the CPU data";
-
-    //     EXPECT_TRUE(error < threshold)
-    //         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-    // }
-    
     miopenFusionPlanDescriptor_t fusion_plan;
     miopenOperatorArgs_t fusion_args;
     miopenConvolutionDescriptor_t conv;
@@ -161,7 +125,13 @@ TEST_F(FusionTestApi, TestFusionPlanCompilation)
     EXPECT_EQ(miopenCompileFusionPlan(&handle, fusion_plan), 0);
     EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter1.get()), 0);
     EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias.get()), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &h_input.desc, d_input.get(), &h_output.desc, d_output.get(), fusion_args),
+    EXPECT_EQ(miopenExecuteFusionPlan(&handle,
+                                      fusion_plan,
+                                      &h_input.desc,
+                                      d_input.get(),
+                                      &h_output.desc,
+                                      d_output.get(),
+                                      fusion_args),
               0);
     hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
@@ -170,7 +140,13 @@ TEST_F(FusionTestApi, TestFusionPlanCompilation)
     // Change fusion parameters (filter), see if it still works properly.
     EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter2.get()), 0);
     EXPECT_EQ(miopenSetOpArgsBiasForward(fusion_args, bias_op, &alpha, &beta, d_bias.get()), 0);
-    EXPECT_EQ(miopenExecuteFusionPlan(&handle, fusion_plan, &h_input.desc, d_input.get(), &h_output.desc, d_output.get(), fusion_args),
+    EXPECT_EQ(miopenExecuteFusionPlan(&handle,
+                                      fusion_plan,
+                                      &h_input.desc,
+                                      d_input.get(),
+                                      &h_output.desc,
+                                      d_output.get(),
+                                      fusion_args),
               0);
     hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
     hipDeviceSynchronize();
