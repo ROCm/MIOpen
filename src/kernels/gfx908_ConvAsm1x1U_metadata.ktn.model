@@ -1,5 +1,4 @@
 {
-    "num_conv_params": 7,
     "num_tuning_params": 8,
     "decodings": {
         "tunings": {
