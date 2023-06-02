@@ -619,19 +619,21 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int layer = inflags.GetValueInt("num_layer");
     int bidir = inflags.GetValueInt("bidirection");
 
-    reserveSpace_sz =
+    // not checked
+    // TODO remove
+    size_t reserveSpaceHost_sz =
         2 *
         (inflags.GetValueStr("mode") == "lstm" ? 6
                                                : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
         layer * inputBatchLenSum * hid_h * (bidir + 1);
     if(inflags.GetValueInt("use_dropout"))
     {
-        reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
-        reserveSpace_sz *= sizeof(Tref);
-        reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
-        reserveSpace_sz = (reserveSpace_sz + sizeof(Tref) - 1) / sizeof(Tref);
+        reserveSpaceHost_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
+        reserveSpaceHost_sz *= sizeof(Tref);
+        reserveSpaceHost_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
+        reserveSpaceHost_sz = (reserveSpaceHost_sz + sizeof(Tref) - 1) / sizeof(Tref);
     }
-    reservespace_host = std::vector<Tref>(reserveSpace_sz, static_cast<Tref>(0));
+    reservespace_host = std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0));
 
     if(inflags.GetValueInt("forw") != 1)
     {
