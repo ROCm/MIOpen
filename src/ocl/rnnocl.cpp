@@ -610,6 +610,15 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         }
     };
 
+    auto sync_x_to_all_stream_pull = [&stream_pull](hipStream_t x) {
+        for(int i = 0; i < stream_pull.size(); i++)
+        {
+            const miopen::HipEventPtr sync_event = make_hip_fast_event();
+            hipEventRecord(sync_event.get(), stream_pull[i]);
+            hipStreamWaitEvent(x, sync_event.get(), 0);
+        }
+    };
+
     if(seq_len == 0)
         return;
 
@@ -795,6 +804,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         CopyTensor(
             handle, src_desc, reserveSpace, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
+
+    sync_x_to_all_stream_pull(handle.GetStream());
 #else
     (void)handle;
     (void)seq_array;
