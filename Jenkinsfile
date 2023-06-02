@@ -490,7 +490,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "PERF_TEST",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_FP16",
