@@ -114,10 +114,8 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     std::vector<Allocator::ManageDataPtr>& invoke_bufs,
     miopen::OperatorArgs& params)
 {
-    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
-    conv_problem.bias    = 1;
-    conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
-                           GetTypeSize(conv_problem.GetOutDataType());
+    const int bias = 1;
+    const auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward, bias);
     const auto conv_ctx = context.GetConvContext(conv_problem);
 
     auto& handle = conv_ctx.GetStream();
