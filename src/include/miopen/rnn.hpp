@@ -55,7 +55,7 @@ struct c_array_view
     using value_type =
         typename std::remove_cv<typename std::decay<decltype(deref(*data))>::type>::type;
 
-    size_t size() const { return size; }
+    size_t size() const { return n; }
 
     const value_type& operator[](size_t i) const { return deref(data[i]); }
 
@@ -210,6 +210,25 @@ struct RNNDescriptor : miopenRNNDescriptor
                             size_t workSpaceSize,
                             Data_t reserveSpace,
                             size_t reserveSpaceSize) const;
+
+    void RNNForwardTrainingPackedTensors(Handle& handle,
+                                         const int seqLen,
+                                         c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                         ConstData_t x,
+                                         const TensorDescriptor& hxDesc,
+                                         ConstData_t hx,
+                                         const TensorDescriptor& cxDesc,
+                                         ConstData_t cx,
+                                         const TensorDescriptor& wDesc,
+                                         ConstData_t w,
+                                         c_array_view<const miopenTensorDescriptor_t> yDesc,
+                                         Data_t y,
+                                         const TensorDescriptor& hyDesc,
+                                         Data_t hy,
+                                         const TensorDescriptor& cyDesc,
+                                         Data_t cy,
+                                         Data_t reserveSpace,
+                                         size_t reserveSpaceSize) const;
 
     void RNNForwardTraining_MS(Handle& handle,
                                std::vector<int>& seq_array,

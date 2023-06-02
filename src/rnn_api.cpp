@@ -429,6 +429,15 @@ extern "C" miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
     });
 }
 
+extern "C" miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                  miopenRNNPaddingMode_t *paddingMode)
+{
+    auto ret =
+        miopen::try_([&] { miopen::deref(paddingMode) = miopen::deref(rnnDesc).paddingMode; });
+    MIOPEN_LOG_FUNCTION(rnnDesc, paddingMode);
+    return ret;
+}
+
 static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
                       const miopenRNNDescriptor_t rnnDesc,
                       const int seqLength,

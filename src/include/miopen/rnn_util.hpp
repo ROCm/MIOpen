@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_RNN_UTIL_HPP_
 #define GUARD_MIOPEN_RNN_UTIL_HPP_
 
+#include <miopen/rnn.hpp>
 #include <miopen/miopen.h>
 #include <miopen/common.hpp>
 #include <miopen/handle.hpp>
@@ -118,6 +119,36 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                                    std::size_t dcell_offset_pre,
                                    std::size_t dhidden_offset,
                                    std::size_t f_offset_pre);
+
+struct RNNTensorPaddingConverter
+{
+    static void ConvertTensorData(const Handle& handle,
+                                  const TensorDescriptor& padded_tensor_desc,
+                                  std::vector<int>& bsize_per_time,
+                                  const int seq_len,
+                                  ConstData_t src,
+                                  Data_t dst,
+                                  bool is_src_padded);
+
+    static std::tuple<size_t, size_t>
+    GetTempPackedBuffersSpace(RNNDescriptor rnn_desc,
+                              c_array_view<const miopenTensorDescriptor_t> desc_array)
+    {
+        size_t total_batch = std::accumulate(
+            desc_array.data,
+            desc_array.data + desc_array.size(),
+            0,
+            [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetElementSize(); });
+
+        auto type_size       = GetTypeSize(desc_array[0].GetType());
+        size_t in_buff_size  = type_size * total_batch * desc_array[0].GetLengths()[1];
+        size_t out_buff_size = type_size * total_batch * rnn_desc.hsize *
+                               (rnn_desc.dirMode == miopenRNNbidirection ? 2 : 1);
+        return {in_buff_size, out_buff_size};
+    }
+};
+
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_RNN_UTIL_HPP_

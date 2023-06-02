@@ -2076,7 +2076,128 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        Data_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
-    (void)workSpace;
+    if(x == nullptr || w == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
+       hxDesc.GetSize() != cyDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
+
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+
+    if(paddingMode == miopenRNNIONotPadded)
+    {
+        return RNNForwardTrainingPackedTensors(handle,
+                                               seqLen,
+                                               xDesc,
+                                               x,
+                                               hxDesc,
+                                               hx,
+                                               cxDesc,
+                                               cx,
+                                               wDesc,
+                                               w,
+                                               yDesc,
+                                               y,
+                                               hyDesc,
+                                               hy,
+                                               cyDesc,
+                                               cy,
+                                               reserveSpace,
+                                               reserveSpaceSize);
+    }
+    else
+    {
+        Data_t packedXIn = workSpace;
+        size_t packedXInSize;
+        std::tie(packedXInSize, std::ignore) =
+            RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+
+        Data_t packedYOut = static_cast<void*>(reinterpret_cast<char*>(workSpace) + packedXInSize);
+        
+        // std::vector<TensorDescriptor> packed_desc;
+        // std::vector<miopenTensorDescriptor_t> packed_desc_ptrs;
+        // RNNTensorPaddingConverter::CreatePackedDescriptor()
+        // for future developments: as long as we don't use strides from xDesc and yDesc
+        // we ignoring conversion of this descriptors.
+        std::vector<int> in_n;
+        in_n.resize(seqLen);
+
+        for(int i = 0; i < seqLen; i++)
+        {
+            int batchval, batchvalout;
+            std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
+            std::tie(batchvalout, std::ignore) = miopen::tien<2>(yDesc[i].GetLengths());
+            if(batchval != batchvalout)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Input batch length: " + std::to_string(batchval) +
+                                 ", Output batch length: " + std::to_string(batchvalout));
+            }
+            in_n.push_back(batchval);
+        }
+
+        RNNTensorPaddingConverter::ConvertTensorData(
+            handle, xDesc[0], in_n, seqLen, x, packedXIn, true);
+        
+        RNNDescriptor packedRnnDesc = RNNDescriptor(*this);
+        packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
+
+        packedRnnDesc.RNNForwardTrainingPackedTensors(handle,
+                                        seqLen,
+                                        xDesc,
+                                        packedXIn,
+                                        hxDesc,
+                                        hx,
+                                        cxDesc,
+                                        cx,
+                                        wDesc,
+                                        w,
+                                        yDesc,
+                                        packedYOut,
+                                        hyDesc,
+                                        hy,
+                                        cyDesc,
+                                        cy,
+                                        reserveSpace,
+                                        reserveSpaceSize);
+        
+        RNNTensorPaddingConverter::ConvertTensorData(
+            handle, yDesc[0], in_n, seqLen, packedYOut, y, true);
+    }
+};
+
+void RNNDescriptor::RNNForwardTrainingPackedTensors(
+    Handle& handle,
+    const int seqLen,
+    c_array_view<const miopenTensorDescriptor_t> xDesc,
+    ConstData_t x,
+    const TensorDescriptor& hxDesc,
+    ConstData_t hx,
+    const TensorDescriptor& cxDesc,
+    ConstData_t cx,
+    const TensorDescriptor& wDesc,
+    ConstData_t w,
+    c_array_view<const miopenTensorDescriptor_t> yDesc,
+    Data_t y,
+    const TensorDescriptor& hyDesc,
+    Data_t hy,
+    const TensorDescriptor& cyDesc,
+    Data_t cy,
+    Data_t reserveSpace,
+    size_t reserveSpaceSize) const
+{
 
 #if MIOPEN_USE_GEMM
 
@@ -2096,24 +2217,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
-
-    if(x == nullptr || w == nullptr || y == nullptr)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
-       hxDesc.GetSize() != cyDesc.GetSize())
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
-    {
-        MIOPEN_THROW("Workspace is required");
-    }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
-    {
-        MIOPEN_THROW("Reservespace is required");
-    }
 
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
     int hy_d  = hyDesc.GetLengths()[0];   // biNumLayers
@@ -3434,7 +3537,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     (void)hxDesc;
     (void)cxDesc;
     (void)wDesc;
-    (void)workSpaceSize;
     (void)reserveSpace;
     (void)reserveSpaceSize;
     MIOPEN_THROW("GEMM is not supported");
