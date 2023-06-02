@@ -690,5 +690,27 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
 
     return features;
 }
+void PerformanceConfigAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::RunParameterPredictionModel(
+    const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid)
+{
+    static const std::string& arch = ctx.GetStream().GetDeviceName();
+    static const std::string solver = "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC";
+    static const auto perf_model = ai::tuning::PerfTuningModel{arch, solver};
+
+    std::vector<float> features = TransformFeatures(problem, perf_model.GetNumParams() + 1);
+
+    if(perf_model.ModelSetParams(
+        [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
+        features))
+    {
+        MIOPEN_LOG_I("Parameters set by AI: " << ToString());
+        valid = true;
+    }
+    else
+    {
+        valid = false;
+    }
+}
+#endif
 } // namespace solver
 } // namespace miopen
