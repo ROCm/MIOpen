@@ -4006,6 +4006,15 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
                                                      miopenRNNPaddingMode_t paddingMode);
 
+/*! @brief This function retrieves the RNN padding mode from the RNN descriptor.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param paddingMode     Pointer to the RNN padding mode (output)
+ * @return                miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t* paddingMode);
 
 /*! @brief Execute forward training for recurrent layer
  *
