@@ -1711,7 +1711,7 @@ void CopyTensor(const Handle& handle,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
                 int srcOffset,
-                int dstOffset)
+                int dstOffset, bool forseAsync)
 {
     if(src == nullptr || dst == nullptr)
     {
@@ -1750,7 +1750,8 @@ void CopyTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-    if(srcOffset > 0 || dstOffset > 0 || (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
+    if(forseAsync || srcOffset > 0 || dstOffset > 0 ||
+       (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
     {
         std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 

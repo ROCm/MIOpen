@@ -183,7 +183,8 @@ void CopyTensor(const Handle& handle,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
                 int srcOffset = 0,
-                int dstOffset = 0);
+                int dstOffset   = 0,
+                bool forseAsync = false);
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
