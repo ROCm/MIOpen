@@ -31,9 +31,12 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "verify.hpp"
+#include "cpu_conv.hpp"
+#include "solver.hpp"
 
 #if MIOPEN_BACKEND_HIP
 
+template <typename T = float>
 class FusionTestApi : public ::testing::Test
 {
 protected:
@@ -41,22 +44,23 @@ protected:
     {
         test_skipped = false;
 
-        dims_f = {64, 64, 1, 1};
         dims_i = {1, 64, 7, 7};
         dims_o = {1, 64, 7, 7};
+        dims_f = {64, 64, 1, 1};
         dims_b = {64, 1, 1, 1};
-        zeros  = {0, 0, 0, 0};
+        pads   = {0, 0, 0, 0};
         ones   = {1, 1, 1, 1};
 
-        h_filter1 = tensor<float>(dims_f);
-        h_filter2 = tensor<float>(dims_f);
-        h_bias    = tensor<float>(dims_b);
-        h_input   = tensor<float>(dims_i);
-        h_output  = tensor<float>(dims_o);
+        h_input   = tensor<T>(dims_i);
+        h_output  = tensor<T>(dims_o);
+        h_filter1 = tensor<T>(dims_f);
+        h_filter2 = tensor<T>(dims_f);
+        h_bias    = tensor<T>(dims_b);
+        std::fill(h_output.begin(), h_output.end(), std::numeric_limits<double>::quiet_NaN());
 
         miopenCreateConvolutionDescriptor(&conv);
         miopenInitConvolutionNdDescriptor(
-            conv, 2, zeros.data(), ones.data(), ones.data(), miopenConvolution);
+            conv, 2, pads.data(), ones.data(), ones.data(), miopenConvolution);
         miopenSetConvolutionGroupCount(conv, 1);
 
         // Prepare fusion plan.
@@ -66,60 +70,100 @@ protected:
         miopenCreateOperatorArgs(&fusion_args);
 
         auto&& handle = get_handle();
-        for(auto& x : h_filter1.data)
-            x = 1.0;
-        d_filter1 = handle.Write(h_filter1.data);
-
-        for(auto& x : h_filter2.data)
-            x = 2.0;
-        d_filter2 = handle.Write(h_filter2.data);
-
-        for(auto& x : h_bias.data)
-            x = 0.0;
-        d_bias = handle.Write(h_bias.data);
-
-        for(auto& x : h_input.data)
-            x = 1.0;
+        std::fill(h_input.begin(), h_input.end(), 1.0);
         d_input = handle.Write(h_input.data);
 
+        std::fill(h_filter1.begin(), h_filter1.end(), 1.0);
+        d_filter1 = handle.Write(h_filter1.data);
+
+        std::fill(h_filter2.begin(), h_filter2.end(), 2.0);
+        d_filter2 = handle.Write(h_filter2.data);
+
+        std::fill(h_bias.begin(), h_bias.end(), 0.0);
+        d_bias = handle.Write(h_bias.data);
+
         d_output = handle.Write(h_output.data); // not sure
+    }
+
+    void TearDown() override
+    {
+        if(test_skipped)
+            return;
+
+        auto&& handle = get_handle();
+        h_output.data = handle.Read<T>(d_output, h_output.data.size()); // read
+        miopen::TensorDescriptor conv_output_desc =
+            conv_desc.GetForwardOutputTensor(h_input.desc, h_filter2.desc, GetDataType<T>());
+        // miopen::TensorDescriptor bias_output_desc =
+        //     bias_desc.GetForwardOutputTensor(conv_output_desc.desc, h_bias.desc,
+        //     /*GetDataType<T>()*/float);
+        ref_out = tensor<T>{conv_output_desc.GetLengths()};
+        cpu_convolution_forward(conv_desc.GetSpatialDimension(),
+                                h_input,
+                                h_filter2,
+                                ref_out,
+                                conv_desc.GetConvPads(),
+                                conv_desc.GetConvStrides(),
+                                conv_desc.GetConvDilations(),
+                                conv_desc.GetGroupCount());
+
+        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(h_output)) << "Gpu data is all zeros";
+        EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(h_output));
+
+        const double tolerance = 80;
+        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
+        auto error             = miopen::rms_range(ref_out, h_output);
+
+        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";
+
+        EXPECT_TRUE(error < threshold)
+            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 
     miopenFusionPlanDescriptor_t fusion_plan;
     miopenOperatorArgs_t fusion_args;
     miopenConvolutionDescriptor_t conv;
 
-    std::vector<int> dims_f;
     std::vector<int> dims_i;
     std::vector<int> dims_o;
+    std::vector<int> dims_f;
     std::vector<int> dims_b;
-    std::vector<int> zeros;
+    std::vector<int> pads;
     std::vector<int> ones;
 
     miopenFusionOpDescriptor_t conv_op, bias_op;
 
     float alpha = 1.0, beta = 0.0;
 
-    tensor<float> h_filter1;
-    miopen::Allocator::ManageDataPtr d_filter1;
-
-    tensor<float> h_filter2;
-    miopen::Allocator::ManageDataPtr d_filter2;
-
-    tensor<float> h_bias;
-    miopen::Allocator::ManageDataPtr d_bias;
-
-    tensor<float> h_input;
+    tensor<T> h_input;
     miopen::Allocator::ManageDataPtr d_input;
 
-    tensor<float> h_output;
+    tensor<T> h_filter1;
+    miopen::Allocator::ManageDataPtr d_filter1;
+
+    tensor<T> h_filter2;
+    miopen::Allocator::ManageDataPtr d_filter2;
+
+    tensor<T> h_bias;
+    miopen::Allocator::ManageDataPtr d_bias;
+
+    tensor<T> h_output;
     miopen::Allocator::ManageDataPtr d_output;
 
-    tensor<float> ref_out;
+    tensor<T> ref_out;
+    miopen::ConvolutionDescriptor conv_desc;
+    // miopen::BiasDescriptor bias_desc; // does not exist
+
     bool test_skipped = false;
 };
 
-TEST_F(FusionTestApi, TestFusionPlanCompilation)
+struct FusionTestApiFloat : FusionTestApi<float>
+{
+};
+
+TEST_F(FusionTestApiFloat, TestFusionPlanCompilation)
 {
     auto&& handle = get_handle();
     EXPECT_EQ(miopenCompileFusionPlan(&handle, fusion_plan), 0);
@@ -133,9 +177,11 @@ TEST_F(FusionTestApi, TestFusionPlanCompilation)
                                       d_output.get(),
                                       fusion_args),
               0);
-    hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
-    hipDeviceSynchronize();
-    EXPECT_EQ(h_output.data[0], 64);
+    h_output.data = handle.Read<float>(d_output, h_output.data.size());
+    handle.Finish();
+    // EXPECT_EQ(h_output.data[0], 64);
+    miopen::OperatorArgs* fus_args = static_cast<miopen::OperatorArgs*>(fusion_args);
+    ASSERT_EQ(fus_args->params[0].get(), conv_op);
 
     // Change fusion parameters (filter), see if it still works properly.
     EXPECT_EQ(miopenSetOpArgsConvForward(fusion_args, conv_op, &alpha, &beta, d_filter2.get()), 0);
@@ -148,8 +194,8 @@ TEST_F(FusionTestApi, TestFusionPlanCompilation)
                                       d_output.get(),
                                       fusion_args),
               0);
-    hipMemcpy(&h_output.data[0], d_output.get(), h_output.data.size() * 4, hipMemcpyDeviceToHost);
-    hipDeviceSynchronize();
+    h_output.data = handle.Read<float>(d_output, h_output.data.size());
+    handle.Finish();
     EXPECT_EQ(h_output.data[0], 128);
 }
 
