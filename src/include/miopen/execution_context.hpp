@@ -28,7 +28,9 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
