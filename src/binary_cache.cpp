@@ -123,6 +123,8 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
     boost::filesystem::path sys_path = sys_dir / (Handle::GetDbBasename(target, num_cu) + ".kdb");
     if(user_dir.empty())
         user_path = user_dir;
+    if(!boost::filesystem::exists(sys_path))
+        sys_path = sys_dir / (target.DbId() + ".kdb");
 #if !MIOPEN_EMBED_DB
     if(!boost::filesystem::exists(sys_path))
         sys_path = boost::filesystem::path{};
