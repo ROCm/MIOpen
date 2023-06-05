@@ -642,24 +642,22 @@ bool PerformanceConfigImplicitGemmGTCfwdnchwc::ModelApplyToken(
 {
     switch(index)
     {
-        case 0: precision = value; break; //int
-        case 1: tensor_layout = value; break; //int
+        case 0: config.precision = value; break;
+        case 1: config.tensor_layout = value; break;
         case 2: nxe = value; break; 
         case 3: 
-            tensor_a_thhread_lengths[0] = value;
+            config.tensor_a_thread_lengths[0] = value;
             break;
         case 4:
-            tensor_b_thread_lengths[0] = value;
+            config.tensor_b_thread_lengths[0] = value;
             break;
         case 5: use_spare_set = static_cast<bool>(value); break;
-        case 6: index = value; break;
         default: return false;
-        
     }
     return this->IsValid(problem);
 }
 
-static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& Problem)
+static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
