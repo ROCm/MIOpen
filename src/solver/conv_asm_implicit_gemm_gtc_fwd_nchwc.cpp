@@ -636,23 +636,20 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
 }
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-bool PerformanceConfigImplicitGemmGTCfwdnchwc::ModelApplyToken(
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::ModelApplyToken(
     int index, int value, const ProblemDescription& problem
 )
 {
     switch(index)
     {
-        case 0: config.precision = value; break;
-        case 1: config.tensor_layout = value; break;
-        case 2: nxe = value; break; 
-        case 3: 
-            config.tensor_a_thread_lengths[0] = value;
+        case 0: 
+            this->index = value; 
             break;
-        case 4:
-            config.tensor_b_thread_lengths[0] = value;
+        case 1: 
+            tensor_layout = std::to_string(value); 
             break;
-        case 5: use_spare_set = static_cast<bool>(value); break;
-        default: return false;
+        default: 
+            return false;
     }
     return this->IsValid(problem);
 }
