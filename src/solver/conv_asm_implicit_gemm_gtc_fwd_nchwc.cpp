@@ -681,7 +681,7 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     features[5 * n + 5] = static_cast<float>(problem.GetOutWidth());
     features[6 * n + 6] = static_cast<float>(problem.GetOutHeight());
     features[7 * n + 7] = static_cast<float>(problem.GetOutWidth());
-    features[8 * n + 8] = static_cast<float>(problem.GetoutBatchSize());
+    features[8 * n + 8] = static_cast<float>(problem.GetBatchSize());
 
     return features;
 }
@@ -695,10 +695,9 @@ void PerformanceConfigAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::RunParameterPredic
     std::vector<float> features = TransformFeatures(problem, perf_model.GetNumParams() + 1);
 
     if(perf_model.ModelSetParams(
-        [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
+        [this](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
         features))
     {
-        MIOPEN_LOG_I("Parameters set by AI: " << ToString());
         valid = true;
     }
     else

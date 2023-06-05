@@ -4520,6 +4520,10 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
+    bool ModelApplyToken(int index, int value, const ProblemDescription& problem);
+    static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem);
+    static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n);
+    void RunParameterPredictionModel(const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid);
 };
 
 struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
