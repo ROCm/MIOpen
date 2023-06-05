@@ -137,9 +137,17 @@ miopenConvolutionForwardCompileSolution(handle,
                                    selected->solution_id);                                                   
 ```
 
-## Immediate Mode Fall Back
+## Immediate Mode Fallback
 
-The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest. Immediate mode's behavior when encountering a database miss is to fallback to a GEMM algorithm. The GEMM algorithm will handle most cases, however, if the user requires performance they should run the Find stage at least once. Fallback's `miopenConvolution*GetSolution` returns only one `miopenConvSolution_t` structure and its `time` member contains negative value. Future releases will implement a more robust heuristic based fallback, which is expected to provide better (but still non-optimal) performance.
+The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take, depending on whether the cmake variable MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON or OFF. However, if the user requires the best possible performance they should run the Find stage at least once.
+
+### 1. AI-based Heuristic Fallback (Default)
+
+If MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to ON, which it is by default, Immediate Mode's behavior on a database miss is to use an AI-based heurisitic to pick the optimal solution. First, the applicability of the AI-based heuristic for the given configuration is checked. If the heuristic is applicable, it feeds various parameters of the given configuration into a neural network which has been tuned to predict the optimal solution with 90% accuracy.
+
+### 2. Weighted Throughput Index Based Fallback
+
+When MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK is set to OFF, or the AI Heuristic is not applicable for the given convolution configuration, Immediate mode's behavior on encountering a database miss is to use a Weighted Thoughput Index (WTI) based mechanism to estimate which solution would be optimal based upon parameters of the convolution configuration.
 
 
 
