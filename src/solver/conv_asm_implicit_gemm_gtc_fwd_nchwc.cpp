@@ -665,8 +665,12 @@ static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescri
         
     if(!problem.IsLayoutNCHWC())
         return false;
+
+    return true;
 }
+
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
+//todo: double check transform_features to align it perf tuning model
 {
     assert(n == 9);
     std::vector<float> features(n * n, 0.0f);
@@ -685,7 +689,8 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
 
     return features;
 }
-void PerformanceConfigAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::RunParameterPredictionModel(
+
+void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::RunParameterPredictionModel(
     const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid)
 {
     static const std::string& arch = ctx.GetStream().GetDeviceName();
@@ -694,17 +699,11 @@ void PerformanceConfigAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::RunParameterPredic
 
     std::vector<float> features = TransformFeatures(problem, perf_model.GetNumParams() + 1);
 
-    if(perf_model.ModelSetParams(
-        [this](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
-        features))
-    {
-        valid = true;
-    }
-    else
-    {
-        valid = false;
-    }
+    valid = perf_model.ModelSetParams(
+        [this, &problem](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
+        features);
 }
 #endif
+
 } // namespace solver
 } // namespace miopen
