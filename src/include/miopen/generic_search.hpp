@@ -455,8 +455,14 @@ auto GenericSearch(const Solver s,
                 invoker(profile_h, invoke_ctx);
                 elapsed_time = profile_h.GetKernelTime();
             }
+            catch(const std::exception& e)
+            {
+                MIOPEN_LOG_E("Error: Exception encountered : " << e.what());
+                ret = 1;
+            }
             catch(...)
             {
+                MIOPEN_LOG_E("Error: Unknown exception thrown.");
                 ret = 1;
             }
 

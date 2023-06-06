@@ -48,6 +48,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 
 #include <cassert>
 #include <functional>
@@ -61,6 +62,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -182,7 +185,9 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     {
         auto fallback = bool{};
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
-        if(!sols.empty() && !(findMode.IsHybrid(ctx) && fallback))
+        // override the normal find with immed mode with env var
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             miopen::IsEnabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK{})))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
@@ -528,8 +533,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx        = ConvolutionContext{exec_ctx};
-    const auto legacy_ctx = ProblemDescription{problem};
+    const auto ctx            = ConvolutionContext{exec_ctx};
+    const auto legacy_problem = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -540,42 +545,78 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
 
-    const auto wti2time = [](const float& wti) {
-        assert(wti != 0.0f);
-        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
-            return wti;
-        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
-    };
-
-    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+    // TunaNet Fallback
+#if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
-        // solver_id is always valid here, because taken from registry.
-        // Validity check is not required.
-        const auto algo = solver_id.GetAlgo();
-        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
-            continue;
-        const auto& s = solver_id.GetSolver();
-        // Let's allow non-dynamic later, if necessary.
-        if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
-            continue;
-
-        const auto wti = s.GetWti(ctx, problem);
-        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
-        if(wti < 0.0f) // Skip unknown WTIs.
-            continue;
-
-        interim.emplace_back(miopenConvSolution_t{
-            wti2time(wti), s.GetWorkspaceSize(ctx, legacy_ctx), solver_id.Value(), algo});
+        const static std::string arch = exec_ctx.GetStream().GetDeviceName();
+        auto solvers                  = ai::immed_mode::PredictSolver(legacy_problem, ctx, arch);
+        if(!solvers.empty())
+        {
+            MIOPEN_LOG_I2("Using TunaNet Fallback");
+            const auto ai_time = [](const int& idx) {
+                return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
+            };
+            int idx = 1;
+            for(const auto kinder : solvers)
+            {
+                const auto solver_id = solver::Id{kinder};
+                const auto sol       = solver_id.GetSolver();
+                const auto algo      = solver_id.GetAlgo();
+                if(IsAlgorithmDisabled(algo))
+                    continue;
+                if(!sol.IsDynamic())
+                    continue; // branch should never be taken
+                if(!sol.IsApplicable(ctx, problem))
+                    continue;
+                interim.emplace_back(miopenConvSolution_t{
+                    ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+                ++idx;
+            }
+        }
     }
+#endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 
+    // WTI Fallback
+    // if TunaNet is not enabled or produces no applicable solvers then fallback to WTI
+    if(interim.empty())
+    {
+        MIOPEN_LOG_I2("Using WTI Fallback");
+        const auto wti2time = [](const float& wti) {
+            assert(wti != 0.0f);
+            if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+                return wti;
+            return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+        };
+
+        for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+        {
+            // solver_id is always valid here, because taken from registry.
+            // Validity check is not required.
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+                continue;
+            const auto& s = solver_id.GetSolver();
+            // Let's allow non-dynamic later, if necessary.
+            if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
+                continue;
+
+            const auto wti = s.GetWti(ctx, problem);
+            MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
+            if(wti < 0.0f) // Skip unknown WTIs.
+                continue;
+            interim.emplace_back(miopenConvSolution_t{
+                wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+        }
+    }
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
         MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
                              << " ms, ws: " << s.workspace_size
                              << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
     interim.resize(std::min(maxSolutionCount, interim.size()));
+
     return interim;
 }
 

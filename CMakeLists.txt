@@ -58,7 +58,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI based heuristics")
+set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -160,6 +161,10 @@ else()
 endif()
 
 if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        message(FATAL_ERROR "AI-based fallback for Immediate Mode cannot be used \
+        with database embedding")
+    endif()
     if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
         message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
     endif()
@@ -560,25 +565,19 @@ endfunction()
 
 # Both the lists below should be in sync always
 set(KDB_BZ2_FILES
-    gfx1030_36.kdb.bz2
-    gfx900_56.kdb.bz2
-    gfx900_64.kdb.bz2
-    gfx906_60.kdb.bz2
-    gfx906_64.kdb.bz2
-    gfx90878.kdb.bz2
-    gfx90a68.kdb.bz2
-    gfx90a6e.kdb.bz2
+    gfx90a.kdb.bz2
+    gfx1030.kdb.bz2
+    gfx908.kdb.bz2
+    gfx906.kdb.bz2
+    gfx900.kdb.bz2
 )
 
 set(COMPONENT_LST
-    gfx1030-36kdb
-    gfx900-56kdb
-    gfx900_64kdb
-    gfx906-60kdb
-    gfx906-64kdb
-    gfx908-120kdb
-    gfx90a-104kdb
-    gfx90a-110kdb
+    gfx90akdb
+    gfx1030kdb
+    gfx908kdb
+    gfx906kdb
+    gfx900kdb
 )
 
 foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)

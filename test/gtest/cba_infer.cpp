@@ -40,9 +40,26 @@ struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 {
 };
 
+struct ConvBiasActivInferTestFloatFusionCompileStep : ConvBiasActivInferTest<float>
+{
+};
+
 struct ConvBiasActivInferTestHalf : ConvBiasActivInferTest<half_float::half>
 {
 };
+
+void setEnvironmentVariable(const std::string& name, const std::string& value)
+{
+    int ret = 0;
+
+#ifdef _WIN32
+    std::string env_var(name + "=" + value);
+    ret = _putenv(env_var.c_str());
+#else
+    ret = setenv(name.c_str(), value.c_str(), 1);
+#endif
+    EXPECT_EQ(ret, 0);
+}
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
@@ -130,6 +147,25 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+
+#if MIOPEN_BACKEND_HIP
+TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
+{
+    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
+    fusePlanDesc.Compile(get_handle());
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+
+INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
+                         ConvBiasActivInferTestFloatFusionCompileStep,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(GetNetworkForFusionCompileStepTest()),
+                                          testing::Values(miopenTensorNCHW)));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
