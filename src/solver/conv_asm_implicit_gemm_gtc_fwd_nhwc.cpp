@@ -700,7 +700,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
         // if both 1, indicate padded c support
-        if((c >> tunable->gemm_k_global_split == 0) ||
+        if((c >> gemm_k_global_split == 0) ||
            (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
             return false;
         // also, add this restriction to k, for vector write out
