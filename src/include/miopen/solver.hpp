@@ -3422,6 +3422,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsm
 
     bool use_spare_set;
     int index;
+    std::vector<size_t> potential_configs;
 
     PerformanceConfigAsmImplicitGemmGTC(std::string dir,
                                         std::string layout,
@@ -4166,10 +4167,17 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
+    bool ModelApplyNextToken(int sequence_index, int value, const ProblemDescription& problem);
     size_t ComputeKernelOccupancy() const;
 
 private:
+    void InitPotentialConfigs();
     void SetParamsForKSplit(const ProblemDescription& problem, const size_t& occupancy);
+    void StaticHeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem);
+    bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const;
+    void RunParameterPredictionModel(const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid);
+    bool IsNextTokenValid(const ProblemDescription& problem, int sequence_index) const;
+    bool IsNextTokenValidValue(int sequence_index);
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
