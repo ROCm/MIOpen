@@ -83,18 +83,19 @@ TEST_P(Conv2dHalf, HalfTest)
 #if MIOPEN_USE_MLIR
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
+    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") || // Explicitly disabled archs
        miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
        !miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() != "--half")
     {
         GTEST_SKIP();
     }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x"))
+    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x") ||
+            miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
     {
         Run2dDriver(miopenHalf);
     }
-    else
+    else // Implicitly disabled archs
     {
         GTEST_SKIP();
     }
@@ -109,18 +110,19 @@ TEST_P(Conv2dInt8, Int8Test)
 #if MIOPEN_USE_MLIR
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
+    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") || // Explicitly disabled archs
        miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
        !miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() != "--int8")
     {
         GTEST_SKIP();
     }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x"))
+    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x") ||
+            miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
     {
         Run2dDriver(miopenInt8);
     }
-    else
+    else // Implicitly disabled archs
     {
         GTEST_SKIP();
     }
@@ -195,5 +197,5 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 }
 // Half for FWD, BWD, WRW
 INSTANTIATE_TEST_SUITE_P(Conv2dGroup, Conv2dHalf, testing::Values(GetTestCases("--half")));
-//Int8 for FWD
+// Int8 for FWD
 INSTANTIATE_TEST_SUITE_P(Conv2dGroup, Conv2dInt8, testing::Values(GetTestCases("--int8")));
