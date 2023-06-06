@@ -899,13 +899,15 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
 void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   const TensorDescriptor& padded_tensor_desc,
                                                   std::vector<int>& bsize_per_time,
-                                                  const int seq_len,
                                                   ConstData_t src,
                                                   Data_t dst,
                                                   bool is_src_padded)
 {
-    if(seq_len == 0 || bsize_per_time.size() != seq_len)
-        return;
+    
+    
+    const int seq_len = bsize_per_time.size();
+    if(seq_len == 0)
+        MIOPEN_THROW("Wrong seq_len size");    
 
     auto max_batch_size = bsize_per_time[0];
     auto vector_size    = padded_tensor_desc.GetLengths()[1];
@@ -931,12 +933,17 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
             auto padded_desc =
                 miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size, padded_stride);
 
+            // Result from GetElementSpace does not include the padding from the last sequence
+            // WA: So calculated manually.
+            unsigned int WA_padded_ElementSpace = padded_stride[0] * copy_size[0]; 
+
             if(is_src_padded)
             {
                 CopyTensor(
                     handle, padded_desc, src, packed_desc, dst, src_offset, dst_offset, true);
+                
 
-                src_offset += padded_desc.GetElementSpace();
+                src_offset += WA_padded_ElementSpace;
                 dst_offset += packed_desc.GetElementSpace();
             }
             else
@@ -945,7 +952,7 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                     handle, packed_desc, src, padded_desc, dst, src_offset, dst_offset, true);
 
                 src_offset += packed_desc.GetElementSpace();
-                dst_offset += padded_desc.GetElementSpace();
+                dst_offset += WA_padded_ElementSpace;
             }
             left_id = i;
         }

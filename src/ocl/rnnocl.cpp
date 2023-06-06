@@ -2142,8 +2142,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         // RNNTensorPaddingConverter::CreatePackedDescriptor()
         // for future developments: as long as we don't use strides from xDesc and yDesc
         // we ignoring conversion of this descriptors.
-        std::vector<int> in_n;
-        in_n.resize(seqLen);
+        std::vector<int> in_n(seqLen);
 
         for(int i = 0; i < seqLen; i++)
         {
@@ -2156,13 +2155,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                              "Input batch length: " + std::to_string(batchval) +
                                  ", Output batch length: " + std::to_string(batchvalout));
             }
-            in_n.push_back(batchval);
+            in_n[i] = batchval;
         }
 
         RNNTensorPaddingConverter::ConvertTensorData(
-            handle, xDesc[0], in_n, seqLen, x, packedXIn, true);
+            handle, xDesc[0], in_n, x, packedXIn, true);
         
-        RNNDescriptor packedRnnDesc = RNNDescriptor(*this);
+        RNNDescriptor packedRnnDesc(*this);
         packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
 
         packedRnnDesc.RNNForwardTrainingPackedTensors(handle,
@@ -2185,7 +2184,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         reserveSpaceSize);
         
         RNNTensorPaddingConverter::ConvertTensorData(
-            handle, yDesc[0], in_n, seqLen, packedYOut, y, true);
+            handle, yDesc[0], in_n, packedYOut, y, false);
     }
 };
 

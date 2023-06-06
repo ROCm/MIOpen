@@ -125,7 +125,6 @@ struct RNNTensorPaddingConverter
     static void ConvertTensorData(const Handle& handle,
                                   const TensorDescriptor& padded_tensor_desc,
                                   std::vector<int>& bsize_per_time,
-                                  const int seq_len,
                                   ConstData_t src,
                                   Data_t dst,
                                   bool is_src_padded);
