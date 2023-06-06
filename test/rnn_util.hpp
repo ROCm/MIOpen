@@ -54,6 +54,52 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
     });
 }
 
+inline size_t getSuperTensorSize(const std::vector<int>& bs,
+                                  int seqLength,
+                                  int inputSize,
+                                  int hiddenSize,
+                                  int maxPaddingVal,
+                                  bool isBidirect,
+                                  bool isInput,
+                                  bool isPadded)
+{
+    return static_cast<size_t>(isPadded ? seqLength * maxPaddingVal
+                                         : std::accumulate(bs.begin(), bs.end(), 0)) *
+           static_cast<size_t>(isInput ? inputSize : hiddenSize * (isBidirect ? 2 : 1));
+}
+
+template <typename Tgpu>
+void ChangeDataPadding(const std::vector<Tgpu>& src_array,
+                       std::vector<Tgpu>& dst_array,
+                       const std::vector<int>& batch_list,
+                       int max_batch,
+                       int sample_size,
+                       bool is_src_packed)
+{
+    auto seq_len = batch_list.size();
+
+    auto scr_ptr      = &src_array[0];
+    auto dst_ptr      = &dst_array[0];
+
+    for(int seq_id = 0; seq_id < seq_len; seq_id++)
+    {
+        auto packed_size = batch_list[seq_id] * sample_size;
+
+        std::copy(scr_ptr, scr_ptr + packed_size, dst_ptr);
+
+        if(is_src_packed)
+        {
+            dst_ptr += max_batch * sample_size;
+            scr_ptr += packed_size;
+        }
+        else
+        {
+            scr_ptr += max_batch * sample_size;
+            dst_ptr += packed_size;
+        }
+    }
+}
+
 // RNN VANILLA configs
 inline std::vector<int> get_rnn_num_layers() { return {{1, 3}}; }
 

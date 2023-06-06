@@ -487,6 +487,7 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
            << " -m " << mode
            << " -p " << (miopen::deref(rnnDesc).inputMode == miopenRNNlinear ? "0" : "1")
            << " -r " << (miopen::deref(rnnDesc).dirMode == miopenRNNunidirection ? "0" : "1")
+           << " -q " << (miopen::deref(rnnDesc).paddingMode == miopenRNNIONotPadded ? "0" : "1")
            << " -k " << seqLength;
         if(dir == ForwardInference || dir == ForwardTraining)
            ss << " -c " << ((dir == ForwardTraining)?"0":"1");

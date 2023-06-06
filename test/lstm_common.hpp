@@ -2256,6 +2256,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
     using verify_forward_lstm<T>::nocy;
 
     bool use_dropout;
+    bool use_seqPadding;
     typename std::vector<T>::iterator RSVgpu;
     typename std::vector<T>::iterator RSVcpu;
 
@@ -2280,7 +2281,8 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               const bool pnocx        = false,
                               const bool pnohy        = false,
                               const bool pnocy        = false,
-                              const bool puse_dropout = false)
+                              const bool puse_dropout = false,
+                              const bool puse_seqPadding = false)
         : RSVgpu(pRSVgpu.begin()), RSVcpu(pRSVcpu.begin())
     {
         input          = px;
@@ -2303,6 +2305,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         nohy           = pnohy;
         nocy           = pnocy;
         use_dropout    = puse_dropout;
+        use_seqPadding = puse_seqPadding;
 
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -2341,8 +2344,17 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               batch_seq,
                               hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
-
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
+
+        if(use_seqPadding)
+            out_sz = sizeof(T) * getSuperTensorSize(batch_seq,
+                                        seqLength,
+                                        inputVecLen,
+                                        hiddenSize,
+                                        batch_seq[0],
+                                        dirMode != 0,
+                                        false,
+                                        false);
 
         size_t inputBatchLenSum =
             std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
@@ -2427,6 +2439,20 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         auto&& handle = get_handle();
 
+        std::vector<T> padded_input;
+        if(use_seqPadding)
+        {
+            padded_input.resize(getSuperTensorSize(batch_seq,
+                                                    seqLength,
+                                                    inputVecLen,
+                                                    hiddenSize,
+                                                    batch_seq[0],
+                                                    dirMode != 0,
+                                                    true,
+                                                    use_seqPadding));
+            ChangeDataPadding(input, padded_input, batch_seq, batch_seq[0], inputVecLen, true);
+        }
+
         size_t out_sz           = 0;
         size_t workSpaceSize    = 0;
         size_t reserveSpaceSize = 0;
@@ -2450,11 +2476,12 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
-
-        auto input_dev = handle.Write(input);
+        
+        auto input_dev = !use_seqPadding ? handle.Write(input) : handle.Write(padded_input);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         std::vector<T> output(out_sz / sizeof(T));
+        std::fill(output.begin(), output.end(), static_cast<T>(0));
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
@@ -2510,7 +2537,29 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         reserveSpace =
             handle.Read<T>(reserveSpace_dev, (reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
         std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
-        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
+
+        std::vector<T> output_gpu = handle.Read<T>(output_dev, output.size());
+
+        std::vector<T> packed_output_gpu;
+        if(use_seqPadding)
+        {
+            packed_output_gpu.resize(getSuperTensorSize(batch_seq,
+                                                    seqLength,
+                                                    inputVecLen,
+                                                    hiddenSize,
+                                                    batch_seq[0],
+                                                    dirMode != 0,
+                                                    false,
+                                                    !use_seqPadding));
+            ChangeDataPadding(output_gpu,
+                              packed_output_gpu,
+                              batch_seq,
+                              batch_seq[0],
+                              hiddenSize * ((dirMode != 0) ? 2 : 1),
+                              false);
+        }
+
+        auto retSet = std::make_tuple(!use_seqPadding ? output_gpu : packed_output_gpu,
                                       (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
                                       (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())));
 
@@ -2922,6 +2971,7 @@ struct lstm_basic_driver : test_driver
     bool nocy          = false;
     bool nodcx         = false;
     bool flatBatchFill = false;
+    bool usePadding    = false;
 
     lstm_basic_driver() {}
 
@@ -3036,6 +3086,11 @@ struct lstm_basic_driver : test_driver
                                    type); // defined in superclass testdriver
         }
 
+        if(usePadding) 
+        {
+            miopenSetRNNPaddingMode(rnnDesc, miopenRNNPaddingMode_t::miopenRNNIOWithPadding);
+        }
+
         // Create input tensor
         // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
@@ -3133,6 +3188,8 @@ struct lstm_basic_driver : test_driver
                               hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
         size_t out_sz;
+        size_t out_sz2 = getSuperTensorSize(
+            batchSeq, seqLength, inVecLen, hiddenSize, batchSeq[0], dirMode != 0, false, usePadding);
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         size_t workSpaceSize;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
@@ -3174,7 +3231,7 @@ struct lstm_basic_driver : test_driver
             rnnDesc,         input,      hx,      cx,        weights,   batchSeq, rsvgpu,
             rsvcpu,          hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
             inputMode,       inVecReal,  hx_sz,   nohx,      nocx,      nohy,     nocy,
-            bool(useDropout)});
+            bool(useDropout), usePadding});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
         auto yin = std::get<0>(fwdTrainOutputPair.second);

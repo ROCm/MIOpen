@@ -265,6 +265,7 @@ int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "mode", 'm', "tanh", "RNN Mode (relu, tanh, lstm, gru) (Default=tanh)", "str");
     inflags.AddInputFlag("inputmode", 'p', "0", "linear == 0 or skip == 1, (Default=0)", "int");
+    inflags.AddInputFlag("use_padding", 'q', "0", "packed tensors == 0 or padded == 1, (Default=0)", "int");
     inflags.AddInputFlag("rnnalgo", 'a', "0", "default, fundamental (Default=0)", "int");
     inflags.AddInputFlag("fwdtype",
                          'c',
@@ -515,6 +516,10 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     {
         miopenSetRNNDescriptor(
             rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, data_type);
+    }
+    if(inflags.GetValueInt("use_padding"))
+    {
+        miopenSetRNNPaddingMode(rnnDesc, miopenRNNPaddingMode_t::miopenRNNIOWithPadding);
     }
 
     return miopenStatusSuccess;
@@ -903,6 +908,52 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
+static std::tuple<size_t, size_t>
+GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
+{
+    size_t total_batch = std::accumulate(
+        batchs.begin(), batchs.end(),
+        0);
+
+    size_t in_buff_size = total_batch * in_vec;
+    size_t out_buff_size =
+        total_batch * out_vec;
+    return {in_buff_size, out_buff_size};
+}
+
+template <typename Tgpu>
+void ChangeDataPadding(std::vector<Tgpu>& src_array,
+                       std::vector<Tgpu>& dst_array,
+                       std::vector<int>& batch_list,
+                       int max_batch,
+                       int sample_size,
+                       bool is_src_packed)
+{
+    auto seq_len = batch_list.size();
+
+    auto packed_array = is_src_packed ? &src_array[0] : &dst_array[0];
+    auto padded_array = is_src_packed ? &dst_array[0] : &src_array[0];
+
+    auto cur_padded_ptr = padded_array;
+    auto cur_packed_ptr = packed_array;
+    for(int seq_id = 0; seq_id < seq_len; seq_id++)
+    {
+        auto packed_size = batch_list[seq_id] * sample_size;
+
+        if(is_src_packed)
+        {
+            std::copy(cur_packed_ptr, cur_packed_ptr + packed_size, cur_padded_ptr);
+        }
+        else
+        {
+            std::copy(cur_padded_ptr, cur_padded_ptr + packed_size, cur_packed_ptr);
+        }
+
+        cur_padded_ptr += max_batch * sample_size;
+        cur_packed_ptr += packed_size;
+    }
+}
+
 template <typename Tgpu, typename Tref>
 int RNNDriver<Tgpu, Tref>::RunForwardCPU()
 {
@@ -945,7 +996,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
         miopenGetRNNDescriptor(
             rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
     }
-
+    
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
@@ -953,16 +1004,44 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
     {
         return miopenStatusBadParm;
     }
+    miopenRNNPaddingMode_t paddingMode;
+    miopenGetRNNPaddingMode(rnnDesc, &paddingMode);
+    if(inflags.GetValueInt("use_padding") == 1 &&
+       paddingMode == miopenRNNPaddingMode_t::miopenRNNIONotPadded)
+    {
+        printf("Error at check miopenGetRNNPaddingMode resutl.\n");
+        return miopenStatusInternalError;
+    }
+
+    std::vector<Tgpu>* in_packed  = &in;
+    std::vector<Tref>* out_packed = &outhost;
+
+    std::vector<Tgpu> coverted_in;
+    std::vector<Tref> coverted_out;
+
+    if(paddingMode == miopenRNNIOWithPadding)
+    {
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
+
+        coverted_in.resize(packedXInSize);
+        coverted_out.resize(packedYOutSize);
+
+        ChangeDataPadding(in, coverted_in, in_n, in_n[0], in_h, false);
+
+        in_packed  = &coverted_in;
+        out_packed = &coverted_out;
+    }
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn fwd \n");
         RunRNNForwardGEMMCPUVerify(GetHandle(),
-                                   in,
+                                   *in_packed,
                                    wei,
                                    hy_host,
                                    hx,
-                                   outhost,
+                                   *out_packed,
                                    in_n,
                                    in_h,
                                    adjustedSeqLen,
@@ -983,13 +1062,13 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
         printf("verify lstm fwd \n");
 
         RunLSTMForwardGEMMCPUVerify(GetHandle(),
-                                    in,
+                                    *in_packed,
                                     wei,
                                     hy_host,
                                     hx,
                                     cy_host,
                                     cx,
-                                    outhost,
+                                    *out_packed,
                                     in_n,
                                     in_h,
                                     adjustedSeqLen,
@@ -1009,11 +1088,11 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
         printf("verify gru fwd \n");
 
         RunGRUForwardGEMMCPUVerify(GetHandle(),
-                                   in,
+                                   *in_packed,
                                    wei,
                                    hy_host,
                                    hx,
-                                   outhost,
+                                   *out_packed,
                                    in_n,
                                    in_h,
                                    adjustedSeqLen,
@@ -1031,6 +1110,11 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
     else
     {
         printf("illegal RNN mode");
+    }
+
+    if(paddingMode == miopenRNNIOWithPadding)
+    {
+        ChangeDataPadding(*out_packed, outhost, in_n, in_n[0], out_h, true);
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -1224,7 +1308,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
         miopenGetRNNDescriptor(
             rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
     }
-
+   
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
