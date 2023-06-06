@@ -8,7 +8,6 @@
 #include "get_handle.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
-#define MAKE_TEST_CASE std::make_tuple<std::vector<std::string>, std::string>
 
 std::string GetFloatArg()
 {
@@ -183,39 +182,42 @@ TEST_P(Conv2dBFloat16, BFloat16Test)
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
-
-    std::vector<std::string> winograd      = {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2"};
-    std::vector<std::string> igemm_wrw     = {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",
-                                          "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_4R1"};
-    std::vector<std::string> igemm_fwd     = {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",
-                                          "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_4R1"};
-    std::vector<std::string> igemm_fwd_wrw = {"MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",
-                                              "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_4R1",
-                                              "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_4R1"};
+    std::vector<std::string> winograd = {
+        "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2"}; // WORKAROUND for issue #1008 when set to 0
+    std::vector<std::string> igemm_wrw = {
+        "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",           // WORKAROUND for issue #1008 when set to 0
+        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_4R1"}; // WORKAROUND for issue #874 when set to 0
+    std::vector<std::string> igemm_fwd = {
+        "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",           // WORKAROUND for issue #1008 when set to 0
+        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_4R1"}; // WORKAROUND for issue #874 when set to 0
+    std::vector<std::string> igemm_fwd_wrw = {
+        "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2",           // WORKAROUND for issue #1008 when set to 0
+        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_4R1",  // WORKAROUND for issue #874 when set to 0
+        "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_4R1"}; // WORKAROUND for issue #874 when set to 0
 
     std::string flags                      = " --disable-validation --verbose";
     const std::vector<TestCase> test_cases = {
         // clang-format off
-    MAKE_TEST_CASE(GetEnvVars(winograd), precision + flags + " --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(winograd), precision + flags + " --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(winograd), precision + flags + " --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_wrw), precision + flags + " --input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_wrw), precision + flags + " --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_wrw), precision + flags + " --input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_wrw), precision + flags + " --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_wrw), precision + flags + " --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"),    
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd), precision + flags + " --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd), precision + flags + " --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd), precision + flags + " --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"),
-    MAKE_TEST_CASE(GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1")
+    TestCase{GetEnvVars(winograd), precision + flags + " --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    TestCase{GetEnvVars(winograd), precision + flags + " --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(winograd), precision + flags + " --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_wrw), precision + flags + " --input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_wrw), precision + flags + " --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_wrw), precision + flags + " --input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_wrw), precision + flags + " --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_wrw), precision + flags + " --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_fwd), precision + flags + " --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd), precision + flags + " --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_fwd), precision + flags + " --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    TestCase{GetEnvVars(igemm_fwd_wrw), precision + flags + " --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
         // clang-format on
     };
 
