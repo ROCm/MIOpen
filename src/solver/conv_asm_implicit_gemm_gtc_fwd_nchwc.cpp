@@ -637,11 +637,11 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::ModelApplyToken(int index,
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::ModelApplyToken(int idx,
                                                                        int value,
                                                                        const ProblemDescription& problem)
 {
-    switch(index)
+    switch(idx)
     {
     case 0: this->index = value; break;
     case 1: this->tensor_layout = std::to_string(value); break;
