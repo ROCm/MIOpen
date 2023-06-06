@@ -275,19 +275,21 @@ struct hip_f8
         const auto them = static_cast<float>(rhs);
         return we > them;
     }
-
-    explicit inline HIP_HOST_DEVICE operator double()
+#if 0
+    /*explicit*/ inline HIP_HOST_DEVICE operator double()
     {
-        return static_cast<double>(static_cast<float>(*this));
+        // float tmp = static_cast<float>(*this);
+        // return tmp;
     }
 
-    explicit inline HIP_HOST_DEVICE operator double() const
+    /*explicit*/ inline HIP_HOST_DEVICE operator double() const
     {
-        return static_cast<double>(static_cast<float>(*this));
+        // float tmp = static_cast<float>(*this);
+        // return tmp;
     }
-
+#endif
     // convert to float
-    explicit inline HIP_HOST_DEVICE operator float() const
+    /*explicit*/ inline HIP_HOST_DEVICE operator float() const
     {
         if(T == hip_f8_type::bf8)
         {
@@ -318,7 +320,7 @@ struct hip_f8
     }
 
     // convert to half
-    explicit inline HIP_HOST_DEVICE operator half() const
+    /*explicit*/ inline HIP_HOST_DEVICE operator half() const
     {
         if(T == hip_f8_type::bf8)
         {
@@ -349,7 +351,7 @@ struct hip_f8
     }
 
     // convert to hip_bfloat16
-    explicit inline HIP_HOST_DEVICE operator hip_bfloat16() const;
+    /*explicit*/ inline HIP_HOST_DEVICE operator hip_bfloat16() const;
 
     // check for zero
     inline HIP_HOST_DEVICE bool is_zero() const
