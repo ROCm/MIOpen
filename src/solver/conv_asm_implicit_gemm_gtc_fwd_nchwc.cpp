@@ -33,6 +33,7 @@
 #include <miopen/util_sol.hpp>
 #include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
 #include <nlohmann/json_fwd.hpp>
+#define MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC_AI_HEUR)
