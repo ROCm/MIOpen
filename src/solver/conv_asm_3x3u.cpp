@@ -169,7 +169,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext&,
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
                                const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -247,7 +247,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     PerformanceConfigConvAsm3x3U fromEnv;
     {
         std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS);
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
         if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);

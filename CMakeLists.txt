@@ -449,8 +449,8 @@ set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of system db files")
-    set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path of user db files")
+    set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_BINARY_DIR}/src/kernels" CACHE PATH "Default path of system db files")
+    set(MIOPEN_USER_DB_PATH "${CMAKE_BINARY_DIR}/src/kernels" CACHE PATH "Default path of user db files")
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
@@ -496,50 +496,6 @@ endif()
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/kernels)
-
-# Unpack DB files
-function(unpack_db db_bzip2_file)
-    get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/src/kernels/${__fname})
-        message(STATUS "Installing ${CMAKE_BINARY_DIR}/src/kernels/${__fname}")
-        execute_process(
-            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
-            OUTPUT_FILE ${CMAKE_BINARY_DIR}/src/kernels/${__fname}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src/kernels
-            COMMAND_ERROR_IS_FATAL ANY)
-    endif()
-    unset(__fname)
-endfunction()
-
-set(BZIP_FILES
-        gfx1030_36.db.bz2
-        gfx900_56.db.bz2
-        gfx906_60.db.bz2
-        gfx90878.db.bz2
-        gfx90a68.db.bz2
-        gfx90a6e.db.bz2
-        gfx1030_36.HIP.fdb.txt.bz2
-        gfx803_36.HIP.fdb.txt.bz2
-        gfx803_36.OpenCL.fdb.txt.bz2
-        gfx803_64.HIP.fdb.txt.bz2
-        gfx803_64.OpenCL.fdb.txt.bz2
-        gfx900_56.HIP.fdb.txt.bz2
-        gfx900_56.OpenCL.fdb.txt.bz2
-        gfx900_64.HIP.fdb.txt.bz2
-        gfx900_64.OpenCL.fdb.txt.bz2
-        gfx906_60.HIP.fdb.txt.bz2
-        gfx906_60.OpenCL.fdb.txt.bz2
-        gfx906_64.HIP.fdb.txt.bz2
-        gfx906_64.OpenCL.fdb.txt.bz2
-        gfx90878.HIP.fdb.txt.bz2
-        gfx90878.OpenCL.fdb.txt.bz2
-        gfx90a68.HIP.fdb.txt.bz2
-        gfx90a6e.HIP.fdb.txt.bz2
-    )
-
-foreach(__bzip_file ${BZIP_FILES})
-    unpack_db(${CMAKE_SOURCE_DIR}/src/kernels/${__bzip_file})
-endforeach()
 
 # Begin KDB component install 
 function(install_kdb FILE_NAME COMPONENT_NAME)

@@ -308,7 +308,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
         const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING));
+                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;
@@ -581,7 +581,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
         const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING));
+                                    (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
@@ -744,7 +744,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
         solution.invoker_factory = [=](const std::vector<Kernel>&) {
             const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING));
+                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
             MIOPEN_LOG_FUNCTION("groupconv, 1x1");
 
@@ -840,7 +840,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
             MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
             const bool time_precision = context.GetStream().IsProfilingEnabled() &&
-                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING));
+                                        (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 float time                 = 0;
@@ -1062,7 +1062,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
         const auto wei_spatial_size = std::accumulate(
             wei_spatial.begin(), wei_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
-        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING));
+        const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;

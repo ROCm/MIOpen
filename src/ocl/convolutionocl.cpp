@@ -217,7 +217,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         });
     }
 
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY))
+    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
@@ -396,7 +396,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;
@@ -525,7 +525,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK{}))
     {
         MIOPEN_LOG_I("Disabled via environment");
         return {};
@@ -857,7 +857,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;
@@ -1066,7 +1066,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH);
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && static_cast<bool>(file_name))
     {
         std::string file_name_str = file_name;

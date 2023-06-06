@@ -37,7 +37,7 @@ namespace solver {
 bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;

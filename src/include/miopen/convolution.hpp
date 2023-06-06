@@ -86,8 +86,8 @@ struct ConvolutionAttribute
 
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL{});
             return value;
         }
 
@@ -108,8 +108,8 @@ struct ConvolutionAttribute
     public:
         inline int Get() const
         {
-            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC);
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
             return value;
         }
         operator bool() const

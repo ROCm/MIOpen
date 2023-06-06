@@ -64,7 +64,7 @@ boost::filesystem::path GetLibPath()
 
 std::string GetSystemDbPath()
 {
-    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH);
+    auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
 #if defined(MIOPEN_BUILD_DEV) || defined(_WIN32)
         return "@MIOPEN_SYSTEM_DB_PATH@";

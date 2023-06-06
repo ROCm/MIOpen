@@ -198,19 +198,21 @@ boost::filesystem::path ExpandUser(const std::string& path)
 
 MIOPEN_DECLARE_ENV_VAR(TEMP)
 
-std::string ExpandUser(const std::string& p)
+boost::filesystem::path ExpandUser(const std::string& path)
 {
-    const char* home_dir = GetStringEnv(HOME);
+    const char* home_dir = GetStringEnv(HOME{});
     if (home_dir == nullptr)
     {
-        home_dir = GetStringEnv(TEMP);
+        home_dir = GetStringEnv(TEMP{});
         if (home_dir == nullptr)
         {
             MIOPEN_THROW(miopenStatusInternalError);
         }
     }
-    return ReplaceString(p, "$HOME", home_dir);
+    return {ReplaceString(path, "$HOME", home_dir)};
 }
+
+bool IsNetworkedFilesystem(const boost::filesystem::path&) { return false; }
 
 #endif
 

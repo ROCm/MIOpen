@@ -564,7 +564,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ConvolutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
         return device == "gfx803"                       // Fiji

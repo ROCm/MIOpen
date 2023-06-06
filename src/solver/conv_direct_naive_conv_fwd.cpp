@@ -38,7 +38,7 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD))
+       miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))

@@ -151,7 +151,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
                                                << GetStatusText(status)); \
             (action);                                                     \
         }                                                                 \
-        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))          \
+        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))          \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
@@ -227,7 +227,7 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
+    if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
     {
         list.push_back("-mwavefrontsize64");
         list.push_back("-mcumode");
@@ -322,7 +322,7 @@ static void RemoveCompilerOptionsUnwanted(OptionList& list)
     list.erase(remove_if(list.begin(),
                          list.end(),
                          [&](const auto& option) { // clang-format off
-                             return (!miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
+                             return (!miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN{})
                                     && (IsLinkerOption(option))); // clang-format on
                          }),
                list.end());
@@ -477,7 +477,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS, 0);
+    static const auto control = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{}, 0);
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -621,12 +621,12 @@ public:
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT, 0);
+        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -764,7 +764,7 @@ static void SetIsaName(const ActionInfo& action,
 
 static std::string GetDebugCompilerOptionsInsert()
 {
-    const char* p = miopen::GetStringEnv(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT);
+    const char* p = miopen::GetStringEnv(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT{});
     if(p == nullptr)
         p = "";
     return {p};
@@ -813,7 +813,7 @@ void BuildHip(const std::string& name,
         action.SetLogging(true);
 
         const Dataset exe;
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN{}))
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
@@ -1103,7 +1103,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
             (action);                                                                           \
         }                                                                                       \
-        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                              \
+        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))                              \
             MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 
@@ -1238,11 +1238,11 @@ public:
 private:
     void LogInputFile(const std::string& name, const std::string& content)
     {
-        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT, 0);
+            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
             if(show_first > 0)
             {
                 const auto text_length =

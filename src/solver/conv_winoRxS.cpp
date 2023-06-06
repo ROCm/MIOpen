@@ -613,7 +613,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
 {
     if(IS2X3)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
         if(problem.GetGroupCount() == 1 && !problem.direction.IsBackwardWrW())
@@ -622,7 +622,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     }
     if(IS3X2)
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
     }
     return IsApplicableBase<Winodata, Winofilter>(ctx, problem);
@@ -639,13 +639,13 @@ GetPerfConfFromEnv(const ConvolutionContext& ctx)
 
     if(IS2X3)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS);
-        env_name = __MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
+        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
     }
     else if(IS3X2)
     {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS);
-        env_name = __MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
+        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
     }
 
     if(p_asciz == nullptr)
@@ -1011,7 +1011,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
     return IsApplicableBase<2, 3>(ctx, problem) && problem.GetGroupCount() == 1;
 }

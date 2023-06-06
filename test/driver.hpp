@@ -147,7 +147,7 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto e = miopen::GetStringEnv(MIOPEN_VERIFY_CACHE_PATH);
+        auto e = miopen::GetStringEnv(MIOPEN_VERIFY_CACHE_PATH{});
         if(e == nullptr)
             return "~/.cache/miopen/tests";
         else

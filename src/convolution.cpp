@@ -77,7 +77,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
                                  const miopen::ProblemDescription& problem)
 {
 #if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM) ||
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) ||
        miopen::any_of(problem.conv_problem.GetConv().GetConvDilations(),
                       [](auto v) { return v > 1; }))
         return 0;
@@ -92,7 +92,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx,
                                          const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return 0;
     return GetMaxWorkSpaceSize(FindAllImplicitGemmWorkspaceSizes(ctx, problem));
 }
@@ -100,7 +100,7 @@ std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx,
                                    const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
     return GetMaxWorkSpaceSize(AllDirectForwardBackwardDataWorkspaceSize(ctx, problem));
 }
@@ -108,7 +108,7 @@ std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx,
                                 const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return 0;
     return GetMaxWorkSpaceSize(AllFFTForwardBackwardDataWorkspaceSize(ctx, problem));
 }
@@ -116,7 +116,7 @@ std::size_t GetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx,
                                      const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
     return GetMaxWorkSpaceSize(FindAllWinogradWorkspaceSizes(ctx, problem));
 }
@@ -124,7 +124,7 @@ std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ConvolutionContext& ctx,
                                       const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
     return GetMaxWorkSpaceSize(AllDirectBwdWrW2DWorkspaceSize(ctx, problem));
 }
@@ -132,7 +132,7 @@ std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ConvolutionContext& ctx,
                                         const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
     return GetMaxWorkSpaceSize(FindWinogradWrWWorkspaceSizes(ctx, problem));
 }
@@ -140,7 +140,7 @@ std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ConvolutionContext& ctx,
 std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ConvolutionContext& ctx,
                                             const miopen::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return 0;
     return GetMaxWorkSpaceSize(FindImplicitGemmWrWWorkspaceSizes(ctx, problem));
 }
@@ -381,7 +381,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return false;
 
     // Disable this performance optimization when we want to run some specific Solver.
@@ -402,7 +402,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
                                                     const TensorDescriptor& dwDesc) const
 {
 #if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         return 0;
 
     const auto problem =

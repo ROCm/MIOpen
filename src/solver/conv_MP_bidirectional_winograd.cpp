@@ -157,7 +157,7 @@ static bool IsApplicableGEMM(const ProblemDescription& problem)
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -204,7 +204,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 #endif
 
     {
-        std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX);
+        std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX{});
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
@@ -245,7 +245,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
     DEFINE_SHADER_ALIASES(problem)
     {
         const miopenDataType_t transform_data_type =
-            miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+            miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
                 ? problem.GetInDataType()
                 : miopenFloat;
 
@@ -336,19 +336,19 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3{}))
             return false;
     if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3{}))
             return false;
     if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3{}))
             return false;
     if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3{}))
             return false;
     if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3{}))
             return false;
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem);
@@ -359,7 +359,7 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const ConvolutionContext&, const ProblemDescription& problem) const
 {
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -414,7 +414,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                      GetTypeSize(problem.GetWeightsDataType()));
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
     auto wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
@@ -649,7 +649,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const size_t g_wk_0 = n_groups * l_wk[0];
     const std::vector<size_t> g_wk{g_wk_0, 1, 1};
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
     std::ostringstream options_in;
@@ -741,7 +741,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     DEFINE_GETXFORMHWSIZE()
     int batch_count = wino_xform_h * wino_xform_w * problem.GetGroupCount();
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -797,7 +797,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
 {
 #if MIOPEN_BACKEND_HIP
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
+        miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
             ? problem.GetInDataType()
             : miopenFloat;
     WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
@@ -850,19 +850,19 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3{}))
             return false;
     if(wino_data_tile == 5 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3{}))
             return false;
     if(wino_data_tile == 4 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
             return false;
     if(wino_data_tile == 3 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
             return false;
     if(wino_data_tile == 2 && wino_filter_tile == 3)
-        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
             return false;
 
     const auto xdlops_problem = GetTransformedProblem(problem);
