@@ -26,6 +26,7 @@
 #include "log_test_helper.hpp"
 
 #include <miopen/config.h>
+#include <miopen/fusion_plan.hpp>
 #include <stdlib.h>
 
 #if MIOPEN_BACKEND_OPENCL
@@ -51,6 +52,11 @@ const std::string logFindConv =
     "MIOpen(" BKEND
     "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
+
+const std::string logFusionConvBiasActiv =
+    "MIOpen(" BKEND
+    "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 128 -c 3 -H 32 -W 32 "
+    "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -g 1";
 
 const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 
@@ -148,15 +154,38 @@ struct Conv
     Tensor input;
     Tensor output;
     Tensor weights;
+    Tensor bias;
     miopenConvolutionDescriptor_t convDesc;
 
-    Conv() : input(128, 3, 32, 32), output(128, 64, 32, 32), weights(64, 3, 3, 3)
+    Conv()
+        : input(128, 3, 32, 32), output(128, 64, 32, 32), weights(64, 3, 3, 3), bias(64, 1, 32, 1)
     {
         EXPECT_EQ(miopenCreateConvolutionDescriptor(&convDesc), 0);
         EXPECT_EQ(miopenInitConvolutionDescriptor(convDesc, miopenConvolution, 1, 1, 1, 1, 1, 1),
                   0);
     }
     ~Conv() { miopenDestroyConvolutionDescriptor(convDesc); }
+};
+
+struct CreateFusionPlan
+{
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+
+    void CBAPlan()
+    {
+        Conv conv_obj;
+
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, conv_obj.input.desc);
+
+        auto convoOp = std::make_shared<miopen::ConvForwardOpDescriptor>(
+            miopen::deref(conv_obj.convDesc), miopen::deref(conv_obj.weights.desc));
+        auto biasOp =
+            std::make_shared<miopen::BiasFusionOpDescriptor>(miopen::deref(conv_obj.weights.desc));
+        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(miopenActivationRELU);
+        miopen::deref(fusePlanDesc).AddOp(convoOp);
+        miopen::deref(fusePlanDesc).AddOp(biasOp);
+        miopen::deref(fusePlanDesc).AddOp(activOp);
+    }
 };
 
 static bool isSubStr(const std::string& str, const std::string& sub_str)
@@ -192,6 +221,36 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
 
     // get the captured string
     std::string str = capture_cerr.getString();
+    // now do the assertions
+    if(set_env)
+        ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+    else
+        ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+}
+
+void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
+                      std::string env_var,
+                      std::string sub_str,
+                      bool set_env)
+{
+    // start capturing std::cerr
+    CerrRedirect capture_cerr;
+    // prepare tensor and convolution descriptors
+    Conv test_conv_log;
+    if(set_env)
+        setEnvironmentVariable(env_var, "1");
+    else
+        unSetEnvironmentVariable(env_var);
+
+    CreateFusionPlan fp_create;
+
+    fp_create.CBAPlan();
+
+    func(fp_create.fusePlanDesc);
+
+    // get the captured string
+    std::string str = capture_cerr.getString();
+
     // now do the assertions
     if(set_env)
         ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;

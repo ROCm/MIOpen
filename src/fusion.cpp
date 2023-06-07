@@ -158,6 +158,176 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
                                               gfx90aaltimpl);
 }
 
+namespace debug {
+
+int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
+{
+    int fusion_mode = -1;
+
+    if(deref(fusePlanDesc).op_map.size() == 4 &&
+       (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpBatchNormInference) &&
+       (deref(fusePlanDesc).op_map[3]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 0;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 3 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference) &&
+            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 1;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpBatchNormInference) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 2;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference))
+    {
+        fusion_mode = 3;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 3 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 4;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 5;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward))
+    {
+        fusion_mode = 6;
+    }
+
+    if(fusion_mode < 0)
+    {
+        MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
+    }
+
+    return fusion_mode;
+}
+
+std::string FusionConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
+                                          const miopenTensorDescriptor_t& wDesc,
+                                          const miopenConvolutionDescriptor_t& convDesc,
+                                          const miopenTensorDescriptor_t& yDesc,
+                                          int fuse_mode)
+{
+    std::stringstream ss;
+
+    ss << "CBAInfer -F " << fuse_mode;
+    if(deref(convDesc).GetSpatialDimension() == 2)
+    {
+        ss << " -n " << deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << deref(xDesc).GetLengths()[1]
+            << " -H " << deref(xDesc).GetLengths()[2]
+            << " -W " << deref(xDesc).GetLengths()[3]
+            << " -k " << deref(wDesc).GetLengths()[0]
+            << " -y " << deref(wDesc).GetLengths()[2]
+            << " -x " << deref(wDesc).GetLengths()[3]
+            << " -p " << deref(convDesc).GetConvPads()[0]
+            << " -q " << deref(convDesc).GetConvPads()[1]
+            << " -u " << deref(convDesc).GetConvStrides()[0]
+            << " -v " << deref(convDesc).GetConvStrides()[1]
+            << " -l " << deref(convDesc).GetConvDilations()[0]
+            << " -j " << deref(convDesc).GetConvDilations()[1]; // clang-format on
+        std::string x_layout = deref(xDesc).GetLayout("NCHW");
+        std::string w_layout = deref(wDesc).GetLayout("NCHW");
+        std::string y_layout = deref(yDesc).GetLayout("NCHW");
+        if(x_layout != "NCHW")
+        {
+            ss << " --in_layout " << x_layout;
+        }
+        if(w_layout != "NCHW")
+        {
+            ss << " --fil_layout " << w_layout;
+        }
+        if(y_layout != "NCHW")
+        {
+            ss << " --out_layout " << y_layout;
+        }
+    }
+    else if(deref(convDesc).GetSpatialDimension() == 3)
+    {
+        ss << " -n " << deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << deref(xDesc).GetLengths()[1]
+            << " --in_d " << deref(xDesc).GetLengths()[2]
+            << " -H " << deref(xDesc).GetLengths()[3]
+            << " -W " << deref(xDesc).GetLengths()[4]
+            << " -k " << deref(wDesc).GetLengths()[0]
+            << " --fil_d " << deref(wDesc).GetLengths()[2]
+            << " -y " << deref(wDesc).GetLengths()[3]
+            << " -x " << deref(wDesc).GetLengths()[4]
+            << " --pad_d " << deref(convDesc).GetConvPads()[0]
+            << " -p " << deref(convDesc).GetConvPads()[1]
+            << " -q " << deref(convDesc).GetConvPads()[2]
+            << " --conv_stride_d " << deref(convDesc).GetConvStrides()[0]
+            << " -u " << deref(convDesc).GetConvStrides()[1]
+            << " -v " << deref(convDesc).GetConvStrides()[2]
+            << " --dilation_d " << deref(convDesc).GetConvDilations()[0]
+            << " -l " << deref(convDesc).GetConvDilations()[1]
+            << " -j " << deref(convDesc).GetConvDilations()[2]
+            << " --spatial_dim 3"; // clang-format on
+        std::string x_layout = deref(xDesc).GetLayout("NCDHW");
+        std::string w_layout = deref(wDesc).GetLayout("NCDHW");
+        std::string y_layout = deref(yDesc).GetLayout("NCDHW");
+        if(x_layout != "NCDHW")
+        {
+            ss << " --in_layout " << x_layout;
+        }
+        if(w_layout != "NCDHW")
+        {
+            ss << " --fil_layout " << w_layout;
+        }
+        if(y_layout != "NCDHW")
+        {
+            ss << " --out_layout " << y_layout;
+        }
+    }
+    ss << " -g " << deref(convDesc).group_count;
+
+    return ss.str();
+}
+
+void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
+{
+    int fusion_mode = GetFusionMode(fusePlanDesc);
+    if(miopen::IsLoggingCmd())
+    {
+        if(fusion_mode == 4)
+        {
+            const auto& conv_op =
+                dynamic_cast<ConvForwardOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
+
+            const miopenTensorDescriptor_t& xDesc         = &deref(fusePlanDesc).input_desc;
+            const miopenTensorDescriptor_t& wDesc         = &conv_op->filter_desc;
+            const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
+            const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
+            // convolution
+            const std::string& str =
+                FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, fusion_mode);
+            MIOPEN_LOG_DRIVER_CMD(str);
+        }
+        else
+        {
+            // TODO: logging of other fused operators
+        }
+    }
+}
+} // namespace debug
+
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),
@@ -506,6 +676,7 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
+    miopen::debug::LogCmdFusion(this);
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
@@ -592,6 +763,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");
     }
+
+    miopen::debug::LogCmdFusion(this);
 
     const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
     const auto plan_params =
