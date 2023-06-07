@@ -31,7 +31,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/util_sol.hpp>
-#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
@@ -736,7 +736,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsNextTokenValidValue(int
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsNextTokenValid(
-    const ProblemDescription& problem, int sequence_index) const
+    const ProblemDescription& problem, int sequence_index)
 {
     if(sequence_index == 0)
     {
@@ -894,14 +894,19 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::RunParameterPredictionMod
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC";
     static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
-    std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
+    //todo double check third argument in features
+    std::vector<float> features     = TransformFeatures(problem, n);
     if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
            return this->ModelApplyNextToken(idx, value, problem);
        }))
-    //todo: add logger info
+    {
+        valid = True;
+        //todo: add logger info
+    }
+    
 }
 
-void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInitAI(
+void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInitAI(
     const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
