@@ -636,15 +636,17 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
         return true;
     const auto& config_list = GetFwdXdlopsNHWCConfigList();
-    if(index >= config_list.size())
-        return false;
-    return *this == config_list[index];
+    if(index < config_list.size() && *this == config_list[index])
+        return true;
+    return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const ProblemDescription& problem) const
 {
@@ -697,9 +699,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        // in case k split too large
-        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
-            return false;
         // if both 1, indicate padded c support
         if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
             return false;
@@ -841,7 +840,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx940"))
         return false;
 
     if(!ctx.use_asm_kernels)
