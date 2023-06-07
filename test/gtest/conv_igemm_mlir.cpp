@@ -70,8 +70,9 @@ void Run2dDriver(miopenDataType_t prec)
         GetArgs(test_value, tokens);
         std::vector<const char*> ptrs;
 
-        for(std::string const& str : tokens)
-            ptrs.push_back(str.data());
+        std::transform(tokens.begin(), tokens.end(), std::back_inserter(ptrs), [](const auto& str) {
+            return str.data();
+        });
 
         testing::internal::CaptureStderr();
         test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
