@@ -33,7 +33,6 @@
 #include <miopen/util_sol.hpp>
 #include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
 #include <nlohmann/json_fwd.hpp>
-#define MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC_AI_HEUR)
@@ -320,7 +319,6 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
         std::make_tuple(32, 128, 32),  std::make_tuple(64, 32, 32),   std::make_tuple(32, 64, 32),
         std::make_tuple(32, 32, 32),
     };
-
 #ifdef DEBUG_IGEMM_ASM_FWD_NCHWC_CHECK_VALID_TILE_LIST
     const auto& c_list = GetFwdDlopsNCHWCConfigList();
     for(const auto& tile : tile_list_Halfx4)
@@ -636,45 +634,248 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     return result;
 }
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::ModelApplyToken(int idx,
-                                                                       int value,
-                                                                       const ProblemDescription& problem)
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsNextTokenValidValue(int sequence_index)
 {
-    switch(idx)
+    static const auto& configs = GetFwdDlopsNCHWCConfigList();
+    std::vector<std::size_t> new_potential_configs;
+    new_potential_configs.reserve(this->potential_configs.size());
+    for(std::size_t i : this->potential_configs)
     {
-    case 0: this->index = value; break;
-    case 1: this->tensor_layout = std::to_string(value); break;
-    default: return false;
+        switch(sequence_index)
+        {
+            case 0:
+                if(configs[i].nxe == this->nxe)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 1:
+                if(configs[i].gemm_m_per_block == this->gemm_m_per_block)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 2:
+                if(configs[i].gemm_n_per_block == this->gemm_n_per_block)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 3:
+                if(configs[i].gemm_k_per_block == this->gemm_k_per_block)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 4:
+                if(configs[i].wave_tile_m == this->wave_tile_m)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 5:
+                if(configs[i].wave_tile_n == this->wave_tile_n)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 6:
+                if(configs[i].wave_tile_k == this->wave_tile_k)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 7:
+                if(configs[i].wave_step_m == this->wave_step_m)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 8:
+                if(configs[i].wave_step_n == this->wave_step_n)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 9:
+                if(configs[i].wave_repeat_m == this->wave_repeat_m)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 10:
+                if(configs[i].wave_repeat_n == this->wave_repeat_n)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 11:
+                if(configs[i].vector_store == this->vector_store)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 12:
+                if(configs[i].gemm_k_global_split == this->gemm_k_global_split)
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 13:
+                if(configs[i].tensor_a_thread_lengths[1] == this->tensor_a_thread_lengths[1])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 14:
+                if(configs[i].tensor_a_thread_lengths[3] == this->tensor_a_thread_lengths[3])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 15:
+                if(configs[i].tensor_a_cluster_lengths[1] == this->tensor_a_cluster_lengths[1])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 16:
+                if(configs[i].tensor_a_cluster_lengths[3] == this->tensor_a_cluster_lengths[3])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 17:
+                if(configs[i].tensor_b_thread_lengths[1] == this->tensor_b_thread_lengths[1])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 18:
+                if(configs[i].tensor_b_thread_lengths[3] == this->tensor_b_thread_lengths[3])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 19:
+                if(configs[i].tensor_b_cluster_lengths[1] == this->tensor_b_cluster_lengths[1])
+                    new_potential_configs.emplace_back(i);
+                break;
+            case 20:
+                if(configs[i].tensor_b_cluster_lengths[3] == this->tensor_b_cluster_lengths[3])
+                    new_potential_configs.emplace_back(i);
+                break;
+        }
     }
-    return this->IsValid(problem);
+    if(new_potential_configs.empty())
+        return false;
+    this->potential_configs = new_potential_configs;
+    return true;
 }
 
-static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsNextTokenValid(
+    const ProblemDescription& problem, int sequence_index) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
-        return false;
-
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name != "gfx1030")
-        return false;
-
-    if(!problem.IsLayoutNCHWC())
-        return false;
-
+    if(sequence_index == 0)
+    {
+        const auto y          = problem.GetWeightsHeight();
+        const auto x          = problem.GetWeightsWidth();
+        const auto stride_h   = problem.GetKernelStrideH();
+        const auto stride_w   = problem.GetKernelStrideW();
+        const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+        const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+        const auto pad_h      = problem.GetPadH();
+        const auto pad_w      = problem.GetPadW();
+        bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
+                    (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+        if((nxe == 0) && !unit_conv)
+        {
+            return false;
+        }
+         // add more restriction for spare
+        if(use_spare_set)
+        {
+            // non 1x1 kernel(except padding gemm_k) can't run 1x1 case
+            if(unit_conv && nxe != 0)
+                return false;
+        }
+    }
+    if(sequence_index == 14)
+    {
+        if(this->precision == "fp32")
+        {
+            const auto k          = problem.GetInChannels();
+            const auto group = problem.GetGroupCount();
+            if((k / group) % tensor_a_thread_lengths[3] != 0)
+            {
+                return false;
+            }
+        }
+    }
+    if(sequence_index == 18)
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+            if(problem.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 &&
+            vector_store != 1)
+                return false;
+        if(this->precision == "fp32")
+        {
+            const auto c          = problem.GetOutChannels();
+            const auto group = problem.GetGroupCount();
+            if((c / group) % tensor_b_thread_lengths[3] != 0)
+            {
+                return false;
+            }
+        }
+    }
     return true;
+}
+
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::ModelApplyNextToken(
+    int sequence_index, int value, const ProblemDescription& problem)
+{
+    switch(sequence_index)
+    {
+        case 0:
+            this->nxe = value;
+            break;
+        case 1:
+            this->gemm_m_per_block = value;
+            break;
+        case 2:
+            this->gemm_n_per_block = value;
+            break;
+        case 3:
+            this->gemm_k_per_block = value;
+            break;
+        case 4:
+            this->wave_tile_m = value;
+            break;
+        case 5:
+            this->wave_tile_n = value;
+            break;
+        case 6:
+            this->wave_tile_k = value;
+            break;
+        case 7:
+            this->wave_step_m = value;
+            break;
+        case 8:
+            this->wave_step_n = value;
+            break;
+        case 9:
+            this->wave_repeat_m = value;
+            break;
+        case 10:
+            this->wave_repeat_n = value;
+            break;
+        case 11:
+            this->vector_store = value;
+            break;
+        case 12:
+            this->gemm_k_global_split = value;
+            break;
+        case 13:
+            this->tensor_a_thread_lengths[1] = value;
+            break;
+        case 14:
+            this->tensor_a_thread_lengths[3] = value;
+            break;
+        case 15:
+            this->tensor_a_cluster_lengths[1] = value;
+            break;
+        case 16:
+            this->tensor_a_cluster_lengths[3] = value;
+            break;
+        case 17:
+            this->tensor_b_thread_lengths[1] = value;
+            break;
+        case 18:
+            this->tensor_b_thread_lengths[3] = value;
+            break;
+        case 19:
+            this->tensor_b_cluster_lengths[1] = value;
+            break;
+        case 20:
+            this->tensor_b_cluster_lengths[3] = value;
+            break;
+        default:
+            return false;
+    }
+    return this->IsNextTokenValid(problem, sequence_index) && this->IsNextTokenValidValue(sequence_index);
 }
 
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
 {
     assert(n == 9);
     std::vector<float> features(n * n, 0.0f);
+
     features[0] = problem.IsFp32() ? 2.0f : 1.0f;
 
     int offset = (problem.direction.IsForward() ? 1 : 2);
     features[offset * n + offset] = 1.0f;
-
     features[2 * n + 2] = static_cast<float>(problem.GetInChannels());
     features[3 * n + 3] = static_cast<float>(problem.GetOutChannels());
     features[4 * n + 4] = static_cast<float>(problem.GetInHeight());
@@ -689,21 +890,39 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
 void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::RunParameterPredictionModel(
     const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid)
 {
-    if (!IsModelApplicable(ctx, problem))
-    {
-        valid = false;
-        return;
-    }
+    static const std::size_t n = 9;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC";
     static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
     std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
-
-    valid = perf_model.ModelSetParams(
-        [this, &problem](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
-        features);
+    if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
+           return this->ModelApplyNextToken(idx, value, problem);
+       }))
+    //todo: add logger info
 }
+
+void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInitAI(
+    const ConvolutionContext& ctx, const ProblemDescription& problem)
+{
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    if(IsModelApplicable(ctx, problem))
+    {
+        this->nxb                   = 0;
+        this->multihead             = 0;
+        this->merge_e               = 0;
+        this->tensor_a_pass_through = 0;
+        this->precision = problem.IsFp32() ? "fp32" : (problem.IsFp16() ? "fp16" : "bf16");
+        this->InitPotentialConfigs();
+        bool valid = false;
+        RunParameterPredictionModel(ctx, problem, valid);
+        if(valid)
+            return;
+    }
+#else
+    std::ignore = ctx;
 #endif
+    HeuristicInit(ctx, problem);
+}
 
 } // namespace solver
 } // namespace miopen
