@@ -54,9 +54,8 @@ const std::string logFindConv =
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 
 const std::string logFusionConvBiasActiv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 128 -c 3 -H 32 -W 32 "
-    "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -g 1";
+    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4  -n 128 -c 3 -H 32 "
+    "-W 32 -k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1";
 
 const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 
@@ -235,13 +234,12 @@ void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> co
 {
     // start capturing std::cerr
     CerrRedirect capture_cerr;
-    // prepare tensor and convolution descriptors
-    Conv test_conv_log;
+
     if(set_env)
         setEnvironmentVariable(env_var, "1");
     else
         unSetEnvironmentVariable(env_var);
-
+    // prepare fusion plan
     CreateFusionPlan fp_create;
 
     fp_create.CBAPlan();

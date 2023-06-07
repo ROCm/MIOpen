@@ -44,6 +44,20 @@
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
         return x;
+
+enum class ConvDirection
+{
+    Fwd = 1,
+    Bwd = 2,
+    WrW = 4
+};
+std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
+                                    const miopenTensorDescriptor_t& wDesc,
+                                    const miopenConvolutionDescriptor_t& convDesc,
+                                    const miopenTensorDescriptor_t& yDesc,
+                                    const ConvDirection& conv_dir,
+                                    bool is_immediate);
+
 namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
@@ -219,93 +233,11 @@ int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
     return fusion_mode;
 }
 
-std::string FusionConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
-                                          const miopenTensorDescriptor_t& wDesc,
-                                          const miopenConvolutionDescriptor_t& convDesc,
-                                          const miopenTensorDescriptor_t& yDesc,
-                                          int fuse_mode)
-{
-    std::stringstream ss;
-
-    ss << "CBAInfer -F " << fuse_mode;
-    if(deref(convDesc).GetSpatialDimension() == 2)
-    {
-        ss << " -n " << deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << deref(xDesc).GetLengths()[1]
-            << " -H " << deref(xDesc).GetLengths()[2]
-            << " -W " << deref(xDesc).GetLengths()[3]
-            << " -k " << deref(wDesc).GetLengths()[0]
-            << " -y " << deref(wDesc).GetLengths()[2]
-            << " -x " << deref(wDesc).GetLengths()[3]
-            << " -p " << deref(convDesc).GetConvPads()[0]
-            << " -q " << deref(convDesc).GetConvPads()[1]
-            << " -u " << deref(convDesc).GetConvStrides()[0]
-            << " -v " << deref(convDesc).GetConvStrides()[1]
-            << " -l " << deref(convDesc).GetConvDilations()[0]
-            << " -j " << deref(convDesc).GetConvDilations()[1]; // clang-format on
-        std::string x_layout = deref(xDesc).GetLayout("NCHW");
-        std::string w_layout = deref(wDesc).GetLayout("NCHW");
-        std::string y_layout = deref(yDesc).GetLayout("NCHW");
-        if(x_layout != "NCHW")
-        {
-            ss << " --in_layout " << x_layout;
-        }
-        if(w_layout != "NCHW")
-        {
-            ss << " --fil_layout " << w_layout;
-        }
-        if(y_layout != "NCHW")
-        {
-            ss << " --out_layout " << y_layout;
-        }
-    }
-    else if(deref(convDesc).GetSpatialDimension() == 3)
-    {
-        ss << " -n " << deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << deref(xDesc).GetLengths()[1]
-            << " --in_d " << deref(xDesc).GetLengths()[2]
-            << " -H " << deref(xDesc).GetLengths()[3]
-            << " -W " << deref(xDesc).GetLengths()[4]
-            << " -k " << deref(wDesc).GetLengths()[0]
-            << " --fil_d " << deref(wDesc).GetLengths()[2]
-            << " -y " << deref(wDesc).GetLengths()[3]
-            << " -x " << deref(wDesc).GetLengths()[4]
-            << " --pad_d " << deref(convDesc).GetConvPads()[0]
-            << " -p " << deref(convDesc).GetConvPads()[1]
-            << " -q " << deref(convDesc).GetConvPads()[2]
-            << " --conv_stride_d " << deref(convDesc).GetConvStrides()[0]
-            << " -u " << deref(convDesc).GetConvStrides()[1]
-            << " -v " << deref(convDesc).GetConvStrides()[2]
-            << " --dilation_d " << deref(convDesc).GetConvDilations()[0]
-            << " -l " << deref(convDesc).GetConvDilations()[1]
-            << " -j " << deref(convDesc).GetConvDilations()[2]
-            << " --spatial_dim 3"; // clang-format on
-        std::string x_layout = deref(xDesc).GetLayout("NCDHW");
-        std::string w_layout = deref(wDesc).GetLayout("NCDHW");
-        std::string y_layout = deref(yDesc).GetLayout("NCDHW");
-        if(x_layout != "NCDHW")
-        {
-            ss << " --in_layout " << x_layout;
-        }
-        if(w_layout != "NCDHW")
-        {
-            ss << " --fil_layout " << w_layout;
-        }
-        if(y_layout != "NCDHW")
-        {
-            ss << " --out_layout " << y_layout;
-        }
-    }
-    ss << " -g " << deref(convDesc).group_count;
-
-    return ss.str();
-}
-
 void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
-    int fusion_mode = GetFusionMode(fusePlanDesc);
     if(miopen::IsLoggingCmd())
     {
+        int fusion_mode = GetFusionMode(fusePlanDesc);
         if(fusion_mode == 4)
         {
             const auto& conv_op =
@@ -315,9 +247,14 @@ void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
             const miopenTensorDescriptor_t& wDesc         = &conv_op->filter_desc;
             const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
             const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
-            // convolution
-            const std::string& str =
-                FusionConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, fusion_mode);
+
+            std::string str = "CBAInfer -F " + std::to_string(fusion_mode) + " ";
+            str +=
+                ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false);
+            // cleanup ConvArgsForMIOpenDriver's string
+            str = ReplaceString(str, "-m conv", "");
+            str = ReplaceString(str, "conv", "");
+            str = ReplaceString(str, "-F 1", "");
             MIOPEN_LOG_DRIVER_CMD(str);
         }
         else
