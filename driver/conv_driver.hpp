@@ -1493,7 +1493,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
+    if(miopen::IsDisabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
