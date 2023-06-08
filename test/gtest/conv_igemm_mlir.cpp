@@ -36,10 +36,10 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
-class Conv2dInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class ConfigWithInt8 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -49,8 +49,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenInt8: params = Conv2dInt8::GetParam(); break;
+    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
+    case miopenInt8: params = ConfigWithInt8::GetParam(); break;
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt8x4:
@@ -61,7 +61,7 @@ void Run2dDriver(miopenDataType_t prec)
                      "type not supported by "
                      "conv_igemm_mlir test");
 
-    default: params = Conv2dHalf::GetParam();
+    default: params = ConfigWithHalf::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -81,7 +81,7 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(ConfigWithHalf, HalfTest)
 {
 #if MIOPEN_USE_MLIR
 
@@ -93,7 +93,7 @@ TEST_P(Conv2dHalf, HalfTest)
     {
         GTEST_SKIP();
     }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x") ||
+    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
             miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
     {
         Run2dDriver(miopenHalf);
@@ -108,7 +108,7 @@ TEST_P(Conv2dHalf, HalfTest)
 #endif
 };
 
-TEST_P(Conv2dInt8, Int8Test)
+TEST_P(ConfigWithInt8, Int8Test)
 {
 #if MIOPEN_USE_MLIR
 
@@ -120,7 +120,7 @@ TEST_P(Conv2dInt8, Int8Test)
     {
         GTEST_SKIP();
     }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103x") ||
+    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
             miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
     {
         Run2dDriver(miopenInt8);
@@ -199,6 +199,6 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(Conv2dGroup, Conv2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithHalf, testing::Values(GetTestCases("--half")));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(Conv2dGroup, Conv2dInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithInt8, testing::Values(GetTestCases("--int8")));
