@@ -984,7 +984,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValidValue(int sequence_index)
 {
-    static const auto& configs = GetFwdDlopsNCHWCConfigList();
+    static const auto& configs = GetFwdXdlopsNHWCConfigList();
     std::vector<std::size_t> new_potential_configs;
     new_potential_configs.reserve(this->potential_configs.size());
     for(std::size_t i : this->potential_configs)
@@ -1247,14 +1247,13 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::RunParameterPredictionMod
     static const std::size_t n = 18;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsmImplicitGemmGTCDynamicFwdDlopsNHWC";
-    static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
     //todo double check third argument in features
     std::vector<float> features     = TransformFeatures(problem, n, ctx.GetStream().GetMaxComputeUnits());
     if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
            return this->ModelApplyNextToken(idx, value, problem);
        }))
     {
-        valid = True;
+        valid = true;
         //todo: add logger info
     }
 
