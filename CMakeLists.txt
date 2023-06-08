@@ -489,11 +489,6 @@ foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
 endforeach()
 
-file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
-foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
-endforeach()
-
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
