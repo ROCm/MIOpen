@@ -994,6 +994,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
+        this->direction = "wrw";
+        this->tensor_layout = "nhwc";
         this->nxb                   = 0;
         this->multihead             = 0;
         this->merge_e               = 0;
@@ -1002,6 +1004,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
         this->InitPotentialConfigs();
         bool valid = false;
         RunParameterPredictionModel(ctx, problem, valid);
+        if(!valid)
+            std::cout << "AI predicted incorrect performance config" << std::endl;
         if(valid)
             return;
     }

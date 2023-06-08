@@ -401,7 +401,11 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
     auto it = models.find(solver);
     if(it == models.end())
     {
+        auto startTime = std::chrono::high_resolution_clock::now();
         std::shared_ptr<Model> model = std::make_shared<Model>(arch, solver);
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+        std::cout << "Model Load Time: " << duration << std::endl;
         models[solver]               = model;
         return model;
     }
@@ -418,6 +422,7 @@ bool ModelSetParams(const std::string& arch,
 {
     auto model             = GetModel(arch, solver);
     int dim                = std::sqrt(features.size());
+    auto startTime = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim);
     float decoder_input    = 0.0;
     for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
@@ -448,6 +453,9 @@ bool ModelSetParams(const std::string& arch,
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    std::cout << "Model Run Time: " << duration << std::endl;
     return true;
 }
 
