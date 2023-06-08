@@ -1259,7 +1259,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::RunParameterPredictionMod
 
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsModelApplicable(
+bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsModelApplicable(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_AI_HEUR{}))
