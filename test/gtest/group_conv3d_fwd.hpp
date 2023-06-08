@@ -129,19 +129,16 @@ protected:
     {
         test_skipped                = false;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        std::cout<<"0000000000"<<std::endl;
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-        std::cout<<"11111111111"<<std::endl;
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
-        std::cout<<"22222222222"<<std::endl;
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
@@ -149,12 +146,10 @@ protected:
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-        std::cout<<"33333333333"<<std::endl;
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
         out_dev       = handle.Write(output.data);
-        std::cout<<"44444444444"<<std::endl;
     }
     void TearDown() override
     {
