@@ -40,6 +40,8 @@
 
 #define MIO_TENSOROCL_DEBUG 0
 
+#define GPUTT_ERR_CHECK(stmt) do { stmt; } while(0)
+
 namespace miopen {
 
 TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
@@ -2140,7 +2142,7 @@ find_permutation(const std::string& src_layout, const std::string& dst_layout, i
 
     printf("Permutation for %s -> %s: ", src_layout.c_str(), dst_layout.c_str());
     for(int i = 0; i < permVec.size(); i++)
-        printf("%d ", permVec[i]);
+        printf("%d ", permVec[i].second);
     printf("\n");
 }
 
@@ -2154,6 +2156,11 @@ void TransformTensor(const Handle& handle,
                      size_t Xoffset,
                      size_t Yoffset)
 {
+    // TODO
+    (void)handle;
+    (void)Xoffset;
+    (void)Yoffset;
+
     if(x == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -2186,16 +2193,16 @@ void TransformTensor(const Handle& handle,
     // Create transpose plan on NULL stream and choose implementation based on heuristics
     // TODO Must support non-equal input and output types
     gputtHandle plan;
-    hipStream_t stream = 0;
-    auto err = gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
-                         permutation.data(), sizeof(float), stream);
+    hipStream_t stream = nullptr;
+    GPUTT_ERR_CHECK(gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
+                         permutation.data(), sizeof(float), stream));
 
     // Execute transpose plan
     // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
-    err = gputtExecute(plan, x, y, alpha, beta);
+    GPUTT_ERR_CHECK(gputtExecute(plan, x, y, alpha, beta));
 
     // Destroy transpose plan
-    err = gputtDestroy(plan);
+    GPUTT_ERR_CHECK(gputtDestroy(plan));
 #else
     if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
