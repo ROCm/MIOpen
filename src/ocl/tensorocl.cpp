@@ -2199,7 +2199,7 @@ void TransformTensor(const Handle& handle,
 
     // Execute transpose plan
     // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
-    GPUTT_ERR_CHECK(gputtExecute(plan, x, y, alpha, beta));
+    GPUTT_ERR_CHECK(gputtExecute(plan, x + Xoffset, y + Yoffset, alpha, beta));
 
     // Destroy transpose plan
     GPUTT_ERR_CHECK(gputtDestroy(plan));
