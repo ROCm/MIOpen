@@ -702,7 +702,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
         if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
             return false;
         // if both 1, indicate padded c support
-        if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+        if((c >> gemm_k_global_split == 0) ||
+           (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
             return false;
         // also, add this restriction to k, for vector write out
         if(problem.IsFp16())
