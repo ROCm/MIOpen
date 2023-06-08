@@ -84,7 +84,7 @@ auto FindSolutionImpl(rank<1>,
                 {
                     return s.GetSolution(context, problem, config);
                 }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else if(!s.AltSolverDbId().empty() && db.Load(problem, s.AltSolverDbId(), config))
@@ -105,7 +105,7 @@ auto FindSolutionImpl(rank<1>,
                 {
                     return s.GetSolution(context, problem, config);
                 }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else
