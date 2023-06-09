@@ -991,90 +991,90 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValidValue(int
     {
         switch(sequence_index)
         {
-            case 0:
-                if(configs[i].nxe == this->nxe)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 1:
-                if(configs[i].gemm_m_per_block == this->gemm_m_per_block)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 2:
-                if(configs[i].gemm_n_per_block == this->gemm_n_per_block)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 3:
-                if(configs[i].gemm_k_per_block == this->gemm_k_per_block)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 4:
-                if(configs[i].wave_tile_m == this->wave_tile_m)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 5:
-                if(configs[i].wave_tile_n == this->wave_tile_n)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 6:
-                if(configs[i].wave_tile_k == this->wave_tile_k)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 7:
-                if(configs[i].wave_step_m == this->wave_step_m)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 8:
-                if(configs[i].wave_step_n == this->wave_step_n)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 9:
-                if(configs[i].wave_repeat_m == this->wave_repeat_m)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 10:
-                if(configs[i].wave_repeat_n == this->wave_repeat_n)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 11:
-                if(configs[i].vector_store == this->vector_store)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 12:
-                if(configs[i].gemm_k_global_split == this->gemm_k_global_split)
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 13:
-                if(configs[i].tensor_a_thread_lengths[1] == this->tensor_a_thread_lengths[1])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 14:
-                if(configs[i].tensor_a_thread_lengths[3] == this->tensor_a_thread_lengths[3])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 15:
-                if(configs[i].tensor_a_cluster_lengths[1] == this->tensor_a_cluster_lengths[1])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 16:
-                if(configs[i].tensor_a_cluster_lengths[3] == this->tensor_a_cluster_lengths[3])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 17:
-                if(configs[i].tensor_b_thread_lengths[1] == this->tensor_b_thread_lengths[1])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 18:
-                if(configs[i].tensor_b_thread_lengths[3] == this->tensor_b_thread_lengths[3])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 19:
-                if(configs[i].tensor_b_cluster_lengths[1] == this->tensor_b_cluster_lengths[1])
-                    new_potential_configs.emplace_back(i);
-                break;
-            case 20:
-                if(configs[i].tensor_b_cluster_lengths[3] == this->tensor_b_cluster_lengths[3])
-                    new_potential_configs.emplace_back(i);
-                break;
+        case 0:
+            if(configs[i].nxe == this->nxe)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 1:
+            if(configs[i].gemm_m_per_block == this->gemm_m_per_block)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 2:
+            if(configs[i].gemm_n_per_block == this->gemm_n_per_block)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 3:
+            if(configs[i].gemm_k_per_block == this->gemm_k_per_block)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 4:
+            if(configs[i].wave_tile_m == this->wave_tile_m)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 5:
+            if(configs[i].wave_tile_n == this->wave_tile_n)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 6:
+            if(configs[i].wave_tile_k == this->wave_tile_k)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 7:
+            if(configs[i].wave_step_m == this->wave_step_m)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 8:
+            if(configs[i].wave_step_n == this->wave_step_n)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 9:
+            if(configs[i].wave_repeat_m == this->wave_repeat_m)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 10:
+            if(configs[i].wave_repeat_n == this->wave_repeat_n)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 11:
+            if(configs[i].vector_store == this->vector_store)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 12:
+            if(configs[i].gemm_k_global_split == this->gemm_k_global_split)
+                new_potential_configs.emplace_back(i);
+            break;
+        case 13:
+            if(configs[i].tensor_a_thread_lengths[1] == this->tensor_a_thread_lengths[1])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 14:
+            if(configs[i].tensor_a_thread_lengths[3] == this->tensor_a_thread_lengths[3])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 15:
+            if(configs[i].tensor_a_cluster_lengths[1] == this->tensor_a_cluster_lengths[1])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 16:
+            if(configs[i].tensor_a_cluster_lengths[3] == this->tensor_a_cluster_lengths[3])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 17:
+            if(configs[i].tensor_b_thread_lengths[1] == this->tensor_b_thread_lengths[1])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 18:
+            if(configs[i].tensor_b_thread_lengths[3] == this->tensor_b_thread_lengths[3])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 19:
+            if(configs[i].tensor_b_cluster_lengths[1] == this->tensor_b_cluster_lengths[1])
+                new_potential_configs.emplace_back(i);
+            break;
+        case 20:
+            if(configs[i].tensor_b_cluster_lengths[3] == this->tensor_b_cluster_lengths[3])
+                new_potential_configs.emplace_back(i);
+            break;
         }
     }
     if(new_potential_configs.empty())
@@ -1096,13 +1096,13 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValid(
         const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
         const auto pad_h      = problem.GetPadH();
         const auto pad_w      = problem.GetPadW();
-        bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
-                    (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+        bool unit_conv        = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
+                         (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
         if((nxe == 0) && !unit_conv)
         {
             return false;
         }
-         // add more restriction for spare
+        // add more restriction for spare
         if(use_spare_set)
         {
             // non 1x1 kernel(except padding gemm_k) can't run 1x1 case
@@ -1114,7 +1114,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValid(
     {
         if(this->precision == "fp32")
         {
-            const auto k          = problem.GetInChannels();
+            const auto k     = problem.GetInChannels();
             const auto group = problem.GetGroupCount();
             if((k / group) % tensor_a_thread_lengths[3] != 0)
             {
@@ -1126,11 +1126,11 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValid(
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
             if(problem.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 &&
-            vector_store != 1)
+               vector_store != 1)
                 return false;
         if(this->precision == "fp32")
         {
-            const auto c          = problem.GetOutChannels();
+            const auto c     = problem.GetOutChannels();
             const auto group = problem.GetGroupCount();
             if((c / group) % tensor_b_thread_lengths[3] != 0)
             {
@@ -1146,73 +1146,31 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::ModelApplyNextToken(
 {
     switch(sequence_index)
     {
-        case 0:
-            this->nxe = value;
-            break;
-        case 1:
-            this->gemm_m_per_block = value;
-            break;
-        case 2:
-            this->gemm_n_per_block = value;
-            break;
-        case 3:
-            this->gemm_k_per_block = value;
-            break;
-        case 4:
-            this->wave_tile_m = value;
-            break;
-        case 5:
-            this->wave_tile_n = value;
-            break;
-        case 6:
-            this->wave_tile_k = value;
-            break;
-        case 7:
-            this->wave_step_m = value;
-            break;
-        case 8:
-            this->wave_step_n = value;
-            break;
-        case 9:
-            this->wave_repeat_m = value;
-            break;
-        case 10:
-            this->wave_repeat_n = value;
-            break;
-        case 11:
-            this->vector_store = value;
-            break;
-        case 12:
-            this->gemm_k_global_split = value;
-            break;
-        case 13:
-            this->tensor_a_thread_lengths[1] = value;
-            break;
-        case 14:
-            this->tensor_a_thread_lengths[3] = value;
-            break;
-        case 15:
-            this->tensor_a_cluster_lengths[1] = value;
-            break;
-        case 16:
-            this->tensor_a_cluster_lengths[3] = value;
-            break;
-        case 17:
-            this->tensor_b_thread_lengths[1] = value;
-            break;
-        case 18:
-            this->tensor_b_thread_lengths[3] = value;
-            break;
-        case 19:
-            this->tensor_b_cluster_lengths[1] = value;
-            break;
-        case 20:
-            this->tensor_b_cluster_lengths[3] = value;
-            break;
-        default:
-            return false;
+    case 0: this->nxe = value; break;
+    case 1: this->gemm_m_per_block = value; break;
+    case 2: this->gemm_n_per_block = value; break;
+    case 3: this->gemm_k_per_block = value; break;
+    case 4: this->wave_tile_m = value; break;
+    case 5: this->wave_tile_n = value; break;
+    case 6: this->wave_tile_k = value; break;
+    case 7: this->wave_step_m = value; break;
+    case 8: this->wave_step_n = value; break;
+    case 9: this->wave_repeat_m = value; break;
+    case 10: this->wave_repeat_n = value; break;
+    case 11: this->vector_store = value; break;
+    case 12: this->gemm_k_global_split = value; break;
+    case 13: this->tensor_a_thread_lengths[1] = value; break;
+    case 14: this->tensor_a_thread_lengths[3] = value; break;
+    case 15: this->tensor_a_cluster_lengths[1] = value; break;
+    case 16: this->tensor_a_cluster_lengths[3] = value; break;
+    case 17: this->tensor_b_thread_lengths[1] = value; break;
+    case 18: this->tensor_b_thread_lengths[3] = value; break;
+    case 19: this->tensor_b_cluster_lengths[1] = value; break;
+    case 20: this->tensor_b_cluster_lengths[3] = value; break;
+    default: return false;
     }
-    return this->IsNextTokenValid(problem, sequence_index) && this->IsNextTokenValidValue(sequence_index);
+    return this->IsNextTokenValid(problem, sequence_index) &&
+           this->IsNextTokenValidValue(sequence_index);
 }
 
 static std::vector<float>
@@ -1244,19 +1202,19 @@ TransformFeatures(const ProblemDescription& problem, std::size_t n, std::size_t 
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::RunParameterPredictionModel(
     const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid)
 {
-    static const std::size_t n = 18;
+    static const std::size_t n      = 18;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsmImplicitGemmGTCDynamicFwdDlopsNHWC";
-    //todo double check third argument in features
-    std::vector<float> features     = TransformFeatures(problem, n, ctx.GetStream().GetMaxComputeUnits());
+    // todo double check third argument in features
+    std::vector<float> features =
+        TransformFeatures(problem, n, ctx.GetStream().GetMaxComputeUnits());
     if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
            return this->ModelApplyNextToken(idx, value, problem);
        }))
     {
         valid = true;
-        //todo: add logger info
+        // todo: add logger info
     }
-
 }
 
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::InitPotentialConfigs()

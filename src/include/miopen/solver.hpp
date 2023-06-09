@@ -3764,13 +3764,16 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
+
 private:
     void InitPotentialConfigs();
     bool IsNextTokenValidValue(int sequence_index);
     bool IsNextTokenValid(const ProblemDescription& problem, int sequence_index);
     bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const;
     bool ModelApplyNextToken(int sequence_index, int value, const ProblemDescription& problem);
-    void RunParameterPredictionModel(const ConvolutionContext& ctx, const ProblemDescription& problem, bool& valid);
+    void RunParameterPredictionModel(const ConvolutionContext& ctx,
+                                     const ProblemDescription& problem,
+                                     bool& valid);
     void HeuristicInitAI(const ConvolutionContext& ctx, const ProblemDescription& problem);
 };
 
