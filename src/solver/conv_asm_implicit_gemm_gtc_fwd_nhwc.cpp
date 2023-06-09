@@ -1259,6 +1259,19 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::RunParameterPredictionMod
 
 }
 
+void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::InitPotentialConfigs()
+{
+    this->potential_configs.reserve(100);
+    static const auto& configs = GetFwdXdlopsNHWCConfigList();
+    for(int i = 0; i < configs.size(); i++)
+    {
+        if(configs[i].precision == this->precision && configs[i].nxb == this->nxb &&
+           configs[i].multihead == this->multihead && configs[i].merge_e == this->merge_e &&
+           configs[i].tensor_a_pass_through == this->tensor_a_pass_through)
+            this->potential_configs.emplace_back(i);
+    }
+}
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsModelApplicable(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
