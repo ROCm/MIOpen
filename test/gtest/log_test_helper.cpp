@@ -202,9 +202,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                 std::string sub_str,
                 bool set_env)
 {
-    // start capturing std::cerr
     CerrRedirect capture_cerr;
-    // prepare tensor and convolution descriptors
     Conv test_conv_log;
     if(set_env)
         setEnvironmentVariable(env_var, "1");
@@ -218,9 +216,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
          ConvDirection::Fwd,
          false);
 
-    // get the captured string
     std::string str = capture_cerr.getString();
-    // now do the assertions
     if(set_env)
         ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
     else
@@ -232,24 +228,22 @@ void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> co
                       std::string sub_str,
                       bool set_env)
 {
-    // start capturing std::cerr
     CerrRedirect capture_cerr;
 
     if(set_env)
         setEnvironmentVariable(env_var, "1");
     else
         unSetEnvironmentVariable(env_var);
-    // prepare fusion plan
-    CreateFusionPlan fp_create;
 
+    // create CBA (conv + bias + activation) fusion plan. This fusion plan is used by log function
+    // to print the MIOpenDirver command line.
+    CreateFusionPlan fp_create;
     fp_create.CBAPlan();
 
     func(fp_create.fusePlanDesc);
 
-    // get the captured string
     std::string str = capture_cerr.getString();
 
-    // now do the assertions
     if(set_env)
         ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
     else
