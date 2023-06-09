@@ -1016,21 +1016,21 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
     std::vector<Tgpu>* in_packed  = &in;
     std::vector<Tref>* out_packed = &outhost;
 
-    std::vector<Tgpu> coverted_in;
-    std::vector<Tref> coverted_out;
+    std::vector<Tgpu> converted_in;
+    std::vector<Tref> converted_out;
 
     if(paddingMode == miopenRNNIOWithPadding)
     {
         size_t packedXInSize, packedYOutSize;
         std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
 
-        coverted_in.resize(packedXInSize);
-        coverted_out.resize(packedYOutSize);
+        converted_in.resize(packedXInSize);
+        converted_out.resize(packedYOutSize);
 
-        ChangeDataPadding(in, coverted_in, in_n, in_n[0], in_h, false);
+        ChangeDataPadding(in, converted_in, in_n, in_n[0], in_h, false);
 
-        in_packed  = &coverted_in;
-        out_packed = &coverted_out;
+        in_packed  = &converted_in;
+        out_packed = &converted_out;
     }
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
@@ -1446,17 +1446,45 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
         return miopenStatusBadParm;
     }
 
+    miopenRNNPaddingMode_t paddingMode =
+        (inflags.GetValueInt("use_padding") == 1) ? miopenRNNIOWithPadding : miopenRNNIONotPadded;
+
+    std::vector<Tref> converted_din;
+    std::vector<Tgpu> converted_out;
+    std::vector<Tgpu> converted_dout;
+
+    if(paddingMode == miopenRNNIOWithPadding)
+    {
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
+
+        converted_din.resize(packedXInSize);
+        converted_out.resize(packedYOutSize);
+        converted_dout.resize(packedYOutSize);
+
+        ChangeDataPadding(out, converted_out, in_n, in_n[0], out_h, false);
+        ChangeDataPadding(dout, converted_dout, in_n, in_n[0], out_h, false);
+    }
+
+    std::vector<Tref>* din_packed =
+        paddingMode == miopenRNNIOWithPadding ? &converted_din : &din_host;
+    std::vector<Tgpu>* out_packed =
+        paddingMode == miopenRNNIOWithPadding ? &converted_out : &out;
+    std::vector<Tgpu>* dout_packed =
+        paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
+
+
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn bwddata \n");
 
-        RunRNNBackwardDataGEMMCPUVerify(din_host,
+        RunRNNBackwardDataGEMMCPUVerify(*din_packed,
                                         wei,
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        out,
-                                        dout,
+                                        *out_packed,
+                                        *dout_packed,
                                         in_n,
                                         in_h,
                                         adjustedSeqLen,
@@ -1477,7 +1505,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
     {
         printf("verify lstm bwddata \n");
 
-        RunLSTMBackwardDataGEMMCPUVerify(din_host,
+        RunLSTMBackwardDataGEMMCPUVerify(*din_packed,
                                          wei,
                                          dhy,
                                          dhx_host,
@@ -1485,8 +1513,8 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                          dcy,
                                          dcx_host,
                                          cx,
-                                         out,
-                                         dout,
+                                         *out_packed,
+                                         *dout_packed,
                                          in_n,
                                          in_h,
                                          adjustedSeqLen,
@@ -1506,13 +1534,13 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
     {
         printf("verify gru bwddata \n");
 
-        RunGRUBackwardDataGEMMCPUVerify(din_host,
+        RunGRUBackwardDataGEMMCPUVerify(*din_packed,
                                         wei,
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        out,
-                                        dout,
+                                        *out_packed,
+                                        *dout_packed,
                                         in_n,
                                         in_h,
                                         adjustedSeqLen,
@@ -1531,6 +1559,11 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
     else
     {
         printf("illegal RNN mode");
+    }
+    
+    if(paddingMode == miopenRNNIOWithPadding)
+    {
+        ChangeDataPadding(converted_din, din_host, in_n, in_n[0], in_h, true);
     }
 
     if(inflags.GetValueInt("dump_output"))

@@ -463,7 +463,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
     bool isBidirect = dirMode == miopenRNNbidirection;
     
     size_t spaceForPaddingTransform = 0;
-    if (paddingMode != miopenRNNPaddingMode_t::miopenRNNIOWithPadding) {
+    if (paddingMode == miopenRNNPaddingMode_t::miopenRNNIOWithPadding) {
         size_t packedXInSpace, packedYOutSpace;
         std::tie(packedXInSpace, packedYOutSpace) =
             RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
