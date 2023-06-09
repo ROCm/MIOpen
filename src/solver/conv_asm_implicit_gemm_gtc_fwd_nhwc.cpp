@@ -853,7 +853,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() &&
+       !(problem.IsBfp16() && (device_name == "gfx90a" || device_name == "gfx940")))
         return false;
 
     if(!ctx.rmv.IsV3())
