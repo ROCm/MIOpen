@@ -1316,15 +1316,38 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     {
         return miopenStatusBadParm;
     }
+    
+    miopenRNNPaddingMode_t paddingMode =
+        (inflags.GetValueInt("use_padding") == 1) ? miopenRNNIOWithPadding : miopenRNNIONotPadded;
+
+    std::vector<Tgpu> converted_in;
+    std::vector<Tgpu> converted_dout;
+
+    if(paddingMode == miopenRNNIOWithPadding)
+    {
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
+
+        converted_in.resize(packedXInSize);
+        converted_dout.resize(packedYOutSize);
+
+        ChangeDataPadding(in, converted_in, in_n, in_n[0], in_h, false);
+        ChangeDataPadding(dout, converted_dout, in_n, in_n[0], out_h, false);
+    }
+
+    std::vector<Tgpu>* in_packed   =
+        paddingMode == miopenRNNIOWithPadding ? &converted_in : &in;
+    std::vector<Tgpu>* dout_packed = paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
+
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn bwdwei \n");
 
-        RunRNNBackwardWeightGEMMCPUVerify(in,
+        RunRNNBackwardWeightGEMMCPUVerify(*in_packed,
                                           dwei_host,
                                           hx,
-                                          dout,
+                                          *dout_packed,
                                           in_n,
                                           in_h,
                                           adjustedSeqLen,
@@ -1344,10 +1367,10 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     {
         printf("verify lstm bwdwei \n");
 
-        RunLSTMBackwardWeightGEMMCPUVerify(in,
+        RunLSTMBackwardWeightGEMMCPUVerify(*in_packed,
                                            dwei_host,
                                            hx,
-                                           dout,
+                                           *dout_packed,
                                            in_n,
                                            in_h,
                                            adjustedSeqLen,
@@ -1366,10 +1389,10 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     {
         printf("verify gru bwdwei \n");
 
-        RunGRUBackwardWeightGEMMCPUVerify(in,
+        RunGRUBackwardWeightGEMMCPUVerify(*in_packed,
                                           dwei_host,
                                           hx,
-                                          dout,
+                                          *dout_packed,
                                           in_n,
                                           in_h,
                                           adjustedSeqLen,

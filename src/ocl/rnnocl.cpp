@@ -5221,28 +5221,118 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
 #endif
 };
 
-void RNNDescriptor::RNNBackwardWeights(Handle& handle,
-                                       const int seqLen,
-                                       c_array_view<const miopenTensorDescriptor_t> xDesc,
-                                       ConstData_t x,
-                                       const TensorDescriptor& hxDesc,
-                                       ConstData_t hx,
-                                       c_array_view<const miopenTensorDescriptor_t> dyDesc,
-                                       ConstData_t dy,
-                                       const TensorDescriptor& dwDesc,
-                                       Data_t dw,
-                                       Data_t workSpace,
-                                       size_t workSpaceSize,
-                                       ConstData_t reserveSpace,
-                                       size_t reserveSpaceSize) const
+void RNNDescriptor::RNNBackwardWeights(
+    Handle& handle,
+    const int seqLen,
+    c_array_view<const miopenTensorDescriptor_t> xDesc,
+    ConstData_t x,
+    const TensorDescriptor& hxDesc,
+    ConstData_t hx,
+    c_array_view<const miopenTensorDescriptor_t> dyDesc,
+    ConstData_t dy,
+    const TensorDescriptor& dwDesc,
+    Data_t dw,
+    Data_t workSpace,
+    size_t workSpaceSize,
+    ConstData_t reserveSpace,
+    size_t reserveSpaceSize) const
+{
+    (void)dy;
+
+    if(paddingMode == miopenRNNIONotPadded)
+    {
+        RNNBackwardWeightsPackedTensors(handle,
+                                        seqLen,
+                                        xDesc,
+                                        x,
+                                        hxDesc,
+                                        hx,
+                                        dyDesc,
+                                        dwDesc,
+                                        dw,
+                                        workSpace,
+                                        workSpaceSize,
+                                        reserveSpace,
+                                        reserveSpaceSize);
+    }
+    else
+    {
+        Data_t packedXIn = workSpace;
+        
+        size_t packedXSize, WA_workSpace_bug;
+        std::tie(packedXSize, WA_workSpace_bug) =
+            RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+
+        auto shifted_workSpace = static_cast<void*>(reinterpret_cast<char*>(workSpace) +
+                                                    (packedXSize + WA_workSpace_bug));
+        auto shifted_workSpace_size = workSpaceSize - (packedXSize + WA_workSpace_bug);
+
+        std::vector<int> in_n(seqLen);
+
+        for(int i = 0; i < seqLen; i++)
+        {
+            int batchval, batchvalout;
+            std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
+            std::tie(batchvalout, std::ignore) = miopen::tien<2>(dyDesc[i].GetLengths());
+            if(batchval != batchvalout)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Input batch length: " + std::to_string(batchval) +
+                                 ", Output batch length: " + std::to_string(batchvalout));
+            }
+            in_n[i] = batchval;
+        }
+
+        RNNTensorPaddingConverter::ConvertTensorData(handle, xDesc[0], in_n, x, packedXIn, true);
+
+        RNNDescriptor packedRnnDesc(*this);
+        packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
+
+        packedRnnDesc.RNNBackwardWeightsPackedTensors(handle,
+                                                      seqLen,
+                                                      xDesc,
+                                                      packedXIn,
+                                                      hxDesc,
+                                                      hx,
+                                                      dyDesc,
+                                                      dwDesc,
+                                                      dw,
+                                                      shifted_workSpace,
+                                                      shifted_workSpace_size,
+                                                      reserveSpace,
+                                                      reserveSpaceSize);
+    }
+}
+
+void RNNDescriptor::RNNBackwardWeightsPackedTensors(
+    Handle& handle,
+    const int seqLen,
+    c_array_view<const miopenTensorDescriptor_t> xDesc,
+    ConstData_t x,
+    const TensorDescriptor& hxDesc,
+    ConstData_t hx,
+    c_array_view<const miopenTensorDescriptor_t> dyDesc,
+    const TensorDescriptor& dwDesc,
+    Data_t dw,
+    Data_t workSpace,
+    size_t workSpaceSize,
+    ConstData_t reserveSpace,
+    size_t reserveSpaceSize) const
 {
 
 #if MIOPEN_USE_GEMM
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
+    // if projections supported, dcxDesc.GetLengths()[2] should be used for hidden_size,
+    // dhxDesc.GetLengths()[2] for proj_size.
+    
+    if(paddingMode != miopenRNNIONotPadded)
+    {
+        MIOPEN_THROW("Padded IO is not supported by this solver");
+    }
 
-    if(x == nullptr || dw == nullptr || dy == nullptr)
+    if(x == nullptr || dw == nullptr )
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -6007,7 +6097,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     (void)hxDesc;
     (void)hx;
     (void)dyDesc;
-    (void)dy;
     (void)dwDesc;
     (void)dw;
     (void)workSpace;

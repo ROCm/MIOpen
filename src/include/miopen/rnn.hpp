@@ -327,6 +327,20 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t reserveSpace,
                             size_t reserveSpaceSize) const;
 
+    void RNNBackwardWeightsPackedTensors(Handle& handle,
+                                         int seqLen,
+                                         c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                         ConstData_t x,
+                                         const TensorDescriptor& hxDesc,
+                                         ConstData_t hx,
+                                         c_array_view<const miopenTensorDescriptor_t> dyDesc,
+                                         const TensorDescriptor& dwDesc,
+                                         Data_t dw,
+                                         Data_t workSpace,
+                                         size_t workSpaceSize,
+                                         ConstData_t reserveSpace,
+                                         size_t reserveSpaceSize) const;
+
     inline bool isNotRNNskip() const { return inputMode != miopenRNNskip; }
     inline bool isRNNskip() const { return inputMode == miopenRNNskip; }
 };
