@@ -81,18 +81,14 @@ TEST_P(ConfigWithFloat, FloatTest)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx908") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx94") ||  // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx103") || // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx110") || // Implicitly disabled by default
-       GetFloatArg() != "--float")
+    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
+       GetFloatArg() == "--float")
     {
-        GTEST_SKIP();
+        Run2dDriver(miopenFloat);
     }
     else
     {
-        Run2dDriver(miopenFloat);
+        GTEST_SKIP();
     }
 
 #else
@@ -105,18 +101,14 @@ TEST_P(ConfigWithHalf, HalfTest)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx908") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx94") ||  // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx103") || // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx110") || // Implicitly disabled by default
-       GetFloatArg() != "--half")
+    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
+       GetFloatArg() == "--half")
     {
-        GTEST_SKIP();
+        Run2dDriver(miopenHalf);
     }
     else
     {
-        Run2dDriver(miopenHalf);
+        GTEST_SKIP();
     }
 
 #else
@@ -129,18 +121,14 @@ TEST_P(ConfigWithInt8, Int8Test)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx908") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx94") ||  // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx103") || // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx110") || // Implicitly disabled by default
-       GetFloatArg() != "--int8")
+    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
+       GetFloatArg() == "--int8")
     {
-        GTEST_SKIP();
+        Run2dDriver(miopenInt8);
     }
     else
     {
-        Run2dDriver(miopenInt8);
+        GTEST_SKIP();
     }
 
 #else
@@ -153,18 +141,14 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx908") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") || // Explicitly disabled
-       miopen::StartsWith(handle.GetDeviceName(), "gfx94") ||  // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx103") || // Implicitly disabled by default
-       miopen::StartsWith(handle.GetDeviceName(), "gfx110") || // Implicitly disabled by default
-       GetFloatArg() != "--bfloat16")
+    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
+       GetFloatArg() == "--bfloat16")
     {
-        GTEST_SKIP();
+        Run2dDriver(miopenBFloat16);
     }
     else
     {
-        Run2dDriver(miopenBFloat16);
+        GTEST_SKIP();
     }
 
 #else
