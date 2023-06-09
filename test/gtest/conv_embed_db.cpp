@@ -174,11 +174,8 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-#if MIOPEN_EMBED_DB
     std::string flags = " --disable-validation --verbose ";
-#else
-    std::string flags = " ";
-#endif
+
     const std::vector<std::string> test_cases = {
         // clang-format off
     {precision + flags + "--input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
