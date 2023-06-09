@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "conv_common.hpp"
+#include "conv_2d.hpp"
 #include "get_handle.hpp"
 
 std::string GetFloatArg()

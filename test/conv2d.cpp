@@ -23,6 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv_common.hpp"
+#include "gtest/conv_2d.hpp"
 
 int main(int argc, const char* argv[]) { test_drive<conv2d_driver>(argc, argv); }
