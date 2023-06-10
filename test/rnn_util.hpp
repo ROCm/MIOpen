@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,16 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
     std::transform(td.begin(), td.end(), std::back_inserter(ptd), [](miopen::TensorDescriptor& x) {
         return &x;
     });
+}
+
+static std::tuple<size_t, size_t>
+GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
+{
+    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
+
+    size_t in_buff_size  = total_batch * in_vec;
+    size_t out_buff_size = total_batch * out_vec;
+    return {in_buff_size, out_buff_size};
 }
 
 inline size_t getSuperTensorSize(const std::vector<int>& bs,
