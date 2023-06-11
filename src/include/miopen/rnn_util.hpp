@@ -137,7 +137,7 @@ struct RNNTensorPaddingConverter
             desc_array.data,
             desc_array.data + desc_array.size(),
             0,
-            [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetElementSize(); });
+            [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetLengths()[0]; });
 
         auto type_size       = GetTypeSize(desc_array[0].GetType());
         size_t in_buff_size  = type_size * total_batch * desc_array[0].GetLengths()[1];
