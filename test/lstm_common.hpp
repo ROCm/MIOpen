@@ -115,6 +115,7 @@ struct verify_backward_data_lstm
     bool nodhx;
     bool nodcx;
     bool use_dropout;
+    bool use_seqPadding;
     typename std::vector<T>::iterator RSVgpu;
     typename std::vector<T>::iterator RSVcpu;
 
@@ -144,7 +145,8 @@ struct verify_backward_data_lstm
                               const bool pnodcy       = false,
                               const bool pnodhx       = false,
                               const bool pnodcx       = false,
-                              const bool puse_dropout = false)
+                              const bool puse_dropout = false,
+                              const bool puse_seqPadding = false)
         : yin(py),
           dy(pdy),
           dhy(pdhy),
@@ -170,6 +172,7 @@ struct verify_backward_data_lstm
           nodhx(pnodhx),
           nodcx(pnodcx),
           use_dropout(puse_dropout),
+          use_seqPadding(puse_seqPadding),
           RSVgpu(pRSVgpu.begin()),
           RSVcpu(pRSVcpu.begin())
     {
@@ -216,7 +219,8 @@ struct verify_backward_data_lstm
         std::cout << " -m lstm "
                   << " -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen << " -l "
                   << nLayers << " -F 0 "
-                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
+                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << " -q "
+                  << use_seqPadding << std::endl;
 
         std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
                   << " dirMode: " << dirMode << std::endl;
@@ -261,6 +265,7 @@ struct verify_backward_weights_lstm
     size_t realHiddenSize;
     bool nohx;
     bool use_dropout;
+    bool use_seqPadding;
     typename std::vector<T> reserveSpace_gpu;
     typename std::vector<T> reserveSpace_cpu;
 
@@ -283,7 +288,8 @@ struct verify_backward_weights_lstm
                                  const int pVL,
                                  const size_t pHXZ,
                                  const bool pnohx        = false,
-                                 const bool puse_dropout = false)
+                                 const bool puse_dropout = false,
+                                 const bool puse_seqPadding = false)
         : input(px),
           dy(pdy),
           initHidden(phx),
@@ -302,6 +308,7 @@ struct verify_backward_weights_lstm
           realHiddenSize(pHXZ),
           nohx(pnohx),
           use_dropout(puse_dropout),
+          use_seqPadding(puse_seqPadding),
           reserveSpace_gpu(pRSVgpu),
           reserveSpace_cpu(pRSVcpu)
     {
@@ -332,7 +339,8 @@ struct verify_backward_weights_lstm
         std::cout << " -m lstm "
                   << " -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen << " -l "
                   << nLayers << " -F 0 "
-                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
+                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << " -q "
+                  << use_seqPadding << std::endl;
 
         std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
                   << " dirMode: " << dirMode << std::endl;
@@ -764,7 +772,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               outputDescs,
                               batch_seq, out_h,
                               miopen::deref(rnnDesc).dataType);
-
+            
         size_t inputBatchLenSum =
             std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
         
@@ -1048,6 +1056,7 @@ verify_backward_data_lstm<T>::cpu() const
     int bi        = dirMode != 0 ? 2 : 1;
     int hy_h      = hiddenSize;
     int bi_stride = bi * hy_h;
+    int out_h     = hiddenSize * ((dirMode != 0) ? 2 : 1);
     size_t workSpaceSize;
 
     std::vector<miopen::TensorDescriptor> inputCPPDescs;
@@ -1056,11 +1065,18 @@ verify_backward_data_lstm<T>::cpu() const
         inputCPPDescs, inputDescs, batch_seq, inputVecLen, miopen::deref(rnnDesc).dataType);
 
     // Outputs ----------
-    size_t in_sz = 0;
-    miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
+    size_t in_sz = getSuperTensorSize(batch_seq,
+                                      seqLength,
+                                      inputVecLen,
+                                      hiddenSize,
+                                      batch_seq[0],
+                                      dirMode != 0,
+                                      true,
+                                      use_seqPadding);
+
     miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
     std::vector<T> workSpace(workSpaceSize / sizeof(T));
-    std::vector<T> dx(in_sz / sizeof(T));
+    std::vector<T> dx(in_sz);
     std::vector<T> dhx(initHidden.size());
     std::vector<T> dcx(initHidden.size());
 
@@ -1081,9 +1097,50 @@ verify_backward_data_lstm<T>::cpu() const
     std::vector<T> reserveSpace(reserveSpaceSize);
     std::copy(RSVcpu, RSVcpu + reserveSpaceSize, reserveSpace.begin());
 
+    std::vector<T> converted_dinput;
+    std::vector<T> converted_output;
+    std::vector<T> converted_doutput;
+
+    std::vector<T>* packed_dinput;
+    const std::vector<T>* packed_output;
+    const std::vector<T>* packed_doutput;
+
+    // WA: bug in workSpace using
+    std::vector<T> wa_workSpace;
+    std::vector<T>* wa_shifted_workSpace;
+
+    if(use_seqPadding)
+    {
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) =
+            GetTempPackedBuffersSize(batch_seq, inputVecLen, out_h);
+
+        converted_dinput.resize(packedXInSize);
+        converted_output.resize(packedYOutSize);
+        converted_doutput.resize(packedYOutSize);
+
+        ChangeDataPadding(yin, converted_output, batch_seq, batch_seq[0], out_h, false);
+        ChangeDataPadding(dy, converted_doutput, batch_seq, batch_seq[0], out_h, false);
+        
+        packed_dinput  = &converted_dinput;
+        packed_output  = &converted_output;
+        packed_doutput = &converted_doutput;
+
+        //WA
+        wa_workSpace.resize(workSpaceSize / sizeof(T) - (packedXInSize + packedYOutSize));
+        wa_shifted_workSpace = &wa_workSpace;
+    }
+    else
+    {
+        packed_dinput  = &dx;
+        packed_output  = &yin;
+        packed_doutput = &dy;
+        wa_shifted_workSpace = &workSpace;
+    }
+
     LSTMBwdDataCPUVerify(use_dropout,
                                miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
-                               dx,              // DX (output)
+                               *packed_dinput,   // DX (output)
                                weights,         // [ input_state_weight_trans
                                                 //   hidden_state_weight0_trans input1_trans
                                                 //   hidden1_trans ... output_weight;
@@ -1094,8 +1151,8 @@ verify_backward_data_lstm<T>::cpu() const
                                dcy,             // DCY current/final cell state
                                dcx,             // DCX (output)
                                initCell,        // CX
-                               yin,             // Y
-                               dy,              // DY
+                               *packed_output,   // Y
+                               *packed_doutput,  // DY
                                batch_seq,       // input batch size
                                inputVecLen,     // input data length
                                seqLength,       // Number of iterations to unroll over
@@ -1109,7 +1166,7 @@ verify_backward_data_lstm<T>::cpu() const
                                // hy_h related function for bidirection
                                inputMode,
                                reserveSpace,
-                               workSpace,
+                               *wa_shifted_workSpace,
                                nocx,
                                nodhy,
                                nodcy);
@@ -1120,7 +1177,27 @@ verify_backward_data_lstm<T>::cpu() const
     std::cout << "Wall clock: CPU backward data LSTM pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
+    
+    if(use_seqPadding)
+    {
+        ChangeDataPadding(converted_dinput, dx, batch_seq, batch_seq[0], inputVecLen, true);
+        
+        //WA
+        std::copy(converted_doutput.begin(), converted_doutput.end(), workSpace.begin());
+
+        std::copy(converted_dinput.begin(),
+                  converted_dinput.end(),
+                  workSpace.begin() + converted_doutput.size());
+
+        std::copy(wa_workSpace.begin(),
+                  wa_workSpace.end(),
+                  workSpace.begin() + converted_doutput.size() + converted_dinput.size());
+
+    }
+
     std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
+
+    // TODO: remove workSpace
     auto retSet =
         std::make_tuple(dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), workSpace);
 
@@ -1223,6 +1300,7 @@ verify_backward_data_lstm<T>::gpu() const
 
     reserveSpace = handle.Read<T>(reserveSpace_dev, reserveSpace.size());
     std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
+    // TODO: remove workSpace
     auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                   (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
                                   (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
@@ -1254,17 +1332,58 @@ std::vector<T> verify_backward_weights_lstm<T>::cpu() const
     int bi        = dirMode != 0 ? 2 : 1;
     int hy_h      = hiddenSize;
     int bi_stride = bi * hy_h;
+    int out_h     = hiddenSize * ((dirMode != 0) ? 2 : 1);
     std::vector<T> dweights(weightSize);
 
+    
+    std::vector<T> converted_input;
+    std::vector<T> converted_doutput;
+
+    const std::vector<T>* packed_input;
+    const std::vector<T>* packed_doutput;
+
+    // WA: bug in workSpace using
+    std::vector<T> wa_workSpace;
+    const std::vector<T>* wa_shifted_workSpace;
+
+    if(use_seqPadding)
+    {
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) =
+            GetTempPackedBuffersSize(batch_seq, inputVecLen, out_h);
+
+        converted_input.resize(packedXInSize);
+        converted_doutput.resize(packedYOutSize);
+
+        ChangeDataPadding(input, converted_input, batch_seq, batch_seq[0], inputVecLen, false);
+        ChangeDataPadding(dy, converted_doutput, batch_seq, batch_seq[0], out_h, false);
+
+        packed_input   = &converted_input;
+        packed_doutput = &converted_doutput;
+
+        // WA
+        wa_workSpace.resize(workSpace.size() - (packedXInSize + packedYOutSize));
+        std::copy(workSpace.begin() + packedXInSize + packedYOutSize,
+                  workSpace.end(),
+                  wa_workSpace.begin());
+        wa_shifted_workSpace = &wa_workSpace;
+    }
+    else
+    {
+        packed_input  = &input;
+        packed_doutput = &dy;
+        wa_shifted_workSpace = &workSpace;
+    }
+
     LSTMBwdWeightCPUVerify(use_dropout,
-                                 input,
+                                 *packed_input,
                                  dweights,   // (output) [ input_state_weight_trans
                                              // hidden_state_weight0_trans
                                              // input1_trans hidden1_trans ...
                                              // output_weight; bidirectional
                                              // reversed weights ]
                                  initHidden, // initial hidden state
-                                 dy,
+                                 *packed_doutput,
                                  batch_seq,       // input batch size
                                  inputVecLen,     // input data length
                                  seqLength,       // Number of iterations to unroll over
@@ -1279,7 +1398,7 @@ std::vector<T> verify_backward_weights_lstm<T>::cpu() const
                                                   // by hy_h related function for bidirection
                                  inputMode,
                                  reserveSpace_cpu,
-                                 workSpace,
+                                 *wa_shifted_workSpace,
                                  nohx);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1693,7 +1812,9 @@ struct lstm_basic_driver : test_driver
             rnnDesc,   yin,      dyin,    dhyin,     hx,         dcyin,           cx,
             weights,   rsvgpu,   rsvcpu,  batchSeq,  hiddenSize, batch_n,         seqLength,
             numLayers, biasMode, dirMode, inputMode, inVecReal,  hx_sz,           nohx,
-            nocx,      nodhy,    nodcy,   nodhx,     nodcx,      bool(useDropout)});
+                                                nocx,      nodhy,     nodcy,
+                                                nodhx,     nodcx,     bool(useDropout),
+                                                usePadding});
 
         // RETURNS:  std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
         auto workSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
@@ -1710,7 +1831,7 @@ struct lstm_basic_driver : test_driver
         verify(verify_backward_weights_lstm<T>{
             rnnDesc,  input,      dyin,      hx,      rsvgpu,    rsvcpu,          workSpaceBwdData,
             batchSeq, hiddenSize, wei_sz,    batch_n, seqLength, numLayers,       biasMode,
-            dirMode,  inputMode,  inVecReal, hx_sz,   nohx,      bool(useDropout)});
+            dirMode,  inputMode,  inVecReal, hx_sz,   nohx,      bool(useDropout), usePadding});
 
 /// \todo Resolve the issue and remove workaround.
 /// ROCm3.3, Radeon VII: Many test cases always fail with:
