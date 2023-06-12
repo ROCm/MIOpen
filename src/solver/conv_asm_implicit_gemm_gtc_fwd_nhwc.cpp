@@ -1078,7 +1078,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValidValue(int
         default:
             throw std::out_of_range("Unexpected sequence_index value: " +
                                     std::to_string(sequence_index));
-            break;
         }
     }
     if(new_potential_configs.empty())
