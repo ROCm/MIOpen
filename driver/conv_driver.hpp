@@ -1423,7 +1423,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     else
     {
-        Tgpu Data_scale = static_cast<Tgpu>(0.01);
+        Tgpu Data_scale = (is_fp8 ? static_cast<Tgpu>(0.0005) : static_cast<Tgpu>(0.01));
+        Tgpu Data_min   = (is_fp8 ? static_cast<Tgpu>(-0.05) : static_cast<Tgpu>(0.0));
+        Tgpu Data_max   = (is_fp8 ? static_cast<Tgpu>(0.05) : static_cast<Tgpu>(1.0));
 
         bool doutRead = false;
         if(is_bwd || is_wrw)
@@ -1435,8 +1437,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             for(int i = 0; i < in_sz; i++)
             {
                 if(is_fwd || is_wrw)
-                    in.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                    in.data[i] = Data_scale * RAN_GEN<Tgpu>(Data_min, Data_max);
                 else /// \ref move_rand
                     GET_RAND();
             }
@@ -1446,8 +1447,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         {
             for(int i = 0; i < out_sz; i++)
                 if(is_bwd || is_wrw)
-                    dout.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                    dout.data[i] = Data_scale * RAN_GEN<Tgpu>(Data_min, Data_max);
                 else /// \ref move_rand
                     GET_RAND();
         }
@@ -1462,10 +1462,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             db_host     = tensor<Tref>(miopen::deref(biasTensor));
             for(int i = 0; i < b_sz; i++)
             {
-                b.data[i] = static_cast<Tgpu>(i % 8) +
-                            RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                db[i] = static_cast<Tgpu>(i % 8) +
-                        RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                b.data[i] = static_cast<Tgpu>(i % 8) + RAN_GEN<Tgpu>(Data_min, Data_max);
+                db[i]     = static_cast<Tgpu>(i % 8) + RAN_GEN<Tgpu>(Data_min, Data_max);
             }
 
             if(!biasFileName.empty())
@@ -1529,8 +1527,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_fwd)
     {
-        out_dev = std::unique_ptr<GPUMem>(new GPUMem(
-            ctx, out_sz, is_int8 ? sizeof(float) : (is_fp8 ? sizeof(half) : sizeof(Tgpu))));
+        // TODO: For the temporary conversion to half, this is required, however, that would also
+        // need change elsewhere which has not yet been implemented out_dev =
+        // std::unique_ptr<GPUMem>(new GPUMem(
+        //     ctx, out_sz, is_int8 ? sizeof(float) : (is_fp8 ? sizeof(half) : sizeof(Tgpu))));
+        std::ignore = is_fp8;
+        out_dev     = std::unique_ptr<GPUMem>(
+            new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tgpu)));
         status |=
             (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
     }

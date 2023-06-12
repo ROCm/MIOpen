@@ -665,12 +665,106 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
 
         case miopenFloat8: {
-            MIOPEN_THROW(miopenStatusBadParm, "BF8 data type not supported by MIOpenGEMM.");
+#if USE_ROCBLAS_GEMM_EX3
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+            rb_status = rocblas_gemm_ex3(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose
+                                 : rocblas_operation_none, // rocblas_operation transA,
+                gemm_desc.transB ? rocblas_operation_transpose
+                                 : rocblas_operation_none, // rocblas_operation transB,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,                                  // Double confirm: Must be 32-bit
+                static_cast<const char*>(A) + a_offset,  // const void*       a,
+                rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  a_type,
+                gemm_desc.lda,                           // rocblas_int       lda,
+                static_cast<const char*>(B) + b_offset,  // const void*       b,
+                rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  b_type,
+                gemm_desc.ldb,                           // rocblas_int       ldb,
+                &beta, // Double confirm: Must be  f 32-bit        // const void*       beta,
+                static_cast<const char*>(C) + c_offset,  // const void*       c,
+                rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  c_type,
+                gemm_desc.ldc,                           // rocblas_int       ldc,
+                static_cast<char*>(C) + c_offset,        // void* d,
+                rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  d_type
+                gemm_desc.ldc,                           // rocblas_int       ldd,
+                rocblas_compute_type_f32,                // rocblas_compute_type_f8_f8_f32// same as
+                                                         // rocblas_compute_type_f32
+                // //rocblas_datatype::rocblas_datatype_f32_r,   //or
+                // rocblas_compute_type_f8_f8_f32   //
+                // rocblas_computetype compute_type,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
+                0,                                             // int32_t           solution_index,
+                rocblas_gemm_flags::
+                    rocblas_gemm_flags_stochastic_rounding // Depend on application,
+                                                           // 0: IEEE-RNE
+                                                           // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
+                                                           // // uint32_t flags
+            );
+#pragma clang diagnostic pop
+
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
+#endif
         };
         break;
 
         case miopenBFloat8: {
-            MIOPEN_THROW(miopenStatusBadParm, "F8 data type not supported by MIOpenGEMM.");
+#if USE_ROCBLAS_GEMM_EX3
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+            rb_status = rocblas_gemm_ex3(
+                handle.rhandle().get(),
+                gemm_desc.transA ? rocblas_operation_transpose
+                                 : rocblas_operation_none, // rocblas_operation transA,
+                gemm_desc.transB ? rocblas_operation_transpose
+                                 : rocblas_operation_none, // rocblas_operation transB,
+                gemm_desc.m,
+                gemm_desc.n,
+                gemm_desc.k,
+                &alpha,                                   // Double confirm: Must be 32-bit
+                static_cast<const char*>(A) + a_offset,   // const void*       a,
+                rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  a_type,
+                gemm_desc.lda,                            // rocblas_int       lda,
+                static_cast<const char*>(B) + b_offset,   // const void*       b,
+                rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  b_type,
+                gemm_desc.ldb,                            // rocblas_int       ldb,
+                &beta, // Double confirm: Must be  f 32-bit        // const void*       beta,
+                static_cast<const char*>(C) + c_offset,   // const void*       c,
+                rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  c_type,
+                gemm_desc.ldc,                            // rocblas_int       ldc,
+                static_cast<char*>(C) + c_offset,         // void* d,
+                rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  d_type
+                gemm_desc.ldc,                            // rocblas_int       ldd,
+                rocblas_compute_type_f32, // rocblas_compute_type_f8_f8_f32// same as
+                                          // rocblas_compute_type_f32
+                                          // //rocblas_datatype::rocblas_datatype_f32_r,   //or
+                                          // rocblas_compute_type_f8_f8_f32   //
+                                          // rocblas_computetype compute_type,
+                rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
+                0,                                             // int32_t           solution_index,
+                rocblas_gemm_flags::
+                    rocblas_gemm_flags_stochastic_rounding // Depend on application,
+                                                           // 0: IEEE-RNE
+                                                           // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
+                                                           // // uint32_t flags
+            );
+#pragma clang diagnostic pop
+
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
+#endif
         };
         break;
 
@@ -1358,12 +1452,115 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         break;
 
         case miopenFloat8: {
-            MIOPEN_THROW(miopenStatusBadParm, "F8 data type not supported by MIOpenGEMM.");
+#if USE_ROCBLAS_GEMM_EX3
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
+            {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                    handle.rhandle().get(),
+                    gemm_desc.transA ? rocblas_operation_transpose
+                                     : rocblas_operation_none, // rocblas_operation transA,
+                    gemm_desc.transB ? rocblas_operation_transpose
+                                     : rocblas_operation_none, // rocblas_operation transB,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha, // Double confirm: Must be 32-bit
+                    static_cast<const char*>(A) + a_offset +
+                        bCount * gemm_desc.strideA,          // const void*       a,
+                    rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  a_type,
+                    gemm_desc.lda,                           // rocblas_int       lda,
+                    static_cast<const char*>(B) + b_offset +
+                        bCount * gemm_desc.strideB,          // const void*       b,
+                    rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  b_type,
+                    gemm_desc.ldb,                           // rocblas_int       ldb,
+                    &beta, // Double confirm: Must be  f 32-bit        // const void*       beta,
+                    static_cast<const char*>(C) + c_offset +
+                        bCount * gemm_desc.strideC,          // const void*       c,
+                    rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  c_type,
+                    gemm_desc.ldc,                           // rocblas_int       ldc,
+                    static_cast<char*>(C) + c_offset + bCount * gemm_desc.strideC, // void* d,
+                    rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  d_type
+                    gemm_desc.ldc,                           // rocblas_int       ldd,
+                    rocblas_compute_type_f32, // rocblas_compute_type_f8_f8_f32// same as
+                                              // rocblas_compute_type_f32
+                                              // //rocblas_datatype::rocblas_datatype_f32_r,   //or
+                                              // rocblas_compute_type_f8_f8_f32   //
+                                              // rocblas_computetype compute_type,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
+                    0, // int32_t           solution_index,
+                    rocblas_gemm_flags::
+                        rocblas_gemm_flags_stochastic_rounding // Depend on application,
+                                                               // 0: IEEE-RNE
+                                                               // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
+                                                               // // uint32_t flags
+                );
+#pragma clang diagnostic pop
+            }
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
+#endif
         }
         break;
 
         case miopenBFloat8: {
-            MIOPEN_THROW(miopenStatusBadParm, "BF8 data type not supported by MIOpenGEMM.");
+#if USE_ROCBLAS_GEMM_EX3
+            float alpha = gemm_desc.alpha;
+            float beta  = gemm_desc.beta;
+
+            for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
+            {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                    handle.rhandle().get(),
+                    gemm_desc.transA ? rocblas_operation_transpose
+                                     : rocblas_operation_none, // rocblas_operation transA,
+                    gemm_desc.transB ? rocblas_operation_transpose
+                                     : rocblas_operation_none, // rocblas_operation transB,
+                    gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    &alpha, // Double confirm: Must be 32-bit
+                    static_cast<const char*>(A) + a_offset +
+                        bCount * gemm_desc.strideA,           // const void*       a,
+                    rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  a_type,
+                    gemm_desc.lda,                            // rocblas_int       lda,
+                    static_cast<const char*>(B) + b_offset +
+                        bCount * gemm_desc.strideB,           // const void*       b,
+                    rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  b_type,
+                    gemm_desc.ldb,                            // rocblas_int       ldb,
+                    &beta, // Double confirm: Must be  f 32-bit        // const void*       beta,
+                    static_cast<const char*>(C) + c_offset +
+                        bCount * gemm_desc.strideC,           // const void*       c,
+                    rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  c_type,
+                    gemm_desc.ldc,                            // rocblas_int       ldc,
+                    static_cast<char*>(C) + c_offset + bCount * gemm_desc.strideC, // void* d,
+                    rocblas_datatype::rocblas_datatype_bf8_r, // rocblas_datatype  d_type
+                    gemm_desc.ldc,                            // rocblas_int       ldd,
+                    rocblas_compute_type_f32, // rocblas_compute_type_bf8_bf8_f32 same as
+                                              // rocblas_compute_type_f32
+                                              // //rocblas_datatype::rocblas_datatype_f32_r,   //or
+                                              // rocblas_compute_type_f8_f8_f32   //
+                                              // rocblas_computetype compute_type,
+                    rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
+                    0, // int32_t           solution_index,
+                    rocblas_gemm_flags::rocblas_gemm_flags_stochastic_rounding // Depend on
+                                                                               // application, 0:
+                                                                               // IEEE-RNE
+                );
+#pragma clang diagnostic pop
+            }
+#else
+            MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support bf8 data type");
+#endif
         }
         break;
 

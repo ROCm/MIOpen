@@ -190,7 +190,7 @@ bool ProblemDescription::IsLayoutDefault() const
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 {
-    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8() || IsFp8() || IsBfp8())
     {
         ctx.general_compile_options += GetDataTypeKernelParams(GetInDataType());
         return;

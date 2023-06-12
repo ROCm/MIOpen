@@ -29,12 +29,6 @@
 #include "half.hpp"
 
 #include "random.hpp"
-using half = half_float::half;
-#include <miopen/hip_float8.h>
-
-using float16 = half_float::half;
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 #include "InputFlags.hpp"
 #include <algorithm>
@@ -44,6 +38,12 @@ using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/bfloat16.hpp>
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <miopen/hip_float8.h>
+using float16 = half_float::half;
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 #include <numeric>
 #include <vector>
 

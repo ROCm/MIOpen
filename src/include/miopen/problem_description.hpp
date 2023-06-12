@@ -262,11 +262,9 @@ struct ProblemDescription
     {
         return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
     }
-    bool IsFp8() const
-    {
-        return in_data_type == miopenFloat8 || weights_data_type == miopenFloat8 ||
-               out_data_type == miopenHalf;
-    }
+    bool IsFp8() const { return conv_problem.IsFp8(); }
+
+    bool IsBfp8() const { return conv_problem.IsBfp8(); }
     bool IsTensorsCasted() const { return conv_problem.IsTensorsCasted(); }
     TensorDescriptor GetIn() const { return conv_problem.GetIn(); }
     TensorDescriptor GetWeights() const { return conv_problem.GetWeights(); }

@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/bfloat16.hpp>
-#include <half.hpp>
+// #include <miopen/bfloat16.hpp>
+// #include <half.hpp>
 namespace miopen_hip_f8_impl {
 
-//#ifndef __HIP_PLATFORM_HCC__
+#ifndef __HIP_PLATFORM_HCC__
 using hip_bfloat16 = bfloat16;
 using half         = half_float::half;
-//#endif
+#endif
 
 template <int wm, int we, typename T>
 HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x, bool stoch = false, uint32_t rng = 0)

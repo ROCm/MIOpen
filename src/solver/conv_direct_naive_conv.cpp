@@ -140,6 +140,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
         kernel_name << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
         kernel_name << "_" << miopen::GetDataType(problem.GetWeightsDataType());
         kernel_name << "_" << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
+        return kernel_name.str();
     }
     else if(IsInputFp32(problem))
         kernel_name << "float_";

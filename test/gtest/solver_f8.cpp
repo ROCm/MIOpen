@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include "solver.hpp"
-struct ConvFwdGemmTestFp8 : ConvFwdSolverTest<float8>
+struct ConvFwdFp8 : ConvFwdSolverTest<float8>
 {
 };
 template <typename Solver>
@@ -59,8 +59,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     if(!solv.IsApplicable(ctx, problem))
     {
         test_skipped = true;
-        GTEST_SKIP() << /*solv.SolverDbId() <<*/ "GemmFwd1x1_0_1 Not Applicable for this problem"
-                     << conv_config;
+        GTEST_SKIP() << solv.SolverDbId() << ": Not Applicable for this problem" << conv_config;
     }
 
     const auto invoke_params = miopen::conv::DataInvokeParams{
@@ -79,8 +78,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     (invoker)(handle, invoke_params);
     handle.Finish();
 }
-
-TEST_P(ConvFwdGemmTestFp8, GemmFwdFp8)
+#if 0
+TEST_P(ConvFwdFp8, Gemm1x1x0x1)
 {
     SolverFwd<miopen::solver::GemmFwd1x1_0_1>(input.desc,
                                               in_dev.get(),
@@ -92,7 +91,24 @@ TEST_P(ConvFwdGemmTestFp8, GemmFwdFp8)
                                               conv_config,
                                               test_skipped);
 }
+#endif
+TEST_P(ConvFwdFp8, NaiveConv)
+{
+    SolverFwd<miopen::solver::ConvDirectNaiveConvFwd>(input.desc,
+                                                      in_dev.get(),
+                                                      weights.desc,
+                                                      wei_dev.get(),
+                                                      output.desc,
+                                                      out_dev.get(),
+                                                      conv_desc,
+                                                      conv_config,
+                                                      test_skipped);
+}
+// INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
+//                          ConvFwdGemmTestFp8,
+//                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+//                                           testing::ValuesIn(ConvTestConfigs())));
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdGemmTestFp8,
+                         ConvFwdFp8,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs())));

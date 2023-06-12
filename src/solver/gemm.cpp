@@ -94,6 +94,12 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
            yDesc.GetType() != miopenInt8x4)
             return false;
     }
+    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
+    if(problem.IsFp8() && !rblas_fp8_supported)
+    {
+        MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
+        return false;
+    }
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
@@ -252,8 +258,6 @@ bool GemmFwd1x1_0_2::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-    if(problem.IsTensorsCasted() || problem.IsFp8())
-        return false;
 
     return conv.GetSpatialDimension() == 2 &&
            miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&

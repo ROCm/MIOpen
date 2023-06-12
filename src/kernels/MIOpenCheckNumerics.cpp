@@ -1,6 +1,7 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
 
+#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.h"
 
 struct Numerics

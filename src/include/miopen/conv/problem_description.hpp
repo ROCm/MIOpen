@@ -357,6 +357,11 @@ struct ProblemDescription : ProblemDescriptionBase
         return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
                GetOutDataType() == miopenFloat8;
     }
+    bool IsBfp8() const
+    {
+        return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
+               GetOutDataType() == miopenBFloat8;
+    }
     bool IsTensorsCasted() const
     {
         return GetInCastType() || GetWeightsCastType() || GetOutCastType();

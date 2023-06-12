@@ -100,9 +100,15 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
 #if MIOPEN_USE_GEMM
     if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
         return false;
-    const auto& dyDesc = problem.GetIn();
-    const auto& wDesc  = problem.GetWeights();
-    const auto& dxDesc = problem.GetOut();
+    const auto& dyDesc             = problem.GetIn();
+    const auto& wDesc              = problem.GetWeights();
+    const auto& dxDesc             = problem.GetOut();
+    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
+    if(problem.IsFp8() && !rblas_fp8_supported)
+    {
+        MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
+        return false;
+    }
     return problem.GetDirection() == conv::Direction::BackwardData && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
