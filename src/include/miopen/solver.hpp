@@ -2348,9 +2348,11 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     static int GetSolverWinoXformHWSize(const ProblemDescription& problem, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.kernel_stride_h);
+            return WinoDataH +
+                   (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.GetKernelStrideH());
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.kernel_stride_w);
+            return WinoDataW +
+                   (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.GetKernelStrideW());
     }
 
 private:
@@ -4711,6 +4713,12 @@ private:
 };
 
 struct AnySolver;
+
+// Use struct as a syntactic sugar to make the intent as clear as possible.
+struct ThisSolverIsDeprecatedStatic
+{
+    static bool IsDisabled(const ConvolutionContext& ctx);
+};
 
 } // namespace solver
 } // namespace miopen
