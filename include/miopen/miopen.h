@@ -3281,7 +3281,7 @@ typedef enum
 } miopenRNNGEMMalgoMode_t;
 
 /*! @enum miopenRNNPaddingMode_t
- * Recurrent Neural Network input\output data padding mode
+ * Recurrent Neural Network input/output data padding mode
  */
 typedef enum
 {
@@ -4000,7 +4000,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
  * By default, not padded data is expected at the RNN input/output.
  *
  * @param rnnDesc         RNN layer descriptor type (input/output)
- * @param paddingMode     RNN input\output data padding mode (input)
+ * @param paddingMode     RNN input/output data padding mode (input)
  * @return                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
