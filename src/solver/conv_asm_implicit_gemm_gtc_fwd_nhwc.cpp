@@ -1075,6 +1075,10 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsNextTokenValidValue(int
             if(configs[i].tensor_b_cluster_lengths[3] == this->tensor_b_cluster_lengths[3])
                 new_potential_configs.emplace_back(i);
             break;
+        default:
+            throw std::out_of_range("Unexpected sequence_index value: " +
+                                    std::to_string(sequence_index));
+            break;
         }
     }
     if(new_potential_configs.empty())
