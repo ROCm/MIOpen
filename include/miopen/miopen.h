@@ -4880,13 +4880,13 @@ miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options
                                                      void* buffer);
 
 /*! @brief Forces library to attach kernel binaries to solutions for later saving. This allows zero
- * lookup miopenRunSolution calls after miopenLoadSolution. Default value is false.
+ * lookup miopenRunSolution calls after miopenLoadSolution. Default value is 0.
  *
  * @param options    Options object to update
- * @param attach     True means attaching, false - skipping
+ * @param attach     1 means attaching, 0 - skipping, any other value - reserved for future use
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options, bool attach);
+miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options, unsigned attach);
 
 /*! @brief The miopenSolution object describes a prepared solution.
  */
