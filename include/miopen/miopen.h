@@ -4811,8 +4811,8 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenTensorArgumentId_t id,
-                                                const miopenTensorDescriptor_t descriptor);
+                                 miopenTensorArgumentId_t id,
+                                 const miopenTensorDescriptor_t descriptor);
 
 /*! @brief The miopenFindOptions allows the user to configure how find will be used.
  */
@@ -4847,7 +4847,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t optio
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
-                                               miopenFindResultsOrder_t value);
+                                                             miopenFindResultsOrder_t value);
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
@@ -4866,7 +4866,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions
  * @param size       Specifies the size of the buffer passed
  * @return           miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t MIOPEN_EXPORT miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+MIOPEN_EXPORT miopenStatus_t MIOPEN_EXPORT
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
 
 /*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
  * MIOpen internally, which is not recommended.
@@ -4877,8 +4878,8 @@ MIOPEN_EXPORT miopenStatus_t MIOPEN_EXPORT miopenSetFindOptionPreallocatedWorksp
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
-                                                     miopenTensorArgumentId_t id,
-                                                     void* buffer);
+                                                                   miopenTensorArgumentId_t id,
+                                                                   void* buffer);
 
 /*! @brief Forces library to attach kernel binaries to solutions for later saving. This allows zero
  * lookup miopenRunSolution calls after miopenLoadSolution. Default value is 0.
@@ -4906,11 +4907,11 @@ MIOPEN_DECLARE_OBJECT(miopenSolution);
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
-                                   miopenProblem_t problem,
-                                   miopenFindOptions_t options,
-                                   miopenSolution_t* solutions,
-                                   size_t* numSolutions,
-                                   size_t maxSolutions);
+                                                 miopenProblem_t problem,
+                                                 miopenFindOptions_t options,
+                                                 miopenSolution_t* solutions,
+                                                 size_t* numSolutions,
+                                                 size_t maxSolutions);
 
 /*! @brief Values of a tensor argument for the miopenRunSolution function.
  */
@@ -4942,11 +4943,11 @@ struct miopenTensorArgument_t
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRunSolution(miopenHandle_t handle,
-                                 miopenSolution_t solution,
-                                 size_t nInputs,
-                                 const miopenTensorArgument_t* tensors,
-                                 void* workspace,
-                                 size_t workspaceSize);
+                                               miopenSolution_t solution,
+                                               size_t nInputs,
+                                               const miopenTensorArgument_t* tensors,
+                                               void* workspace,
+                                               size_t workspaceSize);
 
 /*! @brief Destroys solution object.
  *
