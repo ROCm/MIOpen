@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -425,12 +425,11 @@ extern "C" miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
                                                   miopenRNNPaddingMode_t paddingMode)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, paddingMode);
-    return miopen::try_([&] { miopen::deref(rnnDesc).SetPaddingmode(paddingMode);
-    });
+    return miopen::try_([&] { miopen::deref(rnnDesc).SetPaddingmode(paddingMode); });
 }
 
 extern "C" miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
-                                                  miopenRNNPaddingMode_t *paddingMode)
+                                                  miopenRNNPaddingMode_t* paddingMode)
 {
     auto ret =
         miopen::try_([&] { miopen::deref(paddingMode) = miopen::deref(rnnDesc).paddingMode; });

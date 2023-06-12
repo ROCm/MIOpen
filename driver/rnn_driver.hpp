@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -265,7 +265,8 @@ int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "mode", 'm', "tanh", "RNN Mode (relu, tanh, lstm, gru) (Default=tanh)", "str");
     inflags.AddInputFlag("inputmode", 'p', "0", "linear == 0 or skip == 1, (Default=0)", "int");
-    inflags.AddInputFlag("use_padding", 'q', "0", "packed tensors == 0 or padded == 1, (Default=0)", "int");
+    inflags.AddInputFlag(
+        "use_padding", 'q', "0", "packed tensors == 0 or padded == 1, (Default=0)", "int");
     inflags.AddInputFlag("rnnalgo", 'a', "0", "default, fundamental (Default=0)", "int");
     inflags.AddInputFlag("fwdtype",
                          'c',
@@ -911,13 +912,10 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
 static std::tuple<size_t, size_t>
 GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
 {
-    size_t total_batch = std::accumulate(
-        batchs.begin(), batchs.end(),
-        0);
+    size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);
 
-    size_t in_buff_size = total_batch * in_vec;
-    size_t out_buff_size =
-        total_batch * out_vec;
+    size_t in_buff_size  = total_batch * in_vec;
+    size_t out_buff_size = total_batch * out_vec;
     return {in_buff_size, out_buff_size};
 }
 
@@ -996,7 +994,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardCPU()
         miopenGetRNNDescriptor(
             rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
     }
-    
+
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
@@ -1308,7 +1306,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
         miopenGetRNNDescriptor(
             rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
     }
-   
+
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
@@ -1316,7 +1314,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     {
         return miopenStatusBadParm;
     }
-    
+
     miopenRNNPaddingMode_t paddingMode =
         (inflags.GetValueInt("use_padding") == 1) ? miopenRNNIOWithPadding : miopenRNNIONotPadded;
 
@@ -1335,10 +1333,9 @@ int RNNDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
         ChangeDataPadding(dout, converted_dout, in_n, in_n[0], out_h, false);
     }
 
-    std::vector<Tgpu>* in_packed   =
-        paddingMode == miopenRNNIOWithPadding ? &converted_in : &in;
-    std::vector<Tgpu>* dout_packed = paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
-
+    std::vector<Tgpu>* in_packed = paddingMode == miopenRNNIOWithPadding ? &converted_in : &in;
+    std::vector<Tgpu>* dout_packed =
+        paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
@@ -1491,11 +1488,9 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
 
     std::vector<Tref>* din_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_din : &din_host;
-    std::vector<Tgpu>* out_packed =
-        paddingMode == miopenRNNIOWithPadding ? &converted_out : &out;
+    std::vector<Tgpu>* out_packed = paddingMode == miopenRNNIOWithPadding ? &converted_out : &out;
     std::vector<Tgpu>* dout_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
-
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
@@ -1583,7 +1578,7 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
     {
         printf("illegal RNN mode");
     }
-    
+
     if(paddingMode == miopenRNNIOWithPadding)
     {
         ChangeDataPadding(converted_din, din_host, in_n, in_n[0], in_h, true);

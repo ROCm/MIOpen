@@ -65,16 +65,16 @@ GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
 }
 
 inline size_t getSuperTensorSize(const std::vector<int>& bs,
-                                  int seqLength,
-                                  int inputSize,
-                                  int hiddenSize,
-                                  int maxPaddingVal,
-                                  bool isBidirect,
-                                  bool isInput,
-                                  bool isPadded)
+                                 int seqLength,
+                                 int inputSize,
+                                 int hiddenSize,
+                                 int maxPaddingVal,
+                                 bool isBidirect,
+                                 bool isInput,
+                                 bool isPadded)
 {
     return static_cast<size_t>(isPadded ? seqLength * maxPaddingVal
-                                         : std::accumulate(bs.begin(), bs.end(), 0)) *
+                                        : std::accumulate(bs.begin(), bs.end(), 0)) *
            static_cast<size_t>(isInput ? inputSize : hiddenSize * (isBidirect ? 2 : 1));
 }
 
@@ -88,8 +88,8 @@ void ChangeDataPadding(const std::vector<Tgpu>& src_array,
 {
     auto seq_len = batch_list.size();
 
-    auto scr_ptr      = &src_array[0];
-    auto dst_ptr      = &dst_array[0];
+    auto scr_ptr = &src_array[0];
+    auto dst_ptr = &dst_array[0];
 
     for(int seq_id = 0; seq_id < seq_len; seq_id++)
     {

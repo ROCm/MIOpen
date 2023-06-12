@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -3285,8 +3285,8 @@ typedef enum
  */
 typedef enum
 {
-    miopenRNNIONotPadded   = 0,  /*!< Not padded data at RNN input/output */
-    miopenRNNIOWithPadding = 1,  /*!< Padded data at RNN input/output */
+    miopenRNNIONotPadded   = 0, /*!< Not padded data at RNN input/output */
+    miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
 } miopenRNNPaddingMode_t;
 
 /*! @brief Create a RNN layer Descriptor
@@ -3995,8 +3995,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
 /*! @brief Sets a bias for a specific layer in an RNN stack
  *
  * This function changes padidng mode at previously created and initialized RNN descriptor.
- * This function must be called before using miopenGetRNNWorkspaceSize() 
- * and miopenGetRNNTrainingReserveSize() functions. 
+ * This function must be called before using miopenGetRNNWorkspaceSize()
+ * and miopenGetRNNTrainingReserveSize() functions.
  * By default, not padded data is expected at the RNN input/output.
  *
  * @param rnnDesc         RNN layer descriptor type (input/output)

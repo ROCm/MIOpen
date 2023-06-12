@@ -81,7 +81,6 @@ struct verify_forward_lstm
     bool nohy{};
     bool nocy{};
     bool use_seqPadding{};
-
 };
 
 //****************************************************
@@ -139,13 +138,13 @@ struct verify_backward_data_lstm
                               const int pIM,
                               const int pVL,
                               const size_t pHXZ,
-                              const bool pnohx        = false,
-                              const bool pnocx        = false,
-                              const bool pnodhy       = false,
-                              const bool pnodcy       = false,
-                              const bool pnodhx       = false,
-                              const bool pnodcx       = false,
-                              const bool puse_dropout = false,
+                              const bool pnohx           = false,
+                              const bool pnocx           = false,
+                              const bool pnodhy          = false,
+                              const bool pnodcy          = false,
+                              const bool pnodhx          = false,
+                              const bool pnodcx          = false,
+                              const bool puse_dropout    = false,
                               const bool puse_seqPadding = false)
         : yin(py),
           dy(pdy),
@@ -196,7 +195,6 @@ struct verify_backward_data_lstm
         else
             dcy.resize(realHiddenSize);
     }
-
 
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu() const;
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu() const;
@@ -287,8 +285,8 @@ struct verify_backward_weights_lstm
                                  const int pIM,
                                  const int pVL,
                                  const size_t pHXZ,
-                                 const bool pnohx        = false,
-                                 const bool puse_dropout = false,
+                                 const bool pnohx           = false,
+                                 const bool puse_dropout    = false,
                                  const bool puse_seqPadding = false)
         : input(px),
           dy(pdy),
@@ -317,7 +315,6 @@ struct verify_backward_weights_lstm
         else
             initHidden.resize(realHiddenSize);
     }
-
 
     std::vector<T> cpu() const;
     std::vector<T> gpu() const;
@@ -351,7 +348,6 @@ struct verify_backward_weights_lstm
     }
 };
 //~~~~~~~~~~~~ END BACKWARD WEIGHTS ~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 //****************************************************
 // FORWARD INFERENCE
@@ -395,10 +391,10 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
                               const int pIM,
                               const int pVL,
                               const size_t pHXZ,
-                              const bool pnohx = false,
-                              const bool pnocx = false,
-                              const bool pnohy = false,
-                              const bool pnocy = false,
+                              const bool pnohx           = false,
+                              const bool pnocx           = false,
+                              const bool pnohy           = false,
+                              const bool pnocy           = false,
                               const bool puse_seqPadding = false)
     {
         input          = px;
@@ -479,33 +475,33 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         std::vector<T> cellState(initCell.size());
 
         LSTMFwdCPUVerify(handle,
-                               false,
-                               miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
-                               input,
-                               weights,     // [ input_state_weight_trans
-                                            // hidden_state_weight0_trans input1_trans
-                                            // hidden1_trans ... output_weight;
-                                            // bidirectional reversed weights ]
-                               hiddenState, // current/final hidden state
-                               initHidden,  // initial hidden state
-                               cellState,   // current/final cell state
-                               initCell,    // initial cell state
-                               output,
-                               batch_seq,       // input batch size
-                               inputVecLen,     // input data length
-                               seqLength,       // Number of iterations to unroll over
-                               dirMode,         // whether using bidirectional net
-                               biasMode,        // whether using bias
-                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
-                                                // for unidirection, 2 by numlayer for bidirection
-                               batch_seq.at(0), // equal to input batch size in_n[0]
-                               hiddenSize,      // hidden state number
-                               bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h
+                         false,
+                         miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
+                         input,
+                         weights,     // [ input_state_weight_trans
+                                      // hidden_state_weight0_trans input1_trans
+                                      // hidden1_trans ... output_weight;
+                                      // bidirectional reversed weights ]
+                         hiddenState, // current/final hidden state
+                         initHidden,  // initial hidden state
+                         cellState,   // current/final cell state
+                         initCell,    // initial cell state
+                         output,
+                         batch_seq,       // input batch size
+                         inputVecLen,     // input data length
+                         seqLength,       // Number of iterations to unroll over
+                         dirMode,         // whether using bidirectional net
+                         biasMode,        // whether using bias
+                         bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                          // for unidirection, 2 by numlayer for bidirection
+                         batch_seq.at(0), // equal to input batch size in_n[0]
+                         hiddenSize,      // hidden state number
+                         bi_stride,       // 1 by hy_h related function for unidirection, 2 by hy_h
                                           // related function for bidirection
-                               inputMode,
-                               reserveSpace,
-                               nohx,
-                               nocx);
+                         inputMode,
+                         reserveSpace,
+                         nohx,
+                         nocx);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -698,11 +694,11 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                               const int pIM,
                               const int pVL,
                               const size_t pHXZ,
-                              const bool pnohx        = false,
-                              const bool pnocx        = false,
-                              const bool pnohy        = false,
-                              const bool pnocy        = false,
-                              const bool puse_dropout = false,
+                              const bool pnohx           = false,
+                              const bool pnocx           = false,
+                              const bool pnohy           = false,
+                              const bool pnocy           = false,
+                              const bool puse_dropout    = false,
                               const bool puse_seqPadding = false)
         : RSVgpu(pRSVgpu.begin()), RSVcpu(pRSVcpu.begin())
     {
@@ -768,14 +764,12 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        createTensorDescArray(outputCPPDescs,
-                              outputDescs,
-                              batch_seq, out_h,
-                              miopen::deref(rnnDesc).dataType);
-            
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, out_h, miopen::deref(rnnDesc).dataType);
+
         size_t inputBatchLenSum =
             std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
-        
+
         size_t reserveSpaceSize;
         reserveSpaceSize = 2 * 6 * miopen::deref(rnnDesc).nLayers * inputBatchLenSum * out_h;
 
@@ -792,14 +786,13 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         std::vector<T> hiddenState(initHidden.size());
         std::vector<T> cellState(initCell.size());
 
-
         std::vector<T> converted_input;
         std::vector<T> converted_output;
-        
+
         const std::vector<T>* packed_input;
         std::vector<T>* packed_output;
 
-        if(use_seqPadding) 
+        if(use_seqPadding)
         {
             size_t packedXInSize, packedYOutSize;
             std::tie(packedXInSize, packedYOutSize) =
@@ -813,39 +806,40 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             packed_input  = &converted_input;
             packed_output = &converted_output;
         }
-        else {
-            packed_input = &input;
+        else
+        {
+            packed_input  = &input;
             packed_output = &output;
         }
 
         LSTMFwdCPUVerify(handle,
-                               use_dropout,
-                               miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
-                               *packed_input,
-                               weights,     // [ input_state_weight_trans
-                                            // hidden_state_weight0_trans input1_trans
-                                            // hidden1_trans ... output_weight;
-                                            // bidirectional reversed weights ]
-                               hiddenState, // current/final hidden state
-                               initHidden,  // initial hidden state
-                               cellState,   // current/final cell state
-                               initCell,    // initial cell state
-                               *packed_output,
-                               batch_seq,       // input batch size
-                               inputVecLen,     // input data length
-                               seqLength,       // Number of iterations to unroll over
-                               dirMode,         // whether using bidirectional net
-                               biasMode,        // whether using bias
-                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
-                                                // for unidirection, 2 by numlayer for bidirection
-                               batch_seq.at(0), // equal to input batch size in_n[0]
-                               hiddenSize,      // hidden state number
-                               bi_stride, // 1 by hy_h related function for unidirection, 2 by hy_h
+                         use_dropout,
+                         miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
+                         *packed_input,
+                         weights,     // [ input_state_weight_trans
+                                      // hidden_state_weight0_trans input1_trans
+                                      // hidden1_trans ... output_weight;
+                                      // bidirectional reversed weights ]
+                         hiddenState, // current/final hidden state
+                         initHidden,  // initial hidden state
+                         cellState,   // current/final cell state
+                         initCell,    // initial cell state
+                         *packed_output,
+                         batch_seq,       // input batch size
+                         inputVecLen,     // input data length
+                         seqLength,       // Number of iterations to unroll over
+                         dirMode,         // whether using bidirectional net
+                         biasMode,        // whether using bias
+                         bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                          // for unidirection, 2 by numlayer for bidirection
+                         batch_seq.at(0), // equal to input batch size in_n[0]
+                         hiddenSize,      // hidden state number
+                         bi_stride,       // 1 by hy_h related function for unidirection, 2 by hy_h
                                           // related function for bidirection
-                               inputMode,
-                               reserveSpace,
-                               nohx,
-                               nocx);
+                         inputMode,
+                         reserveSpace,
+                         nohx,
+                         nocx);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -862,7 +856,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
                   << std::endl;
 #endif
 
-        if(use_seqPadding) 
+        if(use_seqPadding)
         {
             ChangeDataPadding(*packed_output, output, batch_seq, batch_seq[0], out_h, true);
         }
@@ -922,20 +916,19 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         std::vector<T> workSpace(workSpaceSize / sizeof(T));
         std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
-        
+
         auto workSpace_dev    = handle.Write(workSpace);
         auto reserveSpace_dev = handle.Write(reserveSpace);
 
         auto weights_dev = handle.Write(weights);
 
-        auto hy          = initHidden;
+        auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-        auto cy     = initCell;
+        auto cy = initCell;
         std::fill(cy.begin(), cy.end(), 0.);
         auto cy_dev = handle.Write(cy);
-
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -981,7 +974,6 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         std::copy(reserveSpace.begin(), reserveSpace.end(), RSVgpu);
 
         std::vector<T> output_gpu = handle.Read<T>(output_dev, output.size());
-
 
         auto retSet = std::make_tuple(output_gpu,
                                       (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
@@ -1121,55 +1113,55 @@ verify_backward_data_lstm<T>::cpu() const
 
         ChangeDataPadding(yin, converted_output, batch_seq, batch_seq[0], out_h, false);
         ChangeDataPadding(dy, converted_doutput, batch_seq, batch_seq[0], out_h, false);
-        
+
         packed_dinput  = &converted_dinput;
         packed_output  = &converted_output;
         packed_doutput = &converted_doutput;
 
-        //WA
+        // WA
         wa_workSpace.resize(workSpaceSize / sizeof(T) - (packedXInSize + packedYOutSize));
         wa_shifted_workSpace = &wa_workSpace;
     }
     else
     {
-        packed_dinput  = &dx;
-        packed_output  = &yin;
-        packed_doutput = &dy;
+        packed_dinput        = &dx;
+        packed_output        = &yin;
+        packed_doutput       = &dy;
         wa_shifted_workSpace = &workSpace;
     }
 
     LSTMBwdDataCPUVerify(use_dropout,
-                               miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
-                               *packed_dinput,   // DX (output)
-                               weights,         // [ input_state_weight_trans
-                                                //   hidden_state_weight0_trans input1_trans
-                                                //   hidden1_trans ... output_weight;
-                                                //   bidirectional reversed weights ]
-                               dhy,             // current/final hidden state
-                               dhx,             // DHX (output)
-                               initHidden,      // HX initial hidden state
-                               dcy,             // DCY current/final cell state
-                               dcx,             // DCX (output)
-                               initCell,        // CX
-                               *packed_output,   // Y
-                               *packed_doutput,  // DY
-                               batch_seq,       // input batch size
-                               inputVecLen,     // input data length
-                               seqLength,       // Number of iterations to unroll over
-                               dirMode,         // whether using bidirectional net
-                               biasMode,        // whether using bias
-                               bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
-                                                // for unidirection, 2 by numlayer for bidirection
-                               batch_seq.at(0), // equal to input batch size in_n[0]
-                               hiddenSize,      // hidden state number
-                               bi_stride,       // 1 by hy_h related function for unidirection, 2 by
-                               // hy_h related function for bidirection
-                               inputMode,
-                               reserveSpace,
-                               *wa_shifted_workSpace,
-                               nocx,
-                               nodhy,
-                               nodcy);
+                         miopen::deref(miopen::deref(rnnDesc).dropoutDesc),
+                         *packed_dinput,  // DX (output)
+                         weights,         // [ input_state_weight_trans
+                                          //   hidden_state_weight0_trans input1_trans
+                                          //   hidden1_trans ... output_weight;
+                                          //   bidirectional reversed weights ]
+                         dhy,             // current/final hidden state
+                         dhx,             // DHX (output)
+                         initHidden,      // HX initial hidden state
+                         dcy,             // DCY current/final cell state
+                         dcx,             // DCX (output)
+                         initCell,        // CX
+                         *packed_output,  // Y
+                         *packed_doutput, // DY
+                         batch_seq,       // input batch size
+                         inputVecLen,     // input data length
+                         seqLength,       // Number of iterations to unroll over
+                         dirMode,         // whether using bidirectional net
+                         biasMode,        // whether using bias
+                         bi * nLayers,    // 1 by numlayer (number of stacks of hidden layers)
+                                          // for unidirection, 2 by numlayer for bidirection
+                         batch_seq.at(0), // equal to input batch size in_n[0]
+                         hiddenSize,      // hidden state number
+                         bi_stride,       // 1 by hy_h related function for unidirection, 2 by
+                         // hy_h related function for bidirection
+                         inputMode,
+                         reserveSpace,
+                         *wa_shifted_workSpace,
+                         nocx,
+                         nodhy,
+                         nodcy);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -1177,12 +1169,12 @@ verify_backward_data_lstm<T>::cpu() const
     std::cout << "Wall clock: CPU backward data LSTM pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
-    
+
     if(use_seqPadding)
     {
         ChangeDataPadding(converted_dinput, dx, batch_seq, batch_seq[0], inputVecLen, true);
-        
-        //WA
+
+        // WA
         std::copy(converted_doutput.begin(), converted_doutput.end(), workSpace.begin());
 
         std::copy(converted_dinput.begin(),
@@ -1192,7 +1184,6 @@ verify_backward_data_lstm<T>::cpu() const
         std::copy(wa_workSpace.begin(),
                   wa_workSpace.end(),
                   workSpace.begin() + converted_doutput.size() + converted_dinput.size());
-
     }
 
     std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu);
@@ -1335,7 +1326,6 @@ std::vector<T> verify_backward_weights_lstm<T>::cpu() const
     int out_h     = hiddenSize * ((dirMode != 0) ? 2 : 1);
     std::vector<T> dweights(weightSize);
 
-    
     std::vector<T> converted_input;
     std::vector<T> converted_doutput;
 
@@ -1370,36 +1360,36 @@ std::vector<T> verify_backward_weights_lstm<T>::cpu() const
     }
     else
     {
-        packed_input  = &input;
-        packed_doutput = &dy;
+        packed_input         = &input;
+        packed_doutput       = &dy;
         wa_shifted_workSpace = &workSpace;
     }
 
     LSTMBwdWeightCPUVerify(use_dropout,
-                                 *packed_input,
-                                 dweights,   // (output) [ input_state_weight_trans
-                                             // hidden_state_weight0_trans
-                                             // input1_trans hidden1_trans ...
-                                             // output_weight; bidirectional
-                                             // reversed weights ]
-                                 initHidden, // initial hidden state
-                                 *packed_doutput,
-                                 batch_seq,       // input batch size
-                                 inputVecLen,     // input data length
-                                 seqLength,       // Number of iterations to unroll over
-                                 dirMode,         // whether using bidirectional net
-                                 biasMode,        // whether using bias
-                                 bi * nLayers,    // 1 by numlayer (number of stacks of hidden
-                                                  // layers) for unidirection, 2 by numlayer for
-                                                  // bidirection
-                                 batch_seq.at(0), // equal to input batch size in_n[0]
-                                 hiddenSize,      // hidden state number
-                                 bi_stride,       // 1 by hy_h related function for unidirection, 2
-                                                  // by hy_h related function for bidirection
-                                 inputMode,
-                                 reserveSpace_cpu,
-                                 *wa_shifted_workSpace,
-                                 nohx);
+                           *packed_input,
+                           dweights,   // (output) [ input_state_weight_trans
+                                       // hidden_state_weight0_trans
+                                       // input1_trans hidden1_trans ...
+                                       // output_weight; bidirectional
+                                       // reversed weights ]
+                           initHidden, // initial hidden state
+                           *packed_doutput,
+                           batch_seq,       // input batch size
+                           inputVecLen,     // input data length
+                           seqLength,       // Number of iterations to unroll over
+                           dirMode,         // whether using bidirectional net
+                           biasMode,        // whether using bias
+                           bi * nLayers,    // 1 by numlayer (number of stacks of hidden
+                                            // layers) for unidirection, 2 by numlayer for
+                                            // bidirection
+                           batch_seq.at(0), // equal to input batch size in_n[0]
+                           hiddenSize,      // hidden state number
+                           bi_stride,       // 1 by hy_h related function for unidirection, 2
+                                            // by hy_h related function for bidirection
+                           inputMode,
+                           reserveSpace_cpu,
+                           *wa_shifted_workSpace,
+                           nohx);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -1622,14 +1612,14 @@ struct lstm_basic_driver : test_driver
                                    type); // defined in superclass testdriver
         }
 
-        if(usePadding) 
+        if(usePadding)
         {
             miopenSetRNNPaddingMode(rnnDesc, miopenRNNPaddingMode_t::miopenRNNIOWithPadding);
         }
 
         // Create input tensor
         // If we are in skip mode, take the real input size to be the vector length.
-        auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
+        auto inVecReal = (inputMode != 0) ? hiddenSize : inVecLen;
 
         int batch_padding = usePadding ? batchSeq[0] : 0;
 
@@ -1733,7 +1723,7 @@ struct lstm_basic_driver : test_driver
                               batchSeq,
                               hiddenSize * ((dirMode != 0) ? 2 : 1),
                               miopen::deref(rnnDesc).dataType);
-        
+
         size_t out_sz = getSuperTensorSize(batchSeq,
                                            seqLength,
                                            inVecLen,
@@ -1780,9 +1770,9 @@ struct lstm_basic_driver : test_driver
         std::vector<T> rsvcpu(reserveSpaceSize, T(0));
 
         auto fwdTrainOutputPair = verify(verify_forward_train_lstm<T>{
-            rnnDesc,         input,      hx,      cx,        weights,   batchSeq, rsvgpu,
-            rsvcpu,          hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
-            inputMode,       inVecReal,  hx_sz,   nohx,      nocx,      nohy,     nocy,
+            rnnDesc,          input,      hx,      cx,        weights,   batchSeq, rsvgpu,
+            rsvcpu,           hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
+            inputMode,        inVecReal,  hx_sz,   nohx,      nocx,      nohy,     nocy,
             bool(useDropout), usePadding});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
@@ -1790,12 +1780,12 @@ struct lstm_basic_driver : test_driver
         // auto curHiddenState = std::get<1>(fwdTrainOutputPair.second);
         // auto curCellState   = std::get<2>(fwdTrainOutputPair.second);
 
-        if(yin.size() != out_sz) 
+        if(yin.size() != out_sz)
         {
             std::cout << "FWD FAILED: yin.size() != out_sz." << std::endl
                       << "yin.size()=" << yin.size() << std::endl
                       << "out_sz=" << out_sz << std::endl;
-            
+
             exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
 
@@ -1808,10 +1798,14 @@ struct lstm_basic_driver : test_driver
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward data LSTM.\n");
 #endif
-        auto bwdDataOutputPair = verify(verify_backward_data_lstm<T>{
-            rnnDesc,   yin,      dyin,    dhyin,     hx,         dcyin,           cx,
-            weights,   rsvgpu,   rsvcpu,  batchSeq,  hiddenSize, batch_n,         seqLength,
-            numLayers, biasMode, dirMode, inputMode, inVecReal,  hx_sz,           nohx,
+        auto bwdDataOutputPair =
+            verify(verify_backward_data_lstm<T>{rnnDesc,   yin,       dyin,
+                                                dhyin,     hx,        dcyin,
+                                                cx,        weights,   rsvgpu,
+                                                rsvcpu,    batchSeq,  hiddenSize,
+                                                batch_n,   seqLength, numLayers,
+                                                biasMode,  dirMode,   inputMode,
+                                                inVecReal, hx_sz,     nohx,
                                                 nocx,      nodhy,     nodcy,
                                                 nodhx,     nodcx,     bool(useDropout),
                                                 usePadding});
@@ -1829,8 +1823,8 @@ struct lstm_basic_driver : test_driver
 #endif
         // auto dweights_pair =
         verify(verify_backward_weights_lstm<T>{
-            rnnDesc,  input,      dyin,      hx,      rsvgpu,    rsvcpu,          workSpaceBwdData,
-            batchSeq, hiddenSize, wei_sz,    batch_n, seqLength, numLayers,       biasMode,
+            rnnDesc,  input,      dyin,      hx,      rsvgpu,    rsvcpu,           workSpaceBwdData,
+            batchSeq, hiddenSize, wei_sz,    batch_n, seqLength, numLayers,        biasMode,
             dirMode,  inputMode,  inVecReal, hx_sz,   nohx,      bool(useDropout), usePadding});
 
 /// \todo Resolve the issue and remove workaround.

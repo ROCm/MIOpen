@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -459,11 +459,12 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
             return x + deref(y).GetLengths()[0];
         });
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
-    
+
     bool isBidirect = dirMode == miopenRNNbidirection;
-    
+
     size_t spaceForPaddingTransform = 0;
-    if (paddingMode == miopenRNNPaddingMode_t::miopenRNNIOWithPadding) {
+    if(paddingMode == miopenRNNPaddingMode_t::miopenRNNIOWithPadding)
+    {
         size_t packedXInSpace, packedYOutSpace;
         std::tie(packedXInSpace, packedYOutSpace) =
             RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
@@ -549,7 +550,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
         inputBatchLenSum  = seqLength * maxBatchSize;
     }
     auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
-    
+
     return size_t(x);
 }
 
@@ -818,7 +819,8 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     miopen::CopyTensor(handle, biasSrc, bias, biasDesc, w, 0, boffset);
 }
 
-void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t paddMode) { 
+void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t paddMode)
+{
     if(paddMode != miopenRNNIOWithPadding && paddMode != miopenRNNIONotPadded)
         MIOPEN_THROW(miopenStatusBadParm,
                      "SetPaddingmode: Bad parameter. RNN padding mode must be "
@@ -895,7 +897,6 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
 #endif
 }
 
-
 void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   const TensorDescriptor& padded_tensor_desc,
                                                   std::vector<int>& bsize_per_time,
@@ -903,11 +904,10 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   Data_t dst,
                                                   bool is_src_padded)
 {
-    
-    
+
     const int seq_len = bsize_per_time.size();
     if(seq_len == 0)
-        MIOPEN_THROW("Wrong seq_len size");    
+        MIOPEN_THROW("Wrong seq_len size");
 
     auto max_batch_size = bsize_per_time[0];
     auto vector_size    = padded_tensor_desc.GetLengths()[1];
@@ -935,13 +935,12 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
 
             // Result from GetElementSpace does not include the padding from the last sequence
             // WA: So calculated manually.
-            unsigned int WA_padded_ElementSpace = padded_stride[0] * copy_size[0]; 
+            unsigned int WA_padded_ElementSpace = padded_stride[0] * copy_size[0];
 
             if(is_src_padded)
             {
                 CopyTensor(
                     handle, padded_desc, src, packed_desc, dst, src_offset, dst_offset, true);
-                
 
                 src_offset += WA_padded_ElementSpace;
                 dst_offset += packed_desc.GetElementSpace();
@@ -958,7 +957,6 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
         }
     }
 }
-
 
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 {

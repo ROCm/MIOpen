@@ -32,35 +32,34 @@
  **********************************************/
 
 template <class T>
-void LSTMFwdCPUVerify(
-    miopen::Handle& handle,
-    bool use_dropout,
-    const miopen::DropoutDescriptor& dropoutDesc,
-    const std::vector<T>& in,
-    const std::vector<T>& wei, // [ input_state_weight_trans
-                               // hidden_state_weight0_trans input1_trans
-                               // hidden1_trans ... output_weight;
-                               // bidirectional reversed weights ]
-    std::vector<T>& hy_host,   // current/final hidden state
-    const std::vector<T>& hx,  // initial hidden state
-    std::vector<T>& cy_host,   // current/final cell state
-    const std::vector<T>& cx,  // initial cell state
-    std::vector<T>& out_host,
-    const std::vector<int>& in_n, // input batch size
-    int in_h,                     // input data length
-    int seqLength_cpu,            // Number of iterations to unroll over
-    int bidirection,              // whether using bidirectional net
-    int biased,                   // whether using bias
-    int hy_d,                     // 1 by numlayer (number of stacks of hidden layers) for
-                                  // unidirection, 2 by numlayer for bidirection
-    int hy_n,                     // equal to input batch size in_n[0]
-    int hy_h,                     // hidden state number
-    int out_h,                    // 1 by hy_h related function for unidirection, 2 by hy_h
-                                  // related function for bidirection
-    int inputMode_cpu,
-    std::vector<T>& rsvspace,
-    bool hx_is_null,
-    bool cx_is_null)
+void LSTMFwdCPUVerify(miopen::Handle& handle,
+                      bool use_dropout,
+                      const miopen::DropoutDescriptor& dropoutDesc,
+                      const std::vector<T>& in,
+                      const std::vector<T>& wei, // [ input_state_weight_trans
+                                                 // hidden_state_weight0_trans input1_trans
+                                                 // hidden1_trans ... output_weight;
+                                                 // bidirectional reversed weights ]
+                      std::vector<T>& hy_host,   // current/final hidden state
+                      const std::vector<T>& hx,  // initial hidden state
+                      std::vector<T>& cy_host,   // current/final cell state
+                      const std::vector<T>& cx,  // initial cell state
+                      std::vector<T>& out_host,
+                      const std::vector<int>& in_n, // input batch size
+                      int in_h,                     // input data length
+                      int seqLength_cpu,            // Number of iterations to unroll over
+                      int bidirection,              // whether using bidirectional net
+                      int biased,                   // whether using bias
+                      int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
+                                 // unidirection, 2 by numlayer for bidirection
+                      int hy_n,  // equal to input batch size in_n[0]
+                      int hy_h,  // hidden state number
+                      int out_h, // 1 by hy_h related function for unidirection, 2 by hy_h
+                                 // related function for bidirection
+                      int inputMode_cpu,
+                      std::vector<T>& rsvspace,
+                      bool hx_is_null,
+                      bool cx_is_null)
 {
     int batch_n_cpu = sumvc(in_n);
 
@@ -651,39 +650,38 @@ void LSTMFwdCPUVerify(
 }
 
 template <class T>
-void LSTMBwdDataCPUVerify(
-    bool use_dropout_cpu,
-    const miopen::DropoutDescriptor& dropoutDesc,
-    std::vector<T>& din_host,
-    const std::vector<T>& wei,     // [ input_state_weight_trans
-                                   // hidden_state_weight0_trans input1_trans
-                                   // hidden1_trans ... output_weight;
-                                   // bidirectional reversed weights ]
-    const std::vector<T>& dhy_cpu, // current/final hidden state
-    std::vector<T>& dhx_host,
-    const std::vector<T>& hx,      // initial hidden state
-    const std::vector<T>& dcy_cpu, // current/final cell state
-    std::vector<T>& dcx_host,
-    const std::vector<T>& cx,
-    const std::vector<T>& out,
-    const std::vector<T>& dout,
-    const std::vector<int>& in_n, // input batch size
-    int in_h,                     // input data length
-    int seqLength_cpu,            // Number of iterations to unroll over
-    int bidirection,              // whether using bidirectional net
-    int,                          // whether using bias
-    int hy_d,                     // 1 by numlayer (number of stacks of hidden layers)
-                                  // for unidirection, 2 by numlayer for bidirection
-    int hy_n,                     // equal to input batch size in_n[0]
-    int hy_h,                     // hidden state number
-    int out_h,                    // 1 by hy_h related function for unidirection, 2 by
-                                  // hy_h related function for bidirection
-    int inputMode_cpu,
-    std::vector<T>& rsvspace,
-    std::vector<T>& wkspace,
-    bool cx_is_null,
-    bool dhy_is_null,
-    bool dcy_is_null)
+void LSTMBwdDataCPUVerify(bool use_dropout_cpu,
+                          const miopen::DropoutDescriptor& dropoutDesc,
+                          std::vector<T>& din_host,
+                          const std::vector<T>& wei,     // [ input_state_weight_trans
+                                                         // hidden_state_weight0_trans input1_trans
+                                                         // hidden1_trans ... output_weight;
+                                                         // bidirectional reversed weights ]
+                          const std::vector<T>& dhy_cpu, // current/final hidden state
+                          std::vector<T>& dhx_host,
+                          const std::vector<T>& hx,      // initial hidden state
+                          const std::vector<T>& dcy_cpu, // current/final cell state
+                          std::vector<T>& dcx_host,
+                          const std::vector<T>& cx,
+                          const std::vector<T>& out,
+                          const std::vector<T>& dout,
+                          const std::vector<int>& in_n, // input batch size
+                          int in_h,                     // input data length
+                          int seqLength_cpu,            // Number of iterations to unroll over
+                          int bidirection,              // whether using bidirectional net
+                          int,                          // whether using bias
+                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
+                                     // for unidirection, 2 by numlayer for bidirection
+                          int hy_n,  // equal to input batch size in_n[0]
+                          int hy_h,  // hidden state number
+                          int out_h, // 1 by hy_h related function for unidirection, 2 by
+                                     // hy_h related function for bidirection
+                          int inputMode_cpu,
+                          std::vector<T>& rsvspace,
+                          std::vector<T>& wkspace,
+                          bool cx_is_null,
+                          bool dhy_is_null,
+                          bool dcy_is_null)
 {
     int batch_n_cpu = sumvc(in_n);
     (void)out;
@@ -1214,32 +1212,31 @@ void LSTMBwdDataCPUVerify(
 }
 
 template <class T>
-void LSTMBwdWeightCPUVerify(
-    bool use_dropout_cpu,
-    const std::vector<T>& in,
-    std::vector<T>& dwei_host, // [ input_state_weight_trans
-                               // hidden_state_weight0_trans
-                               // input1_trans hidden1_trans ...
-                               // output_weight; bidirectional
-                               // reversed weights ]
-    const std::vector<T>& hx,  // initial hidden state
-    const std::vector<T>& dout,
-    const std::vector<int>& in_n, // input batch size
-    int in_h,                     // input data length
-    int seqLength_cpu,            // Number of iterations to unroll over
-    int bidirection,              // whether using bidirectional net
-    int biased,                   // whether using bias
-    int hy_d,                     // 1 by numlayer (number of stacks of hidden
-                                  // layers) for unidirection, 2 by numlayer for
-                                  // bidirection
-    int hy_n,                     // equal to input batch size in_n[0]
-    int hy_h,                     // hidden state number
-    int out_h,                    // 1 by hy_h related function for unidirection, 2
-                                  // by hy_h related function for bidirection
-    int inputMode_cpu,
-    const std::vector<T>& rsvspace,
-    const std::vector<T>& wkspace,
-    bool hx_is_null)
+void LSTMBwdWeightCPUVerify(bool use_dropout_cpu,
+                            const std::vector<T>& in,
+                            std::vector<T>& dwei_host, // [ input_state_weight_trans
+                                                       // hidden_state_weight0_trans
+                                                       // input1_trans hidden1_trans ...
+                                                       // output_weight; bidirectional
+                                                       // reversed weights ]
+                            const std::vector<T>& hx,  // initial hidden state
+                            const std::vector<T>& dout,
+                            const std::vector<int>& in_n, // input batch size
+                            int in_h,                     // input data length
+                            int seqLength_cpu,            // Number of iterations to unroll over
+                            int bidirection,              // whether using bidirectional net
+                            int biased,                   // whether using bias
+                            int hy_d,  // 1 by numlayer (number of stacks of hidden
+                                       // layers) for unidirection, 2 by numlayer for
+                                       // bidirection
+                            int hy_n,  // equal to input batch size in_n[0]
+                            int hy_h,  // hidden state number
+                            int out_h, // 1 by hy_h related function for unidirection, 2
+                                       // by hy_h related function for bidirection
+                            int inputMode_cpu,
+                            const std::vector<T>& rsvspace,
+                            const std::vector<T>& wkspace,
+                            bool hx_is_null)
 {
     int batch_n_cpu = sumvc(in_n);
     int numlayer    = bidirection == 1 ? hy_d / 2 : hy_d;
