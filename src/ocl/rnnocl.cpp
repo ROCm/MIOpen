@@ -847,12 +847,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         Data_t workSpace,
                                         size_t workSpaceSize) const
 {
-
-#if MIOPEN_USE_GEMM
-
-    float ctime = 0.;
-    // reset kernel timer
-    profileRNNkernels(handle, 0, ctime);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -866,6 +860,145 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW("Workspace is required");
     }
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+
+    if(paddingMode == miopenRNNIONotPadded)
+    {
+        return RNNForwardTrainingPackedTensors(handle,
+                                               seqLen,
+                                               xDesc,
+                                               x,
+                                               hxDesc,
+                                               hx,
+                                               cxDesc,
+                                               cx,
+                                               wDesc,
+                                               w,
+                                               yDesc,
+                                               y,
+                                               hyDesc,
+                                               hy,
+                                               cyDesc,
+                                               cy,
+                                               workSpace,
+                                               workSpaceSize);
+    }
+    else 
+    {
+        Data_t packedXIn = workSpace;
+        size_t packedXInSize, packedYOutSize;
+        std::tie(packedXInSize, packedYOutSize) =
+            RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+
+        Data_t packedYOut = static_cast<void*>(reinterpret_cast<char*>(workSpace) + packedXInSize);
+        
+        auto shifted_workSpace = static_cast<void*>(reinterpret_cast<char*>(workSpace) +
+                                                    (packedXInSize + packedYOutSize));
+        auto shifted_workSpace_size = workSpaceSize - (packedXInSize + packedYOutSize);
+        // std::vector<TensorDescriptor> packed_desc;
+        // std::vector<miopenTensorDescriptor_t> packed_desc_ptrs;
+        // RNNTensorPaddingConverter::CreatePackedDescriptor()
+        // for future developments: as long as we don't use strides from xDesc and yDesc
+        // we ignoring conversion of this descriptors.
+        std::vector<int> in_n(seqLen);
+
+        for(int i = 0; i < seqLen; i++)
+        {
+            int batchval, batchvalout;
+            std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
+            std::tie(batchvalout, std::ignore) = miopen::tien<2>(yDesc[i].GetLengths());
+            if(batchval != batchvalout)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Input batch length: " + std::to_string(batchval) +
+                                 ", Output batch length: " + std::to_string(batchvalout));
+            }
+            in_n[i] = batchval;
+        }
+
+        RNNTensorPaddingConverter::ConvertTensorData(handle, xDesc[0], in_n, x, packedXIn, true);
+
+        RNNDescriptor packedRnnDesc(*this);
+        packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
+
+        packedRnnDesc.RNNForwardTrainingPackedTensors(handle,
+                                                      seqLen,
+                                                      xDesc,
+                                                      packedXIn,
+                                                      hxDesc,
+                                                      hx,
+                                                      cxDesc,
+                                                      cx,
+                                                      wDesc,
+                                                      w,
+                                                      yDesc,
+                                                      packedYOut,
+                                                      hyDesc,
+                                                      hy,
+                                                      cyDesc,
+                                                      cy,
+                                                      shifted_workSpace,
+                                                      shifted_workSpace_size);
+
+        RNNTensorPaddingConverter::ConvertTensorData(handle, yDesc[0], in_n, packedYOut, y, false);
+    }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
+}
+    void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
+                                        const int seqLen,
+                                        c_array_view<const miopenTensorDescriptor_t> xDesc,
+                                        ConstData_t x,
+                                        const TensorDescriptor& hxDesc,
+                                        ConstData_t hx,
+                                        const TensorDescriptor& cxDesc,
+                                        ConstData_t cx,
+                                        const TensorDescriptor& wDesc,
+                                        ConstData_t w,
+                                        c_array_view<const miopenTensorDescriptor_t> yDesc,
+                                        Data_t y,
+                                        const TensorDescriptor& hyDesc,
+                                        Data_t hy,
+                                        const TensorDescriptor& cyDesc,
+                                        Data_t cy,
+                                        Data_t workSpace,
+                                        size_t workSpaceSize) const
+{
+
+#if MIOPEN_USE_GEMM
+
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
 
     std::vector<int> in_n;
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size

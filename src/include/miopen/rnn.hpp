@@ -265,6 +265,25 @@ struct RNNDescriptor : miopenRNNDescriptor
                              Data_t workSpace,
                              size_t workSpaceSize) const;
 
+    void RNNForwardInferencePacked(Handle& handle,
+                             int seqLen,
+                             c_array_view<const miopenTensorDescriptor_t> xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& hxDesc,
+                             ConstData_t hx,
+                             const TensorDescriptor& cxDesc,
+                             ConstData_t cx,
+                             const TensorDescriptor& wDesc,
+                             ConstData_t w,
+                             c_array_view<const miopenTensorDescriptor_t> yDesc,
+                             Data_t y,
+                             const TensorDescriptor& hyDesc,
+                             Data_t hy,
+                             const TensorDescriptor& cyDesc,
+                             Data_t cy,
+                             Data_t workSpace,
+                             size_t workSpaceSize) const;
+
     void RNNBackwardData(Handle& handle,
                          int seqLen,
                          c_array_view<const miopenTensorDescriptor_t> yDesc,
