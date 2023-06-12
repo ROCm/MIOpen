@@ -2087,6 +2087,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        Data_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
+
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -2107,85 +2108,119 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         MIOPEN_THROW("Workspace is required");
     }
 
-    if(paddingMode == miopenRNNIONotPadded)
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
     {
-        return RNNForwardTrainingPackedTensors(handle,
-                                               seqLen,
-                                               xDesc,
-                                               x,
-                                               hxDesc,
-                                               hx,
-                                               cxDesc,
-                                               cx,
-                                               wDesc,
-                                               w,
-                                               yDesc,
-                                               y,
-                                               hyDesc,
-                                               hy,
-                                               cyDesc,
-                                               cy,
-                                               reserveSpace,
-                                               reserveSpaceSize);
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
     }
-    else
+    try
     {
-        Data_t packedXIn = workSpace;
-        size_t packedXInSize;
-        std::tie(packedXInSize, std::ignore) =
-            RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+#endif
 
-        Data_t packedYOut = static_cast<void*>(reinterpret_cast<char*>(workSpace) + packedXInSize);
-        
-        // std::vector<TensorDescriptor> packed_desc;
-        // std::vector<miopenTensorDescriptor_t> packed_desc_ptrs;
-        // RNNTensorPaddingConverter::CreatePackedDescriptor()
-        // for future developments: as long as we don't use strides from xDesc and yDesc
-        // we ignoring conversion of this descriptors.
-        std::vector<int> in_n(seqLen);
-
-        for(int i = 0; i < seqLen; i++)
+        if(paddingMode == miopenRNNIONotPadded)
         {
-            int batchval, batchvalout;
-            std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
-            std::tie(batchvalout, std::ignore) = miopen::tien<2>(yDesc[i].GetLengths());
-            if(batchval != batchvalout)
+            return RNNForwardTrainingPackedTensors(handle,
+                                                   seqLen,
+                                                   xDesc,
+                                                   x,
+                                                   hxDesc,
+                                                   hx,
+                                                   cxDesc,
+                                                   cx,
+                                                   wDesc,
+                                                   w,
+                                                   yDesc,
+                                                   y,
+                                                   hyDesc,
+                                                   hy,
+                                                   cyDesc,
+                                                   cy,
+                                                   reserveSpace,
+                                                   reserveSpaceSize);
+        }
+        else
+        {
+            Data_t packedXIn = workSpace;
+            size_t packedXInSize;
+            std::tie(packedXInSize, std::ignore) =
+                RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+
+            Data_t packedYOut =
+                static_cast<void*>(reinterpret_cast<char*>(workSpace) + packedXInSize);
+
+            // std::vector<TensorDescriptor> packed_desc;
+            // std::vector<miopenTensorDescriptor_t> packed_desc_ptrs;
+            // RNNTensorPaddingConverter::CreatePackedDescriptor()
+            // for future developments: as long as we don't use strides from xDesc and yDesc
+            // we ignoring conversion of this descriptors.
+            std::vector<int> in_n(seqLen);
+
+            for(int i = 0; i < seqLen; i++)
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Input batch length: " + std::to_string(batchval) +
-                                 ", Output batch length: " + std::to_string(batchvalout));
+                int batchval, batchvalout;
+                std::tie(batchval, std::ignore)    = miopen::tien<2>(xDesc[i].GetLengths());
+                std::tie(batchvalout, std::ignore) = miopen::tien<2>(yDesc[i].GetLengths());
+                if(batchval != batchvalout)
+                {
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Input batch length: " + std::to_string(batchval) +
+                                     ", Output batch length: " + std::to_string(batchvalout));
+                }
+                in_n[i] = batchval;
             }
-            in_n[i] = batchval;
+
+            RNNTensorPaddingConverter::ConvertTensorData(
+                handle, xDesc[0], in_n, x, packedXIn, true);
+
+            RNNDescriptor packedRnnDesc(*this);
+            packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
+
+            packedRnnDesc.RNNForwardTrainingPackedTensors(handle,
+                                                          seqLen,
+                                                          xDesc,
+                                                          packedXIn,
+                                                          hxDesc,
+                                                          hx,
+                                                          cxDesc,
+                                                          cx,
+                                                          wDesc,
+                                                          w,
+                                                          yDesc,
+                                                          packedYOut,
+                                                          hyDesc,
+                                                          hy,
+                                                          cyDesc,
+                                                          cy,
+                                                          reserveSpace,
+                                                          reserveSpaceSize);
+
+            RNNTensorPaddingConverter::ConvertTensorData(
+                handle, yDesc[0], in_n, packedYOut, y, false);
         }
 
-        RNNTensorPaddingConverter::ConvertTensorData(
-            handle, xDesc[0], in_n, x, packedXIn, true);
-        
-        RNNDescriptor packedRnnDesc(*this);
-        packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
-
-        packedRnnDesc.RNNForwardTrainingPackedTensors(handle,
-                                        seqLen,
-                                        xDesc,
-                                        packedXIn,
-                                        hxDesc,
-                                        hx,
-                                        cxDesc,
-                                        cx,
-                                        wDesc,
-                                        w,
-                                        yDesc,
-                                        packedYOut,
-                                        hyDesc,
-                                        hy,
-                                        cyDesc,
-                                        cy,
-                                        reserveSpace,
-                                        reserveSpaceSize);
-        
-        RNNTensorPaddingConverter::ConvertTensorData(
-            handle, yDesc[0], in_n, packedYOut, y, false);
+#if MIOPEN_BACKEND_HIP
     }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
+
 };
 
 void RNNDescriptor::RNNForwardTrainingPackedTensors(
@@ -3596,6 +3631,20 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
     
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+
     if(paddingMode == miopenRNNIONotPadded) {
         RNNBackwardDataPackedTensors(handle,
                                      seqLen,
@@ -3673,6 +3722,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
         RNNTensorPaddingConverter::ConvertTensorData(handle, dxDesc[0], in_n, packedDXOut, dx, false);
     }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
 }
 
 void RNNDescriptor::RNNBackwardDataPackedTensors(
@@ -5239,6 +5306,20 @@ void RNNDescriptor::RNNBackwardWeights(
 {
     (void)dy;
 
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+
     if(paddingMode == miopenRNNIONotPadded)
     {
         RNNBackwardWeightsPackedTensors(handle,
@@ -5302,6 +5383,24 @@ void RNNDescriptor::RNNBackwardWeights(
                                                       reserveSpace,
                                                       reserveSpaceSize);
     }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
 }
 
 void RNNDescriptor::RNNBackwardWeightsPackedTensors(
