@@ -537,7 +537,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
     std::size_t inputBatchLenSum = 0;
-    if(paddingMode == miopenPaddingDefault)
+    if(paddingMode == miopenRNNIONotPadded)
     {
         inputBatchLenSum = std::accumulate(
             xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {

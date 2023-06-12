@@ -610,12 +610,12 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         }
     };
 
-    auto sync_x_to_all_stream_pull = [&stream_pull](hipStream_t x) {
+    auto sync_x_to_all_stream_pull = [&stream_pull](hipStream_t stream_x) {
         for(int i = 0; i < stream_pull.size(); i++)
         {
             const miopen::HipEventPtr sync_event = make_hip_fast_event();
             hipEventRecord(sync_event.get(), stream_pull[i]);
-            hipStreamWaitEvent(x, sync_event.get(), 0);
+            hipStreamWaitEvent(stream_x, sync_event.get(), 0);
         }
     };
 
@@ -996,6 +996,9 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                               Data_t workSpace,
                                               size_t workSpaceSize) const
 {
+    (void)cyDesc;
+    (void)hxDesc;
+    (void)cxDesc;
 
 #if MIOPEN_USE_GEMM
 
@@ -2191,10 +2194,6 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     (void)hyDesc;
     (void)hy;
     (void)yDesc;
-    (void)cyDesc;
-    (void)cy;
-    (void)hxDesc;
-    (void)cxDesc;
     (void)wDesc;
     (void)workSpaceSize;
     (void)workSpace;
@@ -2378,7 +2377,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     Data_t reserveSpace,
     size_t reserveSpaceSize) const
 {
-
+    (void)cxDesc;
+    (void)cyDesc;
 #if MIOPEN_USE_GEMM
 
 #if MIOPEN_BACKEND_HIP
@@ -3712,10 +3712,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     (void)hyDesc;
     (void)hy;
     (void)yDesc;
-    (void)cyDesc;
     (void)cy;
     (void)hxDesc;
-    (void)cxDesc;
     (void)wDesc;
     (void)reserveSpace;
     (void)reserveSpaceSize;
