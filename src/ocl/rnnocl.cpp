@@ -615,12 +615,16 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         }
     };
 
-    auto sync_x_to_all_stream_pull = [&stream_pull](hipStream_t stream_x) {
+    auto sync_root_to_all_stream_pull = [&stream_pull, root_stream_id]() {
+        hipStream_t root_stream = stream_pull[root_stream_id];
         for(int i = 0; i < stream_pull.size(); i++)
         {
-            const miopen::HipEventPtr sync_event = make_hip_fast_event();
-            hipEventRecord(sync_event.get(), stream_pull[i]);
-            hipStreamWaitEvent(stream_x, sync_event.get(), 0);
+            if(i != root_stream_id)
+            {
+                const miopen::HipEventPtr sync_event = make_hip_fast_event();
+                hipEventRecord(sync_event.get(), stream_pull[i]);
+                hipStreamWaitEvent(root_stream, sync_event.get(), 0);
+            }
         }
     };
 
@@ -811,7 +815,7 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             handle, src_desc, reserveSpace, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
 
-    sync_x_to_all_stream_pull(handle.GetStream());
+    sync_root_to_all_stream_pull();
 #else
     (void)handle;
     (void)seq_array;

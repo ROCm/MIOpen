@@ -909,7 +909,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-static std::tuple<size_t, size_t>
+std::tuple<size_t, size_t>
 GetTempPackedBuffersSize(std::vector<int> batchs, int in_vec, int out_vec)
 {
     size_t total_batch = std::accumulate(batchs.begin(), batchs.end(), 0);

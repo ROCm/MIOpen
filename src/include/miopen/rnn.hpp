@@ -212,7 +212,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             size_t reserveSpaceSize) const;
 
     void RNNForwardTrainingPackedTensors(Handle& handle,
-                                         const int seqLen,
+                                         int seqLen,
                                          c_array_view<const miopenTensorDescriptor_t> xDesc,
                                          ConstData_t x,
                                          const TensorDescriptor& hxDesc,
