@@ -169,7 +169,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias) const;
 
-    void SetPaddingmode(miopenRNNPaddingMode_t paddingMode);
+    void SetPaddingmode(miopenRNNPaddingMode_t padding);
 
     void GetLayerParamOffset(int layer,
                              const TensorDescriptor& xDesc,

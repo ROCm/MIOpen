@@ -819,14 +819,14 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     miopen::CopyTensor(handle, biasSrc, bias, biasDesc, w, 0, boffset);
 }
 
-void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t paddMode)
+void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t padding)
 {
-    if(paddMode != miopenRNNIOWithPadding && paddMode != miopenRNNIONotPadded)
+    if(padding != miopenRNNIOWithPadding && padding != miopenRNNIONotPadded)
         MIOPEN_THROW(miopenStatusBadParm,
                      "SetPaddingmode: Bad parameter. RNN padding mode must be "
                      "miopenRNNIOWithPadding or miopenRNNIONotPadded.");
 
-    paddingMode = paddMode;
+    paddingMode = padding;
 }
 
 void RNNDescriptor::GetLayerParamOffset(const int layer,
