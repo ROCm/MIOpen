@@ -86,19 +86,13 @@ TEST_P(ConfigWithHalf, HalfTest)
 #if MIOPEN_USE_MLIR
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") || // Explicitly disabled archs
-       miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-       !miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() != "--half")
-    {
-        GTEST_SKIP();
-    }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
-            miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }
-    else // Implicitly disabled archs
+    else
     {
         GTEST_SKIP();
     }
@@ -113,19 +107,13 @@ TEST_P(ConfigWithInt8, Int8Test)
 #if MIOPEN_USE_MLIR
 
     const auto& handle = get_handle();
-    if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") || // Explicitly disabled archs
-       miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-       miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-       !miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() != "--int8")
-    {
-        GTEST_SKIP();
-    }
-    else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
-            miopen::StartsWith(handle.GetDeviceName(), "gfx906")) // Implicited enabled arch
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--int8")
     {
         Run2dDriver(miopenInt8);
     }
-    else // Implicitly disabled archs
+    else
     {
         GTEST_SKIP();
     }
