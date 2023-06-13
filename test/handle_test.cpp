@@ -241,6 +241,8 @@ void test_arch_name()
                        "gfx906",
                        "gfx900",
                        "gfx940",
+                       "gfx941",
+                       "gfx942",
                        "gfx803",
                        "gfx1030",
                        "gfx1031",
