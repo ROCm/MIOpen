@@ -34,9 +34,9 @@
 // therefore, when this file is used from the host side, compilation takes much
 // longer. By guarding the __device__ directive we can control that such compilation
 // only happens for kernels which include this file.
-#define HIP_HOST_DEVICE __host__ __device__
+#define MIOPEN_HIP_HOST_DEVICE __host__ __device__
 #else
-#define HIP_HOST_DEVICE
+#define MIOPEN_HIP_HOST_DEVICE
 #endif
 
 #define USE_SIMPLER_HIP_F8x8 0
@@ -52,10 +52,10 @@
 namespace miopen_hip_f8_impl {
 
 template <int wm, int we, typename T, bool negative_zero_nan, bool clip>
-HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch = false, uint32_t rng = 0);
+MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch = false, uint32_t rng = 0);
 
 template <int wm, int we, typename T, bool negative_zero_nan>
-HIP_HOST_DEVICE T cast_from_f8(uint8_t x);
+MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x);
 
 } // namespace miopen_hip_f8_impl
 
@@ -74,7 +74,7 @@ enum class hip_f8_rounding_mode
     stochastic
 };
 
-inline HIP_HOST_DEVICE bool get_hip_f8_bias_mode()
+inline MIOPEN_HIP_HOST_DEVICE bool get_hip_f8_bias_mode()
 {
 #if MIOPEN_FP8_IEEE_EXPONENT_BIAS
     return false;
@@ -89,20 +89,20 @@ struct hip_f8
     uint8_t data;
 
     // default constructor
-    HIP_HOST_DEVICE hip_f8() = default;
+    MIOPEN_HIP_HOST_DEVICE hip_f8() = default;
 
-    HIP_HOST_DEVICE hip_f8(hip_f8<T> const&) = default;
+    MIOPEN_HIP_HOST_DEVICE hip_f8(hip_f8<T> const&) = default;
 
     // constructor from bits
-    explicit HIP_HOST_DEVICE hip_f8(uint8_t v) { data = v; }
+    explicit MIOPEN_HIP_HOST_DEVICE hip_f8(uint8_t v) { data = v; }
 
     // constructor from in
-    explicit HIP_HOST_DEVICE hip_f8(int v) : hip_f8(static_cast<float>(v)) {}
+    explicit MIOPEN_HIP_HOST_DEVICE hip_f8(int v) : hip_f8(static_cast<float>(v)) {}
 
-    explicit HIP_HOST_DEVICE hip_f8(double v) : hip_f8(static_cast<float>(v)) {}
+    explicit MIOPEN_HIP_HOST_DEVICE hip_f8(double v) : hip_f8(static_cast<float>(v)) {}
 
     // constructor from float
-    explicit HIP_HOST_DEVICE
+    explicit MIOPEN_HIP_HOST_DEVICE
     hip_f8(float v,
            miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
            uint32_t rng                       = 0)
@@ -152,7 +152,7 @@ struct hip_f8
     }
 
     // constructor from half
-    explicit HIP_HOST_DEVICE
+    explicit MIOPEN_HIP_HOST_DEVICE
     hip_f8(half v,
            miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
            uint32_t rng                       = 0)
@@ -201,7 +201,7 @@ struct hip_f8
         }
     }
     template <hip_f8_type U>
-    explicit HIP_HOST_DEVICE
+    explicit MIOPEN_HIP_HOST_DEVICE
     hip_f8(hip_f8<U> v,
            miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
            uint32_t rng                       = 0)
@@ -218,13 +218,13 @@ struct hip_f8
         }
     }
 
-    explicit HIP_HOST_DEVICE hip_f8(hip_f8<T> v, hip_f8_rounding_mode, uint32_t)
+    explicit MIOPEN_HIP_HOST_DEVICE hip_f8(hip_f8<T> v, hip_f8_rounding_mode, uint32_t)
     {
         this->data = v.data;
     }
 
     // constructor from hip_bfloat16
-    explicit HIP_HOST_DEVICE
+    explicit MIOPEN_HIP_HOST_DEVICE
     hip_f8(hip_bfloat16 v,
            hip_f8_rounding_mode r = miopen_f8::hip_f8_rounding_mode::standard,
            uint32_t rng           = 0);
@@ -250,9 +250,9 @@ struct hip_f8
         return *this;
     }
 
-    inline HIP_HOST_DEVICE void operator=(const hip_f8& rhs) { this->data = rhs.data; }
+    inline MIOPEN_HIP_HOST_DEVICE void operator=(const hip_f8& rhs) { this->data = rhs.data; }
 
-    inline HIP_HOST_DEVICE bool operator==(const hip_f8& rhs) const
+    inline MIOPEN_HIP_HOST_DEVICE bool operator==(const hip_f8& rhs) const
     {
         if(rhs.is_zero() && this->is_zero())
             return true;
@@ -264,34 +264,34 @@ struct hip_f8
             return false;
     }
 
-    inline HIP_HOST_DEVICE bool operator<(const hip_f8& rhs) const
+    inline MIOPEN_HIP_HOST_DEVICE bool operator<(const hip_f8& rhs) const
     {
         const auto we   = static_cast<float>(*this);
         const auto them = static_cast<float>(rhs);
         return we < them;
     }
 
-    inline HIP_HOST_DEVICE bool operator>(const hip_f8& rhs) const
+    inline MIOPEN_HIP_HOST_DEVICE bool operator>(const hip_f8& rhs) const
     {
         const auto we   = static_cast<float>(*this);
         const auto them = static_cast<float>(rhs);
         return we > them;
     }
 #if 0
-    /*explicit*/ inline HIP_HOST_DEVICE operator double()
+    /*explicit*/ inline MIOPEN_HIP_HOST_DEVICE operator double()
     {
         // float tmp = static_cast<float>(*this);
         // return tmp;
     }
 
-    /*explicit*/ inline HIP_HOST_DEVICE operator double() const
+    /*explicit*/ inline MIOPEN_HIP_HOST_DEVICE operator double() const
     {
         // float tmp = static_cast<float>(*this);
         // return tmp;
     }
 #endif
     // convert to float
-    /*explicit*/ inline HIP_HOST_DEVICE operator float() const
+    /*explicit*/ inline MIOPEN_HIP_HOST_DEVICE operator float() const
     {
         if(T == hip_f8_type::bf8)
         {
@@ -322,7 +322,7 @@ struct hip_f8
     }
 
     // convert to half
-    /*explicit*/ inline HIP_HOST_DEVICE operator half() const
+    /*explicit*/ inline MIOPEN_HIP_HOST_DEVICE operator half() const
     {
         if(T == hip_f8_type::bf8)
         {
@@ -353,10 +353,10 @@ struct hip_f8
     }
 
     // convert to hip_bfloat16
-    /*explicit*/ inline HIP_HOST_DEVICE operator hip_bfloat16() const;
+    /*explicit*/ inline MIOPEN_HIP_HOST_DEVICE operator hip_bfloat16() const;
 
     // check for zero
-    inline HIP_HOST_DEVICE bool is_zero() const
+    inline MIOPEN_HIP_HOST_DEVICE bool is_zero() const
     {
         if(get_hip_f8_bias_mode())
         {
@@ -369,7 +369,7 @@ struct hip_f8
     }
 
     // check for nan
-    inline HIP_HOST_DEVICE bool is_nan() const
+    inline MIOPEN_HIP_HOST_DEVICE bool is_nan() const
     {
         if(get_hip_f8_bias_mode())
         {
@@ -393,7 +393,7 @@ struct hip_f8
     }
 
     // check for inf
-    inline HIP_HOST_DEVICE bool is_inf() const
+    inline MIOPEN_HIP_HOST_DEVICE bool is_inf() const
     {
         if(get_hip_f8_bias_mode())
         {
@@ -414,7 +414,7 @@ struct hip_f8
 }; // end of class hip_f8
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
+inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
                                                       const miopen_f8::hip_f8<T>& rhs)
 {
     lhs *= rhs;
@@ -422,7 +422,7 @@ inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
 }
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
+inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
                                                       const miopen_f8::hip_f8<T>& rhs)
 {
     lhs += rhs;
@@ -430,7 +430,7 @@ inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
 }
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
+inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
                                                       const miopen_f8::hip_f8<T>& rhs)
 {
     lhs -= rhs;
@@ -438,28 +438,28 @@ inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
 }
 
 template <miopen_f8::hip_f8_type T, typename U>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(U lhs, const miopen_f8::hip_f8<T>& rhs)
+inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(U lhs, const miopen_f8::hip_f8<T>& rhs)
 {
     const auto tmp = static_cast<U>(rhs);
     return static_cast<miopen_f8::hip_f8<T>>(lhs - tmp);
 }
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE bool operator<(const miopen_f8::hip_f8<T>& lhs,
+inline MIOPEN_HIP_HOST_DEVICE bool operator<(const miopen_f8::hip_f8<T>& lhs,
                                       const miopen_f8::hip_f8<T>& rhs)
 {
     return static_cast<float>(lhs) < static_cast<float>(rhs);
 }
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
+inline MIOPEN_HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
                                       const miopen_f8::hip_f8<T>& rhs)
 {
     return static_cast<float>(lhs) > static_cast<float>(rhs);
 }
 
 template <miopen_f8::hip_f8_type T>
-inline HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
+inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
 {
     v.data = v.data & 0x7f;
     return v;
@@ -547,50 +547,50 @@ struct hip_f8x4
     uint32_t data;
 
     // default constructor
-    HIP_HOST_DEVICE hip_f8x4() = default;
+    MIOPEN_HIP_HOST_DEVICE hip_f8x4() = default;
 
     // constructor from bits
-    HIP_HOST_DEVICE hip_f8x4(uint32_t v);
+    MIOPEN_HIP_HOST_DEVICE hip_f8x4(uint32_t v);
 
     // constructor from float
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(float v0,
              float v1                           = 0,
              float v2                           = 0,
              float v3                           = 0,
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(float32x2 v,
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(float32x4 v,
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
 
     // constructor from half
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(half v0,
              half v1                            = {},
              half v2                            = {},
              half v3                            = {},
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(halfx2 v,
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
-    HIP_HOST_DEVICE
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8x4(halfx4 v,
              miopen_f8::hip_f8_rounding_mode rm = miopen_f8::hip_f8_rounding_mode::standard,
              uint32_t rng                       = 0);
 
     // convert to float32x4
-    inline HIP_HOST_DEVICE operator float32x4() const;
+    inline MIOPEN_HIP_HOST_DEVICE operator float32x4() const;
 
     // convert to halfx4
-    inline HIP_HOST_DEVICE operator halfx4() const;
+    inline MIOPEN_HIP_HOST_DEVICE operator halfx4() const;
 };
 
 template <miopen_f8::hip_f8_type T>
@@ -602,7 +602,7 @@ struct hip_f8x8
     f8x8 data;
 
     // default constructor
-    HIP_HOST_DEVICE hip_f8x8() = default;
+    MIOPEN_HIP_HOST_DEVICE hip_f8x8() = default;
 
     // do we need to define other constructors or any conversion routines here?
 };

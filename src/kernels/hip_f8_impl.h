@@ -33,7 +33,7 @@ using half         = half_float::half;
 #endif
 
 template <int wm, int we, typename T>
-HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x, bool stoch = false, uint32_t rng = 0)
+MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x, bool stoch = false, uint32_t rng = 0)
 {
     static_assert(we == 5, "we==5");
     static_assert(sizeof(T) == 2, "no_range_reduce only works for float16");
@@ -83,7 +83,7 @@ HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x, bool stoch = false, uin
 }
 
 template <int wm, int we, typename T, bool negative_zero_nan, bool clip>
-HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
+MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 {
     constexpr bool is_half  = std::is_same<T, half>::value;
     constexpr bool is_float = std::is_same<T, float>::value;
@@ -216,7 +216,7 @@ HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 }
 
 template <int wm, int we, typename T, bool negative_zero_nan>
-HIP_HOST_DEVICE T cast_from_f8(uint8_t x)
+MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x)
 {
     constexpr bool is_half  = std::is_same<T, half>::value;
     constexpr bool is_float = std::is_same<T, float>::value;

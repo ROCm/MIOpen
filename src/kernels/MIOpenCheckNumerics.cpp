@@ -1,8 +1,51 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
+// Copied over from naive_conv.cpp
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// Definitions from <cstdint>, <cmath> conflict with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+
+typedef unsigned char uint8_t;
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef float float_t;
+
+// std::conditional requires type_traits which has a few other things
+// which result in collition with amd_hip_vector_types.h
+
+namespace std {
+template <bool predicate, typename X, typename Y>
+struct conditional;
+
+template <typename X, typename Y>
+struct conditional<true, X, Y>
+{
+    using type = X;
+};
+
+template <typename X, typename Y>
+struct conditional<false, X, Y>
+{
+    using type = Y;
+};
+
+template <bool predicate, typename X, typename Y>
+using conditional_t = typename conditional<predicate, X, Y>::type;
+} // namespace std
+#else
+#include <cstdint> // int8_t, int16_t
+#include <cmath>   // float_t
+#endif
+#endif // __HIPCC_RTC__
+
+#include <limits> // std::numeric_limits
 
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.h"
+
+#include <hip/math_functions.h>
 
 struct Numerics
 {
@@ -28,11 +71,11 @@ __device__ void thread_redux(Numerics* stats, size_t wid)
     {
         stats[lid].sum += stats[lid + wid].sum;
         stats[lid].absSum += stats[lid + wid].absSum;
-        stats[lid].min = std::fmin(stats[lid].min, stats[lid + wid].min);
-        stats[lid].max = std::fmax(stats[lid].max, stats[lid + wid].max);
+        stats[lid].min = fmin(stats[lid].min, stats[lid + wid].min);
+        stats[lid].max = fmax(stats[lid].max, stats[lid + wid].max);
     }
 }
-
+#if 0
 __device__ void atomicMax(float* __restrict__ target, float val)
 {
     float current, expected, next;
@@ -41,7 +84,7 @@ __device__ void atomicMax(float* __restrict__ target, float val)
     do
     {
         expected = current;
-        next     = std::fmax(current, val);
+        next     = fmax(current, val);
         if(next == current)
             break;
         const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
@@ -59,7 +102,7 @@ __device__ void atomicMin(float* __restrict__ target, float val)
     do
     {
         expected = current;
-        next     = std::fmin(current, val);
+        next     = fmin(current, val);
         if(next == current)
             break;
         const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
@@ -68,9 +111,9 @@ __device__ void atomicMin(float* __restrict__ target, float val)
         current        = *(reinterpret_cast<float*>(&i_current));
     } while(current != expected);
 }
-
+#endif
 template <typename T, typename U>
-__global__ void check_numerics(T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)
+__device__ void check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)
 {
     __shared__ Numerics stats[256];
     U sum    = 0;
@@ -87,8 +130,8 @@ __global__ void check_numerics(T* C_d, size_t sz, CheckNumericsResult* abnormal,
         sum += static_cast<U>(val);
         const auto abs_val = fabs(static_cast<U>(val));
         absSum += abs_val;
-        minV = std::min(minV, val);
-        maxV = std::max(maxV, val);
+        minV = min(minV, val);
+        maxV = max(maxV, val);
         if(abs_val <= static_cast<U>(0.0f))
             abnormal->hasZero = true;
         if(std::isnan(static_cast<U>(val)))

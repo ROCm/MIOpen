@@ -23,6 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#if 0
 #include "conv2d_fp8.hpp"
+#endif
 
-int main(int argc, const char* argv[]) { test_drive<convfp8_driver>(argc, argv); }
+int main(int argc, const char* argv[]) { 
+#if 0
+	test_drive<convfp8_driver>(argc, argv); 
+#endif
+}

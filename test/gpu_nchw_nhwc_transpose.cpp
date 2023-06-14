@@ -42,6 +42,8 @@
 #include "test.hpp"
 
 #include "half.hpp"
+#include <miopen/bfloat16.hpp>
+using hip_bfloat16 = bfloat16;
 using half_float::half;
 #include <miopen/hip_float8.h>
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
