@@ -40,6 +40,534 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
 
 namespace miopen {
 
+void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
+                                               std::vector<int>& seq_array,
+                                               const TensorDescriptor& xDesc,
+                                               ConstData_t x,
+                                               const TensorDescriptor& hxDesc,
+                                               ConstData_t hx,
+                                               const TensorDescriptor& wDesc,
+                                               ConstData_t w,
+                                               const TensorDescriptor& yDesc,
+                                               Data_t y,
+                                               Data_t hy,
+                                               Data_t reserveSpace,
+                                               size_t reserveSpaceSize) const
+{
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+    int seq_len = seq_array.size();
+    if(seq_len == 0)
+        return;
+
+    struct ReluWeightOffsets
+    {
+    private:
+        auto hidden_xinput_size(int hidden_sz, int bidirect_mode) const
+        {
+            if(bidirect_mode == 0)
+                return hidden_sz;
+            MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        }
+
+        auto matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz) const
+        {
+            return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz;
+        }
+
+        size_t bias_start_offset(int input_vector_sz,
+                                 int hidden_vec_sz,
+                                 int layers_cnt,
+                                 int bidirect_mode) const
+        {
+            if(bidirect_mode == 0)
+                return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz) +
+                       static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
+                           hidden_vec_sz * static_cast<size_t>(layers_cnt - 1);
+
+            MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        }
+
+    public:
+        ReluWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode)
+            : in_vec_sz(input_vector_sz),
+              h_vec_sz(hidden_vec_sz),
+              x_in_vec_sz(hidden_xinput_size(hidden_vec_sz, 0)),
+              bias_cnt(bias_mode),
+              matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz)),
+              bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, 0))
+        {
+        }
+
+    private:
+        const int in_vec_sz, h_vec_sz;
+        const int x_in_vec_sz; // for bidirect TODO
+
+        const int
+            bias_cnt; // 0 - no bias; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
+
+        const size_t matrix_normal_start_off;
+        const size_t bias_start_off;
+
+        auto get_input_matrix_size(int layer_id) const
+        {
+            return (layer_id > 0 ? x_in_vec_sz : in_vec_sz) * h_vec_sz;
+        }
+
+        auto get_hidden_matrix_size() const { return h_vec_sz * h_vec_sz; }
+        auto get_matrix_layer_size(int layer_id) const
+        {
+            return get_input_matrix_size(layer_id) + get_hidden_matrix_size();
+        }
+
+        int bias_vector_size() const { return h_vec_sz; }
+
+        size_t bias_relative_off(int layer_id, int bias_id) const
+        {
+            return static_cast<size_t>(layer_id * bias_cnt + bias_id) * h_vec_sz;
+        }
+
+    public:
+        size_t input_offset(int layer_id) const
+        {
+            if(layer_id > 0)
+                return matrix_normal_start_off +
+                       static_cast<size_t>(layer_id - 1) * get_matrix_layer_size(layer_id);
+            else
+                return 0;
+        };
+
+        size_t hidden_offset(int layer_id) const
+        {
+            if(layer_id > 0)
+                return input_offset(layer_id) + static_cast<size_t>(h_vec_sz * x_in_vec_sz);
+            else
+                return input_offset(layer_id) + static_cast<size_t>(h_vec_sz * in_vec_sz);
+        };
+
+        int bias_stride() const { return bias_vector_size(); }
+
+        size_t bias_off(int layer_id, int bias_id) const
+        {
+            return bias_start_off + bias_relative_off(layer_id, bias_id);
+        }
+    };
+
+    struct ReluReserveBufferOffsets
+    {
+        struct RBuffHelper
+        {
+            int element, save_point, batch;
+            size_t layer, table;
+        };
+
+    private:
+        auto Reserve_Buffer_strides(int save_point_sz,
+                                    int batches_per_layer,
+                                    int layers,
+                                    int bidirect_mode = 0) const
+        {
+            const auto element_st    = 1;
+            const auto save_point_st = element_st * save_point_sz;
+            const auto batch_st      = save_point_st;
+            const auto layer_st      = static_cast<size_t>(batch_st) * batches_per_layer;
+            const auto table_st      = layers * layer_st;
+
+            if(bidirect_mode == 0)
+                return RBuffHelper{element_st, save_point_st, batch_st, layer_st, table_st};
+            MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        }
+
+    public:
+        ReluReserveBufferOffsets(int hidden_vec_sz,
+                                 int save_point_sz,
+                                 int layers_cnt,
+                                 int batches_per_layer)
+            : h_vec_size(hidden_vec_sz),
+              save_point_size(save_point_sz),
+              layers(layers_cnt),
+              batches_per_layer(batches_per_layer),
+              strides(Reserve_Buffer_strides(save_point_sz, batches_per_layer, layers_cnt, 0))
+        {
+        }
+
+        const int h_vec_size;
+        const int save_point_size;
+
+        const int layers;
+        const int batches_per_layer;
+        const RBuffHelper strides;
+
+        size_t layer_offset(int layer_id) const
+        {
+            return static_cast<size_t>(layer_id) * strides.layer;
+        }
+
+        auto layer_stride() const { return strides.layer; }
+
+        auto gemm_write_size() const { return h_vec_size; }
+
+        auto gemm_write_stride() const { return strides.batch; }
+
+        size_t gemm_write_relative_offset(int batch_id) const
+        {
+            return static_cast<size_t>(gemm_write_stride()) * batch_id;
+        }
+
+        size_t gemm_write_offset(int layer_id, int batch_id) const
+        {
+            return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id;
+        }
+
+        size_t ht_offset(int layer_id, int batch_id) const
+        {
+            return strides.table + layer_offset(layer_id) + gemm_write_relative_offset(batch_id);
+        }
+
+        size_t ht_offset(int layer_id) const { return strides.table + layer_offset(layer_id); }
+    };
+
+    std::vector<int> batches;
+    int in_vec_size  = xDesc.GetLengths()[1];
+    int out_vec_size = yDesc.GetLengths()[1];
+
+    int max_batch = seq_array[0];
+    int hidden_size;
+    std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
+
+    int total_batch_size = 0;
+    // accumulated batches per time
+    std::vector<int> bacc_per_time(seq_len + 1);
+
+    for(int i = 0; i < seq_len; i++)
+    {
+        bacc_per_time[i] = total_batch_size;
+        total_batch_size += seq_array[i];
+        batches.push_back(seq_array[i]);
+    }
+    bacc_per_time[seq_len] = total_batch_size;
+
+    auto get_HxBuff_offset = [&](int layer_id) {
+        return layer_id * (static_cast<size_t>(hidden_size) * max_batch);
+    };
+
+    ReluWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2);
+    ReluReserveBufferOffsets RBuff(hidden_size, hidden_size, nLayers, total_batch_size);
+
+    ActivationDescriptor activDesc;
+
+    if(rnnMode == miopenRNNRELU)
+    {
+        activDesc = {miopenActivationRELU, 1, 0, 1};
+    }
+    else if(rnnMode == miopenRNNTANH)
+    {
+        activDesc = {miopenActivationTANH, 1, 1, 1};
+    }
+
+    auto call_input_gemm =
+        [&RBuff, &WeiBuf, &in_vec_size, &handle, &xDesc, reserveSpace, x, w, hidden_size](
+            int layer, float beta_t = 1) {
+            const int m = RBuff.batches_per_layer, n = RBuff.gemm_write_size(),
+                      k = layer > 0 ? hidden_size : in_vec_size;
+
+            const int lda = layer > 0 ? RBuff.gemm_write_stride() : in_vec_size, ldb = k,
+                      ldc = RBuff.gemm_write_stride();
+
+            const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                    false,
+                                                                    true,
+                                                                    m,
+                                                                    n,
+                                                                    k,
+                                                                    lda,
+                                                                    ldb,
+                                                                    ldc,
+                                                                    1,      // batch count
+                                                                    0,      // Stride A
+                                                                    0,      // Stride B
+                                                                    0,      // Stride C
+                                                                    1,      // alpha
+                                                                    beta_t, // beta
+                                                                    xDesc.GetType(),
+                                                                    false};
+
+            const auto input_weight_offset = WeiBuf.input_offset(layer);
+            const auto output_offset       = RBuff.layer_offset(layer);
+
+            const auto input_offset = layer > 0 ? RBuff.ht_offset(layer - 1) : 0;
+
+            const auto input_ptr = layer > 0 ? reserveSpace : x;
+
+            const miopenStatus_t gemm_status = CallGemm(handle,
+                                                        gemm_desc,
+                                                        input_ptr,
+                                                        input_offset,
+                                                        w,
+                                                        input_weight_offset,
+                                                        reserveSpace,
+                                                        output_offset,
+                                                        GemmBackend_t::miopengemm);
+            if(gemm_status != miopenStatusSuccess)
+                MIOPEN_THROW("GEMM execution failure");
+        };
+
+    auto call_bias_add = [&RBuff, &WeiBuf, &handle, &wDesc, reserveSpace, w](int layer,
+                                                                             float beta_t = 0) {
+        float alpha0           = 1;
+        float alpha1           = 1;
+        const auto bias_stride = WeiBuf.bias_stride();
+
+        const auto bias_desc =
+            miopen::TensorDescriptor(wDesc.GetType(),
+                                     std::vector<int>{1, 1, bias_stride},
+                                     std::vector<int>{bias_stride, bias_stride, 1});
+
+        const auto hidden_interim_desc = miopen::TensorDescriptor(
+            wDesc.GetType(),
+            std::vector<int>{1, RBuff.batches_per_layer, WeiBuf.bias_stride()},
+            std::vector<int>{
+                RBuff.batches_per_layer * RBuff.gemm_write_stride(), RBuff.gemm_write_stride(), 1});
+
+        const auto RB_layer_out_off       = RBuff.layer_offset(layer);
+        const auto w_bias_layer_start_off = WeiBuf.bias_off(layer, 0);
+
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 hidden_interim_desc,
+                 reserveSpace, // A
+                 &alpha1,
+                 bias_desc,
+                 w, // B
+                 &beta_t,
+                 hidden_interim_desc,
+                 reserveSpace,           // C
+                 RB_layer_out_off,       // A offset
+                 w_bias_layer_start_off, // B offset
+                 RB_layer_out_off);      // C offset
+
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 hidden_interim_desc,
+                 reserveSpace,
+                 &alpha1,
+                 bias_desc,
+                 w,
+                 &beta_t,
+                 hidden_interim_desc,
+                 reserveSpace,
+                 RB_layer_out_off,
+                 w_bias_layer_start_off + bias_stride,
+                 RB_layer_out_off);
+    };
+
+    auto call_hidden_gemm = [&RBuff,
+                             &WeiBuf,
+                             &get_HxBuff_offset,
+                             &bacc_per_time,
+                             &batches,
+                             &handle,
+                             &xDesc,
+                             reserveSpace,
+                             hx,
+                             w,
+                             hidden_size](int layer, int cur_time) {
+        if(cur_time == 0 && hx == nullptr)
+            return;
+
+        const int m = batches.at(cur_time), n = RBuff.gemm_write_size(), k = hidden_size;
+
+        const int lda = (cur_time != 0) ? RBuff.gemm_write_stride() : hidden_size;
+
+        const int ldb = hidden_size, ldc = RBuff.gemm_write_stride();
+
+        const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
+                                                                   false,
+                                                                   true,
+                                                                   m,
+                                                                   n,
+                                                                   k,
+                                                                   lda,
+                                                                   ldb,
+                                                                   ldc,
+                                                                   1, // batch count
+                                                                   0, // Stride A
+                                                                   0, // Stride B
+                                                                   0, // Stride C
+                                                                   1, // alpha
+                                                                   1, // beta
+                                                                   xDesc.GetType(),
+                                                                   false};
+
+        const auto ht_offset = (cur_time == 0)
+                                   ? get_HxBuff_offset(layer)
+                                   : RBuff.ht_offset(layer, bacc_per_time[cur_time - 1]);
+
+        const auto ht_ptr = cur_time > 0 ? reserveSpace : hx;
+
+        const auto RB_batch_save_points_off =
+            RBuff.gemm_write_offset(layer, bacc_per_time[cur_time]);
+
+        const miopenStatus_t gemm_status = CallGemm(handle,
+                                                    gemm_desc_hx,
+                                                    ht_ptr,
+                                                    ht_offset,
+                                                    w,
+                                                    WeiBuf.hidden_offset(layer),
+                                                    reserveSpace,
+                                                    RB_batch_save_points_off,
+                                                    GemmBackend_t::miopengemm);
+
+        if(gemm_status != miopenStatusSuccess)
+            MIOPEN_THROW("GEMM execution failure");
+    };
+
+    auto call_hidden_state_update =
+        [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, &activDesc, hidden_size](
+            int layer_id, int time_id) {
+            float alpha = 1, beta = 0;
+
+            const std::vector<size_t> tensor_size{
+                1, static_cast<size_t>(batches.at(time_id)), static_cast<size_t>(hidden_size)};
+
+            const std::vector<size_t> tensor_stride{static_cast<size_t>(RBuff.layer_stride()),
+                                                    static_cast<size_t>(RBuff.gemm_write_stride()),
+                                                    1};
+
+            auto src_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
+            auto dst_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
+
+            const auto RB_layer_save_points_off =
+                RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]);
+
+            const auto ht_offset = RBuff.ht_offset(layer_id, bacc_per_time[time_id]);
+
+            activDesc.Forward(handle,
+                              &alpha,
+                              // input tensor descriptor
+                              src_desc,
+                              // input pointer
+                              reserveSpace,
+                              &beta,
+                              // output tensor descriptor
+                              dst_desc,
+                              // output pointer
+                              reserveSpace,
+                              // input tensor offset
+                              RB_layer_save_points_off,
+                              // output tensor offset
+                              ht_offset);
+        };
+
+    auto call_update_output = [&RBuff,
+                               &get_HxBuff_offset,
+                               &bacc_per_time,
+                               &batches,
+                               &handle,
+                               &wDesc,
+                               reserveSpace,
+                               hy,
+                               max_batch,
+                               hidden_size,
+                               seq_len](int layer_id) {
+        if(hy == nullptr)
+            return;
+
+        auto hcy_layer_offset = get_HxBuff_offset(layer_id);
+
+        const std::vector<size_t> hcy_src_stride{
+            RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
+        const std::vector<size_t> hcy_dst_stride{
+            static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
+
+        for(int time_i = seq_len - 1; time_i >= 0; time_i--)
+        {
+            auto copy_batch = (time_i == seq_len - 1) ? batches.at(time_i)
+                                                      : batches.at(time_i) - batches.at(time_i + 1);
+            if(copy_batch > 0)
+            {
+                auto batch_id_relative = batches.at(time_i) - copy_batch;
+                auto batch_id_abs      = bacc_per_time[time_i] + batch_id_relative;
+
+                auto hcy_batch_offset = batch_id_relative * hidden_size;
+
+                auto src_batch_offset =
+                    RBuff.ht_offset(layer_id) + RBuff.gemm_write_relative_offset(batch_id_abs);
+
+                const std::vector<size_t> hcy_copy_size{
+                    1, static_cast<size_t>(copy_batch), static_cast<size_t>(hidden_size)};
+
+                auto src_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), hcy_copy_size, hcy_src_stride);
+                auto dst_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), hcy_copy_size, hcy_dst_stride);
+
+                CopyTensor(handle,
+                           src_desc,
+                           reserveSpace,
+                           dst_desc,
+                           hy,
+                           src_batch_offset,
+                           hcy_layer_offset + hcy_batch_offset);
+            }
+        }
+    };
+
+    if(biasMode != 0u)
+        for(int layer_id = 0; layer_id < nLayers; layer_id++)
+            call_bias_add(layer_id);
+
+    for(int layer_id = 0; layer_id < nLayers; layer_id++)
+    {
+        call_input_gemm(layer_id);
+        for(int time = 0; time < seq_len; time++)
+        {
+            call_hidden_gemm(layer_id, time);
+            call_hidden_state_update(layer_id, time);
+        }
+        call_update_output(layer_id);
+    }
+
+    // output tensor copy
+    {
+        const std::vector<size_t> y_copy_size{
+            1, static_cast<size_t>(total_batch_size), static_cast<size_t>(out_vec_size)};
+
+        const std::vector<size_t> y_src_stride{
+            RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
+
+        const std::vector<size_t> y_dst_stride{static_cast<size_t>(out_vec_size * total_batch_size),
+                                               static_cast<size_t>(out_vec_size),
+                                               1};
+
+        auto src_desc   = miopen::TensorDescriptor(wDesc.GetType(), y_copy_size, y_src_stride);
+        auto y_dst_desc = miopen::TensorDescriptor(wDesc.GetType(), y_copy_size, y_dst_stride);
+
+        CopyTensor(
+            handle, src_desc, reserveSpace, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
+    }
+#else
+    (void)handle;
+    (void)seq_array;
+    (void)xDesc;
+    (void)x;
+    (void)hxDesc;
+    (void)hx;
+    (void)cx;
+    (void)wDesc;
+    (void)w;
+    (void)yDesc;
+    (void)y;
+    (void)hy;
+    (void)cy;
+    (void)reserveSpace;
+    (void)reserveSpaceSize;
+
+    MIOPEN_THROW("GEMM is not supported");
+#endif
+}
+
 void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                           std::vector<int>& seq_array,
                                           const TensorDescriptor& xDesc,
@@ -2206,6 +2734,33 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                               reserveSpace,
                               reserveSpaceSize);
 
+        if(is_profiling)
+        {
+            float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+            handle.EnableProfiling(true);
+            handle.ResetKernelTime();
+            handle.AccumKernelTime(eventTime_mS);
+        }
+        return;
+    }
+
+    if((rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH) && !use_dropout && nLayers > 1 &&
+       dirMode == miopenRNNunidirection && inputMode != miopenRNNskip &&
+       !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
+    {
+        RNNForwardTrainingTanhRelu(handle,
+                                   in_n,
+                                   xDesc[0],
+                                   x,
+                                   hxDesc,
+                                   hx,
+                                   wDesc,
+                                   w,
+                                   yDesc[0],
+                                   y,
+                                   hy,
+                                   reserveSpace,
+                                   reserveSpaceSize);
         if(is_profiling)
         {
             float eventTime_mS = RNNProfilingEnd(handle, start, stop);
