@@ -240,8 +240,8 @@ void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
             const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
 
             std::string str = "CBAInfer -F " + std::to_string(fusion_mode) + " ";
-            str +=
-                ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false);
+            str += ConvArgsForMIOpenDriver(
+                xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false, false);
             MIOPEN_LOG_DRIVER_CMD(str);
         }
         else
