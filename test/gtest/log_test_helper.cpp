@@ -35,15 +35,6 @@
 #define BKEND "HIP"
 #endif
 
-// Copy of struct that is in miopen.
-// This is for testing purpose only.
-enum class ConvDirection
-{
-    Fwd = 1,
-    Bwd = 2,
-    WrW = 4
-};
-
 const std::string logConv =
     "MIOpen(" BKEND
     "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
@@ -196,7 +187,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
-                                   const ConvDirection&,
+                                   const miopen::debug::ConvDirection&,
                                    bool)> const& func,
                 std::string env_var,
                 std::string sub_str,
@@ -213,7 +204,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
          test_conv_log.weights.desc,
          test_conv_log.convDesc,
          test_conv_log.output.desc,
-         ConvDirection::Fwd,
+         miopen::debug::ConvDirection::Fwd,
          false);
 
     std::string str = capture_cerr.getString();

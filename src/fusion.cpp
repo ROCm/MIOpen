@@ -34,6 +34,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/find_solution.hpp>
+#include <miopen/driver_arguments.hpp>
 
 #include <ostream>
 #include <ios>
@@ -44,14 +45,6 @@
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
         return x;
-
-enum class ConvDirection;
-std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
-                                    const miopenTensorDescriptor_t& wDesc,
-                                    const miopenConvolutionDescriptor_t& convDesc,
-                                    const miopenTensorDescriptor_t& yDesc,
-                                    const ConvDirection& conv_dir,
-                                    bool is_immediate);
 
 namespace miopen {
 
@@ -167,7 +160,7 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
                                               gfx90aaltimpl);
 }
 
-namespace debug {
+namespace {
 
 int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
@@ -227,6 +220,9 @@ int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
 
     return fusion_mode;
 }
+} // namespace
+
+namespace debug {
 
 void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
@@ -244,11 +240,8 @@ void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
             const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
 
             std::string str = "CBAInfer -F " + std::to_string(fusion_mode) + " ";
-            str += ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection(1), false);
-            // cleanup ConvArgsForMIOpenDriver's string
-            str = ReplaceString(str, "-m conv", "");
-            str = ReplaceString(str, "conv", "");
-            str = ReplaceString(str, "-F 1", "");
+            str +=
+                ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false);
             MIOPEN_LOG_DRIVER_CMD(str);
         }
         else

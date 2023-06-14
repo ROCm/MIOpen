@@ -28,13 +28,12 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <miopen/convolution.hpp>
+#include <miopen/driver_arguments.hpp>
 
 extern std::string const logConv;
 extern std::string const logFindConv;
 extern std::string const logFusionConvBiasActiv;
 extern std::string const envConv;
-
-enum class ConvDirection;
 
 namespace miopen {
 namespace debug {
@@ -66,7 +65,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
-                                   const ConvDirection&,
+                                   const miopen::debug::ConvDirection&,
                                    bool)> const& func,
                 std::string env_var,
                 std::string sub_str,
