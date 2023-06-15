@@ -120,10 +120,6 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 
 // TODO: Convert the Col2Im kernels from OpenCL to HIP and remove the following
 // functions which are rewrites of the f8 header impl functions
-EXECUTION_SPECIFIER float fp8_to_float(uchar x) { return fp8_to_float_impl(x, 3, 4); }
-
-EXECUTION_SPECIFIER float bfp8_to_float(uchar x) { return fp8_to_float_impl(x, 2, 5); }
-
 EXECUTION_SPECIFIER float fp8_to_float_impl(uchar x, const int wm, const int we)
 {
     bool negative_zero_nan = MIOPEN_FP8_IEEE_EXPONENT_BIAS ? false : true;
@@ -194,15 +190,9 @@ EXECUTION_SPECIFIER float fp8_to_float_impl(uchar x, const int wm, const int we)
     return *((const float*)(&retval));
 }
 
-EXECUTION_SPECIFIER uchar float_to_fp8(float _x) // bool stoch, uint rng)
-{
-    return float_to_fp8_impl(_x, 3, 4);
-}
+EXECUTION_SPECIFIER float fp8_to_float(uchar x) { return fp8_to_float_impl(x, 3, 4); }
 
-EXECUTION_SPECIFIER uchar float_to_bfp8(float _x) // bool stoch, uint rng)
-{
-    return float_to_fp8_impl(_x, 2, 5);
-}
+EXECUTION_SPECIFIER float bfp8_to_float(uchar x) { return fp8_to_float_impl(x, 2, 5); }
 
 inline uchar float_to_fp8_impl(float _x, const int wm, const int we) // bool stoch, uint rng)
 {
@@ -285,6 +275,16 @@ inline uchar float_to_fp8_impl(float _x, const int wm, const int we) // bool sto
         return negative_zero_nan ? 0 : (sign << 7);
     mantissa &= (1 << wm) - 1;
     return (sign << 7) | (exponent << wm) | mantissa;
+}
+
+EXECUTION_SPECIFIER uchar float_to_fp8(float _x) // bool stoch, uint rng)
+{
+    return float_to_fp8_impl(_x, 3, 4);
+}
+
+EXECUTION_SPECIFIER uchar float_to_bfp8(float _x) // bool stoch, uint rng)
+{
+    return float_to_fp8_impl(_x, 2, 5);
 }
 
 #ifdef __cplusplus
