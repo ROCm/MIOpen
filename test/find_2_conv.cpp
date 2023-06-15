@@ -289,6 +289,7 @@ private:
             std::cerr << "Testing miopenGetSolutionSize..." << std::endl;
             std::size_t solution_size;
             EXPECT_EQUAL(miopenGetSolutionSize(solution, &solution_size), miopenStatusSuccess);
+            EXPECT_OP(solution_size, >, 0);
 
             auto solution_binary = std::vector<char>{};
             solution_binary.resize(solution_size);
