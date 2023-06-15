@@ -120,28 +120,29 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 
 // TODO: Convert the Col2Im kernels from OpenCL to HIP and remove the following
 // functions which are rewrites of the f8 header impl functions
+EXECUTION_SPECIFIER float fp8_to_float(uchar x) { return fp8_to_float_impl(x, 3, 4); }
 
-EXECUTION_SPECIFIER float f8_to_float(uchar x)
+EXECUTION_SPECIFIER float bfp8_to_float(uchar x) { return fp8_to_float_impl(x, 2, 5); }
+
+EXECUTION_SPECIFIER float fp8_to_float_impl(uchar x, const int wm, const int we)
 {
-    const int wm           = 3;
-    const int we           = 4;
     bool negative_zero_nan = MIOPEN_FP8_IEEE_EXPONENT_BIAS ? false : true;
 
-    constexpr int weo = 8;
-    constexpr int wmo = 23;
+    const int weo = 8;
+    const int wmo = 23;
 
     float fInf, fNegInf, fNaN, fNeg0;
     const uint ifInf    = 0x7F800000;
     const uint ifNegInf = 0xFF800000;
     const uint ifNaN    = 0x7F800001;
     const uint ifNeg0   = 0x80000000;
-    fInf                = *(reinterpret_cast<const float*>(&ifInf));
-    fNegInf             = *(reinterpret_cast<const float*>(&ifNegInf));
-    fNaN                = *(reinterpret_cast<const float*>(&ifNaN));
-    fNeg0               = *(reinterpret_cast<const float*>(&ifNeg0));
+    fInf                = *((const float*)(&ifInf));
+    fNegInf             = *((const float*)(&ifNegInf));
+    fNaN                = *((const float*)(&ifNaN));
+    fNeg0               = *((const float*)(&ifNeg0));
 
     if(x == 0)
-        return static_cast<float>(0);
+        return (float)(0);
 
     uint sign     = x >> 7;
     uint mantissa = x & ((1 << wm) - 1);
@@ -190,13 +191,21 @@ EXECUTION_SPECIFIER float f8_to_float(uchar x)
     }
 
     retval = (sign << 31) | (exponent << 23) | mantissa;
-    return *(reinterpret_cast<const float*>(&retval));
+    return *((const float*)(&retval));
 }
 
-EXECUTION_SPECIFIER float float_to_f8(float _x) // bool stoch, uint rng)
+EXECUTION_SPECIFIER uchar float_to_fp8(float _x) // bool stoch, uint rng)
 {
-    const int wm           = 3;
-    const int we           = 4;
+    return float_to_fp8_impl(_x, 3, 4);
+}
+
+EXECUTION_SPECIFIER uchar float_to_bfp8(float _x) // bool stoch, uint rng)
+{
+    return float_to_fp8_impl(_x, 2, 5);
+}
+
+inline uchar float_to_fp8_impl(float _x, const int wm, const int we) // bool stoch, uint rng)
+{
     bool negative_zero_nan = MIOPEN_FP8_IEEE_EXPONENT_BIAS ? false : true;
     bool clip              = MIOPEN_FP8_CLIPPING;
 
@@ -205,7 +214,7 @@ EXECUTION_SPECIFIER float float_to_f8(float _x) // bool stoch, uint rng)
     uint rng       = 0;
     const int mfmt = 23;
     uint x;
-    x = *(reinterpret_cast<uint*>(&_x));
+    x = *((uint*)(&_x));
 
     uint head, mantissa;
     int exponent;

@@ -64,6 +64,9 @@
 #else
 #define _FLOAT uchar
 #define _FLOAT_ACCUM float
+// OpenCL requires explicit functions
+#define CVT_FLOAT2ACCUM(x) bfp8_to_float(x)
+#define CVT_ACCUM2FLOAT(x) float_to_bfp8(x)
 #endif
 #define SIZEOF_FLOAT 1
 // Max value for the main datatype
