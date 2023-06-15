@@ -401,9 +401,14 @@ private:
         // Computation error of fp16 is ~2^13 (=8192) bigger than
         // the one of fp32 because mantissa is shorter by 13 bits.
         auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1.5e-6 : 8.2e-3;
+
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<Tgpu, bfloat16>::value)
             tolerance *= 8.0;
+        constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
+        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
+        if(is_fp8 || is_bfp8)
+            tolerance = 0.1f;
         return tolerance;
     }
 
@@ -1138,6 +1143,32 @@ float16 RanGenWeights()
     return RAN_GEN<float16>(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
 }
 
+template <>
+float8 RanGenWeights()
+{
+    const auto tmp =
+        RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (RAN_GEN<float>(0.0, 1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<float8>(tmp2);
+}
+
+template <>
+bfloat8 RanGenWeights()
+{
+    const auto tmp =
+        RAN_GEN<float>(0.0, 1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (RAN_GEN<float>(0.0, 1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<bfloat8>(tmp2);
+}
+
 } // namespace detail
 
 template <typename Tgpu, typename Tref>
@@ -1423,9 +1454,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     else
     {
-        Tgpu Data_scale = (is_fp8 ? static_cast<Tgpu>(0.0005) : static_cast<Tgpu>(0.01));
-        Tgpu Data_min   = (is_fp8 ? static_cast<Tgpu>(-0.05) : static_cast<Tgpu>(0.0));
-        Tgpu Data_max   = (is_fp8 ? static_cast<Tgpu>(0.05) : static_cast<Tgpu>(1.0));
+        Tgpu Data_scale = (is_fp8 ? static_cast<Tgpu>(1.0) : static_cast<Tgpu>(0.01));
+        Tgpu Data_min   = (is_fp8 ? static_cast<Tgpu>(-1.0) : static_cast<Tgpu>(0.0));
+        Tgpu Data_max   = (is_fp8 ? static_cast<Tgpu>(1.0) : static_cast<Tgpu>(1.0));
 
         bool doutRead = false;
         if(is_bwd || is_wrw)
@@ -3400,7 +3431,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     std::cout << "Forward Convolution Verifies OK on " << (UseGPUReference() ? "GPU" : "CPU")
-              << " reference (" << error << ')' << std::endl;
+              << " reference (" << error << " < " << tolerance << ')' << std::endl;
     return 0;
 }
 
@@ -3446,8 +3477,8 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         else
         {
             std::cout << "Backward Convolution Data Verifies OK on "
-                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_data << ')'
-                      << std::endl;
+                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_data
+                      << " < " << tolerance << ')' << std::endl;
         }
     }
 
@@ -3495,7 +3526,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         {
             std::cout << "Backward Convolution Weights Verifies OK on "
                       << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_weights
-                      << ')' << std::endl;
+                      << " < " << tolerance << ')' << std::endl;
         }
     }
 

@@ -229,6 +229,7 @@ struct hip_f8
            hip_f8_rounding_mode r = miopen_f8::hip_f8_rounding_mode::standard,
            uint32_t rng           = 0);
 
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8& operator*=(const hip_f8& rhs)
     {
         const auto tmp = static_cast<float>(*this) * static_cast<float>(rhs);
@@ -236,6 +237,7 @@ struct hip_f8
         return *this;
     }
 
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8& operator+=(const hip_f8& rhs)
     {
         const auto tmp = static_cast<float>(*this) + static_cast<float>(rhs);
@@ -243,6 +245,7 @@ struct hip_f8
         return *this;
     }
 
+    MIOPEN_HIP_HOST_DEVICE
     hip_f8& operator-=(const hip_f8& rhs)
     {
         const auto tmp = static_cast<float>(*this) - static_cast<float>(rhs);
@@ -415,7 +418,7 @@ struct hip_f8
 
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
+                                                             const miopen_f8::hip_f8<T>& rhs)
 {
     lhs *= rhs;
     return lhs;
@@ -423,7 +426,7 @@ inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator*(miopen_f8::hip_f8<T
 
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
+                                                             const miopen_f8::hip_f8<T>& rhs)
 {
     lhs += rhs;
     return lhs;
@@ -431,7 +434,7 @@ inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator+(miopen_f8::hip_f8<T
 
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(miopen_f8::hip_f8<T> lhs,
-                                                      const miopen_f8::hip_f8<T>& rhs)
+                                                             const miopen_f8::hip_f8<T>& rhs)
 {
     lhs -= rhs;
     return lhs;
@@ -446,14 +449,14 @@ inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> operator-(U lhs, const miopen
 
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE bool operator<(const miopen_f8::hip_f8<T>& lhs,
-                                      const miopen_f8::hip_f8<T>& rhs)
+                                             const miopen_f8::hip_f8<T>& rhs)
 {
     return static_cast<float>(lhs) < static_cast<float>(rhs);
 }
 
 template <miopen_f8::hip_f8_type T>
 inline MIOPEN_HIP_HOST_DEVICE bool operator>(const miopen_f8::hip_f8<T>& lhs,
-                                      const miopen_f8::hip_f8<T>& rhs)
+                                             const miopen_f8::hip_f8<T>& rhs)
 {
     return static_cast<float>(lhs) > static_cast<float>(rhs);
 }
@@ -473,7 +476,7 @@ inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) { return 
 inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) { return x.is_inf(); }
 
 template <class T>
-T F8_Max(void)
+MIOPEN_HIP_HOST_DEVICE T F8_Max(void)
 {
     union
     {
@@ -489,21 +492,26 @@ template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
 {
 public:
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> epsilon()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> epsilon()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(float(0.0625));
     }
 
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> quiet_NaN()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> quiet_NaN()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
             static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x79));
     }
 
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
-        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(
-            F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>());
+        return F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+    }
+
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
+    {
+        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
+               F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
 };
 
@@ -511,21 +519,26 @@ template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>
 {
 public:
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> epsilon()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> epsilon()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(float(0.125));
     }
 
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> quiet_NaN()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> quiet_NaN()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
             static_cast<uint8_t>(miopen_f8::get_hip_f8_bias_mode() ? 0X80 : 0x7d));
     }
 
-    static miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
             F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
+    }
+    static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
+    {
+        return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
+               F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
     }
 };
 

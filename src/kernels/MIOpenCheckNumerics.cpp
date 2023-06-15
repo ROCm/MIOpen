@@ -45,8 +45,6 @@ using conditional_t = typename conditional<predicate, X, Y>::type;
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
 #include "hip_float8.h"
 
-#include <hip/math_functions.h>
-
 struct Numerics
 {
     float sum;
@@ -71,8 +69,8 @@ __device__ void thread_redux(Numerics* stats, size_t wid)
     {
         stats[lid].sum += stats[lid + wid].sum;
         stats[lid].absSum += stats[lid + wid].absSum;
-        stats[lid].min = fmin(stats[lid].min, stats[lid + wid].min);
-        stats[lid].max = fmax(stats[lid].max, stats[lid + wid].max);
+        stats[lid].min = std::fmin(stats[lid].min, stats[lid + wid].min);
+        stats[lid].max = std::fmax(stats[lid].max, stats[lid + wid].max);
     }
 }
 #if 0
@@ -84,7 +82,7 @@ __device__ void atomicMax(float* __restrict__ target, float val)
     do
     {
         expected = current;
-        next     = fmax(current, val);
+        next = std::fmax(current, val);
         if(next == current)
             break;
         const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
@@ -113,7 +111,8 @@ __device__ void atomicMin(float* __restrict__ target, float val)
 }
 #endif
 template <typename T, typename U>
-__device__ void check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)
+__device__ void
+check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)
 {
     __shared__ Numerics stats[256];
     U sum    = 0;
@@ -130,8 +129,8 @@ __device__ void check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abn
         sum += static_cast<U>(val);
         const auto abs_val = fabs(static_cast<U>(val));
         absSum += abs_val;
-        minV = min(minV, val);
-        maxV = max(maxV, val);
+        minV = std::min(minV, val);
+        maxV = std::max(maxV, val);
         if(abs_val <= static_cast<U>(0.0f))
             abnormal->hasZero = true;
         if(std::isnan(static_cast<U>(val)))

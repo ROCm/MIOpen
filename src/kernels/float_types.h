@@ -33,14 +33,43 @@
 #define TWO 2
 #define FOUR 4
 #define EIGHT 8
-
 #if MIOPEN_USE_FP8 == 1
 #ifdef __HIP_PLATFORM_HCC__
 #define FLOAT hip_f8<miopen_f8::hip_f8_type::fp8>
 #define FLOAT_ACCUM float
+#else
+#define _FLOAT uchar
+#define _FLOAT_ACCUM float
 #endif
 #define SIZEOF_FLOAT 1
+// Max value for the main datatype
+#define MAX_VAL 0x7F
+// Max value for accumulator
+// #ifndef FLT_MAX
+// #define MAX_VAL_ACCUM 3.402823466e+38F
+// #else
+// #define MAX_VAL_ACCUM FLT_MAX
+// #endif
 #endif // MIOPEN_USE_FP8
+
+#if MIOPEN_USE_BFP8 == 1
+#ifdef __HIP_PLATFORM_HCC__
+#define FLOAT hip_f8<miopen_f8::hip_f8_type::bf8>
+#define FLOAT_ACCUM float
+#else
+#define _FLOAT uchar
+#define _FLOAT_ACCUM float
+#endif
+#define SIZEOF_FLOAT 1
+// Max value for the main datatype
+#define MAX_VAL 0x7F
+// Max value for accumulator
+// #ifndef FLT_MAX
+// #define MAX_VAL_ACCUM 3.402823466e+38F
+// #else
+// #define MAX_VAL_ACCUM FLT_MAX
+// #endif
+#endif // MIOPEN_USE_BFP8
 
 #ifndef __HIP_PLATFORM_HCC__
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
