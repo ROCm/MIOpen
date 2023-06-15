@@ -57,7 +57,7 @@ inline bool IsEnvvarValueDisabled(const char* name)
         std::string value_env_str = value_env_p;
         for(auto& c : value_env_str)
         {
-            if(std::isalpha(c))
+            if(std::isalpha(c) != 0)
             {
                 c = std::tolower(static_cast<unsigned char>(c));
             }
@@ -82,7 +82,7 @@ inline bool IsEnvvarValueEnabled(const char* name)
         std::string value_env_str = value_env_p;
         for(auto& c : value_env_str)
         {
-            if(std::isalpha(c))
+            if(std::isalpha(c) != 0)
             {
                 c = std::tolower(static_cast<unsigned char>(c));
             }
