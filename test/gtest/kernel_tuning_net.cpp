@@ -1,37 +1,41 @@
-#include <miopen/miopen.h>
+#include <gtest/ai_heuristics.hpp>
 #include "../tensor_holder.hpp"
-#include <gtest/gtest.h>
-#include <iostream>
-#include <miopen/convolution.hpp>
-#include <miopen/problem_description.hpp>
-#include <miopen/solver.hpp>
 #include "get_handle.hpp"
-#include <unordered_map>
+#include <miopen/solver.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 
-struct KernelTuningNetTestCase
+struct KernelTuningNetTestCase : AIModelTestCase
 {
-    std::vector<size_t> input;
-    std::vector<size_t> weight;
-    std::vector<size_t> output;
-    size_t pad_x;
-    size_t pad_y;
-    size_t stride_x;
-    size_t stride_y;
-    size_t dilation_x;
-    size_t dilation_y;
-    miopen::conv::Direction direction;
-    miopenDataType_t data_type;
-    miopenTensorLayout_t layout;
     bool expected_valid;
     std::string expected_config;
-    miopen::ConvolutionDescriptor GetConv()
-    {
-        return miopen::ConvolutionDescriptor{
-            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}};
-    }
 };
+
+std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
+{
+    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1},
+              miopen::conv::Direction::BackwardData,
+              miopenFloat,
+              miopenTensorNCHW},
+             true,
+             "1,16,1,64,2,2,1,4"},
+
+            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNCHW},
+             false,
+             ""}};
+}
+
+std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
+{
+    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+              miopen::conv::Direction::Forward,
+              miopenHalf,
+              miopenTensorNCHW},
+             true,
+             "2,8,4,16,1,4,1,4"}};
+}
 
 template <typename G>
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
@@ -40,17 +44,16 @@ protected:
     void SetUp() override
     {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-        auto test_case         = GetParam();
-        tensor<G> input_tensor = tensor<G>(test_case.data_type, test_case.layout, test_case.input);
-        tensor<G> weight_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.weight);
-        tensor<G> output_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.output);
-        problem        = miopen::ProblemDescription(input_tensor.desc,
-                                             weight_tensor.desc,
-                                             output_tensor.desc,
-                                             test_case.GetConv(),
-                                             test_case.direction);
+        auto test_case = GetParam();
+        tensor<G> input_tensor =
+            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetInput());
+        tensor<G> weights_tensor =
+            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
+        auto conv_desc                       = test_case.conv.GetConv();
+        miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
+            input_tensor.desc, weights_tensor.desc, test_case.data_type);
+        problem = miopen::ProblemDescription(
+            input_tensor.desc, weights_tensor.desc, output_desc, conv_desc, test_case.direction);
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;
 #else
@@ -70,57 +73,7 @@ struct KernelTuningNetTestHalf : KernelTuningNetTest<half_float::half>
 {
 };
 
-std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
-{
-    return {{{512, 192, 56, 56},
-             {288, 192, 1, 1},
-             {512, 288, 56, 56},
-             0,
-             0,
-             1,
-             1,
-             1,
-             1,
-             miopen::conv::Direction::BackwardData,
-             miopenFloat,
-             miopenTensorNCHW,
-             true,
-             "1,16,1,64,2,2,1,4"},
-            {{1, 4, 2, 2},
-             {4, 4, 1, 1},
-             {1, 4, 2, 2},
-             0,
-             0,
-             1,
-             1,
-             1,
-             1,
-             miopen::conv::Direction::Forward,
-             miopenFloat,
-             miopenTensorNCHW,
-             false,
-             ""}};
-}
-
-std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
-{
-    return {{{256, 2048, 7, 7},
-             {512, 2048, 1, 1},
-             {256, 512, 7, 7},
-             0,
-             0,
-             1,
-             1,
-             1,
-             1,
-             miopen::conv::Direction::Forward,
-             miopenHalf,
-             miopenTensorNCHW,
-             true,
-             "2,8,4,16,1,4,1,4"}};
-}
-
-template <typename T, typename G>
+template <typename T>
 void TestParameterPredictionModel(miopen::ProblemDescription problem,
                                   bool expected_valid,
                                   std::string expected)
@@ -155,13 +108,13 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
 
 TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, float>(
+    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 
 TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U, half_float::half>(
+    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 
