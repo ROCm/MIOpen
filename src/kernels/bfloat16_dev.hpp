@@ -118,6 +118,166 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 #endif // MIOPEN_BACKEND_HIP
 }
 
+// TODO: Convert the Col2Im kernels from OpenCL to HIP and remove the following
+// functions which are rewrites of the f8 header impl functions
+
+EXECUTION_SPECIFIER float f8_to_float(uchar x)
+{
+    const int wm           = 3;
+    const int we           = 4;
+    bool negative_zero_nan = MIOPEN_FP8_IEEE_EXPONENT_BIAS ? false : true;
+
+    constexpr int weo = 8;
+    constexpr int wmo = 23;
+
+    float fInf, fNegInf, fNaN, fNeg0;
+    const uint ifInf    = 0x7F800000;
+    const uint ifNegInf = 0xFF800000;
+    const uint ifNaN    = 0x7F800001;
+    const uint ifNeg0   = 0x80000000;
+    fInf                = *(reinterpret_cast<const float*>(&ifInf));
+    fNegInf             = *(reinterpret_cast<const float*>(&ifNegInf));
+    fNaN                = *(reinterpret_cast<const float*>(&ifNaN));
+    fNeg0               = *(reinterpret_cast<const float*>(&ifNeg0));
+
+    if(x == 0)
+        return static_cast<float>(0);
+
+    uint sign     = x >> 7;
+    uint mantissa = x & ((1 << wm) - 1);
+    int exponent  = (x & 0x7F) >> wm;
+    if(negative_zero_nan)
+    {
+        if(x == 0x80)
+            return fNaN;
+    }
+    else
+    {
+        if(x == 0x80)
+            return fNeg0;
+        if(exponent == ((1 << we) - 1))
+            return (mantissa == 0) ? (sign ? fNegInf : fInf) : fNaN;
+    }
+    uint retval;
+    const int exp_low_cutoff = (1 << (weo - 1)) - (1 << (we - 1)) + 1 - (negative_zero_nan ? 1 : 0);
+
+    // subnormal input
+    if(exponent == 0)
+    {
+        // guaranteed mantissa!=0 since cases 0x0 and 0x80 are handled above
+        // TODO: verify __builtin_clz and OpenCL's clz do the same thing
+        int sh = 1 + clz(mantissa) - (32 - wm);
+        mantissa <<= sh;
+        exponent += 1 - sh;
+        /*
+        exponent++;
+        while(mantissa<(1<<wm)) {
+          mantissa <<= 1;
+          exponent--;
+        }
+        */
+        mantissa &= ((1 << wm) - 1);
+    }
+    exponent += exp_low_cutoff - 1;
+    mantissa <<= wmo - wm;
+
+    // subnormal output (occurs when T=half, we=5, negative_zero_nan=true)
+    if(exponent <= 0)
+    {
+        mantissa |= 1 << wmo;
+        mantissa >>= 1 - exponent;
+        exponent = 0;
+    }
+
+    retval = (sign << 31) | (exponent << 23) | mantissa;
+    return *(reinterpret_cast<const float*>(&retval));
+}
+
+EXECUTION_SPECIFIER float float_to_f8(float _x) // bool stoch, uint rng)
+{
+    const int wm           = 3;
+    const int we           = 4;
+    bool negative_zero_nan = MIOPEN_FP8_IEEE_EXPONENT_BIAS ? false : true;
+    bool clip              = MIOPEN_FP8_CLIPPING;
+
+    // Conserve the logic for stochastic rounding:
+    bool stoch     = false;
+    uint rng       = 0;
+    const int mfmt = 23;
+    uint x;
+    x = *(reinterpret_cast<uint*>(&_x));
+
+    uint head, mantissa;
+    int exponent;
+    uint sign;
+
+    head     = x & 0xFF800000;
+    mantissa = x & 0x7FFFFF;
+    exponent = (head >> 23) & 0xFF;
+    sign     = head >> 31;
+
+    uint signed_inf = (sign << 7) + (((1 << we) - 1) << wm);
+
+    if(negative_zero_nan)
+    {
+        if((x & 0x7F800000) == 0x7F800000)
+            return 0x80;
+    }
+    else
+    {
+        if((x & 0x7F800000) == 0x7F800000)
+            return signed_inf + (mantissa != 0 ? 1 : 0);
+    }
+    if(x == 0)
+        return 0;
+
+    uint drop_mask           = (1 << (mfmt - wm)) - 1;
+    const int max_exp        = (1 << we) - (negative_zero_nan ? 1 : 2);
+    const int exp_low_cutoff = (128) - (1 << (we - 1)) + 1 - (negative_zero_nan ? 1 : 0);
+
+    exponent -= exp_low_cutoff - 1;
+    if(exponent <= 0)
+        drop_mask = (1 << (mfmt - wm + 1 - exponent)) - 1;
+    mantissa += 1 << mfmt;
+    mantissa += (stoch ? rng : mantissa) & drop_mask;
+    if(mantissa >= (2 << mfmt))
+    {
+        mantissa >>= 1;
+        exponent++;
+    }
+    mantissa >>= (mfmt - wm);
+
+    if(exponent <= 0)
+    {
+        if(x == 0)
+            return 0;
+        else
+        {
+            // subnormal range; represented by a subnormal float8 (exponent 0)
+            // and involves loss of accuracy
+            mantissa >>= 1 - exponent;
+            exponent = 0;
+        }
+    }
+    // above range: quantize to maximum possible float of the same sign
+    else if(exponent > max_exp)
+    {
+        if(clip)
+        {
+            mantissa = (1 << wm) - 1;
+            exponent = max_exp;
+        }
+        else
+        {
+            return signed_inf;
+        }
+    }
+    if(exponent == 0 && mantissa == 0)
+        return negative_zero_nan ? 0 : (sign << 7);
+    mantissa &= (1 << wm) - 1;
+    return (sign << 7) | (exponent << wm) | mantissa;
+}
+
 #ifdef __cplusplus
 }
 #endif

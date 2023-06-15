@@ -37,9 +37,14 @@
 #ifdef __HIP_PLATFORM_HCC__
 #define FLOAT hip_f8<miopen_f8::hip_f8_type::fp8>
 #define FLOAT_ACCUM float
+// HIP implements the correct operators for conversion
+
 #else
 #define _FLOAT uchar
 #define _FLOAT_ACCUM float
+// OpenCL requires explicit functions
+#define CVT_FLOAT2ACCUM(x) fp8_to_float(x)
+#define CVT_ACCUM2FLOAT(x) float_to_fp8(x)
 #endif
 #define SIZEOF_FLOAT 1
 // Max value for the main datatype
