@@ -71,6 +71,8 @@ static std::string GetDeviceNameFromMap(const std::string& in)
 const std::size_t TargetProperties::MaxWaveScratchSize =
     (static_cast<const std::size_t>(256) * 4) * ((1 << 13) - 1);
 
+const std::size_t TargetProperties::MaxLocalMemorySize = static_cast<const std::size_t>(64) * 1024;
+
 void TargetProperties::Init(const Handle* const handle)
 {
     const auto rawName = [&]() -> std::string {

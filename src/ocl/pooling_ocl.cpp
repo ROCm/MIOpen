@@ -41,6 +41,7 @@ static auto PoolingForwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingForward2d,
                                    solver::pooling::PoolingForwardNd,
+                                   solver::pooling::PoolingForwardNaive,
                                    solver::pooling::TransposedPoolingFwd2d,
                                    solver::pooling::TransposedPoolingFwdNd>{};
 }
