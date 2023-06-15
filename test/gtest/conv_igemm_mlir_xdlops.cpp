@@ -59,7 +59,7 @@ void Run2dDriver(miopenDataType_t prec)
         MIOPEN_THROW(miopenStatusBadParm,
                      "miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, miopenDouble data "
                      "type not supported by "
-                     "conv_igemm_mlir test");
+                     "conv_igemm_mlir_xdlops test");
 
     default: params = ConfigWithHalf::GetParam();
     }
