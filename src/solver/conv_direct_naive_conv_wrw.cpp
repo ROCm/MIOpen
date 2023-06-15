@@ -47,7 +47,8 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
+         problem.IsBfp8()))
         return false;
 
     if(!problem.direction.IsBackwardWrW())

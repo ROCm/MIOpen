@@ -407,8 +407,10 @@ private:
             tolerance *= 8.0;
         constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
         constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
-        if(is_fp8 || is_bfp8)
+        if(is_fp8)
             tolerance = 0.1f;
+        else if(is_bfp8)
+            tolerance = 0.3f;
         return tolerance;
     }
 
@@ -1584,7 +1586,8 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16)) ||
+             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8 ||
+             miopen_type<Tgpu>{} == miopenBFloat8)) ||
            (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else

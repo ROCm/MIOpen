@@ -48,7 +48,7 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8() ||
-         problem.IsFp8()))
+         problem.IsFp8() || problem.IsBfp8()))
         return false;
 
     if(!problem.direction.IsForward())

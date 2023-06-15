@@ -135,7 +135,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(problem.IsFp8() || problem.IsTensorsCasted())
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
     {
         kernel_name << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
         kernel_name << "_" << miopen::GetDataType(problem.GetWeightsDataType());
@@ -183,10 +183,10 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
     if(device_name == "gfx906" || device_name == "gfx908")
     {
         if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
-           !problem.IsTensorsCasted())
+           !problem.IsTensorsCasted() && !problem.IsBfp8())
             return "naive_conv_gcn.s";
     }
-    if(problem.IsFp8() || problem.IsTensorsCasted())
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
         return "fp8_naive_conv.cpp";
     return "naive_conv.cpp";
 }
@@ -203,7 +203,7 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
     }
     std::ostringstream ss;
     ss << ctx.general_compile_options;
-    if(problem.IsFp8() || problem.IsTensorsCasted())
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
     {
         ss << " -DINPUT_TYPE="
            << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
