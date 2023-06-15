@@ -1446,12 +1446,12 @@ void SetTensor(const Handle& handle,
                                           std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
-
-        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            GetDataTypeKernelParams(dataType);
+        std::stringstream ss;
+        ss << "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET"
+           << GetDataTypeKernelParams(dataType);
         for(int i = 0; i < yDim_flat; ++i)
         {
-            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            ss << " -DWORK_LENGTH_" << std::to_string(i) << "=" << std::to_string(worker_sizes[i]);
         }
 
         kernel = handle.AddKernel(kernel_name,
@@ -1460,7 +1460,7 @@ void SetTensor(const Handle& handle,
                                   kernel_name,
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
-                                  parms);
+                                  ss.str());
     }
 
     switch(yDim_flat)
