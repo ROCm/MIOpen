@@ -128,18 +128,19 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     std::vector<std::string> igemm_fwd = {"MIOPEN_FIND_MODE=normal",
                                           "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwd"};
     std::string flags_fwd    = " --verbose --disable-backward-data --disable-backward-weights";
-    std::string layout_fwd   = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";
+    std::string layout       = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";
     std::string groupCount_4 = " --group-count 4";
 
     // FWD test cases for precision == "--int8"
     std::vector<TestCase> test_cases = {
         // clang-format off
+    TestCase{igemm_fwd, precision + flags_fwd + " --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
     TestCase{igemm_fwd, precision + flags_fwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    TestCase{igemm_fwd, precision + flags_fwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout_fwd},
+    TestCase{igemm_fwd, precision + flags_fwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_fwd, precision + flags_fwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    TestCase{igemm_fwd, precision + flags_fwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout_fwd},
+    TestCase{igemm_fwd, precision + flags_fwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_fwd, precision + flags_fwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_fwd, precision + flags_fwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout_fwd},
+    TestCase{igemm_fwd, precision + flags_fwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_fwd, precision + flags_fwd + " --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + groupCount_4}
         // clang-format on
     };
@@ -149,30 +150,29 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     std::vector<std::string> igemm_wrw = {"MIOPEN_FIND_MODE=normal",
                                           "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrW"};
 
-    std::string flags_bwd      = " --verbose --disable-forward --disable-backward-weights";
-    std::string flags_wrw      = " --verbose --disable-forward --disable-backward-data";
-    std::string layout_bwd_wrw = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";
-    std::string groupCount_32  = " --group-count 32";
+    std::string flags_bwd     = " --verbose --disable-forward --disable-backward-weights";
+    std::string flags_wrw     = " --verbose --disable-forward --disable-backward-data";
+    std::string groupCount_32 = " --group-count 32";
 
     // BWD WRW test cases
     const std::vector<TestCase> test_cases_bwd_wrw = {
         // clang-format off
     TestCase{igemm_bwd, precision + flags_bwd + " --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    TestCase{igemm_bwd, precision + flags_bwd + " --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1" + layout_bwd_wrw},
+    TestCase{igemm_bwd, precision + flags_bwd + " --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1" + layout},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    TestCase{igemm_bwd, precision + flags_bwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout_bwd_wrw},
+    TestCase{igemm_bwd, precision + flags_bwd + " --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    TestCase{igemm_bwd, precision + flags_bwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout_bwd_wrw},
+    TestCase{igemm_bwd, precision + flags_bwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout_bwd_wrw},
+    TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     
     TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout_bwd_wrw},
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1"},
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1" + layout_bwd_wrw},
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout_bwd_wrw},    
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout_bwd_wrw},
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},    
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1" + groupCount_32}
         // clang-format on
     };
