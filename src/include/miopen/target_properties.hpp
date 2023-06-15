@@ -41,6 +41,7 @@ struct TargetProperties
     boost::optional<bool> Sramecc() const { return sramecc; }
     boost::optional<bool> SrameccReported() const { return sramecc_reported; }
     static std::size_t GetMaxWaveScratchSize() { return MaxWaveScratchSize; }
+    static std::size_t GetMaxLocalMemorySize() { return MaxLocalMemorySize; }
     void Init(const Handle*);
 
 private:
@@ -51,6 +52,7 @@ private:
     boost::optional<bool> sramecc          = boost::none;
     boost::optional<bool> sramecc_reported = boost::none;
     static const std::size_t MaxWaveScratchSize;
+    static const std::size_t MaxLocalMemorySize;
 };
 
 } // namespace miopen
