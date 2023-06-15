@@ -79,7 +79,8 @@ void Solution::RunImpl(Handle& handle,
     const auto problem_ =
         conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
 
-    if(problem_.GetDirection() == miopenProblemDirectionBackward && y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    if(problem_.GetDirection() == miopenProblemDirectionBackward &&
+       y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
