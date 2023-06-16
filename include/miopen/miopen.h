@@ -869,9 +869,9 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 MIOPEN_EXPORT miopenStatus_t
 miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                   int spatialDim,
-                                  int* padA,
-                                  int* strideA,
-                                  int* dilationA,
+                                  const int* padA,
+                                  const int* strideA,
+                                  const int* dilationA,
                                   miopenConvolutionMode_t c_mode);
 
 /*! @brief Retrieves the spatial dimension of a convolution layer descriptor
@@ -971,7 +971,7 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
-    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA);
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, const int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
@@ -2107,9 +2107,9 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 MIOPEN_EXPORT miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                           const miopenPoolingMode_t mode,
                                                           int nbDims,
-                                                          int* windowDimA,
-                                                          int* padA,
-                                                          int* stridesA);
+                                                          const int* windowDimA,
+                                                          const int* padA,
+                                                          const int* stridesA);
 
 /*! @brief Get details of a N-D pooling layer descriptor
  *
