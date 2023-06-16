@@ -294,7 +294,7 @@ def buildHipClangJob(Map conf=[:]){
                             lcov --list $(pwd)/coverage.info
                             curl -Os https://uploader.codecov.io/latest/linux/codecov
                             chmod +x codecov
-                            ./codecov -t ${CODECOV_TOKEN} -F 
+                            ./codecov -t ${CODECOV_TOKEN}
                             echo "Uploaded"
                         '''
                     }
