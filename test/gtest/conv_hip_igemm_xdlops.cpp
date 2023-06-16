@@ -70,6 +70,11 @@ void Run2dDriver(miopenDataType_t prec)
 
 TEST_P(ConfigWithInt8, Int8Test)
 {
+#if MIOPEN_BACKEND_OPENCL
+
+    GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
+
+#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
@@ -83,6 +88,7 @@ TEST_P(ConfigWithInt8, Int8Test)
     {
         GTEST_SKIP();
     }
+#endif
 };
 
 std::vector<std::string> GetTestCases(const std::string& precision)
