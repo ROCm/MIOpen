@@ -27,7 +27,9 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
-add_subdirectory(sqlite)
+if(MIOPEN_ENABLE_SQLITE)
+    add_subdirectory(sqlite)
+endif()
 
 # Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 # This switch controls two related but different aspects of MIOpen behavior
@@ -136,6 +138,7 @@ set( MIOpen_Source
     rnn_api.cpp
     softmax_api.cpp
     solution.cpp
+    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -220,6 +223,7 @@ set( MIOpen_Source
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
+    solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
@@ -229,6 +233,11 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     )
+
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
+    list(APPEND MIOpen_Source anyramdb.cpp)
+endif()
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
@@ -298,6 +307,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v21_1_3_metadata.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride2.inc
@@ -316,6 +331,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride2.inc
@@ -380,8 +401,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
-        kernels/MIOpenPoolingND.cl
         kernels/MIOpenPoolingBwdND.cl
+        kernels/MIOpenPoolingForwardNaive.cl
+        kernels/MIOpenPoolingND.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -624,10 +646,16 @@ if(MIOPEN_USE_MLIR)
 endif()
 
 # build library
-add_library( MIOpen
-    ${MIOpen_Source}
-    $<TARGET_OBJECTS:sqlite_memvfs>
-    )
+if(MIOPEN_ENABLE_SQLITE)
+    add_library( MIOpen
+        ${MIOpen_Source}
+        $<TARGET_OBJECTS:sqlite_memvfs>
+        )
+else()
+    add_library( MIOpen
+        ${MIOpen_Source}
+        )
+endif()
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
@@ -658,10 +686,46 @@ endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+#               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
+
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
+        if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
+            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
+            endif()
+            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
+            endif()
+        endif()
+
+        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
+        if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
+            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
+            endif()
+            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
+            endif()
+        endif()
+
+        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
+        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+        if(NOT BUILD_DEV)
+            file(GLOB MODEL_FILES kernels/*.model)
+            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            foreach(MODEL_FILE ${MODEL_FILES})
+                get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+                configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+            endforeach()
+        endif()
+endif()
+
 set(PACKAGE_DEPENDS)
 set(PACKAGE_STATIC_DEPENDS)
 ############################################################

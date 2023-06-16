@@ -41,6 +41,7 @@ static auto PoolingForwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingForward2d,
                                    solver::pooling::PoolingForwardNd,
+                                   solver::pooling::PoolingForwardNaive,
                                    solver::pooling::TransposedPoolingFwd2d,
                                    solver::pooling::TransposedPoolingFwdNd>{};
 }
@@ -62,7 +63,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           Data_t y,
                                           bool save_index,
                                           Data_t workSpace,
-                                          size_t /*workSpaceSize*/) const
+                                          size_t workSpaceSize) const
 {
 
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -119,14 +120,15 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
 
     const auto invoke_params = [&]() {
-        auto tmp      = pooling::FwdInvokeParams{};
-        tmp.type      = InvokeType::Run;
-        tmp.xDesc     = xDesc;
-        tmp.yDesc     = yDesc;
-        tmp.pooling   = *this;
-        tmp.x         = x;
-        tmp.y         = y;
-        tmp.workspace = workSpace;
+        auto tmp           = pooling::FwdInvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.xDesc          = xDesc;
+        tmp.yDesc          = yDesc;
+        tmp.pooling        = *this;
+        tmp.x              = x;
+        tmp.y              = y;
+        tmp.workspace      = workSpace;
+        tmp.workspace_size = workSpaceSize;
         return tmp;
     }();
 
