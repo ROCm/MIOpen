@@ -13,7 +13,7 @@ typedef unsigned short uint16_t;
 typedef float float_t;
 
 // std::conditional requires type_traits which has a few other things
-// which result in collition with amd_hip_vector_types.h
+// which result in collision with amd_hip_vector_types.h
 
 namespace std {
 template <bool predicate, typename X, typename Y>
@@ -69,8 +69,8 @@ __device__ void thread_redux(Numerics* stats, size_t wid)
     {
         stats[lid].sum += stats[lid + wid].sum;
         stats[lid].absSum += stats[lid + wid].absSum;
-        stats[lid].min = std::fmin(stats[lid].min, stats[lid + wid].min);
-        stats[lid].max = std::fmax(stats[lid].max, stats[lid + wid].max);
+        stats[lid].min = fmin(stats[lid].min, stats[lid + wid].min);
+        stats[lid].max = fmax(stats[lid].max, stats[lid + wid].max);
     }
 }
 #if 0
@@ -82,7 +82,7 @@ __device__ void atomicMax(float* __restrict__ target, float val)
     do
     {
         expected = current;
-        next = std::fmax(current, val);
+        next = fmax(current, val);
         if(next == current)
             break;
         const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
@@ -129,13 +129,13 @@ check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool comp
         sum += static_cast<U>(val);
         const auto abs_val = fabs(static_cast<U>(val));
         absSum += abs_val;
-        minV = std::min(minV, val);
-        maxV = std::max(maxV, val);
+        minV = : min(minV, val);
+        maxV = max(maxV, val);
         if(abs_val <= static_cast<U>(0.0f))
             abnormal->hasZero = true;
-        if(std::isnan(static_cast<U>(val)))
+        if(isnan(static_cast<U>(val)))
             abnormal->hasNan = true;
-        if(std::isinf(static_cast<U>(val)))
+        if(isinf(static_cast<U>(val)))
             abnormal->hasInf = true;
     }
     if(computeStats)
@@ -173,7 +173,7 @@ extern "C" __global__ void check_numerics_fp16(const void* __restrict__ C_d,
                                                CheckNumericsResult* __restrict__ abnormal,
                                                bool computeStats)
 {
-    check_numerics<half, float>(reinterpret_cast<const half*>(C_d), sz, abnormal, computeStats);
+    check_numerics<_Float16, float>(reinterpret_cast<const half*>(C_d), sz, abnormal, computeStats);
 }
 
 extern "C" __global__ void check_numerics_bf16(const void* __restrict__ C_d,

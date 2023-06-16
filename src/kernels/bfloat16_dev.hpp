@@ -118,6 +118,11 @@ EXECUTION_SPECIFIER ushort float_to_bfloat16(float src_val)
 #endif // MIOPEN_BACKEND_HIP
 }
 
+#ifndef MIOPEN_USE_FP8
+#define MIOPEN_USE_FP8 0
+#endif
+
+#if MIOPEN_USE_FP8
 // TODO: Convert the Col2Im kernels from OpenCL to HIP and remove the following
 // functions which are rewrites of the f8 header impl functions
 EXECUTION_SPECIFIER float fp8_to_float_impl(uchar x, const int wm, const int we)
@@ -286,6 +291,8 @@ EXECUTION_SPECIFIER uchar float_to_bfp8(float _x) // bool stoch, uint rng)
 {
     return float_to_fp8_impl(_x, 2, 5);
 }
+
+#endif // MIOPEN_USE_FP8
 
 #ifdef __cplusplus
 }

@@ -52,7 +52,6 @@
 typedef char data_t;
 #elif MIOPEN_USE_INT8x4
 typedef uint data_t;
-#elif
 #elif MIOPEN_USE_INT32
 typedef int data_t;
 #elif(MIOPEN_USE_FP16 || MIOPEN_USE_BFP16)

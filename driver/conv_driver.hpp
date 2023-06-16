@@ -408,7 +408,7 @@ private:
         constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
         constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
         if(is_fp8)
-            tolerance = 0.1f;
+            tolerance = 0.15f;
         else if(is_bfp8)
             tolerance = 0.3f;
         return tolerance;

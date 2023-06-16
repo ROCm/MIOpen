@@ -726,6 +726,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             " -DCK_PARAM_DST_DATATYPE=" + std::to_string(detailStatic::GetDataTypeId(dstDataType));
         param +=
             " -DCK_PARAM_REDUCE_COMPTYPE=" + std::to_string(detailStatic::GetDataTypeId(compType));
+        param +=
+            " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" + std::to_string(MIOPEN_FP8_IEEE_EXPONENT_BIAS);
+        param += " -DMIOPEN_FP8_CLIPPING" + std::to_string(MIOPEN_FP8_CLIPPING);
 
         param += " -DCK_PARAM_SRC_DESC_LENGTHS=";
         for(int i = 0; i < inDescLengths.size(); i++)

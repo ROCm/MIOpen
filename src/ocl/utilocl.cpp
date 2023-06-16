@@ -461,18 +461,14 @@ float Col2Im2dGPU(const Handle& handle,
     }
     else
     {
-        std::stringstream ss;
         std::string params = GetDataTypeKernelParams(type);
-        ss << params;
-        ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
-        ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
 
         size_t global_threads = static_cast<size_t>(in_c) * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
         const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         handle.AddKernel(
-            "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, ss.str())(
+            "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
             col,
             out_h,
             out_w,
