@@ -12,14 +12,14 @@ struct KernelTuningNetTestCase : AIModelTestCase
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 {
-    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNCHW},
              true,
              "1,16,1,64,2,2,1,4"},
 
-            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1},
+            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -29,7 +29,7 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
 {
-    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},

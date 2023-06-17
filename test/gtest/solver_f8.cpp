@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include "solver.hpp"
-struct ConvFwdFp8 : ConvFwdSolverTest<float8>
+struct ConvFwdFp8 : ConvFwdSolverTest<float8, float>
 {
 };
 template <typename Solver>

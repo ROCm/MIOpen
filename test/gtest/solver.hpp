@@ -34,75 +34,10 @@
 
 #include <miopen/hip_float8.h>
 
-template <typename T>
-miopenDataType_t GetDataType();
+#include "conv_test_case.hpp"
+#include "conv_tensor_gen.hpp"
 
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>()
-{
-    return miopenFloat8;
-}
-
-template <>
-miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>()
-{
-    return miopenBFloat8;
-}
-struct ConvTestCase
-{
-    size_t N;
-    size_t C;
-    size_t H;
-    size_t W;
-    size_t k;
-    size_t y;
-    size_t x;
-    size_t pad_x;
-    size_t pad_y;
-    size_t stride_x;
-    size_t stride_y;
-    size_t dialtion_x;
-    size_t dilation_y;
-    miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
-    {
-        return os << "N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
-                  << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y << " conv_mode:" << tc.conv_mode;
-    }
-
-    miopen::ConvolutionDescriptor GetConv()
-    {
-        return miopen::ConvolutionDescriptor{
-            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_y)}};
-    }
-};
-
-std::vector<ConvTestCase> ConvTestConfigs()
-{ // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {{16, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
-}
-
-template <typename T = float>
+template <typename T = float, typename Tref = double>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase>>
 {
@@ -112,9 +47,9 @@ protected:
         test_skipped                = false;
         std::tie(algo, conv_config) = GetParam();
         input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{1, conv_config.k, conv_config.x, conv_config.y};
-        input.generate(tensor_elem_gen_integer{17});
-        weights.generate(tensor_elem_gen_integer{17});
+        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
+        input.generate(GenData<T>{});
+        weights.generate(GenWeights<T>{});
 
         conv_desc = conv_config.GetConv();
 
@@ -139,7 +74,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{output_desc.GetLengths()};
+        ref_out = tensor<Tref>{output_desc.GetLengths()};
         cpu_convolution_forward(conv_desc.GetSpatialDimension(),
                                 input,
                                 weights,
@@ -151,7 +86,7 @@ protected:
 
         output.data         = handle.Read<T>(out_dev, output.data.size());
         const auto zero_chk = [](T x) { return static_cast<T>(x) == static_cast<T>(0.0); };
-        EXPECT_FALSE(std::all_of(ref_out.begin(), ref_out.end(), zero_chk))
+        EXPECT_FALSE(std::all_of(ref_out.begin(), ref_out.end(), [](float x) { return x == 0.0f; }))
             << "Cpu data is all zeros";
         EXPECT_FALSE(std::all_of(output.begin(), output.end(), zero_chk))
             << "Gpu data is all zeros";
@@ -172,7 +107,7 @@ protected:
     tensor<T> input;
     tensor<T> weights;
     tensor<T> output;
-    tensor<T> ref_out;
+    tensor<Tref> ref_out;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;

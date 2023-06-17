@@ -46,11 +46,4 @@ static int GET_RAND()
     return rand(); // NOLINT (concurrency-mt-unsafe)
 }
 
-// template <typename T>
-// static T RAN_GEN(T A, T B)
-//{
-//    T r = (FRAND<T>() * (B - A)) + A;
-//    return r;
-//}
-
 #endif
