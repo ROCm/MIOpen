@@ -206,9 +206,9 @@ extern "C" miopenStatus_t miopenGet2dPoolingDescriptor(const miopenPoolingDescri
 extern "C" miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                        const miopenPoolingMode_t mode,
                                                        int nbDims,
-                                                       int* windowDimA,
-                                                       int* padA,
-                                                       int* stridesA)
+                                                       const int* windowDimA,
+                                                       const int* padA,
+                                                       const int* stridesA)
 {
 
     return miopen::try_([&] {
