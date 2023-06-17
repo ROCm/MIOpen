@@ -34,10 +34,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_DUMP_TRANS)
 
 #define FWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_FWD_NHWC_CHECK_VALID_TILE_LIST
@@ -703,11 +699,9 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        // Todo: Check with dev to make sure this is correct       // in case k split too large
-        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
-            return false;
         // if both 1, indicate padded c support
-        if(((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+        if((c >> gemm_k_global_split == 0) ||
+           (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
             return false;
         // also, add this restriction to k, for vector write out
         if(problem.IsFp16())
@@ -801,52 +795,15 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 
     if(is_nchw)
     {
-        const auto is_stochastic =
-            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-            miopenF8RoundingModeStochastic;
-        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_out = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
 
-        TransposeSolutionDefault2Nhwc trans_input(
-            ctx,
-            problem.GetInDataType(),
-            n,
-            c,
-            hi,
-            wi,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
-                                                       problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_inp);
-        TransposeSolutionDefault2Nhwc trans_weight(
-            ctx,
-            problem.GetWeightsDataType(),
-            k,
-            c / group,
-            y,
-            x,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetWeightsDataType(),
-                problem.conv_problem
-                    .GetWeightsCastType()), // group * k_per_group as batch for weight
-            is_stochastic,
-            fp8_seed_wei);
-        TransposeSolutionNhwc2Default trans_output(ctx,
-                                                   problem.GetOutDataType(),
-                                                   n,
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
                                                    k,
-                                                   ho,
-                                                   wo,
-                                                   BT_FLAG_DEFAULT,
-                                                   is_stochastic,
-                                                   fp8_seed_out);
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
             size_trans_input = trans_input.GetOutputTensorSize();
@@ -884,7 +841,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx940"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") &&
+       (!StartsWith(device_name, "gfx94")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -896,20 +854,11 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() &&
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;
 
     if(!ctx.rmv.IsV3())
-        return false;
-
-    if(problem.IsTensorsCasted() &&
-       !(problem.IsLayoutDefault() &&
-         (*problem.conv_problem.GetInCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetInCastType() == miopenBFloat8 ||
-          *problem.conv_problem.GetWeightsCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetWeightsCastType() == miopenBFloat8 ||
-          *problem.conv_problem.GetOutCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetOutCastType() == miopenBFloat8)))
         return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -966,14 +915,34 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     result.construction_params.push_back(kernel);
     std::ostringstream options;
+    std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
+    if(ctx.GetStream().GetDeviceName() == "gfx940")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
+    }
+    else if(ctx.GetStream().GetDeviceName() == "gfx941")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
+    }
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 0);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+    }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate);
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_fwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
-
-    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
@@ -997,79 +966,33 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         const auto y     = problem.GetWeightsHeight();
         const auto x     = problem.GetWeightsWidth();
         const auto group = problem.GetGroupCount();
-        const auto is_stochastic =
-            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-            miopenF8RoundingModeStochastic;
-        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_out = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
 
-        TransposeSolutionDefault2Nhwc trans_input(
-            ctx,
-            problem.GetInDataType(),
-            n,
-            c,
-            hi,
-            wi,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
-                                                       problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_inp);
-        TransposeSolutionDefault2Nhwc trans_weight(
-            ctx,
-            problem.GetWeightsDataType(),
-            k,
-            c / group,
-            y,
-            x,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetWeightsDataType(),
-                problem.conv_problem
-                    .GetWeightsCastType()), // group * k_per_group as batch for weight
-            is_stochastic,
-            fp8_seed_wei);
-        TransposeSolutionNhwc2Default trans_output(ctx,
-                                                   problem.GetOutDataType(),
-                                                   n,
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
                                                    k,
-                                                   ho,
-                                                   wo,
-                                                   BT_FLAG_DEFAULT,
-                                                   is_stochastic,
-                                                   fp8_seed_out);
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
         {
             result.construction_params.push_back(trans_input.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", inp trans:" << trans_input.GetKernelName() << "["
-                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                           problem.conv_problem.GetInDataType(),
-                           problem.conv_problem.GetInCastType())
-                    << "]";
+                msg << ", inp trans:" << trans_input.GetKernelName();
         }
         if(!trans_weight.IsSkippable())
         {
             result.construction_params.push_back(trans_weight.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", wei trans:" << trans_weight.GetKernelName() << "["
-                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                           problem.conv_problem.GetWeightsDataType(),
-                           problem.conv_problem.GetWeightsCastType())
-                    << "]";
+                msg << ", wei trans:" << trans_weight.GetKernelName();
         }
         if(!trans_output.IsSkippable())
         {
             result.construction_params.push_back(trans_output.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
-                msg << ", out trans:" << trans_output.GetKernelName() << "[" << BT_FLAG_DEFAULT
-                    << "]";
+                msg << ", out trans:" << trans_output.GetKernelName();
         }
     }
 

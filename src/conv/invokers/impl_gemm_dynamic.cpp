@@ -7,33 +7,8 @@
 #include <miopen/util_sol.hpp>
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_DUMP_TRANS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_INP)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_WEI)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_OUT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_DUMP_TRANS)
-
 namespace miopen {
 namespace conv {
-
-template <typename T>
-void _dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
-{
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
-    else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
-}
 
 static inline uint32_t igemm_find_tile_size_with_upper_bound(
     uint32_t out_size, size_t upper_bound, uint32_t stride, uint32_t dilation, uint32_t filter)
@@ -590,50 +565,22 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     bool trans_weight_skippable = false;
     bool trans_output_skippable = false;
 
-    int trans_input_idx      = -1;
-    int trans_weight_idx     = -1;
-    int trans_output_idx     = -1;
-    const auto is_stochastic = problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-                               miopenF8RoundingModeStochastic;
-    const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-    const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-    const uint32_t fp8_seed_out = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+    int trans_input_idx  = -1;
+    int trans_weight_idx = -1;
+    int trans_output_idx = -1;
 
     constexpr size_t buf_alignment = 256;
 
     if(is_nchw)
     {
-        TransposeSolutionDefault2Nhwc trans_input(
-            ctx,
-            problem.in_data_type,
-            n,
-            c,
-            hi,
-            wi,
-            solver::GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetInDataType(), problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_inp);
-        TransposeSolutionDefault2Nhwc trans_weight(
-            ctx,
-            problem.weights_data_type,
-            k,
-            c / group,
-            y,
-            x,
-            solver::GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetWeightsDataType(),
-                problem.conv_problem.GetWeightsCastType()),
-            is_stochastic,
-            fp8_seed_wei); // group * k_per_group as batch for weight
-        TransposeSolutionNhwc2Default trans_output(
-            ctx, problem.out_data_type, n, k, ho, wo, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_out);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -729,41 +676,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                     handle.Run(kernels[kID_trans_start + trans_input_idx])(karg_input);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
-                    if(miopen::IsEnabled(
-                           MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                    {
-                        void* tmp_buf      = malloc(trans_input_size);
-                        void* tmp_buf_nchw = malloc(trans_input_size);
-                        hipMemcpy(tmp_buf,
-                                  const_cast<void*>(trans_input_buf.get()),
-                                  trans_input_size,
-                                  hipMemcpyDeviceToHost);
-                        for(int i_n = 0; i_n < n; i_n++)
-                        {
-                            for(int i_c = 0; i_c < c; i_c++)
-                            {
-                                for(int i_hi = 0; i_hi < hi; i_hi++)
-                                {
-                                    for(int i_wi = 0; i_wi < wi; i_wi++)
-                                    {
-                                        size_t nchw_idx =
-                                            i_n * c * hi * wi + i_c * hi * wi + i_hi * wi + i_wi;
-                                        size_t nhwc_idx =
-                                            i_n * hi * wi * c + i_hi * wi * c + i_wi * c + i_c;
-                                        reinterpret_cast<half_float::half*>(
-                                            tmp_buf_nchw)[nchw_idx] =
-                                            reinterpret_cast<half_float::half*>(tmp_buf)[nhwc_idx];
-                                    }
-                                }
-                            }
-                        }
-                        _dumpBufferToFile<half_float::half>(
-                            "dump_trans_in.bin",
-                            reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                            trans_input_size / sizeof(half_float::half));
-                        free(tmp_buf);
-                        free(tmp_buf_nchw);
-                    }
                 }
                 if(!trans_weight_skippable)
                 {
@@ -773,41 +685,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                     handle.Run(kernels[kID_trans_start + trans_weight_idx])(karg_weight);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
-                    if(miopen::IsEnabled(
-                           MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                    {
-                        void* tmp_buf      = malloc(trans_weight_size);
-                        void* tmp_buf_nchw = malloc(trans_weight_size);
-                        hipMemcpy(tmp_buf,
-                                  const_cast<void*>(trans_weight_buf.get()),
-                                  trans_weight_size,
-                                  hipMemcpyDeviceToHost);
-                        for(int i_k = 0; i_k < k; i_k++)
-                        {
-                            for(int i_c = 0; i_c < c; i_c++)
-                            {
-                                for(int i_y = 0; i_y < y; i_y++)
-                                {
-                                    for(int i_x = 0; i_x < x; i_x++)
-                                    {
-                                        size_t nchw_idx =
-                                            i_k * c * y * x + i_c * y * x + i_y * x + i_x;
-                                        size_t nhwc_idx =
-                                            i_k * y * x * c + i_y * x * c + i_x * c + i_c;
-                                        reinterpret_cast<half_float::half*>(
-                                            tmp_buf_nchw)[nchw_idx] =
-                                            reinterpret_cast<half_float::half*>(tmp_buf)[nhwc_idx];
-                                    }
-                                }
-                            }
-                        }
-                        _dumpBufferToFile<half_float::half>(
-                            "dump_trans_wei.bin",
-                            reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                            trans_weight_size / sizeof(half_float::half));
-                        free(tmp_buf);
-                        free(tmp_buf_nchw);
-                    }
                 }
             }
 
@@ -1007,50 +884,22 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     bool trans_weight_skippable = false;
     bool trans_output_skippable = false;
 
-    int trans_input_idx      = -1;
-    int trans_weight_idx     = -1;
-    int trans_output_idx     = -1;
-    const auto is_stochastic = problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-                               miopenF8RoundingModeStochastic;
-    const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-    const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-    const uint32_t fp8_seed_out = static_cast<uint32_t>(
-        miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                      problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
+    int trans_input_idx  = -1;
+    int trans_weight_idx = -1;
+    int trans_output_idx = -1;
 
     constexpr size_t buf_alignment = 256;
 
     if(is_nchw)
     {
-        TransposeSolutionNhwc2Default trans_input(
-            ctx, problem.out_data_type, n, c, hi, wi, BT_FLAG_DEFAULT, is_stochastic, fp8_seed_inp);
-        TransposeSolutionDefault2Nhwc trans_weight(
-            ctx,
-            problem.weights_data_type,
-            k,
-            c / group,
-            y,
-            x,
-            solver::GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetWeightsDataType(),
-                problem.conv_problem.GetWeightsCastType()),
-            is_stochastic,
-            fp8_seed_wei); // group * k_per_group as batch for weight
-        TransposeSolutionDefault2Nhwc trans_output(
-            ctx,
-            problem.in_data_type,
-            n,
-            k,
-            ho,
-            wo,
-            solver::GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                problem.conv_problem.GetInDataType(), problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_out);
+        TransposeSolutionNhwc2Default trans_input(ctx, problem.GetOutDataType(), n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, problem.GetInDataType(), n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -1146,41 +995,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                     handle.Run(kernels[kID_trans_start + trans_output_idx])(karg_output);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
-                    if(miopen::IsEnabled(
-                           MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                    {
-                        void* tmp_buf      = malloc(trans_output_size);
-                        void* tmp_buf_nchw = malloc(trans_output_size);
-                        hipMemcpy(tmp_buf,
-                                  const_cast<void*>(trans_output_buf.get()),
-                                  trans_output_size,
-                                  hipMemcpyDeviceToHost);
-                        for(int i_n = 0; i_n < n; i_n++)
-                        {
-                            for(int i_k = 0; i_k < k; i_k++)
-                            {
-                                for(int i_ho = 0; i_ho < ho; i_ho++)
-                                {
-                                    for(int i_wo = 0; i_wo < wo; i_wo++)
-                                    {
-                                        size_t nchw_idx =
-                                            i_n * k * ho * wo + i_k * ho * wo + i_ho * wo + i_wo;
-                                        size_t nhwc_idx =
-                                            i_n * ho * wo * k + i_ho * wo * k + i_wo * k + i_k;
-                                        reinterpret_cast<half_float::half*>(
-                                            tmp_buf_nchw)[nchw_idx] =
-                                            reinterpret_cast<half_float::half*>(tmp_buf)[nhwc_idx];
-                                    }
-                                }
-                            }
-                        }
-                        _dumpBufferToFile<half_float::half>(
-                            "dump_trans_out.bin",
-                            reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                            trans_output_size / sizeof(half_float::half));
-                        free(tmp_buf);
-                        free(tmp_buf_nchw);
-                    }
                 }
                 if(!trans_weight_skippable)
                 {
@@ -1190,41 +1004,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                     handle.Run(kernels[kID_trans_start + trans_weight_idx])(karg_weight);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
-                    if(miopen::IsEnabled(
-                           MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                    {
-                        void* tmp_buf      = malloc(trans_weight_size);
-                        void* tmp_buf_nchw = malloc(trans_weight_size);
-                        hipMemcpy(tmp_buf,
-                                  const_cast<void*>(trans_weight_buf.get()),
-                                  trans_weight_size,
-                                  hipMemcpyDeviceToHost);
-                        for(int i_k = 0; i_k < k; i_k++)
-                        {
-                            for(int i_c = 0; i_c < c; i_c++)
-                            {
-                                for(int i_y = 0; i_y < y; i_y++)
-                                {
-                                    for(int i_x = 0; i_x < x; i_x++)
-                                    {
-                                        size_t nchw_idx =
-                                            i_k * c * y * x + i_c * y * x + i_y * x + i_x;
-                                        size_t nhwc_idx =
-                                            i_k * y * x * c + i_y * x * c + i_x * c + i_c;
-                                        reinterpret_cast<half_float::half*>(
-                                            tmp_buf_nchw)[nchw_idx] =
-                                            reinterpret_cast<half_float::half*>(tmp_buf)[nhwc_idx];
-                                    }
-                                }
-                            }
-                        }
-                        _dumpBufferToFile<half_float::half>(
-                            "dump_trans_wei.bin",
-                            reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                            trans_weight_size / sizeof(half_float::half));
-                        free(tmp_buf);
-                        free(tmp_buf_nchw);
-                    }
                 }
             }
 

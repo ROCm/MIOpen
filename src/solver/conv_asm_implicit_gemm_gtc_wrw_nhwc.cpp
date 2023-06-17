@@ -37,10 +37,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_INP)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_WEI)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_OUT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_DUMP_TRANS)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
 
@@ -833,7 +829,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") &&
+       (!StartsWith(device_name, "gfx94")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -845,20 +842,11 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() &&
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;
 
     if(!ctx.rmv.IsV3())
-        return false;
-
-    if(problem.IsTensorsCasted() &&
-       !(problem.IsLayoutDefault() &&
-         (*problem.conv_problem.GetInCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetInCastType() == miopenBFloat8 ||
-          *problem.conv_problem.GetWeightsCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetWeightsCastType() == miopenBFloat8 ||
-          *problem.conv_problem.GetOutCastType() == miopenFloat8 ||
-          *problem.conv_problem.GetOutCastType() == miopenBFloat8)))
         return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -952,50 +940,14 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     size_t workspace_size = 0;
     if(is_nchw)
     {
-        const auto is_stochastic =
-            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-            miopenF8RoundingModeStochastic;
-        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_out = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        TransposeSolutionDefault2Nhwc trans_input(
-            ctx,
-            problem.GetOutDataType(),
-            n,
-            c,
-            hi,
-            wi,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetOutDataType(),
-                                                       problem.conv_problem.GetOutCastType()),
-            is_stochastic,
-            fp8_seed_inp);
-        TransposeSolutionNhwc2Default trans_weight(
-            ctx,
-            problem.GetWeightsDataType(),
-            k,
-            c / group,
-            y,
-            x,
-            BT_FLAG_DEFAULT, // group * k_per_group as batch for weight
-            is_stochastic,
-            fp8_seed_wei);
-        TransposeSolutionDefault2Nhwc trans_output(
-            ctx,
-            problem.GetInDataType(),
-            n,
-            k,
-            ho,
-            wo,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
-                                                       problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_out);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetOutDataType(), n, c, hi, wi);
+        TransposeSolutionNhwc2Default trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, problem.GetInDataType(), n, k, ho, wo);
         if(!trans_input.IsSkippable())
             size_trans_input = trans_input.GetOutputTensorSize();
         if(!trans_weight.IsSkippable())
@@ -1015,22 +967,6 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     workspace_size = wt.GetSize();
 
     return workspace_size;
-}
-
-template <typename T>
-void _dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
-{
-    std::ofstream outFile(fileName, std::ios::binary);
-    if(outFile)
-    {
-        outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
-        outFile.close();
-        printf("Wrote output to file %s\n", fileName);
-    }
-    else
-    {
-        printf("Could not open file %s for writing\n", fileName);
-    }
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
@@ -1108,13 +1044,34 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     result.construction_params.push_back(kernel); // Intentionally without options.
     std::ostringstream options;                   // Common options for both kernels.
+    std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
+    if(ctx.GetStream().GetDeviceName() == "gfx940")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
+    }
+    else if(ctx.GetStream().GetDeviceName() == "gfx941")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
+    }
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 0);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+    }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
-    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
@@ -1152,50 +1109,14 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     if(is_nchw)
     {
-        const auto is_stochastic =
-            problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
-            miopenF8RoundingModeStochastic;
-        const uint32_t fp8_seed_inp = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_INP{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_wei = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_WEI{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        const uint32_t fp8_seed_out = static_cast<uint32_t>(
-            miopen::Value(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_SR_SEED_OUT{},
-                          problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed()));
-        TransposeSolutionDefault2Nhwc trans_input(
-            ctx,
-            problem.GetOutDataType(),
-            n,
-            c,
-            hi,
-            wi,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetOutDataType(),
-                                                       problem.conv_problem.GetOutCastType()),
-            is_stochastic,
-            fp8_seed_inp);
-        TransposeSolutionNhwc2Default trans_weight(
-            ctx,
-            problem.GetWeightsDataType(),
-            k,
-            c / group,
-            y,
-            x,
-            BT_FLAG_DEFAULT, // group * k_per_group as batch for weight
-            is_stochastic,
-            fp8_seed_wei);
-        TransposeSolutionDefault2Nhwc trans_output(
-            ctx,
-            problem.GetInDataType(),
-            n,
-            k,
-            ho,
-            wo,
-            GetImplGemmDynamicNHWCBatchedTransposeFlag(problem.conv_problem.GetInDataType(),
-                                                       problem.conv_problem.GetInCastType()),
-            is_stochastic,
-            fp8_seed_out);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetOutDataType(), n, c, hi, wi);
+        TransposeSolutionNhwc2Default trans_weight(ctx,
+                                                   problem.GetWeightsDataType(),
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, problem.GetInDataType(), n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -1206,39 +1127,21 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             result.construction_params.push_back(trans_input.GetKernelInfo());
             opArgsTrans.emplace_back(trans_input.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
-            {
-                msg << ", inp trans:" << trans_input.GetKernelName() << "["
-                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                           problem.conv_problem.GetOutDataType(),
-                           problem.conv_problem.GetOutCastType())
-                    << "]";
-                msg << "<" << trans_input.fp8_rounding_seed << "> ";
-            }
+                msg << ", inp trans:" << trans_input.GetKernelName();
         }
         if(!trans_weight_skippable)
         {
             result.construction_params.push_back(trans_weight.GetKernelInfo());
             opArgsTrans.emplace_back(trans_weight.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
-            {
-                msg << ", wei trans:" << trans_weight.GetKernelName() << "[" << BT_FLAG_DEFAULT
-                    << "]";
-                msg << "<" << trans_weight.fp8_rounding_seed << "> ";
-            }
+                msg << ", wei trans:" << trans_weight.GetKernelName();
         }
         if(!trans_output_skippable)
         {
             result.construction_params.push_back(trans_output.GetKernelInfo());
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
-            {
-                msg << ", out trans:" << trans_output.GetKernelName() << "["
-                    << GetImplGemmDynamicNHWCBatchedTransposeFlag(
-                           problem.conv_problem.GetInDataType(),
-                           problem.conv_problem.GetInCastType())
-                    << "]";
-                msg << "<" << trans_output.fp8_rounding_seed << "> ";
-            }
+                msg << ", out trans:" << trans_output.GetKernelName();
         }
 
         trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
@@ -1323,42 +1226,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                         handle.Run(kernels[kID_trans_start + trans_input_idx])(karg_input);
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
-                        if(miopen::IsEnabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                        {
-                            void* tmp_buf      = malloc(trans_input_size);
-                            void* tmp_buf_nchw = malloc(trans_input_size);
-                            hipMemcpy(tmp_buf,
-                                      const_cast<void*>(trans_input_buf.get()),
-                                      trans_input_size,
-                                      hipMemcpyDeviceToHost);
-                            for(int i_n = 0; i_n < n; i_n++)
-                            {
-                                for(int i_c = 0; i_c < c; i_c++)
-                                {
-                                    for(int i_hi = 0; i_hi < hi; i_hi++)
-                                    {
-                                        for(int i_wi = 0; i_wi < wi; i_wi++)
-                                        {
-                                            size_t nchw_idx = i_n * c * hi * wi + i_c * hi * wi +
-                                                              i_hi * wi + i_wi;
-                                            size_t nhwc_idx =
-                                                i_n * hi * wi * c + i_hi * wi * c + i_wi * c + i_c;
-                                            reinterpret_cast<half_float::half*>(
-                                                tmp_buf_nchw)[nchw_idx] =
-                                                reinterpret_cast<half_float::half*>(
-                                                    tmp_buf)[nhwc_idx];
-                                        }
-                                    }
-                                }
-                            }
-                            _dumpBufferToFile<half_float::half>(
-                                "dump_trans_in.bin",
-                                reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                                trans_input_size / sizeof(half_float::half));
-                            free(tmp_buf);
-                            free(tmp_buf_nchw);
-                        }
                     }
                     if(!trans_output_skippable)
                     {
@@ -1368,42 +1235,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                         handle.Run(kernels[kID_trans_start + trans_output_idx])(karg_output);
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
-                        if(miopen::IsEnabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                        {
-                            void* tmp_buf      = malloc(trans_output_size);
-                            void* tmp_buf_nchw = malloc(trans_output_size);
-                            hipMemcpy(tmp_buf,
-                                      const_cast<void*>(trans_output_buf.get()),
-                                      trans_output_size,
-                                      hipMemcpyDeviceToHost);
-                            for(int i_n = 0; i_n < n; i_n++)
-                            {
-                                for(int i_k = 0; i_k < k; i_k++)
-                                {
-                                    for(int i_ho = 0; i_ho < ho; i_ho++)
-                                    {
-                                        for(int i_wo = 0; i_wo < wo; i_wo++)
-                                        {
-                                            size_t nchw_idx = i_n * k * ho * wo + i_k * ho * wo +
-                                                              i_ho * wo + i_wo;
-                                            size_t nhwc_idx =
-                                                i_n * ho * wo * k + i_ho * wo * k + i_wo * k + i_k;
-                                            reinterpret_cast<half_float::half*>(
-                                                tmp_buf_nchw)[nchw_idx] =
-                                                reinterpret_cast<half_float::half*>(
-                                                    tmp_buf)[nhwc_idx];
-                                        }
-                                    }
-                                }
-                            }
-                            _dumpBufferToFile<half_float::half>(
-                                "dump_trans_out.bin",
-                                reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                                trans_output_size / sizeof(half_float::half));
-                            free(tmp_buf);
-                            free(tmp_buf_nchw);
-                        }
                     }
                 }
 
@@ -1506,42 +1337,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                         handle.Run(kernels[kID_trans_start + trans_input_idx])(karg_input);
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
-                        if(miopen::IsEnabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                        {
-                            void* tmp_buf      = malloc(trans_input_size);
-                            void* tmp_buf_nchw = malloc(trans_input_size);
-                            hipMemcpy(tmp_buf,
-                                      const_cast<void*>(trans_input_buf.get()),
-                                      trans_input_size,
-                                      hipMemcpyDeviceToHost);
-                            for(int i_n = 0; i_n < n; i_n++)
-                            {
-                                for(int i_c = 0; i_c < c; i_c++)
-                                {
-                                    for(int i_hi = 0; i_hi < hi; i_hi++)
-                                    {
-                                        for(int i_wi = 0; i_wi < wi; i_wi++)
-                                        {
-                                            size_t nchw_idx = i_n * c * hi * wi + i_c * hi * wi +
-                                                              i_hi * wi + i_wi;
-                                            size_t nhwc_idx =
-                                                i_n * hi * wi * c + i_hi * wi * c + i_wi * c + i_c;
-                                            reinterpret_cast<half_float::half*>(
-                                                tmp_buf_nchw)[nchw_idx] =
-                                                reinterpret_cast<half_float::half*>(
-                                                    tmp_buf)[nhwc_idx];
-                                        }
-                                    }
-                                }
-                            }
-                            _dumpBufferToFile<half_float::half>(
-                                "dump_trans_in.bin",
-                                reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                                trans_input_size / sizeof(half_float::half));
-                            free(tmp_buf);
-                            free(tmp_buf_nchw);
-                        }
                     }
                     if(!trans_output_skippable)
                     {
@@ -1552,42 +1347,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                         handle.Run(kernels[kID_trans_start + trans_output_idx])(karg_output);
                         if(handle.IsProfilingEnabled())
                             elapsed += handle.GetKernelTime();
-                        if(miopen::IsEnabled(
-                               MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC_DUMP_TRANS{}))
-                        {
-                            void* tmp_buf      = malloc(trans_output_size);
-                            void* tmp_buf_nchw = malloc(trans_output_size);
-                            hipMemcpy(tmp_buf,
-                                      const_cast<void*>(trans_output_buf.get()),
-                                      trans_output_size,
-                                      hipMemcpyDeviceToHost);
-                            for(int i_n = 0; i_n < n; i_n++)
-                            {
-                                for(int i_k = 0; i_k < k; i_k++)
-                                {
-                                    for(int i_ho = 0; i_ho < ho; i_ho++)
-                                    {
-                                        for(int i_wo = 0; i_wo < wo; i_wo++)
-                                        {
-                                            size_t nchw_idx = i_n * k * ho * wo + i_k * ho * wo +
-                                                              i_ho * wo + i_wo;
-                                            size_t nhwc_idx =
-                                                i_n * ho * wo * k + i_ho * wo * k + i_wo * k + i_k;
-                                            reinterpret_cast<half_float::half*>(
-                                                tmp_buf_nchw)[nchw_idx] =
-                                                reinterpret_cast<half_float::half*>(
-                                                    tmp_buf)[nhwc_idx];
-                                        }
-                                    }
-                                }
-                            }
-                            _dumpBufferToFile<half_float::half>(
-                                "dump_trans_out.bin",
-                                reinterpret_cast<half_float::half*>(tmp_buf_nchw),
-                                trans_output_size / sizeof(half_float::half));
-                            free(tmp_buf);
-                            free(tmp_buf_nchw);
-                        }
                     }
                 }
 

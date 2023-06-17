@@ -27,8 +27,7 @@
 #define CK_ASM_IMPLICITGEMM_HPP_
 
 #include <miopen/config.h>
-#include <miopen/conv/context.hpp>
-#include <miopen/util_sol.hpp>
+
 #include <string>
 #include <cmath>
 #include <ostream>
@@ -302,30 +301,6 @@ inline static bool NextLinear(int& v)
     }
     ++v;
     return false;
-}
-
-static inline uint32_t
-GetImplGemmDynamicNHWCBatchedTransposeFlag(miopenDataType_t data_type,
-                                           const std::optional<miopenDataType_t>& cast_type)
-{
-    if(cast_type)
-    {
-        if(data_type == miopenHalf)
-        {
-            if(*cast_type == miopenFloat8)
-                return BT_FLAG_CVT_FP16_FP8_FP16;
-            if(*cast_type == miopenBFloat8)
-                return BT_FLAG_CVT_FP16_BF8_FP16;
-        }
-        else if(data_type == miopenBFloat16)
-        {
-            if(*cast_type == miopenFloat8)
-                return BT_FLAG_CVT_BF16_FP8_BF16;
-            if(*cast_type == miopenBFloat8)
-                return BT_FLAG_CVT_BF16_BF8_BF16;
-        }
-    }
-    return BT_FLAG_DEFAULT;
 }
 
 } // namespace solver

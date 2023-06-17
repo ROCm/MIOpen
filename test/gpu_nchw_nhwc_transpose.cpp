@@ -32,104 +32,14 @@
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/invoke_params.hpp>
-#include <miopen/env.hpp>
 #include <boost/optional.hpp>
-#include <random>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <tuple> // std::ignore
 #include "test.hpp"
-
-#include "half.hpp"
-#include <miopen/bfloat16.hpp>
-using hip_bfloat16 = bfloat16;
-using half_float::half;
-#include <miopen/hip_float8.h>
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
-
 #include "driver.hpp"
 #include "random.hpp"
-
-template <typename IntType>
-uint32_t psudo_rng(const IntType& x, const uint32_t& idx, const uint32_t& seed)
-{
-    // https://github.com/ROCmSoftwarePlatform/tensorflow-upstream/blob/fp8_quant/tensorflow/stream_executor/rocm/rocm_helpers.cu.cc#L39
-    uint32_t drop_bits = uint32_t(x) & 0xFFFFu;
-    if(sizeof(IntType) == 4)
-        drop_bits ^= x >> 16;
-    drop_bits = ((drop_bits & 31) << 11) | (drop_bits >> 5);
-    drop_bits *= 0x7000149;
-    uint32_t rng = (drop_bits ^ 0x13371337 ^ (idx * 229791) ^ seed);
-    return rng;
-}
-
-template <typename T>
-void cvt_pixel_with_flag(T& /*src*/,
-                         const uint32_t& /*flag*/,
-                         const uint32_t& /*stoch*/,
-                         const uint32_t& /*idx*/,
-                         const uint32_t& /*seed*/)
-{
-}
-
-template <>
-void cvt_pixel_with_flag<uint16_t>(ushort& src,
-                                   const uint32_t& flag,
-                                   const uint32_t& stoch,
-                                   const uint32_t& idx,
-                                   const uint32_t& seed)
-{
-    if(flag == BT_FLAG_CVT_FP16_FP8_FP16)
-    {
-        half src_fp = *reinterpret_cast<half*>(&src);
-        float8 cvt_fp;
-        if(stoch)
-        {
-            cvt_fp = float8(
-                src_fp, miopen_f8::hip_f8_rounding_mode::stochastic, psudo_rng(src, idx, seed));
-        }
-        else
-        {
-            cvt_fp = float8(src_fp);
-        }
-        half dst_fp = static_cast<half>(cvt_fp);
-        src         = *reinterpret_cast<uint16_t*>(&dst_fp);
-    }
-    else if(flag == BT_FLAG_CVT_FP16_BF8_FP16)
-    {
-        half src_fp = *reinterpret_cast<half*>(&src);
-        bfloat8 cvt_fp;
-        if(stoch)
-        {
-            cvt_fp = bfloat8(
-                src_fp, miopen_f8::hip_f8_rounding_mode::stochastic, psudo_rng(src, idx, seed));
-        }
-        else
-        {
-            cvt_fp = bfloat8(src_fp);
-        }
-        half dst_fp = static_cast<half>(cvt_fp);
-        src         = *reinterpret_cast<uint16_t*>(&dst_fp);
-    }
-    /*
-        else if(flag == BT_FLAG_CVT_BF16_FP8_BF16)
-        {
-            bfloat16 src_fp = *reinterpret_cast<bfloat16*>(&src);
-            float8 cvt_fp   = static_cast<float8>(src_fp);
-            bfloat16 dst_fp = static_cast<bfloat16>(cvt_fp);
-            src             = *reinterpret_cast<uint16_t*>(&dst_fp);
-        }
-        else if(flag == BT_FLAG_CVT_BF16_BF8_BF16)
-        {
-            bfloat16 src_fp = *reinterpret_cast<bfloat16*>(&src);
-            bfloat8 cvt_fp  = static_cast<bfloat8>(src_fp);
-            bfloat16 dst_fp = static_cast<bfloat16>(cvt_fp);
-            src             = *reinterpret_cast<uint16_t*>(&dst_fp);
-        }
-    */
-}
 
 template <>
 struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
@@ -142,15 +52,7 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 };
 
 template <typename T>
-void cpu_nchw2nhwc(T* dst,
-                   T* src,
-                   uint64_t N,
-                   uint64_t C,
-                   uint64_t H,
-                   uint64_t W,
-                   uint32_t flag,
-                   uint32_t stoch,
-                   uint32_t seed)
+void cpu_nchw2nhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
 {
     for(uint64_t i_n = 0; i_n < N; i_n++)
     {
@@ -162,9 +64,7 @@ void cpu_nchw2nhwc(T* dst,
                 {
                     uint64_t idx_nhwc = i_n * H * W * C + i_h * W * C + i_w * C + i_c;
                     uint64_t idx_nchw = i_n * C * H * W + i_c * H * W + i_h * W + i_w;
-                    T v               = src[idx_nchw];
-                    cvt_pixel_with_flag(v, flag, stoch, static_cast<uint32_t>(idx_nhwc), seed);
-                    dst[idx_nhwc] = v;
+                    dst[idx_nhwc]     = src[idx_nchw];
                 }
             }
         }
@@ -172,15 +72,7 @@ void cpu_nchw2nhwc(T* dst,
 }
 
 template <typename T>
-void cpu_nhwc2nchw(T* dst,
-                   T* src,
-                   uint64_t N,
-                   uint64_t C,
-                   uint64_t H,
-                   uint64_t W,
-                   uint32_t flag,
-                   uint32_t stoch,
-                   uint32_t seed)
+void cpu_nhwc2nchw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
 {
     for(uint64_t i_n = 0; i_n < N; i_n++)
     {
@@ -192,9 +84,7 @@ void cpu_nhwc2nchw(T* dst,
                 {
                     uint64_t idx_nhwc = i_n * H * W * C + i_h * W * C + i_w * C + i_c;
                     uint64_t idx_nchw = i_n * C * H * W + i_c * H * W + i_h * W + i_w;
-                    T v               = src[idx_nhwc];
-                    cvt_pixel_with_flag(v, flag, stoch, static_cast<uint32_t>(idx_nchw), seed);
-                    dst[idx_nchw] = v;
+                    dst[idx_nchw]     = src[idx_nhwc];
                 }
             }
         }
@@ -209,34 +99,18 @@ struct cpu_transpose
 template <typename T>
 struct cpu_transpose<T, miopen::TransposeSolutionDefault2Nhwc>
 {
-    static void run(T* dst,
-                    T* src,
-                    uint64_t N,
-                    uint64_t C,
-                    uint64_t H,
-                    uint64_t W,
-                    uint32_t flag,
-                    uint32_t stoch,
-                    uint32_t seed)
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
     {
-        cpu_nchw2nhwc<T>(dst, src, N, C, H, W, flag, stoch, seed);
+        cpu_nchw2nhwc<T>(dst, src, N, C, H, W);
     }
 };
 
 template <typename T>
 struct cpu_transpose<T, miopen::TransposeSolutionNhwc2Default>
 {
-    static void run(T* dst,
-                    T* src,
-                    uint64_t N,
-                    uint64_t C,
-                    uint64_t H,
-                    uint64_t W,
-                    uint32_t flag,
-                    uint32_t stoch,
-                    uint32_t seed)
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
     {
-        cpu_nhwc2nchw<T>(dst, src, N, C, H, W, flag, stoch, seed);
+        cpu_nhwc2nchw<T>(dst, src, N, C, H, W);
     }
 };
 
@@ -318,22 +192,11 @@ static int gen_rand_integer()
 }
 
 template <typename T>
-void rand_tensor(tensor<T>& t, int max, int min)
+void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
     for(int i = 0; i < t.data.size(); i++)
         t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
-}
-
-template <>
-void rand_tensor<uint16_t>(tensor<uint16_t>& t, int max, int min)
-{
-    // use half to random.
-    for(int i = 0; i < t.data.size(); i++)
-    {
-        half v = static_cast<half>(gen_rand_integer() % (max - min) + min);
-        t[i]   = *reinterpret_cast<uint16_t*>(&v);
-    }
 }
 
 template <typename T>
@@ -419,16 +282,10 @@ struct transpose_invoke_param : public miopen::InvokeParams
 {
     ConstData_t src = nullptr;
     Data_t dst      = nullptr;
-    uint32_t stoch  = 0;
-    uint32_t seed   = 0;
 
-    transpose_invoke_param(ConstData_t src_, Data_t dst_, uint32_t stoch_, uint32_t seed_)
-        : src(src_), dst(dst_), stoch(stoch_), seed(seed_)
-    {
-    }
-    transpose_invoke_param(
-        miopen::InvokeType type_, ConstData_t src_, Data_t dst_, uint32_t stoch_, uint32_t seed_)
-        : InvokeParams{type_}, src(src_), dst(dst_), stoch(stoch_), seed(seed_)
+    transpose_invoke_param(ConstData_t src_, Data_t dst_) : src(src_), dst(dst_) {}
+    transpose_invoke_param(miopen::InvokeType type_, ConstData_t src_, Data_t dst_)
+        : InvokeParams{type_}, src(src_), dst(dst_)
     {
     }
 
@@ -436,7 +293,7 @@ struct transpose_invoke_param : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
 };
 
-template <typename T, typename TRANSPOSE_SOL, uint32_t FLAG = 0, uint32_t STOCH = 0>
+template <typename T, typename TRANSPOSE_SOL>
 struct transpose_test : transpose_base
 {
     void run()
@@ -459,9 +316,7 @@ struct transpose_test : transpose_base
             tensor<T> t_src(tensor_len, tensor_strides);
             tensor<T> t_dst(tensor_len, tensor_strides);
             tensor<T> t_dst_gpu(tensor_len, tensor_strides);
-            unsigned long int rand_int_max = miopen::EnvvarValue("RAND_MAX", RAND_INTEGER_MAX);
-            unsigned long int rand_int_min = miopen::EnvvarValue("RAND_MIN", RAND_INTEGER_MIN);
-            rand_tensor(t_src, static_cast<int>(rand_int_max), static_cast<int>(rand_int_min));
+            rand_tensor_integer(t_src);
 #if MIOPEN_BACKEND_OPENCL
             cl_context cl_ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &cl_ctx, nullptr);
@@ -489,96 +344,75 @@ struct transpose_test : transpose_base
                        src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
                    hipSuccess);
 #endif
-            uint32_t seed = 0;
-            if(STOCH)
-            {
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFF);
-                seed = distribution(gen);
-            }
-            // run cpu
-            cpu_transpose<T, TRANSPOSE_SOL>::run(
-                t_dst.data.data(), t_src.data.data(), n, c, h, w, FLAG, STOCH, seed);
 
             const auto invoke_param = transpose_invoke_param{
-                DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev), STOCH, seed};
+                DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
             ctx.DetectRocm();
             // ctx.SetupFloats();
 
-            TRANSPOSE_SOL transpose_sol(
-                ctx, to_miopen_data_type<T>::get(), n, c, h, w, FLAG, STOCH, seed);
+            TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);
 
-            std::vector<miopen::BatchedTransposeParam> all_params =
-                transpose_sol.GetApplicableParams();
-            int cnt_param   = 0;
-            int total_param = all_params.size();
-            for(auto& param : all_params)
-            {
-                transpose_sol.kernel_param_heuristic = param;
-                std::vector<OpKernelArg> opArgs      = transpose_sol.GetKernelArg();
+            std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
 
-                boost::optional<miopen::InvokerFactory> invoker_factory(
-                    [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                        return [=](const miopen::Handle& handle,
-                                   const miopen::AnyInvokeParams& primitive_param) mutable {
-                            decltype(auto) invoke_params =
-                                primitive_param.CastTo<transpose_invoke_param>();
+            boost::optional<miopen::InvokerFactory> invoker_factory(
+                [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                    return [=](const miopen::Handle& handle,
+                               const miopen::AnyInvokeParams& primitive_param) mutable {
+                        decltype(auto) invoke_params =
+                            primitive_param.CastTo<transpose_invoke_param>();
 
-                            const auto k = handle.Run(kernels[0]);
+                        const auto k = handle.Run(kernels[0]);
 
-                            opArgs[0]  = OpKernelArg(invoke_params.dst);
-                            opArgs[1]  = OpKernelArg(invoke_params.src);
-                            opArgs[11] = OpKernelArg(invoke_params.stoch);
-                            opArgs[12] = OpKernelArg(invoke_params.seed);
+                        opArgs[0] = OpKernelArg(invoke_params.dst);
+                        opArgs[1] = OpKernelArg(invoke_params.src);
 
-                            k(opArgs);
-                        };
-                    });
+                        k(opArgs);
+                    };
+                });
 
-                std::vector<miopen::solver::KernelInfo> construction_params{
-                    transpose_sol.GetKernelInfo()};
+            std::vector<miopen::solver::KernelInfo> construction_params{
+                transpose_sol.GetKernelInfo()};
 
-                const auto invoker = miopen::deref(this->handle)
-                                         .PrepareInvoker(*invoker_factory, construction_params);
+            const auto invoker =
+                miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
 
-                // run gpu
-                invoker(miopen::deref(this->handle), invoke_param);
+            // run gpu
+            invoker(miopen::deref(this->handle), invoke_param);
+
+            // run cpu
+            cpu_transpose<T, TRANSPOSE_SOL>::run(t_dst.data.data(), t_src.data.data(), n, c, h, w);
 
 #if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             dst_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(T) * tensor_sz,
-                                             t_dst_gpu.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
+            status = clEnqueueReadBuffer(q,
+                                         dst_dev,
+                                         CL_TRUE,
+                                         0,
+                                         sizeof(T) * tensor_sz,
+                                         t_dst_gpu.data.data(),
+                                         0,
+                                         nullptr,
+                                         nullptr);
+            EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
-                EXPECT(hipMemcpy(t_dst_gpu.data.data(),
-                                 dst_dev,
-                                 sizeof(T) * tensor_sz,
-                                 hipMemcpyDeviceToHost) == hipSuccess);
+            EXPECT(hipMemcpy(t_dst_gpu.data.data(),
+                             dst_dev,
+                             sizeof(T) * tensor_sz,
+                             hipMemcpyDeviceToHost) == hipSuccess);
 #endif
 
-                // we expect excact match, since use integer
-                bool valid_result = verify_tensor(t_dst_gpu, t_dst);
+            // we expect excact match, since use integer
+            bool valid_result = verify_tensor(t_dst_gpu, t_dst);
 
-                std::cout << "[" << transpose_str<TRANSPOSE_SOL>::get() << ", b" << (sizeof(T) * 8)
-                          << " ] "
-                          << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w
-                          << ", flag:" << FLAG << ", stoch:" << STOCH << ", valid:" << valid_result
-                          << ", kernel:" << transpose_sol.GetKernelName() << " [" << cnt_param
-                          << "/" << total_param << "]" << std::endl;
+            std::cout << "[" << transpose_str<TRANSPOSE_SOL>::get() << ", b" << (sizeof(T) * 8)
+                      << " ] "
+                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w
+                      << ", valid:" << valid_result << std::endl;
 
-                EXPECT(valid_result == true);
-                cnt_param++;
-            }
+            EXPECT(valid_result == true);
+
 #if MIOPEN_BACKEND_OPENCL
             clReleaseMemObject(src_dev);
             clReleaseMemObject(dst_dev);
@@ -596,41 +430,9 @@ int main()
 {
     run_test<transpose_test<float, miopen::TransposeSolutionDefault2Nhwc>>();
     run_test<transpose_test<uint16_t, miopen::TransposeSolutionDefault2Nhwc>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionDefault2Nhwc,
-                            BT_FLAG_CVT_FP16_FP8_FP16,
-                            0>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionDefault2Nhwc,
-                            BT_FLAG_CVT_FP16_FP8_FP16,
-                            1>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionDefault2Nhwc,
-                            BT_FLAG_CVT_FP16_BF8_FP16,
-                            0>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionDefault2Nhwc,
-                            BT_FLAG_CVT_FP16_BF8_FP16,
-                            1>>();
     run_test<transpose_test<uint8_t, miopen::TransposeSolutionDefault2Nhwc>>();
 
     run_test<transpose_test<float, miopen::TransposeSolutionNhwc2Default>>();
     run_test<transpose_test<uint16_t, miopen::TransposeSolutionNhwc2Default>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionNhwc2Default,
-                            BT_FLAG_CVT_FP16_FP8_FP16,
-                            0>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionNhwc2Default,
-                            BT_FLAG_CVT_FP16_FP8_FP16,
-                            1>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionNhwc2Default,
-                            BT_FLAG_CVT_FP16_BF8_FP16,
-                            0>>();
-    run_test<transpose_test<uint16_t,
-                            miopen::TransposeSolutionNhwc2Default,
-                            BT_FLAG_CVT_FP16_BF8_FP16,
-                            1>>();
     run_test<transpose_test<uint8_t, miopen::TransposeSolutionNhwc2Default>>();
 }
