@@ -1,5 +1,34 @@
-#include <hip/hip_runtime.h>
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023  Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_bfloat16.h>
+#endif
+
 // Copied over from naive_conv.cpp
 #ifdef __HIPCC_RTC__
 #ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
@@ -57,9 +86,9 @@ struct CheckNumericsResult
 {
     Numerics n;
 
-    bool hasZero;
-    bool hasNan;
-    bool hasInf;
+    int hasZero;
+    int hasNan;
+    int hasInf;
 };
 
 __device__ void thread_redux(Numerics* stats, size_t wid)
@@ -73,43 +102,7 @@ __device__ void thread_redux(Numerics* stats, size_t wid)
         stats[lid].max = fmax(stats[lid].max, stats[lid + wid].max);
     }
 }
-#if 0
-__device__ void atomicMax(float* __restrict__ target, float val)
-{
-    float current, expected, next;
 
-    current = *target;
-    do
-    {
-        expected = current;
-        next = fmax(current, val);
-        if(next == current)
-            break;
-        const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
-        const auto i_next     = *(reinterpret_cast<unsigned int*>(&next));
-        auto i_current = atomicCAS(reinterpret_cast<unsigned int*>(target), i_expected, i_next);
-        current        = *(reinterpret_cast<float*>(&i_current));
-    } while(current != expected);
-}
-
-__device__ void atomicMin(float* __restrict__ target, float val)
-{
-    float current, expected, next;
-
-    current = *target;
-    do
-    {
-        expected = current;
-        next     = fmin(current, val);
-        if(next == current)
-            break;
-        const auto i_expected = *(reinterpret_cast<unsigned int*>(&expected));
-        const auto i_next     = *(reinterpret_cast<unsigned int*>(&next));
-        auto i_current = atomicCAS(reinterpret_cast<unsigned int*>(target), i_expected, i_next);
-        current        = *(reinterpret_cast<float*>(&i_current));
-    } while(current != expected);
-}
-#endif
 template <typename T, typename U>
 __device__ void
 check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool computeStats)
@@ -129,14 +122,14 @@ check_numerics(const T* C_d, size_t sz, CheckNumericsResult* abnormal, bool comp
         sum += static_cast<U>(val);
         const auto abs_val = fabs(static_cast<U>(val));
         absSum += abs_val;
-        minV = : min(minV, val);
+        minV = min(minV, val);
         maxV = max(maxV, val);
         if(abs_val <= static_cast<U>(0.0f))
-            abnormal->hasZero = true;
+            abnormal->hasZero = 1;
         if(isnan(static_cast<U>(val)))
-            abnormal->hasNan = true;
+            abnormal->hasNan = 1;
         if(isinf(static_cast<U>(val)))
-            abnormal->hasInf = true;
+            abnormal->hasInf = 1;
     }
     if(computeStats)
     {
@@ -173,7 +166,8 @@ extern "C" __global__ void check_numerics_fp16(const void* __restrict__ C_d,
                                                CheckNumericsResult* __restrict__ abnormal,
                                                bool computeStats)
 {
-    check_numerics<_Float16, float>(reinterpret_cast<const half*>(C_d), sz, abnormal, computeStats);
+    check_numerics<_Float16, float>(
+        reinterpret_cast<const _Float16*>(C_d), sz, abnormal, computeStats);
 }
 
 extern "C" __global__ void check_numerics_bf16(const void* __restrict__ C_d,
