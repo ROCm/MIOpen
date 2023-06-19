@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,40 @@
  *
  *******************************************************************************/
 #include "solver_fwd.hpp"
-
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
+struct ConvFwdFp8 : ConvFwdSolverTest<float8, float>
 {
 };
 
-TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
+struct ConvFwdFp8Naive : ConvFwdSolverTest<float8, float, true>
 {
-    miopen::solver::ConvAsm3x3U solv{};
-    SolverFwd<miopen::solver::ConvAsm3x3U>(solv);
-}
+};
 
+#if 0
+TEST_P(ConvFwdFp8, Gemm1x1x0x1)
+{
+    SolverFwd<miopen::solver::GemmFwd1x1_0_1>(input.desc,
+                                              in_dev.get(),
+                                              weights.desc,
+                                              wei_dev.get(),
+                                              output.desc,
+                                              out_dev.get(),
+                                              conv_desc,
+                                              conv_config,
+                                              test_skipped);
+}
+#endif
+TEST_P(ConvFwdFp8Naive, Fwd)
+{
+    miopen::solver::ConvDirectNaiveConvFwd solv{};
+    SolverFwd<miopen::solver::ConvDirectNaiveConvFwd>(solv);
+}
+// INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
+//                          ConvFwdGemmTestFp8,
+//                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+//                                           testing::ValuesIn(ConvTestConfigs())));
+// Since NaiveConv is verified against the CPU, we are conservative in the number and type
+// of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
+                         ConvFwdFp8Naive,
+                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs())));

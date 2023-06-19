@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "solver_fwd.hpp"
+#pragma once
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
-{
-};
+#include <gtest/gtest.h>
+#include "conv_common.hpp"
+#include "get_handle.hpp"
+#include "tensor_util.hpp"
+#include <miopen/conv/data_invoke_params.hpp>
 
-TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
+#include <miopen/type_name.hpp>
+#include <miopen/rank.hpp>
+
+template <typename Solver, typename Context, typename Problem>
+auto GetSolutionImpl(miopen::rank<1>, Solver s, const Context& ctx, const Problem& problem)
+    -> decltype(s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem)))
 {
-    miopen::solver::ConvAsm3x3U solv{};
-    SolverFwd<miopen::solver::ConvAsm3x3U>(solv);
+    return s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem));
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs())));
+template <typename Solver, typename Context, typename Problem>
+auto GetSolutionImpl(miopen::rank<0>, Solver s, const Context& ctx, const Problem& problem)
+    -> decltype(s.GetSolution(ctx, problem))
+{
+    return s.GetSolution(ctx, problem);
+}
+
+template <typename Solver, typename Context, typename Problem>
+miopen::solver::ConvSolution GetSolution(Solver s, const Context& ctx, const Problem& problem)
+{
+    auto solution = GetSolutionImpl(miopen::rank<1>{}, s, ctx, problem);
+    return solution;
+}

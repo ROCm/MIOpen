@@ -3515,6 +3515,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             else if(std::is_same<Tgpu, float16>::value)
                 tolerance *= 5;
         }
+        // bfloat8 has very poor accuracy in wrw direction
+        if(std::is_same<Tgpu, bfloat8>::value)
+            tolerance = tolerance * 2;
 
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
