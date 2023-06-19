@@ -313,7 +313,7 @@ def buildHipClangJob(Map conf=[:]){
                                 #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
                                 /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
                                 cat ./code_cov_miopen.report
-                                /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata-ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
+                                /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
 
                                 curl -Os https://uploader.codecov.io/latest/linux/codecov
                                 chmod +x codecov
@@ -570,94 +570,11 @@ pipeline {
                 }
             }
         }
-        stage("Static checks") {
-            when {
-                expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
-            }
-            parallel{
-                stage('Hip Tidy') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false)
-                    }
-                }
-                stage('Clang Format') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        execute_cmd = "find .. -iname \'*.h\' \
-                                -o -iname \'*.hpp\' \
-                                -o -iname \'*.cpp\' \
-                                -o -iname \'*.h.in\' \
-                                -o -iname \'*.hpp.in\' \
-                                -o -iname \'*.cpp.in\' \
-                                -o -iname \'*.cl\' \
-                                | grep -v -E '(build/)|(install/)|(fin/)' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
-                    }
-                }
-                stage('Tuna Fin Build Test') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
-                      build_cmd = "make -j\$(nproc) "
-                    }
-                    steps{
-                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, build_install: "true")
-                  }
-                }
-                stage('Perf DB Validity Test') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
-
-                    }
-                    steps{
-                        //temporarily disabled
-                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
-                        echo "skip perf db valid check"
-                    }
-                }
-                stage('HipNoGPU Debug Build Test') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NOGPU }
-                    }
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
-                        build_cmd = "make -j\$(nproc)"
-                    }
-                    steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false)
-                    }
-                }
-            }
-        }
         stage("Smoke Fp32") {
             when {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip Debug gfx90a + GCC CodeCov') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
-                    }
-                }
                 stage('Fp32 Hip Debug gfx90a + LLVM CodeCov') {
                     when {
                         beforeAgent true
