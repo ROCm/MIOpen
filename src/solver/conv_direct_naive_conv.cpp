@@ -180,12 +180,14 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
                                           const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name == "gfx906" || device_name == "gfx908")
-    {
-        if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
-           !problem.IsTensorsCasted() && !problem.IsBfp8())
-            return "naive_conv_gcn.s";
-    }
+    // The above function, ConvDirectNaiveConvKernelName is not in sync for the asm kernel,
+    // resulting in empty code objects. This happens for systems with COv3 as the default type.
+    // if(device_name == "gfx906" || device_name == "gfx908")
+    // {
+    //     if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
+    //        !problem.IsTensorsCasted() && !problem.IsBfp8())
+    //         return "naive_conv_gcn.s";
+    // }
     if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
         return "fp8_naive_conv.cpp";
     return "naive_conv.cpp";
