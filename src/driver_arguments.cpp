@@ -1,4 +1,30 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <miopen/driver_arguments.hpp>
+#include <miopen/fusion_plan.hpp>
 
 namespace miopen {
 namespace debug {
@@ -114,6 +140,117 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
         ss << " -S 0";
 
     return ss.str();
+}
+
+std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+                                     miopenBatchNormMode_t bn_mode,
+                                     const void* resultRunningMean,
+                                     const void* resultRunningVariance,
+                                     const void* resultSaveMean,
+                                     const void* resultSaveInvVariance,
+                                     const BatchNormDirection_t dir)
+{
+    int size = {0};
+    miopenGetTensorDescriptorSize(xDesc, &size);
+    std::stringstream ss;
+    if(miopen::deref(xDesc).GetType() == miopenHalf)
+    {
+        ss << "bnormfp16";
+    }
+    else
+    {
+        ss << "bnorm";
+    }
+    ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
+            << " -c " << miopen::deref(xDesc).GetLengths()[1];
+        if(size == 5)
+        {
+            ss << " -D " << miopen::deref(xDesc).GetLengths()[2]
+            << " -H " << miopen::deref(xDesc).GetLengths()[3]
+            << " -W " << miopen::deref(xDesc).GetLengths()[4];
+        }
+        else
+        {
+            ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
+            << " -W " << miopen::deref(xDesc).GetLengths()[3];
+        }
+            ss << " -m " << bn_mode; // clang-format on
+    if(dir != Backward)
+    {
+        ss << " --forw " << (dir == ForwardInference ? "2" : "1") << " -b 0";
+    }
+    else
+    {
+        ss << " --forw 0 -b 1";
+    }
+    if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
+    {
+        ss << " -s 1";
+    }
+    if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
+    {
+        ss << " -r 1";
+    }
+    return ss.str();
+}
+
+int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
+{
+    int fusion_mode = -1;
+
+    if(deref(fusePlanDesc).op_map.size() == 4 &&
+       (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpBatchNormInference) &&
+       (deref(fusePlanDesc).op_map[3]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 0;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 3 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference) &&
+            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 1;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpBatchNormInference) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 2;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference))
+    {
+        fusion_mode = 3;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 3 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 4;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    {
+        fusion_mode = 5;
+    }
+    else if(deref(fusePlanDesc).op_map.size() == 2 &&
+            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward))
+    {
+        fusion_mode = 6;
+    }
+
+    if(fusion_mode < 0)
+    {
+        MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
+    }
+
+    return fusion_mode;
 }
 
 } // namespace debug

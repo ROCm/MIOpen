@@ -38,8 +38,13 @@ TEST(LOG_TEST, AssertLogFindCmdOutput_Neg)
     TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, false);
 }
 
-TEST(LOG_TEST, AssertTestLogCmdFusionOutput_Neg)
+TEST(LOG_TEST, AssertTestLogCmdCBAFusionOutput_Neg)
 {
-    TestLogCmdFusion(miopen::debug::LogCmdFusion, envConv, logFusionConvBiasActiv, false);
+    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, envConv, logFusionConvBiasActiv, true);
+}
+
+TEST(LOG_TEST, AssertTestLogCmdBNormFusionOutput_Neg)
+{
+    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, envConv, logBnormActiv, true);
 }
 #endif

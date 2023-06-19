@@ -33,9 +33,11 @@
 extern std::string const logConv;
 extern std::string const logFindConv;
 extern std::string const logFusionConvBiasActiv;
+extern std::string const logBnormActiv;
 extern std::string const envConv;
 
 namespace miopen {
+struct OperatorArgs;
 namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
@@ -53,10 +55,9 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& yDesc,
                            const ConvDirection& conv_dir,
                            bool is_immediate);
-
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-void LogCmdFusion(const miopenFusionPlanDescriptor_t);
+void LogCmdFusion(const miopenFusionPlanDescriptor_t, const OperatorArgs& op_args);
 
 } // namespace debug
 } // namespace miopen
@@ -72,7 +73,14 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                 bool set_env);
 
 // Function that is used in multiple test cases.
-void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
-                      std::string env_var,
-                      std::string sub_str,
-                      bool set_env);
+void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
+                                            const miopen::OperatorArgs&)> const& func,
+                         std::string env_var,
+                         std::string sub_str,
+                         bool set_env);
+
+void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t,
+                                              const miopen::OperatorArgs&)> const& func,
+                           std::string env_var,
+                           std::string sub_str,
+                           bool set_env);

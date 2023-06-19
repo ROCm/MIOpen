@@ -160,93 +160,120 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
                                               gfx90aaltimpl);
 }
 
-namespace {
-
-int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
-{
-    int fusion_mode = -1;
-
-    if(deref(fusePlanDesc).op_map.size() == 4 &&
-       (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-       (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
-       (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpBatchNormInference) &&
-       (deref(fusePlanDesc).op_map[3]->kind() == miopenFusionOpActivForward))
-    {
-        fusion_mode = 0;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 3 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference) &&
-            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
-    {
-        fusion_mode = 1;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpBatchNormInference) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
-    {
-        fusion_mode = 2;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference))
-    {
-        fusion_mode = 3;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 3 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
-            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
-    {
-        fusion_mode = 4;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
-    {
-        fusion_mode = 5;
-    }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward))
-    {
-        fusion_mode = 6;
-    }
-
-    if(fusion_mode < 0)
-    {
-        MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
-    }
-
-    return fusion_mode;
-}
-} // namespace
-
 namespace debug {
 
-void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
+std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                    int fusion_mode)
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
+
+    const miopenTensorDescriptor_t& xDesc         = &deref(fusePlanDesc).input_desc;
+    const miopenTensorDescriptor_t& wDesc         = &conv_op->filter_desc;
+    const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
+    const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
+    std::string str;
+
+    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    {
+        str = "CBAInferfp16";
+    }
+    else
+    {
+        str = "CBAInfer";
+    }
+
+    str += " -F " + std::to_string(fusion_mode) + " ";
+    str += ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false, false);
+
+    return str;
+}
+
+std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
+                              const OperatorArgs& op_args,
+                              int fusion_mode)
+{
+    assert(op_args.params.size() >= 1);
+    assert(deref(fusePlanDesc).op_map.size() >= 1);
+
+    std::string str;
+    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    {
+        str = "bnormfp16";
+    }
+    else
+    {
+        str = "bnormfp";
+    }
+    str += " -F " + std::to_string(fusion_mode) + " ";
+
+    const auto& bn_op =
+        dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
+
+    fusion::BatchNormInferenceOpInvokeParam* param_ptr_fwd =
+        dynamic_cast<fusion::BatchNormInferenceOpInvokeParam*>(op_args.params[0].get());
+
+    if(param_ptr_fwd)
+    {
+        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        bn_op->mode,
+                                        param_ptr_fwd->estimatedMean,
+                                        param_ptr_fwd->estimatedVariance,
+                                        nullptr,
+                                        nullptr,
+                                        miopen::debug::BatchNormDirection_t::ForwardInference);
+        return str;
+    }
+    fusion::BatchNormFwdTrainingOpInvokeParam* param_ptr_fwd_train =
+        dynamic_cast<fusion::BatchNormFwdTrainingOpInvokeParam*>(op_args.params[0].get());
+    if(param_ptr_fwd_train)
+    {
+        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        bn_op->mode,
+                                        param_ptr_fwd_train->runningMean,
+                                        param_ptr_fwd_train->runningVariance,
+                                        param_ptr_fwd_train->savedMean,
+                                        param_ptr_fwd_train->savedInvVariance,
+                                        miopen::debug::BatchNormDirection_t::ForwardTraining);
+        return str;
+    }
+    fusion::BatchNormBwdTrainingOpInvokeParam* param_ptr_bwd =
+        dynamic_cast<fusion::BatchNormBwdTrainingOpInvokeParam*>(op_args.params[0].get());
+    if(param_ptr_bwd)
+    {
+        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        bn_op->mode,
+                                        nullptr,
+                                        nullptr,
+                                        param_ptr_bwd->savedMean,
+                                        param_ptr_bwd->savedInvVariance,
+                                        miopen::debug::BatchNormDirection_t::Backward);
+        return str;
+    }
+    MIOPEN_LOG_E("Dereferencing nullptr when logging batch norm");
+    return "";
+}
+
+void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, const OperatorArgs& op_args)
 {
     if(miopen::IsLoggingCmd())
     {
         int fusion_mode = GetFusionMode(fusePlanDesc);
-        if(fusion_mode == 4)
+
+        if(fusion_mode == 0 || fusion_mode == 1 || fusion_mode == 3 || fusion_mode == 4 ||
+           fusion_mode == 5 || fusion_mode == 6)
         {
-            const auto& conv_op =
-                dynamic_cast<ConvForwardOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
-
-            const miopenTensorDescriptor_t& xDesc         = &deref(fusePlanDesc).input_desc;
-            const miopenTensorDescriptor_t& wDesc         = &conv_op->filter_desc;
-            const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
-            const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
-
-            std::string str = "CBAInfer -F " + std::to_string(fusion_mode) + " ";
-            str += ConvArgsForMIOpenDriver(
-                xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false, false);
+            const std::string& str = LogCmdConvolutionFusion(fusePlanDesc, fusion_mode);
+            MIOPEN_LOG_DRIVER_CMD(str);
+        }
+        else if(fusion_mode == 2)
+        {
+            const std::string& str = LogCmdBnormFusion(fusePlanDesc, op_args, fusion_mode);
             MIOPEN_LOG_DRIVER_CMD(str);
         }
         else
         {
-            // TODO: logging of other fused operators
+            MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
         }
     }
 }
@@ -600,7 +627,6 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
-    miopen::debug::LogCmdFusion(this);
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
@@ -670,6 +696,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
+    miopen::debug::LogCmdFusion(this, op_args);
+
     if(output_desc != outputDesc)
     {
         MIOPEN_THROW(miopenStatusBadParm, "The output descriptors dont match.");
@@ -687,8 +715,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");
     }
-
-    miopen::debug::LogCmdFusion(this);
 
     const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
     const auto plan_params =

@@ -24,10 +24,13 @@
  *
  *******************************************************************************/
 #include "log_test_helper.hpp"
+#include "tensor_util.hpp"
+#include "get_handle.hpp"
 
 #include <miopen/config.h>
 #include <miopen/fusion_plan.hpp>
 #include <stdlib.h>
+#include <random>
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"
@@ -47,6 +50,10 @@ const std::string logFindConv =
 const std::string logFusionConvBiasActiv =
     "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4  -n 128 -c 3 -H 32 "
     "-W 32 -k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1";
+
+const std::string logBnormActiv =
+    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver bnormfp -F 2 bnorm -n 64 -c 64 "
+    "-H 56 -W 56 -m 1 --forw 2 -b 0 -s 1";
 
 const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 
@@ -157,9 +164,10 @@ struct Conv
     ~Conv() { miopenDestroyConvolutionDescriptor(convDesc); }
 };
 
-struct CreateFusionPlan
+struct CreateCBAFusionPlan
 {
     miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopen::OperatorArgs op_args;
 
     void CBAPlan()
     {
@@ -175,6 +183,94 @@ struct CreateFusionPlan
         miopen::deref(fusePlanDesc).AddOp(convoOp);
         miopen::deref(fusePlanDesc).AddOp(biasOp);
         miopen::deref(fusePlanDesc).AddOp(activOp);
+    }
+};
+
+template <typename T>
+struct CreateBNormFusionPlan
+{
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopen::OperatorArgs op_args;
+
+    miopen::TensorDescriptor bn_desc;
+    miopen::ActivationDescriptor activ_desc;
+    miopenBatchNormMode_t bn_mode = miopenBNSpatial;
+    tensor<T> input;
+    tensor<T> output;
+    tensor<T> scale;
+    tensor<T> shift;
+    tensor<T> estMean;
+    tensor<T> estVariance;
+    miopen::Allocator::ManageDataPtr in_dev;
+    miopen::Allocator::ManageDataPtr out_dev;
+    miopen::Allocator::ManageDataPtr scale_dev;
+    miopen::Allocator::ManageDataPtr shift_dev;
+    miopen::Allocator::ManageDataPtr estMean_dev;
+    miopen::Allocator::ManageDataPtr estVariance_dev;
+    miopenActivationMode_t activ_mode = miopenActivationRELU;
+    const float alpha                 = static_cast<float>(1.0f);
+    const float beta                  = static_cast<float>(0);
+    const float activ_alpha           = static_cast<double>(0.5f);
+    const float activ_beta            = static_cast<double>(0.5f);
+    const float activ_gamma           = static_cast<double>(0.5f);
+    double epsilon                    = 1.0e-5;
+    std::vector<int> input_lens       = {64, 64, 56, 56};
+
+    void Init()
+    {
+
+        input              = tensor<T>{input_lens};
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopenDeriveBNTensorDescriptor(&derivedBnDesc, &input.desc, bn_mode);
+        scale       = tensor<T>{input_lens};
+        shift       = tensor<T>{input_lens};
+        estMean     = tensor<T>{input_lens};
+        estVariance = tensor<T>{input_lens};
+        std::random_device rd{};
+        std::mt19937 gen{rd()};
+        std::uniform_int_distribution<> d{0, 100};
+        auto gen_value = [&](auto...) {
+            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        };
+        input.generate(gen_value);
+        scale.generate(gen_value);
+        shift.generate(gen_value);
+        estMean.generate(gen_value);
+        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
+        estVariance.generate(gen_var);
+        activ_desc    = {activ_mode, activ_alpha, activ_beta, activ_gamma};
+        output        = tensor<T>{input_lens};
+        auto&& handle = get_handle();
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+        in_dev          = handle.Write(input.data);
+        scale_dev       = handle.Write(scale.data);
+        shift_dev       = handle.Write(shift.data);
+        estMean_dev     = handle.Write(estMean.data);
+        estVariance_dev = handle.Write(estVariance.data);
+        out_dev         = handle.Write(output.data);
+    }
+
+    void BNormActivation()
+    {
+        Init();
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, &input.desc);
+
+        activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
+
+        auto bnOp =
+            std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(bn_mode, bn_desc);
+        EXPECT_EQ(miopen::deref(fusePlanDesc).AddOp(bnOp), miopenStatusSuccess);
+        bnOp->SetArgs(op_args,
+                      &alpha,
+                      &beta,
+                      scale_dev.get(),
+                      shift_dev.get(),
+                      estMean_dev.get(),
+                      estVariance_dev.get(),
+                      epsilon);
+        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
+        EXPECT_EQ(miopen::deref(fusePlanDesc).AddOp(activOp), miopenStatusSuccess);
+        activOp->SetArgs(op_args, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     }
 };
 
@@ -214,10 +310,11 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
         ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
 }
 
-void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
-                      std::string env_var,
-                      std::string sub_str,
-                      bool set_env)
+void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
+                                            const miopen::OperatorArgs&)> const& func,
+                         std::string env_var,
+                         std::string sub_str,
+                         bool set_env)
 {
     CerrRedirect capture_cerr;
 
@@ -226,12 +323,36 @@ void TestLogCmdFusion(std::function<void(const miopenFusionPlanDescriptor_t)> co
     else
         unSetEnvironmentVariable(env_var);
 
-    // create CBA (conv + bias + activation) fusion plan. This fusion plan is used by log function
-    // to print the MIOpenDirver command line.
-    CreateFusionPlan fp_create;
-    fp_create.CBAPlan();
+    CreateCBAFusionPlan fp_cba_create;
+    fp_cba_create.CBAPlan();
 
-    func(fp_create.fusePlanDesc);
+    func(fp_cba_create.fusePlanDesc, fp_cba_create.op_args);
+
+    std::string str = capture_cerr.getString();
+
+    if(set_env)
+        ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+    else
+        ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+}
+
+void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t,
+                                              const miopen::OperatorArgs&)> const& func,
+                           std::string env_var,
+                           std::string sub_str,
+                           bool set_env)
+{
+    CerrRedirect capture_cerr;
+
+    if(set_env)
+        setEnvironmentVariable(env_var, "1");
+    else
+        unSetEnvironmentVariable(env_var);
+
+    CreateBNormFusionPlan<float> fp_bnorm_create;
+    fp_bnorm_create.BNormActivation();
+
+    func(fp_bnorm_create.fusePlanDesc, fp_bnorm_create.op_args);
 
     std::string str = capture_cerr.getString();
 
