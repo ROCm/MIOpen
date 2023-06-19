@@ -386,18 +386,18 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)
+    if(_problem.GetInDataType() == miopenFloat && _problem.GetOutDataType() == miopenFloat)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_problem.in_data_type == miopenHalf && _problem.out_data_type == miopenHalf)
+    else if(_problem.GetInDataType() == miopenHalf && _problem.GetOutDataType() == miopenHalf)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_problem.out_data_type));
+                     << miopen::GetDataTypeName(_problem.GetInDataType()) << "x"
+                     << miopen::GetDataTypeName(_problem.GetOutDataType()));
     }
 }

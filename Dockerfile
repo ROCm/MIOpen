@@ -41,6 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     doxygen \
     gdb \
     git \
+    lbzip2 \
     lcov \
     libncurses5-dev \
     llvm-amdgpu \

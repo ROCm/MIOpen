@@ -28,7 +28,9 @@
 
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
@@ -261,22 +263,17 @@ struct ExecutionContext
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
-        // clang-format off
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "."
-             << GetUserDbSuffix()
-             << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
 #endif
-        // clang-format on
-        return (pdb_path / filename.str()).string();
+        return (udb / filename.str()).string();
     }
 
 private:
