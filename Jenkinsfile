@@ -243,83 +243,85 @@ def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
         env.HSA_ENABLE_SDMA=0
-        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
-        env.DOCKER_BUILDKIT=1
-        env.LLVM_PROFILE_FILE="./miopenTests_%m.profraw"
-        def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
-        def image
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
-        if (conf.get("enforce_xnack_on", false)) {
-            dockerOpts = dockerOpts + " --env HSA_XNACK=1"
-        }
+        withCredentials([string(credentialsId: 'codecov-token-miopen', variable: 'CODECOV_TOKEN')])
+        {
+            env.DOCKER_BUILDKIT=1
+            env.LLVM_PROFILE_FILE="./miopenTests_%m.profraw"
+            def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
+            def image
+            def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+            if (conf.get("enforce_xnack_on", false)) {
+                dockerOpts = dockerOpts + " --env HSA_XNACK=1"
+            }
 
-        def variant = env.STAGE_NAME
+            def variant = env.STAGE_NAME
 
-        def codecov = conf.get("codecov", false)
-        def needs_gpu = conf.get("needs_gpu", true)
+            def codecov = conf.get("codecov", false)
+            def needs_gpu = conf.get("needs_gpu", true)
 
-        def retimage
-        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
-            try {
-                (retimage, image) = getDockerImage(conf)
-                if (needs_gpu) {
-                    withDockerContainer(image: image, args: dockerOpts) {
-                        timeout(time: 5, unit: 'MINUTES')
-                        {
-                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+            def retimage
+            gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+                try {
+                    (retimage, image) = getDockerImage(conf)
+                    if (needs_gpu) {
+                        withDockerContainer(image: image, args: dockerOpts) {
+                            timeout(time: 5, unit: 'MINUTES')
+                            {
+                                sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                            }
                         }
                     }
                 }
-            }
-            catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
-                echo "The job was cancelled or aborted"
-                throw e
-            }
-            catch(Exception ex) {
-                (retimage, image) = getDockerImage(conf)
-                if (needs_gpu) {
-                    withDockerContainer(image: image, args: dockerOpts) {
-                        timeout(time: 5, unit: 'MINUTES')
-                        {
-                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+                    echo "The job was cancelled or aborted"
+                    throw e
+                }
+                catch(Exception ex) {
+                    (retimage, image) = getDockerImage(conf)
+                    if (needs_gpu) {
+                        withDockerContainer(image: image, args: dockerOpts) {
+                            timeout(time: 5, unit: 'MINUTES')
+                            {
+                                sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                            }
                         }
                     }
                 }
-            }
 
-            withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-                timeout(time: 150, unit:'MINUTES')
-                {
-                    cmake_build(conf)
-                    
-                    if (codecov) {
-                        if(compiler == "g++"){
-                            sh '''
-                                cd build
-                                lcov --directory . --capture --output-file $(pwd)/coverage.info
-                                lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                                lcov --list $(pwd)/coverage.info
-                                curl -Os https://uploader.codecov.io/latest/linux/codecov
-                                chmod +x codecov
-                                ./codecov -t ${CODECOV_TOKEN}
-                                echo "Uploaded"
-                            '''
-                        }else{
-                            sh '''
-                                cd build
-                                #this combines them back together.
-                                /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./**/*.profraw -o ./miopen.profdata
+                withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+                    timeout(time: 150, unit:'MINUTES')
+                    {
+                        cmake_build(conf)
+                        
+                        if (codecov) {
+                            if(compiler == "g++"){
+                                sh '''
+                                    cd build
+                                    lcov --directory . --capture --output-file $(pwd)/coverage.info
+                                    lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
+                                    lcov --list $(pwd)/coverage.info
+                                    curl -Os https://uploader.codecov.io/latest/linux/codecov
+                                    chmod +x codecov
+                                    ./codecov -t ${CODECOV_TOKEN}
+                                    echo "Uploaded"
+                                '''
+                            }else{
+                                sh '''
+                                    cd build
+                                    #this combines the reports from parallel runs back together.
+                                    /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./**/*.profraw -o ./miopen.profdata
 
-                                #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
-                                /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
-                                cat ./code_cov_miopen.report
-                                /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
+                                    #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
+                                    /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
+                                    cat ./code_cov_miopen.report
+                                    /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
 
-                                curl -Os https://uploader.codecov.io/latest/linux/codecov
-                                chmod +x codecov
-                                ./codecov -t ${CODECOV_TOKEN} --file ./code_cov_miopen.txt
-                                echo "Uploaded"
-                            '''
+                                    curl -Os https://uploader.codecov.io/latest/linux/codecov
+                                    chmod +x codecov
+                                    ./codecov -t ${CODECOV_TOKEN} --file ./code_cov_miopen.txt
+                                    echo "Uploaded"
+                                '''
+                            }
                         }
                     }
                 }
