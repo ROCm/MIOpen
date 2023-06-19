@@ -516,10 +516,12 @@ function(install_kdb)
     else()
         unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-        rocm_install(FILES
-            src/kernels/${FILE_NAME}.kdb
-        DESTINATION ${DATA_INSTALL_DIR}/db
-        COMPONENT ${PARSE_COMPONENT_NAME})
+        if( NOT ENABLE_ASAN_PACKAGING )
+          rocm_install(FILES
+              src/kernels/${FILE_NAME}.kdb
+          DESTINATION ${DATA_INSTALL_DIR}/db
+          COMPONENT ${PARSE_COMPONENT_NAME})
+        endif()
     endif()
 endfunction()
 
