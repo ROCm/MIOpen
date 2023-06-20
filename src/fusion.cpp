@@ -108,6 +108,56 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
+static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+    const FusionContext& context,
+    const FusionDescription& problem,
+    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+    miopen::OperatorArgs& params)
+{
+    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
+    conv_problem.bias    = 1;
+    conv_problem.bias_sz = static_cast<size_t>(conv_problem.GetOutChannels()) *
+                           GetTypeSize(conv_problem.GetOutDataType());
+    const auto conv_ctx = context.GetConvContext(conv_problem);
+
+    auto& handle = conv_ctx.GetStream();
+
+    invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetInSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
+
+    MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get() << " , size: " << conv_problem.GetBiasSize()
+                               << " , in addr: " << invoke_bufs[1].get()
+                               << " , size: " << conv_problem.GetInSize()
+                               << " , weigth addr: " << invoke_bufs[2].get()
+                               << " , size: " << conv_problem.GetWeightsSize() << " , out addr: "
+                               << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
+
+    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+
+    auto conv_data =
+        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
+    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get());
+
+    const float activ_alpha = 0.5f;
+    const float activ_beta  = 0.5f;
+    const float activ_gamma = 0.5f;
+    auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+        activ_alpha, activ_beta, activ_gamma);
+
+    params.SetArg(0, std::move(conv_data));
+    params.SetArg(1, std::move(bias_data));
+    params.SetArg(2, std::move(activ_data));
+
+    return miopen::fusion::FusionInvokeParams(params,
+                                              conv_problem.conv_problem.GetIn(),
+                                              invoke_bufs[1].get(),
+                                              conv_problem.conv_problem.GetOut(),
+                                              invoke_bufs[3].get(),
+                                              gfx90aaltimpl);
+}
+
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),
@@ -423,6 +473,37 @@ static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
     return NetworkConfig{ss.str()};
 }
 
+static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
+                                   const FusionDescription& fusion_problem,
+                                   std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+                                   miopen::OperatorArgs& params)
+{
+    if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
+       (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        // Workaround: Fused API does not pass user-allocated buffers,
+        // but we need these buffers during SearchForAllSolutions.
+        // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
+        MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
+        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+            fusion_ctx, fusion_problem, invoke_bufs, params);
+    }
+    else
+    {
+        // handle the rest of the fusion operators cases
+        // eg: Convolution + Bias + BatchNorm + Activation,
+        //     Convolution + BatchNorm + Activation
+        //     Convolution + BatchNorm
+        //     Convolution + Activation
+        //     GEMM + Activation
+        //
+        MIOPEN_LOG_I2("Allocating buffers for given fusion operators is not supported yet.");
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
@@ -430,8 +511,17 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
+    AnyInvokeParams invoke_params;
+    miopen::OperatorArgs params;
+    std::vector<Allocator::ManageDataPtr> invoke_bufs;
+    const FindEnforce enforce;
+    // If we are tuning, then we need to allocate buffers.
+    if(enforce.IsSearch(fusion_ctx))
+        invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
+    // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
+    // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
-        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
+        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), invoke_params);
     std::vector<miopen::solver::ConvSolution> sols;
     // Filter for Solvers
     if(conv_fwd_algo)
