@@ -326,8 +326,8 @@ def buildHipClangJob(Map conf=[:]){
                     }
                 }
             }
+            return retimage
         }
-        return retimage
 }
 
 def reboot(){
