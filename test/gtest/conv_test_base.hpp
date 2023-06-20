@@ -80,6 +80,12 @@ struct ConvTestCase
     }
 };
 
+std::vector<ConvTestCase> GetNetworkForFusionCompileStepTest()
+{
+    return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1},
+            {1, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1}};
+}
+
 std::vector<ConvTestCase> GetNetwork1()
 {
     // pyt_mlperf_resnet50v1.5
@@ -117,7 +123,6 @@ std::vector<ConvTestCase> ConvTestConfigs()
             {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-
 template <typename T>
 struct ConvFwdSolverTestBase
 {
@@ -145,7 +150,7 @@ protected:
         out_dev       = handle.Write(output.data);
     }
 
-    void TearDownImpl(miopenTensorLayout_t tensor_layout)
+    void TearDownConv(miopenTensorLayout_t tensor_layout)
     {
 
         auto&& handle = get_handle();
