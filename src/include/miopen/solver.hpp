@@ -4807,26 +4807,4 @@ struct ThisSolverIsDeprecatedStatic
 } // namespace solver
 } // namespace miopen
 
-struct mlo_construct_direct2D_fusion : mlo_construct_base
-{
-    mlo_construct_direct2D_fusion(miopen::conv::Direction dir, bool do_bias = false)
-        : mlo_construct_base(dir, do_bias)
-    {
-    }
-    mlo_construct_direct2D_fusion(const miopen::TensorDescriptor& in,
-                                  const miopen::TensorDescriptor& weights,
-                                  const miopen::TensorDescriptor& out,
-                                  const miopen::ConvolutionDescriptor& conv,
-                                  miopen::conv::Direction dir,
-                                  bool do_bias = false)
-        : mlo_construct_base(in, weights, out, conv, dir, do_bias)
-    {
-    }
-
-    bool IsAutoTuneEnabled() const { return _ctx.do_search; }
-
-    miopen::solver::ConvSolution FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
-                                              const miopen::AnyInvokeParams& invoke_ctx);
-};
-
 #endif // GUARD_MIOPEN_SOLVER_HPP_
