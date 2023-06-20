@@ -45,6 +45,7 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
 }
 
 namespace conv {
+namespace {
 
 std::function<void(std::ostream&)>
 PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
@@ -60,6 +61,23 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 {
     manipulator(stream);
     return stream;
+}
+
+} // namespace
+
+std::string ProblemDescription::GetDirectionStr() const
+{
+    std::string s;
+
+    switch(GetDirection())
+    {
+    case Direction::Forward: s = "F"; break;
+    case Direction::BackwardData: s = "B"; break;
+    case Direction::BackwardWeights: s = "W"; break;
+    default: assert(false);
+    }
+
+    return s;
 }
 
 void ProblemDescription::HeuristicUpdateLayouts()
@@ -114,13 +132,7 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
               'x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
-
-    switch(GetDirection())
-    {
-    case Direction::Forward: ss << 'x' << "F"; break;
-    case Direction::BackwardData: ss << 'x' << "B"; break;
-    case Direction::BackwardWeights: ss << 'x' << "W"; break;
-    }
+    ss << 'x' << GetDirectionStr();
 
     conf_key = ss.str();
 }
@@ -147,19 +159,13 @@ void ProblemDescription::Serialize(std::ostream& stream) const
         || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
         stream << sep << GetInLayout();
-    }else {
+    } else {
         stream << sep << GetInLayout();
         stream << sep << GetWeightsLayout();
         stream << sep << GetOutLayout();
     }
     stream << sep << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
-
-    switch(GetDirection())
-    {
-    case Direction::Forward: stream << sep << "F"; break;
-    case Direction::BackwardData: stream << sep << "B"; break;
-    case Direction::BackwardWeights: stream << sep << "W"; break;
-    }
+    stream << sep << GetDirectionStr();
 
     // clang-format on
     // New performance config entries shall come into variable/optional part of db key.
@@ -186,6 +192,33 @@ bool ProblemDescription::IsLayoutDefault() const
     {
         return (in_layout == "NCDHW") && (out_layout == "NCDHW") && (weights_layout == "NCDHW");
     }
+}
+
+bool ProblemDescription::IsLayoutNHWC() const
+{
+    if(GetSpatialDims() == 2)
+    {
+        return (in_layout == "NHWC") && (out_layout == "NHWC") && (weights_layout == "NHWC");
+    }
+    else
+    {
+        return (in_layout == "NDHWC") && (out_layout == "NDHWC") && (weights_layout == "NDHWC");
+    }
+}
+
+bool ProblemDescription::IsLayoutNCHWc() const
+{
+    return GetSpatialDims() == 2 && (IsNCHWc_NCHWc() || IsNCHWc_CHWNc());
+}
+
+bool ProblemDescription::IsNCHWc_NCHWc() const
+{
+    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" && GetOutLayout() == "NCHWc";
+}
+
+bool ProblemDescription::IsNCHWc_CHWNc() const
+{
+    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" && GetOutLayout() == "NCHWc";
 }
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const

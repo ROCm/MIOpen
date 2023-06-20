@@ -4995,6 +4995,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)cx;
     (void)dxDesc;
     (void)dx;
+    (void)dhxDesc;
+    (void)dhx;
+    (void)dcx;
     (void)workSpace;
     (void)workSpaceSize;
     (void)reserveSpace;
