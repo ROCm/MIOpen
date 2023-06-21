@@ -560,7 +560,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsLayoutNCHWC())
+    if(!problem.IsLayoutNCHWc())
         return false;
 
     if(!(problem.IsFp16() && problem.GetVectorLength() == 4) &&
@@ -614,7 +614,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(!problem.IsLayoutNCHWC())
+    if(!problem.IsLayoutNCHWc())
         MIOPEN_THROW("Tensor layout is not in vectorized");
 
     result.construction_params.push_back(kernel);
