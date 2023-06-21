@@ -70,20 +70,20 @@ struct ProblemDescription
 {
     conv::ProblemDescription conv_problem;
 
-    int GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
-    int GetInChannels() const { return conv_problem.GetInChannels(); }
-    int GetInHeight() const { return conv_problem.GetInHeight(); }
-    int GetInWidth() const { return conv_problem.GetInWidth(); }
-    int GetInDepth() const { return conv_problem.GetInDepth(); }
+    std::size_t GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
+    /*int*/ std::size_t GetInChannels1() const { return conv_problem.GetInChannels(); }
+    /*int*/ std::size_t GetInHeight1() const { return conv_problem.GetInHeight(); }
+    /*int*/ std::size_t GetInWidth1() const { return conv_problem.GetInWidth(); }
+    /*int*/ std::size_t GetInDepth1() const { return conv_problem.GetInDepth(); }
     int GetVectorLength() const { return conv_problem.GetVectorLength(); }
-    int GetWeightsHeight() const { return conv_problem.GetWeightsHeight(); }
-    int GetWeightsWidth() const { return conv_problem.GetWeightsWidth(); }
-    int GetWeightsDepth() const { return conv_problem.GetWeightsDepth(); }
-    int GetOutChannels() const { return conv_problem.GetOutChannels(); }
-    int GetOutHeight() const { return conv_problem.GetOutHeight(); }
-    int GetOutWidth() const { return conv_problem.GetOutWidth(); }
-    int GetOutDepth() const { return conv_problem.GetOutDepth(); }
-    int GetBatchSize() const { return conv_problem.GetBatchSize(); }
+    /*int*/ std::size_t GetWeightsHeight1() const { return conv_problem.GetWeightsHeight(); }
+    /*int*/ std::size_t GetWeightsWidth1() const { return conv_problem.GetWeightsWidth(); }
+    /*int*/ std::size_t GetWeightsDepth1() const { return conv_problem.GetWeightsDepth(); }
+    /*int*/ std::size_t GetOutChannels1() const { return conv_problem.GetOutChannels(); }
+    /*int*/ std::size_t GetOutHeight1() const { return conv_problem.GetOutHeight(); }
+    /*int*/ std::size_t GetOutWidth1() const { return conv_problem.GetOutWidth(); }
+    /*int*/ std::size_t GetOutDepth1() const { return conv_problem.GetOutDepth(); }
+    /*int*/ std::size_t GetBatchSize1() const { return conv_problem.GetBatchSize(); }
     int GetPadH() const { return conv_problem.GetPadH(); }
     int GetPadW() const { return conv_problem.GetPadW(); }
     int GetPadD() const { return conv_problem.GetPadD(); }
@@ -104,12 +104,12 @@ struct ProblemDescription
     size_t GetOutSize() const { return conv_problem.GetOutSize(); }
     size_t GetWeightsSize() const { return conv_problem.GetWeightsSize(); }
     size_t GetBiasSize() const { return conv_problem.GetBiasSize(); }
-    int GetInStride() const { return conv_problem.GetInStrideH(); }
-    int GetOutStride() const { return conv_problem.GetOutStrideH(); }
-    int GetInChannelStride() const { return conv_problem.GetInChannelStride(); }
-    int GetInBatchStride() const { return conv_problem.GetInBatchStride(); }
-    int GetOutChannelStride() const { return conv_problem.GetOutChannelStride(); }
-    int GetOutBatchStride() const { return conv_problem.GetOutBatchStride(); }
+    /*int*/ std::size_t GetInStride1() const { return conv_problem.GetInStrideH(); }
+    /*int*/ std::size_t GetOutStride1() const { return conv_problem.GetOutStrideH(); }
+    /*int*/ std::size_t GetInChannelStride1() const { return conv_problem.GetInChannelStride(); }
+    /*int*/ std::size_t GetInBatchStride1() const { return conv_problem.GetInBatchStride(); }
+    /*int*/ std::size_t GetOutChannelStride1() const { return conv_problem.GetOutChannelStride(); }
+    /*int*/ std::size_t GetOutBatchStride1() const { return conv_problem.GetOutBatchStride(); }
     int GetGroupCount() const { return conv_problem.GetGroupCount(); }
 
 #if MIOPEN_ENABLE_SQLITE
@@ -148,8 +148,8 @@ struct ProblemDescription
 
     std::string GetDirectionStr() const { return direction.GetStr(); }
 
-    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
-    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
+    /*int*/ std::size_t GetBackwardPadW1() const { return conv_problem.GetBackwardPadW(); }
+    /*int*/ std::size_t GetBackwardPadH1() const { return conv_problem.GetBackwardPadH(); }
 
     bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
     bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
