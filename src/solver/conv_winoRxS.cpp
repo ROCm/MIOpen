@@ -414,23 +414,14 @@ class ShaderModel : public UnifiedDescriptionConv2d
 {
     static constexpr size_t NHW_tiles_factor = 32;
 
-    size_t Ts;
-    size_t Tr;
-
-    size_t Tow;
-    size_t Toh;
-
     size_t n_CU;
     size_t n_groups;
 
     double direct_convolution_macs;
 
-    size_t S_factor;
-    size_t C_factor;
-
-    size_t Rg;
-    size_t Sg;
-    size_t Cg;
+    size_t R_loops;
+    size_t S_loops;
+    size_t C_loops;
 
     size_t n_works_per_CU;
 
@@ -440,10 +431,9 @@ class ShaderModel : public UnifiedDescriptionConv2d
     bool single_mode;
 
     bool is_fp16;
-    bool out_of_model_scope; // Shader model produces unreliable results.
+    bool is_2x3;
 
-    bool is2x3() const noexcept { return Tow == 2 && Ts == 3; }
-    bool is3x2() const noexcept { return Tow == 3 && Ts == 2; }
+    bool out_of_model_scope; // Shader model produces unreliable results.
 
 public:
     ShaderModel(const ConvolutionContext& ctx,
@@ -451,15 +441,12 @@ public:
                 size_t Winodata,
                 size_t Winofilter)
         : UnifiedDescriptionConv2d(problem),
-          Ts{Winofilter},
-          Tr{Winofilter}, // Ts and Tr must be the same
-          Tow{Winodata},
-          Toh{Winodata},                                      // Tow and Toh must be the same
           n_CU{ctx.GetStream().GetMaxHardwareComputeUnits()}, /// \todo Take n_CU from PerfConfig.
           direct_convolution_macs{static_cast<double>(C * N * K) / 1e+6 *
                                   static_cast<double>(Ceil(S * out_w, input_stride_w) *
                                                       Ceil(R * out_h, input_stride_h))},
           is_fp16{problem.IsFp16()},
+          is_2x3{IS2X3},
           out_of_model_scope
     {
         !(problem.GetGroupCount() == 1) || //
@@ -484,28 +471,35 @@ public:
         /// \todo add G to UnifiedDescriptionConv2d
         size_t G = static_cast<size_t>(problem.GetGroupCount());
 
-        bool dstride2_w{input_stride_w == 2};
-        bool dstride2_h{input_stride_h == 2};
+        const size_t Ts = Winofilter;
+        const size_t Tr = Winofilter; // Ts and Tr must be the same
+
+        const size_t Tow = Winodata;
+        const size_t Toh = Winodata; // Tow and Toh must be the same
+
+        const bool dstride2_w{input_stride_w == 2};
+        const bool dstride2_h{input_stride_h == 2};
         dstride2 = dstride2_w && dstride2_h;
 
-        bool ostride2_w{U == 2};
-        bool ostride2_h{V == 2};
+        const bool ostride2_w{U == 2};
+        const bool ostride2_h{V == 2};
         ostride2 = ostride2_w && ostride2_h;
 
-        bool stride1_w{!(dstride2_w || ostride2_w)};
-        bool stride1_h{!(dstride2_h || ostride2_h)};
+        const bool stride1_w{!(dstride2_w || ostride2_w)};
+        const bool stride1_h{!(dstride2_h || ostride2_h)};
 
         single_mode =
             stride1_w &&
             (S <= Ts /*|| (L_F_FORCE_FILTER_TRAVERSE_MODE == 1 && L_F_FILTER_TRAVERSE_DUAL == 0)*/);
 
         const auto R_factor = ((stride1_h || (R % (2 * Tr) == 1)) ? Tr : 2 * Tr);
-        S_factor            = single_mode ? Ts : 2 * Ts;
-        C_factor            = is_fp16 ? 2u : 1u /*fp32*/;
+        const auto Rg       = RoundUpToMultiple(R, R_factor);
 
-        Rg = RoundUpToMultiple(R, R_factor);
-        Sg = RoundUpToMultiple(S, S_factor);
-        Cg = RoundUpToMultiple(C, C_factor);
+        const auto S_factor = single_mode ? Ts : 2 * Ts;
+        const auto Sg       = RoundUpToMultiple(S, S_factor);
+
+        const auto C_factor = is_fp16 ? 2 : 1 /*fp32*/;
+        const auto Cg       = RoundUpToMultiple(C, C_factor);
 
         const auto K_factor = dstride2 ? 16u : 32u;
         const auto Kg       = Ceil(K, K_factor);
@@ -519,6 +513,10 @@ public:
         const auto NHW_tiles_g = Ceil(NWH_tiles, NHW_tiles_factor);
 
         const auto n_works = Kg * NHW_tiles_g;
+
+        S_loops = Sg / S_factor;
+        R_loops = Rg / Tr;
+        S_loops = Cg / C_factor;
 
         if(G == 1)
         {
@@ -587,16 +585,14 @@ public:
         const size_t fp_idx     = is_fp16 ? 1 : 0;
         const size_t stride_idx = ostride2 ? 1 : dstride2 ? 2 : 0 /*stride1*/;
 
-        const auto const_cost = (is2x3() ? const_2_3 : const_3_2)[fp_idx][stride_idx];
-        const auto fe_cost    = (is2x3() ? fe_2_3 : fe_3_2)[fp_idx][stride_idx];
-        const auto ph_cost    = (is2x3() ? ph_2_3 : ph_3_2)[fp_idx][stride_idx];
-        const auto be_cost    = (is2x3() ? be_2_3 : be_3_2)[fp_idx][stride_idx];
+        const auto const_cost = (is_2x3 ? const_2_3 : const_3_2)[fp_idx][stride_idx];
+        const auto fe_cost    = (is_2x3 ? fe_2_3 : fe_3_2)[fp_idx][stride_idx];
+        const auto ph_cost    = (is_2x3 ? ph_2_3 : ph_3_2)[fp_idx][stride_idx];
+        const auto be_cost    = (is_2x3 ? be_2_3 : be_3_2)[fp_idx][stride_idx];
 
-        const auto S_loops  = Sg / S_factor;
-        const auto R_loops  = Rg / Tr;
         const auto fe_calls = n_works_per_CU * S_loops * R_loops;
         const auto be_calls = n_works_per_CU * (dstride2 ? 2 : 1);
-        const auto phases   = fe_calls * (Cg / C_factor) * (!single_mode && !dstride2 ? 2 : 1);
+        const auto phases   = fe_calls * C_loops * (!single_mode && !dstride2 ? 2 : 1);
 
         const auto cycles_predicted = static_cast<double>(const_cost + fe_cost * fe_calls +
                                                           ph_cost * phases + be_cost * be_calls) /
