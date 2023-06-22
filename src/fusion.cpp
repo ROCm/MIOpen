@@ -213,7 +213,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
     fusion::BatchNormInferenceOpInvokeParam* param_ptr_fwd =
         dynamic_cast<fusion::BatchNormInferenceOpInvokeParam*>(op_args.params[0].get());
 
-    if(param_ptr_fwd)
+    if(param_ptr_fwd != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
                                         bn_op->mode,
@@ -226,7 +226,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
     }
     fusion::BatchNormFwdTrainingOpInvokeParam* param_ptr_fwd_train =
         dynamic_cast<fusion::BatchNormFwdTrainingOpInvokeParam*>(op_args.params[0].get());
-    if(param_ptr_fwd_train)
+    if(param_ptr_fwd_train != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
                                         bn_op->mode,
@@ -239,7 +239,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
     }
     fusion::BatchNormBwdTrainingOpInvokeParam* param_ptr_bwd =
         dynamic_cast<fusion::BatchNormBwdTrainingOpInvokeParam*>(op_args.params[0].get());
-    if(param_ptr_bwd)
+    if(param_ptr_bwd != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
                                         bn_op->mode,
