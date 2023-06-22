@@ -488,7 +488,6 @@ void OpTensor4d(const Handle& handle,
 
     int num_wg_orig = num_wg;
     int max_num_wg  = 4096;
-    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
