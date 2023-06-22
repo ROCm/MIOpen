@@ -106,12 +106,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 
-using mlo_kernel_info = std::tuple<const std::string,
-                                   const std::string,
-                                   const std::string,
-                                   const std::vector<size_t>,
-                                   const std::vector<size_t>>;
-
 inline int mloLg2(int v)
 {
     auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -183,9 +177,6 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
     x.setupFloats();
     x.mloConstruct();
 }
-
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
