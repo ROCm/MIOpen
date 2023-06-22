@@ -99,6 +99,9 @@ struct ExecutionContext
     ExecutionContext()                        = default;
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
+    ExecutionContext(ExecutionContext&&)      = default;
+    ExecutionContext& operator=(const ExecutionContext&) = default;
+    ExecutionContext& operator=(ExecutionContext&&) = default;
 
     ExecutionContext& DetectRocm();
 
