@@ -464,10 +464,6 @@ public:
             !(K >= 16)
     }
     {
-        // Computations do not support negative padding.
-        // Negative padding is not applicable, so let use simple assert here.
-        assert(pad_h >= 0 && pad_w >= 0);
-
         /// \todo add G to UnifiedDescriptionConv2d
         size_t G = static_cast<size_t>(problem.GetGroupCount());
 
