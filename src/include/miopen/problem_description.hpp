@@ -148,8 +148,8 @@ struct ProblemDescription
 
     std::string GetDirectionStr() const { return direction.GetStr(); }
 
-    /*int*/ std::size_t GetBackwardPadW1() const { return conv_problem.GetBackwardPadW(); }
-    /*int*/ std::size_t GetBackwardPadH1() const { return conv_problem.GetBackwardPadH(); }
+    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
+    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
 
     bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
     bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
