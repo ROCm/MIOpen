@@ -691,57 +691,6 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
 
 #endif
 
-#ifdef USE_3D_TENSOR_GENERIC
-// NCH
-__kernel void Op3dTensorGeneric(const global MIOPEN_TYPE* a,
-                                const int a_nstride,
-                                const int a_cstride,
-                                const int a_hstride,
-                                const global MIOPEN_TYPE* b,
-                                const int b_nstride,
-                                const int b_cstride,
-                                const int b_hstride,
-                                global MIOPEN_TYPE* c,
-                                const int c_c,
-                                const int c_h,
-                                const int c_nstride,
-                                const int c_cstride,
-                                const int c_hstride,
-                                const MIOPEN_TYPE alpha0,
-                                const MIOPEN_TYPE alpha1,
-                                const MIOPEN_TYPE beta,
-                                const unsigned int bitmap,
-                                const long Aoffset,
-                                const long Boffset,
-                                const long Coffset,
-                                const int total_work,
-                                const int use_beta)
-{
-    const global MIOPEN_TYPE* a_off = a + Aoffset;
-    const global MIOPEN_TYPE* b_off = b + Boffset;
-    global MIOPEN_TYPE* c_off       = c + Coffset;
-
-    const int b_nstride_res = b_nstride * ((bitmap >> 2) & 1);
-    const int b_cstride_res = b_cstride * ((bitmap >> 1) & 1);
-    const int b_hstride_res = b_hstride * ((bitmap >> 0) & 1);
-
-    for(int gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
-    {
-        int o_h = gid % c_h;
-        int o_c = (gid / c_h) % c_c;
-        int o_n = (gid / c_h) / c_c;
-
-        int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride;
-        int bindex = o_n * b_nstride_res + o_c * b_cstride_res + o_h * b_hstride_res;
-        int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride;
-
-        MIOPEN_TYPE res = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1);
-        c_off[cindex]   = use_beta == 1 ? c_off[cindex] * beta + res : res;
-    }
-}
-
-#endif
-
 #ifdef USE_2D_TENSOR_LITE
 __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int a_nstride,

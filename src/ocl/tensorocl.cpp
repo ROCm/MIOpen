@@ -198,13 +198,17 @@ void OpTensor3d(const Handle& handle,
     grp_sz2               = std::min(size_t(max_num_wg / grp_sz), grp_sz2);
     size_t glb_sz2        = local_threads2 * grp_sz2;
 
+    bool use_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
+
+    bool use_squash = blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2];
+
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
         auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(use_lite)
         {
 
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
@@ -237,7 +241,7 @@ void OpTensor3d(const Handle& handle,
                 return;
             }
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(use_squash)
         {
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
                               std::to_string(grp_sz);
@@ -317,12 +321,11 @@ void OpTensor3d(const Handle& handle,
         case 2: parms += "miopenMin"; break;
         case 3: parms += "miopenMax"; break;
         }
-        std::string program_name = "MIOpenTensorKernels.cl";
+        std::string program_name =use_lite || use_squash ? "MIOpenTensorKernels.cl" : "MIOpenTensorKernelsHip.cpp";
 
         const std::vector<size_t> vld{local_threads, 1, 1};
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(use_lite)
         {
             parms += " -DUSE_2D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -348,7 +351,7 @@ void OpTensor3d(const Handle& handle,
                 int(!float_equal(miopen_beta, 0.0)),
                 int(blens[1] == 1));
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(use_squash)
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
