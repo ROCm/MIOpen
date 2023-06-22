@@ -100,8 +100,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
             (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
            ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
-             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
-            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[0])))
+             wDesc.GetLayout_t() == miopenTensorCHWNc8)))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
 }
