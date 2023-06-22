@@ -175,8 +175,6 @@ void OpTensor3d(const Handle& handle,
     const int num_wg_generic                     = std::clamp(
         total_work_generic / int(local_threads) / work_per_thread_generic, 1, max_num_wg);
 
-    num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
-
     std::string network_config{};
 
     network_config = std::to_string(bTensorDesc.GetType()) + "-" +
@@ -489,6 +487,7 @@ void OpTensor4d(const Handle& handle,
 
     int num_wg_orig = num_wg;
     int max_num_wg  = 4096;
+    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
