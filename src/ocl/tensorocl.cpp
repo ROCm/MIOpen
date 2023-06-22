@@ -148,9 +148,9 @@ void OpTensor3d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg      = first_not_one != blens.rend()
-                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                          : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -199,7 +199,7 @@ void OpTensor3d(const Handle& handle,
     size_t glb_sz2        = local_threads2 * grp_sz2;
 
     bool use_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
+                    (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
 
     bool use_squash = blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2];
 
@@ -321,7 +321,8 @@ void OpTensor3d(const Handle& handle,
         case 2: parms += "miopenMin"; break;
         case 3: parms += "miopenMax"; break;
         }
-        std::string program_name =use_lite || use_squash ? "MIOpenTensorKernels.cl" : "MIOpenTensorKernelsHip.cpp";
+        std::string program_name =
+            use_lite || use_squash ? "MIOpenTensorKernels.cl" : "MIOpenTensorKernelsHip.cpp";
 
         const std::vector<size_t> vld{local_threads, 1, 1};
 
@@ -449,9 +450,9 @@ void OpTensor4d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg      = first_not_one != blens.rend()
-                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                          : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -972,9 +973,9 @@ void OpTensorOther(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg      = first_not_one != blens.rend()
-                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                          : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
