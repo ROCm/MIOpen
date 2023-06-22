@@ -142,13 +142,13 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
     return ss.str();
 }
 
-std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
-                                     const BatchNormDirection_t dir)
+                                     const BatchNormDirection_t& dir)
 {
     int size = {0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -194,7 +194,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
     return ss.str();
 }
 
-int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc)
+int GetFusionMode(const miopenFusionPlanDescriptor_t& fusePlanDesc)
 {
     int fusion_mode = -1;
 

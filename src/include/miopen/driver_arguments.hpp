@@ -41,7 +41,7 @@
 namespace miopen {
 namespace debug {
 
-int GetFusionMode(const miopenFusionPlanDescriptor_t fusePlanDesc);
+int GetFusionMode(const miopenFusionPlanDescriptor_t& fusePlanDesc);
 
 enum class ConvDirection
 {
@@ -65,12 +65,12 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                     bool is_immediate,
                                     bool print_all_args_info = true);
 
-std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
-                                     const BatchNormDirection_t dir);
+                                     const BatchNormDirection_t& dir);
 } // namespace debug
 } // namespace miopen
