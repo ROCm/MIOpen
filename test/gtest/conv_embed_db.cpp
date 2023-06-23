@@ -1,3 +1,28 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <tuple>
 
 #include <miopen/miopen.h>
@@ -6,16 +31,6 @@
 #include <miopen/env.hpp>
 #include "conv_2d.hpp"
 #include "get_handle.hpp"
-
-std::string GetFloatArg()
-{
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp.front();
-};
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -76,13 +91,23 @@ void Run2dDriver(miopenDataType_t prec)
     }
 };
 
+bool IsTestSupportedForDevice(const miopen::Handle& handle)
+{
+    std::string devName = handle.GetDeviceName();
+    if(devName == "gfx900" || devName == "gfx906")
+        return true;
+    else
+        return false;
+}
+
 TEST_P(ConfigWithFloat, FloatTest)
 {
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
-       GetFloatArg() == "--float")
+    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+
+    if(IsTestSupportedForDevice(handle) && (!envVar.empty() && envVar.front() == "--float"))
     {
         Run2dDriver(miopenFloat);
     }
@@ -101,8 +126,9 @@ TEST_P(ConfigWithHalf, HalfTest)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
-       GetFloatArg() == "--half")
+    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+
+    if(IsTestSupportedForDevice(handle) && (!envVar.empty() && envVar.front() == "--half"))
     {
         Run2dDriver(miopenHalf);
     }
@@ -121,8 +147,9 @@ TEST_P(ConfigWithInt8, Int8Test)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
-       GetFloatArg() == "--int8")
+    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+
+    if(IsTestSupportedForDevice(handle) && (!envVar.empty() && envVar.front() == "--int8"))
     {
         Run2dDriver(miopenInt8);
     }
@@ -141,8 +168,9 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if((handle.GetDeviceName() == "gfx900" || handle.GetDeviceName() == "gfx906") &&
-       GetFloatArg() == "--bfloat16")
+    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+
+    if(IsTestSupportedForDevice(handle) && (!envVar.empty() && envVar.front() == "--bfloat16"))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -158,30 +186,35 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags = " --disable-validation --verbose ";
+    std::string flags  = " --disable-validation --verbose ";
+    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+
+    // If precision env var is not set
+    if(envVar.empty())
+        flags.insert(0, precision);
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {precision + flags + "--input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {precision + flags + "--input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {precision + flags + "--input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {precision + flags + "--input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    {precision + flags + "--input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
-    {precision + flags + "--input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    {precision + flags + "--input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+    {flags + "--input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 64 56 56 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 512 7 7   --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1"},
+    {flags + "--input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
+    {flags + "--input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
         // clang-format on
     };
 
