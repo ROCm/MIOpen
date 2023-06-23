@@ -124,10 +124,10 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
     const auto sizeof_res      = sizeof_kernel_FLOAT_ACCUM(problem) * MLO_POOLING_N_VERT_OUT_PIX *
                             MLO_POOLING_N_HORIZ_OUT_PIX;
 
-    MIOPEN_LOG_I("sizeof_bot_data " << sizeof_bot_data << "sizeof_res" << sizeof_res);
+    MIOPEN_LOG_T("sizeof_bot_data " << sizeof_bot_data << "sizeof_res" << sizeof_res);
 
-    // Assume 8-byte (2xDWORD) alignment.
-    return RoundUpToMultiple(sizeof_bot_data, 8) + RoundUpToMultiple(sizeof_res, 8);
+    /// \ref alignment_of_arrays_in_gpu_memory
+    return RoundUpToMultiple(sizeof_bot_data, 16) + RoundUpToMultiple(sizeof_res, 16);
 }
 
 } // namespace

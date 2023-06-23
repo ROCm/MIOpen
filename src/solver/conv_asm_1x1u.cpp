@@ -38,7 +38,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/conv/heuristic_model/tuning_heuristic.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
@@ -293,7 +293,9 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
                                                const int sequence_length) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
-    const auto img_hw            = problem.GetOutHeight() * problem.GetOutWidth();
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
+    const auto img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     if(!IsValidValueImpl(sequence_length))
         return false;
     if(sequence_length > 1)
@@ -416,30 +418,33 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
                                                               const ProblemDescription& problem,
                                                               bool& valid)
 {
+    static const std::size_t n      = 8;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
-    static const auto perf_model    = ai::tuning::PerfTuningModel{arch, solver};
-    std::vector<float> features     = TransformFeatures(problem, perf_model.GetNumParams() + 1);
-    if(perf_model.ModelSetParams(
-           [&](int idx, int value) { return this->ModelApplyToken(idx, value, problem); },
-           features))
+    std::vector<float> features     = TransformFeatures(problem, n);
+    if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
+           return this->ModelApplyToken(idx, value, problem);
+       }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         valid = true;
     }
 }
 #endif
+
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
-    read_size                    = 4;
-    k_mult                       = 16;
-    chunks_per_wave              = static_cast<int>(read_size * elements_in_dword);
-    chunk_size                   = 16;
-    n_mult                       = 2;
-    c_mult                       = elements_in_dword;
-    waves_c_in_group             = 1;
-    waves_k_in_group             = 1;
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
+    read_size        = 4;
+    k_mult           = 16;
+    chunks_per_wave  = static_cast<int>(read_size * elements_in_dword);
+    chunk_size       = 16;
+    n_mult           = 2;
+    c_mult           = elements_in_dword;
+    waves_c_in_group = 1;
+    waves_k_in_group = 1;
 
     if(!IsValid(problem))
     {
@@ -472,6 +477,7 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
         assert(false);
     }
 }
+
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
@@ -548,6 +554,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
+    if(elements_in_dword == 0) // For clang-tidy (false positive DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
     // clang-format off
     const int img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     bool ok = (problem.GetPadW() == 0       // -q  pad_w
