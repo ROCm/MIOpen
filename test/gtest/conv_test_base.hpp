@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,9 +69,9 @@ struct ConvTestCase
                   << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
                   << " dilation_x:" << tc.dilation_x << " )";
     }
-    std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, y, x}; }
-    miopen::ConvolutionDescriptor GetConv()
+    const std::vector<size_t> GetInput() { return {N, C, H, W}; }
+    const std::vector<size_t> GetWeights() { return {k, C, y, x}; }
+    const miopen::ConvolutionDescriptor GetConv()
     {
         return miopen::ConvolutionDescriptor{
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},
@@ -82,8 +82,8 @@ struct ConvTestCase
 
 std::vector<ConvTestCase> GetNetworkForFusionCompileStepTest()
 {
-    return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1},
-            {1, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1}};
+    return {{1, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 std::vector<ConvTestCase> GetNetwork1()
@@ -129,12 +129,10 @@ struct ConvFwdSolverTestBase
 protected:
     void SetUpImpl(ConvTestCase conv_config, miopenTensorLayout_t tensor_layout)
     {
-        // test_skipped                = false;
-        // std::tie(this->algo, this->conv_config) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        input.generate(tensor_elem_gen_integer{17});
-        weights.generate(tensor_elem_gen_integer{17});
+        input.generate(tensor_elem_gen_integer{3});
+        weights.generate(tensor_elem_gen_integer{3});
 
         conv_desc = conv_config.GetConv();
 
@@ -150,29 +148,17 @@ protected:
         out_dev       = handle.Write(output.data);
     }
 
-    void TearDownConv(miopenTensorLayout_t tensor_layout)
+    void TearDownConv()
     {
-
-        auto&& handle = get_handle();
-
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         ref_out = ref_conv_fwd(input, weights, output, conv_desc);
-
-        cpu_convolution_forward(conv_desc.GetSpatialDimension(),
-                                input,
-                                weights,
-                                ref_out,
-                                conv_desc.GetConvPads(),
-                                conv_desc.GetConvStrides(),
-                                conv_desc.GetConvDilations(),
-                                conv_desc.GetGroupCount());
-        output.data = handle.Read<T>(out_dev, output.data.size());
     }
 
     void ThresholdChecks()
     {
+        auto&& handle = get_handle();
+        output.data   = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
