@@ -410,201 +410,118 @@ ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+template <int Winodata, int Winofilter>
 class ShaderModel : public UnifiedDescriptionConv2d
 {
-    static constexpr size_t NHW_tiles_factor = 32;
-
-    size_t n_CU;
-    size_t n_groups;
-
-    double direct_convolution_macs;
-
-    size_t R_loops;
-    size_t S_loops;
-    size_t C_loops;
-
-    size_t n_works_per_CU;
-
-    bool dstride2;
-    bool ostride2;
-
-    bool single_mode;
-
-    bool is_fp16;
-    bool is_2x3;
-
-    bool out_of_model_scope; // Shader model produces unreliable results.
+    const size_t DATATYPE_BITS;    // S
+    const size_t n_groups;         // BQ ~compute units
+    const bool out_of_model_scope; // Shader model produces unreliable results.
 
 public:
-    ShaderModel(const ConvolutionContext& ctx,
-                const ProblemDescription& problem,
-                size_t Winodata,
-                size_t Winofilter)
+    ShaderModel(const ConvolutionContext& ctx, const ProblemDescription& problem)
         : UnifiedDescriptionConv2d(problem),
-          n_CU{ctx.GetStream().GetMaxHardwareComputeUnits()}, /// \todo Take n_CU from PerfConfig.
-          direct_convolution_macs{static_cast<double>(C * N * K) / 1e+6 *
-                                  static_cast<double>(Ceil(S * out_w, input_stride_w) *
-                                                      Ceil(R * out_h, input_stride_h))},
-          is_fp16{problem.IsFp16()},
-          is_2x3{IS2X3},
-          out_of_model_scope
-    {
-        !(problem.GetGroupCount() == 1) || //
-            !(U == 1) ||                   //
-            !(V == 1) ||                   //
-            !(input_stride_h == 1) ||      //
-            !(input_stride_w == 1) ||      //
-            !(filter_stride_h == 1) ||     //
-            !(filter_stride_w == 1) ||     //
+          DATATYPE_BITS(problem.IsFp16() ? 16 : 32),
+          n_groups(ctx.GetStream()
+                       .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
+          out_of_model_scope(!(problem.GetGroupCount() == 1) || //
+                             !(U == 1) ||                       //
+                             !(V == 1) ||                       //
+                             !(input_stride_h == 1) ||          //
+                             !(input_stride_w == 1) ||          //
+                             !(filter_stride_h == 1) ||         //
+                             !(filter_stride_w == 1) ||         //
 #if !WTI_MODEL_ALLOW_ANY_RS
-            !(R <= 5) || //
-            !(S <= 5) || //
+                             !(R <= 5) || //
+                             !(S <= 5) || //
 #endif
-            !(C >= 16) || //
-            !(K >= 16)
-    }
+                             !(C >= 16) || //
+                             !(K >= 16))
     {
-        /// \todo add G to UnifiedDescriptionConv2d
-        size_t G = static_cast<size_t>(problem.GetGroupCount());
-
-        const size_t Ts = Winofilter;
-        const size_t Tr = Winofilter; // Ts and Tr must be the same
-
-        const size_t Tow = Winodata;
-        const size_t Toh = Winodata; // Tow and Toh must be the same
-
-        const bool dstride2_w{input_stride_w == 2};
-        const bool dstride2_h{input_stride_h == 2};
-        dstride2 = dstride2_w && dstride2_h;
-
-        const bool ostride2_w{U == 2};
-        const bool ostride2_h{V == 2};
-        ostride2 = ostride2_w && ostride2_h;
-
-        const bool stride1_w{!(dstride2_w || ostride2_w)};
-        const bool stride1_h{!(dstride2_h || ostride2_h)};
-
-        single_mode =
-            stride1_w &&
-            (S <= Ts /*|| (L_F_FORCE_FILTER_TRAVERSE_MODE == 1 && L_F_FILTER_TRAVERSE_DUAL == 0)*/);
-
-        const auto R_factor = ((stride1_h || (R % (2 * Tr) == 1)) ? Tr : 2 * Tr);
-        const auto Rg       = RoundUpToMultiple(R, R_factor);
-
-        const auto S_factor = single_mode ? Ts : 2 * Ts;
-        const auto Sg       = RoundUpToMultiple(S, S_factor);
-
-        const auto C_factor = is_fp16 ? 2 : 1 /*fp32*/;
-        const auto Cg       = RoundUpToMultiple(C, C_factor);
-
-        const auto K_factor = dstride2 ? 16u : 32u;
-        const auto Kg       = Ceil(K, K_factor);
-
-        const auto OWg = RoundUpToMultiple(out_w + ((dstride2_w && (pad_w % 2 == 0)) ? 1 : 0),
-                                           Tow * input_stride_w);
-        const auto OHg = RoundUpToMultiple(out_h + ((dstride2_h && (pad_h % 2 == 1)) ? 1 : 0),
-                                           Toh * input_stride_h);
-
-        const auto NWH_tiles = N * (OHg / (Toh * input_stride_h)) * (OWg / (Tow * input_stride_w));
-        const auto NHW_tiles_g = Ceil(NWH_tiles, NHW_tiles_factor);
-
-        const auto n_works = Kg * NHW_tiles_g;
-
-        S_loops = Sg / S_factor;
-        R_loops = Rg / Tr;
-        S_loops = Cg / C_factor;
-
-        if(G == 1)
-        {
-            n_groups       = n_CU;
-            n_works_per_CU = Ceil(n_works, n_CU);
-            return;
-        }
-
-        const auto NKWH_w = K_factor * NHW_tiles_factor * Toh * Tow;
-        const auto grid_g = static_cast<double>(NKWH_w * Cg * Rg * Sg) / 1e6;
-
-        auto compute_granularity_loss =
-            [n_works, G, grid_g, CU = n_CU, dc_macs = direct_convolution_macs](size_t groups) {
-                const auto works_per_CU = Ceil(n_works, groups) * Ceil(G * groups, CU);
-                const auto n_works_g    = works_per_CU * CU;
-                const auto macs_g       = static_cast<double>(n_works_g) * grid_g;
-                return 1. - dc_macs / macs_g;
-            };
-
-        n_groups         = 1;
-        double best_loss = compute_granularity_loss(n_groups);
-        for(auto i = n_groups + 1; i < n_CU; ++i)
-        {
-            auto loss = compute_granularity_loss(i);
-            if(loss < best_loss)
-            {
-                n_groups  = i;
-                best_loss = loss;
-            }
-        }
-
-        n_works_per_CU = Ceil(n_works, n_groups) * Ceil(G * n_groups, n_CU);
+        // Computations do not support negative padding.
+        // Negative padding is not applicable, so let use simple assert here.
+        assert(pad_h >= 0 && pad_w >= 0);
     }
 
-    size_t GetNGroups() const noexcept { return n_groups; }
-
-    double ComputeWti() const noexcept
+    double ComputeWti() const
     {
         if(out_of_model_scope)
             return -1.0; // Shader model produces unreliable results.
 
-        // perf tables for the following kernel binaries:
-        // {stride1.f32, ostride2.f32, dstride2.f32} : {stride1.f16, ostride2.f16, dstride2.f16}
-        // should be updated in case of any changes in kernels configurations or implementaion
+        const auto direct_convolution_macs =
+            static_cast<double>(C * N * K) / 1e+6 *
+            static_cast<double>(RoundUpToMultiple(S * out_w / input_stride_w, 1)) *
+            static_cast<double>(RoundUpToMultiple(R * out_h / input_stride_h, 1)); // AK
 
-        // F(2,3)
-        constexpr auto const_2_3 =
-            std::array<std::array<size_t, 3>, 2>{{{23652, 18349, 35391}, {28561, 58446, 40618}}};
-        constexpr auto fe_2_3 =
-            std::array<std::array<size_t, 3>, 2>{{{648, 690, 664}, {872, 737, 800}}};
-        constexpr auto ph_2_3 =
-            std::array<std::array<size_t, 3>, 2>{{{308, 326, 316}, {327, 337, 335}}};
-        constexpr auto be_2_3 =
-            std::array<std::array<size_t, 3>, 2>{{{2039, 2409, 1873}, {1852, 2533, 1593}}};
+        constexpr size_t TILE_S = Winofilter; // AL
+        constexpr size_t TILE_R = Winofilter; // AO
+        assert(!(U > 2 && V > 2));
+        const auto granulated_S =
+            (U == 1 && input_stride_w == 1 && filter_stride_w == 1 && S <= TILE_S)
+                ? TILE_S
+                : RoundUpToMultiple(S, 2 * TILE_S); // AM
+        const auto granulated_R = RoundUpToMultiple(
+            R,
+            (((V == 1 && input_stride_h == 1 && filter_stride_h == 1) || (R % (2 * TILE_R) == 1))
+                 ? TILE_R
+                 : 2 * TILE_R)); // AP
 
-        // F(3,2)
-        constexpr auto const_3_2 =
-            std::array<std::array<size_t, 3>, 2>{{{37329, 38554, 39701}, {41417, 49740, 57820}}};
-        constexpr auto fe_3_2 =
-            std::array<std::array<size_t, 3>, 2>{{{950, 616, 550}, {799, 779, 573}}};
-        constexpr auto ph_3_2 =
-            std::array<std::array<size_t, 3>, 2>{{{295, 315, 308}, {309, 329, 325}}};
-        constexpr auto be_3_2 =
-            std::array<std::array<size_t, 3>, 2>{{{6295, 9900, 7201}, {4941, 4927, 5111}}};
+        constexpr size_t TILE_OUT_W = Winodata; // AR
+        constexpr size_t TILE_OUT_H = Winodata; // AU
+        const auto granulated_out_w =
+            RoundUpToMultiple(out_w + ((input_stride_w == 2 && (pad_w % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_W * input_stride_w); // AS
+        const auto granulated_out_h =
+            RoundUpToMultiple(out_h + ((input_stride_h == 2 && (pad_h % 2 != 0)) ? 1 : 0),
+                              TILE_OUT_H * input_stride_h); // AV
 
-        const size_t fp_idx     = is_fp16 ? 1 : 0;
-        const size_t stride_idx = ostride2 ? 1 : dstride2 ? 2 : 0 /*stride1*/;
+        constexpr size_t GRANULARITY_NHW_TILES = 32; // AY$2
+        constexpr size_t GRANULARITY_K         = 32; // BC$2
 
-        const auto const_cost = (is_2x3 ? const_2_3 : const_3_2)[fp_idx][stride_idx];
-        const auto fe_cost    = (is_2x3 ? fe_2_3 : fe_3_2)[fp_idx][stride_idx];
-        const auto ph_cost    = (is_2x3 ? ph_2_3 : ph_3_2)[fp_idx][stride_idx];
-        const auto be_cost    = (is_2x3 ? be_2_3 : be_3_2)[fp_idx][stride_idx];
+        const auto NWH_tiles =
+            granulated_out_w * granulated_out_h * N / TILE_OUT_H / TILE_OUT_W; // AX
 
-        const auto fe_calls = n_works_per_CU * S_loops * R_loops;
-        const auto be_calls = n_works_per_CU * (dstride2 ? 2 : 1);
-        const auto phases   = fe_calls * C_loops * (!single_mode && !dstride2 ? 2 : 1);
+        const auto granulated_NWH_tiles = RoundUpToMultiple(
+            NWH_tiles,
+            GRANULARITY_NHW_TILES * ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // AY
 
-        const auto cycles_predicted = static_cast<double>(const_cost + fe_cost * fe_calls +
-                                                          ph_cost * phases + be_cost * be_calls) /
-                                      1e6;
+        const auto granulated_C =
+            RoundUpToMultiple(C,
+                              ((U == 1 && S <= 3) ? 2 : 1) * 32 / DATATYPE_BITS); // BA
 
-        if(cycles_predicted <= 0.1)
+        const auto granulated_K = RoundUpToMultiple(
+            K,
+            GRANULARITY_K / ((input_stride_w == 2 && input_stride_h == 2) ? 2 : 1)); // BC
+
+        const auto NKWH_tiles = granulated_NWH_tiles * granulated_K; // BE
+
+        const auto granulated_NKWH_tiles =
+            RoundUpToMultiple(NKWH_tiles,
+                              n_groups * GRANULARITY_NHW_TILES * GRANULARITY_K); // BR
+
+        const auto works_per_CU = granulated_NKWH_tiles / 32 / n_groups; // BY
+
+        constexpr size_t MIN_FE_PER_WORK = 20; // BZ$2
+
+        const auto fe_per_work =
+            std::max(MIN_FE_PER_WORK,
+                     granulated_S * granulated_R * granulated_C * DATATYPE_BITS / 32); // BZ
+
+        const auto phases   = fe_per_work * works_per_CU; // CA
+        const auto fe_calls = phases;                     // CC
+        const auto be_calls = works_per_CU;               // CD
+
+        constexpr double C0      = 43283;                                       // CB$2
+        constexpr double C1      = 1.012;                                       // CC$2
+        constexpr double C2      = 134.14;                                      // CD$2
+        const auto GUI_predicted = (C0 + C1 * fe_calls + C2 * be_calls) / 1e+6; // CE
+
+        if(GUI_predicted <= 0.1)
             return -1.0; // Unreliable, too small work to do for the shader.
 
-        /// \todo Adjust for different architectures, probably it should be an external source for
-        /// this metric
-        const size_t macs_per_cu_per_clock = 64 * (is_fp16 ? 2 : 1);
-
-        const auto ideal_direct_cycles =
-            direct_convolution_macs / static_cast<double>(n_CU * macs_per_cu_per_clock);
-        const auto WTI_predicted = ideal_direct_cycles / cycles_predicted;
-
+        const auto N_MACS_PER_CU_PER_CLOCK = static_cast<size_t>(64) * 32 / DATATYPE_BITS;
+        const auto WTI_predicted           = direct_convolution_macs /
+                                   static_cast<double>(N_MACS_PER_CU_PER_CLOCK) /
+                                   static_cast<double>(n_groups) / GUI_predicted; // similar to BW
         return WTI_predicted;
     }
 };
@@ -613,7 +530,7 @@ template <int Winodata, int Winofilter>
 static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     constexpr auto WTI_UNKNOWN = -2.0;
-    const auto rv              = ShaderModel(ctx, problem, Winodata, Winofilter).ComputeWti();
+    const auto rv              = ShaderModel<Winodata, Winofilter>(ctx, problem).ComputeWti();
     return rv < 0 ? WTI_UNKNOWN : rv;
 }
 
