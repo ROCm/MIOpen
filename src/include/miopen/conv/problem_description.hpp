@@ -311,8 +311,8 @@ struct ProblemDescription : ProblemDescriptionBase
         return (GetBias() != 0) ? (GetOutChannels() * GetOutElementSize()) : 0;
     }
 
-    std::size_t GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
-    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
+    int GetBackwardPadW() const { return static_cast<int>(GetWeightsWidth()) - GetPadW() - 1; }
+    int GetBackwardPadH() const { return static_cast<int>(GetWeightsHeight()) - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {
