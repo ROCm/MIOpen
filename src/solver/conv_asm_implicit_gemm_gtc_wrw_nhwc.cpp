@@ -644,6 +644,11 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     }
     else
     {
+        /// \todo Fix this
+        /// clang-tidy: DIV/0 in GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel()
+        if(n_per_block == 0)
+            MIOPEN_THROW(miopenStatusInternalError);
+
         // found a suitable m/n/k, now let's prepare other parmater and initialize one
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         for(const auto& config : config_list)
@@ -829,7 +834,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") &&
+       (!StartsWith(device_name, "gfx94")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -841,7 +847,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() &&
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -1042,13 +1049,34 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     result.construction_params.push_back(kernel); // Intentionally without options.
     std::ostringstream options;                   // Common options for both kernels.
+    std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
+    if(ctx.GetStream().GetDeviceName() == "gfx940")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
+    }
+    else if(ctx.GetStream().GetDeviceName() == "gfx941")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
+    }
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 0);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+    }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
-    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {

@@ -181,10 +181,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const;
 
-    std::size_t WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                             const TensorDescriptor& xDesc,
-                                             const TensorDescriptor& dwDesc) const;
-
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
 
@@ -368,22 +364,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
     ConvolutionAttribute attribute;
-
-    void ConvBwdGemm(Handle& handle,
-                     const struct ConvBwdTensors& tensors,
-                     Data_t workSpace,
-                     std::size_t workSpaceSize) const;
-
-    ProblemDescription MakeWrwProblem(const TensorDescriptor& dyDesc,
-                                      const TensorDescriptor& xDesc,
-                                      const TensorDescriptor& dwDesc) const;
-
-    template <class TKernels>
-    void BackwardWeightsDirect(Handle& handle,
-                               const ConvolutionContext& ctx,
-                               const ConvWrwTensors& tensors,
-                               Data_t workSpace,
-                               const TKernels& kernels) const;
 
     std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& exec_ctx,
                                                            const conv::ProblemDescription& problem,
