@@ -599,7 +599,7 @@ public:
 
         /// \todo Adjust for different architectures, probably it should be an external source for
         /// this metric
-        const size_t macs_per_cu_per_clock = static_cast<size_t>(64 * (is_fp16 ? 2 : 1));
+        const size_t macs_per_cu_per_clock = static_cast<size_t>(64) * (is_fp16 ? 2 : 1);
 
         const auto ideal_direct_cycles =
             direct_convolution_macs / static_cast<double>(n_CU * macs_per_cu_per_clock);
