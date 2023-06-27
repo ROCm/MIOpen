@@ -32,6 +32,8 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -
 
 RUN amdgpu-install -y --usecase=rocm --no-dkms
 
+RUN chmod 1777 /tmp
+
 # Install dependencies
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \

@@ -219,6 +219,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
         return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
+        std::cout<<"~~~string: ~~~~"<<conv_ptrs[i]->GetTypeString()<<std::endl;
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               {},

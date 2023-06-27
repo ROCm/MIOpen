@@ -32,7 +32,7 @@
 #include "get_handle.hpp"
 #include "group_conv3d_fwd.hpp"
 
-struct ConvFwdSolverTest3D : ConvFwdSolverTest<float>
+struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
 {
 };
 
