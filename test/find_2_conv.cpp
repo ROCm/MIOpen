@@ -33,6 +33,8 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solution.hpp>
 
+#include <miopen/solver_id.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <vector>
@@ -278,6 +280,11 @@ private:
 
         for(const auto& solution : solutions)
         {
+            uint64_t solver_id;
+            EXPECT_EQUAL(miopenGetSolutionSolverId(solution, &solver_id), miopenStatusSuccess);
+            std::cerr << "Testing solver " << solver_id << " (" << solver::Id(solver_id).ToString()
+                      << ")" << std::endl;
+
             miopenTensorArgumentId_t names[3] = {
                 miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
             void* buffers[3]                        = {x_dev.get(), w_dev.get(), y_dev.get()};
