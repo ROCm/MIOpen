@@ -472,16 +472,17 @@ function(unpack_db db_bzip2_file)
     STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
     find_program(UNZIPPER lbunzip2 bunzip2)
     if(EXISTS "${db_file}")
-        # message(WARNING "${db_file} already exists")
-    elseif(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER} -k ${db_bzip2_file}")
+        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
+    endif()
+    if(EXISTS "${db_bzip2_file}")
+        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
         execute_process(
-            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
+            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
             RESULT_VARIABLE ret
             )
         if(NOT ret EQUAL "0")
-            message(WARNING "${db_file} could not be extracted, file is empty!")
+            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
             execute_process(
                 COMMAND touch ${db_file}
                 WORKING_DIRECTORY ${KERNELS_DIR}
