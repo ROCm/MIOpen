@@ -34,6 +34,13 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
 
+static bool IsTestRunWith(const char* float_arg)
+{
+    assert(float_arg != nullptr);
+    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
+}
+
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
     std::stringstream ss(param);
@@ -105,11 +112,8 @@ TEST_P(ConfigWithFloat, FloatTest)
 {
 #if MIOPEN_EMBED_DB
 
-    const auto& handle         = get_handle();
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-
-    if(IsTestSupportedForDevice(handle) &&
-       (p_envVar != nullptr && std::strcmp(p_envVar, "--float") == 0))
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--float"))
     {
         Run2dDriver(miopenFloat);
     }
@@ -127,11 +131,8 @@ TEST_P(ConfigWithHalf, HalfTest)
 {
 #if MIOPEN_EMBED_DB
 
-    const auto& handle         = get_handle();
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-
-    if(IsTestSupportedForDevice(handle) &&
-       (p_envVar != nullptr && std::strcmp(p_envVar, "--half") == 0))
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }
@@ -149,11 +150,8 @@ TEST_P(ConfigWithInt8, Int8Test)
 {
 #if MIOPEN_EMBED_DB
 
-    const auto& handle         = get_handle();
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-
-    if(IsTestSupportedForDevice(handle) &&
-       (p_envVar != nullptr && std::strcmp(p_envVar, "--int8") == 0))
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }
@@ -171,11 +169,8 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 {
 #if MIOPEN_EMBED_DB
 
-    const auto& handle         = get_handle();
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-
-    if(IsTestSupportedForDevice(handle) &&
-       (p_envVar != nullptr && std::strcmp(p_envVar, "--bfloat16") == 0))
+    const auto& handle = get_handle();
+    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--bfloat16"))
     {
         Run2dDriver(miopenBFloat16);
     }
