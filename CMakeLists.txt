@@ -64,7 +64,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI based heuristics")
+set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -154,6 +155,10 @@ else()
 endif()
 
 if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        message(FATAL_ERROR "AI-based fallback for Immediate Mode cannot be used \
+        with database embedding")
+    endif()
     if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
         message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
     endif()
@@ -467,16 +472,17 @@ function(unpack_db db_bzip2_file)
     STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
     find_program(UNZIPPER lbunzip2 bunzip2)
     if(EXISTS "${db_file}")
-        # message(WARNING "${db_file} already exists")
-    elseif(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER} -k ${db_bzip2_file}")
+        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
+    endif()
+    if(EXISTS "${db_bzip2_file}")
+        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
         execute_process(
-            COMMAND ${UNZIPPER} -k ${db_bzip2_file}
+            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
             WORKING_DIRECTORY ${KERNELS_DIR}
             RESULT_VARIABLE ret
             )
         if(NOT ret EQUAL "0")
-            message(WARNING "${db_file} could not be extracted, file is empty!")
+            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
             execute_process(
                 COMMAND touch ${db_file}
                 WORKING_DIRECTORY ${KERNELS_DIR}
@@ -511,16 +517,18 @@ function(install_kdb)
     else()
         unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-        rocm_install(FILES
-            src/kernels/${FILE_NAME}.kdb
-        DESTINATION ${DATA_INSTALL_DIR}/db
-        COMPONENT ${PARSE_COMPONENT_NAME})
+        if( NOT ENABLE_ASAN_PACKAGING )
+          rocm_install(FILES
+              src/kernels/${FILE_NAME}.kdb
+          DESTINATION ${DATA_INSTALL_DIR}/db
+          COMPONENT ${PARSE_COMPONENT_NAME})
+        endif()
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
-list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
+list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 list(LENGTH ARCH_LST FULL_LEN)
 math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
