@@ -7,8 +7,7 @@
 from rocm_docs import ROCmDocs
 
 
-external_projects_current_project = "miopen
-"
+external_projects_current_project = "miopen"
 docs_core = ROCmDocs("MIOpen Documentation")
 docs_core.run_doxygen()
 docs_core.setup()
