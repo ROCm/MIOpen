@@ -52,7 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
 static boost::filesystem::path ComputeSysCachePath()
 {
     const std::string cache_dir = GetSystemDbPath();
-    auto p                      = boost::filesystem::path{miopen::ExpandUser(cache_dir)};
+    auto p                      = miopen::ExpandUser(cache_dir);
     if(!boost::filesystem::exists(p))
         return {};
     else
@@ -62,16 +62,28 @@ static boost::filesystem::path ComputeSysCachePath()
 static boost::filesystem::path ComputeUserCachePath()
 {
 #ifdef MIOPEN_CACHE_DIR
-    const std::string cache_dir = MIOPEN_CACHE_DIR;
-    const std::string version =
-        std::to_string(MIOPEN_VERSION_MAJOR) + "." + std::to_string(MIOPEN_VERSION_MINOR) + "." +
-        std::to_string(MIOPEN_VERSION_PATCH) + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
-
-    const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
-    const auto p             = (custom != nullptr && strlen(custom) > 0)
-                                   ? boost::filesystem::path{miopen::ExpandUser(custom)}
-                                   : boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
-
+    boost::filesystem::path p;
+    /// If MIOPEN_CUSTOM_CACHE_DIR is set in the environment, then
+    /// use exactly that path.
+    const auto custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
+    if(custom != nullptr && strlen(custom) > 0)
+    {
+        p = ExpandUser(custom);
+    }
+    else
+    {
+        const std::string cache_dir = MIOPEN_CACHE_DIR;
+        const std::string version   = std::to_string(MIOPEN_VERSION_MAJOR)       //
+                                    + "." + std::to_string(MIOPEN_VERSION_MINOR) //
+                                    + "." + std::to_string(MIOPEN_VERSION_PATCH) //
+                                    + "." + MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK);
+        p = miopen::ExpandUser(cache_dir) / version;
+#if !MIOPEN_BUILD_DEV
+        /// \ref nfs-detection
+        if(IsNetworkedFilesystem(p))
+            p = boost::filesystem::temp_directory_path();
+#endif
+    }
     if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
     return p;
