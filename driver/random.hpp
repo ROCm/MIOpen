@@ -2,15 +2,18 @@
 #define GUARD_RANDOM_GEN_
 
 #include <cstdlib>
+#include <ctime>
+#include <cstdint>
 
 template <typename T>
 inline T FRAND()
 {
-    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
+    std::uint32_t seed = time(nullptr);
+    double d = static_cast<double>(rand_r(&seed) / (static_cast<double>(RAND_MAX)));
     return static_cast<T>(d);
 }
 
-inline int GET_RAND() { return rand(); }
+inline int GET_RAND() {std::uint32_t seed = time(nullptr); return rand_r(&seed); }
 
 template <typename T>
 inline T RAN_GEN(T A, T B)
