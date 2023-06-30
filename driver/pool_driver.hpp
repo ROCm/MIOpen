@@ -567,14 +567,14 @@ template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
 {
     int nInStride, cInStride, dInStride, hInStride, wInStride;
-    int nIn, cIn, dIn, hIn, wIn;
+    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
     int nOutStride, cOutStride, dOutStride, hOutStride, wOutStride;
-    int nOut, cOut, dOut, hOut, wOut;
-    miopenPoolingMode_t mode;
+    int nOut = 0, cOut = 0, dOut = 0, hOut = 0, wOut = 0;
+    miopenPoolingMode_t mode = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
-    int windowDepth, windowHeight, windowWidth;
-    int pad_d, pad_h, pad_w;
-    int stride_d, stride_h, stride_w;
+    int windowDepth = 0, windowHeight = 0, windowWidth = 0;
+    int pad_d = 0, pad_h = 0, pad_w = 0;
+    int stride_d = 0, stride_h = 0, stride_w = 0;
 
     if(spatial_dim == 2)
     {
@@ -694,16 +694,16 @@ template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
 {
     int ndInStride, cdInStride, ddInStride, hdInStride, wdInStride;
-    int nIn, cIn, dIn, hIn, wIn;
+    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
     int ndOutStride, cdOutStride, ddOutStride, hdOutStride, wdOutStride;
-    int nOut, cOut, dOut, hOut, wOut;
+    int nOut = 0, cOut = 0, dOut = 0, hOut = 0, wOut = 0;
     int ndIn, cdIn, ddIn, hdIn, wdIn;
     int ndOut, cdOut, ddOut, hdOut, wdOut;
-    miopenPoolingMode_t mode;
+    miopenPoolingMode_t mode = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
-    int windowDepth, windowHeight, windowWidth;
-    int pad_d, pad_h, pad_w;
-    int stride_d, stride_h, stride_w;
+    int windowDepth = 0, windowHeight = 0, windowWidth = 0;
+    int pad_d = 0, pad_h = 0, pad_w = 0;
+    int stride_d = 0, stride_h = 0, stride_w = 0;
 
     if(spatial_dim == 2)
     {

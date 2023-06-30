@@ -896,7 +896,7 @@ std::vector<int> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
         }
     }
 
-    miopenConvolutionMode_t mode;
+    miopenConvolutionMode_t mode = miopenConvolution;
     if((inflags.GetValueStr("mode")) == "conv")
     {
         mode = miopenConvolution;
@@ -1833,7 +1833,7 @@ void ConvDriver<Tgpu, Tref>::GetSolutionAfterFind(
     miopenConvSolution_t& solution)
 {
     AutoMiopenWarmupMode warmupMode; // Shut logging.
-    miopenConvAlgorithm_t found_algo;
+    miopenConvAlgorithm_t found_algo = static_cast<miopenConvAlgorithm_t>(found.fwd_algo);
     switch(direction)
     {
     case Direction::Fwd: found_algo = static_cast<miopenConvAlgorithm_t>(found.fwd_algo); break;
