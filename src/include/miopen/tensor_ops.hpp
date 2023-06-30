@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -182,8 +182,9 @@ void CopyTensor(const Handle& handle,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
-                int srcOffset = 0,
-                int dstOffset = 0);
+                int srcOffset   = 0,
+                int dstOffset   = 0,
+                bool forseAsync = false);
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
