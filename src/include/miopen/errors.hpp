@@ -57,7 +57,6 @@ struct Exception : std::exception
 std::string OpenCLErrorMessage(int error, const std::string& msg = "");
 std::string HIPErrorMessage(int error, const std::string& msg = "");
 
-
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcomment"

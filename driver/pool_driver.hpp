@@ -570,7 +570,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
     int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
     int nOutStride, cOutStride, dOutStride, hOutStride, wOutStride;
     int nOut = 0, cOut = 0, dOut = 0, hOut = 0, wOut = 0;
-    miopenPoolingMode_t mode = miopenPoolingMax;
+    miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
     int windowDepth = 0, windowHeight = 0, windowWidth = 0;
     int pad_d = 0, pad_h = 0, pad_w = 0;
@@ -699,7 +699,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
     int nOut = 0, cOut = 0, dOut = 0, hOut = 0, wOut = 0;
     int ndIn, cdIn, ddIn, hdIn, wdIn;
     int ndOut, cdOut, ddOut, hdOut, wdOut;
-    miopenPoolingMode_t mode = miopenPoolingMax;
+    miopenPoolingMode_t mode  = miopenPoolingMax;
     miopenPaddingMode_t pmode = miopen::deref(poolDesc).pmode;
     int windowDepth = 0, windowHeight = 0, windowWidth = 0;
     int pad_d = 0, pad_h = 0, pad_w = 0;

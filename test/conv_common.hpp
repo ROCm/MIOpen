@@ -448,6 +448,10 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     return rout;
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 // Mainline convolution tests
 //========================================
 template <ConvApi api, class T, class Tout = T>
@@ -1584,7 +1588,9 @@ struct verify_backward_weights_conv : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
-
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 template <class T>
 struct verify_forward_conv_int8 : conv_base<T>
 {
