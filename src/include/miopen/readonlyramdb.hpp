@@ -87,7 +87,7 @@ public:
         return record->GetValues(id, value);
     }
 
-private:
+// private:
     struct CacheItem
     {
         int line;
