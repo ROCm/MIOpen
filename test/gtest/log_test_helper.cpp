@@ -48,12 +48,12 @@ const std::string logFindConv =
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 
 const std::string logFusionConvBiasActiv =
-    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4  -n 128 -c 3 -H 32 "
+    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 128 -c 3 -H 32 "
     "-W 32 -k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1";
 
 const std::string logBnormActiv =
-    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver bnormfp -F 2 bnorm -n 64 -c 64 "
-    "-H 56 -W 56 -m 1 --forw 2 -b 0 -s 1";
+    "MIOpen(" BKEND
+    "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 2 -n 64 -c 64 -H 56 -W 56 -M 1";
 
 const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 

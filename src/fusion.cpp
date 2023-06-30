@@ -183,7 +183,7 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
         str = "CBAInfer";
     }
 
-    str += " -F " + std::to_string(fusion_mode) + " ";
+    str += " -F " + std::to_string(fusion_mode);
     str += ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false, false);
 
     return str;
@@ -199,59 +199,33 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
     std::string str;
     if(deref(fusePlanDesc).data_type == miopenBFloat16)
     {
-        str = "bnormfp16";
+        str = "CBAInferfp16";
     }
     else
     {
-        str = "bnormfp";
+        str = "CBAInfer";
     }
-    str += " -F " + std::to_string(fusion_mode) + " ";
+    str += " -F " + std::to_string(fusion_mode);
 
     const auto& bn_op =
         dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
 
-    fusion::BatchNormInferenceOpInvokeParam* param_ptr_fwd =
-        dynamic_cast<fusion::BatchNormInferenceOpInvokeParam*>(op_args.params[0].get());
-
-    if(param_ptr_fwd != nullptr)
-    {
-        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
-                                        bn_op->mode,
-                                        param_ptr_fwd->estimatedMean,
-                                        param_ptr_fwd->estimatedVariance,
-                                        nullptr,
-                                        nullptr,
-                                        miopen::debug::BatchNormDirection_t::ForwardInference);
-        return str;
-    }
-    fusion::BatchNormFwdTrainingOpInvokeParam* param_ptr_fwd_train =
-        dynamic_cast<fusion::BatchNormFwdTrainingOpInvokeParam*>(op_args.params[0].get());
-    if(param_ptr_fwd_train != nullptr)
-    {
-        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
-                                        bn_op->mode,
-                                        param_ptr_fwd_train->runningMean,
-                                        param_ptr_fwd_train->runningVariance,
-                                        param_ptr_fwd_train->savedMean,
-                                        param_ptr_fwd_train->savedInvVariance,
-                                        miopen::debug::BatchNormDirection_t::ForwardTraining);
-        return str;
-    }
-    fusion::BatchNormBwdTrainingOpInvokeParam* param_ptr_bwd =
-        dynamic_cast<fusion::BatchNormBwdTrainingOpInvokeParam*>(op_args.params[0].get());
-    if(param_ptr_bwd != nullptr)
+    if(bn_op)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
                                         bn_op->mode,
                                         nullptr,
                                         nullptr,
-                                        param_ptr_bwd->savedMean,
-                                        param_ptr_bwd->savedInvVariance,
-                                        miopen::debug::BatchNormDirection_t::Backward);
-        return str;
+                                        nullptr,
+                                        nullptr,
+                                        miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        false);
     }
-    MIOPEN_LOG_E("Dereferencing nullptr when logging batch norm");
-    return "";
+    else
+    {
+        MIOPEN_LOG_E("Dereferencing nullptr when logging batch norm");
+    }
+    return str;
 }
 
 void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, const OperatorArgs& op_args)
@@ -259,21 +233,16 @@ void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, const Operato
     if(miopen::IsLoggingCmd())
     {
         int fusion_mode = GetFusionMode(fusePlanDesc);
-
-        if(fusion_mode == 0 || fusion_mode == 1 || fusion_mode == 3 || fusion_mode == 4 ||
-           fusion_mode == 5 || fusion_mode == 6)
+        switch(fusion_mode)
         {
-            const std::string& str = LogCmdConvolutionFusion(fusePlanDesc, fusion_mode);
-            MIOPEN_LOG_DRIVER_CMD(str);
-        }
-        else if(fusion_mode == 2)
-        {
-            const std::string& str = LogCmdBnormFusion(fusePlanDesc, op_args, fusion_mode);
-            MIOPEN_LOG_DRIVER_CMD(str);
-        }
-        else
-        {
-            MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
+        case 0:
+        case 1:
+        case 3:
+        case 4:
+        case 5:
+        case 6: MIOPEN_LOG_DRIVER_CMD(LogCmdConvolutionFusion(fusePlanDesc, fusion_mode)); break;
+        case 2: MIOPEN_LOG_DRIVER_CMD(LogCmdBnormFusion(fusePlanDesc, op_args, fusion_mode)); break;
+        default: MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
         }
     }
 }

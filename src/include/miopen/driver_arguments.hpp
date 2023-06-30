@@ -63,7 +63,7 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                     const miopenTensorDescriptor_t& yDesc,
                                     const ConvDirection& conv_dir,
                                     bool is_immediate,
-                                    bool print_all_args_info = true);
+                                    bool print_for_conv_driver = true);
 
 std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                      miopenBatchNormMode_t bn_mode,
@@ -71,6 +71,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                      const void* resultRunningVariance,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
-                                     const BatchNormDirection_t& dir);
+                                     const BatchNormDirection_t& dir,
+                                     bool print_for_bn_driver = true);
 } // namespace debug
 } // namespace miopen

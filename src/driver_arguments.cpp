@@ -50,16 +50,53 @@ void ConvDataType(std::stringstream& ss, const miopenTensorDescriptor_t& desc)
     }
 }
 
+void BnDataType(std::stringstream& ss, const miopenTensorDescriptor_t& desc)
+{
+    if(miopen::deref(desc).GetType() == miopenHalf)
+    {
+        ss << "bnormfp16";
+    }
+    else
+    {
+        ss << "bnorm";
+    }
+}
+
+void BnDriverInfo(std::stringstream& ss,
+                  const BatchNormDirection_t& dir,
+                  const void* resultRunningMean,
+                  const void* resultRunningVariance,
+                  const void* resultSaveMean,
+                  const void* resultSaveInvVariance)
+{
+    if(dir != Backward)
+    {
+        ss << " --forw " << (dir == ForwardInference ? "2" : "1") << " -b 0";
+    }
+    else
+    {
+        ss << " --forw 0 -b 1";
+    }
+    if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
+    {
+        ss << " -s 1";
+    }
+    if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
+    {
+        ss << " -r 1";
+    }
+}
+
 std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                     const miopenTensorDescriptor_t& wDesc,
                                     const miopenConvolutionDescriptor_t& convDesc,
                                     const miopenTensorDescriptor_t& yDesc,
                                     const ConvDirection& conv_dir,
                                     bool is_immediate,
-                                    bool print_all_args_info)
+                                    bool print_for_conv_driver)
 {
     std::stringstream ss;
-    if(print_all_args_info)
+    if(print_for_conv_driver)
         ConvDataType(ss, xDesc);
     if(miopen::deref(convDesc).GetSpatialDimension() == 2)
     {
@@ -129,10 +166,10 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
             ss << " --out_layout " << y_layout;
         }
     }
-    if(print_all_args_info)
+    if(print_for_conv_driver)
         ss << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv"); // clang-format off
     ss << " -g " << miopen::deref(convDesc).group_count;
-    if(print_all_args_info)
+    if(print_for_conv_driver)
         ss << " -F " << std::to_string(static_cast<int>(conv_dir)) << " -t 1"; // clang-format on
     if(miopen::deref(xDesc).GetType() == miopenInt8x4)
         ss << " -Z 1";
@@ -148,19 +185,15 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
                                      const void* resultRunningVariance,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
-                                     const BatchNormDirection_t& dir)
+                                     const BatchNormDirection_t& dir,
+                                     bool print_for_bn_driver)
 {
     int size = {0};
     miopenGetTensorDescriptorSize(xDesc, &size);
     std::stringstream ss;
-    if(miopen::deref(xDesc).GetType() == miopenHalf)
-    {
-        ss << "bnormfp16";
-    }
-    else
-    {
-        ss << "bnorm";
-    }
+    if(print_for_bn_driver)
+        BnDataType(ss, xDesc);
+
     ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
             << " -c " << miopen::deref(xDesc).GetLengths()[1];
         if(size == 5)
@@ -174,23 +207,14 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
             << " -W " << miopen::deref(xDesc).GetLengths()[3];
         }
-            ss << " -m " << bn_mode; // clang-format on
-    if(dir != Backward)
-    {
-        ss << " --forw " << (dir == ForwardInference ? "2" : "1") << " -b 0";
-    }
-    else
-    {
-        ss << " --forw 0 -b 1";
-    }
-    if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
-    {
-        ss << " -s 1";
-    }
-    if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
-    {
-        ss << " -r 1";
-    }
+            ss << " -M " << bn_mode; // clang-format on
+    if(print_for_bn_driver)
+        BnDriverInfo(ss,
+                     dir,
+                     resultRunningMean,
+                     resultRunningVariance,
+                     resultSaveMean,
+                     resultSaveInvVariance);
     return ss.str();
 }
 
