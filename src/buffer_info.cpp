@@ -60,6 +60,10 @@ MemLayout_t GetSwappedNCLayout(MemLayout_t layout)
     }
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+#endif
 MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer)
 {
     if(IsDataBuffer)
@@ -98,6 +102,9 @@ MemLayout_t GetGroupConvLayout(MemLayout_t layout, bool IsDataBuffer)
     }
     MIOPEN_THROW(std::string("Internal error in GetGroupConvLayout: Unknown MemLayout_t "));
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 BuffInfo::BuffInfo(MemLayout_t layout, int nk, int c, int h, int w, int g, int _element_size)
 {

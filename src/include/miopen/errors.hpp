@@ -57,12 +57,21 @@ struct Exception : std::exception
 std::string OpenCLErrorMessage(int error, const std::string& msg = "");
 std::string HIPErrorMessage(int error, const std::string& msg = "");
 
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcomment"
+#endif
 #define MIOPEN_THROW(...) \
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-do-while)                     \
     do                                                                       \
     {                                                                        \
         throw miopen::Exception(__VA_ARGS__).SetContext(__FILE__, __LINE__); \
     } while(false)
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #define MIOPEN_THROW_CL_STATUS(...) \
     MIOPEN_THROW(miopenStatusUnknownError, miopen::OpenCLErrorMessage(__VA_ARGS__))
 #define MIOPEN_THROW_HIP_STATUS(...) \
@@ -99,6 +108,7 @@ template <class T>
 auto deref(T&& x, miopenStatus_t err = miopenStatusBadParm)
     -> decltype((x == nullptr), get_object(*x))
 {
+    (void)err; // WA till C++17 [[maybe_unused]]
     if(x == nullptr)
     {
         MIOPEN_THROW(err, "Dereferencing nullptr");

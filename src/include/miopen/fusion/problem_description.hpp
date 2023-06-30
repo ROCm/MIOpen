@@ -93,7 +93,10 @@ struct FusionDescription
         ProblemDescription::Visit(conv_prob, f);
     }
 #endif
-
+    #ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wreturn-type"
+    #endif
     // This and the following method should be moved to the Ops once the return type can be unified
     miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
@@ -164,6 +167,9 @@ struct FusionDescription
         else
             MIOPEN_THROW(miopenStatusNotImplemented);
     }
+    #ifdef __clang__
+    #pragma clang diagnostic pop
+    #endif
 };
 
 } // namespace miopen

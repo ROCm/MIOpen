@@ -347,6 +347,10 @@ struct ProblemDescription : ProblemDescriptionBase
                (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
     }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+#endif
     // To be used in Solvers that do not implement ALT FP16 kernels.
     // Those Solvers must be non-applicable for gfx90a when this function returns true.
     bool IsGfx90aFp16altRequired() const
@@ -361,6 +365,9 @@ struct ProblemDescription : ProblemDescriptionBase
             return conv.attribute.gfx90aFp16alt.GetWrW();
         MIOPEN_THROW("Direction must be known!");
     }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
     bool IsLayoutDefault() const;
     bool IsLayoutNHWC() const;

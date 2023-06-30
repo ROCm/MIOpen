@@ -53,6 +53,7 @@ public:
 
 void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
 {
+    (void)miir_fn_name; // WA till C++17 [[maybe_unused]]
     switch(status)
     {
     case MIIR_SUCCESS: return;

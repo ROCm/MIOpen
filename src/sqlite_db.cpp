@@ -225,6 +225,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
 
 int SQLite::Retry(std::function<int()> f, std::string filename)
 {
+    (void)filename; // WA till C++17 [[maybe_unused]]
 #if !MIOPEN_ENABLE_SQLITE_BACKOFF
     int rc = f();
     if(rc == SQLITE_BUSY)

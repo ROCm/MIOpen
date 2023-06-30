@@ -290,7 +290,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
     }
 
-    std::size_t out_c;
+    std::size_t out_c = wei_k;
     std::vector<std::size_t> out_lens(spatial_dim + 2);
 
     auto out_spatial = boost::adaptors::slice(out_lens, 2, 2 + spatial_dim);
@@ -528,6 +528,10 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
     }
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+#endif
 int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
@@ -538,6 +542,9 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");
 }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 void to_json(nlohmann::json& json, const ConvolutionAttribute& conv)
 {

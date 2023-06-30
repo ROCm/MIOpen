@@ -149,6 +149,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
 const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                             const std::string& name_str) const
 {
+    (void)name_str; // WA till C++17 [[maybe_unused]]
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
         MIOPEN_THROW(miopenStatusInvalidValue,
