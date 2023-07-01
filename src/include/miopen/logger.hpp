@@ -346,7 +346,12 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 // Warnings in installable builds, errors otherwise.
 #define MIOPEN_LOG_WE(...) MIOPEN_LOG(LogWELevel, __VA_ARGS__)
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcomment"
+#endif
 #define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-do-while)                                       \
     do                                                                                         \
     {                                                                                          \
         std::ostringstream miopen_driver_cmd_ss;                                               \
@@ -357,6 +362,10 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
                              << "] ./bin/MIOpenDriver " << __VA_ARGS__ << std::endl;           \
         std::cerr << miopen_driver_cmd_ss.str();                                               \
     } while(false)
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
