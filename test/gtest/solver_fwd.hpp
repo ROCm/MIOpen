@@ -71,11 +71,8 @@ struct ConvFwdSolverTest
         if(solv.MayNeedWorkspace())
         {
             const auto cur_sol_ws = solv.GetWorkspaceSize(ctx, problem);
-            if(cur_sol_ws > workspace_size)
-            {
-                workspace_dev  = handle.Create<T>(cur_sol_ws);
-                workspace_size = cur_sol_ws;
-            }
+            workspace_dev         = handle.Create<T>(cur_sol_ws);
+            workspace_size        = cur_sol_ws;
         }
 
         const auto invoke_params =

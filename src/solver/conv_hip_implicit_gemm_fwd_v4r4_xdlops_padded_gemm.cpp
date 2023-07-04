@@ -1047,6 +1047,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!ctx.use_hip_kernels)
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 

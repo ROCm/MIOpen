@@ -67,6 +67,9 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
        problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     std::size_t n         = problem.GetBatchSize();
     std::size_t k         = problem.GetOutChannels() / problem.GetGroupCount();
     std::size_t c         = problem.GetInChannels() / problem.GetGroupCount();

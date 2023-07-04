@@ -410,6 +410,9 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     if(activ_op.activMode != miopenActivationRELU)
         return false;
     const auto& problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||

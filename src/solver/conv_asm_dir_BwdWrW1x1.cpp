@@ -484,6 +484,9 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
     if(!ctx.rmv.IsV2orV3())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;

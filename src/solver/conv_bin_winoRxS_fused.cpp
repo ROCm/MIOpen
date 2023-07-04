@@ -87,6 +87,9 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
 
     size_t padded_y = 0;
     size_t padded_x = 0;
+
+    if(conv_problem.IsTensorsCasted())
+        return false;
     if(conv_problem.GetKernelStrideH() == 1)
     {
         if(y <= 3)

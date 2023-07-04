@@ -67,6 +67,9 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     bool result = (problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
                    problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
                    problem.GetGroupCount() == 1);

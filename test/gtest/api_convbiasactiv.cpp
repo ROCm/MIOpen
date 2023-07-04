@@ -178,7 +178,7 @@ void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
 {
     const auto dev_name = get_handle().GetDeviceName();
 #if WORKAROUND_ISSUE_2212
-    if(!miopen::StartsWith(dev_name, "gfx11") && miopen::StartsWith(dev_name, "gfx94"))
+    if(!miopen::StartsWith(dev_name, "gfx11") && !miopen::StartsWith(dev_name, "gfx94"))
 #endif
     {
         cba_test_cases.push_back(CBATestCase{

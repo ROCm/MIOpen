@@ -363,6 +363,9 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
        problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.direction.IsBackwardData())
         return false;
     if(!problem.Is2d())

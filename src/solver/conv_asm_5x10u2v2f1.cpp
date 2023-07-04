@@ -76,6 +76,9 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
         return false;
     }
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     // Min image + padding shall be not smaller than filter matrix.
     const int min_in_width  = problem.GetWeightsWidth() - problem.GetPadW() * 2;
     const int min_in_height = problem.GetWeightsHeight() - problem.GetPadH() * 2;

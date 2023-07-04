@@ -188,6 +188,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     if(target.Xnack() && *target.Xnack())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const std::string name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;

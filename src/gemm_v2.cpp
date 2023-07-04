@@ -76,11 +76,58 @@
 /// Let's pass literal value as a workaround; there should be no harm.
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_FLAT == 2042000)
 
+static inline uint32_t
+FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp16Alt)
+{
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL
+    return desc.gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0;
+#elif USE_GEMM_FLAGS_FP16_ALT_IMPL_242
+    return desc.gfx90a_alt_impl ? 0x4 : 0;
+#else
+    std::ignore = desc;
+    MIOPEN_LOG_W("The gfx90aFp16Alt is not supported by rocBlas");
+    return 0;
+#endif
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL_242 // -warning: macro is not used
+#endif
+}
+
+#if MIOPEN_USE_ROCBLAS
+#if USE_ROCBLAS_GEMM_EX3
+static inline rocblas_computetype rocBlasComputeType(const miopen::GemmDescriptor& desc)
+{
+    if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenFloat8)
+        return rocblas_compute_type_f8_f8_f32;
+    else if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenBFloat8)
+        return rocblas_compute_type_f8_bf8_f32;
+    else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenFloat8)
+        return rocblas_compute_type_bf8_f8_f32;
+    else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenBFloat8)
+        return rocblas_compute_type_bf8_bf8_f32;
+    else
+        return rocblas_compute_type_f32;
+}
+#else
+static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& desc)
+{
+    // Complex compute types are only supported in newer version of the API
+    assert(desc.dataType == desc.a_cast_type && desc.dataType == desc.b_cast_type);
+    if(desc.dataType == miopenInt8 || desc.dataType == miopenInt8x4)
+        return rocblas_datatype::rocblas_datatype_i32_r;
+    else
+        return rocblas_datatype::rocblas_datatype_f32_r;
+}
+#endif
+#endif // MIOPEN_USE_ROCBLAS
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
 {
-#if defined(__gfx940__)
+#if USE_ROCBLAS_GEMM_EX3
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return (rocblas_gemm_ex3)(xs...);
+#pragma clang diagnostic pop
 #elif AVOID_ROCBLAS_WRAPPERS_204
     return (rocblas_gemm_ex)(xs...);
 #else
@@ -100,6 +147,208 @@ auto miopen_rocblas_gemm_strided_batched_ex(Ts... xs)
 #endif
 }
 
+#if USE_ROCBLAS_GEMM_EX3
+static inline auto miopen_rocblas_gemm_strided_batched_ex3(const miopen::GemmDescriptor& gemm_desc,
+                                                           rocblas_handle handle,
+                                                           rocblas_operation transA,
+                                                           rocblas_operation transB,
+                                                           rocblas_int m,
+                                                           rocblas_int n,
+                                                           rocblas_int k,
+                                                           const void* alpha,
+                                                           const void* a,
+                                                           rocblas_datatype a_type,
+                                                           rocblas_int lda,
+                                                           rocblas_stride stride_a,
+                                                           const void* b,
+                                                           rocblas_datatype b_type,
+                                                           rocblas_int ldb,
+                                                           rocblas_stride stride_b,
+                                                           const void* beta,
+                                                           const void* c,
+                                                           rocblas_datatype c_type,
+                                                           rocblas_int ldc,
+                                                           rocblas_stride stride_c,
+                                                           void* d,
+                                                           rocblas_datatype d_type,
+                                                           rocblas_int ldd,
+                                                           rocblas_stride stride_d,
+                                                           rocblas_int batch_count,
+                                                           rocblas_gemm_algo algo,
+                                                           int32_t solution_index,
+                                                           uint32_t flags)
+{
+    // The new API must be used when tensors are being cast for fp16 and bfp16 tensors or if they
+    // are natively in [b]fp8
+    const auto ex3_compute = rocBlasComputeType(gemm_desc);
+    if(ex3_compute != rocblas_compute_type_f32 &&
+       (gemm_desc.dataType == miopenHalf || gemm_desc.dataType == miopenBFloat16))
+    {
+        rocblas_status rb_status = rocblas_status_internal_error;
+        // Until there is a batched counter part to the ex3 rocBlas call we need to iterate over the
+        // batched GEMM
+        for(int bCount = 0; bCount < batch_count; ++bCount)
+        {
+            rb_status = rocblas_gemm_ex3(handle,
+                                         transA,
+                                         transB,
+                                         m,
+                                         n,
+                                         k,
+                                         alpha,
+                                         static_cast<const char*>(a) + bCount * stride_a,
+                                         a_type,
+                                         lda,
+                                         static_cast<const char*>(b) + bCount * stride_b,
+                                         b_type,
+                                         ldb,
+                                         beta,
+                                         static_cast<const char*>(c) + bCount * stride_c,
+                                         c_type,
+                                         ldc,
+                                         static_cast<char*>(d) + bCount * stride_d,
+                                         d_type,
+                                         ldc,
+                                         ex3_compute,
+                                         rocblas_gemm_algo::rocblas_gemm_algo_standard,
+                                         0,
+                                         rocblas_gemm_flags::rocblas_gemm_flags_none);
+        }
+        return rb_status;
+    }
+    else
+    {
+        // no casting allowed in old API
+        assert(gemm_desc.dataType == gemm_desc.a_cast_type &&
+               gemm_desc.dataType == gemm_desc.b_cast_type);
+        const auto compute_type = [&]() {
+            switch(gemm_desc.dataType)
+            {
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenInt8: return rocblas_datatype::rocblas_datatype_i32_r;
+            case miopenHalf:
+            case miopenBFloat16:
+            case miopenFloat:
+            case miopenFloat8:
+            case miopenBFloat8:
+            default: return rocblas_datatype::rocblas_datatype_f32_r;
+            case miopenDouble: return rocblas_datatype::rocblas_datatype_f64_r;
+            }
+        }();
+        return (rocblas_gemm_strided_batched_ex)(handle,
+                                                 transA,
+                                                 transB,
+                                                 m,
+                                                 n,
+                                                 k,
+                                                 alpha,
+                                                 a,
+                                                 a_type,
+                                                 lda,
+                                                 stride_a,
+                                                 b,
+                                                 b_type,
+                                                 ldb,
+                                                 stride_b,
+                                                 beta,
+                                                 c,
+                                                 c_type,
+                                                 ldc,
+                                                 stride_c,
+                                                 d,
+                                                 d_type,
+                                                 ldd,
+                                                 stride_d,
+                                                 batch_count,
+                                                 compute_type,
+                                                 algo,
+                                                 solution_index,
+                                                 flags);
+    }
+}
+
+#else
+static inline auto miopen_rocblas_gemm_strided_batched_ex3(const miopen::GemmDescriptor& gemm_desc,
+                                                           rocblas_handle handle,
+                                                           rocblas_operation transA,
+                                                           rocblas_operation transB,
+                                                           rocblas_int m,
+                                                           rocblas_int n,
+                                                           rocblas_int k,
+                                                           const void* alpha,
+                                                           const void* a,
+                                                           rocblas_datatype a_type,
+                                                           rocblas_int lda,
+                                                           rocblas_stride stride_a,
+                                                           const void* b,
+                                                           rocblas_datatype b_type,
+                                                           rocblas_int ldb,
+                                                           rocblas_stride stride_b,
+                                                           const void* beta,
+                                                           const void* c,
+                                                           rocblas_datatype c_type,
+                                                           rocblas_int ldc,
+                                                           rocblas_stride stride_c,
+                                                           void* d,
+                                                           rocblas_datatype d_type,
+                                                           rocblas_int ldd,
+                                                           rocblas_stride stride_d,
+                                                           rocblas_int batch_count,
+                                                           rocblas_gemm_algo algo,
+                                                           int32_t solution_index,
+                                                           uint32_t flags)
+{
+    std::ignore = gemm_desc;
+    // no casting allowed in old API
+    assert(gemm_desc.dataType == gemm_desc.a_cast_type &&
+           gemm_desc.dataType == gemm_desc.b_cast_type);
+    const auto compute_type = [&]() {
+        switch(gemm_desc.dataType)
+        {
+        case miopenInt32:
+        case miopenInt8x4:
+        case miopenInt8: return rocblas_datatype::rocblas_datatype_i32_r;
+        case miopenFloat:
+        case miopenHalf:
+        case miopenBFloat16:
+        case miopenFloat8:
+        case miopenBFloat8:
+        default: return rocblas_datatype::rocblas_datatype_f32_r;
+        case miopenDouble: return rocblas_datatype::rocblas_datatype_f64_r;
+        }
+    }();
+    return miopen_rocblas_gemm_strided_batched_ex(handle,
+                                                  transA,
+                                                  transB,
+                                                  m,
+                                                  n,
+                                                  k,
+                                                  alpha,
+                                                  a,
+                                                  a_type,
+                                                  lda,
+                                                  stride_a,
+                                                  b,
+                                                  b_type,
+                                                  ldb,
+                                                  stride_b,
+                                                  beta,
+                                                  c,
+                                                  c_type,
+                                                  ldc,
+                                                  stride_c,
+                                                  d,
+                                                  d_type,
+                                                  ldd,
+                                                  stride_d,
+                                                  batch_count,
+                                                  compute_type,
+                                                  algo,
+                                                  solution_index,
+                                                  flags);
+}
+#endif // USE_ROCBLAS_GEMM_EX3
 #endif // MIOPEN_USE_ROCBLAS
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
@@ -124,7 +373,10 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "strideC " << gemm_desc.strideC << ", "
                   << "alpha " << gemm_desc.alpha << ", "
                   << "beta " << gemm_desc.beta << ", "
-                  << "dataType " << gemm_desc.dataType << "} ";
+                  << "dataType " << gemm_desc.dataType << "a_cast_type" << gemm_desc.a_cast_type
+                  << ", "
+                  << "b_cast_type" << gemm_desc.b_cast_type << ", "
+                  << "} ";
 }
 
 #if MIOPEN_USE_ROCBLAS
@@ -250,8 +502,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    int c_offset,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend,
-                                   bool gfx90a_alt_impl)
+                                   GemmBackend_t gemm_backend)
 {
     switch(call_gemm_type)
     {
@@ -259,82 +510,32 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemm(handle,
-                     gemm_desc,
-                     A,
-                     a_offset,
-                     B,
-                     b_offset,
-                     C,
-                     c_offset,
-                     gemm_backend,
-                     gfx90a_alt_impl);
+            CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
         }
 
-        return CallGemm(handle,
-                        gemm_desc,
-                        A,
-                        a_offset,
-                        B,
-                        b_offset,
-                        C,
-                        c_offset,
-                        gemm_backend,
-                        gfx90a_alt_impl);
+        return CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
     }
     case callGemmStridedBatched: {
         if(time_precision)
         {
             // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(handle,
-                                   gemm_desc,
-                                   A,
-                                   a_offset,
-                                   B,
-                                   b_offset,
-                                   C,
-                                   c_offset,
-                                   gemm_backend,
-                                   gfx90a_alt_impl);
+            CallGemmStridedBatched(
+                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
         }
 
-        return CallGemmStridedBatched(handle,
-                                      gemm_desc,
-                                      A,
-                                      a_offset,
-                                      B,
-                                      b_offset,
-                                      C,
-                                      c_offset,
-                                      gemm_backend,
-                                      gfx90a_alt_impl);
+        return CallGemmStridedBatched(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
     }
     case callGemmStridedBatchedSequential: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(handle,
-                                             gemm_desc,
-                                             A,
-                                             a_offset,
-                                             B,
-                                             b_offset,
-                                             C,
-                                             c_offset,
-                                             gemm_backend,
-                                             gfx90a_alt_impl);
+            CallGemmStridedBatchedSequential(
+                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
         }
 
-        return CallGemmStridedBatchedSequential(handle,
-                                                gemm_desc,
-                                                A,
-                                                a_offset,
-                                                B,
-                                                b_offset,
-                                                C,
-                                                c_offset,
-                                                gemm_backend,
-                                                gfx90a_alt_impl);
+        return CallGemmStridedBatchedSequential(
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
     }
     }
     return miopenStatusNotImplemented;
@@ -451,22 +652,6 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
 }
 #endif
 
-#if MIOPEN_USE_ROCBLAS
-static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
-{
-#if USE_GEMM_FLAGS_FP16_ALT_IMPL
-    return gfx90aFp16Alt ? rocblas_gemm_flags_fp16_alt_impl : 0;
-#elif USE_GEMM_FLAGS_FP16_ALT_IMPL_242
-    return gfx90aFp16Alt ? 0x4 : 0;
-#else
-    std::ignore = gfx90aFp16Alt;
-    return 0;
-#endif
-#if USE_GEMM_FLAGS_FP16_ALT_IMPL_242 // -warning: macro is not used
-#endif
-}
-#endif // MIOPEN_USE_ROCBLAS
-
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -475,8 +660,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        GemmBackend_t gemm_backend,
-                        bool gfx90a_alt_impl)
+                        GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -502,7 +686,6 @@ miopenStatus_t CallGemm(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
-        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
@@ -554,7 +737,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 static_cast<rocblas_int*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_i32_r,
+                rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
 #if USE_GEMM_FLAGS_PACK_INT8X4
@@ -592,10 +775,10 @@ miopenStatus_t CallGemm(const Handle& handle,
                 static_cast<rocblas_half*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f16_r,
                 gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_f32_r,
+                rocBlasComputeType(gemm_desc),
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
+                FlagsForRocblasFp32Fp16Call(gemm_desc)); // gfx90a_alt_impl));
         }
         break;
 
@@ -625,7 +808,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 static_cast<rocblas_bfloat16*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_bf16_r,
                 gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_f32_r,
+                rocBlasComputeType(gemm_desc),
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
                 0);
@@ -657,7 +840,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 static_cast<float*>(C) + c_offset,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_f32_r,
+                rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
                 0);
@@ -668,16 +851,12 @@ miopenStatus_t CallGemm(const Handle& handle,
 #if USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-
-            rb_status = rocblas_gemm_ex3(
+            rb_status   = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose
-                                 : rocblas_operation_none, // rocblas_operation transA,
+                                   : rocblas_operation_none, // rocblas_operation transA,
                 gemm_desc.transB ? rocblas_operation_transpose
-                                 : rocblas_operation_none, // rocblas_operation transB,
+                                   : rocblas_operation_none, // rocblas_operation transB,
                 gemm_desc.m,
                 gemm_desc.n,
                 gemm_desc.k,
@@ -695,21 +874,19 @@ miopenStatus_t CallGemm(const Handle& handle,
                 static_cast<char*>(C) + c_offset,        // void* d,
                 rocblas_datatype::rocblas_datatype_f8_r, // rocblas_datatype  d_type
                 gemm_desc.ldc,                           // rocblas_int       ldd,
-                rocblas_compute_type_f32,                // rocblas_compute_type_f8_f8_f32// same as
-                                                         // rocblas_compute_type_f32
+                rocblas_compute_type_f32, // rocblas_compute_type_f8_f8_f32// same as
+                                          // rocblas_compute_type_f32
                 // //rocblas_datatype::rocblas_datatype_f32_r,   //or
                 // rocblas_compute_type_f8_f8_f32   //
                 // rocblas_computetype compute_type,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
-                0,                                             // int32_t           solution_index,
+                0, // int32_t           solution_index,
                 rocblas_gemm_flags::
                     rocblas_gemm_flags_none // Depend on application,
                                             // 0: IEEE-RNE
                                             // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
                                             // // uint32_t flags
             );
-#pragma clang diagnostic pop
-
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
 #endif
@@ -720,16 +897,12 @@ miopenStatus_t CallGemm(const Handle& handle,
 #if USE_ROCBLAS_GEMM_EX3
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-
-            rb_status = rocblas_gemm_ex3(
+            rb_status   = miopen_rocblas_gemm_ex(
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose
-                                 : rocblas_operation_none, // rocblas_operation transA,
+                                   : rocblas_operation_none, // rocblas_operation transA,
                 gemm_desc.transB ? rocblas_operation_transpose
-                                 : rocblas_operation_none, // rocblas_operation transB,
+                                   : rocblas_operation_none, // rocblas_operation transB,
                 gemm_desc.m,
                 gemm_desc.n,
                 gemm_desc.k,
@@ -753,15 +926,13 @@ miopenStatus_t CallGemm(const Handle& handle,
                                           // rocblas_compute_type_f8_f8_f32   //
                                           // rocblas_computetype compute_type,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard, // rocblas_gemm_algo algo,
-                0,                                             // int32_t           solution_index,
+                0, // int32_t           solution_index,
                 rocblas_gemm_flags::
                     rocblas_gemm_flags_none // Depend on application,
                                             // 0: IEEE-RNE
                                             // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
                                             // // uint32_t flags
             );
-#pragma clang diagnostic pop
-
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
 #endif
@@ -791,7 +962,6 @@ miopenStatus_t CallGemm(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
-        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             return miopenStatusNotImplemented;
 
@@ -880,8 +1050,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      GemmBackend_t gemm_backend,
-                                      bool gfx90a_alt_impl)
+                                      GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -908,7 +1077,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
-        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
@@ -984,7 +1152,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            rb_status = miopen_rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex3(
+                gemm_desc,
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1010,10 +1179,9 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 gemm_desc.ldc,
                 gemm_desc.strideC,
                 gemm_desc.batch_count,
-                rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
+                FlagsForRocblasFp32Fp16Call(gemm_desc));
         }
         break;
 
@@ -1021,7 +1189,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            rb_status = miopen_rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex3(
+                gemm_desc,
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1047,7 +1216,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 gemm_desc.ldc,
                 gemm_desc.strideC,
                 gemm_desc.batch_count,
-                rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
                 0);
@@ -1058,7 +1226,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
-            rb_status = miopen_rocblas_gemm_strided_batched_ex(
+            rb_status = miopen_rocblas_gemm_strided_batched_ex3(
+                gemm_desc,
                 handle.rhandle().get(),
                 gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                 gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -1084,7 +1253,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 gemm_desc.ldc,
                 gemm_desc.strideC,
                 gemm_desc.batch_count,
-                rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
                 0);
@@ -1098,11 +1266,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
             for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
             {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-
-                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex( // miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose
                                      : rocblas_operation_none, // rocblas_operation transA,
@@ -1141,7 +1305,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                                 // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
                                                 // // uint32_t flags
                 );
-#pragma clang diagnostic pop
             }
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
@@ -1156,10 +1319,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
             for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
             {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex( // miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose
                                      : rocblas_operation_none, // rocblas_operation transA,
@@ -1196,7 +1356,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                                                 // application, 0:
                                                                 // IEEE-RNE
                 );
-#pragma clang diagnostic pop
             }
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support bf8 data type");
@@ -1228,7 +1387,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
-        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmStridedBatchedSequential(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
 #else
@@ -1248,8 +1406,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                GemmBackend_t gemm_backend,
-                                                bool gfx90a_alt_impl)
+                                                GemmBackend_t gemm_backend)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -1276,7 +1433,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
-        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
@@ -1332,7 +1488,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     static_cast<rocblas_int*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_i32_r,
                     gemm_desc.ldc,
-                    rocblas_datatype::rocblas_datatype_i32_r,
+                    rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
 #if USE_GEMM_FLAGS_PACK_INT8X4
@@ -1373,10 +1529,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_f16_r,
                     gemm_desc.ldc,
-                    rocblas_datatype::rocblas_datatype_f32_r,
+                    rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
+                    FlagsForRocblasFp32Fp16Call(gemm_desc));
             }
         }
         break;
@@ -1408,7 +1564,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_bf16_r,
                     gemm_desc.ldc,
-                    rocblas_datatype::rocblas_datatype_f32_r,
+                    rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
                     0);
@@ -1443,7 +1599,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     static_cast<float*>(C) + c_offset + i * gemm_desc.strideC,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     gemm_desc.ldc,
-                    rocblas_datatype::rocblas_datatype_f32_r,
+                    rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
                     0);
@@ -1458,11 +1614,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
             for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
             {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-
-                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex( // miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose
                                      : rocblas_operation_none, // rocblas_operation transA,
@@ -1501,7 +1653,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 // //?FlagsForRocblasFp32Fp16Fp8Call(gfx90a_alt_impl)
                                                 // // uint32_t flags
                 );
-#pragma clang diagnostic pop
             }
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support f8 data type");
@@ -1516,10 +1667,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
             for(int bCount = 0; bCount < gemm_desc.batch_count; ++bCount)
             {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                rb_status = rocblas_gemm_ex3( // miopen_rocblas_gemm_ex(
+                rb_status = miopen_rocblas_gemm_ex( // miopen_rocblas_gemm_ex(
                     handle.rhandle().get(),
                     gemm_desc.transA ? rocblas_operation_transpose
                                      : rocblas_operation_none, // rocblas_operation transA,
@@ -1556,7 +1704,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                                 // application, 0:
                                                                 // IEEE-RNE
                 );
-#pragma clang diagnostic pop
             }
 #else
             MIOPEN_THROW(miopenStatusNotImplemented, "rocBlas does not support bf8 data type");
@@ -1588,7 +1735,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
-        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 

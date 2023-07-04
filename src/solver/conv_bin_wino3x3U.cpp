@@ -69,6 +69,9 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
         return false;
     }
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     // clang-format off
     return problem.GetPadW() == 1
         && problem.GetPadH() == 1

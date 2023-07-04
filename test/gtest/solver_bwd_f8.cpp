@@ -24,33 +24,42 @@
  *
  *******************************************************************************/
 #include "solver_bwd.hpp"
+
+struct ConvBwdFp8 : ConvBwdSolverTest<float8, float, true>
+{
+};
+
 struct ConvBwdFp8Naive : ConvBwdSolverTest<float8, float, true>
 {
 };
 
-#if 0
-TEST_P(ConvFwdFp8, Gemm1x1x0x1)
+TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride2)
 {
-    SolverFwd<miopen::solver::GemmFwd1x1_0_1>(input.desc,
-                                              in_dev.get(),
-                                              weights.desc,
-                                              wei_dev.get(),
-                                              output.desc,
-                                              out_dev.get(),
-                                              conv_desc,
-                                              conv_config,
-                                              test_skipped);
+    miopen::solver::GemmBwd1x1_stride2 solv{};
+    SolverBwd(solv);
 }
-#endif
+
+TEST_P(ConvBwdFp8, GemmBwd1x1_stride1)
+{
+    miopen::solver::GemmBwd1x1_stride1 solv{};
+    SolverBwd(solv);
+}
+
+TEST_P(ConvBwdFp8, GemmBwdRest)
+{
+    miopen::solver::GemmBwdRest solv{};
+    SolverBwd(solv);
+}
+
 TEST_P(ConvBwdFp8Naive, Bwd)
 {
     miopen::solver::ConvDirectNaiveConvBwd solv{};
-    SolverBwd<miopen::solver::ConvDirectNaiveConvBwd>(solv);
+    SolverBwd(solv);
 }
-// INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-//                          ConvFwdGemmTestFp8,
-//                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-//                                           testing::ValuesIn(ConvTestConfigs())));
+INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
+                         ConvBwdFp8,
+                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetNetwork1())));
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
