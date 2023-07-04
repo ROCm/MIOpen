@@ -50,7 +50,7 @@ void LogCmdConvolution(const miopen::TensorDescriptor& x,
                        const miopen::ConvolutionDescriptor& conv,
                        const miopen::TensorDescriptor& y,
                        const miopenProblemDirection_t& dir,
-                       std::optional<std::size_t> solver_id);
+                       std::optional<uint64_t> solver_id);
 } // namespace miopen::debug
 
 namespace miopen {

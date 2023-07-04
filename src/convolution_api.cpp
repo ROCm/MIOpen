@@ -410,7 +410,7 @@ static std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc
                                            const miopen::ConvolutionDescriptor& convDesc,
                                            const miopen::TensorDescriptor& yDesc,
                                            const miopenProblemDirection_t& conv_dir,
-                                           std::optional<std::size_t> immediate_mode_solver_id)
+                                           std::optional<uint64_t> immediate_mode_solver_id)
 {
     std::stringstream ss;
     if(xDesc.GetType() == miopenHalf)
@@ -519,7 +519,7 @@ void LogCmdConvolution(const miopen::TensorDescriptor& x,
                        const miopen::ConvolutionDescriptor& conv,
                        const miopen::TensorDescriptor& y,
                        const miopenProblemDirection_t& dir,
-                       std::optional<std::size_t> solver_id)
+                       std::optional<uint64_t> solver_id)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -547,7 +547,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
         }();
 
         const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
-        const auto solver_id        = is_immediate ? std::optional(0ull) : std::nullopt;
+        const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
         LogCmdConvolution(x, w, conv, y, dir, solver_id);
     }
 }
