@@ -67,11 +67,17 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
 #if MIOPEN_USE_GEMM
     if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
         return false;
-    const auto& dyDesc = problem.GetIn();
-    const auto& dwDesc = problem.GetWeights();
-    const auto& xDesc  = problem.GetOut();
+    const auto& dyDesc             = problem.GetIn();
+    const auto& dwDesc             = problem.GetWeights();
+    const auto& xDesc              = problem.GetOut();
+    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     if(problem.IsTensorsCasted())
     {
+        if(!rblas_fp8_supported)
+        {
+            MIOPEN_LOG_I2("GEMM not supported with casted tensors on this GPU architecture");
+            return false;
+        }
         if(xDesc.GetCastType() && dyDesc.GetCastType())
         {
             const auto a_cast_type = xDesc.GetCastType();
@@ -95,7 +101,6 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
             return false;
         }
     }
-    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     if(problem.IsFp8() && !rblas_fp8_supported)
     {
         MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");

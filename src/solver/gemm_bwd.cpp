@@ -100,11 +100,17 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
 #if MIOPEN_USE_GEMM
     if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
         return false;
-    const auto& dyDesc = problem.GetIn();
-    const auto& wDesc  = problem.GetWeights();
-    const auto& dxDesc = problem.GetOut();
+    const auto& dyDesc             = problem.GetIn();
+    const auto& wDesc              = problem.GetWeights();
+    const auto& dxDesc             = problem.GetOut();
+    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     if(problem.IsTensorsCasted())
     {
+        if(!rblas_fp8_supported)
+        {
+            MIOPEN_LOG_I2("GEMM not supported with casted tensors on this GPU architecture");
+            return false;
+        }
         if(dyDesc.GetCastType() && wDesc.GetCastType())
         {
             const auto a_cast_type = dyDesc.GetCastType();
@@ -128,7 +134,6 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
             return false;
         }
     }
-    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     if(problem.IsFp8() && !rblas_fp8_supported)
     {
         MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
@@ -283,9 +288,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
         {
             // IsApplicable ensures that both are casted
             if(dyDesc.GetCastType())
-                tmp.a_cast_type = *dyDesc.GetCastType();
+                tmp.a_cast_type = *wDesc.GetCastType();
             if(wDesc.GetCastType())
-                tmp.b_cast_type = *wDesc.GetCastType();
+                tmp.b_cast_type = *dyDesc.GetCastType();
         }
         return tmp;
     }();
@@ -520,9 +525,9 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                 {
                     // IsApplicable ensures that both are casted
                     if(dyDesc.GetCastType())
-                        tmp.a_cast_type = *dyDesc.GetCastType();
+                        tmp.a_cast_type = *wDesc.GetCastType();
                     if(wDesc.GetCastType())
-                        tmp.b_cast_type = *wDesc.GetCastType();
+                        tmp.b_cast_type = *dyDesc.GetCastType();
                 }
                 return tmp;
             }();
@@ -718,9 +723,9 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
         {
             // IsApplicable ensures that both are casted
             if(dyDesc.GetCastType())
-                tmp.a_cast_type = *dyDesc.GetCastType();
+                tmp.a_cast_type = *wDesc.GetCastType();
             if(wDesc.GetCastType())
-                tmp.b_cast_type = *wDesc.GetCastType();
+                tmp.b_cast_type = *dyDesc.GetCastType();
         }
         return tmp;
     }();
