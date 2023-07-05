@@ -194,6 +194,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -719,7 +720,9 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
         target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
         if(NOT BUILD_DEV)
             file(GLOB MODEL_FILES kernels/*.model)
-            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            if( NOT ENABLE_ASAN_PACKAGING )
+              install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            endif() 
             foreach(MODEL_FILE ${MODEL_FILES})
                 get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
                 configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
@@ -896,9 +899,11 @@ else()
     file(GLOB PERF_DB_FILES kernels/*.db)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
-        install(FILES
-            ${FIND_DB_FILES}
-         DESTINATION ${DATA_INSTALL_DIR}/db)
+        if( NOT ENABLE_ASAN_PACKAGING )
+          install(FILES
+              ${FIND_DB_FILES}
+           DESTINATION ${DATA_INSTALL_DIR}/db)
+         endif()
          foreach(DB_FILE ${FIND_DB_FILES})
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
             configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
