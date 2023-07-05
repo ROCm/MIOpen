@@ -404,14 +404,24 @@ enum class ConvDirection
     WrW = 4
 };
 
-// not static because Find 2.0 uses it until a separate driver command is implemented
+// Not static because Find 2.0 uses it until a separate driver command is implemented
+// We use API type in the declaration so that usages won't have to convert to commandline values
 static std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
                                            const miopen::TensorDescriptor& wDesc,
                                            const miopen::ConvolutionDescriptor& convDesc,
                                            const miopen::TensorDescriptor& yDesc,
-                                           const miopenProblemDirection_t& conv_dir,
+                                           miopenProblemDirection_t dir,
                                            std::optional<uint64_t> immediate_mode_solver_id)
 {
+    const auto conv_dir = [&]() {
+        switch(dir)
+        {
+        case miopenProblemDirectionForward: return ConvDirection::Fwd;
+        case miopenProblemDirectionBackward: return ConvDirection::Bwd;
+        case miopenProblemDirectionBackwardWeights: return ConvDirection::WrW;
+        }
+    }();
+
     std::stringstream ss;
     if(xDesc.GetType() == miopenHalf)
     {
@@ -518,7 +528,7 @@ void LogCmdConvolution(const miopen::TensorDescriptor& x,
                        const miopen::TensorDescriptor& w,
                        const miopen::ConvolutionDescriptor& conv,
                        const miopen::TensorDescriptor& y,
-                       const miopenProblemDirection_t& dir,
+                       miopenProblemDirection_t dir,
                        std::optional<uint64_t> solver_id)
 {
     if(miopen::IsLoggingCmd())
@@ -532,7 +542,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
                        const miopenTensorDescriptor_t& yDesc,
-                       const ConvDirection& conv_dir,
+                       ConvDirection conv_dir,
                        bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
@@ -556,7 +566,7 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
                            const miopenTensorDescriptor_t& yDesc,
-                           const ConvDirection& conv_dir,
+                           ConvDirection conv_dir,
                            bool is_immediate)
 {
     LogCmdConvolution(xDesc, wDesc, convDesc, yDesc, conv_dir, is_immediate);
