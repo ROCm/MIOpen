@@ -9,11 +9,15 @@ template <typename T>
 inline T FRAND()
 {
     std::uint32_t seed = time(nullptr);
-    double d = static_cast<double>(rand_r(&seed) / (static_cast<double>(RAND_MAX)));
+    double d           = static_cast<double>(rand_r(&seed) / (static_cast<double>(RAND_MAX)));
     return static_cast<T>(d);
 }
 
-inline int GET_RAND() {std::uint32_t seed = time(nullptr); return rand_r(&seed); }
+inline int GET_RAND()
+{
+    std::uint32_t seed = time(nullptr);
+    return rand_r(&seed);
+}
 
 template <typename T>
 inline T RAN_GEN(T A, T B)
