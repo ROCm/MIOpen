@@ -45,12 +45,12 @@
 
 namespace miopen::debug {
 // Todo: This should be updated when a separate driver command is implemented
-void LogCmdConvolution(const miopen::TensorDescriptor& x,
-                       const miopen::TensorDescriptor& w,
-                       const miopen::ConvolutionDescriptor& conv,
-                       const miopen::TensorDescriptor& y,
-                       miopenProblemDirection_t dir,
-                       std::optional<uint64_t> solver_id);
+void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
+                           const miopen::TensorDescriptor& w,
+                           const miopen::ConvolutionDescriptor& conv,
+                           const miopen::TensorDescriptor& y,
+                           miopenProblemDirection_t dir,
+                           std::optional<uint64_t> solver_id);
 } // namespace miopen::debug
 
 namespace miopen {
@@ -409,7 +409,7 @@ void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
-    miopen::debug::LogCmdConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
+    miopen::debug::LogCmdFindConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)
