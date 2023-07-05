@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "conv_2d.hpp"
+#include "../conv2d.hpp"
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)

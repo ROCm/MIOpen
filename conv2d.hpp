@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include "../conv_common.hpp"
+#include "conv_common.hpp"
 
 template <class T>
 struct conv2d_driver : conv_driver<T>
