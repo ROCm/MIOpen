@@ -186,11 +186,11 @@ TEST_P(ConfigWithBFloat16, BFloat16Test)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags  = " --disable-validation --verbose ";
-    const auto& envVar = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    std::string flags = " --disable-validation --verbose ";
 
     // If precision env var is not set
-    if(envVar.empty())
+    if(!(IsTestRunWith("--float") || IsTestRunWith("--half") || IsTestRunWith("--int8") ||
+         IsTestRunWith("--bfloat16")))
         flags.insert(0, precision);
 
     const std::vector<std::string> test_cases = {
