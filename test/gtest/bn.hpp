@@ -31,19 +31,17 @@
 #include "test_fusion_plan_base.hpp"
 
 template <typename T>
-struct BNActivInferTest : public ::testing::TestWithParam<
-                              std::tuple<miopenActivationMode_t, BNTestCase, miopenTensorLayout_t>>
+struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                                   = false;
-        std::tie(activ_mode, bn_config, tensor_layout) = GetParam();
+        test_skipped                       = false;
+        std::tie(bn_config, tensor_layout) = GetParam();
         bn_infer_data.SetUpImpl(bn_config, tensor_layout);
 
         test::FusionPlan::InitFusionPlan(fusePlanDesc, bn_infer_data);
         test::FusionPlan::AddBnInfer(fusePlanDesc, params, bn_infer_data);
-        test::FusionPlan::AddActiv(fusePlanDesc, params, bn_infer_data, activ_mode);
     }
 
     void TearDown() override
@@ -51,21 +49,15 @@ protected:
         if(test_skipped)
             return;
         test::FusionPlan::ComputeRefBN(bn_infer_data);
-        activationHostInfer(activ_mode,
-                            bn_infer_data.activ_gamma,
-                            bn_infer_data.activ_beta,
-                            bn_infer_data.activ_alpha,
-                            bn_infer_data.ref_out.data,
-                            bn_infer_data.ref_out.data);
         auto&& handle = get_handle();
         bn_infer_data.output.data =
             handle.Read<T>(bn_infer_data.out_dev, bn_infer_data.output.data.size());
+        test::FusionPlan::ComputeRefBN(bn_infer_data);
         test::FusionPlan::BnCmpare(bn_infer_data.output, bn_infer_data.ref_out);
     }
     BNTestCase bn_config;
 
     bool test_skipped = false;
-    miopenActivationMode_t activ_mode;
     miopen::FusionPlanDescriptor fusePlanDesc;
     miopen::OperatorArgs params;
 

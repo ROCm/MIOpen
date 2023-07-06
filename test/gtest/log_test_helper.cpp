@@ -194,7 +194,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
     std::string str = capture_cerr.getString();
     // now do the assertions
     if(set_env)
-        ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+        ASSERT_TRUE(isSubStr(str, sub_str)) << "str     : " << str << "\nstr_sub : " << sub_str;
     else
-        ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
+        ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "\nstr_sub : " << sub_str;
 }
