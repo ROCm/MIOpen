@@ -552,9 +552,9 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
     }
 }
 
-static ConvDirection DirectionToCmdArg(miopenProblemDirection_t direction)
+static miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
 {
-    switch(conv_dir)
+    switch(direction)
     {
     case ConvDirection::Fwd: return miopenProblemDirectionForward;
     case ConvDirection::Bwd: return miopenProblemDirectionBackward;
@@ -572,7 +572,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
 {
     if(miopen::IsLoggingCmd())
     {
-        const auto dir              = DirectionToCmdArg(conv_dir);
+        const auto dir              = CmdArgToDirection(conv_dir);
         const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
         const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
         LogCmdConvolution(x, w, conv, y, dir, solver_id);
@@ -588,7 +588,7 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
 {
     if(miopen::IsLoggingCmd())
     {
-        const auto dir              = DirectionToCmdArg(conv_dir);
+        const auto dir              = CmdArgToDirection(conv_dir);
         const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
         const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
         LogCmdFindConvolution(x, w, conv, y, dir, solver_id);
