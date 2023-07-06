@@ -215,8 +215,6 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{problem};
-    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
-        return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         std::cout<<"~~~string: ~~~~"<<conv_ptrs[i]->GetTypeString()<<std::endl;

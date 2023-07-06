@@ -101,12 +101,18 @@ std::vector<ConvTestCase> ConvTestConfigs()
     return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}
-            /*{1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}*/};
+            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {4, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 0, 0, 0, miopenConvolution},
+            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {4, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 0, 0, 0, miopenConvolution},
+            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
+            {3, 48, 48, 28, 28, 28, 48, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {3, 48, 39, 28, 28, 28, 39, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
