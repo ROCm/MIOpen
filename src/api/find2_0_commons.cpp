@@ -148,6 +148,9 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
     return miopen::try_([&] {
         auto& handle_deref        = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem);
+
+        problem_deref.LogDriverCommand();
+
         const auto& options_deref =
             options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
@@ -197,6 +200,8 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
     return miopen::try_([&] {
         auto& handle_deref   = miopen::deref(handle);
         auto& solution_deref = miopen::deref(solution);
+
+        solution_deref.LogDriverCommand();
 
         const auto inputs_deref = [&]() {
             auto ret = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{};
