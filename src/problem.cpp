@@ -43,6 +43,16 @@
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/hof/match.hpp>
 
+namespace miopen::debug {
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
+                           const miopen::TensorDescriptor& w,
+                           const miopen::ConvolutionDescriptor& conv,
+                           const miopen::TensorDescriptor& y,
+                           miopenProblemDirection_t dir,
+                           std::optional<uint64_t> solver_id);
+} // namespace miopen::debug
+
 namespace miopen {
 
 namespace detail {
@@ -415,6 +425,25 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
         if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
+}
+
+void Problem::LogDriverCommand() const
+{
+    const auto log_function = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+
+    boost::apply_visitor(log_function, operator_descriptor);
+}
+
+void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
+{
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    miopen::debug::LogCmdFindConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)
