@@ -4,22 +4,21 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstdint>
+#include <random>
 #include <chrono>
 
 template <typename T>
 inline T FRAND()
 {
-    auto const clk    = std::chrono::system_clock::now().time_since_epoch().count();
-    unsigned int seed = static_cast<unsigned int>(clk);
-    double d          = static_cast<double>(rand_r(&seed) / (static_cast<double>(RAND_MAX)));
+    std::minstd_rand minstd_gen(std::chrono::system_clock::now().time_since_epoch().count());
+    double d = static_cast<double>(minstd_gen() / (static_cast<double>(RAND_MAX)));
     return static_cast<T>(d);
 }
 
 inline int GET_RAND()
 {
-    auto const clk    = std::chrono::system_clock::now().time_since_epoch().count();
-    unsigned int seed = static_cast<unsigned int>(clk);
-    return rand_r(&seed);
+    std::minstd_rand minstd_gen(std::chrono::system_clock::now().time_since_epoch().count());
+    return minstd_gen();
 }
 
 template <typename T>
