@@ -74,6 +74,7 @@ set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
 
 option( WORKAROUND_ISSUE_936 "" ON)
+option( WORKAROUND_FROM_PR147 "" ON) # https://github.com/ROCmSoftwarePlatform/MIOpen/pull/147/files#r1056274289
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -236,6 +237,9 @@ option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 
 set_var_to_condition(WORKAROUND_ISSUE_1148_DEFAULT (MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X) AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
+
+set_var_to_condition(WORKAROUND_ISSUE_2173_DEFAULT (MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX94X) AND MIOPEN_TEST_FLOAT)
+option( WORKAROUND_ISSUE_2173 "" ${WORKAROUND_ISSUE_2173_DEFAULT})
 
 if(MIOPEN_TEST_HALF)
     if(MIOPEN_BACKEND_OPENCL)
@@ -694,7 +698,13 @@ function(add_custom_test NAME)
         AND (${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
+
+    if(WORKAROUND_ISSUE_2173
+        AND (${NAME} MATCHES "smoke_solver_ConvHipImplicitGemmBwdXdlops" ))
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    endif()
 endfunction()
+
 if(${CODECOV_TEST})
     add_custom_test(test_conv3d_codecov
         COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -811,6 +821,9 @@ set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
+set(TEST_CONV_VERBOSE_FB ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-weights)
+set(TEST_CONV_VERBOSE_FW ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data)
+set(TEST_CONV_VERBOSE_BW ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward)
 
 add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1244,25 +1257,8 @@ COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 
 COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-if (0) #disabled too many errors
-if(MIOPEN_TEST_LIMIT GREATER 0)
-if(${MIOPEN_USE_MIOPENGEMM} AND (${MIOPEN_hip_VERSION_MAJOR} EQUAL 3) AND (${MIOPEN_hip_VERSION_MINOR} EQUAL 7))
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-
-    #ROCM3.7 compiler problems
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    message(STATUS "test_conv3d_extra reduced set")
-else()
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+if(NOT WORKAROUND_FROM_PR147) #disabled too many errors
+add_custom_test(test_conv3d_extra SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50  50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1272,11 +1268,8 @@ else()
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
+)
 endif()
-endif()
-endif()
-
 
 add_custom_test(test_conv_trans SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	28	28	--weights	128	128	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default
@@ -1983,19 +1976,74 @@ if(MIOPEN_TEST_FLOAT)
     add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
 
-add_custom_test(smoke_solver_ConvFFT GFX103X_ENABLED GFX110X_ENABLED
+# NOTES ON WRITING TESTS FOR TUNABLE SOLVERS
+# * Enforce tuning (SEARCH_DB_UPDATE).
+# * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
+#   message output to the log, which happens if something is broken in the tuning machinery.
+# * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
+
+set(ENFORCE_TUNING_5 MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5)
+
+add_custom_test(smoke_solver_ConvGemm_fp16_bf16 OCL_DISABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_2' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwd1x1_stride2' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrw1x1_stride1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrwUniversal' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvGemm_fp32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_2' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwd1x1_stride2' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrw1x1_stride1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrwUniversal' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+# OCL_DISABLED is due to WORKAROUND_MIOPENGEMM_ISSUE_59
+add_custom_test(smoke_solver_ConvGemmBwd1x1_stride1 OCL_DISABLED HALF_ENABLED BF16_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwd1x1_stride1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvGemmFwd_int8 FLOAT_DISABLED INT8_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_1_int8' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32} ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvFFT GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=fft $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=fft $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvDirectNaiveConv_F GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+add_custom_test(smoke_solver_ConvDirectNaiveConv_F GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DRIVER_USE_GPU_REFERENCE=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvDirectNaiveConv_BW GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED
+add_custom_test(smoke_solver_ConvDirectNaiveConv_BW GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DRIVER_USE_GPU_REFERENCE=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DRIVER_USE_GPU_REFERENCE=0 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvWrw $<TARGET_FILE:test_conv2d>
@@ -2012,75 +2060,133 @@ add_custom_test(smoke_solver_ConvAsm_5x10_7x7 GFX90A_DISABLED SKIP_XNACK_ON
       ${TEST_CONV_VERBOSE_F} --input 1 3 224 224 --weights 64 3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd11x11 $<TARGET_FILE:test_conv2d>
+add_custom_test(smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53 GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED BF16_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd11x11 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 1 44 44 --weights 1 1 11 11 --pads_strides_dilations 0 0 4 4 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwdGen $<TARGET_FILE:test_conv2d>
+    COMMAND MIOPEN_FIND_MODE=normal
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwdGen $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 1 6 6 --weights 1 1 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW53 $<TARGET_FILE:test_conv2d>
+    COMMAND MIOPEN_FIND_MODE=normal
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW53 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-# NOTES ON WRITING TESTS FOR TUNABLE SOLVERS
-# * Enforce tuning (SEARCH_DB_UPDATE).
-# * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
-#   message output to the log, which happens if something is broken in the tuning machinery.
-# * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
+add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<1>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<2>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 2 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<4>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 4 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<8>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 8 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<16>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 16 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2NonTunable' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 3 3 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvOclDirectFwd GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclDirectFwd' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 16 16 16 --weights 16 16 5 5 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+# WORKAROUND_SWDEV_271887 disables this solver on gfx10 due to precision issues.
+# However we still want to check that solver is not broken and therefore use
+# MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1=1 to enable it.
+add_custom_test(smoke_solver_ConvOclDirectFwd1x1 GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1=1
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclDirectFwd1x1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 16 16 16 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+# MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1 is to enable solver on MI300. We test
+# deprecated solvers on MI300 because we want to keep them ready to use
+# if/when absolutely necessary (hopefully not), as a workaround.
+add_custom_test(smoke_solver_ConvAsm1x1U GFX94X_ENABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsm1x1UV2 SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvAsm1x1UV2 GFX94X_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsm3x3U SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvAsm3x3U GFX94X_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm3x3U $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 4 10 10 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm3x3U $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 4 10 10 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsmBwdWrW1x1 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvAsmBwdWrW1x1 GFX94X_ENABLED HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmBwdWrW1x1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 4 5 5 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # GFX90A_DISABLED for FP32 because of WORKAROUND_SWDEV_330460
-add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp32 GFX90A_DISABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp32 GFX94X_ENABLED GFX90A_DISABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmBwdWrW3x3 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 2 4 3 3 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp16 FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp16 GFX94X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmBwdWrW3x3 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 2 4 3 3 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # GFX103X_DISABLED is due to WORKAROUND_SWDEV_266868
-add_custom_test(smoke_solver_ConvOclBwdWrW1x1 GFX103X_DISABLED HALF_ENABLED BF16_ENABLED
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW1x1 $<TARGET_FILE:test_conv2d>
+add_custom_test(smoke_solver_ConvOclBwdWrW1x1 GFX94X_ENABLED GFX103X_DISABLED HALF_ENABLED BF16_ENABLED
+    COMMAND 
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW1x1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 16 14 14 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
@@ -2091,6 +2197,8 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmV4R1Dynamic GFX908_DISABLED GFX9
       ${TEST_CONV_VERBOSE_B} --input 64 64 14 14 --weights 16 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 32 28 28 --weights 32 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1 $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 16 16 16 16 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON
@@ -2104,15 +2212,15 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops GFX900_DISABLED
 
 add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 GFX900_DISABLED GFX906_DISABLED
     HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2120,15 +2228,15 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 G
 
 add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED
     FLOAT_DISABLED BF16_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2136,38 +2244,40 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16 GFX900
 
 add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
     FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 64 256 7 7 --weights 256 3 3 128 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NCHW --fil_layout CHWN --out_layout NCHW --tensor_vect 1 --vector_length 4 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # MIOPEN_DEBUG_TUNING_ITERATIONS_MAX is set to 2 because kernels are very slow to build.
-add_custom_test(smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw GFX103X_ENABLED HALF_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=2
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1 GFX103X_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1 GFX94X_ENABLED GFX103X_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV1R1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 32 128 32 32 --weights 12 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in Jenkinsfile,
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32 GFX103X_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32 GFX94X_ENABLED GFX103X_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
-      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R1Fwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 256 32 27 27 --weights 128 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX94X_ENABLED GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R1WrW $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 64 64 55 55 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2178,10 +2288,11 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENA
 # smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and FP32 tests because of
 # WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16 datatypes in this test,
 # see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.  
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX94X_ENABLED GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R1Fwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 256 32 27 27 --weights 128 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
       --disable-validation
@@ -2189,18 +2300,20 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLE
 
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1=1 is necessary due to WORKAROUND_SWDEV_229277_227616_229195,
 # which disables ConvHipImplicitGemmBwdDataV4R1, but we still want to check that the solver is not broken.
-add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV4R1 GFX103X_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV4R1 GFX94X_ENABLED GFX103X_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 16 64 16 16 --weights 64 64 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R4 GFX103X_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R4 GFX94X_ENABLED GFX103X_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R4Fwd $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 2 16 28 28 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R4WrW $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 8 128 14 14 --weights 32 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
@@ -2208,10 +2321,11 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R4 GFX103X_ENABLED TEST_TUNING
 # WORKAROUND_SWDEV_251757 disables this solver due to precision issues.
 # However we still want to check that solver is not broken and therefore use
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1 to enable it.
-add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV1R1Xdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 32 128 32 32 --weights 12 128 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
@@ -2220,54 +2334,70 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops GFX900_DISABLE
 # WORKAROUND_SWDEV_329642 disables this solver on MI200 for BF16.
 # However we still want to check that these cases are not broken and therefore use
 # MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1 to enable the solver.
-add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV4R1Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdDataV4R1Xdlops GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 160 28 28 --weights 128 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R4Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R4Xdlops GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 128 48 13 13 --weights 192 48 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmWrwV4R4Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmWrwV4R4Xdlops GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmWrwV4R4Xdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 192 28 28 --weights 16 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 256 2 5 5 --weights 1 2 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R5Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R5Xdlops GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R5Xdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 128 16 54 54 --weights 64 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED INT8_ENABLED
+add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
     SKIP_UNLESS_COMPOSABLEKERNEL TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8}
+      --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED HALF_ENABLED
+    SKIP_UNLESS_COMPOSABLEKERNEL TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdXdlops $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 128 64 7 7 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
@@ -2278,7 +2408,7 @@ add_custom_test(smoke_solver_ConvBinWinograd3x3U GFX90A_DISABLED SKIP_XNACK_ON
       ${TEST_CONV_VERBOSE_B} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-# F16 is supported for 906 and 906 only, no WrW
+# F16 is supported for 906 and 908 only, no WrW
 add_custom_test(smoke_solver_ConvBinWinogradRxS_fp16 GFX900_DISABLED GFX90A_DISABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxS $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2297,7 +2427,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxS_fp32 GFX90A_DISABLED SKIP_XNACK_
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f16 GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f16 GFX900_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf2x3g1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2309,7 +2439,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f16 GFX103X_ENABLED GFX110
       ${TEST_CONV_VERBOSE_W} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f32 GFX103X_ENABLED GFX110X_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf2x3g1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf2x3g1 $<TARGET_FILE:test_conv2d>
@@ -2319,29 +2449,36 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1_f32 GFX103X_ENABLED GFX110
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f16 GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f16 GFX900_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 20 20 20 --weights 40 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX103X_ENABLED GFX110X_ENABLED SKIP_XNACK_ON
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
+# Solver class name is ConvBinWinoRxS.
+add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED SKIP_XNACK_ON
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_B} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW GFX94X_DISABLED HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
+add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2383,46 +2520,82 @@ add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW GFX94X_DISABLED HALF_EN
       ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3 GFX900_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3 GFX900_DISABLED GFX94X_ENABLED GFX110X_ENABLED GFX103X_ENABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf2x3 $<TARGET_FILE:test_conv2d>
       --input 1 40 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 2 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvBinWinogradRxSf2x3g1 GFX900_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_XNACK_ON
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf2x3g1 $<TARGET_FILE:test_conv2d>
-      --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+# GFX90A_DISABLED is due to WORKAROUND_ISSUE_1146.
+# WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
+# However we still want to check that solver is not broken and therefore use
+# MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
+add_custom_test(smoke_solver_ConvMPBidirectWinograd OCL_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED SKIP_XNACK_ON
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<3-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<4-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<5-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<6-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2 GFX900_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_XNACK_ON
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
-      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
-      --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+# GFX90A_DISABLED is due to WORKAROUND_ISSUE_1146.
+# WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
+# However we still want to check that solver is not broken and therefore use
+# MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_FnX3=1.
+add_custom_test(smoke_solver_ConvMPBidirectWinograd_xdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<3-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<4-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<5-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<6-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F}
       --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B}
       --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W}
       --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvMlirIgemmXdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F}
       --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC  ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B}
       --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4  ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND ${ENFORCE_TUNING_5}
       ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W}
       --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
 )
