@@ -1896,10 +1896,6 @@ void CopyTensor(const Handle& handle,
     }
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
-#endif
 std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, miopenDataType_t type)
 {
     std::string option(buildOption);
@@ -1918,9 +1914,6 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 void CastTensor(const Handle& handle,
                 const void* alpha,

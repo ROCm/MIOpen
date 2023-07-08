@@ -83,9 +83,8 @@ bool CheckLengths(const std::vector<T>& lens)
 }
 
 std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
-                                               const std::string& err_msg)
+                                               [[maybe_unused]] const std::string& err_msg)
 {
-    (void)err_msg; // WA till C++17 [[maybe_unused]]
     if(!CheckLengths(lens_in))
         MIOPEN_THROW(miopenStatusBadParm, err_msg);
 

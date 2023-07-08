@@ -126,8 +126,10 @@ void default_deallocator(void*, void* mem)
         MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
     status = hipFree(mem);
     if(status != hipSuccess)
+    {
         MIOPEN_THROW_HIP_STATUS(status,
                                 "hipFree " + std::to_string(size) + " at " + to_string(mem));
+    }
     else
         MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
 }

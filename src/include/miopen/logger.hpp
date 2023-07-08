@@ -350,7 +350,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcomment"
 #endif
-#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
+#define MIOPEN_LOG_DRIVER_CMD(...) \
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-do-while)                                       \
     do                                                                                         \
     {                                                                                          \
@@ -365,7 +365,6 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
