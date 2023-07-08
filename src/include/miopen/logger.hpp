@@ -350,8 +350,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcomment"
 #endif
-#define MIOPEN_LOG_DRIVER_CMD(...) \
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-do-while)                                       \
+#define MIOPEN_LOG_DRIVER_CMD(...)                                                             \
     do                                                                                         \
     {                                                                                          \
         std::ostringstream miopen_driver_cmd_ss;                                               \
