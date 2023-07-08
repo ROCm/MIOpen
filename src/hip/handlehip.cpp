@@ -104,19 +104,12 @@ void* default_allocator(void*, size_t sz)
     MIOPEN_THROW_HIP_STATUS(status_host, "hipHostMalloc " + std::to_string(sz));
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
-inline std::string to_string(void* const ptr)
+[[maybe_unused]] inline std::string to_string(void* const ptr)
 {
     std::ostringstream oss;
     oss << ptr;
     return oss.str();
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 void default_deallocator(void*, void* mem)
 {

@@ -436,10 +436,6 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type"
-#endif
 std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
 {
     if(conv_fwd_algo)
@@ -505,9 +501,6 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {

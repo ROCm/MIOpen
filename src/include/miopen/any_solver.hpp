@@ -224,10 +224,6 @@ struct AnySolver
                 ctx, problem, params, std::integral_constant<bool, TunableSolver::Is>());
         }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type"
-#endif
         // tunable legacy solver
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext&,
                                                   const ProblemDescription&,
@@ -236,9 +232,6 @@ struct AnySolver
         {
             MIOPEN_THROW("No solutions returned for Legacy Solvers.");
         }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
         // tunable solver, not legacy
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx,

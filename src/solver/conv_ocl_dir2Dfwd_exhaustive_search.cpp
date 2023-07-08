@@ -208,10 +208,6 @@ static int MeasurePerfConfig(const Handle& handle,
     return 0;
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type"
-#endif
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& ctx,
                                                const ProblemDescription& problem,
@@ -228,9 +224,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& ctx,
         MIOPEN_THROW("Unsupported float_size");
     }
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 template <typename Tgpu>
 LegacyPerformanceConfig

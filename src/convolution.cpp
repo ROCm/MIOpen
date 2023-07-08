@@ -528,10 +528,6 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
     }
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type"
-#endif
 int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
@@ -542,9 +538,6 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");
 }
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 void to_json(nlohmann::json& json, const ConvolutionAttribute& conv)
 {
