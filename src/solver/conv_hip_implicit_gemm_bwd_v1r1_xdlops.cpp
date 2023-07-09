@@ -77,7 +77,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ProblemDescription&)
 {
     do
     {
@@ -667,7 +667,9 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     return config.IsReallyValid(problem);
 }
@@ -715,7 +717,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLds
 }
 
 std::size_t
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&,
+                                                       const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -756,6 +759,10 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
         return false;
+
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
+
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
@@ -830,7 +837,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
     // clang-format on
 
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     int grid_size  = 0;
     int block_size = 0;

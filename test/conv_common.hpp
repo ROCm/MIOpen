@@ -64,6 +64,10 @@
 #define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
     (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
+using ExecutionContext       = miopen::ExecutionContext;
+using ConvProblemDescription = miopen::conv::ProblemDescription;
+using Direction              = miopen::conv::Direction;
+
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
@@ -77,16 +81,20 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        auto ctx = miopen::ConvolutionContext{
-            xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        const auto dir = static_cast<miopen::conv::Direction>(direction);
+        const auto problem =
+            (dir == miopen::conv::Direction::Forward)
+                ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir}
+                : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
+        auto ctx                    = miopen::ConvolutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
-        ctx.SetupFloats();
+        problem.SetupFloats(ctx);
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx, {}).empty())
+        if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
     }
     return true;
@@ -101,18 +109,19 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    auto ctx = miopen::ConvolutionContext{
-        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    const auto problem = miopen::conv::ProblemDescription{
+        yDesc, wDesc, xDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx, {}).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
 }
 #endif
 
@@ -126,26 +135,27 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    auto ctx =
-        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto conv_problem = miopen::conv::ProblemDescription{
+        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{conv_problem};
+    auto ctx           = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    ctx.SetupFloats();
+    problem.conv_problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
-           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
-           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
-           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
-           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
-           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
-           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
-           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
-           ctx.problem.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
+           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.GetGroupCount() == 1 &&
+           problem.GetBatchSize() == 1 && problem.GetInChannels() == 192 &&
+           problem.GetInHeight() == 28 && problem.GetInWidth() == 28 &&
+           problem.GetOutChannels() == 1 && problem.GetWeightsHeight() == 3 &&
+           problem.GetWeightsWidth() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
+           problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1 &&
+           problem.GetDilationW() == 1 && problem.GetDilationH() == 1;
 }
 #endif
 
@@ -300,6 +310,9 @@ struct conv_base
     bool enable_fdb{};
     int conv_spatial_dims{};
     conv_stats* stats{}; // Denotes an object after object construction (never nullptr).
+    bool preallocate;
+
+    conv_base(bool preallocate_) : preallocate(preallocate_) {}
 
     void fail(float = 0) const
     {
@@ -320,10 +333,22 @@ protected:
         auto solutions = std::vector<miopenSolution_t>{};
         solutions.resize(find_limit);
 
-        EXPECT_EQUAL(
-            miopenStatusSuccess,
-            miopenFindSolutions(
-                handle, problem, MakeOptions().get(), solutions.data(), &found, solutions.size()));
+        {
+            const auto options = MakeOptions();
+
+            if(preallocate)
+            {
+                for(auto i = 0; i < 3; ++i)
+                    miopenSetFindOptionPreallocatedTensor(
+                        options.get(), arguments[i].id, arguments[i].buffer);
+            }
+
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenFindSolutions(
+                    handle, problem, options.get(), solutions.data(), &found, solutions.size()));
+        }
+
         EXPECT_OP(found, >=, 0);
 
         solutions.resize(found);
@@ -379,6 +404,50 @@ private:
     }
 };
 
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_fwd(const tensor<T>& input,
+                          const tensor<T>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rout = out;
+    if(filter.mode == miopenTranspose)
+    {
+        std::fill(rout.begin(), rout.end(), 0);
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference skipped");
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rout,
+                                          weights,
+                                          input,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
+        }
+    }
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
+
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference skipped");
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    rout,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+        }
+    }
+    return rout;
+}
+
 // Mainline convolution tests
 //========================================
 template <ConvApi api, class T, class Tout = T>
@@ -402,9 +471,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                         const tensor<Tout>& pout,
                         const miopen::ConvolutionDescriptor& pfilter,
                         conv_stats& pstats,
+                        bool preallocate_,
                         int pbias,
                         int psearch,
                         bool pvect)
+        : conv_base<T, Tout>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -418,42 +489,9 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     tensor<Tout> cpu() const
     {
-        auto rout = out;
-
-        if(filter.mode == miopenTranspose)
+        auto rout = ref_conv_fwd(input, weights, out, filter);
+        if(filter.mode != miopenTranspose)
         {
-            std::fill(rout.begin(), rout.end(), 0);
-            bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
-            if(!gpu_ref_used)
-            {
-                MIOPEN_LOG_W("GPU reference skipped");
-                cpu_convolution_backward_data(filter.GetSpatialDimension(),
-                                              rout,
-                                              weights,
-                                              input,
-                                              filter.GetConvPads(),
-                                              filter.GetConvStrides(),
-                                              filter.GetConvDilations(),
-                                              filter.GetGroupCount());
-            }
-        }
-        else
-        {
-            bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
-
-            if(!gpu_ref_used)
-            {
-                MIOPEN_LOG_W("GPU reference skipped");
-                cpu_convolution_forward(filter.GetSpatialDimension(),
-                                        input,
-                                        weights,
-                                        rout,
-                                        filter.GetConvPads(),
-                                        filter.GetConvStrides(),
-                                        filter.GetConvDilations(),
-                                        filter.GetGroupCount());
-            }
-
             bool is_int8 =
                 weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4;
             bool is_vect_c = weights.desc.GetVectorLength() > 1;
@@ -502,12 +540,20 @@ struct verify_forward_conv : conv_base<T, Tout>
         /// the name of the Solver selected during Find() and then used in Run().
         /// So we use one Immediate mode call during Find mode tests,
         /// to print solver name onto console.
-        miopenConvSolution_t selected;
-        bool fallback_path_taken = false;
-        std::size_t count        = 0;
+        miopenConvSolution_t selected = {};
+        bool fallback_path_taken      = false;
+        std::size_t count             = 0;
 
         std::vector<char> ws;
         miopen::Allocator::ManageDataPtr ws_dev = nullptr;
+
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = ConvProblemDescription{
+            input.desc,
+            weights.desc,
+            rout.desc,
+            filter,
+            filter.mode != miopenTranspose ? Direction::Forward : Direction::BackwardData};
 
         switch(api)
         {
@@ -518,8 +564,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
-                    const size_t workspace_size = filter.BackwardDataGetWorkSpaceSize(
-                        handle, weights.desc, input.desc, rout.desc);
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     resize_workspace(handle, workspace_size, ws, ws_dev);
 
                     filter.FindConvBwdDataAlgorithm(handle,
@@ -536,8 +581,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                     workspace_size,
                                                     search);
                 }
-                count =
-                    filter.GetBackwardSolutionCount(handle, input.desc, weights.desc, rout.desc);
+                count = filter.GetSolutionCount(ctx, problem);
 
                 if(count == 0)
                 {
@@ -546,16 +590,9 @@ struct verify_forward_conv : conv_base<T, Tout>
                     exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
-                auto solutions = std::vector<miopenConvSolution_t>(count);
-
-                filter.GetBackwardSolutions(handle,
-                                            input.desc,
-                                            weights.desc,
-                                            rout.desc,
-                                            count,
-                                            &count,
-                                            solutions.data(),
-                                            &fallback_path_taken);
+                const auto solutions =
+                    filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+                count = solutions.size();
 
                 if(count == 0)
                 {
@@ -574,8 +611,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
-                filter.CompileBackwardSolution(
-                    handle, input.desc, weights.desc, rout.desc, selected.solution_id);
+                filter.CompileSolution(ctx, problem, selected.solution_id);
 
                 filter.ConvolutionBackwardImmediate(handle,
                                                     input.desc,
@@ -594,8 +630,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
-                    const size_t workspace_size =
-                        filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     resize_workspace(handle, workspace_size, ws, ws_dev);
 
                     filter.FindConvFwdAlgorithm(handle,
@@ -613,7 +648,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                 search);
                 }
 
-                count = filter.GetForwardSolutionCount(handle, weights.desc, input.desc, rout.desc);
+                count = filter.GetSolutionCount(ctx, problem);
 
                 if(count == 0)
                 {
@@ -623,16 +658,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                 }
 
                 // std::cout << "Forward Conv solutions available: " << count << std::endl;
-                auto solutions = std::vector<miopenConvSolution_t>(count);
-
-                filter.GetForwardSolutions(handle,
-                                           weights.desc,
-                                           input.desc,
-                                           rout.desc,
-                                           count,
-                                           &count,
-                                           solutions.data(),
-                                           &fallback_path_taken);
+                auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+                count          = solutions.size();
 
                 if(count == 0)
                 {
@@ -640,7 +667,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                               << " Solution count: " << count << std::endl;
                     exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
-                selected = solutions.front();
+                selected = std::move(solutions.front());
 
                 {
                     const std::size_t ws_size = filter.GetForwardSolutionWorkspaceSize(
@@ -651,8 +678,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
-                filter.CompileForwardSolution(
-                    handle, weights.desc, input.desc, rout.desc, selected.solution_id);
+                filter.CompileSolution(ctx, problem, selected.solution_id);
 
                 filter.ConvolutionForwardImmediate(handle,
                                                    weights.desc,
@@ -694,21 +720,21 @@ struct verify_forward_conv : conv_base<T, Tout>
                 {
                     float aph = 1.0;
                     float bta = 0.0;
-                    miopen::TransformTensor(handle,
-                                            &aph,
-                                            input.desc,
-                                            in_dev.get(),
-                                            &bta,
-                                            input_vpad_desc,
-                                            in_vpad_dev.get());
+                    TransformTensor(handle,
+                                    &aph,
+                                    input.desc,
+                                    in_dev.get(),
+                                    &bta,
+                                    input_vpad_desc,
+                                    in_vpad_dev.get());
 
-                    miopen::TransformTensor(handle,
-                                            &aph,
-                                            weights.desc,
-                                            wei_dev.get(),
-                                            &bta,
-                                            weight_vpad_desc,
-                                            wei_vpad_dev.get());
+                    TransformTensor(handle,
+                                    &aph,
+                                    weights.desc,
+                                    wei_dev.get(),
+                                    &bta,
+                                    weight_vpad_desc,
+                                    wei_vpad_dev.get());
                 }
 
                 auto in_desc  = (is_transform ? input_vpad_desc : input.desc);
@@ -719,9 +745,7 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 if(api == ConvApi::Find_1_0)
                 {
-                    size_t workspace_size =
-                        filter.ForwardGetWorkSpaceSize(handle, wei_desc, in_desc, rout.desc);
-
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     std::vector<char> workspace(workspace_size);
                     auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -764,18 +788,16 @@ struct verify_forward_conv : conv_base<T, Tout>
                                               workspace_dev.get(),
                                               workspace_size);
 
-                    filter.GetForwardSolutions(handle,
-                                               wei_desc,
-                                               in_desc,
-                                               rout.desc,
-                                               1,
-                                               &count,
-                                               &selected,
-                                               &fallback_path_taken); /// \ref read_solver_name
+                    /// \ref read_solver_name
+                    auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
+                    count          = solutions.size();
+
+                    if(count > 0)
+                        selected = std::move(solutions.front());
                 }
                 else if(api == ConvApi::Find_2_0)
                 {
-                    const auto problem = MakeConvProblem(
+                    const auto f2_problem = MakeConvProblem(
                         miopenProblemDirectionForward, &in_desc, &wei_desc, &rout.desc);
 
                     const miopenTensorArgument_t arguments[3] = {
@@ -784,7 +806,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                         {miopenTensorConvolutionY, nullptr, out_dev.get()},
                     };
 
-                    RunFind2_0(problem.get(), arguments);
+                    RunFind2_0(f2_problem.get(), arguments);
                 }
                 else
                 {
@@ -795,12 +817,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             {
                 if(api == ConvApi::Find_1_0)
                 {
-                    size_t workspace_size = filter.mode == miopenTranspose
-                                                ? filter.BackwardDataGetWorkSpaceSize(
-                                                      handle, weights.desc, input.desc, rout.desc)
-                                                : filter.ForwardGetWorkSpaceSize(
-                                                      handle, weights.desc, input.desc, rout.desc);
-
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     std::vector<char> workspace(workspace_size);
                     auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -844,15 +861,6 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                        out_dev.get(),
                                                        workspace_dev.get(),
                                                        workspace_size);
-
-                        filter.GetBackwardSolutions(handle,
-                                                    input.desc,
-                                                    weights.desc,
-                                                    rout.desc,
-                                                    1,
-                                                    &count,
-                                                    &selected,
-                                                    &fallback_path_taken); /// \ref read_solver_name
                     }
                     else
                     {
@@ -889,20 +897,18 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                   out_dev.get(),
                                                   workspace_dev.get(),
                                                   workspace_size);
-
-                        filter.GetForwardSolutions(handle,
-                                                   weights.desc,
-                                                   input.desc,
-                                                   rout.desc,
-                                                   1,
-                                                   &count,
-                                                   &selected,
-                                                   &fallback_path_taken); /// \ref read_solver_name
                     }
+
+                    /// \ref read_solver_name
+                    auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
+                    count          = solutions.size();
+
+                    if(count > 0)
+                        selected = std::move(solutions.front());
                 }
                 else if(api == ConvApi::Find_2_0)
                 {
-                    const auto problem = MakeConvProblem(
+                    const auto f2_problem = MakeConvProblem(
                         miopenProblemDirectionForward, &input.desc, &weights.desc, &rout.desc);
 
                     const miopenTensorArgument_t arguments[3] = {
@@ -911,7 +917,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                         {miopenTensorConvolutionY, nullptr, out_dev.get()},
                     };
 
-                    RunFind2_0(problem.get(), arguments);
+                    RunFind2_0(f2_problem.get(), arguments);
                 }
                 else
                 {
@@ -960,8 +966,10 @@ struct verify_backward_conv : conv_base<T>
                          const tensor<T>& pout,
                          const miopen::ConvolutionDescriptor& pfilter,
                          conv_stats& pstats,
+                         bool preallocate_,
                          int pbias,
                          int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1027,15 +1035,18 @@ struct verify_backward_conv : conv_base<T>
         bool fallback_path_taken = false;
         std::size_t count        = 0;
 
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = ConvProblemDescription{
+            out.desc,
+            weights.desc,
+            rinput.desc,
+            filter,
+            filter.mode != miopenTranspose ? Direction::BackwardData : Direction::Forward};
+
         switch(api)
         {
         case ConvApi::Immediate: {
-            size_t workspace_size =
-                filter.mode == miopenTranspose
-                    ? filter.ForwardGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc)
-                    : filter.BackwardDataGetWorkSpaceSize(
-                          handle, weights.desc, out.desc, rinput.desc);
-
+            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1060,7 +1071,7 @@ struct verify_backward_conv : conv_base<T>
                                                 workspace_size,
                                                 search);
                 }
-                count = filter.GetForwardSolutionCount(handle, weights.desc, out.desc, rinput.desc);
+                count = filter.GetSolutionCount(ctx, problem);
 
                 if(count == 0)
                 {
@@ -1071,16 +1082,8 @@ struct verify_backward_conv : conv_base<T>
 
                 // std::cout << "backward transpose Conv solutions available: " << count <<
                 // std::endl;
-                auto solutions = std::vector<miopenConvSolution_t>(count);
-
-                filter.GetForwardSolutions(handle,
-                                           weights.desc,
-                                           out.desc,
-                                           rinput.desc,
-                                           count,
-                                           &count,
-                                           solutions.data(),
-                                           &fallback_path_taken);
+                auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+                count          = solutions.size();
 
                 if(count == 0)
                 {
@@ -1088,19 +1091,17 @@ struct verify_backward_conv : conv_base<T>
                               << " Solution count: " << count << std::endl;
                     exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
-                solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
-                selected = solutions.front();
+                selected = std::move(solutions.front());
 
                 std::size_t ws_size;
 
                 ws_size = filter.GetForwardSolutionWorkspaceSize(
                     handle, weights.desc, out.desc, rinput.desc, selected.solution_id);
 
-                filter.CompileForwardSolution(
-                    handle, weights.desc, out.desc, rinput.desc, selected.solution_id);
+                filter.CompileSolution(ctx, problem, selected.solution_id);
 
                 workspace_dev.reset();
                 if(selected.workspace_size > 0)
@@ -1138,8 +1139,7 @@ struct verify_backward_conv : conv_base<T>
                                                     workspace_size,
                                                     search);
                 }
-                count =
-                    filter.GetBackwardSolutionCount(handle, out.desc, weights.desc, rinput.desc);
+                count = filter.GetSolutionCount(ctx, problem);
 
                 if(count == 0)
                 {
@@ -1149,16 +1149,8 @@ struct verify_backward_conv : conv_base<T>
                 }
 
                 // std::cout << "Backward Conv solutions available: " << count << std::endl;
-                auto solutions = std::vector<miopenConvSolution_t>(count);
-
-                filter.GetBackwardSolutions(handle,
-                                            out.desc,
-                                            weights.desc,
-                                            rinput.desc,
-                                            count,
-                                            &count,
-                                            solutions.data(),
-                                            &fallback_path_taken);
+                auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+                count          = solutions.size();
 
                 if(count == 0)
                 {
@@ -1166,19 +1158,17 @@ struct verify_backward_conv : conv_base<T>
                               << " Solution count: " << count << std::endl;
                     exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
-                solutions.resize(count);
                 std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                     return l.time < r.time;
                 });
-                selected = solutions.front();
+                selected = std::move(solutions.front());
 
                 std::size_t ws_size;
 
                 ws_size = filter.GetBackwardSolutionWorkspaceSize(
                     handle, out.desc, weights.desc, rinput.desc, selected.solution_id);
 
-                filter.CompileBackwardSolution(
-                    handle, out.desc, weights.desc, rinput.desc, selected.solution_id);
+                filter.CompileSolution(ctx, problem, selected.solution_id);
 
                 workspace_dev.reset();
                 if(selected.workspace_size > 0)
@@ -1201,12 +1191,7 @@ struct verify_backward_conv : conv_base<T>
             break;
         }
         case ConvApi::Find_1_0: {
-            size_t workspace_size =
-                filter.mode == miopenTranspose
-                    ? filter.ForwardGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc)
-                    : filter.BackwardDataGetWorkSpaceSize(
-                          handle, weights.desc, out.desc, rinput.desc);
-
+            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1250,15 +1235,6 @@ struct verify_backward_conv : conv_base<T>
                                           in_dev.get(),
                                           workspace_dev.get(),
                                           workspace_size);
-
-                filter.GetForwardSolutions(handle,
-                                           weights.desc,
-                                           out.desc,
-                                           rinput.desc,
-                                           1,
-                                           &count,
-                                           &selected,
-                                           &fallback_path_taken); /// \ref read_solver_name
             }
             else
             {
@@ -1295,20 +1271,18 @@ struct verify_backward_conv : conv_base<T>
                                                in_dev.get(),
                                                workspace_dev.get(),
                                                workspace_size);
-
-                filter.GetBackwardSolutions(handle,
-                                            out.desc,
-                                            weights.desc,
-                                            rinput.desc,
-                                            1,
-                                            &count,
-                                            &selected,
-                                            &fallback_path_taken); /// \ref read_solver_name
             }
+
+            /// \ref read_solver_name
+            const auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
+            count                = solutions.size();
+
+            if(count > 0)
+                selected = std::move(solutions.front());
             break;
         }
         case ConvApi::Find_2_0: {
-            const auto problem = MakeConvProblem(
+            const auto f2_problem = MakeConvProblem(
                 miopenProblemDirectionBackward, &rinput.desc, &weights.desc, &out.desc);
 
             const miopenTensorArgument_t arguments[3] = {
@@ -1317,7 +1291,7 @@ struct verify_backward_conv : conv_base<T>
                 {miopenTensorConvolutionY, nullptr, out_dev.get()},
             };
 
-            RunFind2_0(problem.get(), arguments);
+            RunFind2_0(f2_problem.get(), arguments);
             break;
         }
         case ConvApi::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
@@ -1363,8 +1337,10 @@ struct verify_backward_weights_conv : conv_base<T>
                                  const tensor<T>& pout,
                                  const miopen::ConvolutionDescriptor& pfilter,
                                  conv_stats& pstats,
+                                 bool preallocate_,
                                  int pbias,
                                  int psearch)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1429,15 +1405,18 @@ struct verify_backward_weights_conv : conv_base<T>
         bool fallback_path_taken = false;
         std::size_t count        = 0;
 
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            ConvProblemDescription{filter.mode != miopenTranspose ? out.desc : input.desc,
+                                   rweights.desc,
+                                   filter.mode != miopenTranspose ? input.desc : out.desc,
+                                   filter,
+                                   Direction::BackwardWeights};
+
         switch(api)
         {
         case ConvApi::Immediate: {
-            std::size_t workspace_size = filter.BackwardWeightsGetWorkSpaceSize(
-                handle,
-                filter.mode == miopenTranspose ? input.desc : out.desc,
-                filter.mode == miopenTranspose ? out.desc : input.desc,
-                rweights.desc);
-
+            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1462,11 +1441,7 @@ struct verify_backward_weights_conv : conv_base<T>
                     search);
             }
 
-            count =
-                filter.GetWrwSolutionCount(handle,
-                                           filter.mode == miopenTranspose ? input.desc : out.desc,
-                                           filter.mode == miopenTranspose ? out.desc : input.desc,
-                                           rweights.desc);
+            count = filter.GetSolutionCount(ctx, problem);
 
             if(count == 0)
             {
@@ -1475,16 +1450,8 @@ struct verify_backward_weights_conv : conv_base<T>
             }
 
             // std::cout << "Backward weights conv solutions available: " << count << std::endl;
-            auto solutions = std::vector<miopenConvSolution_t>(count);
-
-            filter.GetWrwSolutions(handle,
-                                   filter.mode == miopenTranspose ? input.desc : out.desc,
-                                   filter.mode == miopenTranspose ? out.desc : input.desc,
-                                   rweights.desc,
-                                   count,
-                                   &count,
-                                   solutions.data(),
-                                   &fallback_path_taken);
+            auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+            count          = solutions.size();
 
             if(count == 0)
             {
@@ -1492,11 +1459,10 @@ struct verify_backward_weights_conv : conv_base<T>
                           << " Solution count: " << count << std::endl;
                 exit(-1); // NOLINT (concurrency-mt-unsafe)
             }
-            solutions.resize(count);
             std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
                 return l.time < r.time;
             });
-            selected = solutions.front();
+            selected = std::move(solutions.front());
 
             std::size_t ws_size;
 
@@ -1507,11 +1473,7 @@ struct verify_backward_weights_conv : conv_base<T>
                 rweights.desc,
                 selected.solution_id);
 
-            filter.CompileWrwSolution(handle,
-                                      filter.mode == miopenTranspose ? input.desc : out.desc,
-                                      filter.mode == miopenTranspose ? out.desc : input.desc,
-                                      rweights.desc,
-                                      selected.solution_id);
+            filter.CompileSolution(ctx, problem, selected.solution_id);
 
             workspace_dev.reset();
             if(selected.workspace_size > 0)
@@ -1535,12 +1497,7 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_1_0: {
 
-            std::size_t workspace_size = filter.BackwardWeightsGetWorkSpaceSize(
-                handle,
-                filter.mode == miopenTranspose ? input.desc : out.desc,
-                filter.mode == miopenTranspose ? out.desc : input.desc,
-                rweights.desc);
-
+            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1584,19 +1541,17 @@ struct verify_backward_weights_conv : conv_base<T>
                 workspace_dev.get(),
                 workspace_size);
 
-            filter.GetWrwSolutions(handle,
-                                   filter.mode == miopenTranspose ? input.desc : out.desc,
-                                   filter.mode == miopenTranspose ? out.desc : input.desc,
-                                   rweights.desc,
-                                   1,
-                                   &count,
-                                   &selected,
-                                   &fallback_path_taken); /// \ref read_solver_name
+            /// \ref read_solver_name
+            const auto solutions = filter.GetSolutions(ctx, problem, 1, &fallback_path_taken);
+            count                = solutions.size();
+
+            if(count > 0)
+                selected = std::move(solutions.front());
 
             break;
         }
         case ConvApi::Find_2_0: {
-            const auto problem = MakeConvProblem(
+            const auto f2_problem = MakeConvProblem(
                 miopenProblemDirectionBackwardWeights, &input.desc, &rweights.desc, &out.desc);
 
             const miopenTensorArgument_t arguments[3] = {
@@ -1605,7 +1560,7 @@ struct verify_backward_weights_conv : conv_base<T>
                 {miopenTensorConvolutionY, nullptr, out_dev.get()},
             };
 
-            RunFind2_0(problem.get(), arguments);
+            RunFind2_0(f2_problem.get(), arguments);
             break;
         }
         case ConvApi::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
@@ -1712,6 +1667,15 @@ struct verify_forward_conv_int8 : conv_base<T>
         auto in_vpad_dev  = handle.Write(input_vpad.data);
         auto wei_vpad_dev = handle.Write(weights_vpad.data);
 
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = ConvProblemDescription{
+            is_transform ? weight_vpad_desc : weights.desc,
+            is_transform ? input_vpad_desc : input.desc,
+            rout.desc,
+            filter,
+            Direction::Forward,
+        };
+
         if(is_transform)
         {
             float aph = 1.0;
@@ -1728,12 +1692,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                     wei_vpad_dev.get());
         }
 
-        size_t workspace_size =
-            filter.ForwardGetWorkSpaceSize(handle,
-                                           (is_transform ? weight_vpad_desc : weights.desc),
-                                           (is_transform ? input_vpad_desc : input.desc),
-                                           rout.desc);
-
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1757,11 +1716,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                         search);
         }
 
-        auto count =
-            filter.GetForwardSolutionCount(handle,
-                                           (is_transform ? weight_vpad_desc : weights.desc),
-                                           (is_transform ? input_vpad_desc : input.desc),
-                                           rout.desc);
+        auto count = filter.GetSolutionCount(ctx, problem);
 
         if(count == 0)
         {
@@ -1770,17 +1725,9 @@ struct verify_forward_conv_int8 : conv_base<T>
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
-        auto solutions           = std::vector<miopenConvSolution_t>(count);
         bool fallback_path_taken = false;
-
-        filter.GetForwardSolutions(handle,
-                                   (is_transform ? weight_vpad_desc : weights.desc),
-                                   (is_transform ? input_vpad_desc : input.desc),
-                                   rout.desc,
-                                   count,
-                                   &count,
-                                   solutions.data(),
-                                   &fallback_path_taken);
+        auto solutions           = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+        count                    = solutions.size();
 
         if(count == 0)
         {
@@ -1788,11 +1735,10 @@ struct verify_forward_conv_int8 : conv_base<T>
                       << " Solution count: " << count << std::endl;
             exit(-1); // NOLINT (concurrency-mt-unsafe)
         }
-        solutions.resize(count);
         std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
             return l.time < r.time;
         });
-        auto selected = solutions.front();
+        auto selected = std::move(solutions.front());
 
         std::size_t ws_size;
 
@@ -1803,11 +1749,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                                    rout.desc,
                                                    selected.solution_id);
 
-        filter.CompileForwardSolution(handle,
-                                      (is_transform ? weight_vpad_desc : weights.desc),
-                                      (is_transform ? input_vpad_desc : input.desc),
-                                      rout.desc,
-                                      selected.solution_id);
+        filter.CompileSolution(ctx, problem, selected.solution_id);
 
         workspace_dev.reset();
         if(selected.workspace_size > 0)
@@ -1879,6 +1821,7 @@ struct conv_driver : test_driver
     std::string output_type  = "";
     bool int8_vectorize      = false;
     bool deterministic       = false;
+    bool preallocate         = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -2010,10 +1953,11 @@ struct conv_driver : test_driver
         add(do_backward_weights, "disable-backward-weights", set_value(false));
         add(search, "search", set_value(1));
         add(gen_float, "generate-float", set_value(true));
-        if(api == ConvApi::Immediate)
-        {
+
+        if constexpr(api == ConvApi::Immediate)
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
-        }
+        else if constexpr(api == ConvApi::Find_2_0)
+            add(preallocate, "preallocate", generate_data({false, true}));
     }
 
     void run()
@@ -2331,12 +2275,8 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                auto ctx = miopen::ConvolutionContext(input.desc,
-                                                      weights.desc,
-                                                      output.desc,
-                                                      filter,
-                                                      miopen::conv::Direction::Forward);
-                ctx.SetStream(&get_handle());
+                auto ctx = miopen::ExecutionContext{&get_handle()};
+                ctx.DetectRocm();
 
                 bool skip_forward = false;
 
@@ -2386,15 +2326,18 @@ struct conv_driver : test_driver
                 output.generate(gen_positive_value);
                 weights.generate(gen_sign_value);
 
-                auto&& handle = get_handle();
                 size_t total_mem;
                 if(is_int8)
                 {
                     // TODO: Tout here was float which should have been int32
                     auto output_int8 =
                         get_output_tensor<T, Tout>(filter, input, weights, out_layout);
-                    size_t workspace_size = filter.ForwardGetWorkSpaceSize(
-                        handle, weights.desc, input.desc, output_int8.desc);
+                    const auto problem        = ConvProblemDescription{input.desc,
+                                                                weights.desc,
+                                                                std::move(output_int8.desc),
+                                                                filter,
+                                                                Direction::Forward};
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
                     // 4x because assume type is miopenInt8x4
                     total_mem = input.desc.GetNumBytes() + 4 * input.desc.GetNumBytes() +
@@ -2403,30 +2346,37 @@ struct conv_driver : test_driver
                 }
                 else
                 {
-                    size_t workspace_size_1 =
-                        filter.mode == miopenTranspose
-                            ? filter.ForwardGetWorkSpaceSize(
-                                  handle, weights.desc, output.desc, input.desc)
-                            : filter.BackwardDataGetWorkSpaceSize(
-                                  handle, weights.desc, output.desc, input.desc);
+                    const auto fwd_problem = miopen::conv::ProblemDescription{
+                        input.desc,
+                        weights.desc,
+                        output.desc,
+                        filter,
+                        filter.mode != miopenTranspose ? Direction::Forward
+                                                       : Direction::BackwardData};
 
-                    size_t workspace_size_2 =
-                        filter.mode == miopenTranspose
-                            ? filter.BackwardDataGetWorkSpaceSize(
-                                  handle, weights.desc, input.desc, output.desc)
-                            : filter.ForwardGetWorkSpaceSize(
-                                  handle, weights.desc, input.desc, output.desc);
+                    const auto bwd_problem = miopen::conv::ProblemDescription{
+                        output.desc,
+                        weights.desc,
+                        input.desc,
+                        filter,
+                        filter.mode != miopenTranspose ? Direction::BackwardData
+                                                       : Direction::Forward};
 
-                    size_t workspace_size_3 = filter.BackwardWeightsGetWorkSpaceSize(
-                        handle,
-                        filter.mode == miopenTranspose ? input.desc : output.desc,
-                        filter.mode == miopenTranspose ? output.desc : input.desc,
-                        weights.desc);
+                    const auto wrw_problem = miopen::conv::ProblemDescription{
+                        filter.mode != miopenTranspose ? output.desc : input.desc,
+                        weights.desc,
+                        filter.mode != miopenTranspose ? input.desc : output.desc,
+                        filter,
+                        Direction::BackwardWeights};
 
-                    std::vector<size_t> workspace_sizes = {
-                        workspace_size_1, workspace_size_2, workspace_size_3};
-                    size_t workspace_size =
-                        *std::max_element(workspace_sizes.begin(), workspace_sizes.end());
+                    const auto workspaces = std::array<std::size_t, 3>{
+                        filter.GetWorkSpaceSize(ctx, fwd_problem),
+                        filter.GetWorkSpaceSize(ctx, bwd_problem),
+                        filter.GetWorkSpaceSize(ctx, wrw_problem),
+                    };
+
+                    const auto workspace_size =
+                        *std::max_element(workspaces.begin(), workspaces.end());
 
                     total_mem = input.desc.GetNumBytes() + weights.desc.GetNumBytes() +
                                 output.desc.GetNumBytes() +
@@ -2463,6 +2413,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, float>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2475,6 +2426,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2487,6 +2439,7 @@ struct conv_driver : test_driver
                                 get_output_tensor<T, int8_t>(filter, input, weights, out_layout),
                                 filter,
                                 stats,
+                                preallocate,
                                 0,
                                 search,
                                 int8_vectorize});
@@ -2495,14 +2448,14 @@ struct conv_driver : test_driver
                     else
                     {
                         verify(verify_forward_conv<api, T>{
-                            input, weights, output, filter, stats, 0, search, false});
+                            input, weights, output, filter, stats, preallocate, 0, search, false});
                     }
                 }
 
                 if(do_backward_data && !skip_backward_data)
                 {
                     verify(verify_backward_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
 
                 if(do_backward_weights && !skip_backward_weights)
@@ -2510,7 +2463,7 @@ struct conv_driver : test_driver
                     output.generate(gen_sign_value);
 
                     verify(verify_backward_weights_conv<api, T>{
-                        input, weights, output, filter, stats, 0, search});
+                        input, weights, output, filter, stats, preallocate, 0, search});
                 }
             }
         }

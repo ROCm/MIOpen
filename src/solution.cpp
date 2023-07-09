@@ -79,7 +79,8 @@ void Solution::RunImpl(Handle& handle,
     const auto problem_ =
         conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
 
-    if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    if(problem_.GetDirection() == miopenProblemDirectionBackward &&
+       y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -123,22 +124,6 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    // auto log_tensor = [](auto name, const TensorDescriptor& tensor) {
-    //     std::cerr << name << ": l";
-    //     LogRange(std::cerr, tensor.GetLengths(), "x");
-    //     std::cerr << ", s";
-    //     LogRange(std::cerr, tensor.GetStrides(), "x");
-    //     std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
-    // };
-    //
-    // std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
-    //           << std::endl;
-    //
-    // std::cerr << "Conv: " << conv_desc << std::endl;
-    // log_tensor("X", *x.descriptor);
-    // log_tensor("W", *w.descriptor);
-    // log_tensor("Y", *y.descriptor);
-
     const auto net_cfg       = conv_problem.BuildConfKey();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
@@ -161,11 +146,14 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+    const auto legacy_problem = ProblemDescription{conv_problem};
+    auto conv_ctx             = ConvolutionContext{{&handle}};
     conv_ctx.DetectRocm();
+    conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
-    const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
+    const auto conv_solution = GetSolver().GetSolver().FindSolution(
+        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
@@ -211,6 +199,9 @@ void to_json(nlohmann::json& json, const Solution& solution)
         {"solver", solution.solver.ToString()},
         {"problem", solution.problem},
     };
+
+    if(solution.perf_cfg.has_value())
+        json["perf_cfg"] = *solution.perf_cfg;
 }
 
 void from_json(const nlohmann::json& json, Solution& solution)
@@ -232,5 +223,10 @@ void from_json(const nlohmann::json& json, Solution& solution)
     json.at("workspace").get_to(solution.workspace_required);
     solution.solver = json.at("solver").get<std::string>();
     json.at("problem").get_to(solution.problem);
+
+    const auto perf_cfg_json = json.find("perf_cfg");
+    solution.perf_cfg        = perf_cfg_json != json.end()
+                                   ? std::optional{perf_cfg_json->get<std::string>()}
+                                   : std::nullopt;
 }
 } // namespace miopen

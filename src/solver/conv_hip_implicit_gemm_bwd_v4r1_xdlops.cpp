@@ -327,7 +327,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(problem.in_data_type) * GemmKPack;
+        lds_size =
+            (a_block_space + b_block_space) * GetTypeSize(problem.GetInDataType()) * GemmKPack;
     }
     catch(...)
     {
@@ -578,7 +579,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ProblemDescription&)
 {
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -825,6 +826,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -837,7 +840,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!IsApplicableXdlops(ctx))
+    if(!IsApplicableXdlops(ctx, problem))
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
@@ -870,7 +873,9 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsReallyValid(problem);
@@ -968,7 +973,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
             // clang-format on
 
-            // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
+            // TODO: add fp16 calculation by GetWorkspaceSize();
             result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;
@@ -1022,7 +1027,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ProblemInterpreter::GetInputLeftPadW(problem)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadH(problem)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadW(problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(problem.group_counts) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(problem.GetGroupCount()) +
                 std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +

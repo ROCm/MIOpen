@@ -106,6 +106,21 @@ static_assert(buf_type == TYPE_FP32 || buf_type == TYPE_FP16 || buf_type == TYPE
 .endif
 slot_size = xformx_d_size
 
+// Starting from gfx90a, vgpr tuples must be 64bit aligned
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 .text
 .p2align 8
 
@@ -1097,6 +1112,10 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
                 single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
                 single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
+            .endif
+
+            .if tuple_alignment && (vgpr % 2) && (dwords_left > 0)
+                single_load vgpr, 1, dwords_left, 1, soffset, \reads
             .endif
 
             single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads

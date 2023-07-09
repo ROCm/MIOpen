@@ -25,11 +25,15 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.11 )
 
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 macro(set_var_to_condition var)
     if(${ARGN})
         set(${var} TRUE)
     else()
-        set(${name} FALSE)
+        set(${var} FALSE)
     endif()
 endmacro()
 
@@ -60,7 +64,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-
+set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
+set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
@@ -87,7 +92,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.19.0)
+rocm_setup_version(VERSION 2.20.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -138,7 +143,6 @@ option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
-
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
     option(BUILD_SHARED_LIBS "Build as a shared library" Off)
@@ -150,6 +154,15 @@ else()
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
 
+if(MIOPEN_EMBED_BUILD)
+    if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+        message(FATAL_ERROR "AI-based fallback for Immediate Mode cannot be used \
+        with database embedding")
+    endif()
+    if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+        message(FATAL_ERROR "AI Kernel tuning cannot be used with database embedding")
+    endif()
+endif()
 
 set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
@@ -306,28 +319,13 @@ if(MIOPEN_OFFLOADBUNDLER_BIN)
     message(STATUS "clang-offload-bundler found: ${MIOPEN_OFFLOADBUNDLER_BIN}")
     set(MIOPEN_OFFLOADBUNDLER_BIN "${MIOPEN_OFFLOADBUNDLER_BIN}")
 else()
-    # look for and register extractkernel
     message(STATUS "clang-offload-bundler not found")
-
-    find_program(EXTRACTKERNEL_BIN extractkernel
-        PATH_SUFFIXES bin
-        PATHS
-            /opt/rocm/hip
-            /opt/rocm
-            ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}
-    )
-    if(EXTRACTKERNEL_BIN)
-        message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
-        set(EXTRACTKERNEL_BIN "${EXTRACTKERNEL_BIN}")
-    else()
-        message(FATAL_ERROR "extractkernel not found")
-    endif()
 endif()
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
+set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
@@ -345,10 +343,14 @@ if(MIOPEN_USE_MLIR)
             Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+            set(rocMLIR_VERSION_MAJOR 0)
+            set(rocMLIR_VERSION_MINOR 0)
+            set(rocMLIR_VERSION_PATCH 1)
         endif()
     else()
         message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
+    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -463,6 +465,42 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+
+# Unpack DB files
+function(unpack_db db_bzip2_file)
+    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
+    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
+    find_program(UNZIPPER lbunzip2 bunzip2)
+    if(EXISTS "${db_file}")
+        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
+    endif()
+    if(EXISTS "${db_bzip2_file}")
+        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
+        execute_process(
+            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
+            WORKING_DIRECTORY ${KERNELS_DIR}
+            RESULT_VARIABLE ret
+            )
+        if(NOT ret EQUAL "0")
+            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
+            execute_process(
+                COMMAND touch ${db_file}
+                WORKING_DIRECTORY ${KERNELS_DIR}
+                )
+        endif()
+    endif()
+endfunction()
+
+file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
+file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
+foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
+    unpack_db(${DB_BZIP_FILE})
+endforeach()
+
 # Begin KDB component install 
 function(install_kdb)
     set(oneValueArgs NAME COMPONENT_NAME)
@@ -472,22 +510,25 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
     else()
+        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-        rocm_install(FILES
-            src/kernels/${FILE_NAME}.kdb
-        DESTINATION ${DATA_INSTALL_DIR}/db
-        COMPONENT ${PARSE_COMPONENT_NAME})
+        if( NOT ENABLE_ASAN_PACKAGING )
+          rocm_install(FILES
+              src/kernels/${FILE_NAME}.kdb
+          DESTINATION ${DATA_INSTALL_DIR}/db
+          COMPONENT ${PARSE_COMPONENT_NAME})
+        endif()
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
-list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
+list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 list(LENGTH ARCH_LST FULL_LEN)
 math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
@@ -506,9 +547,10 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 endif()
 
-set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation
 
 rocm_create_package(
@@ -553,7 +595,6 @@ enable_clang_tidy(
         -cert-msc51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-avoid-c-arrays
@@ -651,12 +692,15 @@ enable_clang_tidy(
         -modernize-concat-nested-namespaces
         -readability-redundant-declaration
         -readability-simplify-boolean-expr
-        -clang-diagnostic-deprecated
         -hicpp-deprecated-headers
         -hicpp-member-init
         -performance-no-automatic-move
         -clang-analyzer-cplusplus.NewDeleteLeaks
         -modernize-deprecated-headers
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.4.2
+        ###################################################################
+        -misc-const-correctness
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -755,7 +799,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 add_subdirectory(addkernels)
-add_subdirectory(doc)
 add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)

@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
@@ -43,7 +44,7 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription
+struct ProblemDescription : ProblemDescriptionBase
 {
     // Forward constructor
     ProblemDescription(const ActivationDescriptor& activ,
@@ -88,14 +89,6 @@ struct ProblemDescription
     }
 
     NetworkConfig MakeNetworkConfig() const;
-
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
 
 private:
     Direction direction;

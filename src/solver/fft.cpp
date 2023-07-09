@@ -158,7 +158,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
-size_t fft::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
     const auto fwd       = problem.direction.IsForward();
     decltype(auto) xDesc = fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
@@ -202,9 +202,12 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 {
     std::ignore = ctx;
 
-    int in_n = problem.batch_sz, in_c = problem.n_inputs, in_h = problem.in_height,
-        in_w  = problem.in_width;
-    int out_n = problem.batch_sz, out_c = problem.n_outputs;
+    int in_n  = problem.GetBatchSize();
+    int in_c  = problem.GetInChannels();
+    int in_h  = problem.GetInHeight();
+    int in_w  = problem.GetInWidth();
+    int out_n = problem.GetBatchSize();
+    int out_c = problem.GetOutChannels();
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -348,7 +351,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     else if((in_h == 7) && (in_w == 7))
         parms += " -DCFF_IMG_SZ_7_7";
 
-    const auto workSpaceSize = GetWorkspaceSize(problem);
+    const auto workSpaceSize = GetWorkspaceSize(ctx, problem);
 
     parms += " -DCFF_IMG_H=";
     parms += std::to_string(in_h);

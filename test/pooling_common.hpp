@@ -502,7 +502,7 @@ struct pooling_driver : test_driver
 #if TEST_PADDING_MODE == 1
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
 #endif
-        add(verify_indices, "verify_indices", generate_data({0}));
+        add(verify_indices, "verify_indices", generate_data({1}));
     }
 
     template <class Index, int SptDim>
@@ -607,7 +607,7 @@ struct pooling_driver : test_driver
         }
         }
 
-        auto input_desc = miopen::TensorDescriptor(this->type, in_shape.data(), in_shape.size());
+        auto input_desc = miopen::TensorDescriptor(this->type, in_shape);
 
         if(spt_dim != 2 && spt_dim != 3)
         {

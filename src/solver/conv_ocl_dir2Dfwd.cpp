@@ -35,75 +35,78 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
-    if(!params.use_opencl_convolutions)
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(!params.problem.Is2d())
+    if(!ctx.use_opencl_convolutions)
         return false;
-    if(!(params.problem.direction.IsForward() || params.problem.direction.IsBackwardData()))
+    if(!problem.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
         return false;
-    if(!(params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()))
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.problem.IsLayoutDefault())
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+        return false;
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
-    if(params.problem.direction.IsBackwardData()
-        && (params.problem.GetBackwardPadW() < 0 || params.problem.GetBackwardPadH() < 0))
+    if(problem.direction.IsBackwardData()
+        && (problem.GetBackwardPadW() < 0 || problem.GetBackwardPadH() < 0))
         return false;
 
     // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed:
-    if (params.problem.group_counts == 1)
+    if (problem.GetGroupCount() == 1)
     {
-        const auto& p = params.problem; //alias
+        const auto& p = problem; //alias
         const bool supported =
-            ((p.kernel_size_h == p.kernel_size_w)
-              && (p.kernel_size_h == 3
-                  || p.kernel_size_h == 5
-                  || p.kernel_size_h == 7
-                  || p.kernel_size_h == 9
-                  || p.kernel_size_h == 11))
-            || ((p.kernel_size_w == 10 || p.kernel_size_w == 20)
-                && p.kernel_size_h == 5
-                && p.kernel_stride_h == 2
-                && p.kernel_stride_w == 2
-                && p.pad_h == 0
-                && p.pad_w == 0)
+            ((p.GetWeightsHeight() == p.GetWeightsWidth())
+              && (p.GetWeightsHeight() == 3
+                  || p.GetWeightsHeight() == 5
+                  || p.GetWeightsHeight() == 7
+                  || p.GetWeightsHeight() == 9
+                  || p.GetWeightsHeight() == 11))
+            || ((p.GetWeightsWidth() == 10 || p.GetWeightsWidth() == 20)
+                && p.GetWeightsHeight() == 5
+                && p.GetKernelStrideH() == 2
+                && p.GetKernelStrideW() == 2
+                && p.GetPadH() == 0
+                && p.GetPadW() == 0)
             /// The following is for #1594. Most likely we can open more configs,
             /// but that would require thorough testing.
             || (p.IsFp16()
-                && p.kernel_size_h == 4
-                && p.kernel_size_w == 4
-                && p.pad_h == 0
-                && p.pad_w == 0);
+                && p.GetWeightsHeight() == 4
+                && p.GetWeightsWidth() == 4
+                && p.GetPadH() == 0
+                && p.GetPadW() == 0);
 
         if (!supported)
             return false;
     }
-    return params.problem.kernel_stride_w == params.problem.kernel_stride_h
-        && params.problem.pad_w == params.problem.pad_h
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
+    return problem.GetKernelStrideW() == problem.GetKernelStrideH()
+        && problem.GetPadW() == problem.GetPadH()
+        && problem.GetDilationW() == 1
+        && problem.GetDilationH() == 1
         /// \todo need to make sure support stride > 2, should support but not tested
-        && !(params.problem.kernel_stride_w > 2 || params.problem.kernel_stride_h > 2)
+        && !(problem.GetKernelStrideW() > 2 || problem.GetKernelStrideH() > 2)
         /// We have optimized 1x1 kernel for normal conv.
-        && !(params.problem.group_counts == 1 && params.problem.kernel_size_h == 1 && params.problem.kernel_size_w == 1)
+        && !(problem.GetGroupCount() == 1 && problem.GetWeightsHeight() == 1 && problem.GetWeightsWidth() == 1)
         /// \todo Workaround to avoid FP16 precision issue:
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
         /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
         /// See issue #1626.
-        && !(params.problem.direction.IsForward()
-            && params.problem.IsFp16()
-            && params.problem.kernel_stride_w == 2)
-        && IsValidPerformanceConfig(params, GetDefaultPerformanceConfig(params));
+        && !(problem.direction.IsForward()
+            && problem.IsFp16()
+            && problem.GetKernelStrideW() == 2)
+        && IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
     // clang-format on
 }
 
@@ -112,36 +115,35 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 /// and some logic from the corresponding opencl kernel source.
 /// The cases which lead to errors can be later omitted from the search.
 /// \todo Get rid the duplication of code where possible.
-bool ConvOclDirectFwd::IsValidPerformanceConfig(
-    const ConvolutionContext& params, const LegacyPerformanceConfig& searched_params) const
+bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
+                                                const ProblemDescription& problem,
+                                                const LegacyPerformanceConfig& config) const
 {
     ConvSolution result;
 
-    searched_params.CopyTo(result);
-    // auto pad_w = problem.pad_w;
-    // auto pad_h = problem.pad_h;
+    config.CopyTo(result);
+    // auto pad_w = problem.GetPadW();
+    // auto pad_h = problem.GetPadH();
     // auto hw_wave_sz = 64;
     // if(!problem.direction.IsForward())
     // {
     //     // backward
-    //     pad_w = problem.kernel_size_w - 1 - pad_w;
-    //     pad_h = problem.kernel_size_h - 1 - pad_h;
+    //     pad_w = problem.GetWeightsWidth() - 1 - pad_w;
+    //     pad_h = problem.GetWeightsHeight() - 1 - pad_h;
     // }
-    auto group_counts = params.problem.group_counts;
+    auto group_counts = problem.GetGroupCount();
     result.n_in_data_tiles =
-        std::min(params.problem.n_inputs / group_counts, searched_params.n_in_data_tiles);
+        std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
     result.n_out_pix_tiles =
-        std::min(params.problem.n_outputs / group_counts, searched_params.n_out_pix_tiles);
+        std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
-            ? params.problem.kernel_stride_h
-            : searched_params.out_pix_tile1;
-    result.out_pix_tile0 =
-        (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
-            ? params.problem.kernel_stride_w
-            : searched_params.out_pix_tile0;
+    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
+                               ? problem.GetKernelStrideH()
+                               : config.out_pix_tile1;
+    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.GetKernelStrideW() > 1)
+                               ? problem.GetKernelStrideW()
+                               : config.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -164,7 +166,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     int n_alus_total = (result.grp_tile0 * result.grp_tile1);
 
     result.n_stacks = std::min(result.n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
-    result.n_stacks = std::min(params.problem.batch_sz, result.n_stacks);
+    result.n_stacks = std::min(problem.GetBatchSize(), result.n_stacks);
 
     if(result.n_stacks == 0 /* DIV/0 */)
     {
@@ -188,32 +190,32 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     //                                                   : (result.grp_tile1 * result.grp_tile0);
     // }
 
-    // int n_out_tile_blocks0 = (problem.out_width + result.in_tile0 - 1) / (result.in_tile0);
-    // int n_out_tile_blocks1 = (problem.out_height + result.in_tile1 - 1) / (result.in_tile1);
+    // int n_out_tile_blocks0 = (problem.GetOutWidth() + result.in_tile0 - 1) / (result.in_tile0);
+    // int n_out_tile_blocks1 = (problem.GetOutHeight() + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
-    n_out_tiles_perstack = std::min(n_out_tiles_perstack, params.problem.n_outputs / group_counts);
+    n_out_tiles_perstack = std::min(n_out_tiles_perstack, problem.GetOutChannels() / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
-    const auto mlo_filter_size0 = static_cast<long long>(params.problem.kernel_size_w);
-    const auto mlo_filter_size1 = static_cast<long long>(params.problem.kernel_size_h);
+    const auto mlo_filter_size0 = static_cast<long long>(problem.GetWeightsWidth());
+    const auto mlo_filter_size1 = static_cast<long long>(problem.GetWeightsHeight());
     // const auto mlo_filter_pad0=static_cast<long long>(pad_w);
     // const auto mlo_filter_pad1=static_cast<long long>(pad_h);
-    const auto mlo_filter_stride0 = static_cast<long long>(params.problem.kernel_stride_w);
-    const auto mlo_filter_stride1 = static_cast<long long>(params.problem.kernel_stride_h);
-    // const auto mlo_n_outputs=static_cast<long long>(problem.n_outputs);
-    // const auto mlo_n_inputs=static_cast<long long>(problem.n_inputs);
-    // const auto mlo_batch_sz=static_cast<long long>(problem.batch_sz);
-    // const auto mlo_out_width=static_cast<long long>(problem.out_width);
-    // const auto mlo_out_height=static_cast<long long>(problem.out_height);
-    // const auto mlo_out_batch_stride=static_cast<long long>(problem.out_batch_stride);
-    // const auto mlo_out_channel_stride=static_cast<long long>(problem.out_channel_stride);
-    // const auto mlo_out_stride=static_cast<long long>(problem.out_stride);
-    // const auto mlo_in_width=static_cast<long long>(problem.in_width);
-    // const auto mlo_in_height=static_cast<long long>(problem.in_height);
-    // const auto mlo_in_batch_stride=static_cast<long long>(problem.in_batch_stride);
-    // const auto mlo_in_channel_stride=static_cast<long long>(problem.in_channel_stride);
-    // const auto mlo_in_stride=static_cast<long long>(problem.in_stride);
+    const auto mlo_filter_stride0 = static_cast<long long>(problem.GetKernelStrideW());
+    const auto mlo_filter_stride1 = static_cast<long long>(problem.GetKernelStrideH());
+    // const auto mlo_n_outputs=static_cast<long long>(problem.GetOutChannels());
+    // const auto mlo_n_inputs=static_cast<long long>(problem.GetInChannels());
+    // const auto mlo_batch_sz=static_cast<long long>(problem.GetBatchSize());
+    // const auto mlo_out_width=static_cast<long long>(problem.GetOutWidth());
+    // const auto mlo_out_height=static_cast<long long>(problem.GetOutHeight());
+    // const auto mlo_out_batch_stride=static_cast<long long>(problem.GetOutBatchStride());
+    // const auto mlo_out_channel_stride=static_cast<long long>(problem.GetOutChannelStride());
+    // const auto mlo_out_stride=static_cast<long long>(problem.GetOutStride());
+    // const auto mlo_in_width=static_cast<long long>(problem.GetInWidth());
+    // const auto mlo_in_height=static_cast<long long>(problem.GetInHeight());
+    // const auto mlo_in_batch_stride=static_cast<long long>(problem.GetInBatchStride());
+    // const auto mlo_in_channel_stride=static_cast<long long>(problem.GetInChannelStride());
+    // const auto mlo_in_stride=static_cast<long long>(problem.GetInStride());
     // algorithm parameters
     const auto mlo_in_tile0 = static_cast<long long>(result.in_tile0);
     const auto mlo_in_tile1 = static_cast<long long>(result.in_tile1);
@@ -226,7 +228,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     const auto mlo_n_out_tiles_perstack = static_cast<long long>(n_out_tiles_perstack);
     const auto mlo_n_in_tiles_perstack  = static_cast<long long>(result.n_in_data_tiles);
     // const auto mlo_n_read_procs=static_cast<long long>(n_read_procs);
-    // const auto mlo_conv_bias=static_cast<long long>(problem.bias);
+    // const auto mlo_conv_bias=static_cast<long long>(problem.GetBias());
     // const auto mlo_alu_vtile0=static_cast<long long>(alu_tile0);
     // const auto mlo_alu_vtile1=static_cast<long long>(alu_tile1);
 
@@ -240,7 +242,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     // e.g. mlo_in_lcl_width here represents MLO_IN_LCL_WIDTH macro in the opencl source.
     long long mlo_in_lcl_width;
     long long mlo_in_lcl_height;
-    if(params.problem.direction.IsForward())
+    if(problem.direction.IsForward())
     {
         mlo_in_lcl_width  = ((mlo_in_tile0 - 1) * mlo_filter_stride0 + mlo_filter_size0);
         mlo_in_lcl_height = ((mlo_in_tile1 - 1) * mlo_filter_stride1 + mlo_filter_size1);
@@ -259,7 +261,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     const auto mlo_filter_sz          = (mlo_filter_size1 * mlo_filter_size0);
     const auto mlo_weights_sz =
         (mlo_n_out_tiles_perstack * mlo_n_in_tiles_perstack * mlo_filter_sz);
-    const auto sizeof_float     = GetTypeSize(params.problem.in_data_type);
+    const auto sizeof_float     = GetTypeSize(problem.GetInDataType());
     const auto mlo_lds_max_size = 65536;
     //    MIOPEN_LOG_I("((mlo_in_lcl_sz + mlo_weights_sz) * sizeof_float)=" << ((mlo_in_lcl_sz +
     //    mlo_weights_sz) * sizeof_float));
@@ -270,41 +272,40 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     return true;
 }
 
-inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
-                                    const LegacyPerformanceConfig& searched_params)
+ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
+                                               const LegacyPerformanceConfig& config)
 {
     ConvSolution result;
 
-    // std::size_t localMemSize = params.stream.GetLocalMemorySize();
+    // std::size_t localMemSize = ctx.stream.GetLocalMemorySize();
 
-    searched_params.CopyTo(result);
-    auto pad_w        = params.problem.pad_w;
-    auto pad_h        = params.problem.pad_h;
-    auto group_counts = params.problem.group_counts;
+    config.CopyTo(result);
+    auto pad_w        = problem.GetPadW();
+    auto pad_h        = problem.GetPadH();
+    auto group_counts = problem.GetGroupCount();
     auto hw_wave_sz   = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
 
-    if(!params.problem.direction.IsForward())
+    if(!problem.direction.IsForward())
     {
         // backward
-        pad_w = params.problem.kernel_size_w - 1 - pad_w;
-        pad_h = params.problem.kernel_size_h - 1 - pad_h;
+        pad_w = problem.GetWeightsWidth() - 1 - pad_w;
+        pad_h = problem.GetWeightsHeight() - 1 - pad_h;
     }
 
     result.n_in_data_tiles =
-        std::min(params.problem.n_inputs / group_counts, searched_params.n_in_data_tiles);
+        std::min(problem.GetInChannels() / group_counts, config.n_in_data_tiles);
     result.n_out_pix_tiles =
-        std::min(params.problem.n_outputs / group_counts, searched_params.n_out_pix_tiles);
+        std::min(problem.GetOutChannels() / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
-            ? params.problem.kernel_stride_h
-            : searched_params.out_pix_tile1;
-    result.out_pix_tile0 =
-        (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
-            ? params.problem.kernel_stride_w
-            : searched_params.out_pix_tile0;
+    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
+                               ? problem.GetKernelStrideH()
+                               : config.out_pix_tile1;
+    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.GetKernelStrideW() > 1)
+                               ? problem.GetKernelStrideW()
+                               : config.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -328,7 +329,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     int n_alus_total = (result.grp_tile0 * result.grp_tile1);
 
     result.n_stacks = std::min(result.n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
-    result.n_stacks = std::min(params.problem.batch_sz, result.n_stacks);
+    result.n_stacks = std::min(problem.GetBatchSize(), result.n_stacks);
 
     if(result.n_stacks == 0 /* DIV/0 */)
     {
@@ -351,55 +352,55 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
                                                   : (result.grp_tile1 * result.grp_tile0);
     }
 
-    int n_out_tile_blocks0 = (params.problem.out_width + result.in_tile0 - 1) / (result.in_tile0);
-    int n_out_tile_blocks1 = (params.problem.out_height + result.in_tile1 - 1) / (result.in_tile1);
+    int n_out_tile_blocks0 = (problem.GetOutWidth() + result.in_tile0 - 1) / (result.in_tile0);
+    int n_out_tile_blocks1 = (problem.GetOutHeight() + result.in_tile1 - 1) / (result.in_tile1);
 
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
 
-    n_out_tiles_perstack = std::min(n_out_tiles_perstack, params.problem.n_outputs / group_counts);
+    n_out_tiles_perstack = std::min(n_out_tiles_perstack, problem.GetOutChannels() / group_counts);
 
     KernelInfo kernel_params;
 
     kernel_params.comp_options =
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
-        std::string(" -DMLO_DIR_FORWARD=") + (params.problem.direction.IsForward() ? "1" : "0") +
+        std::string(" -DMLO_DIR_FORWARD=") + (problem.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(static_cast<long long>(params.problem.kernel_size_w)) +
+        std::to_string(static_cast<long long>(problem.GetWeightsWidth())) +
         std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(static_cast<long long>(params.problem.kernel_size_h)) +
+        std::to_string(static_cast<long long>(problem.GetWeightsHeight())) +
         std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(pad_w)) +
         std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(pad_h)) +
         std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(static_cast<long long>(params.problem.kernel_stride_w)) +
+        std::to_string(static_cast<long long>(problem.GetKernelStrideW())) +
         std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(static_cast<long long>(params.problem.kernel_stride_h)) +
+        std::to_string(static_cast<long long>(problem.GetKernelStrideH())) +
         std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(params.problem.n_outputs)) +
+        std::to_string(static_cast<long long>(problem.GetOutChannels())) +
         std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(static_cast<long long>(params.problem.n_inputs)) +
+        std::to_string(static_cast<long long>(problem.GetInChannels())) +
         std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(params.problem.batch_sz)) +
+        std::to_string(static_cast<long long>(problem.GetBatchSize())) +
         std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(static_cast<long long>(params.problem.out_width)) +
+        std::to_string(static_cast<long long>(problem.GetOutWidth())) +
         std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(static_cast<long long>(params.problem.out_height)) +
+        std::to_string(static_cast<long long>(problem.GetOutHeight())) +
         std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.out_batch_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutBatchStride())) +
         std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.out_channel_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutChannelStride())) +
         std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.out_stride)) +
+        std::to_string(static_cast<long long>(problem.GetOutStride())) +
         std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(static_cast<long long>(params.problem.in_width)) +
+        std::to_string(static_cast<long long>(problem.GetInWidth())) +
         std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(static_cast<long long>(params.problem.in_height)) +
+        std::to_string(static_cast<long long>(problem.GetInHeight())) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.in_batch_stride)) +
+        std::to_string(static_cast<long long>(problem.GetInBatchStride())) +
         std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.in_channel_stride)) +
+        std::to_string(static_cast<long long>(problem.GetInChannelStride())) +
         std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(static_cast<long long>(params.problem.in_stride))
+        std::to_string(static_cast<long long>(problem.GetInStride()))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane
@@ -427,7 +428,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         + std::string(" -DMLO_N_READ_PROCS=") +
         std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_ALU_VTILE0=") +
         std::to_string(static_cast<long long>(alu_tile0)) + std::string(" -DMLO_ALU_VTILE1=") +
-        std::to_string(static_cast<long long>(alu_tile1)) + params.general_compile_options;
+        std::to_string(static_cast<long long>(alu_tile1)) + ctx.general_compile_options;
 
     if(group_counts >= 2)
     {
@@ -435,11 +436,11 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
                                        std::to_string(static_cast<long long>(group_counts)));
         kernel_params.comp_options +=
             (std::string(" -DMLO_GROUP_TILES=") +
-             std::to_string(static_cast<long long>(params.problem.n_outputs / group_counts)));
+             std::to_string(static_cast<long long>(problem.GetOutChannels() / group_counts)));
         kernel_params.comp_options +=
             (std::string(" -DMLO_STACK_PERGROUP=") +
              std::to_string(static_cast<long long>(
-                 (params.problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
+                 (problem.GetOutChannels() / group_counts + n_out_tiles_perstack - 1) /
                  n_out_tiles_perstack)));
         kernel_params.comp_options += std::string(" -DGRP_MOD_ENABLE");
     }
@@ -457,11 +458,11 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     }
     size_t gbl_wk1 =
         group_counts >= 2
-            ? (((params.problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
+            ? (((problem.GetOutChannels() / group_counts + n_out_tiles_perstack - 1) /
                 n_out_tiles_perstack) *
                group_counts)
-            : ((params.problem.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
-    size_t gbl_wk2 = (params.problem.batch_sz + result.n_stacks - 1) / result.n_stacks;
+            : ((problem.GetOutChannels() + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
+    size_t gbl_wk2 = (problem.GetBatchSize() + result.n_stacks - 1) / result.n_stacks;
 
     kernel_params.g_wk.push_back(gbl_wk0 * kernel_params.l_wk[0]);
     kernel_params.g_wk.push_back(gbl_wk1);
@@ -473,33 +474,27 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     result.construction_params.push_back(kernel_params);
     result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
 
-    if(params.problem.direction.IsForward())
+    if(problem.direction.IsForward())
         result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
 
-ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
-                                           const LegacyPerformanceConfig& searched_params) const
+ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& ctx,
+                                           const ProblemDescription& problem,
+                                           const LegacyPerformanceConfig& config) const
 {
-    ConvSolution result = BaseGetSolution(params, searched_params);
+    ConvSolution result = BaseGetSolution(ctx, problem, config);
 
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
             std::string(" -DMLO_CONV_BIAS=") +
-            std::to_string(static_cast<long long>(params.problem.bias));
+            std::to_string(static_cast<long long>(problem.GetBias()));
     }
 
     return result;
 }
 
-ConvSolution
-ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
-                                   const LegacyPerformanceConfig& searched_params) const
-{
-    ConvSolution result = BaseGetSolution(params, searched_params);
-    return result;
-}
 } // namespace solver
 } // namespace miopen

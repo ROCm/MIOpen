@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/rnn.hpp>
+#include <miopen/rnn_util.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -56,8 +57,6 @@ void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
         {
             handle.ResetKernelTime();
             ctime = 0.;
-            ktime = handle.GetKernelTime();
-            ctime = ktime;
 
 #if(MIO_RNN_CPP_PROF == 1)
             printf("init ktime: %f\n", ktime);
@@ -98,7 +97,6 @@ void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime)
             printf("Final time: %f\n", ktime + ctime);
             handle.AccumKernelTime(ctime);
 #else
-            handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
 #endif
         }
@@ -461,7 +459,19 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
             return x + deref(y).GetLengths()[0];
         });
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
-    return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
+
+    bool isBidirect = dirMode == miopenRNNbidirection;
+
+    size_t spaceForPaddingTransform = 0;
+    if(paddingMode == miopenRNNPaddingMode_t::miopenRNNIOWithPadding)
+    {
+        size_t packedXInSpace, packedYOutSpace;
+        std::tie(packedXInSpace, packedYOutSpace) =
+            RNNTensorPaddingConverter::GetTempPackedBuffersSpace(*this, xDesc);
+        spaceForPaddingTransform = packedXInSpace + packedYOutSpace;
+    }
+
+    return size_t(isBidirect ? 2 * x : x) + spaceForPaddingTransform;
 }
 
 size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
@@ -527,11 +537,20 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
     std::size_t inputBatchLenSum = 0;
-    inputBatchLenSum             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
+    if(paddingMode == miopenRNNIONotPadded)
+    {
+        inputBatchLenSum = std::accumulate(
+            xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+                return x + deref(y).GetLengths()[0];
+            });
+    }
+    else
+    {
+        auto maxBatchSize = xDesc[0].GetLengths()[0];
+        inputBatchLenSum  = seqLength * maxBatchSize;
+    }
     auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
+
     return size_t(x);
 }
 
@@ -572,7 +591,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
         weight_lens[0] += (nLayers * 2);
     }
 
-    wDesc = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
+    wDesc = miopen::TensorDescriptor(dtype, weight_lens);
 }
 
 std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
@@ -631,7 +650,7 @@ void RNNDescriptor::GetLayerParam(const Handle& handle,
 
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
-    paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+    paramDesc  = miopen::TensorDescriptor(dataType, pDims);
     if(param == nullptr)
     {
         return;
@@ -668,8 +687,8 @@ void RNNDescriptor::GetLayerBias(const Handle& handle,
     }
 
     // Get the dimensions of the parameter matrix
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    auto bdim = hsize;
+    biasDesc  = miopen::TensorDescriptor(dataType, {bdim});
     if(bias == nullptr)
     {
         return;
@@ -727,7 +746,7 @@ void RNNDescriptor::SetLayerParam(const Handle& handle,
     std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
-    auto paramSrc = miopen::TensorDescriptor(dataType, intLens.data(), pstride.data(), 2);
+    auto paramSrc = miopen::TensorDescriptor(dataType, intLens, pstride);
 
     if(paramSrc.GetLengths() != paramDesc.GetLengths())
     {
@@ -778,7 +797,7 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
-    auto biasSrc = miopen::TensorDescriptor(dataType, intLens.data(), bstride.data(), 1);
+    auto biasSrc = miopen::TensorDescriptor(dataType, intLens, bstride);
 
     if(biasSrc.GetLengths() != biasDesc.GetLengths())
     {
@@ -800,6 +819,16 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     miopen::CopyTensor(handle, biasSrc, bias, biasDesc, w, 0, boffset);
 }
 
+void RNNDescriptor::SetPaddingmode(miopenRNNPaddingMode_t padding)
+{
+    if(padding != miopenRNNIOWithPadding && padding != miopenRNNIONotPadded)
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "SetPaddingmode: Bad parameter. RNN padding mode must be "
+                     "miopenRNNIOWithPadding or miopenRNNIONotPadded.");
+
+    paddingMode = padding;
+}
+
 void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         const TensorDescriptor& xDesc,
                                         const int paramID,
@@ -814,7 +843,7 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
 
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
-    paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+    paramDesc  = miopen::TensorDescriptor(dataType, pDims);
     if(paramOffset == nullptr)
     {
         return;
@@ -845,8 +874,8 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
         return;
     }
 
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    auto bdim = hsize;
+    biasDesc  = miopen::TensorDescriptor(dataType, {bdim});
     if(biasOffset == nullptr)
     {
         return;
@@ -866,6 +895,67 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
             *biasOffset - poffset,
             biasDesc.GetElementSize());
 #endif
+}
+
+void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
+                                                  const TensorDescriptor& padded_tensor_desc,
+                                                  std::vector<int>& bsize_per_time,
+                                                  ConstData_t src,
+                                                  Data_t dst,
+                                                  bool is_src_padded)
+{
+
+    const int seq_len = bsize_per_time.size();
+    if(seq_len == 0)
+        MIOPEN_THROW("Wrong seq_len size");
+
+    auto max_batch_size = bsize_per_time[0];
+    auto vector_size    = padded_tensor_desc.GetLengths()[1];
+
+    const std::vector<size_t> padded_stride //= single_desc.GetStrides();
+        {static_cast<size_t>(max_batch_size) * vector_size, static_cast<size_t>(vector_size), 1};
+
+    unsigned int left_id    = 0;
+    unsigned int src_offset = 0, dst_offset = 0;
+
+    for(int i = 1; i <= seq_len; i++)
+    {
+        if(i == seq_len || bsize_per_time[left_id] != bsize_per_time[i])
+        {
+            auto copy_seq_cnt = i - left_id;
+            auto copy_bsize   = bsize_per_time[left_id];
+
+            const std::vector<size_t> copy_size{static_cast<size_t>(copy_seq_cnt),
+                                                static_cast<size_t>(copy_bsize),
+                                                static_cast<size_t>(vector_size)};
+
+            auto packed_desc = miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size);
+            auto padded_desc =
+                miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size, padded_stride);
+
+            // Result from GetElementSpace does not include the padding from the last sequence
+            // WA: So calculated manually.
+            unsigned int WA_padded_ElementSpace = padded_stride[0] * copy_size[0];
+
+            if(is_src_padded)
+            {
+                CopyTensor(
+                    handle, padded_desc, src, packed_desc, dst, src_offset, dst_offset, true);
+
+                src_offset += WA_padded_ElementSpace;
+                dst_offset += packed_desc.GetElementSpace();
+            }
+            else
+            {
+                CopyTensor(
+                    handle, packed_desc, src, padded_desc, dst, src_offset, dst_offset, true);
+
+                src_offset += packed_desc.GetElementSpace();
+                dst_offset += WA_padded_ElementSpace;
+            }
+            left_id = i;
+        }
+    }
 }
 
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)

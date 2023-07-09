@@ -49,12 +49,13 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const override
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
     {
-        return context.problem.in_width == 1;
+        return problem.GetInWidth() == 1;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const ProblemDescription&) const override
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -87,25 +88,29 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const override
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override
     {
-        std::ignore = context;
         return true;
     }
 
-    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const override
+    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const override
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const override
+    TestConfig Search(const ConvolutionContext&,
+                      const ProblemDescription&,
+                      const AnyInvokeParams&) const override
     {
         TestConfig config;
         config.str = FileName();
@@ -114,6 +119,7 @@ public:
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const ProblemDescription&,
                                      const TestConfig& config) const override
     {
 
@@ -134,13 +140,15 @@ private:
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
-static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
+static solver::ConvSolution FindSolution(const ConvolutionContext& ctx,
+                                         const ProblemDescription& problem,
+                                         const std::string& db_path)
 {
     PlainTextDb db(db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
-    return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
+    return solvers.SearchForAllSolutions(ctx, problem, db, {}, 1).front();
 }
 
 template <class TInstance>
@@ -162,21 +170,21 @@ public:
     {
         const TempFile db_path("miopen.tests.solver");
 
-        ConstructTest(db_path, TrivialTestSolver::FileName(), {0, 0, 0, 1});
+        ConstructTest(db_path, TrivialTestSolver::FileName(), {1, 1, 1, 1});
 
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
-                      {0, 0, 0, 1},
+                      {1, 1, 1, 1},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
@@ -184,11 +192,11 @@ public:
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(
-            db_path, SearchableTestSolver::FileName(), {0, 0, 0, 0}, [](ConvolutionContext&) {});
+            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ConvolutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.
@@ -202,15 +210,16 @@ private:
         const std::initializer_list<size_t>& in,
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
-        auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{miopenFloat, in},
-                                      ConvolutionDescriptor{},
-                                      conv::Direction::Forward};
+        const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      ConvolutionDescriptor{},
+                                                      conv::Direction::Forward};
+        auto ctx           = ConvolutionContext{};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 
-        const auto sol = FindSolution(ctx, db_path);
+        const auto sol = FindSolution(ctx, problem, db_path);
 
         EXPECT_OP(sol.construction_params.size(), >, 0);
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);

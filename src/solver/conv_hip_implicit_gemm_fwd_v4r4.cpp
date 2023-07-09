@@ -528,7 +528,7 @@ void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4Fwd::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmV4R4Fwd::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -577,6 +577,8 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
@@ -591,7 +593,9 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsFp32())
         return false;
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
         return false;
 
     int gemm_m = 0;
@@ -610,7 +614,9 @@ ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ConvolutionContext
 }
 
 bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceImplicitGemmV4R4Fwd& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmV4R4Fwd& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValidValue() && config.IsValid(problem);

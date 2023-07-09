@@ -1,8 +1,6 @@
 FROM ubuntu:20.04 as miopen
 ARG DEBIAN_FRONTEND=noninteractive
 
-ARG USE_MLIR="OFF"
-
 # Support multiarch
 RUN dpkg --add-architecture i386
 
@@ -18,20 +16,18 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 
 #Add gpg keys
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
-    wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
+RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/5.3/ubuntu/focal/amdgpu-install_5.3.50300-1_all.deb  --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/5.4.3/ubuntu/focal/amdgpu-install_5.4.50403-1_all.deb  --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.3.50300-1_all.deb
+    ./amdgpu-install_5.4.50403-1_all.deb
 
 # Add rocm repository
-# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
-# unless MLIR library is incompatible with current ROCm.
-RUN export ROCM_APT_VER=5.3;\
+RUN export ROCM_APT_VER=5.4.3;\
 echo $ROCM_APT_VER &&\
-sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
 
 RUN amdgpu-install -y --usecase=rocm --no-dkms
@@ -45,6 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     doxygen \
     gdb \
     git \
+    lbzip2 \
     lcov \
     libncurses5-dev \
     llvm-amdgpu \
@@ -108,7 +105,7 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
 
 RUN ccache -s 
 # Install doc requirements
-ADD doc/requirements.txt /doc-requirements.txt
+ADD docs/.sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build

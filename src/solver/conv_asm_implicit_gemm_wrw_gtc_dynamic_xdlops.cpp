@@ -418,11 +418,11 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
                                          const int b)
 {
     int gemm_k_global_split = 0;
-    const auto& n           = problem.batch_sz;
-    const auto& k           = problem.n_inputs;
-    const auto& c           = problem.n_outputs;
-    const auto& y           = problem.kernel_size_h;
-    const auto& x           = problem.kernel_size_w;
+    const auto n            = problem.GetBatchSize();
+    const auto k            = problem.GetInChannels();
+    const auto c            = problem.GetOutChannels();
+    const auto y            = problem.GetWeightsHeight();
+    const auto x            = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = c * y * x;
@@ -534,20 +534,20 @@ static inline std::tuple<bool, // is valid
                          int>  // gemm_k_split
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const auto& n         = problem.batch_sz;
-    const auto& k         = problem.n_inputs;
-    const auto& c         = problem.n_outputs;
-    const auto& ho        = problem.in_height;
-    const auto& wo        = problem.in_width;
-    const auto& y         = problem.kernel_size_h;
-    const auto& x         = problem.kernel_size_w;
-    const auto stride_h   = problem.kernel_stride_h;
-    const auto stride_w   = problem.kernel_stride_w;
-    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
-    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
-    const auto& pad_h     = problem.pad_h;
-    const auto& pad_w     = problem.pad_w;
-    const auto& precision = problem.IsFp16() ? miopenHalf : miopenFloat;
+    const auto n          = problem.GetBatchSize();
+    const auto k          = problem.GetInChannels();
+    const auto c          = problem.GetOutChannels();
+    const auto ho         = problem.GetInHeight();
+    const auto wo         = problem.GetInWidth();
+    const auto y          = problem.GetWeightsHeight();
+    const auto x          = problem.GetWeightsWidth();
+    const auto stride_h   = problem.GetKernelStrideH();
+    const auto stride_w   = problem.GetKernelStrideW();
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const auto precision  = problem.IsFp16() ? miopenHalf : miopenFloat;
 
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;
@@ -793,17 +793,18 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 }
 
 size_t
-ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
     else
     {
-        const auto k       = problem.n_inputs;
-        const auto c       = problem.n_outputs;
-        const auto y       = problem.kernel_size_h;
-        const auto x       = problem.kernel_size_w;
-        const auto ngroups = problem.group_counts;
+        const auto k       = problem.GetInChannels();
+        const auto c       = problem.GetOutChannels();
+        const auto y       = problem.GetWeightsHeight();
+        const auto x       = problem.GetWeightsWidth();
+        const auto ngroups = problem.GetGroupCount();
 
         return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *
                miopen::GetTypeSize(miopenFloat);
@@ -838,7 +839,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -890,7 +891,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
-    const auto required_workspace_size = GetWorkspaceSize(problem);
+    const auto required_workspace_size = GetWorkspaceSize(ctx, problem);
     result.workspace_sz                = required_workspace_size;
 
     std::ostringstream kernel_file_name;
