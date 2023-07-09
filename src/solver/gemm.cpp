@@ -121,7 +121,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
         }
         else
         {
-            MIOPEN_LOG_W("Both the input and weights tensors need to be casted");
+            MIOPEN_LOG_I("Both the input and weights tensors need to be casted");
             return false;
         }
     }

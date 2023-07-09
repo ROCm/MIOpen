@@ -697,8 +697,8 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
     if(inflags.GetValueStr("out_cast_type") != "-1")
     {
-        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
-        miopenSetTensorCastType(outputTensor, in_cast_type);
+        const auto out_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
+        miopenSetTensorCastType(outputTensor, out_cast_type);
     }
 
     if(inflags.GetValueInt("bias") != 0)
