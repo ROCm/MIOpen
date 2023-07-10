@@ -569,7 +569,7 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
 
     const auto spatial_dim = conv.GetSpatialDimension();
     const auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-    if(problem.IsTensorsCasted() || problem.IsFp8())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&

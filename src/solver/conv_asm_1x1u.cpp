@@ -549,7 +549,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    if(problem.IsTensorsCasted() || problem.IsFp8())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
     if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())

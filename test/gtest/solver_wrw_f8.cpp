@@ -28,29 +28,11 @@ struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
 {
 };
 
-#if 0
-TEST_P(ConvFwdFp8, Gemm1x1x0x1)
-{
-    SolverFwd<miopen::solver::GemmFwd1x1_0_1>(input.desc,
-                                              in_dev.get(),
-                                              weights.desc,
-                                              wei_dev.get(),
-                                              output.desc,
-                                              out_dev.get(),
-                                              conv_desc,
-                                              conv_config,
-                                              test_skipped);
-}
-#endif
 TEST_P(ConvWrwFp8Naive, Wrw)
 {
     miopen::solver::ConvDirectNaiveConvWrw solv{};
     SolverWrw<miopen::solver::ConvDirectNaiveConvWrw>(solv);
 }
-// INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-//                          ConvFwdGemmTestFp8,
-//                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-//                                           testing::ValuesIn(ConvTestConfigs())));
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvWrwTest,

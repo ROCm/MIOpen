@@ -513,7 +513,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    if(problem.IsTensorsCasted() || problem.IsFp8())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());

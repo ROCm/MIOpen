@@ -74,7 +74,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
     {
         return false;
     }
-    if(problem.IsTensorsCasted() || problem.IsFp8())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
     // Min image + padding shall be not smaller than filter matrix.

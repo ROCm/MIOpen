@@ -66,7 +66,7 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.conv_problem.IsFp8() || problem.IsTensorsCasted())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));
 #else

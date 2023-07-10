@@ -49,7 +49,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.conv_problem.IsFp8() || problem.IsTensorsCasted())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
     // guaranteed to be slower than its xdlops alternative, therefore disabling it to

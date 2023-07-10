@@ -199,7 +199,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    if(problem.IsTensorsCasted() || problem.IsFp8())
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 
     constexpr auto GIB                         = static_cast<int64_t>(1024) * 1024 * 1024;
