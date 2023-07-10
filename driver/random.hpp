@@ -11,7 +11,7 @@ template <typename T>
 inline T FRAND()
 {
     std::minstd_rand minstd_gen(std::chrono::system_clock::now().time_since_epoch().count());
-    double d = static_cast<double>(minstd_gen() / (static_cast<double>(RAND_MAX)));
+    auto d = std::generate_canonical<double, 5>(minstd_gen);
     return static_cast<T>(d);
 }
 
