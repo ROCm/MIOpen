@@ -245,6 +245,7 @@ public:
     int ChkLayout_ShortName();
 
     int GetandSetData() override;
+    bool TensorsCasted();
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetBiasTensorLengthsFromCmdLine();
@@ -644,6 +645,14 @@ int ConvDriver<Tgpu, Tref>::ChkLayout_ShortName()
         std::cerr << "Error:Invalid Short Name!" << std::endl;
         exit(EXIT_FAILURE);
     }
+}
+
+template <typename Tgpu, typename Tref>
+bool ConvDriver<Tgpu, Tref>::TensorsCasted()
+{
+    return inflags.GetValueStr("in_cast_type") != "-1" ||
+           inflags.GetValueStr("wei_cast_type") != "-1" ||
+           inflags.GetValueStr("out_cast_type") != "-1";
 }
 
 template <typename Tgpu, typename Tref>
@@ -1199,10 +1208,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     bool is_transform = IsInputTensorTransform();
     bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
-    bool is_fp8       = data_type == miopenFloat8;
-    size_t in_sz      = GetTensorSize(inputTensor);
-    size_t wei_sz     = GetTensorSize(weightTensor);
-    size_t out_sz     = GetTensorSize(outputTensor);
+    // Data generated for very low precision types follows the same constraints whether its fp8,
+    // bfp8 or even if the interim tensors are being casted
+    bool is_fp8   = data_type == miopenFloat8 || data_type == miopenBFloat8 || TensorsCasted();
+    size_t in_sz  = GetTensorSize(inputTensor);
+    size_t wei_sz = GetTensorSize(weightTensor);
+    size_t out_sz = GetTensorSize(outputTensor);
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
