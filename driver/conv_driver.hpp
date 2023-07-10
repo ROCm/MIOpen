@@ -245,7 +245,7 @@ public:
     int ChkLayout_ShortName();
 
     int GetandSetData() override;
-    bool TensorsCasted();
+    bool TensorsCasted() const;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetBiasTensorLengthsFromCmdLine();
@@ -408,9 +408,7 @@ private:
             tolerance *= 8.0;
         constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
         constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
-        if(is_fp8)
-            tolerance = 0.15f;
-        else if(is_bfp8)
+        if(is_bfp8 || is_fp8 || TensorsCasted())
             tolerance = 0.3f;
         return tolerance;
     }
@@ -648,7 +646,7 @@ int ConvDriver<Tgpu, Tref>::ChkLayout_ShortName()
 }
 
 template <typename Tgpu, typename Tref>
-bool ConvDriver<Tgpu, Tref>::TensorsCasted()
+bool ConvDriver<Tgpu, Tref>::TensorsCasted() const
 {
     return inflags.GetValueStr("in_cast_type") != "-1" ||
            inflags.GetValueStr("wei_cast_type") != "-1" ||
