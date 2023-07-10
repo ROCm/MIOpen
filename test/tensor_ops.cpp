@@ -197,17 +197,21 @@ struct verify_tensor_ops
                          Boffset,
                          Coffset);
 
-        auto r = c;
-        r.data = handle.Read<T>(c_dev, r.data.size());
-
+        if(not no_validate)
+        {
+            auto r = c;
+            r.data = handle.Read<T>(c_dev, r.data.size());
 #if(MIO_OPS_DEBUG)
-        handle.Finish();
-        auto clens    = r.desc.GetLengths();
-        auto cstrides = r.desc.GetStrides();
-        for(int i = 0; i < r.desc.GetElementSize(); i++)
-            printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
+            handle.Finish();
+            auto clens    = r.desc.GetLengths();
+            auto cstrides = r.desc.GetStrides();
+            for(int i = 0; i < r.desc.GetElementSize(); i++)
+                printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
 #endif
-        return r;
+            return r;
+        }
+
+        return c;
     }
 
     void fail(int = 0) const
