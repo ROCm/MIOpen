@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -3280,6 +3280,15 @@ typedef enum
     miopenRNNAlgoGEMM = 0,
 } miopenRNNGEMMalgoMode_t;
 
+/*! @enum miopenRNNPaddingMode_t
+ * Recurrent Neural Network input/output data padding mode
+ */
+typedef enum
+{
+    miopenRNNIONotPadded   = 0, /*!< Not padded data at RNN input/output */
+    miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
+} miopenRNNPaddingMode_t;
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -3982,6 +3991,30 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                    const int biasID,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    const void* layerBias);
+
+/*! @brief Sets a bias for a specific layer in an RNN stack
+ *
+ * This function changes padidng mode at previously created and initialized RNN descriptor.
+ * This function must be called before using miopenGetRNNWorkspaceSize()
+ * and miopenGetRNNTrainingReserveSize() functions.
+ * By default, not padded data is expected at the RNN input/output.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input/output)
+ * @param paddingMode     RNN input/output data padding mode (input)
+ * @return                miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t paddingMode);
+
+/*! @brief This function retrieves the RNN padding mode from the RNN descriptor.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param paddingMode     Pointer to the RNN padding mode (output)
+ * @return                miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t* paddingMode);
 
 /*! @brief Execute forward training for recurrent layer
  *
