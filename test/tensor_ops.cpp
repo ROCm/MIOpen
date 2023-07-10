@@ -57,23 +57,25 @@ struct verify_tensor_ops
     float alpha1;
     float beta;
 
-    verify_tensor_ops(const tensor<T>& pa,
-                      const tensor<T>& pb,
-                      const tensor<T>& pc,
+    bool no_validate;
+
+    verify_tensor_ops(tensor<T>&& pa,
+                      tensor<T>&& pb,
+                      tensor<T>&& pc,
                       const std::vector<int>& offsets,
-                      const std::vector<float>& alphabeta)
+                      const std::vector<float>& alphabeta,
+                      bool no_validate_param)
+        : a{std::move(pa)},
+          b{std::move(pb)},
+          c{std::move(pc)},
+          Aoffset{offsets[0]},
+          Boffset{offsets[1]},
+          Coffset{offsets[2]},
+          alpha0{alphabeta[0]},
+          alpha1{alphabeta[1]},
+          beta{alphabeta[2]},
+          no_validate{no_validate_param}
     {
-        a = pa;
-        b = pb;
-        c = pc;
-
-        Aoffset = offsets[0];
-        Boffset = offsets[1];
-        Coffset = offsets[2];
-
-        alpha0 = alphabeta[0];
-        alpha1 = alphabeta[1];
-        beta   = alphabeta[2];
     }
 
     static T add_elem(T aelem, T belem) { return aelem + belem; }
@@ -358,11 +360,12 @@ struct tensor_ops_driver : test_driver
             if(!checkStride(tensorlens_ac, stride_c))
                 return;
 
-            tensor<T> aTensor = get_subtensors(tensorlens_ac, stride_a, offsets[0], packed);
-            tensor<T> bTensor = get_subtensors(tensorlens_b, stride_b, offsets[1], packed);
-            tensor<T> cTensor = get_subtensors(tensorlens_ac, stride_c, offsets[2], packed);
-
-            verify(verify_tensor_ops<T>{aTensor, bTensor, cTensor, final_offsets, alphabeta});
+            verify(verify_tensor_ops<T>{get_subtensors(tensorlens_ac, stride_a, offsets[0], packed),
+                                        get_subtensors(tensorlens_b, stride_b, offsets[1], packed),
+                                        get_subtensors(tensorlens_ac, stride_c, offsets[2], packed),
+                                        final_offsets,
+                                        alphabeta,
+                                        no_validate});
         }
     }
 };
