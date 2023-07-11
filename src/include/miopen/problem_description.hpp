@@ -70,50 +70,7 @@ struct ProblemDescription
 {
     conv::ProblemDescription conv_problem;
 
-#if 0
-    std::size_t GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
-    /*int*/ std::size_t GetInChannels1() const { return conv_problem.GetInChannels(); }
-    /*int*/ std::size_t GetInHeight1() const { return conv_problem.GetInHeight(); }
-    /*int*/ std::size_t GetInWidth1() const { return conv_problem.GetInWidth(); }
-    /*int*/ std::size_t GetInDepth1() const { return conv_problem.GetInDepth(); }
-    int GetVectorLength() const { return conv_problem.GetVectorLength(); }
-    /*int*/ std::size_t GetWeightsHeight1() const { return conv_problem.GetWeightsHeight(); }
-    /*int*/ std::size_t GetWeightsWidth1() const { return conv_problem.GetWeightsWidth(); }
-    /*int*/ std::size_t GetWeightsDepth1() const { return conv_problem.GetWeightsDepth(); }
-    /*int*/ std::size_t GetOutChannels1() const { return conv_problem.GetOutChannels(); }
-    /*int*/ std::size_t GetOutHeight1() const { return conv_problem.GetOutHeight(); }
-    /*int*/ std::size_t GetOutWidth1() const { return conv_problem.GetOutWidth(); }
-    /*int*/ std::size_t GetOutDepth1() const { return conv_problem.GetOutDepth(); }
-    /*int*/ std::size_t GetBatchSize1() const { return conv_problem.GetBatchSize(); }
-    int GetPadH() const { return conv_problem.GetPadH(); }
-    int GetPadW() const { return conv_problem.GetPadW(); }
-    int GetPadD() const { return conv_problem.GetPadD(); }
-    int GetKernelStrideH() const { return conv_problem.GetKernelStrideH(); }
-    int GetKernelStrideW() const { return conv_problem.GetKernelStrideW(); }
-    int GetKernelStrideD() const { return conv_problem.GetKernelStrideD(); }
-    int GetDilationH() const { return conv_problem.GetDilationH(); }
-    int GetDilationW() const { return conv_problem.GetDilationW(); }
-    int GetDilationD() const { return conv_problem.GetDilationD(); }
-    int GetBias() const { return conv_problem.GetBias(); }
-    std::string GetInLayout() const { return conv_problem.GetInLayout(); }
-    std::string GetWeightsLayout() const { return conv_problem.GetWeightsLayout(); }
-    std::string GetOutLayout() const { return conv_problem.GetOutLayout(); }
-    miopenDataType_t GetInDataType() const { return conv_problem.GetInDataType(); }
-    miopenDataType_t GetWeightsDataType() const { return conv_problem.GetWeightsDataType(); }
-    miopenDataType_t GetOutDataType() const { return conv_problem.GetOutDataType(); }
-    size_t GetInSize() const { return conv_problem.GetInSize(); }
-    size_t GetOutSize() const { return conv_problem.GetOutSize(); }
-    size_t GetWeightsSize() const { return conv_problem.GetWeightsSize(); }
-    size_t GetBiasSize() const { return conv_problem.GetBiasSize(); }
-    /*int*/ std::size_t GetInStride1() const { return conv_problem.GetInStrideH(); }
-    /*int*/ std::size_t GetOutStride1() const { return conv_problem.GetOutStrideH(); }
-    /*int*/ std::size_t GetInChannelStride1() const { return conv_problem.GetInChannelStride(); }
-    /*int*/ std::size_t GetInBatchStride1() const { return conv_problem.GetInBatchStride(); }
-    /*int*/ std::size_t GetOutChannelStride1() const { return conv_problem.GetOutChannelStride(); }
-    /*int*/ std::size_t GetOutBatchStride1() const { return conv_problem.GetOutBatchStride(); }
-    int GetGroupCount() const { return conv_problem.GetGroupCount(); }
-#else
-    std::size_t GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
+    int GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
     int GetInChannels() const { return conv_problem.GetInChannels(); }
     int GetInHeight() const { return conv_problem.GetInHeight(); }
     int GetInWidth() const { return conv_problem.GetInWidth(); }
@@ -154,7 +111,6 @@ struct ProblemDescription
     int GetOutChannelStride() const { return conv_problem.GetOutChannelStride(); }
     int GetOutBatchStride() const { return conv_problem.GetOutBatchStride(); }
     int GetGroupCount() const { return conv_problem.GetGroupCount(); }
-#endif
 
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return conv::ProblemDescription::table_name(); }
