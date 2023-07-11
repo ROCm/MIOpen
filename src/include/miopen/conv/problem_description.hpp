@@ -270,9 +270,12 @@ struct ProblemDescription : ProblemDescriptionBase
         else
             return GetW5(GetSpatialDims1(), weights.GetLengths());
     }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims1(), weights.GetStrides()); }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims1(), weights.GetStrides()); }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims1(), weights.GetStrides()); }
+    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims1(),
+    // weights.GetStrides()); }
+    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims1(),
+    // weights.GetStrides()); }
+    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims1(),
+    // weights.GetStrides()); }
     std::string GetWeightsLayout() const { return weights_layout; }
     std::string ComputeWeightsLayout() const
     {
