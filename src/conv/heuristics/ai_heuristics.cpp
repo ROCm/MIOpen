@@ -27,7 +27,7 @@
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 namespace miopen {
 namespace ai {
@@ -35,7 +35,7 @@ namespace common {
 
 nlohmann::json LoadJSON(const std::string& path)
 {
-    if(!std::filesystem::exists(path))
+    if(!boost::filesystem::exists(path))
         MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
     return nlohmann::json::parse(std::ifstream(path));
 }
@@ -138,7 +138,7 @@ protected:
     static std::string ModelPath(const std::string& arch)
     {
         const auto file_path = GetSystemDbPath() + "/" + arch + ".tn.model";
-        if(!std::filesystem::exists(file_path))
+        if(!boost::filesystem::exists(file_path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
         return file_path;
     }
@@ -377,7 +377,7 @@ private:
     {
         const std::string path =
             GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
-        if(!std::filesystem::exists(path))
+        if(!boost::filesystem::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;
     }
@@ -385,7 +385,7 @@ private:
     {
         const std::string path =
             GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
-        if(!std::filesystem::exists(path))
+        if(!boost::filesystem::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path;
     }
