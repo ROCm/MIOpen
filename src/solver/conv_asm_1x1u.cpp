@@ -347,7 +347,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
         if(!(waves_c_in_group <= problem.GetInChannels2()))
             return false;
         const int c_per_wave = (problem.GetInChannels2() + waves_c_in_group - 1) / waves_c_in_group;
-        const int c_per_last_wave = problem.GetInChannels2() - (c_per_wave * (waves_c_in_group - 1));
+        const int c_per_last_wave =
+            problem.GetInChannels2() - (c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
     }

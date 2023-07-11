@@ -371,7 +371,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
     read_size = 4;
     n_per_gpr =
         (problem.GetBatchSize2() >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4
-                                                                                               : 1;
+                                                                                                : 1;
     data_prefetch      = 1;
     const auto c_k_256 = problem.GetOutChannels2() * problem.GetInChannels2() / 256; // C*K/256
     if(c_k_256 < 2)
@@ -578,7 +578,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         int write_unit   = (problem.GetInWidth2() % 4 == 0)   ? 4
                            : (problem.GetInWidth2() % 3 == 0) ? 3
                            : (problem.GetInWidth2() % 2 == 0) ? 2
-                                                             : 1;
+                                                              : 1;
         int n_grp0_size0 = 256;
 
         // clang-format off

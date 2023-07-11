@@ -110,7 +110,8 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
     ss << GetInChannels1();
     ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetInDepth1(), GetInHeight1(), GetInWidth1());
     ss << 'x'
-       << PrintDHW('x', GetSpatialDims1(), GetWeightsDepth1(), GetWeightsHeight1(), GetWeightsWidth1());
+       << PrintDHW(
+              'x', GetSpatialDims1(), GetWeightsDepth1(), GetWeightsHeight1(), GetWeightsWidth1());
     ss << 'x' << GetOutChannels1();
     ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetOutDepth1(), GetOutHeight1(), GetOutWidth1());
     ss << 'x' << GetInBatchSize();

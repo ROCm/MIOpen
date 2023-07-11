@@ -67,7 +67,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)               \
+#define DEFINE_SHADER_ALIASES(problem)                \
     const auto C     = (problem).GetBatchSize2();     \
     const auto N     = (problem).GetOutChannels2();   \
     const auto K     = (problem).GetInChannels2();    \

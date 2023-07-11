@@ -126,8 +126,8 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescript
     int c                    = conv_problem.GetOutChannels1();
     int ho                   = conv_problem.GetInHeight1();
     int wo                   = conv_problem.GetInWidth1();
-    int stride_h             = conv_problem.GetInHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetInHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetInWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();

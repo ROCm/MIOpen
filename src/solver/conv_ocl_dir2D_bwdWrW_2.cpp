@@ -549,8 +549,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const auto n_input_channels_per_group  = problem.GetOutChannels2() / problem.GetGroupCount();
     const auto n_output_channels_per_group = problem.GetInChannels2() / problem.GetGroupCount();
-    const auto wei_cstride                 = problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
-    const auto wei_bstride                 = n_input_channels_per_group * wei_cstride;
+    const auto wei_cstride = problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
+    const auto wei_bstride = n_input_channels_per_group * wei_cstride;
 
     result.n_in_data_tiles    = 1;
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);

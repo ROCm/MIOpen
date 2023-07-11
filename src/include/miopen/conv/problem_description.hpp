@@ -217,8 +217,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return GetInBatchSize() * GetInChannels1() * GetInDepth1() * GetInHeight1() * GetInWidth1() *
-               GetInElementSize();
+        return GetInBatchSize() * GetInChannels1() * GetInDepth1() * GetInHeight1() *
+               GetInWidth1() * GetInElementSize();
     }
 
     // Out getters
@@ -270,12 +270,9 @@ struct ProblemDescription : ProblemDescriptionBase
         else
             return GetW5(GetSpatialDims1(), weights.GetLengths());
     }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims1(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims1(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims1(), weights.GetStrides());
-    // }
+    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims1(), weights.GetStrides()); }
+    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims1(), weights.GetStrides()); }
+    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims1(), weights.GetStrides()); }
     std::string GetWeightsLayout() const { return weights_layout; }
     std::string ComputeWeightsLayout() const
     {

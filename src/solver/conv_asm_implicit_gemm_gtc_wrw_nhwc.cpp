@@ -318,8 +318,8 @@ GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
 {
-    const auto k = problem.GetInChannels2();
-    const auto c = problem.GetOutChannels2();
+    const auto k     = problem.GetInChannels2();
+    const auto c     = problem.GetOutChannels2();
     const auto y     = problem.GetWeightsHeight2();
     const auto x     = problem.GetWeightsWidth2();
     const auto group = problem.GetGroupCount();

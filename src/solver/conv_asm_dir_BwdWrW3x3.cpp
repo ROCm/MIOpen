@@ -164,12 +164,14 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
     if((problem.GetOutChannels2() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels2() % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout != 0 ? problem.GetInChannels2() : problem.GetOutChannels2()) % GetCPerWave() !=
+    if((reverse_inout != 0 ? problem.GetInChannels2() : problem.GetOutChannels2()) %
+           GetCPerWave() !=
        0)
         return false;
     if(!(chunk_size * k_per_wave <= 64))
         return false;
-    if((reverse_inout != 0 ? problem.GetOutChannels2() : problem.GetInChannels2()) % k_per_wave != 0)
+    if((reverse_inout != 0 ? problem.GetOutChannels2() : problem.GetInChannels2()) % k_per_wave !=
+       0)
         return false;
     if(!(n_per_group <= problem.GetBatchSize2()))
         return false;
@@ -269,7 +271,8 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.GetOutChannels2() : problem.GetInChannels2()) % k_per_wave !=
+    while((reverse_inout != 0 ? problem.GetOutChannels2() : problem.GetInChannels2()) %
+              k_per_wave !=
           0)
         k_per_wave /= 2; // Fixup for correctness
 

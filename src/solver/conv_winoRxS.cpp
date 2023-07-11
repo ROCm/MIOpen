@@ -320,7 +320,7 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
                                       problem.GetBatchSize2(), // N
-                                      n_inputs_per_group,     // K
+                                      n_inputs_per_group,      // K
                                       problem.GetWeightsHeight2(),
                                       problem.GetWeightsWidth2(),
                                       problem.GetPadW(),
@@ -339,8 +339,8 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.GetWeightsWidth2(),
                                       problem.GetKernelStrideH(),
                                       problem.GetKernelStrideW(),
-                                      n_inputs_per_group,     // C
-                                      n_outputs_per_group,    // K
+                                      n_inputs_per_group,      // C
+                                      n_outputs_per_group,     // K
                                       problem.GetOutHeight2(), // OHxOW
                                       problem.GetOutWidth2(),
                                       problem.GetPadW(),
@@ -666,7 +666,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
                                                             problem.GetInHeight2(),
                                                             problem.GetInWidth2(),
                                                             problem.GetBatchSize2(), // N
-                                                            n_inputs_per_group,     // K
+                                                            n_inputs_per_group,      // K
                                                             problem.GetOutHeight2(),
                                                             problem.GetOutWidth2(),
                                                             problem.GetWeightsHeight2(),
@@ -679,8 +679,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
                                                             problem.GetWeightsHeight2(), // RxS
                                                             problem.GetWeightsWidth2(),
-                                                            n_inputs_per_group,    // C
-                                                            n_outputs_per_group,   // K
+                                                            n_inputs_per_group,     // C
+                                                            n_outputs_per_group,    // K
                                                             problem.GetInHeight2(), // HxW
                                                             problem.GetInWidth2(),
                                                             problem.GetOutHeight2(), // OHxOW

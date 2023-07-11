@@ -82,7 +82,8 @@ static inline int GetNPasses(const ProblemDescription& problem)
 {
     const int n_passes =
 #if TWO_PASSES
-        ((problem.GetBatchSize2() >= 16 || 2 * problem.GetOutChannels2() > problem.GetInChannels2()) &&
+        ((problem.GetBatchSize2() >= 16 ||
+          2 * problem.GetOutChannels2() > problem.GetInChannels2()) &&
          problem.GetPadH() == 0 && problem.GetPadW() == 0 &&
          (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))
             ? 2

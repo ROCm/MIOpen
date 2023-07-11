@@ -86,8 +86,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     int n_batch_blks  = (problem.GetBatchSize2() + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
-    int N_FILTER_SPLITS0 =
-        ((problem.GetWeightsWidth2() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW());
+    int N_FILTER_SPLITS0 = ((problem.GetWeightsWidth2() + problem.GetKernelStrideW() - 1) /
+                            problem.GetKernelStrideW());
     int N_FILTER_SPLITS1 = ((problem.GetWeightsHeight2() + problem.GetKernelStrideH() - 1) /
                             problem.GetKernelStrideH());
 
@@ -176,8 +176,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // second pass if needed
     int n_extents           = ((problem.GetOutHeight2() + OUT_EXTENT1 - 1) / OUT_EXTENT1);
     int n_output_map_blocks = ((problem.GetOutChannels2() + total_out_maps - 1) / total_out_maps);
-    int last_out_extent1 =
-        problem.GetOutHeight2() - (std::max(1, problem.GetOutHeight2() / OUT_EXTENT1) * OUT_EXTENT1);
+    int last_out_extent1    = problem.GetOutHeight2() -
+                           (std::max(1, problem.GetOutHeight2() / OUT_EXTENT1) * OUT_EXTENT1);
     last_out_extent1    = (last_out_extent1 < 0) ? 0 : last_out_extent1;
     int n_batches_pass2 = 1;
     bool second_pass    = false;

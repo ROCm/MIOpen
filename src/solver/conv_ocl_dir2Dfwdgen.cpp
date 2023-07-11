@@ -103,7 +103,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
         // n of input batches
         n_in_stacks = ((problem.GetBatchSize2() / 4) * 4 == problem.GetBatchSize2())   ? 4
                       : ((problem.GetBatchSize2() / 2) * 2 == problem.GetBatchSize2()) ? 2
-                                                                                     : 1;
+                                                                                       : 1;
     }
     else
     {
@@ -116,11 +116,11 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
     int n_out_stacks      = 1; // n of output sets
     int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) /
                             problem.GetKernelStrideW(); // n  processor in process supertile
-    int n_proc_supertile1 =
-        ((n_in_stacks > 1 && (problem.GetWeightsHeight2() >= 11 || problem.GetWeightsWidth2() >= 11))
-             ? 32
-             : 16) /
-        n_in_stacks;
+    int n_proc_supertile1 = ((n_in_stacks > 1 && (problem.GetWeightsHeight2() >= 11 ||
+                                                  problem.GetWeightsWidth2() >= 11))
+                                 ? 32
+                                 : 16) /
+                            n_in_stacks;
     auto lg2n_proc_supertile1 =
         static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
     int ocl_group_sz0 = n_proc_supertile0;
@@ -260,10 +260,12 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
         std::to_string(
             static_cast<long long>(n_in_pix_vert)) // size of output processing group in 1 dim
         + std::string(" -DMLO_WEI_SZ=") +
-        std::to_string(static_cast<long long>(problem.GetOutChannels2()) * problem.GetInChannels2() *
-                       problem.GetWeightsWidth2() * problem.GetWeightsHeight2()) +
+        std::to_string(static_cast<long long>(problem.GetOutChannels2()) *
+                       problem.GetInChannels2() * problem.GetWeightsWidth2() *
+                       problem.GetWeightsHeight2()) +
         std::string(" -DMLO_WEIGHTS_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInChannels2()) * problem.GetWeightsWidth2() *
+        std::to_string(static_cast<long long>(problem.GetInChannels2()) *
+                       problem.GetWeightsWidth2() *
                        problem.GetWeightsHeight2()) //	weights stride
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(n_stack_blocks)) // n of separate data stacks

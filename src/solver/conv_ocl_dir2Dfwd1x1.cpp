@@ -257,7 +257,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             result.out_pix_tile1 = std::min(problem.GetOutHeight2(), result.out_pix_tile1);
             if(!problem.direction.IsForward())
             {
-                while(problem.GetOutWidth2() % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
+                while(problem.GetOutWidth2() % result.out_pix_tile0 != 0 &&
+                      result.out_pix_tile0 > 1)
                 {
                     result.out_pix_tile0 /= 2;
                 }

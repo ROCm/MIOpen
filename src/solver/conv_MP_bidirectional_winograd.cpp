@@ -89,8 +89,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
             solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(problem)                             \
-    const auto group_cnt = (problem).GetGroupCount();              \
+#define DEFINE_SHADER_ALIASES(problem)                              \
+    const auto group_cnt = (problem).GetGroupCount();               \
     const auto N         = (problem).GetBatchSize2();               \
     const int K          = (problem).GetOutChannels2() / group_cnt; \
     const int C          = (problem).GetInChannels2() / group_cnt;  \
