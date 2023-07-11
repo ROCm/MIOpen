@@ -169,7 +169,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
         }
-        if(problem.conv_problem.GetWeightsHeight() != problem.conv_problem.GetWeightsWidth())
+        if(problem.conv_problem.GetWeightsHeight1() != problem.conv_problem.GetWeightsWidth1())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Filters must be square (fil_h == fil_w)");
             return false;
@@ -222,19 +222,19 @@ protected:
         const auto& conv_problem    = problem.conv_problem;
         const bool isFwd            = conv_problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
-            static_cast<float>(isFwd ? conv_problem.GetInChannels()
-                                     : conv_problem.GetOutChannels()),
-            static_cast<float>(isFwd ? conv_problem.GetInDepth() : conv_problem.GetOutDepth()),
-            static_cast<float>(isFwd ? conv_problem.GetInHeight() : conv_problem.GetOutHeight()),
-            static_cast<float>(isFwd ? conv_problem.GetInWidth() : conv_problem.GetOutWidth()),
-            static_cast<float>(conv_problem.GetWeightsDepth()),
-            static_cast<float>(conv_problem.GetWeightsHeight()),
-            static_cast<float>(conv_problem.GetWeightsWidth()),
-            static_cast<float>(isFwd ? conv_problem.GetOutChannels()
-                                     : conv_problem.GetInChannels()),
-            static_cast<float>(isFwd ? conv_problem.GetOutDepth() : conv_problem.GetInDepth()),
-            static_cast<float>(isFwd ? conv_problem.GetOutHeight() : conv_problem.GetInHeight()),
-            static_cast<float>(isFwd ? conv_problem.GetOutWidth() : conv_problem.GetInWidth()),
+            static_cast<float>(isFwd ? conv_problem.GetInChannels1()
+                                     : conv_problem.GetOutChannels1()),
+            static_cast<float>(isFwd ? conv_problem.GetInDepth1() : conv_problem.GetOutDepth1()),
+            static_cast<float>(isFwd ? conv_problem.GetInHeight1() : conv_problem.GetOutHeight1()),
+            static_cast<float>(isFwd ? conv_problem.GetInWidth1() : conv_problem.GetOutWidth1()),
+            static_cast<float>(conv_problem.GetWeightsDepth1()),
+            static_cast<float>(conv_problem.GetWeightsHeight1()),
+            static_cast<float>(conv_problem.GetWeightsWidth1()),
+            static_cast<float>(isFwd ? conv_problem.GetOutChannels1()
+                                     : conv_problem.GetInChannels1()),
+            static_cast<float>(isFwd ? conv_problem.GetOutDepth1() : conv_problem.GetInDepth1()),
+            static_cast<float>(isFwd ? conv_problem.GetOutHeight1() : conv_problem.GetInHeight1()),
+            static_cast<float>(isFwd ? conv_problem.GetOutWidth1() : conv_problem.GetInWidth1()),
             static_cast<float>(conv_problem.GetOutBatchSize()),
             static_cast<float>(1), // TunaNet was trained on a dataset of 2D
                                    // problems where PadD was incorrectly set to 1

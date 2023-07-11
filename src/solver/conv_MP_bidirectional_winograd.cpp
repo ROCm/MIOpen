@@ -91,15 +91,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 #define DEFINE_SHADER_ALIASES(problem)                             \
     const auto group_cnt = (problem).GetGroupCount();              \
-    const auto N         = (problem).GetBatchSize();               \
-    const int K          = (problem).GetOutChannels() / group_cnt; \
-    const int C          = (problem).GetInChannels() / group_cnt;  \
-    const auto R         = (problem).GetWeightsHeight();           \
-    const auto S         = (problem).GetWeightsWidth();            \
-    const auto H         = (problem).GetInHeight();                \
-    const auto W         = (problem).GetInWidth();                 \
-    const auto out_H     = (problem).GetOutHeight();               \
-    const auto out_W     = (problem).GetOutWidth();
+    const auto N         = (problem).GetBatchSize2();               \
+    const int K          = (problem).GetOutChannels2() / group_cnt; \
+    const int C          = (problem).GetInChannels2() / group_cnt;  \
+    const auto R         = (problem).GetWeightsHeight2();           \
+    const auto S         = (problem).GetWeightsWidth2();            \
+    const auto H         = (problem).GetInHeight2();                \
+    const auto W         = (problem).GetInWidth2();                 \
+    const auto out_H     = (problem).GetOutHeight2();               \
+    const auto out_W     = (problem).GetOutWidth2();
 
 #if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                                         \
@@ -294,8 +294,8 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 
     // clang-format off
     bool ok = (
-        (problem.GetWeightsWidth() == WinoFilterW
-            && problem.GetWeightsHeight() == WinoFilterH)
+        (problem.GetWeightsWidth2() == WinoFilterW
+            && problem.GetWeightsHeight2() == WinoFilterH)
         && (problem.GetKernelStrideW() == 1)
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1

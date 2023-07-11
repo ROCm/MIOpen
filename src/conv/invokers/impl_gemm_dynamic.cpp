@@ -44,13 +44,13 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     MIOPEN_LOG_I(kernel.GetName());
 
     // clang-format off
-    int hi          = conv_problem.GetInHeight();
-    int wi          = conv_problem.GetInWidth();
+    int hi          = conv_problem.GetInHeight1();
+    int wi          = conv_problem.GetInWidth1();
     int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels();
-    int c           = conv_problem.GetInChannels();
-    int ho          = conv_problem.GetOutHeight();
-    int wo          = conv_problem.GetOutWidth();
+    int k           = conv_problem.GetOutChannels1();
+    int c           = conv_problem.GetInChannels1();
+    int ho          = conv_problem.GetOutHeight1();
+    int wo          = conv_problem.GetOutWidth1();
     int stride_h    = conv_problem.GetKernelStrideH();
     int stride_w    = conv_problem.GetKernelStrideW();
     int dilation_h  = conv_problem.GetDilationH();
@@ -119,21 +119,21 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescript
                                                    const int& cfg)
 {
     const auto& conv_problem = problem.conv_problem;
-    int hi                   = conv_problem.GetOutHeight();
-    int wi                   = conv_problem.GetOutWidth();
+    int hi                   = conv_problem.GetOutHeight1();
+    int wi                   = conv_problem.GetOutWidth1();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetInChannels();
-    int c                    = conv_problem.GetOutChannels();
-    int ho                   = conv_problem.GetInHeight();
-    int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int k                    = conv_problem.GetInChannels1();
+    int c                    = conv_problem.GetOutChannels1();
+    int ho                   = conv_problem.GetInHeight1();
+    int wo                   = conv_problem.GetInWidth1();
+    int stride_h             = conv_problem.GetInHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w             = conv_problem.GetInWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
     int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight();
-    int x          = conv_problem.GetWeightsWidth();
+    int y          = conv_problem.GetWeightsHeight1();
+    int x          = conv_problem.GetWeightsWidth1();
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
@@ -257,21 +257,21 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
     const auto& conv_problem = problem.conv_problem;
-    int hi                   = conv_problem.GetOutHeight();
-    int wi                   = conv_problem.GetOutWidth();
+    int hi                   = conv_problem.GetOutHeight1();
+    int wi                   = conv_problem.GetOutWidth1();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetInChannels();
-    int c                    = conv_problem.GetOutChannels();
-    int ho                   = conv_problem.GetInHeight();
-    int wo                   = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int k                    = conv_problem.GetInChannels1();
+    int c                    = conv_problem.GetOutChannels1();
+    int ho                   = conv_problem.GetInHeight1();
+    int wo                   = conv_problem.GetInWidth1();
+    int stride_h   = conv_problem.GetOutHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
     int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight();
-    int x          = conv_problem.GetWeightsWidth();
+    int y          = conv_problem.GetWeightsHeight1();
+    int x          = conv_problem.GetWeightsWidth1();
     int group      = conv_problem.GetGroupCount();
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
@@ -446,21 +446,21 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
     const auto& conv_problem = problem.conv_problem;
-    int hi                   = conv_problem.GetInHeight();
-    int wi                   = conv_problem.GetInWidth();
+    int hi                   = conv_problem.GetInHeight1();
+    int wi                   = conv_problem.GetInWidth1();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetOutChannels();
-    int c                    = conv_problem.GetInChannels();
-    int ho                   = conv_problem.GetOutHeight();
-    int wo                   = conv_problem.GetOutWidth();
+    int k                    = conv_problem.GetOutChannels1();
+    int c                    = conv_problem.GetInChannels1();
+    int ho                   = conv_problem.GetOutHeight1();
+    int wo                   = conv_problem.GetOutWidth1();
     int stride_h             = conv_problem.GetKernelStrideH();
     int stride_w             = conv_problem.GetKernelStrideW();
     int dilation_h           = conv_problem.GetDilationH();
     int dilation_w           = conv_problem.GetDilationW();
     int pad_h                = conv_problem.GetPadH();
     int pad_w                = conv_problem.GetPadW();
-    int y                    = conv_problem.GetWeightsHeight();
-    int x                    = conv_problem.GetWeightsWidth();
+    int y                    = conv_problem.GetWeightsHeight1();
+    int x                    = conv_problem.GetWeightsWidth1();
     int group                = conv_problem.GetGroupCount();
     int c_karg               = c / group;
     int y_karg               = y;
@@ -741,21 +741,21 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
     const auto& conv_problem = problem.conv_problem;
-    int hi                   = conv_problem.GetOutHeight();
-    int wi                   = conv_problem.GetOutWidth();
+    int hi                   = conv_problem.GetOutHeight1();
+    int wi                   = conv_problem.GetOutWidth1();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetInChannels();
-    int c                    = conv_problem.GetOutChannels();
-    int ho                   = conv_problem.GetInHeight();
-    int wo                   = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int k                    = conv_problem.GetInChannels1();
+    int c                    = conv_problem.GetOutChannels1();
+    int ho                   = conv_problem.GetInHeight1();
+    int wo                   = conv_problem.GetInWidth1();
+    int stride_h   = conv_problem.GetOutHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
     int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight();
-    int x          = conv_problem.GetWeightsWidth();
+    int y          = conv_problem.GetWeightsHeight1();
+    int x          = conv_problem.GetWeightsWidth1();
     int group      = conv_problem.GetGroupCount();
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
@@ -1058,22 +1058,22 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     const auto& conv_problem = problem.conv_problem;
-    int hi                   = conv_problem.GetInHeight();
-    int wi                   = conv_problem.GetInWidth();
+    int hi                   = conv_problem.GetInHeight1();
+    int wi                   = conv_problem.GetInWidth1();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetOutChannels() * config.vector_c;
-    int c                    = conv_problem.GetInChannels();
+    int k                    = conv_problem.GetOutChannels1() * config.vector_c;
+    int c                    = conv_problem.GetInChannels1();
     int ks                   = 1;
-    int ho                   = conv_problem.GetOutHeight();
-    int wo                   = conv_problem.GetOutWidth();
+    int ho                   = conv_problem.GetOutHeight1();
+    int wo                   = conv_problem.GetOutWidth1();
     int stride_h             = conv_problem.GetKernelStrideH();
     int stride_w             = conv_problem.GetKernelStrideW();
     int dilation_h           = conv_problem.GetDilationH();
     int dilation_w           = conv_problem.GetDilationW();
     int pad_h                = conv_problem.GetPadH();
     int pad_w                = conv_problem.GetPadW();
-    int y                    = conv_problem.GetWeightsHeight();
-    int x                    = conv_problem.GetWeightsWidth();
+    int y                    = conv_problem.GetWeightsHeight1();
+    int x                    = conv_problem.GetWeightsWidth1();
     int group                = conv_problem.GetGroupCount();
 
     // Currentlly we do not tile in H/W dimension, using tile H/W as Ho/Wo, Thus Number of Tile

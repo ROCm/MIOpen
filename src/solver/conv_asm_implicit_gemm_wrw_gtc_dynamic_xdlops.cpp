@@ -418,11 +418,11 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
                                          const int b)
 {
     int gemm_k_global_split = 0;
-    const auto n            = problem.GetBatchSize();
-    const auto k            = problem.GetInChannels();
-    const auto c            = problem.GetOutChannels();
-    const auto y            = problem.GetWeightsHeight();
-    const auto x            = problem.GetWeightsWidth();
+    const auto n            = problem.GetBatchSize2();
+    const auto k            = problem.GetInChannels2();
+    const auto c            = problem.GetOutChannels2();
+    const auto y            = problem.GetWeightsHeight2();
+    const auto x            = problem.GetWeightsWidth2();
 
     const auto& gemm_m = k;
     const auto gemm_n  = c * y * x;
@@ -449,21 +449,21 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
                                  const int nxb,
                                  const int gemm_k_per_block)
 {
-    int hi         = conv_problem.GetOutHeight();
-    int wi         = conv_problem.GetOutWidth();
+    int hi         = conv_problem.GetOutHeight1();
+    int wi         = conv_problem.GetOutWidth1();
     int n          = conv_problem.GetInBatchSize();
-    int k          = conv_problem.GetInChannels();
-    int c          = conv_problem.GetOutChannels();
-    int ho         = conv_problem.GetInHeight();
-    int wo         = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int k          = conv_problem.GetInChannels1();
+    int c          = conv_problem.GetOutChannels1();
+    int ho         = conv_problem.GetInHeight1();
+    int wo         = conv_problem.GetInWidth1();
+    int stride_h   = conv_problem.GetOutHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
+    int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
     int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight();
-    int x          = conv_problem.GetWeightsWidth();
+    int y          = conv_problem.GetWeightsHeight1();
+    int x          = conv_problem.GetWeightsWidth1();
     int group      = conv_problem.GetGroupCount();
 
     int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
@@ -534,17 +534,17 @@ static inline std::tuple<bool, // is valid
                          int>  // gemm_k_split
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const auto n          = problem.GetBatchSize();
-    const auto k          = problem.GetInChannels();
-    const auto c          = problem.GetOutChannels();
-    const auto ho         = problem.GetInHeight();
-    const auto wo         = problem.GetInWidth();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const auto n          = problem.GetBatchSize2();
+    const auto k          = problem.GetInChannels2();
+    const auto c          = problem.GetOutChannels2();
+    const auto ho         = problem.GetInHeight2();
+    const auto wo         = problem.GetInWidth2();
+    const auto y          = problem.GetWeightsHeight2();
+    const auto x          = problem.GetWeightsWidth2();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight2() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth2() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
     const auto precision  = problem.IsFp16() ? miopenHalf : miopenFloat;
@@ -800,10 +800,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&
         return 0;
     else
     {
-        const auto k       = problem.GetInChannels();
-        const auto c       = problem.GetOutChannels();
-        const auto y       = problem.GetWeightsHeight();
-        const auto x       = problem.GetWeightsWidth();
+        const auto k       = problem.GetInChannels2();
+        const auto c       = problem.GetOutChannels2();
+        const auto y       = problem.GetWeightsHeight2();
+        const auto x       = problem.GetWeightsWidth2();
         const auto ngroups = problem.GetGroupCount();
 
         return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *

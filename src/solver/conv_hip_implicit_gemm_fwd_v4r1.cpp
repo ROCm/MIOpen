@@ -67,13 +67,13 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
        problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    std::size_t n         = problem.GetBatchSize();
-    std::size_t k         = problem.GetOutChannels() / problem.GetGroupCount();
-    std::size_t c         = problem.GetInChannels() / problem.GetGroupCount();
-    std::size_t y         = problem.GetWeightsHeight();
-    std::size_t x         = problem.GetWeightsWidth();
-    std::size_t ho        = problem.GetOutHeight();
-    std::size_t wo        = problem.GetOutWidth();
+    std::size_t n         = problem.GetBatchSize2();
+    std::size_t k         = problem.GetOutChannels2() / problem.GetGroupCount();
+    std::size_t c         = problem.GetInChannels2() / problem.GetGroupCount();
+    std::size_t y         = problem.GetWeightsHeight2();
+    std::size_t x         = problem.GetWeightsWidth2();
+    std::size_t ho        = problem.GetOutHeight2();
+    std::size_t wo        = problem.GetOutWidth2();
     std::size_t eMultiple = (problem.IsFp16() || problem.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
@@ -110,13 +110,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n  = problem.GetBatchSize();
-    const auto k  = problem.GetInChannels() / problem.GetGroupCount();  // unswap
-    const auto c  = problem.GetOutChannels() / problem.GetGroupCount(); // unswap
-    const auto y  = problem.GetWeightsHeight();
-    const auto x  = problem.GetWeightsWidth();
-    const auto ho = problem.GetInHeight(); // unswap
-    const auto wo = problem.GetInWidth();  // unswap
+    const auto n  = problem.GetBatchSize2();
+    const auto k  = problem.GetInChannels2() / problem.GetGroupCount();  // unswap
+    const auto c  = problem.GetOutChannels2() / problem.GetGroupCount(); // unswap
+    const auto y  = problem.GetWeightsHeight2();
+    const auto x  = problem.GetWeightsWidth2();
+    const auto ho = problem.GetInHeight2(); // unswap
+    const auto wo = problem.GetInWidth2();  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv     = c;
@@ -196,15 +196,15 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ProblemDescription
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetOutChannels();
-    const auto c               = problem.GetInChannels();
-    const auto hi              = problem.GetInHeight();
-    const auto wi              = problem.GetInWidth();
-    const auto ho              = problem.GetOutHeight();
-    const auto wo              = problem.GetOutWidth();
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
+    const auto n               = problem.GetBatchSize2();
+    const auto k               = problem.GetOutChannels2();
+    const auto c               = problem.GetInChannels2();
+    const auto hi              = problem.GetInHeight2();
+    const auto wi              = problem.GetInWidth2();
+    const auto ho              = problem.GetOutHeight2();
+    const auto wo              = problem.GetOutWidth2();
+    const auto y               = problem.GetWeightsHeight2();
+    const auto x               = problem.GetWeightsWidth2();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -300,7 +300,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
 
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth() > 1
+        problem.GetWeightsWidth2() > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;
@@ -401,15 +401,15 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // retrieve dimension from ProblemDescription
     // remember: ProblemDescription has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto n               = problem.GetBatchSize();
-    const auto k               = problem.GetInChannels();  // unswap
-    const auto c               = problem.GetOutChannels(); // unswap
-    const auto hi              = problem.GetOutHeight();   // unswap
-    const auto wi              = problem.GetOutWidth();    // unswap
-    const auto ho              = problem.GetInHeight();    // unswap
-    const auto wo              = problem.GetInWidth();     // unswap
-    const auto y               = problem.GetWeightsHeight();
-    const auto x               = problem.GetWeightsWidth();
+    const auto n               = problem.GetBatchSize2();
+    const auto k               = problem.GetInChannels2();  // unswap
+    const auto c               = problem.GetOutChannels2(); // unswap
+    const auto hi              = problem.GetOutHeight2();   // unswap
+    const auto wi              = problem.GetOutWidth2();    // unswap
+    const auto ho              = problem.GetInHeight2();    // unswap
+    const auto wo              = problem.GetInWidth2();     // unswap
+    const auto y               = problem.GetWeightsHeight2();
+    const auto x               = problem.GetWeightsWidth2();
     const auto conv_stride_h   = problem.GetKernelStrideH();
     const auto conv_stride_w   = problem.GetKernelStrideW();
     const auto conv_dilation_h = problem.GetDilationH();
@@ -515,7 +515,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // clang-format off
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        problem.GetWeightsWidth() > 1
+        problem.GetWeightsWidth2() > 1
             ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(problem.GetDilationW()))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.GetKernelStrideW() > 1 ? 1 : InBlockCopySrcDataPerRead_B;

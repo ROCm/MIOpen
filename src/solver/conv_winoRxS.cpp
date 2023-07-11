@@ -305,8 +305,8 @@ template <int Winodata, int Winofilter>
 void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx,
                                                         const ProblemDescription& problem)
 {
-    const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
-               n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
+    const auto n_inputs_per_group  = problem.GetInChannels2() / problem.GetGroupCount(),
+               n_outputs_per_group = problem.GetOutChannels2() / problem.GetGroupCount();
     if(problem.GetGroupCount() == 1)
     {
         n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -315,14 +315,14 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
 
     if(problem.direction.IsBackwardWrW())
     {
-        n_groups = GetBestNGroupParam(problem.GetInHeight(),
-                                      problem.GetInWidth(),
+        n_groups = GetBestNGroupParam(problem.GetInHeight2(),
+                                      problem.GetInWidth2(),
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
-                                      problem.GetBatchSize(), // N
+                                      problem.GetBatchSize2(), // N
                                       n_inputs_per_group,     // K
-                                      problem.GetWeightsHeight(),
-                                      problem.GetWeightsWidth(),
+                                      problem.GetWeightsHeight2(),
+                                      problem.GetWeightsWidth2(),
                                       problem.GetPadW(),
                                       problem.GetPadH(),
                                       n_outputs_per_group, // C
@@ -335,17 +335,17 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
     }
     else
     {
-        n_groups = GetBestNGroupParam(problem.GetWeightsHeight(), // RxS
-                                      problem.GetWeightsWidth(),
+        n_groups = GetBestNGroupParam(problem.GetWeightsHeight2(), // RxS
+                                      problem.GetWeightsWidth2(),
                                       problem.GetKernelStrideH(),
                                       problem.GetKernelStrideW(),
                                       n_inputs_per_group,     // C
                                       n_outputs_per_group,    // K
-                                      problem.GetOutHeight(), // OHxOW
-                                      problem.GetOutWidth(),
+                                      problem.GetOutHeight2(), // OHxOW
+                                      problem.GetOutWidth2(),
                                       problem.GetPadW(),
                                       problem.GetPadH(),
-                                      problem.GetBatchSize(), // N
+                                      problem.GetBatchSize2(), // N
                                       problem.GetDilationH(),
                                       problem.GetDilationW(),
                                       ctx.GetStream().GetMaxHardwareComputeUnits(),
@@ -655,37 +655,37 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
         return false;
     // clang-format on
 
-    const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount(),
-               n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
+    const auto n_inputs_per_group  = problem.GetInChannels2() / problem.GetGroupCount(),
+               n_outputs_per_group = problem.GetOutChannels2() / problem.GetGroupCount();
 
     if(problem.direction.IsBackwardWrW())
     {
         if(problem.GetKernelStrideW() == 2)
             return false;
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
-                                                            problem.GetInHeight(),
-                                                            problem.GetInWidth(),
-                                                            problem.GetBatchSize(), // N
+                                                            problem.GetInHeight2(),
+                                                            problem.GetInWidth2(),
+                                                            problem.GetBatchSize2(), // N
                                                             n_inputs_per_group,     // K
-                                                            problem.GetOutHeight(),
-                                                            problem.GetOutWidth(),
-                                                            problem.GetWeightsHeight(),
-                                                            problem.GetWeightsWidth(),
+                                                            problem.GetOutHeight2(),
+                                                            problem.GetOutWidth2(),
+                                                            problem.GetWeightsHeight2(),
+                                                            problem.GetWeightsWidth2(),
                                                             n_outputs_per_group, // C
                                                             name);
     }
     else
     {
         return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
-                                                            problem.GetWeightsHeight(), // RxS
-                                                            problem.GetWeightsWidth(),
+                                                            problem.GetWeightsHeight2(), // RxS
+                                                            problem.GetWeightsWidth2(),
                                                             n_inputs_per_group,    // C
                                                             n_outputs_per_group,   // K
-                                                            problem.GetInHeight(), // HxW
-                                                            problem.GetInWidth(),
-                                                            problem.GetOutHeight(), // OHxOW
-                                                            problem.GetOutWidth(),
-                                                            problem.GetBatchSize(), // N
+                                                            problem.GetInHeight2(), // HxW
+                                                            problem.GetInWidth2(),
+                                                            problem.GetOutHeight2(), // OHxOW
+                                                            problem.GetOutWidth2(),
+                                                            problem.GetBatchSize2(), // N
                                                             name);
     }
 }

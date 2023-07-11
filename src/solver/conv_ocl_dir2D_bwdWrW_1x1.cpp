@@ -67,12 +67,12 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    bool result = (problem.GetWeightsWidth() == 1 && problem.GetWeightsHeight() == 1 &&
+    bool result = (problem.GetWeightsWidth2() == 1 && problem.GetWeightsHeight2() == 1 &&
                    problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
                    problem.GetGroupCount() == 1);
 
     // Does not support strides > 1 if not multiple of 16
-    if((problem.GetInChannels() & 0xF) > 0 || (problem.GetOutChannels() & 0xF) > 0)
+    if((problem.GetInChannels2() & 0xF) > 0 || (problem.GetOutChannels2() & 0xF) > 0)
         result = false;
 
     return result;
@@ -82,7 +82,7 @@ static inline int GetNPasses(const ProblemDescription& problem)
 {
     const int n_passes =
 #if TWO_PASSES
-        ((problem.GetBatchSize() >= 16 || 2 * problem.GetOutChannels() > problem.GetInChannels()) &&
+        ((problem.GetBatchSize2() >= 16 || 2 * problem.GetOutChannels2() > problem.GetInChannels2()) &&
          problem.GetPadH() == 0 && problem.GetPadW() == 0 &&
          (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))
             ? 2
@@ -96,13 +96,13 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
                                           const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
-    if(((problem.GetInChannels() & 0xF) == 0 && (problem.GetOutChannels() & 0xF) == 0) &&
+    if(((problem.GetInChannels2() & 0xF) == 0 && (problem.GetOutChannels2() & 0xF) == 0) &&
        (n_passes > 1 && problem.GetPadH() == 0 && problem.GetPadW() == 0 &&
         (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1)))
     {
-        const auto in_channel_stride = problem.GetInStride() * problem.GetInHeight();
-        const auto in_batch_stride   = in_channel_stride * problem.GetOutChannels();
-        return GetTypeSize(problem.GetOutDataType()) * in_batch_stride * problem.GetBatchSize();
+        const auto in_channel_stride = problem.GetInStride2() * problem.GetInHeight2();
+        const auto in_batch_stride   = in_channel_stride * problem.GetOutChannels2();
+        return GetTypeSize(problem.GetOutDataType()) * in_batch_stride * problem.GetBatchSize2();
     }
     else
         return 0;
@@ -116,15 +116,15 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
-    if((problem.GetInChannels() & 0xF) == 0 && (problem.GetOutChannels() & 0xF) == 0)
+    if((problem.GetInChannels2() & 0xF) == 0 && (problem.GetOutChannels2() & 0xF) == 0)
     {
-        // problem.GetInChannels()==> C
-        // problem.GetOutChannels()==>K
+        // problem.GetInChannels2()==> C
+        // problem.GetOutChannels2()==>K
         // Jian: following kernel uses C as input, K as output, different from original definition
         // FIX ME! FIX ME! FIX ME!
         // JIANYANG: not know the meaning of following ==>
         result.n_stacks      = 1;
-        result.n_stacks      = std::min(problem.GetBatchSize(), result.n_stacks);
+        result.n_stacks      = std::min(problem.GetBatchSize2(), result.n_stacks);
         result.out_pix_tile0 = 1;
         result.out_pix_tile1 = 1;
         result.in_tile1      = 1;
@@ -134,13 +134,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         // 8/16/64
         int n_lcl_in_maps = 8;
 
-        /*if(4 *((problem.GetOutChannels()+63)/64) * ((problem.GetInChannels()+63)/64) >=512)
+        /*if(4 *((problem.GetOutChannels2()+63)/64) * ((problem.GetInChannels2()+63)/64) >=512)
         {
                 n_lcl_in_maps =64;
         }
         else
         */
-        if(4 * ((problem.GetOutChannels() + 15) / 16) * ((problem.GetInChannels() + 15) / 16) >=
+        if(4 * ((problem.GetOutChannels2() + 15) / 16) * ((problem.GetInChannels2() + 15) / 16) >=
            512)
         {
             n_lcl_in_maps = 16;
@@ -151,8 +151,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         int n_grp_size0 = 64;
 
-        int n_out_blocks = ((problem.GetInChannels() + n_lcl_out_maps - 1) / n_lcl_out_maps);
-        int n_in_blocks  = ((problem.GetOutChannels() + n_lcl_in_maps - 1) / n_lcl_in_maps);
+        int n_out_blocks = ((problem.GetInChannels2() + n_lcl_out_maps - 1) / n_lcl_out_maps);
+        int n_in_blocks  = ((problem.GetOutChannels2() + n_lcl_in_maps - 1) / n_lcl_in_maps);
         int total_waves  = n_in_blocks * n_out_blocks;
 
         result.n_out_pix_tiles = n_lcl_out_maps;
@@ -219,35 +219,35 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (n_passes > 1) ? problem.GetInWidth() : problem.GetOutWidth();
-        int in_height = (n_passes > 1) ? problem.GetInHeight() : problem.GetOutHeight();
-        int in_stride = (n_passes > 1) ? problem.GetInStride() : problem.GetOutStride();
+        int in_width  = (n_passes > 1) ? problem.GetInWidth2() : problem.GetOutWidth2();
+        int in_height = (n_passes > 1) ? problem.GetInHeight2() : problem.GetOutHeight2();
+        int in_stride = (n_passes > 1) ? problem.GetInStride2() : problem.GetOutStride2();
         int in_channel_stride =
-            (n_passes > 1) ? in_stride * in_height : problem.GetOutChannelStride();
-        int in_batch_stride    = (n_passes > 1) ? in_channel_stride * problem.GetOutChannels()
-                                                : problem.GetOutBatchStride();
-        int out_batch_stride   = problem.GetInBatchStride();
-        int out_channel_stride = problem.GetInChannelStride();
-        int out_stride         = problem.GetInStride();
-        int wei_batch_stride   = problem.GetInChannels() * problem.GetOutChannels() *
-                               problem.GetWeightsWidth() * problem.GetWeightsHeight();
+            (n_passes > 1) ? in_stride * in_height : problem.GetOutChannelStride2();
+        int in_batch_stride    = (n_passes > 1) ? in_channel_stride * problem.GetOutChannels2()
+                                                : problem.GetOutBatchStride2();
+        int out_batch_stride   = problem.GetInBatchStride2();
+        int out_channel_stride = problem.GetInChannelStride2();
+        int out_stride         = problem.GetInStride2();
+        int wei_batch_stride   = problem.GetInChannels2() * problem.GetOutChannels2() *
+                               problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
         int wei_channel_stride =
-            problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight();
-        int max_loads_per_readunit = (out_channel_stride / read_unit) * problem.GetBatchSize();
+            problem.GetOutChannels2() * problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
+        int max_loads_per_readunit = (out_channel_stride / read_unit) * problem.GetBatchSize2();
 
         // limited shape size shows better performance with ead_uint == 3
         /*
         if( (out_channel_stride % 3) == 1)
         {
                 read_unit              = 3;
-                max_loads_per_readunit = (out_channel_stride / read_unit) * problem.GetBatchSize();
+                max_loads_per_readunit = (out_channel_stride / read_unit) * problem.GetBatchSize2();
         }
         */
 
         int out_pad_min_x  = 0;
         int out_pad_min_y  = 0;
-        int out_pad_width  = problem.GetInWidth();
-        int out_pad_height = problem.GetInHeight();
+        int out_pad_width  = problem.GetInWidth2();
+        int out_pad_height = problem.GetInHeight2();
 
         int in_pad_min_x = 0;
         int in_pad_min_y = 0;
@@ -262,7 +262,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             out_pad_min_x =
                 (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
             out_pad_width =
-                (problem.GetOutWidth() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
+                (problem.GetOutWidth2() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
                 problem.GetKernelStrideW();
         }
         if(problem.GetPadH() > 0)
@@ -275,7 +275,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             out_pad_min_y =
                 (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
             out_pad_height =
-                (problem.GetOutHeight() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
+                (problem.GetOutHeight2() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
                 problem.GetKernelStrideH();
         }
 
@@ -290,7 +290,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
             max_loads_per_readunit =
-                (out_pad_width / read_unit) * out_pad_height * problem.GetBatchSize();
+                (out_pad_width / read_unit) * out_pad_height * problem.GetBatchSize2();
         }
 
         int kernel_stride_w = problem.GetKernelStrideW();
@@ -317,9 +317,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
                                                       : 1;
         int n_grp0_size0 = 256;
         // real input strides
-        int in0_stride         = problem.GetOutStride();
-        int in0_channel_stride = problem.GetOutChannelStride();
-        int in0_batch_stride   = problem.GetOutBatchStride();
+        int in0_stride         = problem.GetOutStride2();
+        int in0_channel_stride = problem.GetOutChannelStride2();
+        int in0_batch_stride   = problem.GetOutBatchStride2();
         int kernel0_stride0    = problem.GetKernelStrideW();
         int kernel0_stride1    = problem.GetKernelStrideH();
 
@@ -328,21 +328,21 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth()) +
-            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight()) +
+            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth2()) +
+            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight2()) +
             std::string(" -DMLO_FILTER_PAD0=") + std::to_string(problem.GetPadW()) +
             std::string(" -DMLO_FILTER_PAD1=") + std::to_string(problem.GetPadH()) +
             std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(kernel_stride_w) +
             std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(kernel_stride_h) +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
-            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetInChannels()) +
-            std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetOutChannels()) +
-            std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize()) +
+            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetInChannels2()) +
+            std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetOutChannels2()) +
+            std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize2()) +
             std::string(" -DMLO_IN_WIDTH=") + std::to_string(in_width) +
             std::string(" -DMLO_IN_HEIGHT=") + std::to_string(in_height) +
-            std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetInWidth()) +
-            std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetInHeight()) +
+            std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetInWidth2()) +
+            std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetInHeight2()) +
             std::string(" -DMLO_N_LOAD_DWORDS_PER_MAP_ONCE=") +
             std::to_string(n_load_dwords_per_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
             std::to_string(n_lcl_in_maps) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
@@ -386,7 +386,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             kernel.l_wk.push_back(1);
             // output is number of subsampled input maps
             size_t gbl_wk0 = (in_batch_stride / write_unit);
-            size_t gbl_wk1 = problem.GetBatchSize();
+            size_t gbl_wk1 = problem.GetBatchSize2();
             size_t gbl_wk2 = 1;
 
             kernel.g_wk.push_back(gbl_wk0);

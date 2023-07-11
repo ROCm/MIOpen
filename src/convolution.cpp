@@ -395,7 +395,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::Convolut
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(problem.GetOutChannels() >= 16 && problem.GetOutChannels() % 2 == 0))
+    if(!(problem.GetOutChannels2() >= 16 && problem.GetOutChannels2() % 2 == 0))
         return false;
 
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);

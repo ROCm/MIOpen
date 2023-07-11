@@ -202,12 +202,12 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 {
     std::ignore = ctx;
 
-    int in_n  = problem.GetBatchSize();
-    int in_c  = problem.GetInChannels();
-    int in_h  = problem.GetInHeight();
-    int in_w  = problem.GetInWidth();
-    int out_n = problem.GetBatchSize();
-    int out_c = problem.GetOutChannels();
+    int in_n  = problem.GetBatchSize2();
+    int in_c  = problem.GetInChannels2();
+    int in_h  = problem.GetInHeight2();
+    int in_w  = problem.GetInWidth2();
+    int out_n = problem.GetBatchSize2();
+    int out_c = problem.GetOutChannels2();
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;

@@ -50,21 +50,21 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight();
-    int wi          = conv_problem.GetInWidth();
+    int hi          = conv_problem.GetInHeight1();
+    int wi          = conv_problem.GetInWidth1();
     int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels();
-    int c           = conv_problem.GetInChannels();
-    int ho          = conv_problem.GetOutHeight();
-    int wo          = conv_problem.GetOutWidth();
+    int k           = conv_problem.GetOutChannels1();
+    int c           = conv_problem.GetInChannels1();
+    int ho          = conv_problem.GetOutHeight1();
+    int wo          = conv_problem.GetOutWidth1();
     int stride_h    = conv_problem.GetKernelStrideH();
     int stride_w    = conv_problem.GetKernelStrideW();
     int dilation_h  = conv_problem.GetDilationH();
     int dilation_w  = conv_problem.GetDilationW();
     int pad_h       = conv_problem.GetPadH();
     int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight();
-    int x           = conv_problem.GetWeightsWidth();
+    int y           = conv_problem.GetWeightsHeight1();
+    int x           = conv_problem.GetWeightsWidth1();
     int pack0       = cfg;
     // clang-format on
 
@@ -98,21 +98,21 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight();
-    int wi          = conv_problem.GetInWidth();
+    int hi          = conv_problem.GetInHeight1();
+    int wi          = conv_problem.GetInWidth1();
     int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels();
-    int c           = conv_problem.GetInChannels();
-    int ho          = conv_problem.GetOutHeight();
-    int wo          = conv_problem.GetOutWidth();
+    int k           = conv_problem.GetOutChannels1();
+    int c           = conv_problem.GetInChannels1();
+    int ho          = conv_problem.GetOutHeight1();
+    int wo          = conv_problem.GetOutWidth1();
     int stride_h    = conv_problem.GetKernelStrideH();
     int stride_w    = conv_problem.GetKernelStrideW();
     int dilation_h  = conv_problem.GetDilationH();
     int dilation_w  = conv_problem.GetDilationW();
     int pad_h       = conv_problem.GetPadH();
     int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight();
-    int x           = conv_problem.GetWeightsWidth();
+    int y           = conv_problem.GetWeightsHeight1();
+    int x           = conv_problem.GetWeightsWidth1();
     int group       = conv_problem.GetGroupCount();
     int pack0       = 0;
     // clang-format on

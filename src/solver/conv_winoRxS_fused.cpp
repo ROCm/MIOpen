@@ -181,15 +181,15 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     if(group_count != 1)
         return false;
 
-    const auto W  = conv_problem.conv_problem.GetInWidth();
-    const auto H  = conv_problem.conv_problem.GetInHeight();
-    const auto C  = conv_problem.conv_problem.GetInChannels();
+    const auto W  = conv_problem.conv_problem.GetInWidth1();
+    const auto H  = conv_problem.conv_problem.GetInHeight1();
+    const auto C  = conv_problem.conv_problem.GetInChannels1();
     const auto N  = conv_problem.conv_problem.GetInBatchSize();
-    const auto K  = conv_problem.conv_problem.GetOutChannels();
-    const auto R  = conv_problem.conv_problem.GetWeightsHeight();
-    const auto S  = conv_problem.conv_problem.GetWeightsWidth();
-    const auto OH = conv_problem.conv_problem.GetOutHeight();
-    const auto OW = conv_problem.conv_problem.GetOutWidth();
+    const auto K  = conv_problem.conv_problem.GetOutChannels1();
+    const auto R  = conv_problem.conv_problem.GetWeightsHeight1();
+    const auto S  = conv_problem.conv_problem.GetWeightsWidth1();
+    const auto OH = conv_problem.conv_problem.GetOutHeight1();
+    const auto OW = conv_problem.conv_problem.GetOutWidth1();
 
     return IsWinogradV21Preferred<2, 3>(name, conv_problem)
                ? IsShaderConstraintsMetV21(conv_problem, R, S, C, K, H, W, OH, OW, N)
@@ -251,8 +251,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.conv_problem.GetWeightsHeight();
+    const auto x = conv_problem.conv_problem.GetWeightsWidth1();
+    const auto y = conv_problem.conv_problem.GetWeightsHeight1();
 
     if(x == 3 && y == 3)
         result.weight = 100;
