@@ -927,6 +927,15 @@ miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                  int* dilationA,
                                  miopenConvolutionMode_t* c_mode);
 
+/*! @brief Get the number of groups to be used in Group/Depthwise convolution
+ *
+ * @param convDesc   Convolution layer descriptor (input)
+ * @param groupCount Pointer to number of groups in group/depthwise convolution (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                            int* groupCount);
+
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
  *
  * Must be called before all computational APIs of group/depthwise convolution, it is preferable to
