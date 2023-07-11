@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
+
 #include "conv_common.hpp"
 
 template <class T>
