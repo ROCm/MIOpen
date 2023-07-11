@@ -89,17 +89,17 @@ struct CKArgs
         in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
         out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
         wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
-        //wei_strides = {C, Z * Y * X * G * C, 1, Y * X * G * C, X * G * C, G * C};
-        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding    = {ProblemInterpreter::GetInputLeftPadD(problem),
+        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
@@ -217,7 +217,6 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const auto args = CKArgs{problem};
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
-        std::cout<<"~~~string: ~~~~"<<conv_ptrs[i]->GetTypeString()<<std::endl;
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               {},
@@ -240,7 +239,6 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout<<"~~~Boom! No instances found!~~~"<<std::endl;
     return false;
 }
 
@@ -323,7 +321,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
     if(valid_kernels.empty())
     {
@@ -374,8 +373,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
-    const ProblemDescription& problem) const
+ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -392,14 +391,14 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
 
 PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
 ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ConvolutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+                                            const ProblemDescription& problem,
+                                            const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
-                                                     const ProblemDescription& problem) const
+                                                       const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;

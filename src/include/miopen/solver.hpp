@@ -4763,9 +4763,10 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext&,
                                 const ProblemDescription&) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const ProblemDescription&,
-                                  const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
     Search(const ConvolutionContext&,
            const ProblemDescription&,
@@ -4846,18 +4847,20 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext&,
                                 const ProblemDescription&) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const ProblemDescription&,
-                                  const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
     Search(const ConvolutionContext&,
            const ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
     // Magic Number Alert:
     // Naive convolutions have GetWti() that return very small value (0.01f).
     // This allows MIOpen to use Naive Solvers if no other applicable Solvers

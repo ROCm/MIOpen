@@ -78,10 +78,13 @@ struct ConvTestCase
     miopenConvolutionMode_t conv_mode;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
-        return os << " G: " <<tc.G<< " N: " << tc.N <<" C:" << tc.C << " D: " << tc.D << " H:" << tc.H << " W:" << tc.W
-                  << " k: " << tc.k << " z: " << tc.z << " y:" << tc.y << " x:" << tc.x << " pad_z:" << tc.pad_z << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_z:" << tc.stride_z << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
-                  << " dilation_z:" << tc.dilation_z << " dilation_y:" << tc.dilation_y << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode;
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D
+                  << " H:" << tc.H << " W:" << tc.W << " k:" << tc.k << " z:" << tc.z
+                  << " y:" << tc.y << " x:" << tc.x << " pad_z:" << tc.pad_z
+                  << " pad_y:" << tc.pad_y << " pad_x:" << tc.pad_x << " stride_z:" << tc.stride_z
+                  << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
+                  << " dilation_z:" << tc.dilation_z << " dilation_y:" << tc.dilation_y
+                  << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode;
     }
 
     std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
@@ -89,15 +92,23 @@ struct ConvTestCase
 
     miopen::ConvolutionDescriptor GetConv()
     {
-        return miopen::ConvolutionDescriptor{3,miopenConvolution,miopenPaddingDefault,
+        return miopen::ConvolutionDescriptor{
+            3,
+            miopenConvolution,
+            miopenPaddingDefault,
             {static_cast<int>(pad_z), static_cast<int>(pad_y), static_cast<int>(pad_x)},
             {static_cast<int>(stride_z), static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_z), static_cast<int>(dilation_y), static_cast<int>(dilation_x)}, {0,0,0}, static_cast<int>(G), 1.0};
+            {static_cast<int>(dilation_z),
+             static_cast<int>(dilation_y),
+             static_cast<int>(dilation_x)},
+            {0, 0, 0},
+            static_cast<int>(G),
+            1.0};
     }
 };
 
 std::vector<ConvTestCase> ConvTestConfigs()
-{ //         g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -129,12 +140,14 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 
 template <typename T = float>
 struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<
+          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                = false;
+        test_skipped = false;
+
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
@@ -167,8 +180,8 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
+        ref_out     = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
