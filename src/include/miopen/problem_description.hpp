@@ -37,8 +37,7 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
-#include <boost/optional/optional.hpp>
+
 namespace miopen {
 
 // Tensor Helper APIs
@@ -70,12 +69,140 @@ struct ProblemDescription
 #endif
 {
     conv::ProblemDescription conv_problem;
-    int spatial_dims      = 2;
-    int n_inputs          = 0;
-    int in_height         = 0;
-    int in_width          = 0;
-    int in_depth          = 0;
-    int vectorLength      = 1;
+
+    int GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
+    int GetInChannels() const { return conv_problem.GetInChannels(); }
+    int GetInHeight() const { return conv_problem.GetInHeight(); }
+    int GetInWidth() const { return conv_problem.GetInWidth(); }
+    int GetInDepth() const { return conv_problem.GetInDepth(); }
+    int GetVectorLength() const { return conv_problem.GetVectorLength(); }
+    int GetWeightsHeight() const { return conv_problem.GetWeightsHeight(); }
+    int GetWeightsWidth() const { return conv_problem.GetWeightsWidth(); }
+    int GetWeightsDepth() const { return conv_problem.GetWeightsDepth(); }
+    int GetOutChannels() const { return conv_problem.GetOutChannels(); }
+    int GetOutHeight() const { return conv_problem.GetOutHeight(); }
+    int GetOutWidth() const { return conv_problem.GetOutWidth(); }
+    int GetOutDepth() const { return conv_problem.GetOutDepth(); }
+    int GetBatchSize() const { return conv_problem.GetBatchSize(); }
+    int GetPadH() const { return conv_problem.GetPadH(); }
+    int GetPadW() const { return conv_problem.GetPadW(); }
+    int GetPadD() const { return conv_problem.GetPadD(); }
+    int GetKernelStrideH() const { return conv_problem.GetKernelStrideH(); }
+    int GetKernelStrideW() const { return conv_problem.GetKernelStrideW(); }
+    int GetKernelStrideD() const { return conv_problem.GetKernelStrideD(); }
+    int GetDilationH() const { return conv_problem.GetDilationH(); }
+    int GetDilationW() const { return conv_problem.GetDilationW(); }
+    int GetDilationD() const { return conv_problem.GetDilationD(); }
+    int GetBias() const { return conv_problem.GetBias(); }
+    std::string GetInLayout() const { return conv_problem.GetInLayout(); }
+    std::string GetWeightsLayout() const { return conv_problem.GetWeightsLayout(); }
+    std::string GetOutLayout() const { return conv_problem.GetOutLayout(); }
+    miopenDataType_t GetInDataType() const { return conv_problem.GetInDataType(); }
+    miopenDataType_t GetWeightsDataType() const { return conv_problem.GetWeightsDataType(); }
+    miopenDataType_t GetOutDataType() const { return conv_problem.GetOutDataType(); }
+    size_t GetInSize() const { return conv_problem.GetInSize(); }
+    size_t GetOutSize() const { return conv_problem.GetOutSize(); }
+    size_t GetWeightsSize() const { return conv_problem.GetWeightsSize(); }
+    size_t GetBiasSize() const { return conv_problem.GetBiasSize(); }
+    int GetInStride() const { return conv_problem.GetInStrideH(); }
+    int GetOutStride() const { return conv_problem.GetOutStrideH(); }
+    int GetInChannelStride() const { return conv_problem.GetInChannelStride(); }
+    int GetInBatchStride() const { return conv_problem.GetInBatchStride(); }
+    int GetOutChannelStride() const { return conv_problem.GetOutChannelStride(); }
+    int GetOutBatchStride() const { return conv_problem.GetOutBatchStride(); }
+    int GetGroupCount() const { return conv_problem.GetGroupCount(); }
+
+#if MIOPEN_ENABLE_SQLITE
+    static std::string table_name() { return conv::ProblemDescription::table_name(); }
+#endif
+
+    bool IsLayoutDefault() const;
+
+    bool IsLayoutNHWC() const;
+
+    bool IsLayoutNCHWc() const;
+
+#if MIOPEN_ENABLE_SQLITE
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        conv::ProblemDescription::Visit(self, f);
+    }
+#endif
+
+    struct Direction
+    {
+    public:
+        bool IsForward() const { return v == conv::Direction::Forward; }
+        bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
+        bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
+
+        std::string GetStr() const { return IsForward() ? "F" : IsBackwardData() ? "B" : "W"; }
+
+        Direction() = default;
+        Direction(conv::Direction value) : v(value) {}
+
+    private:
+        conv::Direction v = conv::Direction::Forward;
+    } direction;
+
+    std::string GetDirectionStr() const { return direction.GetStr(); }
+
+    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
+    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
+
+    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
+    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
+
+    bool Is2d() const { return conv_problem.Is2d(); }
+    bool Is3d() const { return conv_problem.Is3d(); }
+
+    bool IsFp32() const { return conv_problem.IsFp32(); }
+    bool IsFp16() const { return conv_problem.IsFp16(); }
+    bool IsBfp16() const { return conv_problem.IsBfp16(); }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
+    bool IsFp8() const { return conv_problem.IsFp8(); }
+
+    bool IsBfp8() const { return conv_problem.IsBfp8(); }
+    bool IsTensorsCasted() const { return conv_problem.IsTensorsCasted(); }
+
+    bool IsNCHWc_NCHWc() const { return conv_problem.IsNCHWc_NCHWc(); }
+
+    bool IsNCHWc_CHWNc() const { return conv_problem.IsNCHWc_CHWNc(); }
+
+    ProblemDescription() = default;
+
+    ProblemDescription(conv::ProblemDescription desc);
+
+    void Serialize(std::ostream& stream) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
+
+    void BuildConfKey(std::string& conf_key) const;
+
+    NetworkConfig BuildConfKey() const { return conv_problem.BuildConfKey(); }
+
+    void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
+};
+
+// For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
+// TODO remove this
+struct ProblemDescriptionCompatTemporary
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<ProblemDescriptionCompatTemporary>
+#endif
+{
+    int spatial_dims = 2;
+    int n_inputs     = 0;
+    int in_height    = 0;
+    int in_width     = 0;
+    int in_depth     = 0;
+    // TODO add check to solver that vectorLength = 1
+    // int vectorLength      = 1;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
     int kernel_size_d     = 0;
@@ -95,7 +222,7 @@ struct ProblemDescription
     int kernel_dilation_d = 0;
     int bias              = 0;
     std::string in_layout;
-    std::string weights_layout;
+    // std::string weights_layout;
     std::string out_layout;
     miopenDataType_t in_data_type      = miopenFloat;
     miopenDataType_t weights_data_type = miopenFloat;
@@ -104,8 +231,8 @@ struct ProblemDescription
     size_t top_sz                      = 0;
     size_t weights_sz                  = 0;
     size_t bias_sz                     = 0;
-    int in_stride                      = 0;
-    int out_stride                     = 0;
+    int in_stride                      = 0; // GetInStrideH()
+    int out_stride                     = 0; // GetOutStrideH()
     int in_channel_stride              = 0;
     int in_batch_stride                = 0;
     int out_channel_stride             = 0;
@@ -117,14 +244,14 @@ struct ProblemDescription
     int GetInHeight() const { return in_height; }
     int GetInWidth() const { return in_width; }
     int GetInDepth() const { return in_depth; }
-    int GetVectorLength() const { return vectorLength; }
+    // int GetVectorLength() const { return vectorLength; }
     int GetWeightsHeight() const { return kernel_size_h; }
     int GetWeightsWidth() const { return kernel_size_w; }
     int GetWeightsDepth() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
     int GetOutHeight() const { return out_height; }
     int GetOutWidth() const { return out_width; }
-    int GetOutDepth() const { return out_depth; }
+    // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
@@ -137,15 +264,15 @@ struct ProblemDescription
     int GetDilationD() const { return kernel_dilation_d; }
     int GetBias() const { return bias; }
     std::string GetInLayout() const { return in_layout; }
-    std::string GetWeightsLayout() const { return weights_layout; }
-    std::string GetOutLayout() const { return out_layout; }
+    // std::string GetWeightsLayout() const { return weights_layout; }
+    // std::string GetOutLayout() const { return out_layout; }
     miopenDataType_t GetInDataType() const { return in_data_type; }
     miopenDataType_t GetWeightsDataType() const { return weights_data_type; }
     miopenDataType_t GetOutDataType() const { return out_data_type; }
-    size_t GetInSize() const { return bot_sz; }
-    size_t GetOutSize() const { return top_sz; }
-    size_t GetWeightsSize() const { return weights_sz; }
-    size_t GetBiasSize() const { return bias_sz; }
+    // size_t GetInSize() const { return bot_sz; }
+    // size_t GetOutSize() const { return top_sz; }
+    // size_t GetWeightsSize() const { return weights_sz; }
+    // size_t GetBiasSize() const { return bias_sz; }
     int GetInStride() const { return in_stride; }
     int GetOutStride() const { return out_stride; }
     int GetInChannelStride() const { return in_channel_stride; }
@@ -155,143 +282,21 @@ struct ProblemDescription
     int GetGroupCount() const { return group_counts; }
 
 #if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
-#endif
+    static std::string table_name() { return ProblemDescription::table_name(); }
 
-    bool IsLayoutDefault() const;
-
-    bool IsLayoutNHWC() const;
-
-    bool IsLayoutNCHWC() const;
-
-#if MIOPEN_ENABLE_SQLITE
-    template <class Self>
-    static void Visit(Self&& self, std::function<void(int, std::string)> f)
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
     {
-        if(!self.direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        // The column names match the driver command line argument names
-        f(self.spatial_dims, "spatial_dim");
-        f(self.n_inputs, "in_channels");
-        f(self.in_height, "in_h");
-        f(self.in_width, "in_w");
-        f(self.in_depth, "in_d");
-        f(self.kernel_size_h, "fil_h");
-        f(self.kernel_size_w, "fil_w");
-        f(self.kernel_size_d, "fil_d");
-        f(self.n_outputs, "out_channels");
-        f(self.batch_sz, "batchsize");
-        f(self.pad_h, "pad_h");
-        f(self.pad_w, "pad_w");
-        f(self.pad_d, "pad_d");
-        f(self.kernel_stride_h, "conv_stride_h");
-        f(self.kernel_stride_w, "conv_stride_w");
-        f(self.kernel_stride_d, "conv_stride_d");
-        f(self.kernel_dilation_h, "dilation_h");
-        f(self.kernel_dilation_w, "dilation_w");
-        f(self.kernel_dilation_d, "dilation_d");
-        f(self.bias, "bias");
-        f(self.group_counts, "group_count");
-    }
-
-    template <class Self>
-    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
-    {
-        if(!self.direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        f(self.in_layout, "layout");
-        std::string data_type =
-            EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
-        f(data_type, "data_type");
-        std::string dir = self.direction.IsForward()        ? "F"
-                          : self.direction.IsBackwardData() ? "B"
-                                                            : "W";
-        f(dir, "direction");
+        ProblemDescription::Visit(self, f);
     }
 #endif
 
-    struct Direction
-    {
-    public:
-        bool IsKnown() const { return v != boost::none; }
-        bool IsForward() const { return v == conv::Direction::Forward; }
-        bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
-        bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
+    ProblemDescriptionCompatTemporary() = default;
+    ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
 
-        Direction() = default;
-        Direction(conv::Direction value) : v(value) {}
+    ProblemDescription::Direction direction;
 
-    private:
-        boost::optional<conv::Direction> v;
-        void Set(conv::Direction value) { v = value; }
-
-        friend struct ProblemDescription;
-    } direction;
-
-    int GetBackwardPadW() const { return kernel_size_w - pad_w - 1; }
-    int GetBackwardPadH() const { return kernel_size_h - pad_h - 1; }
-
-    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
-    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
-
-    bool Is2d() const { return spatial_dims == 2; }
-    bool Is3d() const { return spatial_dims == 3; }
-
-    bool IsFp32() const
-    {
-        return in_data_type == miopenFloat && weights_data_type == miopenFloat &&
-               out_data_type == miopenFloat;
-    }
-    bool IsFp16() const
-    {
-        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
-               out_data_type == miopenHalf;
-    }
-    bool IsBfp16() const
-    {
-        return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
-               out_data_type == miopenBFloat16;
-    }
-    bool IsInt8() const { return conv_problem.IsInt8(); }
-    bool IsNCHWc_NCHWc() const
-    {
-        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
-    }
-
-    bool IsNCHWc_CHWNc() const
-    {
-        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
-    }
-    bool IsFp8() const { return conv_problem.IsFp8(); }
-
-    bool IsBfp8() const { return conv_problem.IsBfp8(); }
-    bool IsTensorsCasted() const { return conv_problem.IsTensorsCasted(); }
-    TensorDescriptor GetIn() const { return conv_problem.GetIn(); }
-    TensorDescriptor GetWeights() const { return conv_problem.GetWeights(); }
-    TensorDescriptor GetOut() const { return conv_problem.GetOut(); }
-    ConvolutionDescriptor GetConv() const { return conv_problem.GetConv(); }
-
-    ProblemDescription() = default;
-
-    // Temporary, for compatibility with some parts of code.
-    ProblemDescription(miopen::conv::Direction dir) { direction.Set(dir); }
-
-    ProblemDescription(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       conv::Direction dir,
-                       int bias_ = 0);
-
-    ProblemDescription(conv::ProblemDescription desc);
-
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
+    std::string GetDirectionStr() const { return direction.GetStr(); }
 
     /*
      * set top tensor
@@ -402,15 +407,6 @@ struct ProblemDescription
         batch_sz = batch;
         n_inputs = channels;
     }
-
-    int mloBuildConf_Key(std::string& conf_key) const;
-
-    NetworkConfig BuildConfKey() const
-    {
-        std::string ret;
-        mloBuildConf_Key(ret);
-        return NetworkConfig{ret};
-    }
 };
 
 struct UnifiedDescriptionConv2d
@@ -443,9 +439,6 @@ struct UnifiedDescriptionConv2d
     {
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
-        if(!problem.direction.IsKnown())
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "UnifiedDescriptionConv2d needs to know direction.");
 
         const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount();
         const auto n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();

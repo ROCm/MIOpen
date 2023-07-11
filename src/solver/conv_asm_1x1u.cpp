@@ -293,7 +293,9 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
                                                const int sequence_length) const
 {
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
-    const auto img_hw            = problem.GetOutHeight() * problem.GetOutWidth();
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
+    const auto img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     if(!IsValidValueImpl(sequence_length))
         return false;
     if(sequence_length > 1)
@@ -433,14 +435,16 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionC
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
-    read_size                    = 4;
-    k_mult                       = 16;
-    chunks_per_wave              = static_cast<int>(read_size * elements_in_dword);
-    chunk_size                   = 16;
-    n_mult                       = 2;
-    c_mult                       = elements_in_dword;
-    waves_c_in_group             = 1;
-    waves_k_in_group             = 1;
+    if(elements_in_dword == 0) // For clang-tidy (DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
+    read_size        = 4;
+    k_mult           = 16;
+    chunks_per_wave  = static_cast<int>(read_size * elements_in_dword);
+    chunk_size       = 16;
+    n_mult           = 2;
+    c_mult           = elements_in_dword;
+    waves_c_in_group = 1;
+    waves_k_in_group = 1;
 
     if(!IsValid(problem))
     {
@@ -556,6 +560,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
+    if(elements_in_dword == 0) // For clang-tidy (false positive DIV/0)
+        MIOPEN_THROW(miopenStatusInternalError);
     // clang-format off
     const int img_hw = problem.GetOutHeight() * problem.GetOutWidth();
     bool ok = (problem.GetPadW() == 0       // -q  pad_w

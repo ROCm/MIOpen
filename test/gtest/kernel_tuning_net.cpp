@@ -52,8 +52,19 @@ protected:
         auto conv_desc                       = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
-        problem = miopen::ProblemDescription(
-            input_tensor.desc, weights_tensor.desc, output_desc, conv_desc, test_case.direction);
+
+        problem = (test_case.direction == miopen::conv::Direction::Forward)
+                      ? miopen::conv::ProblemDescription(input_tensor.desc,
+                                                         weights_tensor.desc,
+                                                         output_desc,
+                                                         conv_desc,
+                                                         test_case.direction)
+                      : miopen::conv::ProblemDescription(output_desc,
+                                                         weights_tensor.desc,
+                                                         input_tensor.desc,
+                                                         conv_desc,
+                                                         test_case.direction);
+
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;
 #else

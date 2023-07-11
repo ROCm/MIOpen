@@ -788,7 +788,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 
     auto dir = conv::Direction::Forward;
 
-    ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
+    conv::ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
 
     return transformed_problem;
 }
