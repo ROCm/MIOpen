@@ -61,6 +61,9 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
+class ConfigWithFloat : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
 class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
@@ -76,17 +79,17 @@ void Run2dDriver(miopenDataType_t prec)
     {
     case miopenHalf: params = ConfigWithHalf::GetParam(); break;
     case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenFloat: params = ConfigWithFloat::GetParam(); break;
     case miopenBFloat16:
-    case miopenFloat:
     case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
         MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, miopenDouble data "
+                     "miopenBFloat16, miopenInt8x4, miopenInt32, miopenDouble data "
                      "type not supported by "
                      "conv_igemm_mlir test");
 
-    default: params = ConfigWithHalf::GetParam();
+    default: params = ConfigWithFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -104,6 +107,28 @@ void Run2dDriver(miopenDataType_t prec)
         auto capture = testing::internal::GetCapturedStderr();
         EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
     }
+};
+
+TEST_P(ConfigWithFloat, FloatTest)
+{
+#if MIOPEN_USE_MLIR
+
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--float")
+    {
+        Run2dDriver(miopenFloat);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+
+#else
+    GTEST_SKIP();
+#endif
 };
 
 TEST_P(ConfigWithHalf, HalfTest)
@@ -204,8 +229,8 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         // clang-format on
     };
 
-    // FWD BWD WRW cases in test_cases for precision == "--half"
-    if(precision == "--half")
+    // FWD BWD WRW cases in test_cases
+    if(precision == "--float" || precision == "--half")
     {
         test_cases.reserve(test_cases_bwd_wrw.size());
         test_cases.insert(test_cases.end(), test_cases_bwd_wrw.begin(), test_cases_bwd_wrw.end());
@@ -213,6 +238,8 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     return test_cases;
 }
+// Float for FWD, BWD, WRW
+INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithFloat, testing::Values(GetTestCases("--float")));
 // Half for FWD, BWD, WRW
 INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, ConfigWithHalf, testing::Values(GetTestCases("--half")));
 // Int8 for FWD
