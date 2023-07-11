@@ -53,11 +53,12 @@ struct ConvWrwSolverTest
 
         const auto tensors = miopen::ConvWrwTensors{
             output.desc, out_dev.get(), input.desc, in_dev.get(), weights.desc, wei_dev.get()};
-        const auto problem                   = miopen::ProblemDescription(output.desc,
-                                                        weights.desc,
-                                                        input.desc,
-                                                        conv_desc,
-                                                        miopen::conv::Direction::BackwardWeights);
+        const auto problem = miopen::ProblemDescription(
+            miopen::conv::ProblemDescription{output.desc,
+                                             weights.desc,
+                                             input.desc,
+                                             conv_desc,
+                                             miopen::conv::Direction::BackwardWeights});
         const miopen::ConvolutionContext ctx = [&] {
             auto tmp = miopen::ConvolutionContext{&handle};
             tmp.DetectRocm();

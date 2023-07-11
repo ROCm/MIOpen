@@ -66,9 +66,9 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx,
             // all tested tensors must have cast type set
             return true;
         };
-        if(test_cast(problem.GetIn()))
+        if(test_cast(problem.conv_problem.GetIn()))
             return false;
-        if(test_cast(problem.GetWeights()))
+        if(test_cast(problem.conv_problem.GetWeights()))
             return false;
     }
     return true;

@@ -52,8 +52,8 @@ struct ConvFwdSolverTest
 
         const auto tensors = miopen::ConvFwdTensors{
             input.desc, in_dev.get(), weights.desc, wei_dev.get(), output.desc, out_dev.get()};
-        const auto problem = miopen::ProblemDescription(
-            input.desc, weights.desc, output.desc, conv_desc, miopen::conv::Direction::Forward);
+        const auto problem = miopen::ProblemDescription(miopen::conv::ProblemDescription{
+            input.desc, weights.desc, output.desc, conv_desc, miopen::conv::Direction::Forward});
         const miopen::ConvolutionContext ctx = [&] {
             auto tmp = miopen::ConvolutionContext{&handle};
             tmp.DetectRocm();

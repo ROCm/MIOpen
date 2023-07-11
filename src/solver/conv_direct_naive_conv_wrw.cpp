@@ -65,9 +65,9 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
             // all tested tensors must have cast type set
             return true;
         };
-        if(test_cast(problem.GetIn()))
+        if(test_cast(problem.conv_problem.GetIn()))
             return false;
-        if(test_cast(problem.GetOut()))
+        if(test_cast(problem.conv_problem.GetOut()))
             return false;
     }
 
@@ -137,28 +137,29 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
                 if(is_f8)
-                    handle.Run(kern)(tensors.x,
-                                     tensors.dw,
-                                     tensors.dy,
-                                     hi,
-                                     wi,
-                                     n,
-                                     k_per_group,
-                                     c_per_group,
-                                     ho,
-                                     wo,
-                                     sy,
-                                     sx,
-                                     dy,
-                                     dx,
-                                     py,
-                                     px,
-                                     fy,
-                                     fx,
-                                     group,
-                                     problem.GetConv().attribute.fp8rounding_mode.Get() ==
-                                         miopenF8RoundingModeStochastic,
-                                     problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                    handle.Run(kern)(
+                        tensors.x,
+                        tensors.dw,
+                        tensors.dy,
+                        hi,
+                        wi,
+                        n,
+                        k_per_group,
+                        c_per_group,
+                        ho,
+                        wo,
+                        sy,
+                        sx,
+                        dy,
+                        dx,
+                        py,
+                        px,
+                        fy,
+                        fx,
+                        group,
+                        problem.conv_problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                            miopenF8RoundingModeStochastic,
+                        problem.conv_problem.GetConv().attribute.fp8rounding_mode.GetSeed());
                 else
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,

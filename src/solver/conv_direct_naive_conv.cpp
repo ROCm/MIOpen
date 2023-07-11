@@ -216,16 +216,17 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
         // const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
         if(in_cast_type)
             ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
-        if(problem.GetWeights().GetCastType())
+        if(problem.conv_problem.GetWeights().GetCastType())
             ss << " -DWEIGHTS_CAST_TYPE="
-               << miopen::GetDataType(*(problem.GetWeights().GetCastType()));
+               << miopen::GetDataType(*(problem.conv_problem.GetWeights().GetCastType()));
         const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
             ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
         ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
         ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
-        if(problem.GetConv().compute_type)
-            ss << " -DACCUMULATOR_TYPE=" << miopen::GetDataType(*problem.GetConv().compute_type);
+        if(problem.conv_problem.GetConv().compute_type)
+            ss << " -DACCUMULATOR_TYPE="
+               << miopen::GetDataType(*problem.conv_problem.GetConv().compute_type);
         // else
         //     Let the kernel choose its accumulator (double for naive kernels )
     }
