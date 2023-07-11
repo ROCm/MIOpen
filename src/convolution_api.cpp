@@ -187,6 +187,13 @@ extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDes
     });
 }
 
+extern "C" miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                         int* groupCount)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, groupCount);
+    return miopen::try_([&] { miopen::deref(groupCount) = miopen::deref(convDesc).group_count; });
+}
+
 extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
                                                          int groupCount)
 {
