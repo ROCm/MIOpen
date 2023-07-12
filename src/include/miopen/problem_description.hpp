@@ -172,15 +172,11 @@ struct ProblemDescriptionCompatTemporary
     int GetInHeight1() const { return GetInHeight(); }
     int GetInWidth() const { return in_width; }
     int GetInWidth1() const { return GetInWidth(); }
-    int GetInDepth() const { return in_depth; }
-    int GetInDepth1() const { return GetInDepth(); }
+    int GetInDepth1() const { return in_depth; }
     // int GetVectorLength() const { return vectorLength; }
-    int GetWeightsHeight() const { return kernel_size_h; }
-    int GetWeightsHeight1() const { return GetWeightsHeight(); }
-    int GetWeightsWidth() const { return kernel_size_w; }
-    int GetWeightsWidth1() const { return GetWeightsWidth(); }
-    int GetWeightsDepth() const { return kernel_size_d; }
-    int GetWeightsDepth1() const { return GetWeightsDepth(); }
+    int GetWeightsHeight1() const { return kernel_size_h; }
+    int GetWeightsWidth1() const { return kernel_size_w; }
+    int GetWeightsDepth1() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
     int GetOutChannels1() const { return GetOutChannels(); }
     int GetOutHeight() const { return out_height; }
