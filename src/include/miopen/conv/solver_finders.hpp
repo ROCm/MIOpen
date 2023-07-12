@@ -57,8 +57,7 @@ public:
 
         try
         {
-            MIOPEN_LOG_I2("Starting find for "
-                          << GetAlgorithmName(problem).ToString());
+            MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(problem).ToString());
             return FindImpl(ctx, problem, invoke_ctx, use_winograd_only);
         }
         catch(Exception& ex)

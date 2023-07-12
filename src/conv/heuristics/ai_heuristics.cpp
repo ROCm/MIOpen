@@ -163,8 +163,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Group count not 1");
             return false;
         }
-        if(problem.GetInLayout() != "NCHW" &&
-           problem.GetInLayout() != "NCDHW")
+        if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NCDHW")
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
@@ -221,16 +220,14 @@ protected:
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
-            static_cast<float>(isFwd ? problem.GetInChannels1()
-                                     : problem.GetOutChannels1()),
+            static_cast<float>(isFwd ? problem.GetInChannels1() : problem.GetOutChannels1()),
             static_cast<float>(isFwd ? problem.GetInDepth1() : problem.GetOutDepth1()),
             static_cast<float>(isFwd ? problem.GetInHeight1() : problem.GetOutHeight1()),
             static_cast<float>(isFwd ? problem.GetInWidth1() : problem.GetOutWidth1()),
             static_cast<float>(problem.GetWeightsDepth1()),
             static_cast<float>(problem.GetWeightsHeight1()),
             static_cast<float>(problem.GetWeightsWidth1()),
-            static_cast<float>(isFwd ? problem.GetOutChannels1()
-                                     : problem.GetInChannels1()),
+            static_cast<float>(isFwd ? problem.GetOutChannels1() : problem.GetInChannels1()),
             static_cast<float>(isFwd ? problem.GetOutDepth1() : problem.GetInDepth1()),
             static_cast<float>(isFwd ? problem.GetOutHeight1() : problem.GetInHeight1()),
             static_cast<float>(isFwd ? problem.GetOutWidth1() : problem.GetInWidth1()),

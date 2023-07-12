@@ -188,7 +188,7 @@ template <typename T>
 static inline InvokerFactory
 MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& problem, const T& cfg)
 {
-    auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(problem, cfg);
+    auto opArgs = ComputeDynamicIGemmForwardKernelArgs<T>(problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();

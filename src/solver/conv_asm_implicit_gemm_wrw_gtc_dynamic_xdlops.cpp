@@ -920,10 +920,10 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    const auto& lowp_quant   = problem.GetConv().lowp_quant;
+    const auto& lowp_quant = problem.GetConv().lowp_quant;
 
-    auto opArgs = ComputeDynamicIGemmWrwKernelArgs(
-        problem, log2_gemm_k_global_splits, nxb, gemm_k_per_block);
+    auto opArgs =
+        ComputeDynamicIGemmWrwKernelArgs(problem, log2_gemm_k_global_splits, nxb, gemm_k_per_block);
 
     if(problem.IsFp32())
     {
@@ -958,9 +958,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
     }
     else if(problem.IsFp16() && log2_gemm_k_global_splits > 0)
     {
-        TensorDescriptor workspaceDesc(miopenFloat,
-                                       problem.GetWeights().GetLengths(),
-                                       problem.GetWeights().GetStrides());
+        TensorDescriptor workspaceDesc(
+            miopenFloat, problem.GetWeights().GetLengths(), problem.GetWeights().GetStrides());
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =

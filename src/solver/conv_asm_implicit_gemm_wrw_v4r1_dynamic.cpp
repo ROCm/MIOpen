@@ -42,9 +42,8 @@ namespace solver {
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
-static inline int
-GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& problem,
-                                         const int& GemmKPerBlock)
+static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& problem,
+                                                           const int& GemmKPerBlock)
 {
     int n            = problem.GetInBatchSize();
     int ho           = problem.GetInHeight1();
@@ -198,9 +197,8 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
         if(GemmM % GemmMPerBlock != 0)
             return false;
 
-        int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
-        GemmKGroups = 1 << log2_gemmk_groups;
+        int log2_gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
+        GemmKGroups           = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
 
@@ -230,9 +228,8 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
         if(GemmM % GemmMPerBlock != 0)
             return false;
 
-        int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
-        GemmKGroups = 1 << log2_gemmk_groups;
+        int log2_gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
+        GemmKGroups           = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
 

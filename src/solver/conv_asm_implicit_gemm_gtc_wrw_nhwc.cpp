@@ -1174,9 +1174,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
-    const TensorDescriptor cast_desc(miopenFloat,
-                                     problem.GetWeights().GetLengths(),
-                                     problem.GetWeights().GetStrides());
+    const TensorDescriptor cast_desc(
+        miopenFloat, problem.GetWeights().GetLengths(), problem.GetWeights().GetStrides());
     auto null_buf = shared<Data_t>{};
 
     if(need_cast)

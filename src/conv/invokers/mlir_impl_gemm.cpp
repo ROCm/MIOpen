@@ -295,13 +295,8 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
@@ -314,8 +309,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
     // be cast to a different than int32_t. This gives the solver a wider applicable range and
     // mimics the behavior of the gemm solver.
     bool needs_output_cast = false;
-    if(problem.GetIn().GetType() == miopenInt8 &&
-       problem.GetWeights().GetType() == miopenInt8 &&
+    if(problem.GetIn().GetType() == miopenInt8 && problem.GetWeights().GetType() == miopenInt8 &&
        problem.GetOut().GetType() != miopenInt32)
     {
         needs_output_cast = true;
@@ -367,13 +361,8 @@ InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
@@ -428,13 +417,8 @@ InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, workspace_req);
 
