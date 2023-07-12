@@ -80,7 +80,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) ||
-       miopen::any_of(problem.conv_problem.GetConv().GetConvDilations(),
+       miopen::any_of(problem.GetConv().GetConvDilations(),
                       [](auto v) { return v > 1; }))
         return 0;
 

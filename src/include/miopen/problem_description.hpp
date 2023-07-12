@@ -63,72 +63,27 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 struct ConvolutionDescriptor;
 
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
-struct ProblemDescription
-#if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescription>
-#endif
+struct ProblemDescription : conv::ProblemDescription
 {
-    conv::ProblemDescription conv_problem;
-
-    int GetSpatialDims2() const { return conv_problem.GetSpatialDims1(); }
-    int GetInChannels2() const { return conv_problem.GetInChannels1(); }
-    int GetInHeight2() const { return conv_problem.GetInHeight1(); }
-    int GetInWidth2() const { return conv_problem.GetInWidth1(); }
-    int GetInDepth2() const { return conv_problem.GetInDepth1(); }
-    int GetVectorLength() const { return conv_problem.GetVectorLength(); }
-    int GetWeightsHeight2() const { return conv_problem.GetWeightsHeight1(); }
-    int GetWeightsWidth2() const { return conv_problem.GetWeightsWidth1(); }
-    int GetWeightsDepth2() const { return conv_problem.GetWeightsDepth1(); }
-    int GetOutChannels2() const { return conv_problem.GetOutChannels1(); }
-    int GetOutHeight2() const { return conv_problem.GetOutHeight1(); }
-    int GetOutWidth2() const { return conv_problem.GetOutWidth1(); }
-    int GetOutDepth2() const { return conv_problem.GetOutDepth1(); }
-    int GetBatchSize2() const { return conv_problem.GetBatchSize1(); }
-    int GetPadH() const { return conv_problem.GetPadH(); }
-    int GetPadW() const { return conv_problem.GetPadW(); }
-    int GetPadD() const { return conv_problem.GetPadD(); }
-    int GetKernelStrideH() const { return conv_problem.GetKernelStrideH(); }
-    int GetKernelStrideW() const { return conv_problem.GetKernelStrideW(); }
-    int GetKernelStrideD() const { return conv_problem.GetKernelStrideD(); }
-    int GetDilationH() const { return conv_problem.GetDilationH(); }
-    int GetDilationW() const { return conv_problem.GetDilationW(); }
-    int GetDilationD() const { return conv_problem.GetDilationD(); }
-    int GetBias() const { return conv_problem.GetBias(); }
-    std::string GetInLayout() const { return conv_problem.GetInLayout(); }
-    std::string GetWeightsLayout() const { return conv_problem.GetWeightsLayout(); }
-    std::string GetOutLayout() const { return conv_problem.GetOutLayout(); }
-    miopenDataType_t GetInDataType() const { return conv_problem.GetInDataType(); }
-    miopenDataType_t GetWeightsDataType() const { return conv_problem.GetWeightsDataType(); }
-    miopenDataType_t GetOutDataType() const { return conv_problem.GetOutDataType(); }
-    size_t GetInSize() const { return conv_problem.GetInSize(); }
-    size_t GetOutSize() const { return conv_problem.GetOutSize(); }
-    size_t GetWeightsSize() const { return conv_problem.GetWeightsSize(); }
-    size_t GetBiasSize() const { return conv_problem.GetBiasSize(); }
-    int GetInStride2() const { return conv_problem.GetInStrideH1(); }
-    int GetOutStride2() const { return conv_problem.GetOutStrideH1(); }
-    int GetInChannelStride2() const { return conv_problem.GetInChannelStride1(); }
-    int GetInBatchStride2() const { return conv_problem.GetInBatchStride1(); }
-    int GetOutChannelStride2() const { return conv_problem.GetOutChannelStride1(); }
-    int GetOutBatchStride2() const { return conv_problem.GetOutBatchStride1(); }
-    int GetGroupCount() const { return conv_problem.GetGroupCount(); }
-
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return conv::ProblemDescription::table_name(); }
-#endif
-
-    bool IsLayoutDefault() const;
-
-    bool IsLayoutNHWC() const;
-
-    bool IsLayoutNCHWc() const;
-
-#if MIOPEN_ENABLE_SQLITE
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        conv::ProblemDescription::Visit(self, f);
-    }
-#endif
+    int GetSpatialDims2() const { return GetSpatialDims1(); }
+    int GetInChannels2() const { return GetInChannels1(); }
+    int GetInHeight2() const { return GetInHeight1(); }
+    int GetInWidth2() const { return GetInWidth1(); }
+    int GetInDepth2() const { return GetInDepth1(); }
+    int GetWeightsHeight2() const { return GetWeightsHeight1(); }
+    int GetWeightsWidth2() const { return GetWeightsWidth1(); }
+    int GetWeightsDepth2() const { return GetWeightsDepth1(); }
+    int GetOutChannels2() const { return GetOutChannels1(); }
+    int GetOutHeight2() const { return GetOutHeight1(); }
+    int GetOutWidth2() const { return GetOutWidth1(); }
+    int GetOutDepth2() const { return GetOutDepth1(); }
+    int GetBatchSize2() const { return GetBatchSize1(); }
+    int GetInStride2() const { return GetInStrideH1(); }
+    int GetOutStride2() const { return GetOutStrideH1(); }
+    int GetInChannelStride2() const { return GetInChannelStride1(); }
+    int GetInBatchStride2() const { return GetInBatchStride1(); }
+    int GetOutChannelStride2() const { return GetOutChannelStride1(); }
+    int GetOutBatchStride2() const { return GetOutBatchStride1(); }
 
     struct Direction
     {
@@ -146,43 +101,17 @@ struct ProblemDescription
         conv::Direction v = conv::Direction::Forward;
     } direction;
 
-    std::string GetDirectionStr() const { return direction.GetStr(); }
-
-    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
-    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
-
-    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
-    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
-
-    bool Is2d() const { return conv_problem.Is2d(); }
-    bool Is3d() const { return conv_problem.Is3d(); }
-
-    bool IsFp32() const { return conv_problem.IsFp32(); }
-    bool IsFp16() const { return conv_problem.IsFp16(); }
-    bool IsBfp16() const { return conv_problem.IsBfp16(); }
-    bool IsInt8() const { return conv_problem.IsInt8(); }
-
-    bool IsNCHWc_NCHWc() const { return conv_problem.IsNCHWc_NCHWc(); }
-
-    bool IsNCHWc_CHWNc() const { return conv_problem.IsNCHWc_CHWNc(); }
-
     ProblemDescription() = default;
 
     ProblemDescription(conv::ProblemDescription desc);
 
-    void Serialize(std::ostream& stream) const;
-
+#if 0
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
     {
         obj.Serialize(os);
         return os;
     }
-
-    void BuildConfKey(std::string& conf_key) const;
-
-    NetworkConfig BuildConfKey() const { return conv_problem.BuildConfKey(); }
-
-    void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
+#endif
 };
 
 // For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
@@ -236,29 +165,29 @@ struct ProblemDescriptionCompatTemporary
     int group_counts                   = 0;
 
     int GetSpatialDims() const { return spatial_dims; }
-    int GetSpatialDims2() const { return GetSpatialDims(); }
+    int GetSpatialDims1() const { return GetSpatialDims(); }
     int GetInChannels() const { return n_inputs; }
-    int GetInChannels2() const { return GetInChannels(); }
+    int GetInChannels1() const { return GetInChannels(); }
     int GetInHeight() const { return in_height; }
-    int GetInHeight2() const { return GetInHeight(); }
+    int GetInHeight1() const { return GetInHeight(); }
     int GetInWidth() const { return in_width; }
-    int GetInWidth2() const { return GetInWidth(); }
+    int GetInWidth1() const { return GetInWidth(); }
     int GetInDepth() const { return in_depth; }
-    int GetInDepth2() const { return GetInDepth(); }
+    int GetInDepth1() const { return GetInDepth(); }
     // int GetVectorLength() const { return vectorLength; }
     int GetWeightsHeight() const { return kernel_size_h; }
-    int GetWeightsHeight2() const { return GetWeightsHeight(); }
+    int GetWeightsHeight1() const { return GetWeightsHeight(); }
     int GetWeightsWidth() const { return kernel_size_w; }
-    int GetWeightsWidth2() const { return GetWeightsWidth(); }
+    int GetWeightsWidth1() const { return GetWeightsWidth(); }
     int GetWeightsDepth() const { return kernel_size_d; }
-    int GetWeightsDepth2() const { return GetWeightsDepth(); }
+    int GetWeightsDepth1() const { return GetWeightsDepth(); }
     int GetOutChannels() const { return n_outputs; }
-    int GetOutChannels2() const { return GetOutChannels(); }
+    int GetOutChannels1() const { return GetOutChannels(); }
     int GetOutHeight() const { return out_height; }
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    int GetBatchSize2() const { return GetBatchSize(); }
+    int GetBatchSize1() const { return GetBatchSize(); }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
     int GetPadD() const { return pad_d; }

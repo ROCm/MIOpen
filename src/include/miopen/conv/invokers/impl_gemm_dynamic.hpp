@@ -42,29 +42,29 @@ namespace conv {
 
 template <typename T>
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmForwardKernelArgs(const ProblemDescription& conv_problem, const T& cfg);
+ComputeDynamicIGemmForwardKernelArgs(const ProblemDescription& problem, const T& cfg);
 
 template <>
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem, const int& cfg)
+ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& problem, const int& cfg)
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight1();
-    int wi          = conv_problem.GetInWidth1();
-    int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels1();
-    int c           = conv_problem.GetInChannels1();
-    int ho          = conv_problem.GetOutHeight1();
-    int wo          = conv_problem.GetOutWidth1();
-    int stride_h    = conv_problem.GetKernelStrideH();
-    int stride_w    = conv_problem.GetKernelStrideW();
-    int dilation_h  = conv_problem.GetDilationH();
-    int dilation_w  = conv_problem.GetDilationW();
-    int pad_h       = conv_problem.GetPadH();
-    int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight1();
-    int x           = conv_problem.GetWeightsWidth1();
+    int hi          = problem.GetInHeight1();
+    int wi          = problem.GetInWidth1();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels1();
+    int c           = problem.GetInChannels1();
+    int ho          = problem.GetOutHeight1();
+    int wo          = problem.GetOutWidth1();
+    int stride_h    = problem.GetKernelStrideH();
+    int stride_w    = problem.GetKernelStrideW();
+    int dilation_h  = problem.GetDilationH();
+    int dilation_w  = problem.GetDilationW();
+    int pad_h       = problem.GetPadH();
+    int pad_w       = problem.GetPadW();
+    int y           = problem.GetWeightsHeight1();
+    int x           = problem.GetWeightsWidth1();
     int pack0       = cfg;
     // clang-format on
 
@@ -94,26 +94,26 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& conv_problem
 template <>
 inline std::vector<OpKernelArg>
 ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ProblemDescription& conv_problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+    const ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
     std::vector<OpKernelArg> opArgs;
     // clang-format off
-    int hi          = conv_problem.GetInHeight1();
-    int wi          = conv_problem.GetInWidth1();
-    int n           = conv_problem.GetInBatchSize();
-    int k           = conv_problem.GetOutChannels1();
-    int c           = conv_problem.GetInChannels1();
-    int ho          = conv_problem.GetOutHeight1();
-    int wo          = conv_problem.GetOutWidth1();
-    int stride_h    = conv_problem.GetKernelStrideH();
-    int stride_w    = conv_problem.GetKernelStrideW();
-    int dilation_h  = conv_problem.GetDilationH();
-    int dilation_w  = conv_problem.GetDilationW();
-    int pad_h       = conv_problem.GetPadH();
-    int pad_w       = conv_problem.GetPadW();
-    int y           = conv_problem.GetWeightsHeight1();
-    int x           = conv_problem.GetWeightsWidth1();
-    int group       = conv_problem.GetGroupCount();
+    int hi          = problem.GetInHeight1();
+    int wi          = problem.GetInWidth1();
+    int n           = problem.GetInBatchSize();
+    int k           = problem.GetOutChannels1();
+    int c           = problem.GetInChannels1();
+    int ho          = problem.GetOutHeight1();
+    int wo          = problem.GetOutWidth1();
+    int stride_h    = problem.GetKernelStrideH();
+    int stride_w    = problem.GetKernelStrideW();
+    int dilation_h  = problem.GetDilationH();
+    int dilation_w  = problem.GetDilationW();
+    int pad_h       = problem.GetPadH();
+    int pad_w       = problem.GetPadW();
+    int y           = problem.GetWeightsHeight1();
+    int x           = problem.GetWeightsWidth1();
+    int group       = problem.GetGroupCount();
     int pack0       = 0;
     // clang-format on
 
@@ -188,8 +188,7 @@ template <typename T>
 static inline InvokerFactory
 MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& problem, const T& cfg)
 {
-    const auto& conv_problem = problem.conv_problem;
-    auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
+    auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();

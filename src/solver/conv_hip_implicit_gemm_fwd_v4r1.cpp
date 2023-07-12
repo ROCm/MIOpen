@@ -49,7 +49,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!problem.direction.IsForward())
         return false;
@@ -64,7 +64,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault())
         return false;
     if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+       problem.IsGfx90aFp16altRequired())
         return false;
 
     std::size_t n         = problem.GetBatchSize2();
@@ -104,7 +104,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault())
         return false;
     if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+       problem.IsGfx90aFp16altRequired())
         return false;
 
     // retrieve dimension from ConvolutionContext

@@ -72,18 +72,18 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     if(name != "gfx803")
         return false;
 
-    const auto W           = conv_problem.conv_problem.GetInWidth1();
-    const auto H           = conv_problem.conv_problem.GetInHeight1();
-    const auto C           = conv_problem.conv_problem.GetInChannels1();
-    const auto N           = conv_problem.conv_problem.GetInBatchSize();
-    const auto K           = conv_problem.conv_problem.GetOutChannels1();
-    const auto y           = conv_problem.conv_problem.GetWeightsHeight1();
-    const auto x           = conv_problem.conv_problem.GetWeightsWidth1();
-    const auto OH          = conv_problem.conv_problem.GetOutHeight1();
-    const auto OW          = conv_problem.conv_problem.GetOutWidth1();
-    const auto pad_h       = conv_problem.conv_problem.GetPadH();
-    const auto pad_w       = conv_problem.conv_problem.GetPadW();
-    const auto group_count = conv_problem.conv_problem.GetGroupCount();
+    const auto W           = conv_problem.GetInWidth1();
+    const auto H           = conv_problem.GetInHeight1();
+    const auto C           = conv_problem.GetInChannels1();
+    const auto N           = conv_problem.GetInBatchSize();
+    const auto K           = conv_problem.GetOutChannels1();
+    const auto y           = conv_problem.GetWeightsHeight1();
+    const auto x           = conv_problem.GetWeightsWidth1();
+    const auto OH          = conv_problem.GetOutHeight1();
+    const auto OW          = conv_problem.GetOutWidth1();
+    const auto pad_h       = conv_problem.GetPadH();
+    const auto pad_w       = conv_problem.GetPadW();
+    const auto group_count = conv_problem.GetGroupCount();
 
     size_t padded_y = 0;
     size_t padded_x = 0;
@@ -160,8 +160,8 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
         {"ROCM_METADATA_VERSION", conv_ctx.rmv.UseV3() ? 5 : 4},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    const auto x        = conv_problem.conv_problem.GetWeightsWidth1();
-    const auto y        = conv_problem.conv_problem.GetWeightsHeight1();
+    const auto x        = conv_problem.GetWeightsWidth1();
+    const auto y        = conv_problem.GetWeightsHeight1();
 
     kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
     if(conv_problem.GetKernelStrideH() == 1)

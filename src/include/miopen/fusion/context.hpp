@@ -36,7 +36,7 @@ struct FusionContext : miopen::ExecutionContext
     {
         auto ctx = ConvolutionContext{*this};
         ctx.DetectRocm();
-        conv_problem.conv_problem.SetupFloats(ctx);
+        conv_problem.SetupFloats(ctx);
         return ctx;
     }
 

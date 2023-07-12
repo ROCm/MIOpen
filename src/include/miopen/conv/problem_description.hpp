@@ -394,16 +394,16 @@ struct ProblemDescription : ProblemDescriptionBase
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
         // The column names match the driver command line argument names
-        f(self.GetSpatialDims2(), "spatial_dim");
-        f(self.GetInChannels2(), "in_channels");
-        f(self.GetInHeight2(), "in_h");
-        f(self.GetInWidth2(), "in_w");
-        f(self.GetInDepth2(), "in_d");
-        f(self.GetWeightsHeight2(), "fil_h");
-        f(self.GetWeightsWidth2(), "fil_w");
-        f(self.GetWeightsDepth2(), "fil_d");
-        f(self.GetOutChannels2(), "out_channels");
-        f(self.GetBatchSize2(), "batchsize");
+        f(self.GetSpatialDims1(), "spatial_dim");
+        f(self.GetInChannels1(), "in_channels");
+        f(self.GetInHeight1(), "in_h");
+        f(self.GetInWidth1(), "in_w");
+        f(self.GetInDepth1(), "in_d");
+        f(self.GetWeightsHeight1(), "fil_h");
+        f(self.GetWeightsWidth1(), "fil_w");
+        f(self.GetWeightsDepth1(), "fil_d");
+        f(self.GetOutChannels1(), "out_channels");
+        f(self.GetBatchSize1(), "batchsize");
         f(self.GetPadH(), "pad_h");
         f(self.GetPadW(), "pad_w");
         f(self.GetPadD(), "pad_d");

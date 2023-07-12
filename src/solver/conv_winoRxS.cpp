@@ -642,7 +642,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
          StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
@@ -989,8 +989,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         int flags                        = F_NKC_STRIDES + F_GROUP_STRIDES;
         N                                = N / group_cnt;
         K                                = K / group_cnt;
-        int pad_H                        = problem.conv_problem.GetConv().GetConvPads()[0];
-        int pad_W                        = problem.conv_problem.GetConv().GetConvPads()[1];
+        int pad_H                        = problem.GetConv().GetConvPads()[0];
+        int pad_W                        = problem.GetConv().GetConvPads()[1];
 
         BuffInfo d_buf(
             GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true),

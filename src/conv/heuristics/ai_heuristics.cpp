@@ -153,43 +153,43 @@ public:
                             const ConvolutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
-        if(!problem.conv_problem.Is2d())
+        if(!problem.Is2d())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
             return false;
         }
-        if(problem.conv_problem.GetGroupCount() != 1)
+        if(problem.GetGroupCount() != 1)
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Group count not 1");
             return false;
         }
-        if(problem.conv_problem.GetInLayout() != "NCHW" &&
-           problem.conv_problem.GetInLayout() != "NCDHW")
+        if(problem.GetInLayout() != "NCHW" &&
+           problem.GetInLayout() != "NCDHW")
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
         }
-        if(problem.conv_problem.GetWeightsHeight1() != problem.conv_problem.GetWeightsWidth1())
+        if(problem.GetWeightsHeight1() != problem.GetWeightsWidth1())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Filters must be square (fil_h == fil_w)");
             return false;
         }
-        if(problem.conv_problem.GetPadH() != problem.conv_problem.GetPadW())
+        if(problem.GetPadH() != problem.GetPadW())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Padding must be equal along all axes");
             return false;
         }
-        if(problem.conv_problem.GetKernelStrideH() != problem.conv_problem.GetKernelStrideW())
+        if(problem.GetKernelStrideH() != problem.GetKernelStrideW())
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Stride must be equal along all axes");
             return false;
         }
-        if(problem.conv_problem.GetDilationH() != 1 || problem.conv_problem.GetDilationW() != 1)
+        if(problem.GetDilationH() != 1 || problem.GetDilationW() != 1)
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Dilation must be 1");
             return false;
         }
-        const auto& data_type = problem.conv_problem.GetInDataType();
+        const auto data_type = problem.GetInDataType();
         if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Unsupported data type");
@@ -219,37 +219,36 @@ public:
 protected:
     std::vector<float> ToFeatures(const ProblemDescription& problem) const override
     {
-        const auto& conv_problem    = problem.conv_problem;
-        const bool isFwd            = conv_problem.GetDirection() == conv::Direction::Forward;
+        const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
-            static_cast<float>(isFwd ? conv_problem.GetInChannels1()
-                                     : conv_problem.GetOutChannels1()),
-            static_cast<float>(isFwd ? conv_problem.GetInDepth1() : conv_problem.GetOutDepth1()),
-            static_cast<float>(isFwd ? conv_problem.GetInHeight1() : conv_problem.GetOutHeight1()),
-            static_cast<float>(isFwd ? conv_problem.GetInWidth1() : conv_problem.GetOutWidth1()),
-            static_cast<float>(conv_problem.GetWeightsDepth1()),
-            static_cast<float>(conv_problem.GetWeightsHeight1()),
-            static_cast<float>(conv_problem.GetWeightsWidth1()),
-            static_cast<float>(isFwd ? conv_problem.GetOutChannels1()
-                                     : conv_problem.GetInChannels1()),
-            static_cast<float>(isFwd ? conv_problem.GetOutDepth1() : conv_problem.GetInDepth1()),
-            static_cast<float>(isFwd ? conv_problem.GetOutHeight1() : conv_problem.GetInHeight1()),
-            static_cast<float>(isFwd ? conv_problem.GetOutWidth1() : conv_problem.GetInWidth1()),
-            static_cast<float>(conv_problem.GetOutBatchSize()),
+            static_cast<float>(isFwd ? problem.GetInChannels1()
+                                     : problem.GetOutChannels1()),
+            static_cast<float>(isFwd ? problem.GetInDepth1() : problem.GetOutDepth1()),
+            static_cast<float>(isFwd ? problem.GetInHeight1() : problem.GetOutHeight1()),
+            static_cast<float>(isFwd ? problem.GetInWidth1() : problem.GetOutWidth1()),
+            static_cast<float>(problem.GetWeightsDepth1()),
+            static_cast<float>(problem.GetWeightsHeight1()),
+            static_cast<float>(problem.GetWeightsWidth1()),
+            static_cast<float>(isFwd ? problem.GetOutChannels1()
+                                     : problem.GetInChannels1()),
+            static_cast<float>(isFwd ? problem.GetOutDepth1() : problem.GetInDepth1()),
+            static_cast<float>(isFwd ? problem.GetOutHeight1() : problem.GetInHeight1()),
+            static_cast<float>(isFwd ? problem.GetOutWidth1() : problem.GetInWidth1()),
+            static_cast<float>(problem.GetOutBatchSize()),
             static_cast<float>(1), // TunaNet was trained on a dataset of 2D
                                    // problems where PadD was incorrectly set to 1
-            static_cast<float>(conv_problem.GetPadH()),
-            static_cast<float>(conv_problem.GetPadW()),
+            static_cast<float>(problem.GetPadH()),
+            static_cast<float>(problem.GetPadW()),
             static_cast<float>(1), // TunaNet was trained on a dataset of 2D
                                    // problems where StrideD was incorrectly set to 1
-            static_cast<float>(conv_problem.GetKernelStrideH()),
-            static_cast<float>(conv_problem.GetKernelStrideW()),
-            static_cast<float>(conv_problem.GetDilationH()),
-            static_cast<float>(conv_problem.GetDilationW()),
-            static_cast<float>(metadata.EncodeLayout(conv_problem.GetInLayout())),
-            static_cast<float>(metadata.EncodePrecision(conv_problem.GetInDataType())),
-            static_cast<float>(metadata.EncodeDirection(conv_problem.GetDirection())),
-            static_cast<float>(conv_problem.GetGroupCount())};
+            static_cast<float>(problem.GetKernelStrideH()),
+            static_cast<float>(problem.GetKernelStrideW()),
+            static_cast<float>(problem.GetDilationH()),
+            static_cast<float>(problem.GetDilationW()),
+            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
+            static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
+            static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
+            static_cast<float>(problem.GetGroupCount())};
 
         // normalize
         for(size_t i = 0; i < features.size(); ++i)
@@ -271,7 +270,7 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
 
     std::string est_name = ":memory:" + device;
     auto& db             = AnyRamDb::GetCached(est_name);
-    auto db_res          = db.FindRecord(problem.conv_problem);
+    auto db_res          = db.FindRecord(static_cast<const conv::ProblemDescription&>(problem));
     if(db_res)
     {
         MIOPEN_LOG_I2("Cached heuristic result found");
@@ -320,7 +319,7 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
         sol.push_back(sol_id.Value());
         any_sol.push_back(sol_id.Value());
     }
-    db.StoreRecord(problem.conv_problem, any_sol);
+    db.StoreRecord(static_cast<const conv::ProblemDescription&>(problem), any_sol);
     if(miopen::IsLogging(LoggingLevel::Info2))
     {
         std::stringstream ss;

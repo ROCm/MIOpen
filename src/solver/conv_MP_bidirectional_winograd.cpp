@@ -457,7 +457,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         // clang-format off
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
-            strideC,alpha,beta,transform_data_type, problem.conv_problem.GetConv().attribute.deterministic };
+            strideC,alpha,beta,transform_data_type, problem.GetConv().attribute.deterministic };
 // clang-format on
 #else
         (void)wino_xform_w;
@@ -729,7 +729,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
                               const ProblemDescription& transformed_problem) const
 {
     auto transformed_ctx = ConvolutionContext{static_cast<const ExecutionContext&>(ctx)};
-    transformed_problem.conv_problem.SetupFloats(transformed_ctx);
+    transformed_problem.SetupFloats(transformed_ctx);
 
     return transformed_ctx;
 }

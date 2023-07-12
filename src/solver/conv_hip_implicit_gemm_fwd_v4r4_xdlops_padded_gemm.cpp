@@ -1041,7 +1041,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -1063,7 +1063,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+       problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(problem))

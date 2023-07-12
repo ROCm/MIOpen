@@ -382,7 +382,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
         return false;
 #endif
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
 #if WORKAROUND_SWDEV_330460

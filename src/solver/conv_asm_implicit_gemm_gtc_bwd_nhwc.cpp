@@ -894,7 +894,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
 #if WORKAROUND_ISSUE_1979
@@ -1026,7 +1026,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
 
     const auto isGfx90aFp16altSupport =
-        (ctx.GetStream().GetDeviceName() == "gfx90a") && problem.conv_problem.IsFp16();
+        (ctx.GetStream().GetDeviceName() == "gfx90a") && problem.IsFp16();
 
     const auto is_nchw = problem.IsLayoutDefault();
 
@@ -1068,7 +1068,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_1, "igemm_bwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", fp16_alt:" << problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
+            msg << ", fp16_alt:" << problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
     }
 
     if(is_nchw)

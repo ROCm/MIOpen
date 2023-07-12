@@ -498,7 +498,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off

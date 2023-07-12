@@ -455,7 +455,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || StartsWith(name, "gfx94"))
         return false;
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     {
@@ -676,7 +676,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                                        strideC,alpha,beta,in_data_type, problem.conv_problem.GetConv().attribute.deterministic};
+                                        strideC,alpha,beta,in_data_type, problem.GetConv().attribute.deterministic};
 
                     CallGemmStridedBatched(handle,
                                         wino_gemm_desc,

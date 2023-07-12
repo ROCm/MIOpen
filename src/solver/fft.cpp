@@ -112,7 +112,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     std::ignore = ctx;
 
     // disable running any FFT based convolutions by checking this env variable
-    if(problem.direction.IsBackwardWrW() || !problem.conv_problem.IsFp32())
+    if(problem.direction.IsBackwardWrW() || !problem.IsFp32())
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -121,10 +121,10 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     }
 
     const auto is_fwd    = problem.direction.IsForward();
-    decltype(auto) conv  = problem.conv_problem.GetConv();
-    decltype(auto) xDesc = is_fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc = is_fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
-    decltype(auto) wDesc = problem.conv_problem.GetWeights();
+    decltype(auto) conv  = problem.GetConv();
+    decltype(auto) xDesc = is_fwd ? problem.GetIn() : problem.GetOut();
+    decltype(auto) yDesc = is_fwd ? problem.GetOut() : problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
 
     if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
        !miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
@@ -161,9 +161,9 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
 size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
     const auto fwd       = problem.direction.IsForward();
-    decltype(auto) xDesc = fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc = fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
-    decltype(auto) wDesc = problem.conv_problem.GetWeights();
+    decltype(auto) xDesc = fwd ? problem.GetIn() : problem.GetOut();
+    decltype(auto) yDesc = fwd ? problem.GetOut() : problem.GetIn();
+    decltype(auto) wDesc = problem.GetWeights();
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());

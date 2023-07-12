@@ -444,27 +444,27 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
 }
 
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
+ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& problem,
                                  const int log2_gemm_k_global_splits,
                                  const int nxb,
                                  const int gemm_k_per_block)
 {
-    int hi         = conv_problem.GetOutHeight1();
-    int wi         = conv_problem.GetOutWidth1();
-    int n          = conv_problem.GetInBatchSize();
-    int k          = conv_problem.GetInChannels1();
-    int c          = conv_problem.GetOutChannels1();
-    int ho         = conv_problem.GetInHeight1();
-    int wo         = conv_problem.GetInWidth1();
-    int stride_h   = conv_problem.GetOutHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetOutWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight1() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth1() > 1 ? conv_problem.GetDilationW() : 1;
-    int pad_h      = conv_problem.GetPadH();
-    int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight1();
-    int x          = conv_problem.GetWeightsWidth1();
-    int group      = conv_problem.GetGroupCount();
+    int hi         = problem.GetOutHeight1();
+    int wi         = problem.GetOutWidth1();
+    int n          = problem.GetInBatchSize();
+    int k          = problem.GetInChannels1();
+    int c          = problem.GetOutChannels1();
+    int ho         = problem.GetInHeight1();
+    int wo         = problem.GetInWidth1();
+    int stride_h   = problem.GetOutHeight1() > 1 ? problem.GetKernelStrideH() : 1;
+    int stride_w   = problem.GetOutWidth1() > 1 ? problem.GetKernelStrideW() : 1;
+    int dilation_h = problem.GetWeightsHeight1() > 1 ? problem.GetDilationH() : 1;
+    int dilation_w = problem.GetWeightsWidth1() > 1 ? problem.GetDilationW() : 1;
+    int pad_h      = problem.GetPadH();
+    int pad_w      = problem.GetPadW();
+    int y          = problem.GetWeightsHeight1();
+    int x          = problem.GetWeightsWidth1();
+    int group      = problem.GetGroupCount();
 
     int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
 
@@ -817,7 +817,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -920,13 +920,12 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    const auto& conv_problem = problem.conv_problem;
-    const auto& lowp_quant   = problem.conv_problem.GetConv().lowp_quant;
+    const auto& lowp_quant   = problem.GetConv().lowp_quant;
 
     auto opArgs = ComputeDynamicIGemmWrwKernelArgs(
-        conv_problem, log2_gemm_k_global_splits, nxb, gemm_k_per_block);
+        problem, log2_gemm_k_global_splits, nxb, gemm_k_per_block);
 
-    if(conv_problem.IsFp32())
+    if(problem.IsFp32())
     {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -957,11 +956,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
             };
         };
     }
-    else if(conv_problem.IsFp16() && log2_gemm_k_global_splits > 0)
+    else if(problem.IsFp16() && log2_gemm_k_global_splits > 0)
     {
         TensorDescriptor workspaceDesc(miopenFloat,
-                                       conv_problem.GetWeights().GetLengths(),
-                                       conv_problem.GetWeights().GetStrides());
+                                       problem.GetWeights().GetLengths(),
+                                       problem.GetWeights().GetStrides());
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =

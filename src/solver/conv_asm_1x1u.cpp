@@ -551,7 +551,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());

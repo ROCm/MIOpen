@@ -145,7 +145,7 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    problem.conv_problem.SetupFloats(ctx);
+    problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
     return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&

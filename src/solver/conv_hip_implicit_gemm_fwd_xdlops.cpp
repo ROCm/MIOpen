@@ -239,7 +239,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ProblemDescr
     this->index      = 0;
     this->total_size = 0;
     this->kernel_id  = "";
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenHalf: Init<ck::half_t>(problem); break;
@@ -274,7 +274,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ProblemDescription
     std::ignore = problem;
     return false;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
@@ -329,11 +329,11 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
-       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
+    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
+       problem.GetWeightsDataType() != problem.GetOutDataType() ||
+       problem.GetInDataType() != problem.GetOutDataType())
         return false;
     if(!problem.direction.IsForward())
         return false;
@@ -344,13 +344,13 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(arch == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
@@ -379,7 +379,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
+            switch(problem.GetInDataType())
             {
             case miopenInt8:
                 RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);

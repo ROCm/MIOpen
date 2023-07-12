@@ -43,12 +43,12 @@ namespace solver {
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
 static inline int
-GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& conv_problem,
+GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& problem,
                                          const int& GemmKPerBlock)
 {
-    int n            = conv_problem.GetInBatchSize();
-    int ho           = conv_problem.GetInHeight1();
-    int wo           = conv_problem.GetInWidth1();
+    int n            = problem.GetInBatchSize();
+    int ho           = problem.GetInHeight1();
+    int wo           = problem.GetInWidth1();
     int gemmk        = n * ho * wo;
     int gemmk_groups = 1;
     int n_per_group;
@@ -70,7 +70,7 @@ GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& conv_pr
 }
 
 static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
-                                               const conv::ProblemDescription& conv_problem,
+                                               const conv::ProblemDescription& problem,
                                                ConstData_t src,
                                                ConstData_t dst,
                                                Data_t wei,
@@ -81,21 +81,21 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 
     auto kernel = kernels[0];
     // clang-format off
-    int hi           = conv_problem.GetOutHeight1();
-    int wi           = conv_problem.GetOutWidth1();
-    int n            = conv_problem.GetOutChannels1();
-    int k            = conv_problem.GetInChannels1();
-    int c            = conv_problem.GetInBatchSize();
-    int ho           = conv_problem.GetWeightsHeight1();
-    int wo           = conv_problem.GetWeightsWidth1();
-    int dilation_h   = conv_problem.GetInHeight1() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int dilation_w   = conv_problem.GetInWidth1() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int stride_h     = conv_problem.GetWeightsHeight1() > 1? conv_problem.GetDilationH() : 1;
-    int stride_w     = conv_problem.GetWeightsWidth1() > 1? conv_problem.GetDilationW() : 1;
-    int pad_h        = conv_problem.GetPadH();
-    int pad_w        = conv_problem.GetPadW();
-    int y            = conv_problem.GetInHeight1();
-    int x            = conv_problem.GetInWidth1();
+    int hi           = problem.GetOutHeight1();
+    int wi           = problem.GetOutWidth1();
+    int n            = problem.GetOutChannels1();
+    int k            = problem.GetInChannels1();
+    int c            = problem.GetInBatchSize();
+    int ho           = problem.GetWeightsHeight1();
+    int wo           = problem.GetWeightsWidth1();
+    int dilation_h   = problem.GetInHeight1() > 1 ? problem.GetKernelStrideH() : 1;
+    int dilation_w   = problem.GetInWidth1() > 1 ? problem.GetKernelStrideW() : 1;
+    int stride_h     = problem.GetWeightsHeight1() > 1? problem.GetDilationH() : 1;
+    int stride_w     = problem.GetWeightsWidth1() > 1? problem.GetDilationW() : 1;
+    int pad_h        = problem.GetPadH();
+    int pad_w        = problem.GetPadW();
+    int y            = problem.GetInHeight1();
+    int x            = problem.GetInWidth1();
     int gemmk_groups = 0;
     int GemmKPerBlock;
 
@@ -104,7 +104,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     else
         GemmKPerBlock = 4;
 
-    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(conv_problem, GemmKPerBlock);
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
 
     MIOPEN_LOG_I2(kernel.GetName() << " with groups for reduction: " << (1 << gemmk_groups) << " GemmKPerBlock: " << GemmKPerBlock);
 
@@ -199,7 +199,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
             return false;
 
         int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
+            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
         GemmKGroups = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -231,7 +231,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
             return false;
 
         int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
+            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
         GemmKGroups = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -271,7 +271,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ExecutionContex
     else
         ele_size = 2;
 
-    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
 
     if(gemmk_groups == 0)
         extra_groups = 0;
@@ -292,7 +292,7 @@ static int GetGemmkGroups(const ProblemDescription& problem)
     if((k % 128 == 0) && (GemmN % 128 == 0))
         GemmKPerBlock = 16;
 
-    return GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
+    return GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem, GemmKPerBlock);
 }
 
 bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx,
@@ -409,9 +409,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         result.construction_params.push_back(kernel_reduction);
     }
 
-    const auto& conv_problem = problem.conv_problem;
-
-    result.invoker_factory = [conv_problem](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
@@ -424,7 +422,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
                            [&](const Kernel& k_wrw) { return handle.Run(k_wrw); });
             float elapsed = 0;
             elapsed       = CallImplicitGemmWrwDynamic(
-                handle, conv_problem, tensors.x, tensors.dy, tensors.dw, workSpace, ks);
+                handle, problem, tensors.x, tensors.dy, tensors.dw, workSpace, ks);
             if(handle.IsProfilingEnabled())
             {
                 handle.ResetKernelTime();
