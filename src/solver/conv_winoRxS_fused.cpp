@@ -266,14 +266,20 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     GetCompiledInParameters(
         context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
 
-    int flags = [&]() {
-        constexpr int F_BIAS                = 1 << 7;
-        constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
+    // todo: move into lambda when activation_mode will be fully supported
+    constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
 
-        int flag = F_USE_ACTIVATION_MODE;
+    int flags = [&]() {
+        constexpr int F_BIAS       = 1 << 7;
+        constexpr int F_LEAKY_RELU = 1 << 8;
+
+        // todo: use F_USE_ACTIVATION_MODE
+        int flag = 0;
 
         if(bias_idx != -1)
             flag |= F_BIAS;
+        if(activ_idx != -1) // unused in v30_3_1, has been kept for compatibility with v21
+            flag |= F_LEAKY_RELU;
 
         return flag;
     }();
@@ -283,7 +289,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     constexpr uint8_t SIGMOID     = 2;
     constexpr uint8_t SCALED_TANH = 3;
 
-    uint8_t activation_mode = [&op_map = desc.op_map, activ_idx]() {
+    uint8_t activation_mode_v30_3_1 = [&op_map = desc.op_map, activ_idx]() {
         if(activ_idx != -1)
         {
             const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*op_map[activ_idx]);
@@ -303,6 +309,16 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
             };
         }
         return IDENTITY;
+    }();
+
+    const miopenActivationMode_t activation_mode_compat = [&]() {
+        if(activ_idx != -1)
+        {
+            const auto& activ_op =
+                dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+            return activ_op.activMode;
+        }
+        return miopenActivationPASTHRU;
     }();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -327,17 +343,18 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
             }();
 
             float activ_alpha = [&]() {
-                if(activation_mode == SCALED_TANH || activation_mode == LEAKY_RELU)
+                if(activ_idx != -1)
                 {
                     const auto& activ_args = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
                         *invoke_ctx.op_args.params[activ_idx]);
-                    return static_cast<float>(activ_args.activAlpha);
+                    if(activation_mode_compat == miopenActivationLEAKYRELU)
+                        return static_cast<float>(activ_args.activAlpha);
                 }
                 return static_cast<float>(0.0);
             }();
 
             float activ_beta = [&]() {
-                if(activation_mode == SCALED_TANH)
+                if((flags & F_USE_ACTIVATION_MODE) && (activation_mode_v30_3_1 == SCALED_TANH))
                 {
                     const auto& activ_args = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
                         *invoke_ctx.op_args.params[activ_idx]);
@@ -369,7 +386,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                           out_W,
                           bias_ptr,
                           activ_alpha, // leaky relu \ scaled tanh alpha
-                          activ_beta,  // scaled tanh beta
+                          activ_beta,  // scaled tanh beta, always 0 for compatibility
                           zero_u64,    // d_offset", Other, zero_uint64),
                           zero_u64,    // f_offset", Other, zero_uint64),
                           zero_u64,    // o_offset", Other, zero_uint64),
@@ -389,8 +406,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                           zero,        // group_count", OpAttr, zero_int),
                           zero,        // d_stride_g", Other, zero_int),
                           zero,        // f_stride_g", Other, zero_int),
-                          zero,        // o_stride_g", Other, zero_int),
-                          activation_mode);
+                          zero         // o_stride_g", Other, zero_int),
+            );                         // todo: turn on activation_mode
         };
     };
     return result;

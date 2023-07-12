@@ -866,7 +866,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     // constexpr int F_TENSOR_OFFSETS  = 1 << 13;
     constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
     // constexpr int F_USE_EXTENDED_FLAGS_64  = 1 << 15;
-    int flags = F_NKC_STRIDES | F_GROUP_STRIDES | F_USE_ACTIVATION_MODE;
+    int flags = F_NKC_STRIDES | F_GROUP_STRIDES | (is_v21 ? 0 : F_USE_ACTIVATION_MODE);
 
     constexpr uint8_t IDENTITY = 0;
     // constexpr uint8_t LEAKY_RELU = 1;
@@ -977,49 +977,95 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                     << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
                     << " o_G_stride=" << o_strides.g);
             // clang-format on
-
-            k(N,
-              C,
-              H,
-              W,
-              K,
-              n_groups,
-              flags,
-              reserved,
-              data_tensors,
-              filter_tensors,
-              out_tensors,
-              reserved_ptr, // Unused return_addr.
-              R,
-              S,
-              pad_H,
-              pad_W,
-              out_H,
-              out_W,
-              reserved_ptr,    // Unused bias_addr.
-              reserved,        // Unused alpha.
-              reserved,        // Unused beta.
-              reserved_offset, // Unused d_offset.
-              reserved_offset, // Unused f_offset.
-              reserved_offset, // Unused o_offset.
-              reserved_offset, // Unused b_offset.
-              d_strides.nk,
-              d_strides.c,
-              d_strides.h,
-              d_strides.w,
-              f_strides.nk,
-              f_strides.c,
-              f_strides.h,
-              f_strides.w,
-              o_strides.nk,
-              o_strides.c,
-              o_strides.h,
-              o_strides.w,
-              group_cnt,
-              d_strides.g,
-              f_strides.g,
-              o_strides.g,
-              identity_activation);
+            if(is_v21)
+            {
+                k(N,
+                  C,
+                  H,
+                  W,
+                  K,
+                  n_groups,
+                  flags,
+                  reserved,
+                  data_tensors,
+                  filter_tensors,
+                  out_tensors,
+                  reserved_ptr, // Unused return_addr.
+                  R,
+                  S,
+                  pad_H,
+                  pad_W,
+                  out_H,
+                  out_W,
+                  reserved_ptr,    // Unused bias_addr.
+                  reserved,        // Unused relu_alpha.
+                  reserved,        // Unused reserved2.
+                  reserved_offset, // Unused d_offset.
+                  reserved_offset, // Unused f_offset.
+                  reserved_offset, // Unused o_offset.
+                  reserved_offset, // Unused b_offset.
+                  d_strides.nk,
+                  d_strides.c,
+                  d_strides.h,
+                  d_strides.w,
+                  f_strides.nk,
+                  f_strides.c,
+                  f_strides.h,
+                  f_strides.w,
+                  o_strides.nk,
+                  o_strides.c,
+                  o_strides.h,
+                  o_strides.w,
+                  group_cnt,
+                  d_strides.g,
+                  f_strides.g,
+                  o_strides.g);
+            }
+            else
+            {
+                k(N,
+                  C,
+                  H,
+                  W,
+                  K,
+                  n_groups,
+                  flags,
+                  reserved,
+                  data_tensors,
+                  filter_tensors,
+                  out_tensors,
+                  reserved_ptr, // Unused return_addr.
+                  R,
+                  S,
+                  pad_H,
+                  pad_W,
+                  out_H,
+                  out_W,
+                  reserved_ptr,    // Unused bias_addr.
+                  reserved,        // Unused alpha.
+                  reserved,        // Unused beta.
+                  reserved_offset, // Unused d_offset.
+                  reserved_offset, // Unused f_offset.
+                  reserved_offset, // Unused o_offset.
+                  reserved_offset, // Unused b_offset.
+                  d_strides.nk,
+                  d_strides.c,
+                  d_strides.h,
+                  d_strides.w,
+                  f_strides.nk,
+                  f_strides.c,
+                  f_strides.h,
+                  f_strides.w,
+                  o_strides.nk,
+                  o_strides.c,
+                  o_strides.h,
+                  o_strides.w,
+                  group_cnt,
+                  d_strides.g,
+                  f_strides.g,
+                  o_strides.g,
+                  identity_activation);
+            }
         };
     };
 
