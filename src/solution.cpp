@@ -30,7 +30,6 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/any_solver.hpp>
 #include <miopen/kernel.hpp>
 
 #include <nlohmann/json.hpp>
