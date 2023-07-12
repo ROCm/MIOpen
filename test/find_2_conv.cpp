@@ -363,4 +363,8 @@ private:
 };
 } // namespace miopen
 
-int main(int argc, const char* argv[]) { test_drive<miopen::Find2Test>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    setenv("MIOPEN_LOG_LEVEL", "6", 1);
+    test_drive<miopen::Find2Test>(argc, argv);
+}
