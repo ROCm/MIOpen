@@ -106,6 +106,8 @@ struct Solution : miopenSolution
              Data_t workspace,
              size_t workspace_size);
 
+    void LogDriverCommand() const;
+
     friend void to_json(nlohmann::json& json, const Solution& solution);
     friend void from_json(const nlohmann::json& json, Solution& solution);
 
@@ -162,6 +164,7 @@ private:
                                             size_t workspace_size);
 
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
+    void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
 };
 
 } // namespace miopen
