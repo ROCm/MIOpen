@@ -151,8 +151,8 @@ __dx10_clamp = 0
 .if (.amdgcn.gfx_generation_number == 11)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
+    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
@@ -167,8 +167,8 @@ __dx10_clamp = 0
 .elseif (.amdgcn.gfx_generation_number == 10)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
+    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
@@ -185,8 +185,8 @@ __dx10_clamp = 0
 .elseif (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
+    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
@@ -203,8 +203,8 @@ __dx10_clamp = 0
 .elseif (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4)
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
+    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
@@ -220,8 +220,8 @@ __dx10_clamp = 0
 .else
 .amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
-    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[2:3]
-    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr
+    .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
+    .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
     .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y

@@ -267,13 +267,13 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
         context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
 
     int flags = [&]() {
-        constexpr int L_F_BIAS                = 1 << 7;
-        constexpr int L_F_USE_ACTIVATION_MODE = 1 << 14;
+        constexpr int F_BIAS                = 1 << 7;
+        constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
 
-        int flag = L_F_USE_ACTIVATION_MODE;
+        int flag = F_USE_ACTIVATION_MODE;
 
         if(bias_idx != -1)
-            flag |= L_F_BIAS;
+            flag |= F_BIAS;
 
         return flag;
     }();

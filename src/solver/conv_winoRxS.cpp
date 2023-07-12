@@ -856,17 +856,17 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     // These are not used yet. Nevertheless let's keep as a shader documentation.
     // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
     // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
-    // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
-    // constexpr int L_F_BIAS  = 1 << 7;
-    // constexpr int L_F_LEAKY_RELU  = 1 << 8;
-    constexpr int L_F_NKC_STRIDES   = 1 << 9;
-    constexpr int L_F_GROUP_STRIDES = 1 << 10;
-    // constexpr int L_F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
-    // constexpr int L_F_FILTER_TRAVERSE_DUAL  = 1 << 12;
-    // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
-    constexpr int L_F_USE_ACTIVATION_MODE = 1 << 14;
-    // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
-    int flags = L_F_NKC_STRIDES | L_F_GROUP_STRIDES | L_F_USE_ACTIVATION_MODE;
+    // constexpr int F_ADDR_INDIRECT  = 1 << 6;
+    // constexpr int F_BIAS  = 1 << 7;
+    // constexpr int F_LEAKY_RELU  = 1 << 8;
+    constexpr int F_NKC_STRIDES   = 1 << 9;
+    constexpr int F_GROUP_STRIDES = 1 << 10;
+    // constexpr int F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
+    // constexpr int F_FILTER_TRAVERSE_DUAL  = 1 << 12;
+    // constexpr int F_TENSOR_OFFSETS  = 1 << 13;
+    constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
+    // constexpr int F_USE_EXTENDED_FLAGS_64  = 1 << 15;
+    int flags = F_NKC_STRIDES | F_GROUP_STRIDES | F_USE_ACTIVATION_MODE;
 
     constexpr uint8_t IDENTITY = 0;
     // constexpr uint8_t LEAKY_RELU = 1;
