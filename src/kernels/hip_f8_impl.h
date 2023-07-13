@@ -33,7 +33,9 @@ using half         = half_float::half;
 #endif
 
 template <int wm, int we, typename T>
-MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x, bool stoch = false, uint32_t rng = 0)
+MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8_no_range_reduce(T _x,
+                                                          bool stoch   = false,
+                                                          uint32_t rng = 0)
 {
     static_assert(we == 5, "we==5");
     static_assert(sizeof(T) == 2, "no_range_reduce only works for float16");
