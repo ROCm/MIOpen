@@ -38,6 +38,8 @@
 #include <cstdint>
 #include <string>
 
+#define FIN_OLD_PROBLEM_DESCRIPTION_COMPAT 1
+
 namespace miopen {
 
 // Tensor Helper APIs
@@ -111,6 +113,16 @@ struct ProblemDescription : conv::ProblemDescription
         obj.Serialize(os);
         return os;
     }
+#endif
+
+#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
+    struct
+    {
+        void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
+    private:
+        const conv::ProblemDescription* p = nullptr;
+        friend struct ProblemDescription;
+    } conv_problem;
 #endif
 };
 
