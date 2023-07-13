@@ -292,8 +292,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        return static_cast<size_t>(GetInChannels_()) * GetOutChannels_() * GetWeightsDepth_() * GetWeightsHeight_() *
-               GetWeightsWidth_() * GetWeightsElementSize();
+        return static_cast<size_t>(GetInChannels_()) * GetOutChannels_() * GetWeightsDepth_() *
+               GetWeightsHeight_() * GetWeightsWidth_() * GetWeightsElementSize();
     }
 
     const TensorDescriptor& GetIn() const { return in; }
