@@ -119,6 +119,7 @@ struct ProblemDescription : conv::ProblemDescription
     struct
     {
         void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
+
     private:
         const conv::ProblemDescription* p = nullptr;
         friend struct ProblemDescription;
