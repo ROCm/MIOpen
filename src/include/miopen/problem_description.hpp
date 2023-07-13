@@ -67,25 +67,24 @@ struct ConvolutionDescriptor;
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription : conv::ProblemDescription
 {
-    int GetSpatialDims2() const { return GetSpatialDims1(); }
-    int GetInChannels2() const { return GetInChannels1(); }
-    int GetInHeight2() const { return GetInHeight1(); }
-    int GetInWidth2() const { return GetInWidth1(); }
-    int GetInDepth2() const { return GetInDepth1(); }
-    int GetWeightsHeight2() const { return GetWeightsHeight1(); }
-    int GetWeightsWidth2() const { return GetWeightsWidth1(); }
-    int GetWeightsDepth2() const { return GetWeightsDepth1(); }
-    int GetOutChannels2() const { return GetOutChannels1(); }
-    int GetOutHeight2() const { return GetOutHeight1(); }
-    int GetOutWidth2() const { return GetOutWidth1(); }
-    int GetOutDepth2() const { return GetOutDepth1(); }
-    int GetBatchSize2() const { return GetBatchSize1(); }
-    int GetInStride2() const { return GetInStrideH1(); }
-    int GetOutStride2() const { return GetOutStrideH1(); }
-    int GetInChannelStride2() const { return GetInChannelStride1(); }
-    int GetInBatchStride2() const { return GetInBatchStride1(); }
-    int GetOutChannelStride2() const { return GetOutChannelStride1(); }
-    int GetOutBatchStride2() const { return GetOutBatchStride1(); }
+    int GetInChannels2() const { return GetInChannels_(); }
+    int GetInHeight2() const { return GetInHeight_(); }
+    int GetInWidth2() const { return GetInWidth_(); }
+    int GetInDepth2() const { return GetInDepth_(); }
+    int GetWeightsHeight2() const { return GetWeightsHeight_(); }
+    int GetWeightsWidth2() const { return GetWeightsWidth_(); }
+    int GetWeightsDepth2() const { return GetWeightsDepth_(); }
+    int GetOutChannels2() const { return GetOutChannels_(); }
+    int GetOutHeight2() const { return GetOutHeight_(); }
+    int GetOutWidth2() const { return GetOutWidth_(); }
+    int GetOutDepth2() const { return GetOutDepth_(); }
+    int GetBatchSize2() const { return GetBatchSize_(); }
+    int GetInStride2() const { return GetInStrideH_(); }
+    int GetOutStride2() const { return GetOutStrideH_(); }
+    int GetInChannelStride2() const { return GetInChannelStride_(); }
+    int GetInBatchStride2() const { return GetInBatchStride_(); }
+    int GetOutChannelStride2() const { return GetOutChannelStride_(); }
+    int GetOutBatchStride2() const { return GetOutBatchStride_(); }
 
     struct Direction
     {
@@ -106,14 +105,6 @@ struct ProblemDescription : conv::ProblemDescription
     ProblemDescription() = default;
 
     ProblemDescription(conv::ProblemDescription desc);
-
-#if 0
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-#endif
 
 #if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
     struct
@@ -178,25 +169,24 @@ struct ProblemDescriptionCompatTemporary
     int group_counts                   = 0;
 
     int GetSpatialDims() const { return spatial_dims; }
-    int GetSpatialDims1() const { return GetSpatialDims(); }
     int GetInChannels() const { return n_inputs; }
-    int GetInChannels1() const { return GetInChannels(); }
+    int GetInChannels_() const { return GetInChannels(); }
     int GetInHeight() const { return in_height; }
-    int GetInHeight1() const { return GetInHeight(); }
+    int GetInHeight_() const { return GetInHeight(); }
     int GetInWidth() const { return in_width; }
-    int GetInWidth1() const { return GetInWidth(); }
-    int GetInDepth1() const { return in_depth; }
+    int GetInWidth_() const { return GetInWidth(); }
+    int GetInDepth_() const { return in_depth; }
     // int GetVectorLength() const { return vectorLength; }
-    int GetWeightsHeight1() const { return kernel_size_h; }
-    int GetWeightsWidth1() const { return kernel_size_w; }
-    int GetWeightsDepth1() const { return kernel_size_d; }
+    int GetWeightsHeight_() const { return kernel_size_h; }
+    int GetWeightsWidth_() const { return kernel_size_w; }
+    int GetWeightsDepth_() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
-    int GetOutChannels1() const { return GetOutChannels(); }
+    int GetOutChannels_() const { return GetOutChannels(); }
     int GetOutHeight() const { return out_height; }
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    int GetBatchSize1() const { return GetBatchSize(); }
+    int GetBatchSize_() const { return GetBatchSize(); }
     int GetPadH() const { return pad_h; }
     int GetPadW() const { return pad_w; }
     int GetPadD() const { return pad_d; }

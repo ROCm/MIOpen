@@ -61,7 +61,7 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 }
 
 template <class TElement>
-constexpr auto GetDHW(int spatial_dims, const std::vector<TElement>& data)
+constexpr auto GetDHW(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     if(spatial_dims == 2)
         return std::make_tuple(0, data[0], data[1]);
@@ -69,19 +69,19 @@ constexpr auto GetDHW(int spatial_dims, const std::vector<TElement>& data)
 }
 
 template <class TElement>
-constexpr TElement GetD3(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetD3(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<0>(GetDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetH3(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetH3(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<1>(GetDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetW3(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetW3(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<2>(GetDHW(spatial_dims, data));
 }
@@ -116,31 +116,31 @@ constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
 }
 
 template <class TElement>
-constexpr TElement GetN5(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<0>(GetNCDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetC5(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetC5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<1>(GetNCDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetD5(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetD5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<2>(GetNCDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetH5(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetH5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<3>(GetNCDHW(spatial_dims, data));
 }
 
 template <class TElement>
-constexpr TElement GetW5(int spatial_dims, const std::vector<TElement>& data)
+constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<4>(GetNCDHW(spatial_dims, data));
 }
@@ -175,36 +175,36 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     // Conv descriptor getters
-    std::size_t GetSpatialDims1() const { return conv.GetSpatialDimension(); }
-    int GetPadD() const { return GetD3(GetSpatialDims1(), conv.GetConvPads()); }
-    int GetPadH() const { return GetH3(GetSpatialDims1(), conv.GetConvPads()); }
-    int GetPadW() const { return GetW3(GetSpatialDims1(), conv.GetConvPads()); }
-    int GetKernelStrideD() const { return GetD3(GetSpatialDims1(), conv.GetConvStrides()); }
-    int GetKernelStrideH() const { return GetH3(GetSpatialDims1(), conv.GetConvStrides()); }
-    int GetKernelStrideW() const { return GetW3(GetSpatialDims1(), conv.GetConvStrides()); }
-    int GetDilationD() const { return GetD3(GetSpatialDims1(), conv.GetConvDilations()); }
-    int GetDilationH() const { return GetH3(GetSpatialDims1(), conv.GetConvDilations()); }
-    int GetDilationW() const { return GetW3(GetSpatialDims1(), conv.GetConvDilations()); }
+    unsigned GetSpatialDims() const { return conv.GetSpatialDimension(); }
+    int GetPadD() const { return GetD3(GetSpatialDims(), conv.GetConvPads()); }
+    int GetPadH() const { return GetH3(GetSpatialDims(), conv.GetConvPads()); }
+    int GetPadW() const { return GetW3(GetSpatialDims(), conv.GetConvPads()); }
+    int GetKernelStrideD() const { return GetD3(GetSpatialDims(), conv.GetConvStrides()); }
+    int GetKernelStrideH() const { return GetH3(GetSpatialDims(), conv.GetConvStrides()); }
+    int GetKernelStrideW() const { return GetW3(GetSpatialDims(), conv.GetConvStrides()); }
+    int GetDilationD() const { return GetD3(GetSpatialDims(), conv.GetConvDilations()); }
+    int GetDilationH() const { return GetH3(GetSpatialDims(), conv.GetConvDilations()); }
+    int GetDilationW() const { return GetW3(GetSpatialDims(), conv.GetConvDilations()); }
     int GetGroupCount() const { return conv.GetGroupCount(); }
     int GetVectorLength() const { return in.GetVectorLength(); }
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
-    std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims1(), in.GetLengths()); }
-    std::size_t GetBatchSize1() const { return GetInBatchSize(); } // alias of GetInBatchSize()
-    std::size_t GetInChannels1() const { return GetC5(GetSpatialDims1(), in.GetLengths()); }
-    std::size_t GetInDepth1() const { return GetD5(GetSpatialDims1(), in.GetLengths()); }
-    std::size_t GetInHeight1() const { return GetH5(GetSpatialDims1(), in.GetLengths()); }
-    std::size_t GetInWidth1() const { return GetW5(GetSpatialDims1(), in.GetLengths()); }
-    std::size_t GetInBatchStride1() const { return GetN5(GetSpatialDims1(), in.GetStrides()); }
-    std::size_t GetInChannelStride1() const { return GetC5(GetSpatialDims1(), in.GetStrides()); }
-    std::size_t GetInStrideD() const { return GetD5(GetSpatialDims1(), in.GetStrides()); }
-    std::size_t GetInStrideH1() const { return GetH5(GetSpatialDims1(), in.GetStrides()); }
-    std::size_t GetInStrideW() const { return GetW5(GetSpatialDims1(), in.GetStrides()); }
+    std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
+    unsigned GetBatchSize_() const { return GetInBatchSize(); } // alias of GetInBatchSize()
+    unsigned GetInChannels_() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
+    unsigned GetInDepth_() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
+    unsigned GetInHeight_() const { return GetH5(GetSpatialDims(), in.GetLengths()); }
+    unsigned GetInWidth_() const { return GetW5(GetSpatialDims(), in.GetLengths()); }
+    unsigned GetInBatchStride_() const { return GetN5(GetSpatialDims(), in.GetStrides()); }
+    unsigned GetInChannelStride_() const { return GetC5(GetSpatialDims(), in.GetStrides()); }
+    std::size_t GetInStrideD() const { return GetD5(GetSpatialDims(), in.GetStrides()); }
+    unsigned GetInStrideH_() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
+    std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
     std::string GetInLayout() const { return in_layout; }
     std::string ComputeInLayout() const
     {
-        if(GetSpatialDims1() == 2)
+        if(GetSpatialDims() == 2)
         {
             return in.GetLayout(in.GetLayout_str());
         }
@@ -217,26 +217,26 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return GetInBatchSize() * GetInChannels1() * GetInDepth1() * GetInHeight1() *
-               GetInWidth1() * GetInElementSize();
+        return GetInBatchSize() * GetInChannels_() * GetInDepth_() * GetInHeight_() *
+               GetInWidth_() * GetInElementSize();
     }
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
-    std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims1(), out.GetLengths()); }
-    std::size_t GetOutChannels1() const { return GetC5(GetSpatialDims1(), out.GetLengths()); }
-    std::size_t GetOutDepth1() const { return GetD5(GetSpatialDims1(), out.GetLengths()); }
-    std::size_t GetOutHeight1() const { return GetH5(GetSpatialDims1(), out.GetLengths()); }
-    std::size_t GetOutWidth1() const { return GetW5(GetSpatialDims1(), out.GetLengths()); }
-    std::size_t GetOutBatchStride1() const { return GetN5(GetSpatialDims1(), out.GetStrides()); }
-    std::size_t GetOutChannelStride1() const { return GetC5(GetSpatialDims1(), out.GetStrides()); }
-    std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims1(), out.GetStrides()); }
-    std::size_t GetOutStrideH1() const { return GetH5(GetSpatialDims1(), out.GetStrides()); }
-    std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims1(), out.GetStrides()); }
+    std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
+    unsigned GetOutChannels_() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
+    unsigned GetOutDepth_() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
+    unsigned GetOutHeight_() const { return GetH5(GetSpatialDims(), out.GetLengths()); }
+    unsigned GetOutWidth_() const { return GetW5(GetSpatialDims(), out.GetLengths()); }
+    unsigned GetOutBatchStride_() const { return GetN5(GetSpatialDims(), out.GetStrides()); }
+    unsigned GetOutChannelStride_() const { return GetC5(GetSpatialDims(), out.GetStrides()); }
+    std::size_t GetOutStrideD() const { return GetD5(GetSpatialDims(), out.GetStrides()); }
+    unsigned GetOutStrideH_() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
+    std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
     std::string GetOutLayout() const { return out_layout; }
     std::string ComputeOutLayout() const
     {
-        if(GetSpatialDims1() == 2)
+        if(GetSpatialDims() == 2)
         {
             return out.GetLayout(out.GetLayout_str());
         }
@@ -249,37 +249,37 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        return GetOutBatchSize() * GetOutChannels1() * GetOutDepth1() * GetOutHeight1() *
-               GetOutWidth1() * GetOutElementSize();
+        return GetOutBatchSize() * GetOutChannels_() * GetOutDepth_() * GetOutHeight_() *
+               GetOutWidth_() * GetOutElementSize();
     }
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
-    std::size_t GetWeightsDepth1() const { return GetD5(GetSpatialDims1(), weights.GetLengths()); }
-    std::size_t GetWeightsHeight1() const
+    unsigned GetWeightsDepth_() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
+    unsigned GetWeightsHeight_() const
     {
         if(weights.GetLayout_str() == "CHWNc")
             return GetHofCHWN(weights.GetLengths());
         else
-            return GetH5(GetSpatialDims1(), weights.GetLengths());
+            return GetH5(GetSpatialDims(), weights.GetLengths());
     }
-    std::size_t GetWeightsWidth1() const
+    unsigned GetWeightsWidth_() const
     {
         if(weights.GetLayout_str() == "CHWNc")
             return GetWofCHWN(weights.GetLengths());
         else
-            return GetW5(GetSpatialDims1(), weights.GetLengths());
+            return GetW5(GetSpatialDims(), weights.GetLengths());
     }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims1(),
+    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(),
     // weights.GetStrides()); }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims1(),
+    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(),
     // weights.GetStrides()); }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims1(),
+    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(),
     // weights.GetStrides()); }
     std::string GetWeightsLayout() const { return weights_layout; }
     std::string ComputeWeightsLayout() const
     {
-        if(GetSpatialDims1() == 2)
+        if(GetSpatialDims() == 2)
         {
             return weights.GetLayout(weights.GetLayout_str());
         }
@@ -292,8 +292,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        return GetInChannels1() * GetOutChannels1() * GetWeightsDepth1() * GetWeightsHeight1() *
-               GetWeightsWidth1() * GetWeightsElementSize();
+        return static_cast<size_t>(GetInChannels_()) * GetOutChannels_() * GetWeightsDepth_() * GetWeightsHeight_() *
+               GetWeightsWidth_() * GetWeightsElementSize();
     }
 
     const TensorDescriptor& GetIn() const { return in; }
@@ -308,23 +308,23 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetBiasSize() const
     {
-        return (GetBias() != 0) ? (GetOutChannels1() * GetOutElementSize()) : 0;
+        return (GetBias() != 0) ? (GetOutChannels_() * GetOutElementSize()) : 0;
     }
 
-    int GetBackwardPadW() const { return static_cast<int>(GetWeightsWidth1()) - GetPadW() - 1; }
-    int GetBackwardPadH() const { return static_cast<int>(GetWeightsHeight1()) - GetPadH() - 1; }
+    int GetBackwardPadW() const { return static_cast<int>(GetWeightsWidth_()) - GetPadW() - 1; }
+    int GetBackwardPadH() const { return static_cast<int>(GetWeightsHeight_()) - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {
-        return conv.paddingMode == miopenPaddingSame && (GetWeightsHeight1() % 2) == 0;
+        return conv.paddingMode == miopenPaddingSame && (GetWeightsHeight_() % 2) == 0;
     }
     bool IsAsymmetricPadW() const
     {
-        return conv.paddingMode == miopenPaddingSame && (GetWeightsWidth1() % 2) == 0;
+        return conv.paddingMode == miopenPaddingSame && (GetWeightsWidth_() % 2) == 0;
     }
 
-    bool Is2d() const { return GetSpatialDims1() == 2; }
-    bool Is3d() const { return GetSpatialDims1() == 3; }
+    bool Is2d() const { return GetSpatialDims() == 2; }
+    bool Is3d() const { return GetSpatialDims() == 3; }
 
     bool IsFp32() const
     {
@@ -394,16 +394,16 @@ struct ProblemDescription : ProblemDescriptionBase
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
         // The column names match the driver command line argument names
-        f(self.GetSpatialDims1(), "spatial_dim");
-        f(self.GetInChannels1(), "in_channels");
-        f(self.GetInHeight1(), "in_h");
-        f(self.GetInWidth1(), "in_w");
-        f(self.GetInDepth1(), "in_d");
-        f(self.GetWeightsHeight1(), "fil_h");
-        f(self.GetWeightsWidth1(), "fil_w");
-        f(self.GetWeightsDepth1(), "fil_d");
-        f(self.GetOutChannels1(), "out_channels");
-        f(self.GetBatchSize1(), "batchsize");
+        f(self.GetSpatialDims(), "spatial_dim");
+        f(self.GetInChannels_(), "in_channels");
+        f(self.GetInHeight_(), "in_h");
+        f(self.GetInWidth_(), "in_w");
+        f(self.GetInDepth_(), "in_d");
+        f(self.GetWeightsHeight_(), "fil_h");
+        f(self.GetWeightsWidth_(), "fil_w");
+        f(self.GetWeightsDepth_(), "fil_d");
+        f(self.GetOutChannels_(), "out_channels");
+        f(self.GetBatchSize_(), "batchsize");
         f(self.GetPadH(), "pad_h");
         f(self.GetPadW(), "pad_w");
         f(self.GetPadD(), "pad_d");

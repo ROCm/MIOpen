@@ -874,21 +874,21 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& problem,
                                      const int gemm_k_per_wg,
                                      const int splits_4G)
 {
-    int hi         = problem.GetOutHeight1();
-    int wi         = problem.GetOutWidth1();
+    int hi         = problem.GetOutHeight_();
+    int wi         = problem.GetOutWidth_();
     int n          = problem.GetInBatchSize();
-    int k          = problem.GetInChannels1();
-    int c          = problem.GetOutChannels1();
-    int ho         = problem.GetInHeight1();
-    int wo         = problem.GetInWidth1();
-    int stride_h   = problem.GetOutHeight1() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w   = problem.GetOutWidth1() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h = problem.GetWeightsHeight1() > 1 ? problem.GetDilationH() : 1;
-    int dilation_w = problem.GetWeightsWidth1() > 1 ? problem.GetDilationW() : 1;
+    int k          = problem.GetInChannels_();
+    int c          = problem.GetOutChannels_();
+    int ho         = problem.GetInHeight_();
+    int wo         = problem.GetInWidth_();
+    int stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    int stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    int dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    int dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     int pad_h      = problem.GetPadH();
     int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight1();
-    int x          = problem.GetWeightsWidth1();
+    int y          = problem.GetWeightsHeight_();
+    int x          = problem.GetWeightsWidth_();
     int group      = problem.GetGroupCount();
 
     std::vector<OpKernelArg> opArgs;

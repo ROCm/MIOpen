@@ -48,7 +48,7 @@ namespace conv {
 namespace {
 
 std::function<void(std::ostream&)>
-PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
+PrintDHW(char sep, unsigned spatial_dims, int depth, int height, int width)
 {
     return [=](std::ostream& stream) {
         if(spatial_dims > 2)
@@ -107,13 +107,13 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
 {
     std::ostringstream ss;
 
-    ss << GetInChannels1();
-    ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetInDepth1(), GetInHeight1(), GetInWidth1());
+    ss << GetInChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
     ss << 'x'
        << PrintDHW(
-              'x', GetSpatialDims1(), GetWeightsDepth1(), GetWeightsHeight1(), GetWeightsWidth1());
-    ss << 'x' << GetOutChannels1();
-    ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetOutDepth1(), GetOutHeight1(), GetOutWidth1());
+              'x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    ss << 'x' << GetOutChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
     ss << 'x' << GetInBatchSize();
     if((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") ||
        (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
@@ -127,11 +127,11 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
         ss << 'x' << GetOutLayout();
     }
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
-    ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetPadD(), GetPadH(), GetPadW());
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
        << PrintDHW(
-              'x', GetSpatialDims1(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
-    ss << 'x' << PrintDHW('x', GetSpatialDims1(), GetDilationD(), GetDilationH(), GetDilationW());
+              'x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
     ss << 'x' << GetDirectionStr();
 
@@ -146,15 +146,15 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     // Problem description with non-default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
-    stream << GetInChannels1();
-    stream << sep << PrintDHW(sep, GetSpatialDims1(), GetInDepth1(), GetInHeight1(), GetInWidth1());
-    stream << sep << PrintDHW('x', GetSpatialDims1(), GetWeightsDepth1(), GetWeightsHeight1(), GetWeightsWidth1());
-    stream << sep << GetOutChannels1();
-    stream << sep << PrintDHW(sep, GetSpatialDims1(), GetOutDepth1(), GetOutHeight1(), GetOutWidth1());
+    stream << GetInChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    stream << sep << GetOutChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
     stream << sep << GetInBatchSize();
-    stream << sep << PrintDHW('x', GetSpatialDims1(), GetPadD(), GetPadH(), GetPadW());
-    stream << sep << PrintDHW('x', GetSpatialDims1(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
-    stream << sep << PrintDHW('x', GetSpatialDims1(), GetDilationD(), GetDilationH(), GetDilationW());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     stream << sep << GetBias();
     if ((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW")
         || (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
@@ -185,7 +185,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
 
 bool ProblemDescription::IsLayoutDefault() const
 {
-    if(GetSpatialDims1() == 2)
+    if(GetSpatialDims() == 2)
     {
         return (in_layout == "NCHW") && (out_layout == "NCHW") && (weights_layout == "NCHW");
     }
@@ -197,7 +197,7 @@ bool ProblemDescription::IsLayoutDefault() const
 
 bool ProblemDescription::IsLayoutNHWC() const
 {
-    if(GetSpatialDims1() == 2)
+    if(GetSpatialDims() == 2)
     {
         return (in_layout == "NHWC") && (out_layout == "NHWC") && (weights_layout == "NHWC");
     }
@@ -209,7 +209,7 @@ bool ProblemDescription::IsLayoutNHWC() const
 
 bool ProblemDescription::IsLayoutNCHWc() const
 {
-    return GetSpatialDims1() == 2 && (IsNCHWc_NCHWc() || IsNCHWc_CHWNc());
+    return GetSpatialDims() == 2 && (IsNCHWc_NCHWc() || IsNCHWc_CHWNc());
 }
 
 bool ProblemDescription::IsNCHWc_NCHWc() const

@@ -46,8 +46,8 @@ static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDe
                                                            const int& GemmKPerBlock)
 {
     int n            = problem.GetInBatchSize();
-    int ho           = problem.GetInHeight1();
-    int wo           = problem.GetInWidth1();
+    int ho           = problem.GetInHeight_();
+    int wo           = problem.GetInWidth_();
     int gemmk        = n * ho * wo;
     int gemmk_groups = 1;
     int n_per_group;
@@ -80,21 +80,21 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 
     auto kernel = kernels[0];
     // clang-format off
-    int hi           = problem.GetOutHeight1();
-    int wi           = problem.GetOutWidth1();
-    int n            = problem.GetOutChannels1();
-    int k            = problem.GetInChannels1();
+    int hi           = problem.GetOutHeight_();
+    int wi           = problem.GetOutWidth_();
+    int n            = problem.GetOutChannels_();
+    int k            = problem.GetInChannels_();
     int c            = problem.GetInBatchSize();
-    int ho           = problem.GetWeightsHeight1();
-    int wo           = problem.GetWeightsWidth1();
-    int dilation_h   = problem.GetInHeight1() > 1 ? problem.GetKernelStrideH() : 1;
-    int dilation_w   = problem.GetInWidth1() > 1 ? problem.GetKernelStrideW() : 1;
-    int stride_h     = problem.GetWeightsHeight1() > 1? problem.GetDilationH() : 1;
-    int stride_w     = problem.GetWeightsWidth1() > 1? problem.GetDilationW() : 1;
+    int ho           = problem.GetWeightsHeight_();
+    int wo           = problem.GetWeightsWidth_();
+    int dilation_h   = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    int dilation_w   = problem.GetInWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    int stride_h     = problem.GetWeightsHeight_() > 1? problem.GetDilationH() : 1;
+    int stride_w     = problem.GetWeightsWidth_() > 1? problem.GetDilationW() : 1;
     int pad_h        = problem.GetPadH();
     int pad_w        = problem.GetPadW();
-    int y            = problem.GetInHeight1();
-    int x            = problem.GetInWidth1();
+    int y            = problem.GetInHeight_();
+    int x            = problem.GetInWidth_();
     int gemmk_groups = 0;
     int GemmKPerBlock;
 
