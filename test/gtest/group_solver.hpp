@@ -121,21 +121,13 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 
 template <typename T = float>
 struct ConvFwdSolverTest
-<<<<<<< HEAD
-    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
-=======
     : public ::testing::TestWithParam<
           std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
->>>>>>> develop
 {
 protected:
     void SetUp() override
     {
-<<<<<<< HEAD
-        test_skipped                = false;
-=======
         test_skipped                               = false;
->>>>>>> develop
         std::tie(algo, conv_config, tensor_layout) = GetParam();
 
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
@@ -172,13 +164,8 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-<<<<<<< HEAD
-        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
-=======
         ref_out     = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
->>>>>>> develop
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
