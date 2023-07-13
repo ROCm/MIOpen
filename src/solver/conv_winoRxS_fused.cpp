@@ -354,7 +354,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
             }();
 
             float activ_beta = [&]() {
-                if((flags & F_USE_ACTIVATION_MODE != 0) && (activation_mode_v30_3_1 == SCALED_TANH))
+                if(((flags & F_USE_ACTIVATION_MODE) != 0) &&
+                   (activation_mode_v30_3_1 == SCALED_TANH))
                 {
                     const auto& activ_args = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
                         *invoke_ctx.op_args.params[activ_idx]);
