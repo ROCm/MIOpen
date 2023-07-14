@@ -77,8 +77,8 @@ struct not_finite_fn
     template <class T>
     bool operator()(T x) const
     {
-		// WIN32: temporary workaround - there's no implementation of
-		//        std::isfinite() for other types then 'float' and 'double'.
+		// WIN32: static_cast<double>(x) - there's no implementation of
+		//        std::isfinite() for types other than 'float' and 'double'.
         return not std::isfinite(static_cast<double>(x));
     }
 };

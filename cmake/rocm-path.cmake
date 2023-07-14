@@ -2,7 +2,7 @@
 # 
 # MIT License
 # 
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2019 Advanced Micro Devices, Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,6 @@
 # 
 ################################################################################
 
-set(ADD_KERNELS_SOURCE include_inliner.cpp addkernels.cpp)
+# Find the compiler path when building rocBLAS
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm)
 
-add_executable(addkernels EXCLUDE_FROM_ALL ${ADD_KERNELS_SOURCE})
-
-if(CLANG_TIDY_EXE)
-    clang_tidy_check(addkernels)
-endif()

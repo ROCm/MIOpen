@@ -26,8 +26,9 @@
 #include "test.hpp"
 #include <miopen/sequences.hpp>
 
-namespace miopen::seq::tests {
-
+namespace miopen {
+namespace seq {
+namespace tests {
 struct SimpleListTest
 {
     void Run() const
@@ -247,7 +248,9 @@ private:
     }
 };
 
-} // namespace miopen::seq::tests
+} // namespace tests
+} // namespace seq
+} // namespace miopen
 
 int main()
 {

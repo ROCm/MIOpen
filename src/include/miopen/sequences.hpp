@@ -37,7 +37,8 @@
 #include <tuple>
 #include <vector>
 
-namespace miopen::seq {
+namespace miopen {
+namespace seq {
 
 /*
 Sequence classes describe sets of unique oredered values.
@@ -194,18 +195,9 @@ struct Sequence
 
     Sequence() { assert(ValidateValues() && "Values must be unique"); }
 
-    constexpr const_iterator begin() const
-    {
-        return data.begin();
-    }
-    constexpr const_iterator end() const
-    {
-        return data.end();
-    }
-    constexpr const_iterator find(const_reference value) const
-    {
-        return std::next(data.begin(), find_(value));
-    }
+    constexpr const_iterator begin() const { return data.begin(); }
+    constexpr const_iterator end() const { return data.end(); }
+    constexpr const_iterator find(const_reference value) const { return data.data() + find_(value); }
 
 private:
     static constexpr std::array<int, sizeof...(values)> data = {{values...}};
@@ -823,6 +815,7 @@ auto MakeRuleSet(TTuples... rules)
         MakeRule(detail::MakeMemberPtrFromTuple(rules), std::get<0>(rules))...);
 }
 
-} // namespace miopen::seq
+} // namespace seq
+} // namespace miopen
 
 #endif // GUARD_MIOPEN_SEQUENCES_HPP_

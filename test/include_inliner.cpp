@@ -93,12 +93,13 @@ static int Child(const std::string& path, const std::string& cmd)
 #endif // __linux__
 }
 
-namespace miopen::tests {
+namespace miopen {
+namespace tests {
 
 class InlinerTest
 {
 public:
-    static void Run(const bf::path& exe_path)
+    void Run(const bf::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
         const auto addkernels      = (exe_path.parent_path() / "addkernels").string();
@@ -125,10 +126,11 @@ public:
     }
 };
 
-} // namespace miopen::tests
+} // namespace tests
+} // namespace miopen
 
 int main(int, const char** cargs)
 {
-    miopen::tests::InlinerTest::Run(cargs[0]);
+    miopen::tests::InlinerTest{}.Run(cargs[0]);
     return 0;
 }

@@ -296,7 +296,7 @@ function(add_test_command NAME EXE)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
-        set(WINPATH "")
+        set(WINPATH)
         foreach(PATH ${CMAKE_FIND_ROOT_PATH})
             list(APPEND WINPATH ${PATH}/bin)
         endforeach()
@@ -395,7 +395,6 @@ function(add_test_executable TEST_NAME)
         target_link_libraries(${TEST_NAME} PRIVATE rocMLIR::rockCompiler)
     endif()
     target_compile_options(${TEST_NAME} PRIVATE
-            ${__COMPILER_WARNINGS}
             -ftemplate-backtrace-limit=0
             -Wno-microsoft-template-shadow
             -Wno-unused-variable

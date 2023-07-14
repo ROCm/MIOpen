@@ -35,8 +35,8 @@ extern std::string const envConv;
 
 enum class ConvDirection;
 
-namespace miopen::debug {
-
+namespace miopen {
+namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
 MIOPEN_EXPORT void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
@@ -53,8 +53,8 @@ MIOPEN_EXPORT void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                                          const miopenTensorDescriptor_t& yDesc,
                                          const ConvDirection& conv_dir,
                                          bool is_immediate);
-} // namespace miopen::debug
-
+} // namespace debug
+} // namespace miopen
 // Function that is used in multiple test cases.
 void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,

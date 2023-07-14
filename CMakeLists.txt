@@ -48,7 +48,7 @@ project ( MIOpen C CXX )
 enable_testing()
 
 find_package(Threads REQUIRED)
-find_package(ROCM 0.7.3 REQUIRED)
+find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
 include(ROCMPackageConfigHelpers)
@@ -70,19 +70,9 @@ else()
         # MIOpen now depends on SQLite as well
         find_package(PkgConfig)
         pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-        add_library(sqlite3::sqlite3 INTERFACE IMPORTED GLOBAL)
-        target_include_directories(sqlite3::sqlite3 INTERFACE ${SQLITE3_INCLUDE_DIRS})
-        target_compile_options(sqlite3::sqlite3 INTERFACE ${SQLITE3_CFLAGS} ${SQLITE3_CFLAGS_OTHER})
-        target_link_libraries(sqlite3::sqlite3 INTERFACE ${SQLITE3_LIBRARIES})
-        target_link_directories(sqlite3::sqlite3 INTERFACE ${SQLITE3_LIBRARY_DIRS})
-        target_link_options(sqlite3::sqlite3 INTERFACE ${SQLITE3_LDFLAGS} ${SQLITE3_LDFLAGS_OTHER})
     endif()
     find_package(BZip2)
     find_package(nlohmann_json 3.9.1 REQUIRED)
-
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_STATIC_RUNTIME OFF)
-    set(Boost_USE_MULTITHREADED ON)
     find_package(Boost 1.74 REQUIRED COMPONENTS filesystem system)
 endif()
 
@@ -183,8 +173,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
-            ${ROCM_PATH}
-            ${ROCM_PATH}/llvm
+            /opt/rocm/llvm
     )
     if(MIOPEN_HIP_COMPILER)
         message(STATUS "hip compiler: ${MIOPEN_HIP_COMPILER}")
@@ -208,12 +197,9 @@ endif()
 
 
 # HIP is always required
-find_package(hip REQUIRED)
+find_package(hip REQUIRED PATHS /opt/rocm)
 message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
-
-find_package(hiprtc REQUIRED)
-
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
@@ -276,11 +262,6 @@ if(WIN32)
         -D_WINDOWS
         -D_WIN32_WINNT=0x0601
         -DBOOST_USE_WINDOWS_H)
-
-    add_compile_options(
-            -fdelayed-template-parsing
-            -fms-extensions
-            -fms-compatibility)
 endif()
 
 # HIP
@@ -407,7 +388,7 @@ endif()
 if(MIOPEN_USE_MIOPENGEMM)
     find_package(miopengemm PATHS /opt/rocm)
     if(NOT miopengemm_FOUND)
-        set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
+        set(MIOPEN_USE_MIOPENGEMM 0)
     endif()
 endif()
 

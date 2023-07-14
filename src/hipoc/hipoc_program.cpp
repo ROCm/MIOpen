@@ -253,7 +253,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     else
     {
         params += " " + GetCodeObjectVersionOption();
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
+        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
             params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";

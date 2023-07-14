@@ -27,8 +27,7 @@
 cmake_policy(SET CMP0057 NEW)
 
 include (GenerateExportHeader)
-
-if (MIOPEN_ENABLE_SQLITE)
+if(MIOPEN_ENABLE_SQLITE)
     add_subdirectory(sqlite)
 endif()
 
@@ -56,13 +55,14 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINAR
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
+message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
 
 function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
-    set(INIT_KERNELS_LIST "")
-    set(KERNELS_DECLS "")
+    set(INIT_KERNELS_LIST)
+    set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
@@ -91,7 +91,37 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
+    conv_algo_name.cpp
+    convolution.cpp
+    ctc.cpp
+    db.cpp
+    db_record.cpp
+    dropout.cpp
+    execution_context.cpp
+    expanduser.cpp
+    find_controls.cpp
+    find_db.cpp
+    fusion.cpp
+    generic_search.cpp
+    invoker_cache.cpp
+    kernel_build_params.cpp
+    kernel_warnings.cpp
+    load_file.cpp
+    lock_file.cpp
+    logger.cpp
+    op_args.cpp
+    operator.cpp
+    performance_config.cpp
+    pooling/problem_description.cpp
+    problem_description.cpp
+    problem.cpp
+    ramdb.cpp
+    readonlyramdb.cpp
+    reducetensor.cpp
+    rnn.cpp
+    solution.cpp
     conv/solver_finders.cpp
+    solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
@@ -106,10 +136,6 @@ set( MIOpen_Source
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
-    solver/pooling/backward2d.cpp
-    solver/pooling/backwardNd.cpp
-    solver/pooling/forward2d.cpp
-    solver/pooling/forwardNd.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -123,8 +149,8 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_bwd.cpp
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
@@ -162,14 +188,14 @@ set( MIOpen_Source
     solver/conv_mlir_igemm_wrw_xdlops.cpp
     solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_multipass_wino3x3WrW.cpp
-    solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
+    solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2Dfwd.cpp
-    solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
+    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
@@ -178,36 +204,10 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
-    conv_algo_name.cpp
-    convolution.cpp
-    ctc.cpp
-    db.cpp
-    db_record.cpp
-    dropout.cpp
-    execution_context.cpp
-    expanduser.cpp
-    find_controls.cpp
-    find_db.cpp
-    fusion.cpp
-    generic_search.cpp
-    invoker_cache.cpp
-    kernel_build_params.cpp
-    kernel_warnings.cpp
-    load_file.cpp
-    lock_file.cpp
-    logger.cpp
-    op_args.cpp
-    operator.cpp
-    performance_config.cpp
-    pooling/problem_description.cpp
-    problem_description.cpp
-    problem.cpp
-    ramdb.cpp
-    readonlyramdb.cpp
-    reducetensor.cpp
-    rnn.cpp
-    solution.cpp
-    solver.cpp
+    solver/pooling/forward2d.cpp
+    solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
@@ -563,7 +563,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_BATCH_ID 0)
 
     function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS MESSAGE_SUFFIX)
-        set(KERNELS_BATCH "")
+        set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
         list(LENGTH KERNELS KERNELS_NUMBER)
@@ -587,7 +587,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
                 list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
 
-                set(KERNELS_BATCH "")
+                set(KERNELS_BATCH)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
             endif()
         endforeach()
@@ -719,7 +719,7 @@ endif()
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
     set(PASS_ARGS debug optimized)
-    set(DEPS "")
+    set(DEPS)
     foreach(DEP ${ARGN})
         if(DEP IN_LIST PASS_ARGS)
             list(APPEND DEPS ${DEP})
@@ -736,8 +736,6 @@ else()
     target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
     target_link_libraries(MIOpen PRIVATE ${BZIP2_LIBRARIES})
 endif()
-
-target_compile_options(MIOpen PRIVATE ${__COMPILER_WARNINGS})
 
 target_include_directories(MIOpen
     PRIVATE
@@ -905,7 +903,7 @@ endif()
 
 ############################################################
 # Installation
-set(MIOPEN_CXX_HEADER_PATH "")
+set(MIOPEN_CXX_HEADER_PATH)
 if(MIOPEN_INSTALL_CXX_HEADERS)
     set(MIOPEN_CXX_HEADER_PATH ${PROJECT_SOURCE_DIR}/src/include)
 endif()

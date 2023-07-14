@@ -46,8 +46,6 @@ if(MIOPEN_ENABLE_SQLITE)
     target_link_libraries(MIOpenDriver PRIVATE sqlite3::sqlite3)
 endif()
 
-target_compile_options(MIOpenDriver PRIVATE ${__COMPILER_WARNINGS})
-
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     target_link_libraries(MIOpenDriver PRIVATE miopen_data)
 endif()

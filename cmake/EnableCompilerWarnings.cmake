@@ -26,8 +26,10 @@
 # - Enable warning all for gcc/clang
 
 ## Strict warning level
-if(NOT MSVC)
-    set(__COMPILER_WARNINGS
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(__default_cxx_compiler_options /w)
+else()
+    set(__default_cxx_compiler_options
         -Wall
         -Wextra
         -Wcomment
@@ -38,46 +40,15 @@ if(NOT MSVC)
         -Wsequence-point
         -Wswitch
         -Wtrigraphs
-        -Wno-undef
+        -Wundef
         -Wuninitialized
         -Wunreachable-code
         -Wunused
-        -Wno-global-constructors
         -Wno-ignored-qualifiers
         -Wno-sign-compare
-        -Wno-reserved-identifier
-        -Wno-zero-as-null-pointer-constant
-        -Wno-ignored-attributes
-        -Wno-deprecated
-        -Wno-incompatible-pointer-types
-        -Wno-old-style-cast
-        -Wno-unknown-attributes
-        -Wno-microsoft-cpp-macro
-        -Wno-microsoft-enum-value
-        -Wno-language-extension-token
-        -Wno-c++11-narrowing
-        -Wno-float-equal
-        -Wno-redundant-parens
-        -Wno-format-nonliteral
-        -Wno-unused-template
-        -Wno-comma
-        -Wno-suggest-destructor-override
-        -Wno-switch-enum
-        -Wno-shift-sign-overflow
-        -Wno-suggest-override
-        -Wno-inconsistent-missing-destructor-override
-        -Wno-cast-function-type
-        -Wno-nonportable-system-include-path
-        -Wno-incompatible-pointer-types
-        -Wno-documentation
-        -Wno-deprecated-builtins
-        -Wno-enum-constexpr-conversion
-        -Wno-unused-value
-        -Wno-unused-parameter
-        -Wno-missing-noreturn
-        -Wno-tautological-constant-out-of-range-compare)
+    )
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND __COMPILER_WARNINGS
+        list(APPEND __default_cxx_compiler_options
             -Weverything
             -Wno-c++98-compat
             -Wno-c++98-compat-pedantic
@@ -104,18 +75,23 @@ if(NOT MSVC)
             -Wno-unsafe-buffer-usage
             -Wno-deprecated-declarations
             -Wno-shadow-uncaptured-local)
-    else()
-        if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.1")
-            list(APPEND __COMPILER_WARNINGS
-                    -Wno-ignored-attributes)
+        if(WIN32)
+            list(APPEND __default_cxx_compile_options
+                -fdelayed-template-parsing
+                -fms-extensions
+                -fms-compatibility)
         endif()
-        list(APPEND __COMPILER_WARNINGS
-            -Wno-missing-field-initializers
-            -Wno-deprecated-declarations)
     endif()
-    if(BUILD_DEV)
-        list(APPEND __COMPILER_WARNINGS
-                -Werror
-                -Weverything)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        if (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.1")
+            list(APPEND __default_cxx_compiler_options
+                -Wno-ignored-attributes)
+        endif()
+        list(APPEND __default_cxx_compiler_options
+            -Wno-missing-field-initializers
+        )
     endif()
 endif()
+
+add_compile_options(${__default_cxx_compile_options})
+unset(__default_cxx_compile_options)

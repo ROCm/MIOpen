@@ -35,9 +35,6 @@ template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
     static const std::string ret =
-#ifdef _MSC_VER
-        typeid(MIOpen_Private_TypeName_).name();  //.substr(7); <-- TODO!!!!
-#else
         [](std::string name) {
             const char parameter_name[] = "MIOpen_Private_TypeName_ =";
 
@@ -50,7 +47,6 @@ const std::string& get_type_name()
             name        = name.substr(begin, length);
             return name;
         }(__PRETTY_FUNCTION__);
-#endif // _MSC_VER
     return ret;
 }
 

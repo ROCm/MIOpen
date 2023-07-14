@@ -511,7 +511,8 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
     return ss.str();
 }
 
-namespace miopen::debug {
+namespace miopen {
+namespace debug {
 
 MIOPEN_EXPORT
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
@@ -545,7 +546,8 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
     }
 }
 
-} // namespace miopen::debug
+} // namespace debug
+} // namespace miopen
 
 extern "C" miopenStatus_t
 miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,

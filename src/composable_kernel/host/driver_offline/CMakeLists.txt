@@ -12,11 +12,8 @@ set(__INCLUDE_DIRS
 )
 
 add_executable(conv_fwd_driver_offline src/conv_fwd_driver_offline.cpp)
-target_compile_options(conv_fwd_driver_offline PRIVATE ${__COMPILER_WARNINGS})
 target_link_libraries(conv_fwd_driver_offline PRIVATE host_tensor)
 target_include_directories(conv_fwd_driver_offline PRIVATE ${__INCLUDE_DIRS})
-
 add_executable(conv_bwd_driver_offline src/conv_bwd_driver_offline.cpp)
-target_compile_options(conv_bwd_driver_offline PRIVATE ${__COMPILER_WARNINGS})
 target_link_libraries(conv_bwd_driver_offline PRIVATE host_tensor)
 target_include_directories(conv_bwd_driver_offline PRIVATE ${__INCLUDE_DIRS})

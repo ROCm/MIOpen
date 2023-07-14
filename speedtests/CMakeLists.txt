@@ -8,7 +8,6 @@ endif()
 
 function(add_speedtest_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
-    target_compile_options(${TEST_NAME} PRIVATE ${__COMPILER_WARNINGS})
     if(CLANG_TIDY_EXE)
         clang_tidy_check(${TEST_NAME})
     endif()

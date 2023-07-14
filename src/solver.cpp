@@ -66,7 +66,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL, 20)},
+                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];

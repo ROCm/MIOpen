@@ -9,7 +9,6 @@ set(HOST_TENSOR_SOURCE
 
 ## the library target
 add_library(host_tensor SHARED ${HOST_TENSOR_SOURCE}) 
-target_compile_options(host_tensor PRIVATE ${__COMPILER_WARNINGS})
 
 target_include_directories(host_tensor SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 
