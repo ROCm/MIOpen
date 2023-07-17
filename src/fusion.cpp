@@ -524,11 +524,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     // During search mode, miopen invokes kernel to find the best config.
     // If memory allocation of the invoke params for the given fusion plan
     // is not supported we return early.
-    // if(enforce.IsSearch(fusion_ctx) && invoke_bufs.empty())
-    // {
-    //     MIOPEN_LOG_I("No supported fusion solvers found during Search Mode.");
-    //     return miopenStatusUnsupportedOp;
-    // }
+    if(enforce.IsSearch(fusion_ctx) && invoke_bufs.empty())
+    {
+        MIOPEN_LOG_I("No supported fusion solvers found during Search Mode.");
+        return miopenStatusUnsupportedOp;
+    }
     // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
