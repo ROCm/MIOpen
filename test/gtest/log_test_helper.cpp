@@ -310,8 +310,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
         ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
 }
 
-void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
-                                            const miopen::OperatorArgs&)> const& func,
+void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
                          std::string env_var,
                          std::string sub_str,
                          bool set_env)
@@ -326,7 +325,7 @@ void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
     CreateCBAFusionPlan fp_cba_create;
     fp_cba_create.CBAPlan();
 
-    func(fp_cba_create.fusePlanDesc, fp_cba_create.op_args);
+    func(fp_cba_create.fusePlanDesc);
 
     std::string str = capture_cerr.getString();
 
@@ -336,8 +335,7 @@ void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
         ASSERT_FALSE(isSubStr(str, sub_str)) << "str     : " << str << "str_sub : " << sub_str;
 }
 
-void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t,
-                                              const miopen::OperatorArgs&)> const& func,
+void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
                            std::string env_var,
                            std::string sub_str,
                            bool set_env)
@@ -352,7 +350,7 @@ void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t
     CreateBNormFusionPlan<float> fp_bnorm_create;
     fp_bnorm_create.BNormActivation();
 
-    func(fp_bnorm_create.fusePlanDesc, fp_bnorm_create.op_args);
+    func(fp_bnorm_create.fusePlanDesc);
 
     std::string str = capture_cerr.getString();
 

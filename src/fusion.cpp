@@ -189,11 +189,8 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     return str;
 }
 
-std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
-                              const OperatorArgs& op_args,
-                              int fusion_mode)
+std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, int fusion_mode)
 {
-    assert(op_args.params.size() >= 1);
     assert(deref(fusePlanDesc).op_map.size() >= 1);
 
     std::string str;
@@ -228,7 +225,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
     return str;
 }
 
-void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, const OperatorArgs& op_args)
+void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -241,7 +238,7 @@ void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, const Operato
         case 4:
         case 5:
         case 6: MIOPEN_LOG_DRIVER_CMD(LogCmdConvolutionFusion(fusePlanDesc, fusion_mode)); break;
-        case 2: MIOPEN_LOG_DRIVER_CMD(LogCmdBnormFusion(fusePlanDesc, op_args, fusion_mode)); break;
+        case 2: MIOPEN_LOG_DRIVER_CMD(LogCmdBnormFusion(fusePlanDesc, fusion_mode)); break;
         default: MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
         }
     }
@@ -665,7 +662,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
-    miopen::debug::LogCmdFusion(this, op_args);
+    miopen::debug::LogCmdFusion(this);
 
     if(output_desc != outputDesc)
     {

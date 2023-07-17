@@ -57,7 +57,7 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            bool is_immediate);
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-void LogCmdFusion(const miopenFusionPlanDescriptor_t, const OperatorArgs& op_args);
+void LogCmdFusion(const miopenFusionPlanDescriptor_t);
 
 } // namespace debug
 } // namespace miopen
@@ -73,14 +73,12 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                 bool set_env);
 
 // Function that is used in multiple test cases.
-void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t,
-                                            const miopen::OperatorArgs&)> const& func,
+void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
                          std::string env_var,
                          std::string sub_str,
                          bool set_env);
 
-void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t,
-                                              const miopen::OperatorArgs&)> const& func,
+void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
                            std::string env_var,
                            std::string sub_str,
                            bool set_env);
