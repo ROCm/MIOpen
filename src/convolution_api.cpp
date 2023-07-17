@@ -37,6 +37,7 @@
 #include <miopen/driver_arguments.hpp>
 
 #include <algorithm>
+#include <optional>
 
 using ExecutionContext   = miopen::ExecutionContext;
 using Direction          = miopen::conv::Direction;
@@ -165,14 +166,14 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
 
 extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                                             int spatialDim,
-                                                            int* padA,
-                                                            int* strideA,
-                                                            int* dilationA,
+                                                            const int* padA,
+                                                            const int* strideA,
+                                                            const int* dilationA,
                                                             miopenConvolutionMode_t c_mode)
 {
-    auto pads      = std::vector<int>(padA, padA + spatialDim);
-    auto strides   = std::vector<int>(strideA, strideA + spatialDim);
-    auto dilations = std::vector<int>(dilationA, dilationA + spatialDim);
+    const auto pads      = std::vector<int>(padA, padA + spatialDim);
+    const auto strides   = std::vector<int>(strideA, strideA + spatialDim);
+    const auto dilations = std::vector<int>(dilationA, dilationA + spatialDim);
     MIOPEN_LOG_FUNCTION(convDesc, spatialDim, pads, strides, dilations, c_mode);
     return miopen::try_([&] {
         miopen::deref(convDesc) = miopen::ConvolutionDescriptor(spatialDim,
@@ -185,6 +186,13 @@ extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDes
                                                                 1,
                                                                 1.0);
     });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                         int* groupCount)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, groupCount);
+    return miopen::try_([&] { miopen::deref(groupCount) = miopen::deref(convDesc).group_count; });
 }
 
 extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
@@ -245,7 +253,7 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
 }
 
 extern "C" miopenStatus_t miopenSetTransposeConvNdOutputPadding(
-    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA)
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, const int* adjA)
 {
     if(miopen::IsLoggingFunctionCalls())
     {
@@ -400,18 +408,58 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 namespace miopen {
 namespace debug {
 
+void LogCmdConvolution(const miopen::TensorDescriptor& x,
+                       const miopen::TensorDescriptor& w,
+                       const miopen::ConvolutionDescriptor& conv,
+                       const miopen::TensorDescriptor& y,
+                       miopenProblemDirection_t dir,
+                       std::optional<uint64_t> solver_id)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        const std::string& str = ConvArgsForMIOpenDriver(x, w, conv, y, dir, solver_id);
+        MIOPEN_LOG_DRIVER_CMD(str);
+    }
+}
+
+void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
+                           const miopen::TensorDescriptor& w,
+                           const miopen::ConvolutionDescriptor& conv,
+                           const miopen::TensorDescriptor& y,
+                           miopenProblemDirection_t dir,
+                           std::optional<uint64_t> solver_id)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        const std::string& str = ConvArgsForMIOpenDriver(x, w, conv, y, dir, solver_id);
+        MIOPEN_LOG_DRIVER_CMD(str);
+    }
+}
+
+static miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
+{
+    switch(direction)
+    {
+    case ConvDirection::Fwd: return miopenProblemDirectionForward;
+    case ConvDirection::Bwd: return miopenProblemDirectionBackward;
+    case ConvDirection::WrW: return miopenProblemDirectionBackwardWeights;
+    };
+    MIOPEN_THROW(miopenStatusInternalError);
+}
+
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
                        const miopenTensorDescriptor_t& yDesc,
-                       const ConvDirection& conv_dir,
+                       ConvDirection conv_dir,
                        bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
     {
-        const std::string& str =
-            ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, conv_dir, is_immediate);
-        MIOPEN_LOG_DRIVER_CMD(str);
+        const auto dir              = CmdArgToDirection(conv_dir);
+        const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
+        const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
+        LogCmdConvolution(x, w, conv, y, dir, solver_id);
     }
 }
 
@@ -419,14 +467,15 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
                            const miopenTensorDescriptor_t& yDesc,
-                           const ConvDirection& conv_dir,
+                           ConvDirection conv_dir,
                            bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
     {
-        const std::string& str =
-            ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, conv_dir, is_immediate);
-        MIOPEN_LOG_DRIVER_CMD(str);
+        const auto dir              = CmdArgToDirection(conv_dir);
+        const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
+        const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
+        LogCmdFindConvolution(x, w, conv, y, dir, solver_id);
     }
 }
 

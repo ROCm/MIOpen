@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -421,6 +421,22 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
     });
 }
 
+extern "C" miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                  miopenRNNPaddingMode_t paddingMode)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, paddingMode);
+    return miopen::try_([&] { miopen::deref(rnnDesc).SetPaddingmode(paddingMode); });
+}
+
+extern "C" miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                  miopenRNNPaddingMode_t* paddingMode)
+{
+    auto ret =
+        miopen::try_([&] { miopen::deref(paddingMode) = miopen::deref(rnnDesc).paddingMode; });
+    MIOPEN_LOG_FUNCTION(rnnDesc, paddingMode);
+    return ret;
+}
+
 static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
                       const miopenRNNDescriptor_t rnnDesc,
                       const int seqLength,
@@ -470,6 +486,7 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
            << " -m " << mode
            << " -p " << (miopen::deref(rnnDesc).inputMode == miopenRNNlinear ? "0" : "1")
            << " -r " << (miopen::deref(rnnDesc).dirMode == miopenRNNunidirection ? "0" : "1")
+           << " -q " << (miopen::deref(rnnDesc).paddingMode == miopenRNNIONotPadded ? "0" : "1")
            << " -k " << seqLength;
         if(dir == ForwardInference || dir == ForwardTraining)
            ss << " -c " << ((dir == ForwardTraining)?"0":"1");
