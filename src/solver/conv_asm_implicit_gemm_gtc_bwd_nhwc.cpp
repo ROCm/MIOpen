@@ -828,7 +828,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     std::tie(current_block_size, current_grid_size, current_splits_4G) =
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(problem, *this);
 
-    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffff)
+    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
         return false;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
