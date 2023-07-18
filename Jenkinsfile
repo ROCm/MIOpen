@@ -70,11 +70,7 @@ def cmake_build(Map conf=[:]){
     }
 
     if(conf.get("codecov", false)){ //Need
-        if(compiler == "g++"){
-            setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-arcs -ftest-coverage' -DCODECOV_TEST=On " + setup_args
-        }else{
-            setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-instr-generate -fcoverage-mapping' -DCODECOV_TEST=On " + setup_args
-        }
+        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-instr-generate -fcoverage-mapping' -DCODECOV_TEST=On " + setup_args
     }else if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
@@ -294,34 +290,22 @@ def buildHipClangJob(Map conf=[:]){
                         cmake_build(conf)
                         
                         if (codecov) {
-                            if(compiler == "g++"){
-                                sh '''
-                                    cd build
-                                    lcov --directory . --capture --output-file $(pwd)/coverage.info
-                                    lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                                    lcov --list $(pwd)/coverage.info
-                                    curl -Os https://uploader.codecov.io/latest/linux/codecov
-                                    chmod +x codecov
-                                    ./codecov -t ${CODECOV_TOKEN}
-                                    echo "Uploaded"
-                                '''
-                            }else{
-                                sh '''
-                                    cd build
-                                    #this combines the reports from parallel runs back together.
-                                    /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./**/*.profraw -o ./miopen.profdata
+                            // MIOpen does not support g++, lcov is meaningless in this case.
+                            sh '''
+                                cd build
+                                #this combines the reports from parallel runs back together.
+                                /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./**/*.profraw -o ./miopen.profdata
 
-                                    #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
-                                    /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
-                                    cat ./code_cov_miopen.report
-                                    /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
+                                #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
+                                /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
+                                cat ./code_cov_miopen.report
+                                /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
 
-                                    curl -Os https://uploader.codecov.io/latest/linux/codecov
-                                    chmod +x codecov
-                                    ./codecov -t ${CODECOV_TOKEN} --file ./code_cov_miopen.txt
-                                    echo "Uploaded"
-                                '''
-                            }
+                                curl -Os https://uploader.codecov.io/latest/linux/codecov
+                                chmod +x codecov
+                                ./codecov -t ${CODECOV_TOKEN} --file ./code_cov_miopen.txt
+                                echo "Uploaded"
+                            '''
                         }
                     }
                 }
