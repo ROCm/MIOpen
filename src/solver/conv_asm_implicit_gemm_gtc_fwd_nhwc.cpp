@@ -673,11 +673,11 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const int y           = problem.GetWeightsHeight_();
     const int x           = problem.GetWeightsWidth_();
 
-    const int n   = problem.GetBatchSize_();
-    const int ho  = problem.GetOutHeight_();
-    const int wo  = problem.GetOutWidth_();
-    const int hi  = problem.GetInHeight_();
-    const int wi  = problem.GetInWidth_();
+    const int n    = problem.GetBatchSize_();
+    const int ho   = problem.GetOutHeight_();
+    const int wo   = problem.GetOutWidth_();
+    const int hi   = problem.GetInHeight_();
+    const int wi   = problem.GetInWidth_();
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)

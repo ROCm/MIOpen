@@ -549,7 +549,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const int n_input_channels_per_group  = problem.GetOutChannels_() / problem.GetGroupCount();
     const int n_output_channels_per_group = problem.GetInChannels_() / problem.GetGroupCount();
-    const int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
+    const int wei_cstride  = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
     const auto wei_bstride = n_input_channels_per_group * wei_cstride;
 
     result.n_in_data_tiles    = 1;
