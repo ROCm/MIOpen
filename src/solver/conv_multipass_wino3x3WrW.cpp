@@ -67,16 +67,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(problem, 1);
 
-#define DEFINE_SHADER_ALIASES(problem)                \
-    const auto C     = (problem).GetBatchSize2();     \
-    const auto N     = (problem).GetOutChannels2();   \
-    const auto K     = (problem).GetInChannels2();    \
-    const auto out_H = (problem).GetWeightsHeight2(); \
-    const auto out_W = (problem).GetWeightsWidth2();  \
-    const auto R     = (problem).GetInHeight2();      \
-    const auto S     = (problem).GetInWidth2();       \
-    const auto H     = (problem).GetOutHeight2();     \
-    const auto W     = (problem).GetOutWidth2();      \
+#define DEFINE_SHADER_ALIASES(problem)               \
+    const int C     = (problem).GetBatchSize_();     \
+    const int N     = (problem).GetOutChannels_();   \
+    const int K     = (problem).GetInChannels_();    \
+    const int out_H = (problem).GetWeightsHeight_(); \
+    const int out_W = (problem).GetWeightsWidth_();  \
+    const int R     = (problem).GetInHeight_();      \
+    const int S     = (problem).GetInWidth_();       \
+    const int H     = (problem).GetOutHeight_();     \
+    const int W     = (problem).GetOutWidth_();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -496,26 +496,26 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const long input_line_size = 4L * problem.GetInWidth2();
-        const long input_feature_map_size = input_line_size * problem.GetInHeight2();
-        const long input_stack_size = input_feature_map_size * problem.GetInChannels2();
+        const long input_line_size = 4L * problem.GetInWidth_();
+        const long input_feature_map_size = input_line_size * problem.GetInHeight_();
+        const long input_stack_size = input_feature_map_size * problem.GetInChannels_();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     bool ok = (
-           (problem.GetWeightsWidth2() == WinoDataW && problem.GetWeightsHeight2() == WinoDataH)
+           (problem.GetWeightsWidth_() == WinoDataW && problem.GetWeightsHeight_() == WinoDataH)
         && (problem.GetKernelStrideW() == 1
             ||
-            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight2() == 3 && problem.GetWeightsWidth2() == 3)
+            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight_() == 3 && problem.GetWeightsWidth_() == 3)
             )
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetBatchSize2() < std::pow(2, 24)
-        && problem.GetInChannels2() < std::pow(2, 24)
-        && problem.GetOutChannels2() < std::pow(2, 24)
-        && problem.GetInHeight2() < std::pow(2, 24)
-        && problem.GetInWidth2() < std::pow(2, 24)
+        && problem.GetBatchSize_() < std::pow(2, 24)
+        && problem.GetInChannels_() < std::pow(2, 24)
+        && problem.GetOutChannels_() < std::pow(2, 24)
+        && problem.GetInHeight_() < std::pow(2, 24)
+        && problem.GetInWidth_() < std::pow(2, 24)
         && problem.GetBias() == 0
         && problem.GetInLayout() == "NCHW"
         && problem.GetGroupCount() == 1);

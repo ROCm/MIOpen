@@ -67,24 +67,17 @@ struct ConvolutionDescriptor;
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription : conv::ProblemDescription
 {
+#if 1
     int GetInChannels2() const { return GetInChannels_(); }
     int GetInHeight2() const { return GetInHeight_(); }
     int GetInWidth2() const { return GetInWidth_(); }
-    int GetInDepth2() const { return GetInDepth_(); }
     int GetWeightsHeight2() const { return GetWeightsHeight_(); }
     int GetWeightsWidth2() const { return GetWeightsWidth_(); }
-    int GetWeightsDepth2() const { return GetWeightsDepth_(); }
     int GetOutChannels2() const { return GetOutChannels_(); }
     int GetOutHeight2() const { return GetOutHeight_(); }
     int GetOutWidth2() const { return GetOutWidth_(); }
-    int GetOutDepth2() const { return GetOutDepth_(); }
     int GetBatchSize2() const { return GetBatchSize_(); }
-    int GetInStride2() const { return GetInStrideH_(); }
-    int GetOutStride2() const { return GetOutStrideH_(); }
-    int GetInChannelStride2() const { return GetInChannelStride_(); }
-    int GetInBatchStride2() const { return GetInBatchStride_(); }
-    int GetOutChannelStride2() const { return GetOutChannelStride_(); }
-    int GetOutBatchStride2() const { return GetOutBatchStride_(); }
+#endif
 
     struct Direction
     {
@@ -373,19 +366,19 @@ struct UnifiedDescriptionConv2d
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
 
-        const auto n_inputs_per_group  = problem.GetInChannels2() / problem.GetGroupCount();
-        const auto n_outputs_per_group = problem.GetOutChannels2() / problem.GetGroupCount();
+        const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount();
+        const auto n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
         if(!problem.direction.IsBackwardWrW())
         {
-            R     = problem.GetWeightsHeight2();
-            S     = problem.GetWeightsWidth2();
+            R     = problem.GetWeightsHeight_();
+            S     = problem.GetWeightsWidth_();
             U     = problem.direction.IsForward() ? problem.GetKernelStrideH() : 1;
             V     = problem.direction.IsForward() ? problem.GetKernelStrideW() : 1;
             C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
             K     = n_outputs_per_group;     // Ditto.
-            out_h = problem.GetOutHeight2(); // Bwd: height/width is reversed in ProblemDescription.
-            out_w = problem.GetOutWidth2();  // Ditto.
-            N     = problem.GetBatchSize2();
+            out_h = problem.GetOutHeight_(); // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.GetOutWidth_();  // Ditto.
+            N     = problem.GetBatchSize_();
             pad_h = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
             pad_w = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
             input_stride_h  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideH();
@@ -395,14 +388,14 @@ struct UnifiedDescriptionConv2d
         }
         else
         { // WrW
-            R               = problem.GetInHeight2();
-            S               = problem.GetInWidth2();
+            R               = problem.GetInHeight_();
+            S               = problem.GetInWidth_();
             U               = problem.GetDilationH();
             V               = problem.GetDilationW();
-            C               = problem.GetBatchSize2();
+            C               = problem.GetBatchSize_();
             K               = n_inputs_per_group;
-            out_h           = problem.GetWeightsHeight2();
-            out_w           = problem.GetWeightsWidth2();
+            out_h           = problem.GetWeightsHeight_();
+            out_w           = problem.GetWeightsWidth_();
             N               = n_outputs_per_group;
             pad_h           = problem.GetPadH();
             pad_w           = problem.GetPadW();

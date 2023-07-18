@@ -68,14 +68,14 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
     {
         const auto& p = problem; //alias
         const bool supported =
-            ((p.GetWeightsHeight2() == p.GetWeightsWidth2())
-              && (p.GetWeightsHeight2() == 3
-                  || p.GetWeightsHeight2() == 5
-                  || p.GetWeightsHeight2() == 7
-                  || p.GetWeightsHeight2() == 9
-                  || p.GetWeightsHeight2() == 11))
-            || ((p.GetWeightsWidth2() == 10 || p.GetWeightsWidth2() == 20)
-                && p.GetWeightsHeight2() == 5
+            ((p.GetWeightsHeight_() == p.GetWeightsWidth_())
+              && (p.GetWeightsHeight_() == 3
+                  || p.GetWeightsHeight_() == 5
+                  || p.GetWeightsHeight_() == 7
+                  || p.GetWeightsHeight_() == 9
+                  || p.GetWeightsHeight_() == 11))
+            || ((p.GetWeightsWidth_() == 10 || p.GetWeightsWidth_() == 20)
+                && p.GetWeightsHeight_() == 5
                 && p.GetKernelStrideH() == 2
                 && p.GetKernelStrideW() == 2
                 && p.GetPadH() == 0
@@ -83,8 +83,8 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
             /// The following is for #1594. Most likely we can open more configs,
             /// but that would require thorough testing.
             || (p.IsFp16()
-                && p.GetWeightsHeight2() == 4
-                && p.GetWeightsWidth2() == 4
+                && p.GetWeightsHeight_() == 4
+                && p.GetWeightsWidth_() == 4
                 && p.GetPadH() == 0
                 && p.GetPadW() == 0);
 
@@ -98,7 +98,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
         /// \todo need to make sure support stride > 2, should support but not tested
         && !(problem.GetKernelStrideW() > 2 || problem.GetKernelStrideH() > 2)
         /// We have optimized 1x1 kernel for normal conv.
-        && !(problem.GetGroupCount() == 1 && problem.GetWeightsHeight2() == 1 && problem.GetWeightsWidth2() == 1)
+        && !(problem.GetGroupCount() == 1 && problem.GetWeightsHeight_() == 1 && problem.GetWeightsWidth_() == 1)
         /// \todo Workaround to avoid FP16 precision issue:
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
         /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
@@ -197,25 +197,25 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     n_out_tiles_perstack = std::min(n_out_tiles_perstack, problem.GetOutChannels2() / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
-    const auto mlo_filter_size0 = static_cast<long long>(problem.GetWeightsWidth2());
-    const auto mlo_filter_size1 = static_cast<long long>(problem.GetWeightsHeight2());
+    const auto mlo_filter_size0 = static_cast<long long>(problem.GetWeightsWidth_());
+    const auto mlo_filter_size1 = static_cast<long long>(problem.GetWeightsHeight_());
     // const auto mlo_filter_pad0=static_cast<long long>(pad_w);
     // const auto mlo_filter_pad1=static_cast<long long>(pad_h);
     const auto mlo_filter_stride0 = static_cast<long long>(problem.GetKernelStrideW());
     const auto mlo_filter_stride1 = static_cast<long long>(problem.GetKernelStrideH());
-    // const auto mlo_n_outputs=static_cast<long long>(problem.GetOutChannels2());
-    // const auto mlo_n_inputs=static_cast<long long>(problem.GetInChannels2());
-    // const auto mlo_batch_sz=static_cast<long long>(problem.GetBatchSize2());
-    // const auto mlo_out_width=static_cast<long long>(problem.GetOutWidth2());
-    // const auto mlo_out_height=static_cast<long long>(problem.GetOutHeight2());
-    // const auto mlo_out_batch_stride=static_cast<long long>(problem.GetOutBatchStride2());
-    // const auto mlo_out_channel_stride=static_cast<long long>(problem.GetOutChannelStride2());
-    // const auto mlo_out_stride=static_cast<long long>(problem.GetOutStride2());
-    // const auto mlo_in_width=static_cast<long long>(problem.GetInWidth2());
-    // const auto mlo_in_height=static_cast<long long>(problem.GetInHeight2());
-    // const auto mlo_in_batch_stride=static_cast<long long>(problem.GetInBatchStride2());
-    // const auto mlo_in_channel_stride=static_cast<long long>(problem.GetInChannelStride2());
-    // const auto mlo_in_stride=static_cast<long long>(problem.GetInStride2());
+    // const auto mlo_n_outputs=static_cast<long long>(problem.GetOutChannels_());
+    // const auto mlo_n_inputs=static_cast<long long>(problem.GetInChannels_());
+    // const auto mlo_batch_sz=static_cast<long long>(problem.GetBatchSize_());
+    // const auto mlo_out_width=static_cast<long long>(problem.GetOutWidth_());
+    // const auto mlo_out_height=static_cast<long long>(problem.GetOutHeight_());
+    // const auto mlo_out_batch_stride=static_cast<long long>(problem.GetOutBatchStride_());
+    // const auto mlo_out_channel_stride=static_cast<long long>(problem.GetOutChannelStride_());
+    // const auto mlo_out_stride=static_cast<long long>(problem.GetOutStrideH_());
+    // const auto mlo_in_width=static_cast<long long>(problem.GetInWidth_());
+    // const auto mlo_in_height=static_cast<long long>(problem.GetInHeight_());
+    // const auto mlo_in_batch_stride=static_cast<long long>(problem.GetInBatchStride_());
+    // const auto mlo_in_channel_stride=static_cast<long long>(problem.GetInChannelStride_());
+    // const auto mlo_in_stride=static_cast<long long>(problem.GetInStrideH_());
     // algorithm parameters
     const auto mlo_in_tile0 = static_cast<long long>(result.in_tile0);
     const auto mlo_in_tile1 = static_cast<long long>(result.in_tile1);
@@ -366,9 +366,9 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
         std::string(" -DMLO_DIR_FORWARD=") + (problem.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(static_cast<long long>(problem.GetWeightsWidth2())) +
+        std::to_string(static_cast<long long>(problem.GetWeightsWidth_())) +
         std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(static_cast<long long>(problem.GetWeightsHeight2())) +
+        std::to_string(static_cast<long long>(problem.GetWeightsHeight_())) +
         std::string(" -DMLO_FILTER_PAD0=") + std::to_string(static_cast<long long>(pad_w)) +
         std::string(" -DMLO_FILTER_PAD1=") + std::to_string(static_cast<long long>(pad_h)) +
         std::string(" -DMLO_FILTER_STRIDE0=") +
@@ -376,31 +376,31 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
         std::string(" -DMLO_FILTER_STRIDE1=") +
         std::to_string(static_cast<long long>(problem.GetKernelStrideH())) +
         std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(problem.GetOutChannels2())) +
+        std::to_string(static_cast<long long>(problem.GetOutChannels_())) +
         std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(static_cast<long long>(problem.GetInChannels2())) +
+        std::to_string(static_cast<long long>(problem.GetInChannels_())) +
         std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(problem.GetBatchSize2())) +
+        std::to_string(static_cast<long long>(problem.GetBatchSize_())) +
         std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(static_cast<long long>(problem.GetOutWidth2())) +
+        std::to_string(static_cast<long long>(problem.GetOutWidth_())) +
         std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(static_cast<long long>(problem.GetOutHeight2())) +
+        std::to_string(static_cast<long long>(problem.GetOutHeight_())) +
         std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetOutBatchStride2())) +
+        std::to_string(static_cast<long long>(problem.GetOutBatchStride_())) +
         std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetOutChannelStride2())) +
+        std::to_string(static_cast<long long>(problem.GetOutChannelStride_())) +
         std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetOutStride2())) +
+        std::to_string(static_cast<long long>(problem.GetOutStrideH_())) +
         std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(static_cast<long long>(problem.GetInWidth2())) +
+        std::to_string(static_cast<long long>(problem.GetInWidth_())) +
         std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(static_cast<long long>(problem.GetInHeight2())) +
+        std::to_string(static_cast<long long>(problem.GetInHeight_())) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInBatchStride2())) +
+        std::to_string(static_cast<long long>(problem.GetInBatchStride_())) +
         std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInChannelStride2())) +
+        std::to_string(static_cast<long long>(problem.GetInChannelStride_())) +
         std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(static_cast<long long>(problem.GetInStride2()))
+        std::to_string(static_cast<long long>(problem.GetInStrideH_()))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane
@@ -436,7 +436,7 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
                                        std::to_string(static_cast<long long>(group_counts)));
         kernel_params.comp_options +=
             (std::string(" -DMLO_GROUP_TILES=") +
-             std::to_string(static_cast<long long>(problem.GetOutChannels2() / group_counts)));
+             std::to_string(static_cast<long long>(problem.GetOutChannels_() / group_counts)));
         kernel_params.comp_options +=
             (std::string(" -DMLO_STACK_PERGROUP=") +
              std::to_string(static_cast<long long>(

@@ -61,15 +61,15 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
 {
     ConvSolution result;
 
-    int di          = problem.GetInDepth2();
-    int hi          = problem.GetInHeight2();
-    int wi          = problem.GetInWidth2();
-    int n           = problem.GetBatchSize2();
-    int k           = problem.GetOutChannels2();
-    int c           = problem.GetInChannels2();
-    int do_         = problem.GetOutDepth2();
-    int ho          = problem.GetOutHeight2();
-    int wo          = problem.GetOutWidth2();
+    int di          = problem.GetInDepth_();
+    int hi          = problem.GetInHeight_();
+    int wi          = problem.GetInWidth_();
+    int n           = problem.GetBatchSize_();
+    int k           = problem.GetOutChannels_();
+    int c           = problem.GetInChannels_();
+    int do_         = problem.GetOutDepth_();
+    int ho          = problem.GetOutHeight_();
+    int wo          = problem.GetOutWidth_();
     int sz          = problem.GetKernelStrideD();
     int sy          = problem.GetKernelStrideH();
     int sx          = problem.GetKernelStrideW();
@@ -79,9 +79,9 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
     int pz          = problem.GetPadD();
     int py          = problem.GetPadH();
     int px          = problem.GetPadW();
-    int fz          = problem.GetWeightsDepth2();
-    int fy          = problem.GetWeightsHeight2();
-    int fx          = problem.GetWeightsWidth2();
+    int fz          = problem.GetWeightsDepth_();
+    int fy          = problem.GetWeightsHeight_();
+    int fx          = problem.GetWeightsWidth_();
     int group       = problem.GetGroupCount();
     int c_per_group = c / group;
     int k_per_group = k / group;

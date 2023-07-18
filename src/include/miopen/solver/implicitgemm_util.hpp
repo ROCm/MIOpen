@@ -94,61 +94,61 @@ static inline std::size_t KernelFilterDilationW(const ProblemDescription& proble
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInChannels2();
+        return problem.GetInChannels_();
     else
-        return problem.GetOutChannels2();
+        return problem.GetOutChannels_();
 }
 
 static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetBatchSize2();
+        return problem.GetBatchSize_();
     else
-        return problem.GetInChannels2() / problem.GetGroupCount();
+        return problem.GetInChannels_() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetOutChannels2() / problem.GetGroupCount();
+        return problem.GetOutChannels_() / problem.GetGroupCount();
     else
-        return problem.GetBatchSize2();
+        return problem.GetBatchSize_();
 }
 
 static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutHeight2();
+        return problem.GetOutHeight_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsHeight2();
+        return problem.GetWeightsHeight_();
     else
-        return problem.GetInHeight2();
+        return problem.GetInHeight_();
 }
 
 static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutWidth2();
+        return problem.GetOutWidth_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsWidth2();
+        return problem.GetWeightsWidth_();
     else
-        return problem.GetInWidth2();
+        return problem.GetInWidth_();
 }
 
 static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInWidth2();
+        return problem.GetInWidth_();
     else
-        return problem.GetWeightsWidth2();
+        return problem.GetWeightsWidth_();
 }
 
 static inline std::size_t KernelFilterHeightY(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInHeight2();
+        return problem.GetInHeight_();
     else
-        return problem.GetWeightsHeight2();
+        return problem.GetWeightsHeight_();
 }
 
 /// \todo move to separate header and use in other solvers.

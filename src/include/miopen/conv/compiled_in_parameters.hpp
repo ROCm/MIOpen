@@ -46,11 +46,11 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
                                     int* const n_groups)
 {
     assert(N && C && H && W && K && n_groups);
-    *N        = problem.GetBatchSize2();
-    *C        = problem.GetInChannels2();
-    *H        = problem.GetInHeight2();
-    *W        = problem.GetInWidth2();
-    *K        = problem.GetOutChannels2();
+    *N        = problem.GetBatchSize_();
+    *C        = problem.GetInChannels_();
+    *H        = problem.GetInHeight_();
+    *W        = problem.GetInWidth_();
+    *K        = problem.GetOutChannels_();
     *n_groups = ctx.GetStream().GetMaxComputeUnits();
 }
 
@@ -67,8 +67,8 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 {
     GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups);
     assert(out_H && out_W);
-    *out_H = problem.GetOutHeight2();
-    *out_W = problem.GetOutWidth2();
+    *out_H = problem.GetOutHeight_();
+    *out_W = problem.GetOutWidth_();
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
@@ -88,8 +88,8 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 {
     GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups, out_H, out_W);
     assert(filter_size_H && filter_size_W && pad_H && pad_W);
-    *filter_size_H = problem.GetWeightsHeight2();
-    *filter_size_W = problem.GetWeightsWidth2();
+    *filter_size_H = problem.GetWeightsHeight_();
+    *filter_size_W = problem.GetWeightsWidth_();
     *pad_H         = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
     *pad_W         = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
 }

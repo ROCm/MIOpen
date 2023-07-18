@@ -253,25 +253,25 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
 {
     limit_wave_cnt = 0;
 
-    chunk_size = (problem.GetOutWidth2() < 48) ? 8 : 16;
-    if((problem.GetOutChannels2() % (64 / chunk_size) != 0) &&
-       (problem.GetInChannels2() % (64 / chunk_size) != 0))
+    chunk_size = (problem.GetOutWidth_() < 48) ? 8 : 16;
+    if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels_() % (64 / chunk_size) != 0))
         chunk_size = 16; // Fixup for correctness
 
     reverse_inout = 0;
     if(IsReverseInOutAllowed(problem) &&
-       ((problem.GetOutChannels2() % 4 != 0) || (problem.GetOutWidth2() < 8)))
+       ((problem.GetOutChannels_() % 4 != 0) || (problem.GetOutWidth_() < 8)))
         reverse_inout = 1;
 
     const auto c_k =
-        problem.GetOutChannels2() * problem.GetInChannels2() / problem.GetGroupCount(); // C*K
+        problem.GetOutChannels_() * problem.GetInChannels_() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
         k_per_wave = 1;
     else if(c_k < 16384)
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.GetOutChannels2() : problem.GetInChannels2()) %
+    while((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) %
               k_per_wave !=
           0)
         k_per_wave /= 2; // Fixup for correctness
@@ -284,16 +284,16 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
         n_per_group = 2;
     else
         n_per_group = 1;
-    if(n_per_group > problem.GetBatchSize2())
-        n_per_group = problem.GetBatchSize2(); // n_per_group should never be > batch size.
-    if(problem.GetOutWidth2() >= 256 &&
+    if(n_per_group > problem.GetBatchSize_())
+        n_per_group = problem.GetBatchSize_(); // n_per_group should never be > batch size.
+    if(problem.GetOutWidth_() >= 256 &&
        n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
         n_per_group = 4;
 
-    pipe_lines_depth = (problem.GetOutHeight2() <= 1) ? 1 : 2;
-    if((problem.GetOutHeight2() < 8) && (problem.GetOutWidth2() < 64))
+    pipe_lines_depth = (problem.GetOutHeight_() <= 1) ? 1 : 2;
+    if((problem.GetOutHeight_() < 8) && (problem.GetOutWidth_() < 64))
     {
-        pipe_lines_depth = problem.GetOutHeight2(); // Special case.
+        pipe_lines_depth = problem.GetOutHeight_(); // Special case.
     }
 
     if(!IsValid(ctx, problem))
@@ -305,7 +305,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
-        if(problem.GetOutChannels2() % (4 * problem.GetGroupCount()) != 0)
+        if(problem.GetOutChannels_() % (4 * problem.GetGroupCount()) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
@@ -396,8 +396,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetPadH() == 1           // -p  pad_h
         && problem.GetKernelStrideW() <= 2  // -v  stride_w
         && problem.GetKernelStrideH() <= 2  // -u  stride_h
-        && problem.GetWeightsWidth2() == 3   // -x  S wei_w
-        && problem.GetWeightsHeight2() == 3  // -y  R wei_h
+        && problem.GetWeightsWidth_() == 3   // -x  S wei_w
+        && problem.GetWeightsHeight_() == 3  // -y  R wei_h
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
@@ -408,28 +408,28 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
 
     if(problem.IsFp16()
           && (StartsWith(name, "gfx8") // Not supported.
-             || problem.GetBatchSize2() % 2 != 0)) /// \todo Initial version.
+             || problem.GetBatchSize_() % 2 != 0)) /// \todo Initial version.
        return false;
 
     // Check limits:
-    const auto h_w     = static_cast<long>(problem.GetOutHeight2()) * problem.GetOutWidth2();
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight2()) * problem.GetWeightsWidth2();
-    const auto c_h_w   = static_cast<long>(problem.GetOutChannels2()) * h_w;     // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetInChannels2()) * h_w;      // K*H*W
-    const auto c_r_s   = static_cast<long>(problem.GetOutChannels2()) * r_s;     // C*R*S
-    const auto k_r_s   = static_cast<long>(problem.GetInChannels2()) * r_s;      // K*R*S
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize2()) * c_h_w;     // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize2()) * k_h_w;     // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetOutChannels2()) * k_r_s;   // C*K*R*S
-    ok = problem.GetOutWidth2() > 0
-         && problem.GetOutWidth2() <= 512
+    const auto h_w     = static_cast<long>(problem.GetOutHeight_()) * problem.GetOutWidth_();
+    const auto r_s     = static_cast<long>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<long>(problem.GetOutChannels_()) * h_w;     // C*H*W
+    const auto k_h_w   = static_cast<long>(problem.GetInChannels_()) * h_w;      // K*H*W
+    const auto c_r_s   = static_cast<long>(problem.GetOutChannels_()) * r_s;     // C*R*S
+    const auto k_r_s   = static_cast<long>(problem.GetInChannels_()) * r_s;      // K*R*S
+    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize_()) * c_h_w;     // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize_()) * k_h_w;     // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(problem.GetOutChannels_()) * k_r_s;   // C*K*R*S
+    ok = problem.GetOutWidth_() > 0
+         && problem.GetOutWidth_() <= 512
          && (IsReverseInOutAllowed(problem)
-                ? ((problem.GetOutChannels2() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels2() % (4 * problem.GetGroupCount()) == 0))
-                : (problem.GetOutChannels2() % (4 * problem.GetGroupCount()) == 0))
-         && problem.GetOutHeight2() < std::pow(2, 16)    // -H   H img_h
-         && problem.GetBatchSize2() < std::pow(2, 16)    // -n   N batch_size
-         && problem.GetOutChannels2() < std::pow(2, 16)  // -c   C input_channels
-         && problem.GetInChannels2() < std::pow(2, 16)   // -k   K output_channels
+                ? ((problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels_() % (4 * problem.GetGroupCount()) == 0))
+                : (problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0))
+         && problem.GetOutHeight_() < std::pow(2, 16)    // -H   H img_h
+         && problem.GetBatchSize_() < std::pow(2, 16)    // -n   N batch_size
+         && problem.GetOutChannels_() < std::pow(2, 16)  // -c   C input_channels
+         && problem.GetInChannels_() < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 22)
          && k_h_w < std::pow(2, 22)
          && c_r_s < std::pow(2, 22)
@@ -447,14 +447,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "elements_in_dword", (problem.IsFp16()) ? 2 : 1);
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize2()); // N
-    GenerateClangDefsym(options, "img_h", problem.GetOutHeight2());      // H
-    GenerateClangDefsym(options, "img_w", problem.GetOutWidth2());       // W
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_()); // N
+    GenerateClangDefsym(options, "img_h", problem.GetOutHeight_());      // H
+    GenerateClangDefsym(options, "img_w", problem.GetOutWidth_());       // W
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels2()); // C
-    GenerateClangDefsym(options, "output_channels", problem.GetInChannels2()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight2());        // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth2());         // S
+    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels_()); // C
+    GenerateClangDefsym(options, "output_channels", problem.GetInChannels_()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "stride_h", problem.GetKernelStrideH());

@@ -58,7 +58,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
 
     return problem.direction.IsForward() && problem.GetGroupCount() == 1 &&
            problem.GetDilationH() == 1 && problem.GetDilationW() == 1 &&
-           problem.GetWeightsHeight2() == 11 && problem.GetWeightsWidth2() == 11 &&
+           problem.GetWeightsHeight_() == 11 && problem.GetWeightsWidth_() == 11 &&
            problem.GetKernelStrideH() == 4 && problem.GetKernelStrideW() == 4;
 }
 
@@ -72,9 +72,9 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // auto dev_local_mem_sz = localMemSize; // in bytes
     // major parameters
     int LG2_WAVE_SZ = mloLg2(hw_wave_sz);
-    int wei_cstride = problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
+    int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
     int wei_bstride =
-        (is_forward ? problem.GetInChannels2() : problem.GetOutChannels2()) * wei_cstride;
+        (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -225,30 +225,30 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
         std::to_string(result.grp_tile0) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string(result.grp_tile1) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string(grp_tile2) + std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(problem.GetWeightsWidth2()) + std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(problem.GetWeightsHeight2()) + std::string(" -DMLO_FILTER_PAD0=") +
+        std::to_string(problem.GetWeightsWidth_()) + std::string(" -DMLO_FILTER_SIZE1=") +
+        std::to_string(problem.GetWeightsHeight_()) + std::string(" -DMLO_FILTER_PAD0=") +
         std::to_string(problem.GetPadW()) + std::string(" -DMLO_FILTER_PAD1=") +
         std::to_string(problem.GetPadH()) + std::string(" -DMLO_FILTER_STRIDE0=") +
         std::to_string(problem.GetKernelStrideW()) + std::string(" -DMLO_FILTER_STRIDE1=") +
         std::to_string(problem.GetKernelStrideH()) + std::string(" -DSTRIDE_W=") +
         std::to_string(problem.GetKernelStrideW()) + std::string(" -DSTRIDE_H=") +
         std::to_string(problem.GetKernelStrideH()) + std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(problem.GetOutChannels2()) + std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(problem.GetInChannels2()) + std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(problem.GetBatchSize2()) + std::string(" -DMLO_N_BATCH_LOOPS=") +
+        std::to_string(problem.GetOutChannels_()) + std::string(" -DMLO_N_INPUTS=") +
+        std::to_string(problem.GetInChannels_()) + std::string(" -DMLO_BATCH_SZ=") +
+        std::to_string(problem.GetBatchSize_()) + std::string(" -DMLO_N_BATCH_LOOPS=") +
         std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(problem.GetOutBatchStride2()) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(problem.GetOutChannelStride2()) + std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(problem.GetOutStride2()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(problem.GetInBatchStride2()) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(problem.GetInChannelStride2()) + std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(problem.GetInStride2()) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
+        std::to_string(problem.GetOutBatchStride_()) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+        std::to_string(problem.GetOutChannelStride_()) + std::string(" -DMLO_OUT_STRIDE=") +
+        std::to_string(problem.GetOutStrideH_()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+        std::to_string(problem.GetInBatchStride_()) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+        std::to_string(problem.GetInChannelStride_()) + std::string(" -DMLO_IN_STRIDE=") +
+        std::to_string(problem.GetInStrideH_()) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
         std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
         std::to_string(wei_cstride) + std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(problem.GetInWidth2()) + std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(problem.GetInHeight2()) + std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(problem.GetOutWidth2()) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(problem.GetOutHeight2()) + std::string(" -DMLO_IN_TILE1=") +
+        std::to_string(problem.GetInWidth_()) + std::string(" -DMLO_IN_HEIGHT=") +
+        std::to_string(problem.GetInHeight_()) + std::string(" -DMLO_OUT_WIDTH=") +
+        std::to_string(problem.GetOutWidth_()) + std::string(" -DMLO_OUT_HEIGHT=") +
+        std::to_string(problem.GetOutHeight_()) + std::string(" -DMLO_IN_TILE1=") +
         std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
         std::to_string(result.n_stacks) // # of diff stacks (part of batch).

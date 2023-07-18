@@ -47,7 +47,7 @@ struct ProblemInterpreter
         return problem.GetGroupCount();
     }
 
-    static auto GetBatchN(const ProblemDescription& problem) { return problem.GetBatchSize2(); }
+    static int GetBatchN(const ProblemDescription& problem) { return problem.GetBatchSize_(); }
 
     static auto GetOutputLayout(const ProblemDescription& problem)
     {
@@ -57,12 +57,12 @@ struct ProblemInterpreter
             return problem.GetInLayout();
     }
 
-    static auto GetOutputChannelK(const ProblemDescription& problem)
+    static int GetOutputChannelK(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetOutChannels2();
+            return problem.GetOutChannels_();
         else
-            return problem.GetInChannels2();
+            return problem.GetInChannels_();
     }
 
     static auto GetInputLayout(const ProblemDescription& problem)
@@ -73,60 +73,60 @@ struct ProblemInterpreter
             return problem.GetOutLayout();
     }
 
-    static auto GetInputChannelC(const ProblemDescription& problem)
+    static int GetInputChannelC(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetInChannels2();
+            return problem.GetInChannels_();
         else
-            return problem.GetOutChannels2();
+            return problem.GetOutChannels_();
     }
 
-    static auto GetInputDepthDi(const ProblemDescription& problem)
+    static int GetInputDepthDi(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetInDepth2();
+            return problem.GetInDepth_();
         else
-            return problem.GetOutDepth2();
+            return problem.GetOutDepth_();
     }
 
-    static auto GetInputHeightHi(const ProblemDescription& problem)
+    static int GetInputHeightHi(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetInHeight2();
+            return problem.GetInHeight_();
         else
-            return problem.GetOutHeight2();
+            return problem.GetOutHeight_();
     }
 
-    static auto GetInputWidthWi(const ProblemDescription& problem)
+    static int GetInputWidthWi(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetInWidth2();
+            return problem.GetInWidth_();
         else
-            return problem.GetOutWidth2();
+            return problem.GetOutWidth_();
     }
 
-    static auto GetOutputDepthDo(const ProblemDescription& problem)
+    static int GetOutputDepthDo(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetOutDepth2();
+            return problem.GetOutDepth_();
         else
-            return problem.GetInDepth2();
+            return problem.GetInDepth_();
     }
 
-    static auto GetOutputHeightHo(const ProblemDescription& problem)
+    static int GetOutputHeightHo(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetOutHeight2();
+            return problem.GetOutHeight_();
         else
-            return problem.GetInHeight2();
+            return problem.GetInHeight_();
     }
 
-    static auto GetOutputWidthWo(const ProblemDescription& problem)
+    static int GetOutputWidthWo(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.GetOutWidth2();
+            return problem.GetOutWidth_();
         else
-            return problem.GetInWidth2();
+            return problem.GetInWidth_();
     }
 
     static auto GetOutputDataType(const ProblemDescription& problem)
@@ -139,9 +139,9 @@ struct ProblemInterpreter
         return problem.direction.IsForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
-    static auto GetFilterDepthZ(const ProblemDescription& problem)
+    static int GetFilterDepthZ(const ProblemDescription& problem)
     {
-        return problem.GetWeightsDepth2();
+        return problem.GetWeightsDepth_();
     }
 
     static auto GetFilterLayout(const ProblemDescription& problem)
@@ -149,14 +149,14 @@ struct ProblemInterpreter
         return problem.GetWeightsLayout();
     }
 
-    static auto GetFilterHeightY(const ProblemDescription& problem)
+    static int GetFilterHeightY(const ProblemDescription& problem)
     {
-        return problem.GetWeightsHeight2();
+        return problem.GetWeightsHeight_();
     }
 
-    static auto GetFilterWidthX(const ProblemDescription& problem)
+    static int GetFilterWidthX(const ProblemDescription& problem)
     {
-        return problem.GetWeightsWidth2();
+        return problem.GetWeightsWidth_();
     }
 
     // adjust conv_stride_d to 1 if Do is 1

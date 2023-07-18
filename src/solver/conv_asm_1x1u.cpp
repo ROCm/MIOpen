@@ -67,12 +67,12 @@ static inline bool UseUpsample(const ProblemDescription& problem)
 /// out_height/out_width and vice versa.
 static inline int AsmImgHeight(const ProblemDescription& problem)
 {
-    return UseSubsample(problem) ? problem.GetOutHeight2() : problem.GetInHeight2();
+    return UseSubsample(problem) ? problem.GetOutHeight_() : problem.GetInHeight_();
 }
 
 static inline int AsmImgWidth(const ProblemDescription& problem)
 {
-    return UseSubsample(problem) ? problem.GetOutWidth2() : problem.GetInWidth2();
+    return UseSubsample(problem) ? problem.GetOutWidth_() : problem.GetInWidth_();
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -406,12 +406,12 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
     features[3 * n + 3] =
-        float(problem.direction.IsForward() ? problem.GetInChannels2() : problem.GetOutChannels2());
+        float(problem.direction.IsForward() ? problem.GetInChannels_() : problem.GetOutChannels_());
     features[4 * n + 4] =
-        float(problem.direction.IsForward() ? problem.GetOutChannels2() : problem.GetInChannels2());
-    features[5 * n + 5] = float(problem.GetInHeight2());
-    features[6 * n + 6] = float(problem.GetInWidth2());
-    features[7 * n + 7] = float(problem.GetBatchSize2());
+        float(problem.direction.IsForward() ? problem.GetOutChannels_() : problem.GetInChannels_());
+    features[5 * n + 5] = float(problem.GetInHeight_());
+    features[6 * n + 6] = float(problem.GetInWidth_());
+    features[7 * n + 7] = float(problem.GetBatchSize_());
     return features;
 }
 
@@ -558,54 +558,54 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     if(elements_in_dword == 0) // For clang-tidy (false positive DIV/0)
         MIOPEN_THROW(miopenStatusInternalError);
     // clang-format off
-    const int img_hw = problem.GetOutHeight2() * problem.GetOutWidth2();
+    const int img_hw = problem.GetOutHeight_() * problem.GetOutWidth_();
     bool ok = (problem.GetPadW() == 0       // -q  pad_w
         && problem.GetPadH() == 0           // -p  pad_h
         && problem.GetKernelStrideW() <= 2  // -u  stride_w
         && problem.GetKernelStrideW() == problem.GetKernelStrideH()
-        && problem.GetWeightsWidth2() == 1   // -x  S wei_w
-        && problem.GetWeightsHeight2() == 1  // -y  R wei_h
+        && problem.GetWeightsWidth_() == 1   // -x  S wei_w
+        && problem.GetWeightsHeight_() == 1  // -y  R wei_h
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
-        && problem.GetInChannels2() % elements_in_dword == 0
-        && problem.GetOutChannels2() % elements_in_dword == 0
+        && problem.GetInChannels_() % elements_in_dword == 0
+        && problem.GetOutChannels_() % elements_in_dword == 0
         && problem.GetInLayout() == "NCHW"
         && problem.GetGroupCount() == 1
         && img_hw >= elements_in_dword
-        && (elements_in_dword == 1 || problem.GetOutChannels2() >= 4));
+        && (elements_in_dword == 1 || problem.GetOutChannels_() >= 4));
     if(problem.direction.IsBackwardData() && elements_in_dword != 1)
-        ok = ok && (problem.GetOutChannels2() % 4 == 0);
+        ok = ok && (problem.GetOutChannels_() % 4 == 0);
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
     /// \todo Ilya: The checks below look adequate but needs to be double-checked.
     {
-        const long input_line_size = 4 * static_cast<long>(problem.GetInWidth2());
-        const long input_feature_map_size = input_line_size * problem.GetInHeight2();
-        const long input_stack_size = input_feature_map_size * problem.GetInChannels2();
+        const long input_line_size = 4 * static_cast<long>(problem.GetInWidth_());
+        const long input_feature_map_size = input_line_size * problem.GetInHeight_();
+        const long input_stack_size = input_feature_map_size * problem.GetInChannels_();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     {
-        const long output_line_size = 4 * static_cast<long>(problem.GetOutWidth2());
-        const long output_feature_map_size = output_line_size * problem.GetOutHeight2();
-        const long output_stack_size = output_feature_map_size * problem.GetOutChannels2();
+        const long output_line_size = 4 * static_cast<long>(problem.GetOutWidth_());
+        const long output_feature_map_size = output_line_size * problem.GetOutHeight_();
+        const long output_stack_size = output_feature_map_size * problem.GetOutChannels_();
         if (! (output_stack_size < (1U << 24)))
             return false;
     }
     // Check limits:
     auto h_w = static_cast<long>(AsmImgHeight(problem)) * AsmImgWidth(problem);
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight2()) * problem.GetWeightsWidth2();
-    const auto c_h_w   = static_cast<long>(problem.GetInChannels2()) * h_w;  // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetOutChannels2()) * h_w; // K*H*W
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize2()) * c_h_w; // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize2()) * k_h_w; // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetInChannels2()) * problem.GetOutChannels2() * r_s; // C*K*R*S
-    ok = problem.GetBatchSize2() < std::pow(2, 16)       // -n   N batch_size
-         && problem.GetInChannels2() < std::pow(2, 16)   // -c   C input_channels
-         && problem.GetOutChannels2() < std::pow(2, 16)  // -k   K output_channels
+    const auto r_s     = static_cast<long>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<long>(problem.GetInChannels_()) * h_w;  // C*H*W
+    const auto k_h_w   = static_cast<long>(problem.GetOutChannels_()) * h_w; // K*H*W
+    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(problem.GetInChannels_()) * problem.GetOutChannels_() * r_s; // C*K*R*S
+    ok = problem.GetBatchSize_() < std::pow(2, 16)       // -n   N batch_size
+         && problem.GetInChannels_() < std::pow(2, 16)   // -c   C input_channels
+         && problem.GetOutChannels_() < std::pow(2, 16)  // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
@@ -621,9 +621,9 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&,
     {
         int in_batch_stride =
             AsmImgWidth(problem) * AsmImgHeight(problem) *
-            (UseSubsample(problem) ? problem.GetInChannels2() : problem.GetOutChannels2());
+            (UseSubsample(problem) ? problem.GetInChannels_() : problem.GetOutChannels_());
         int data_len = GetTypeSize(problem.GetOutDataType());
-        return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize2() * data_len;
+        return static_cast<size_t>(in_batch_stride) * problem.GetBatchSize_() * data_len;
     }
     return 0;
 }
@@ -650,7 +650,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride =
             AsmImgWidth(problem) * AsmImgHeight(problem) *
-            (UseSubsample(problem) ? problem.GetInChannels2() : problem.GetOutChannels2());
+            (UseSubsample(problem) ? problem.GetInChannels_() : problem.GetOutChannels_());
         int write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
                          : (AsmImgWidth(problem) % 3 == 0) ? 3
                          : (AsmImgWidth(problem) % 2 == 0) ? 2
@@ -667,14 +667,14 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(problem.GetKernelStrideW()) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(problem.GetKernelStrideH()) +
             std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.GetOutChannelStride2()) +
-            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetOutStride2()) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.GetOutChannelStride_()) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetOutStrideH_()) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
             std::string(" -DMLO_IN0_BATCH_STRIDE=") +
-            std::to_string(problem.direction.IsForward() ? problem.GetInBatchStride2()
-                                                         : problem.GetOutBatchStride2()) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride2()) +
-            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetInStride2()) +
+            std::to_string(problem.direction.IsForward() ? problem.GetInBatchStride_()
+                                                         : problem.GetOutBatchStride_()) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride_()) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetInStrideH_()) +
             ctx.general_compile_options;
         // clang-format on
 
@@ -683,7 +683,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         ss_us_kernel.l_wk.push_back(1);
         // output is number of subsampled input maps
         size_t gbl_wk0 = (in_batch_stride / write_unit);
-        size_t gbl_wk1 = problem.GetBatchSize2();
+        size_t gbl_wk1 = problem.GetBatchSize_();
         size_t gbl_wk2 = 1;
 
         ss_us_kernel.g_wk.push_back(gbl_wk0);
@@ -707,11 +707,11 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "img_w", AsmImgWidth(problem));  // W
 
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize2());        // N
-    GenerateClangDefsym(options, "input_channels", problem.GetInChannels2());   // C
-    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels2()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight2());         // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth2());          // S
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_());        // N
+    GenerateClangDefsym(options, "input_channels", problem.GetInChannels_());   // C
+    GenerateClangDefsym(options, "output_channels", problem.GetOutChannels_()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());         // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
@@ -774,24 +774,24 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
 
     // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
-                   problem.GetBatchSize2(),
-                   problem.GetInChannels2(),
+                   problem.GetBatchSize_(),
+                   problem.GetInChannels_(),
                    AsmImgHeight(problem),
                    AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
-                   problem.GetBatchSize2(),
-                   problem.GetOutChannels2(),
+                   problem.GetBatchSize_(),
+                   problem.GetOutChannels_(),
                    AsmImgHeight(problem),
                    AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info fbuf(problem.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
-                   problem.GetOutChannels2(),
-                   problem.GetInChannels2(),
+                   problem.GetOutChannels_(),
+                   problem.GetInChannels_(),
                    1,
                    1,
                    1,
@@ -868,10 +868,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         main_kernel.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(problem) * AsmImgWidth(problem), hw_per_wave));
 
-    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetOutChannels2(),
+    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetOutChannels_(),
                                                      pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
-    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetBatchSize2(), n_images_per_wave));
+    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.GetBatchSize_(), n_images_per_wave));
 
     main_kernel.kernel_file = "conv1x1u.s";
     main_kernel.kernel_name = "miopenGcnAsmConv1x1U";

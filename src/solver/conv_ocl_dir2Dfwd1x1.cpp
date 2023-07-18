@@ -67,7 +67,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
     }
 
     return problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
-           problem.GetWeightsWidth2() == 1 && problem.GetWeightsHeight2() == 1 &&
+           problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1 &&
            problem.GetGroupCount() == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
            problem.GetPadW() == 0 && problem.GetPadH() == 0;
@@ -80,12 +80,12 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     config.CopyTo(result);
 
-    //   if(problem.GetOutChannels2() % 4 == 0 && problem.GetInChannels2() % 4 == 0)
+    //   if(problem.GetOutChannels_() % 4 == 0 && problem.GetInChannels_() % 4 == 0)
     {
         //        int version = result.out_pix_tile1;
 
-        if((problem.direction.IsForward() && problem.GetInChannels2() % 16 == 0 &&
-            problem.GetOutChannels2() % 16 == 0) &&
+        if((problem.direction.IsForward() && problem.GetInChannels_() % 16 == 0 &&
+            problem.GetOutChannels_() % 16 == 0) &&
            (problem.GetInDataType() == miopenFloat))
         {
 
@@ -95,13 +95,13 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             // 0 or 1
             int CHEAT_SHADER_COMPILER = result.out_pix_tile0;
 
-            int BATCHSIZE = problem.GetBatchSize2();
-            int W         = problem.GetInWidth2();
-            int H         = problem.GetInHeight2();
-            int C         = problem.GetInChannels2();
-            int K         = problem.GetOutChannels2();
-            int W_out     = problem.GetOutWidth2();
-            int H_out     = problem.GetOutHeight2();
+            int BATCHSIZE = problem.GetBatchSize_();
+            int W         = problem.GetInWidth_();
+            int H         = problem.GetInHeight_();
+            int C         = problem.GetInChannels_();
+            int K         = problem.GetOutChannels_();
+            int W_out     = problem.GetOutWidth_();
+            int H_out     = problem.GetOutHeight_();
 
             N_LCL_IN_MAPS  = std::min(N_LCL_IN_MAPS, C);
             N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
@@ -198,8 +198,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetOutWidth2()) *
-                                              problem.GetOutHeight2() * problem.GetBatchSize2() +
+                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetOutWidth_()) *
+                                              problem.GetOutHeight_() * problem.GetBatchSize_() +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -224,8 +224,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetInWidth2()) *
-                                              problem.GetInHeight2() * problem.GetBatchSize2() +
+                size_t imagesizeAlign = ((static_cast<size_t>(problem.GetInWidth_()) *
+                                              problem.GetInHeight_() * problem.GetBatchSize_() +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -251,7 +251,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
         {
 
             // parameters
-            //	int i_sz = problem.GetInWidth2() * problem.GetInHeight2();
+            //	int i_sz = problem.GetInWidth_() * problem.GetInHeight_();
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
             result.out_pix_tile0 = std::min(problem.GetOutWidth2(), result.out_pix_tile0);
             result.out_pix_tile1 = std::min(problem.GetOutHeight2(), result.out_pix_tile1);
@@ -270,18 +270,18 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 read_unit /= 2;
             }
 
-            // problem.GetOutWidth2()
+            // problem.GetOutWidth_()
             //	_n_out_pix_tiles = 16;
             //	_n_in_data_tiles = 4;
             //	_grp_tile0 = 64;
 
-            int wei_cstride = problem.GetWeightsWidth2() * problem.GetWeightsHeight2();
+            int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
             // backward: inputs are forward outputs
             const bool is_forward = problem.direction.IsForward();
             int wei_bstride =
-                (is_forward ? problem.GetInChannels2() : problem.GetOutChannels2()) * wei_cstride;
+                (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 
-            int OUT_WIDTH4 = problem.GetOutWidth2();
+            int OUT_WIDTH4 = problem.GetOutWidth_();
             int MAP_SZ4    = (OUT_WIDTH4 * problem.GetOutHeight2() + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
             if(problem.GetPadW() > 0 || problem.GetKernelStrideW() > 1 || problem.GetPadH() > 0 ||
@@ -290,7 +290,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 int step        = is_forward ? read_unit : read_unit * problem.GetKernelStrideW();
                 OUT_WIDTH4      = (problem.GetOutWidth2() + step - 1) / (step);
                 int OUT_HEIGHT4 = is_forward
-                                      ? problem.GetOutHeight2()
+                                      ? problem.GetOutHeight_()
                                       : (problem.GetOutHeight2() + problem.GetKernelStrideH() - 1) /
                                             problem.GetKernelStrideH();
                 MAP_SZ4         = (OUT_WIDTH4 * OUT_HEIGHT4);
@@ -335,28 +335,28 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
 
             kernel.comp_options =
                 std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth2()) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight2()) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.GetWeightsWidth_()) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.GetWeightsHeight_()) +
                 std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(problem.GetKernelStrideW()) +
                 std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(problem.GetKernelStrideH()) +
                 std::string(" -DMLO_FILTER_PAD0=") + std::to_string(problem.GetPadW()) +
                 std::string(" -DMLO_FILTER_PAD1=") + std::to_string(problem.GetPadH()) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(problem.GetInWidth2()) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(problem.GetInHeight2()) +
-                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetOutWidth2()) +
-                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetOutHeight2()) +
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetOutChannels2()) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetInChannels2()) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize2()) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(problem.GetInWidth_()) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(problem.GetInHeight_()) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.GetOutWidth_()) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.GetOutHeight_()) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.GetOutChannels_()) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.GetInChannels_()) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.GetBatchSize_()) +
                 std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-                std::to_string(problem.GetOutBatchStride2()) +
+                std::to_string(problem.GetOutBatchStride_()) +
                 std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-                std::to_string(problem.GetOutChannelStride2()) + std::string(" -DMLO_OUT_STRIDE=") +
-                std::to_string(problem.GetOutStride2()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-                std::to_string(problem.GetInBatchStride2()) +
+                std::to_string(problem.GetOutChannelStride_()) + std::string(" -DMLO_OUT_STRIDE=") +
+                std::to_string(problem.GetOutStrideH_()) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+                std::to_string(problem.GetInBatchStride_()) +
                 std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-                std::to_string(problem.GetInChannelStride2()) + std::string(" -DMLO_IN_STRIDE=") +
-                std::to_string(problem.GetInStride2()) + std::string(" -DMLO_WEI_BSTRIDE=") +
+                std::to_string(problem.GetInChannelStride_()) + std::string(" -DMLO_IN_STRIDE=") +
+                std::to_string(problem.GetInStrideH_()) + std::string(" -DMLO_WEI_BSTRIDE=") +
                 std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
                 std::to_string(wei_cstride) +
                 // algorithm parameters
@@ -388,7 +388,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             kernel.l_wk.push_back(1);
             kernel.l_wk.push_back(1);
 
-            size_t gbl_wk0 = static_cast<size_t>(problem.GetBatchSize2()) * MAP_SZ4;
+            size_t gbl_wk0 = static_cast<size_t>(problem.GetBatchSize_()) * MAP_SZ4;
 
             size_t gbl_wk1 =
                 (problem.GetOutChannels2() + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;

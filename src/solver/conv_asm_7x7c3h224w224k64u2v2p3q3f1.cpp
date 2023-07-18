@@ -75,18 +75,18 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     }
 
     // clang-format off
-    return problem.GetPadW() == 3           // -q
-        && problem.GetPadH() == 3           // -p
-        && problem.GetKernelStrideW() == 2  // -v
-        && problem.GetKernelStrideH() == 2  // -u
-        && problem.GetWeightsWidth2() == 7   // -x
-        && problem.GetWeightsHeight2() == 7  // -y
+    return problem.GetPadW() == 3            // -q
+        && problem.GetPadH() == 3            // -p
+        && problem.GetKernelStrideW() == 2   // -v
+        && problem.GetKernelStrideH() == 2   // -u
+        && problem.GetWeightsWidth_() == 7   // -x
+        && problem.GetWeightsHeight_() == 7  // -y
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetInChannels2() == 3     // -c
-        && problem.GetOutChannels2() == 64   // -k
-        && problem.GetInWidth2() == 224      // -W
-        && problem.GetInHeight2() == 224     // -H
+        && problem.GetInChannels_() == 3     // -c
+        && problem.GetOutChannels_() == 64   // -k
+        && problem.GetInWidth_() == 224      // -W
+        && problem.GetInHeight_() == 224     // -H
         && problem.IsFp32()
         && problem.GetGroupCount() == 1
         && problem.GetInLayout() == "NCHW";
@@ -117,8 +117,8 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
     constr_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels2() / 2, 8)));
-    constr_params.g_wk.push_back(problem.GetBatchSize2());
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize_());
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";

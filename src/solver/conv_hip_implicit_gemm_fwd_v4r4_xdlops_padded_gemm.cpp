@@ -1094,12 +1094,12 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsFp32())
     {
-        if((problem.GetInChannels2() == 3 && problem.GetOutChannels2() == 1 &&
-            problem.GetInWidth2() == 227 && problem.GetInHeight2() == 227 &&
-            problem.GetWeightsWidth2() == 3 && problem.GetWeightsHeight2() == 3) //
-           || (problem.GetInChannels2() == 64 && problem.GetOutChannels2() == 1 &&
-               problem.GetInWidth2() == 112 && problem.GetInHeight2() == 112 &&
-               problem.GetWeightsWidth2() == 3 && problem.GetWeightsHeight2() == 3 &&
+        if((problem.GetInChannels_() == 3 && problem.GetOutChannels_() == 1 &&
+            problem.GetInWidth_() == 227 && problem.GetInHeight_() == 227 &&
+            problem.GetWeightsWidth_() == 3 && problem.GetWeightsHeight_() == 3) //
+           || (problem.GetInChannels_() == 64 && problem.GetOutChannels_() == 1 &&
+               problem.GetInWidth_() == 112 && problem.GetInHeight_() == 112 &&
+               problem.GetWeightsWidth_() == 3 && problem.GetWeightsHeight_() == 3 &&
                problem.GetKernelStrideW() >= 2 && problem.GetKernelStrideH() >= 2 &&
                problem.GetDilationW() >= 3 && problem.GetDilationH() >= 3))
         {
