@@ -182,7 +182,13 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     }
 
     str += " -F " + std::to_string(fusion_mode);
-    str += ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, ConvDirection::Fwd, false, false);
+    str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
+                                   miopen::deref(wDesc),
+                                   miopen::deref(convDesc),
+                                   miopen::deref(yDesc),
+                                   miopenProblemDirection_t::miopenProblemDirectionForward,
+                                   false,
+                                   false);
 
     return str;
 }

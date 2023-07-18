@@ -436,17 +436,6 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
     }
 }
 
-static miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
-{
-    switch(direction)
-    {
-    case ConvDirection::Fwd: return miopenProblemDirectionForward;
-    case ConvDirection::Bwd: return miopenProblemDirectionBackward;
-    case ConvDirection::WrW: return miopenProblemDirectionBackwardWeights;
-    };
-    MIOPEN_THROW(miopenStatusInternalError);
-}
-
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,

@@ -29,18 +29,28 @@
 namespace miopen {
 namespace debug {
 
-void ConvDataType(std::stringstream& ss, const miopenTensorDescriptor_t& desc)
+miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
 {
-    if(miopen::deref(desc).GetType() == miopenHalf)
+    switch(direction)
+    {
+    case ConvDirection::Fwd: return miopenProblemDirectionForward;
+    case ConvDirection::Bwd: return miopenProblemDirectionBackward;
+    case ConvDirection::WrW: return miopenProblemDirectionBackwardWeights;
+    };
+    MIOPEN_THROW(miopenStatusInternalError);
+}
+
+void ConvDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
+{
+    if(desc.GetType() == miopenHalf)
     {
         ss << "convfp16";
     }
-    else if(miopen::deref(desc).GetType() == miopenBFloat16)
+    else if(desc.GetType() == miopenBFloat16)
     {
         ss << "convbfp16";
     }
-    else if(miopen::deref(desc).GetType() == miopenInt8 ||
-            miopen::deref(desc).GetType() == miopenInt8x4)
+    else if(desc.GetType() == miopenInt8 || desc.GetType() == miopenInt8x4)
     {
         ss << "convint8";
     }
@@ -50,9 +60,9 @@ void ConvDataType(std::stringstream& ss, const miopenTensorDescriptor_t& desc)
     }
 }
 
-void BnDataType(std::stringstream& ss, const miopenTensorDescriptor_t& desc)
+void BnDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
 {
-    if(miopen::deref(desc).GetType() == miopenHalf)
+    if(desc.GetType() == miopenHalf)
     {
         ss << "bnormfp16";
     }
@@ -87,35 +97,44 @@ void BnDriverInfo(std::stringstream& ss,
     }
 }
 
-std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
-                                    const miopenTensorDescriptor_t& wDesc,
-                                    const miopenConvolutionDescriptor_t& convDesc,
-                                    const miopenTensorDescriptor_t& yDesc,
-                                    const ConvDirection& conv_dir,
-                                    bool is_immediate,
+std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
+                                    const miopen::TensorDescriptor& wDesc,
+                                    const miopen::ConvolutionDescriptor& convDesc,
+                                    const miopen::TensorDescriptor& yDesc,
+                                    miopenProblemDirection_t dir,
+                                    std::optional<uint64_t> immediate_mode_solver_id,
                                     bool print_for_conv_driver)
 {
+    const auto conv_dir = [&]() {
+        switch(dir)
+        {
+        case miopenProblemDirectionForward: return ConvDirection::Fwd;
+        case miopenProblemDirectionBackward: return ConvDirection::Bwd;
+        case miopenProblemDirectionBackwardWeights: return ConvDirection::WrW;
+        }
+    }();
+
     std::stringstream ss;
     if(print_for_conv_driver)
         ConvDataType(ss, xDesc);
-    if(miopen::deref(convDesc).GetSpatialDimension() == 2)
+    if(convDesc.GetSpatialDimension() == 2)
     {
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " -y " << miopen::deref(wDesc).GetLengths()[2]
-            << " -x " << miopen::deref(wDesc).GetLengths()[3]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]; // clang-format on
-        std::string x_layout = miopen::deref(xDesc).GetLayout("NCHW");
-        std::string w_layout = miopen::deref(wDesc).GetLayout("NCHW");
-        std::string y_layout = miopen::deref(yDesc).GetLayout("NCHW");
+        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
+            << " -c " << xDesc.GetLengths()[1]
+            << " -H " << xDesc.GetLengths()[2]
+            << " -W " << xDesc.GetLengths()[3]
+            << " -k " << wDesc.GetLengths()[0]
+            << " -y " << wDesc.GetLengths()[2]
+            << " -x " << wDesc.GetLengths()[3]
+            << " -p " << convDesc.GetConvPads()[0]
+            << " -q " << convDesc.GetConvPads()[1]
+            << " -u " << convDesc.GetConvStrides()[0]
+            << " -v " << convDesc.GetConvStrides()[1]
+            << " -l " << convDesc.GetConvDilations()[0]
+            << " -j " << convDesc.GetConvDilations()[1]; // clang-format on
+        std::string x_layout = xDesc.GetLayout("NCHW");
+        std::string w_layout = wDesc.GetLayout("NCHW");
+        std::string y_layout = yDesc.GetLayout("NCHW");
         if(x_layout != "NCHW")
         {
             ss << " --in_layout " << x_layout;
@@ -129,30 +148,30 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
             ss << " --out_layout " << y_layout;
         }
     }
-    else if(miopen::deref(convDesc).GetSpatialDimension() == 3)
+    else if(convDesc.GetSpatialDimension() == 3)
     {
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " --in_d " << miopen::deref(xDesc).GetLengths()[2]
-            << " -H " << miopen::deref(xDesc).GetLengths()[3]
-            << " -W " << miopen::deref(xDesc).GetLengths()[4]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " --fil_d " << miopen::deref(wDesc).GetLengths()[2]
-            << " -y " << miopen::deref(wDesc).GetLengths()[3]
-            << " -x " << miopen::deref(wDesc).GetLengths()[4]
-            << " --pad_d " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[2]
-            << " --conv_stride_d " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[2]
-            << " --dilation_d " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[1]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[2]
+        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
+            << " -c " << xDesc.GetLengths()[1]
+            << " --in_d " << xDesc.GetLengths()[2]
+            << " -H " << xDesc.GetLengths()[3]
+            << " -W " << xDesc.GetLengths()[4]
+            << " -k " << wDesc.GetLengths()[0]
+            << " --fil_d " << wDesc.GetLengths()[2]
+            << " -y " << wDesc.GetLengths()[3]
+            << " -x " << wDesc.GetLengths()[4]
+            << " --pad_d " << convDesc.GetConvPads()[0]
+            << " -p " << convDesc.GetConvPads()[1]
+            << " -q " << convDesc.GetConvPads()[2]
+            << " --conv_stride_d " << convDesc.GetConvStrides()[0]
+            << " -u " << convDesc.GetConvStrides()[1]
+            << " -v " << convDesc.GetConvStrides()[2]
+            << " --dilation_d " << convDesc.GetConvDilations()[0]
+            << " -l " << convDesc.GetConvDilations()[1]
+            << " -j " << convDesc.GetConvDilations()[2]
             << " --spatial_dim 3"; // clang-format on
-        std::string x_layout = miopen::deref(xDesc).GetLayout("NCDHW");
-        std::string w_layout = miopen::deref(wDesc).GetLayout("NCDHW");
-        std::string y_layout = miopen::deref(yDesc).GetLayout("NCDHW");
+        std::string x_layout = xDesc.GetLayout("NCDHW");
+        std::string w_layout = wDesc.GetLayout("NCDHW");
+        std::string y_layout = yDesc.GetLayout("NCDHW");
         if(x_layout != "NCDHW")
         {
             ss << " --in_layout " << x_layout;
@@ -167,19 +186,21 @@ std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
         }
     }
     if(print_for_conv_driver)
-        ss << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv"); // clang-format off
-    ss << " -g " << miopen::deref(convDesc).group_count;
+        ss << " -m " << (convDesc.mode == 1 ? "trans" : "conv"); // clang-format off
+    ss << " -g " << convDesc.group_count;
     if(print_for_conv_driver)
         ss << " -F " << std::to_string(static_cast<int>(conv_dir)) << " -t 1"; // clang-format on
-    if(miopen::deref(xDesc).GetType() == miopenInt8x4)
+    if(xDesc.GetType() == miopenInt8x4)
         ss << " -Z 1";
-    if(is_immediate)
-        ss << " -S 0";
+    if(immediate_mode_solver_id.has_value())
+    {
+        ss << " -S " << *immediate_mode_solver_id;
+    }
 
     return ss.str();
 }
 
-std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
+std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
@@ -192,7 +213,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
     miopenGetTensorDescriptorSize(xDesc, &size);
     std::stringstream ss;
     if(print_for_bn_driver)
-        BnDataType(ss, xDesc);
+        BnDataType(ss, miopen::deref(xDesc));
 
     ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
             << " -c " << miopen::deref(xDesc).GetLengths()[1];
@@ -222,49 +243,49 @@ int GetFusionMode(const miopenFusionPlanDescriptor_t& fusePlanDesc)
 {
     int fusion_mode = -1;
 
-    if(deref(fusePlanDesc).op_map.size() == 4 &&
-       (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-       (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
-       (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpBatchNormInference) &&
-       (deref(fusePlanDesc).op_map[3]->kind() == miopenFusionOpActivForward))
+    if(miopen::deref(fusePlanDesc).op_map.size() == 4 &&
+       (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (miopen::deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpBatchNormInference) &&
+       (miopen::deref(fusePlanDesc).op_map[3]->kind() == miopenFusionOpActivForward))
     {
         fusion_mode = 0;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 3 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference) &&
-            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 3 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference) &&
+            (miopen::deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
     {
         fusion_mode = 1;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpBatchNormInference) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 2 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpBatchNormInference) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
     {
         fusion_mode = 2;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 2 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBatchNormInference))
     {
         fusion_mode = 3;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 3 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
-            (deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 3 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward) &&
+            (miopen::deref(fusePlanDesc).op_map[2]->kind() == miopenFusionOpActivForward))
     {
         fusion_mode = 4;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 2 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpActivForward))
     {
         fusion_mode = 5;
     }
-    else if(deref(fusePlanDesc).op_map.size() == 2 &&
-            (deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
-            (deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward))
+    else if(miopen::deref(fusePlanDesc).op_map.size() == 2 &&
+            (miopen::deref(fusePlanDesc).op_map[0]->kind() == miopenFusionOpConvForward) &&
+            (miopen::deref(fusePlanDesc).op_map[1]->kind() == miopenFusionOpBiasForward))
     {
         fusion_mode = 6;
     }

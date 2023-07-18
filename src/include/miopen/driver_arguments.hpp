@@ -57,12 +57,14 @@ enum BatchNormDirection_t
     Backward
 };
 
-std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
-                                    const miopenTensorDescriptor_t& wDesc,
-                                    const miopenConvolutionDescriptor_t& convDesc,
-                                    const miopenTensorDescriptor_t& yDesc,
-                                    const ConvDirection& conv_dir,
-                                    bool is_immediate,
+miopenProblemDirection_t CmdArgToDirection(ConvDirection direction);
+
+std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
+                                    const miopen::TensorDescriptor& wDesc,
+                                    const miopen::ConvolutionDescriptor& convDesc,
+                                    const miopen::TensorDescriptor& yDesc,
+                                    const miopenProblemDirection_t& conv_dir,
+                                    std::optional<uint64_t> immediate_mode_solver_id,
                                     bool print_for_conv_driver = true);
 
 std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
