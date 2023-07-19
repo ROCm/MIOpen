@@ -383,17 +383,17 @@ GetBwdXdlopsNHWCConfigList()
 }
 
 // clang-format off
-static const inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
+static inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
 GetBwdXdlopsNHWCConfigLargestTileFp32()
 {
     return {"bwd", "nhwc", miopenFloat,  0, 1, 256,  64,  16, 32, 32,  2, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}};
 }
-static const inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
+static inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
 GetBwdXdlopsNHWCConfigLargestTileFp16()
 {
     return {"bwd", "nhwc", miopenHalf,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}};
 }
-static const inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
+static inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
 GetBwdXdlopsNHWCConfigLargestTileBf16()
 {
     return {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}};
