@@ -154,7 +154,7 @@ GetWinoBuffer(const ProblemDescription& problem,
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 static bool IsApplicableGEMM(const ProblemDescription& problem)
 {
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -441,7 +441,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
     }
     else
     {
-#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
+#if MIOPEN_USE_ROCBLAS
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
@@ -466,7 +466,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
+#if MIOPEN_USE_ROCBLAS
                 const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 Data_t workSpace     = data_ctx.workSpace;
                 CallGemmStridedBatched(

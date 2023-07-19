@@ -57,8 +57,8 @@ namespace solver {
 static bool IsBf16Supported;
 static bool IsFp16Supported;
 #else
-static constexpr const bool IsBf16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
-static constexpr const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static constexpr const bool IsBf16Supported = MIOPEN_USE_ROCBLAS;
+static constexpr const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -390,7 +390,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                                          0,
                                                          workSpace,
                                                          x_t_size,
-                                                         GemmBackend_t::miopentensile,
+                                                         GemmBackend_t::rocblas,
                                                          conv_params.gfx90aFp16alt);
                 }
                 else
@@ -404,7 +404,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                            wksp_offset,
                                            workSpace,
                                            x_t_size,
-                                           GemmBackend_t::miopentensile,
+                                           GemmBackend_t::rocblas,
                                            conv_params.gfx90aFp16alt);
                 }
             }
@@ -421,7 +421,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                         x_t_size,
                                         time_precision,
                                         group_count > 1 ? callGemmStridedBatched : callGemm,
-                                        GemmBackend_t::miopentensile,
+                                        GemmBackend_t::rocblas,
                                         conv_params.gfx90aFp16alt);
             }
 
@@ -623,7 +623,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                            0,
                                            y,
                                            out_offset,
-                                           GemmBackend_t::miopentensile,
+                                           GemmBackend_t::rocblas,
                                            conv_params.gfx90aFp16alt);
                 }
                 else
@@ -638,7 +638,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                                       out_offset,
                                                       time_precision,
                                                       callGemm,
-                                                      GemmBackend_t::miopentensile,
+                                                      GemmBackend_t::rocblas,
                                                       conv_params.gfx90aFp16alt);
                 }
 
@@ -780,7 +780,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                              in_offset,
                                                              y,
                                                              out_offset,
-                                                             GemmBackend_t::miopentensile,
+                                                             GemmBackend_t::rocblas,
                                                              conv_params.gfx90aFp16alt);
                     }
                     else
@@ -795,7 +795,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                           out_offset,
                                                           time_precision,
                                                           callGemmStridedBatched,
-                                                          GemmBackend_t::miopentensile,
+                                                          GemmBackend_t::rocblas,
                                                           conv_params.gfx90aFp16alt);
                     }
 
@@ -864,7 +864,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                          0,
                                                          y,
                                                          0,
-                                                         GemmBackend_t::miopentensile,
+                                                         GemmBackend_t::rocblas,
                                                          conv_params.gfx90aFp16alt);
                 }
                 else
@@ -879,7 +879,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                       0,
                                                       time_precision,
                                                       callGemmStridedBatched,
-                                                      GemmBackend_t::miopentensile,
+                                                      GemmBackend_t::rocblas,
                                                       conv_params.gfx90aFp16alt);
                 }
 
@@ -1137,10 +1137,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                         0,
                         time_precision,
                         conv.group_count > 1 ? callGemmStridedBatched : callGemm,
-                        (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
-                         wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
-                            ? GemmBackend_t::miopentensile
-                            : GemmBackend_t::miopengemm,
+                        GemmBackend_t::rocblas,
                         conv_params.gfx90aFp16alt);
                 }
                 else
@@ -1154,7 +1151,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                                              0,
                                                              y,
                                                              out_offset,
-                                                             GemmBackend_t::miopentensile,
+                                                             GemmBackend_t::rocblas,
                                                              conv_params.gfx90aFp16alt);
                     else
                         gemm_status = CallGemm(
@@ -1166,9 +1163,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                             wksp_offset,
                             y,
                             out_offset,
-                            (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
-                                ? GemmBackend_t::rocblas
-                                : GemmBackend_t::miopengemm,
+                            GemmBackend_t::rocblas,
                             conv_params.gfx90aFp16alt);
                 }
 

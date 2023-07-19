@@ -546,10 +546,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS OR MIOPEN_USE_MIOPENTENSILE)
+if(MIOPEN_USE_ROCBLAS)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
-        miopengemm.cpp
     )
 endif()
 
@@ -750,14 +749,6 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
 endif()
 
-############################################################
-# MIOpen depends on miopengemm
-if(miopengemm_FOUND)
-    list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
-    target_internal_library(MIOpen miopengemm)
-    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
-endif()
-
 if(MIOPEN_USE_COMGR)
     list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
     target_internal_library(MIOpen amd_comgr)
@@ -767,11 +758,6 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
-endif()
-
-# MIOpen depends on miopentensile
-if(miopentensile_FOUND)
-    target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
 # For backward compatibility with ROCm 5.3
