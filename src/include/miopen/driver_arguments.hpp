@@ -67,7 +67,7 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
                                     std::optional<uint64_t> immediate_mode_solver_id,
                                     bool print_for_conv_driver = true);
 
-std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,

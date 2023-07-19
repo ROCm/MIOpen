@@ -200,7 +200,7 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     return ss.str();
 }
 
-std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
