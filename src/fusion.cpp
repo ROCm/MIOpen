@@ -211,7 +211,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     const auto& bn_op =
         dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
 
-    if(bn_op)
+    if(bn_op != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
                                         bn_op->mode,
