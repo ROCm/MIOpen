@@ -124,8 +124,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         // Jian: following kernel uses C as input, K as output, different from original definition
         // FIX ME! FIX ME! FIX ME!
         // JIANYANG: not know the meaning of following ==>
-        result.n_stacks      = 1;
-        result.n_stacks      = std::min(problem.GetBatchSize2(), result.n_stacks);
+        result.n_stacks      = std::min(problem.GetBatchSize_(), 1U);
         result.out_pix_tile0 = 1;
         result.out_pix_tile1 = 1;
         result.in_tile1      = 1;
@@ -152,8 +151,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
         int n_grp_size0 = 64;
 
-        int n_out_blocks = ((problem.GetInChannels2() + n_lcl_out_maps - 1) / n_lcl_out_maps);
-        int n_in_blocks  = ((problem.GetOutChannels2() + n_lcl_in_maps - 1) / n_lcl_in_maps);
+        int n_out_blocks = ((problem.GetInChannels_() + n_lcl_out_maps - 1) / n_lcl_out_maps);
+        int n_in_blocks  = ((problem.GetOutChannels_() + n_lcl_in_maps - 1) / n_lcl_in_maps);
         int total_waves  = n_in_blocks * n_out_blocks;
 
         result.n_out_pix_tiles = n_lcl_out_maps;
@@ -263,7 +262,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             out_pad_min_x =
                 (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
             out_pad_width =
-                (problem.GetOutWidth2() - in_pad_min_x + problem.GetKernelStrideW() - 1) /
+                (static_cast<int>(problem.GetOutWidth_()) - in_pad_min_x + problem.GetKernelStrideW() - 1) /
                 problem.GetKernelStrideW();
         }
         if(problem.GetPadH() > 0)
@@ -276,7 +275,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             out_pad_min_y =
                 (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
             out_pad_height =
-                (problem.GetOutHeight2() - in_pad_min_y + problem.GetKernelStrideH() - 1) /
+                (static_cast<int>(problem.GetOutHeight_()) - in_pad_min_y + problem.GetKernelStrideH() - 1) /
                 problem.GetKernelStrideH();
         }
 
@@ -291,7 +290,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
             max_loads_per_readunit =
-                (out_pad_width / read_unit) * out_pad_height * problem.GetBatchSize2();
+                (out_pad_width / read_unit) * out_pad_height * static_cast<int>(problem.GetBatchSize_());
         }
 
         int kernel_stride_w = problem.GetKernelStrideW();

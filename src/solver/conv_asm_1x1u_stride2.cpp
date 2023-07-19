@@ -334,11 +334,11 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
         return false;
     if(!(waves_c_in_group * waves_k_in_group <= 16))
         return false;
-    if(!(waves_c_in_group <= problem.GetInChannels2()))
+    if(!(waves_c_in_group <= problem.GetInChannels_()))
         return false;
     if(!(h_per_chunk <= chunk_size))
         return false;
-    if(!(k_mult * waves_k_in_group <= problem.GetOutChannels2()))
+    if(!(k_mult * waves_k_in_group <= problem.GetOutChannels_()))
         return false;
 
     // cppcheck-suppress unreadVariable
@@ -379,14 +379,14 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
     const auto sgprs = 25 + 2 * k_mult * c_mult;
     if(!(sgprs < 102))
         return false;
-    const auto total_n_blocks = (problem.GetBatchSize2() + GetNPerGpr() - 1) / GetNPerGpr();
+    const auto total_n_blocks = (problem.GetBatchSize_() + GetNPerGpr() - 1) / GetNPerGpr();
     if(!(n_mult <= total_n_blocks))
         return false;
 
-    const auto c_per_wave = (problem.GetInChannels2() + waves_c_in_group - 1) / waves_c_in_group;
-    const auto c_per_last_wave = problem.GetInChannels2() - (c_per_wave * (waves_c_in_group - 1));
+    const auto c_per_wave = (problem.GetInChannels_() + waves_c_in_group - 1) / waves_c_in_group;
+    const auto c_per_last_wave = problem.GetInChannels_() - (c_per_wave * (waves_c_in_group - 1));
 
-    if(problem.direction.IsBackwardData() && !(problem.GetOutChannels2() % k_mult == 0))
+    if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
         return false;
 
     {

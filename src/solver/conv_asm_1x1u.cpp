@@ -295,14 +295,14 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.GetInDataType()));
     if(elements_in_dword == 0) // For clang-tidy (DIV/0)
         MIOPEN_THROW(miopenStatusInternalError);
-    const auto img_hw = problem.GetOutHeight2() * problem.GetOutWidth2();
+    const auto img_hw = problem.GetOutHeight_() * problem.GetOutWidth_();
     if(!IsValidValueImpl(sequence_length))
         return false;
     if(sequence_length > 1)
     {
         if((k_mult % elements_in_dword) != 0)
             return false;
-        if(problem.direction.IsBackwardData() && !(problem.GetOutChannels2() % k_mult == 0))
+        if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
             return false;
     }
     if(sequence_length > 2)
@@ -320,7 +320,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     }
     if(sequence_length > 4)
     {
-        const int total_n_blocks = (problem.GetBatchSize2() + GetNPerGpr() - 1) / GetNPerGpr();
+        const int total_n_blocks = (problem.GetBatchSize_() + GetNPerGpr() - 1) / GetNPerGpr();
         if(!(n_mult <= total_n_blocks))
             return false;
     }
@@ -344,17 +344,17 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     }
     if(sequence_length > 6)
     {
-        if(!(waves_c_in_group <= problem.GetInChannels2()))
+        if(!(waves_c_in_group <= problem.GetInChannels_()))
             return false;
-        const int c_per_wave = (problem.GetInChannels2() + waves_c_in_group - 1) / waves_c_in_group;
+        const int c_per_wave = (problem.GetInChannels_() + waves_c_in_group - 1) / waves_c_in_group;
         const int c_per_last_wave =
-            problem.GetInChannels2() - (c_per_wave * (waves_c_in_group - 1));
+            problem.GetInChannels_() - (c_per_wave * (waves_c_in_group - 1));
         if(c_per_wave % c_mult != 0 || c_per_last_wave % c_mult != 0)
             return false;
     }
     if(sequence_length > 7)
     {
-        if(!(k_mult * waves_k_in_group <= problem.GetOutChannels2()))
+        if(!(k_mult * waves_k_in_group <= problem.GetOutChannels_()))
             return false;
         if(!(waves_c_in_group * waves_k_in_group <= 16))
             return false;
