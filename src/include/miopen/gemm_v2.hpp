@@ -111,17 +111,16 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmBackend_t gemm_backend = GemmBackend_t::rocblas,
                                       bool gfx90a_alt_impl       = false);
 
-miopenStatus_t
-CallGemmStridedBatchedSequential(const Handle& handle,
-                                 GemmDescriptor gemm_desc,
-                                 ConstData_t A,
-                                 int a_offset,
-                                 ConstData_t B,
-                                 int b_offset,
-                                 Data_t C,
-                                 int c_offset,
-                                 GemmBackend_t gemm_backend = GemmBackend_t::rocblas,
-                                 bool gfx90a_alt_impl       = false);
+miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
+                                                GemmDescriptor gemm_desc,
+                                                ConstData_t A,
+                                                int a_offset,
+                                                ConstData_t B,
+                                                int b_offset,
+                                                Data_t C,
+                                                int c_offset,
+                                                GemmBackend_t gemm_backend = GemmBackend_t::rocblas,
+                                                bool gfx90a_alt_impl       = false);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)

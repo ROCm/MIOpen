@@ -2639,15 +2639,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                   xDesc[0].GetType(),
                                                                   false};
 
-                miopenStatus_t gemm_status = CallGemm(handle,
-                                                      gemm_desc,
-                                                      x,
-                                                      0,
-                                                      w,
-                                                      0,
-                                                      reserveSpace,
-                                                      hid_shift,
-                                                      GemmBackend_t::rocblas);
+                miopenStatus_t gemm_status = CallGemm(
+                    handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, GemmBackend_t::rocblas);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -5729,8 +5722,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                   xDesc[0].GetType(),
                                                                   false};
 
-                miopenStatus_t gemm_status = CallGemm(
-                    handle, gemm_desc, workSpace, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
+                miopenStatus_t gemm_status =
+                    CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
 
                 if(gemm_status != miopenStatusSuccess)
                 {

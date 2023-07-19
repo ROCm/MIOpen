@@ -784,19 +784,19 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
             {
                 int in_offset = 0;
 
-                miopenStatus_t gemm_status = CallGemmTimeMeasure(
-                    handle,
-                    gemm_desc,
-                    w,
-                    0,
-                    dy,
-                    0,
-                    workspace,
-                    0,
-                    time_precision,
-                    group_count > 1 ? callGemmStridedBatched : callGemm,
-                    GemmBackend_t::rocblas,
-                    conv_params.gfx90aFp16alt);
+                miopenStatus_t gemm_status =
+                    CallGemmTimeMeasure(handle,
+                                        gemm_desc,
+                                        w,
+                                        0,
+                                        dy,
+                                        0,
+                                        workspace,
+                                        0,
+                                        time_precision,
+                                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                                        GemmBackend_t::rocblas,
+                                        conv_params.gfx90aFp16alt);
 
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmBwdRest execution failure.");

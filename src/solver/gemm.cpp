@@ -1126,19 +1126,19 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 // tensors.y = tensors.w * Im2Col(tensors.x)
                 if(conv_params.type != InvokeType::Run)
                 {
-                    gemm_status = CallGemmTimeMeasure(
-                        handle,
-                        gemm_desc,
-                        w,
-                        0,
-                        workSpace,
-                        wksp_offset,
-                        y,
-                        0,
-                        time_precision,
-                        conv.group_count > 1 ? callGemmStridedBatched : callGemm,
-                        GemmBackend_t::rocblas,
-                        conv_params.gfx90aFp16alt);
+                    gemm_status = CallGemmTimeMeasure(handle,
+                                                      gemm_desc,
+                                                      w,
+                                                      0,
+                                                      workSpace,
+                                                      wksp_offset,
+                                                      y,
+                                                      0,
+                                                      time_precision,
+                                                      conv.group_count > 1 ? callGemmStridedBatched
+                                                                           : callGemm,
+                                                      GemmBackend_t::rocblas,
+                                                      conv_params.gfx90aFp16alt);
                 }
                 else
                 {
@@ -1154,17 +1154,16 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                                              GemmBackend_t::rocblas,
                                                              conv_params.gfx90aFp16alt);
                     else
-                        gemm_status = CallGemm(
-                            handle,
-                            gemm_desc,
-                            w,
-                            0,
-                            workSpace,
-                            wksp_offset,
-                            y,
-                            out_offset,
-                            GemmBackend_t::rocblas,
-                            conv_params.gfx90aFp16alt);
+                        gemm_status = CallGemm(handle,
+                                               gemm_desc,
+                                               w,
+                                               0,
+                                               workSpace,
+                                               wksp_offset,
+                                               y,
+                                               out_offset,
+                                               GemmBackend_t::rocblas,
+                                               conv_params.gfx90aFp16alt);
                 }
 
                 if(gemm_status != miopenStatusSuccess)
