@@ -261,9 +261,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
             out_pad_min_x =
                 (problem.GetPadW() + problem.GetKernelStrideW() - 1) / problem.GetKernelStrideW();
-            out_pad_width =
-                (static_cast<int>(problem.GetOutWidth_()) - in_pad_min_x + problem.GetKernelStrideW() - 1) /
-                problem.GetKernelStrideW();
+            out_pad_width = (static_cast<int>(problem.GetOutWidth_()) - in_pad_min_x +
+                             problem.GetKernelStrideW() - 1) /
+                            problem.GetKernelStrideW();
         }
         if(problem.GetPadH() > 0)
         {
@@ -274,9 +274,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
 
             out_pad_min_y =
                 (problem.GetPadH() + problem.GetKernelStrideH() - 1) / problem.GetKernelStrideH();
-            out_pad_height =
-                (static_cast<int>(problem.GetOutHeight_()) - in_pad_min_y + problem.GetKernelStrideH() - 1) /
-                problem.GetKernelStrideH();
+            out_pad_height = (static_cast<int>(problem.GetOutHeight_()) - in_pad_min_y +
+                              problem.GetKernelStrideH() - 1) /
+                             problem.GetKernelStrideH();
         }
 
         if(problem.GetPadW() > 0 || problem.GetPadH() > 0 ||
@@ -289,8 +289,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
-            max_loads_per_readunit =
-                (out_pad_width / read_unit) * out_pad_height * static_cast<int>(problem.GetBatchSize_());
+            max_loads_per_readunit = (out_pad_width / read_unit) * out_pad_height *
+                                     static_cast<int>(problem.GetBatchSize_());
         }
 
         int kernel_stride_w = problem.GetKernelStrideW();

@@ -117,12 +117,14 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
 
            // This limitation is because of the way the kernel process data at lower vertical
            // boundary (including padding).
-           (static_cast<int>(problem.GetWeightsHeight_()) >= problem.GetPadH() + problem.GetKernelStrideH()) &&
+           (static_cast<int>(problem.GetWeightsHeight_()) >=
+            problem.GetPadH() + problem.GetKernelStrideH()) &&
 
            // Input image height plus vertical paddings should be no less than filter vertical size.
            // TODO: chao: revisit this to make sure this is the actual limitation.
            // Remind that input is output, output is input.
-           (static_cast<int>(problem.GetWeightsHeight_()) <= static_cast<int>(problem.GetOutHeight_()) + 2 * problem.GetPadH()) &&
+           (static_cast<int>(problem.GetWeightsHeight_()) <=
+            static_cast<int>(problem.GetOutHeight_()) + 2 * problem.GetPadH()) &&
 
            // Input and output width and height need to match exactly,
            // meaning, filter's moving range should be the same as input plus padding.
@@ -130,10 +132,12 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
            // right padding, when reading an input row into LDS. Also need to rewrite the vertical
            // loop.
            // Remind that input is output, output is input.
-           (problem.GetInHeight_() ==
-            static_cast<int>(problem.GetOutHeight_()) + 2 * problem.GetPadH() - static_cast<int>(problem.GetWeightsHeight_()) + 1) &&
-           (problem.GetInWidth_() ==
-            static_cast<int>(problem.GetOutWidth_()) + 2 * problem.GetPadW() - static_cast<int>(problem.GetWeightsWidth_()) + 1) &&
+           (problem.GetInHeight_() == static_cast<int>(problem.GetOutHeight_()) +
+                                          2 * problem.GetPadH() -
+                                          static_cast<int>(problem.GetWeightsHeight_()) + 1) &&
+           (problem.GetInWidth_() == static_cast<int>(problem.GetOutWidth_()) +
+                                         2 * problem.GetPadW() -
+                                         static_cast<int>(problem.GetWeightsWidth_()) + 1) &&
 
            // Avoid LDS over-allocation
            GetSolution(ctx, problem).Succeeded() && !workaround;
@@ -370,7 +374,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
                                                                                              : 1;
 
     result.n_in_data_tiles =
-        std::min(result.n_in_data_tiles, static_cast<int>(problem.GetOutChannels_() / problem.GetGroupCount()));
+        std::min(result.n_in_data_tiles,
+                 static_cast<int>(problem.GetOutChannels_() / problem.GetGroupCount()));
 
     static const int read_unit = (problem.GetOutWidth_() % 4 == 0)   ? 4
                                  : (problem.GetOutWidth_() % 3 == 0) ? 3

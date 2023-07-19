@@ -227,7 +227,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
             return false;
 
         const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
-        const int steps         = std::max(0, static_cast<int>(problem.GetOutHeight_()) - 1 - pipe_lines_depth);
+        const int steps =
+            std::max(0, static_cast<int>(problem.GetOutHeight_()) - 1 - pipe_lines_depth);
         assert(unroll_factor);
         const int loops        = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
         const int m_instr      = 3 + (gprs_per_line_in + 3) / 4;
@@ -236,9 +237,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
         /// information here and in all similar places across other Solvers.
         const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(problem) == 2);
-        const int v_instr          = (k_per_wave * static_cast<int>(problem.GetWeightsHeight_()) * gprs_per_line_out *
-                             static_cast<int>(problem.GetWeightsWidth_()) * 4 * (dot2_emulate ? 2 : 1)) /
-                            3 * elements_in_dword(problem);
+        const int v_instr =
+            (k_per_wave * static_cast<int>(problem.GetWeightsHeight_()) * gprs_per_line_out *
+             static_cast<int>(problem.GetWeightsWidth_()) * 4 * (dot2_emulate ? 2 : 1)) /
+            3 * elements_in_dword(problem);
         const int exch_instr = elements_in_dword(problem) == 2 ? 3 * m_instr : 0;
         const int total =
             loops * (m_instr + v_instr + exch_instr) * elements_in_dword(problem); // instructions
