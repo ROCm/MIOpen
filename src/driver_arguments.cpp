@@ -101,7 +101,7 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
                                     const miopen::TensorDescriptor& wDesc,
                                     const miopen::ConvolutionDescriptor& convDesc,
                                     const miopen::TensorDescriptor& yDesc,
-                                    miopenProblemDirection_t dir,
+                                    const miopenProblemDirection_t& dir,
                                     std::optional<uint64_t> immediate_mode_solver_id,
                                     bool print_for_conv_driver)
 {
