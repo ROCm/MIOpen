@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1714,7 +1714,8 @@ void CopyTensor(const Handle& handle,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
                 int srcOffset,
-                int dstOffset)
+                int dstOffset,
+                bool forseAsync)
 {
     if(src == nullptr || dst == nullptr)
     {
@@ -1753,7 +1754,8 @@ void CopyTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-    if(srcOffset > 0 || dstOffset > 0 || (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
+    if(forseAsync || srcOffset > 0 || dstOffset > 0 ||
+       (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
     {
         std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 

@@ -62,7 +62,8 @@
 #define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
 
 /// Maintain API compatibility with various rocBLAS version
-#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000)
+#define USE_GEMM_FLAGS_PACK_INT8X4 \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000) && (MIOPEN_ROCBLAS_VERSION_FLAT < 4000000))
 
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)

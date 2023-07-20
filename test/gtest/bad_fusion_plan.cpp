@@ -32,6 +32,19 @@
 
 #if MIOPEN_BACKEND_HIP
 
+void setEnvironmentVariable(const std::string& name, const std::string& value)
+{
+    int ret = 0;
+
+#ifdef _WIN32
+    std::string env_var(name + "=" + value);
+    ret = _putenv(env_var.c_str());
+#else
+    ret = setenv(name.c_str(), value.c_str(), 1);
+#endif
+    EXPECT_EQ(ret, 0);
+}
+
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -134,6 +147,12 @@ public:
         return solv.IsApplicable(fusion_ctx, fusion_problem);
     }
 
+    void CanCompile()
+    {
+        miopenStatus_t status = fusePlanDesc.Compile(handle);
+        EXPECT_EQ(status, miopenStatusUnsupportedOp);
+    }
+
 private:
     miopen::TensorDescriptor input_des;
     miopen::TensorDescriptor bias_des;
@@ -230,6 +249,18 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
     if(obj.Skip())
         GTEST_SKIP();
     EXPECT_ANY_THROW(obj.Applicability());
+}
+
+TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
+{
+    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
+    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+        miopenTensorNHWC, miopenActivationRELU);
+    if(obj.Skip())
+        GTEST_SKIP();
+    obj.AddBias();
+    obj.AddConv();
+    obj.CanCompile();
 }
 
 #endif
