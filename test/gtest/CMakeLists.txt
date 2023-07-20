@@ -47,7 +47,7 @@ function(add_gtest TEST_NAME)
 #    if(NOT WIN32)
 #      # Enable CMake to discover the test binary
 #      # TODO: turn on for Windows after enabling all the tests.
-#      gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
+    gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
 #    endif()
     if(MIOPEN_ENABLE_SQLITE)
       target_link_libraries(test_${TEST_NAME} PRIVATE sqlite3::sqlite3)

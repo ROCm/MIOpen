@@ -39,20 +39,22 @@ namespace miopen {
 namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-MIOPEN_EXPORT void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
-                                     const miopenTensorDescriptor_t& wDesc,
-                                     const miopenConvolutionDescriptor_t& convDesc,
-                                     const miopenTensorDescriptor_t& yDesc,
-                                     const ConvDirection& conv_dir,
-                                     bool is_immediate);
+MIOPEN_EXPORT
+void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
+                       const miopenTensorDescriptor_t& wDesc,
+                       const miopenConvolutionDescriptor_t& convDesc,
+                       const miopenTensorDescriptor_t& yDesc,
+                       ConvDirection conv_dir,
+                       bool is_immediate);
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-MIOPEN_EXPORT void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
-                                         const miopenTensorDescriptor_t& wDesc,
-                                         const miopenConvolutionDescriptor_t& convDesc,
-                                         const miopenTensorDescriptor_t& yDesc,
-                                         const ConvDirection& conv_dir,
-                                         bool is_immediate);
+MIOPEN_EXPORT
+void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
+                           const miopenTensorDescriptor_t& wDesc,
+                           const miopenConvolutionDescriptor_t& convDesc,
+                           const miopenTensorDescriptor_t& yDesc,
+                           ConvDirection conv_dir,
+                           bool is_immediate);
 } // namespace debug
 } // namespace miopen
 // Function that is used in multiple test cases.
