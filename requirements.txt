@@ -7,4 +7,4 @@ ROCmSoftwarePlatform/FunctionalPlus@v0.2.18-p0
 ROCmSoftwarePlatform/eigen@3.4.0
 ROCmSoftwarePlatform/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
 ROCmSoftwarePlatform/composable_kernel@4feebedd413212fcd455da4a2bfcb40e9e6cab5a -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx940;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102"
-ROCmSoftwarePlatform/gputt -DGPUTT_BUILD_PYTHON=OFF
+ROCmSoftwarePlatform/gputt@5c7891670d5d1a46dde40d96b7ebcbcf1137abfa -DGPUTT_BUILD_PYTHON=OFF
