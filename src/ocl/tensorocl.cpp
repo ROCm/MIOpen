@@ -2124,6 +2124,11 @@ void CastTensor(const Handle& handle,
     }
 }
 
+// Although gpuTT supports generic permutation of N-dimenstional tensors
+// encoded in indexed form, MIOpen supports only some special well-known
+// permutations encoded in literal form, such as NHWC or NCHW. Therefore,
+// we perform the conversion to indexed form by finding the permutation
+// of letters...
 static void
 find_permutation(const std::string& src_layout, const std::string& dst_layout, int* permutation)
 {
@@ -2136,14 +2141,16 @@ find_permutation(const std::string& src_layout, const std::string& dst_layout, i
     std::vector<std::pair<int, int>> permVec;
     for(const auto& kv : permMap)
         permVec.push_back(kv.second);
+
     std::sort(permVec.begin(), permVec.end(), [](const auto& a, const auto& b) -> bool {
         return a.first < b.first;
     });
-
+#if 0
     printf("Permutation for %s -> %s: ", src_layout.c_str(), dst_layout.c_str());
     for(int i = 0; i < permVec.size(); i++)
         printf("%d ", permVec[i].second);
     printf("\n");
+#endif
 }
 
 void TransformTensor(const Handle& handle,
@@ -2156,10 +2163,9 @@ void TransformTensor(const Handle& handle,
                      size_t Xoffset,
                      size_t Yoffset)
 {
+#if MIOPEN_BACKEND_HIP
     // TODO
     (void)handle;
-    (void)Xoffset;
-    (void)Yoffset;
 
     if(x == nullptr || y == nullptr)
     {
@@ -2176,10 +2182,30 @@ void TransformTensor(const Handle& handle,
 
     if(x_len.size() != y_len.size())
     {
-        MIOPEN_THROW("Tensor dimension must be the same");
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimensions must be the same");
     }
 
-#if MIOPEN_BACKEND_HIP
+    if(xDesc.GetType() == miopenInt8 && yDesc.GetType())
+    {
+        // TODO Must support non-equal input and output types
+        MIOPEN_THROW(miopenStatusBadParm, "Input and output tensors must have the same data type");
+    }
+
+    auto type = xDesc.GetType();
+    gputtDataType dtype = gputtDataTypeUnknown;
+    switch(type)
+    {
+    case miopenInt8: dtype = gputtDataTypeInt8;
+    case miopenInt32: dtype = gputtDataTypeInt32;
+    case miopenHalf: dtype = gputtDataTypeFloat16;
+    case miopenFloat: dtype = gputtDataTypeFloat32;
+    case miopenBFloat16: dtype = gputtDataTypeBFloat16;
+    case miopenDouble: dtype = gputtDataTypeFloat64;
+    case miopenInt8x4:
+    default:
+      MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type in transform tensor desc.");
+    }
+
     // Prepare to perform Y_perm(i0, i1, ...) = alpha * X{i0,i1,...} + beta * Y_perm(i0,i1,...)
     // using gpuTT library.
     auto xLayout = xDesc.GetLayout_str();
@@ -2191,11 +2217,10 @@ void TransformTensor(const Handle& handle,
     find_permutation(xDesc.GetLayout_str(), yDesc.GetLayout_str(), permutation.data());
 
     // Create transpose plan on NULL stream and choose implementation based on heuristics
-    // TODO Must support non-equal input and output types
     gputtHandle plan;
     hipStream_t stream = nullptr;
     GPUTT_ERR_CHECK(gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
-                         permutation.data(), sizeof(float), stream));
+                         permutation.data(), dtype, stream));
 
     // Execute transpose plan
     // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
@@ -2204,288 +2229,7 @@ void TransformTensor(const Handle& handle,
     // Destroy transpose plan
     GPUTT_ERR_CHECK(gputtDestroy(plan));
 #else
-    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
-    {
-        if(x_len[1] <= y_len[1])
-        {
-            if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
-            {
-                MIOPEN_THROW("Invalid y channel size");
-            }
-
-            int8_t zero = 0;
-            SetTensor(handle, yDesc, y, &zero);
-        }
-        else if(x_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid x channel size");
-        }
-
-        size_t batch_n = x_len[0];
-
-        x_len[0] = 1;
-        y_len[0] = 1;
-
-        miopen::TensorDescriptor x_batch_desc, y_batch_desc;
-        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len);
-        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len);
-
-        size_t x_batch_sz = x_batch_desc.GetElementSize();
-        size_t y_batch_sz = y_batch_desc.GetElementSize();
-
-        for(unsigned long i = 0; i < batch_n; i++)
-        {
-            size_t x_offset = i * x_batch_sz;
-            size_t y_offset = i * y_batch_sz;
-
-            if(float_equal(*(static_cast<const float*>(alpha)), 1) &&
-               float_equal(*(static_cast<const float*>(beta)), 0))
-            {
-                CopyTensor(handle,
-                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
-                           x,
-                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
-                           y,
-                           x_offset,
-                           y_offset);
-            }
-            else
-            {
-                // TODO: support y=alpha*x+beta*y
-            }
-        }
-    }
-    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
-    {
-        if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid y channel size");
-        }
-
-        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
-    }
-    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
-    {
-        if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid x channel size");
-        }
-
-        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false, alpha, beta);
-    }
-    else
-    {
-        auto x_y_len          = boost::combine(x_len, y_len);
-        bool same_spatial_len = std::all_of(x_y_len.begin(), x_y_len.end(), [](auto v) {
-            return boost::get<0>(v) == boost::get<1>(v);
-        });
-
-        if(!same_spatial_len)
-        {
-            MIOPEN_THROW("Tensor x and y spatial sizes do not match");
-        }
-
-        auto flat_descriptors              = GetConsistentFlattenedTensorDescriptors(xDesc, yDesc);
-        const TensorDescriptor& xDesc_flat = std::get<0>(flat_descriptors);
-        const TensorDescriptor& yDesc_flat = std::get<1>(flat_descriptors);
-
-#ifndef NDEBUG
-        if(xDesc.GetSize() != xDesc_flat.GetSize())
-        {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << xDesc << std::endl
-                                  << "flat descritor: " << xDesc_flat << std::endl);
-        }
-
-        if(yDesc.GetSize() != yDesc_flat.GetSize())
-        {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << yDesc << std::endl
-                                  << "flat descritor: " << yDesc_flat << std::endl);
-        }
-#endif
-
-        const std::size_t yDim_flat = yDesc_flat.GetSize();
-
-        assert(yDim_flat > 0 && yDim_flat <= 5);
-
-        const miopenDataType_t dataTypex = xDesc_flat.GetType();
-        const miopenDataType_t dataTypey = yDesc_flat.GetType();
-
-        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
-        {
-            MIOPEN_THROW("Tensor x is a unsupported data type");
-        }
-
-        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
-        {
-            MIOPEN_THROW("Tensor y is a unsupported data type");
-        }
-
-        if(dataTypex != dataTypey)
-        {
-            MIOPEN_THROW("Tensor x and y have different data types");
-        }
-
-        std::string kernel_name = "SubTensorOpWithTransform" + std::to_string(yDim_flat) + "d";
-
-        const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
-
-        std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
-        for(auto& len : lens)
-        {
-            network_config += "x" + std::to_string(len);
-        }
-
-        auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
-        KernelInvoke kernel;
-
-        if(!kernels.empty())
-        {
-            kernel = kernels.front();
-        }
-        else
-        {
-            std::string program_name = "MIOpenSubTensorOpWithTransformKernel.cl";
-
-            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
-
-            std::size_t wgd = std::accumulate(worker_sizes.begin(),
-                                              worker_sizes.end(),
-                                              std::size_t{1},
-                                              std::multiplies<std::size_t>());
-
-            std::size_t wld = 256 < wgd ? 256 : wgd;
-
-            std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MAD" +
-                                GetDataTypeKernelParams(dataTypey);
-
-            for(int i = 0; i < yDim_flat; ++i)
-            {
-                parms +=
-                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
-            }
-
-            kernel = handle.AddKernel(kernel_name,
-                                      network_config,
-                                      program_name,
-                                      kernel_name,
-                                      {wld, 1, 1},
-                                      {wgd, 1, 1},
-                                      parms);
-        }
-
-        switch(yDim_flat)
-        {
-        case 1: {
-            visit_float(dataTypey, [&](auto as_float) {
-                kernel(x,
-                       *as_float(alpha),
-                       y,
-                       *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetLengths()[0]));
-            });
-
-            break;
-        }
-        case 2: {
-            visit_float(dataTypey, [&](auto as_float) {
-                kernel(x,
-                       *as_float(alpha),
-                       y,
-                       *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]));
-            });
-
-            break;
-        }
-        case 3: {
-            visit_float(dataTypey, [&](auto as_float) {
-                kernel(x,
-                       *as_float(alpha),
-                       y,
-                       *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]));
-            });
-
-            break;
-        }
-        case 4: {
-            visit_float(dataTypey, [&](auto as_float) {
-                kernel(x,
-                       *as_float(alpha),
-                       y,
-                       *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(xDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]),
-                       uint(yDesc_flat.GetLengths()[3]));
-            });
-
-            break;
-        }
-        case 5: {
-            visit_float(dataTypey, [&](auto as_float) {
-                kernel(x,
-                       *as_float(alpha),
-                       y,
-                       *as_float(beta),
-                       uint(Xoffset),
-                       uint(Yoffset),
-                       uint(xDesc_flat.GetStrides()[0]),
-                       uint(xDesc_flat.GetStrides()[1]),
-                       uint(xDesc_flat.GetStrides()[2]),
-                       uint(xDesc_flat.GetStrides()[3]),
-                       uint(xDesc_flat.GetStrides()[4]),
-                       uint(yDesc_flat.GetStrides()[0]),
-                       uint(yDesc_flat.GetStrides()[1]),
-                       uint(yDesc_flat.GetStrides()[2]),
-                       uint(yDesc_flat.GetStrides()[3]),
-                       uint(yDesc_flat.GetStrides()[4]),
-                       uint(yDesc_flat.GetLengths()[0]),
-                       uint(yDesc_flat.GetLengths()[1]),
-                       uint(yDesc_flat.GetLengths()[2]),
-                       uint(yDesc_flat.GetLengths()[3]),
-                       uint(yDesc_flat.GetLengths()[4]));
-            });
-
-            break;
-        }
-        default: assert(false);
-        }
-    }
+    MIOPEN_THROW(miopenStatusInternalError, "Tensor transform is implemented for HIP backend only");
 #endif
 }
 
