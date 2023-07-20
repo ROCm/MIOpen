@@ -74,7 +74,7 @@ pydata-sphinx-theme==0.13.3
     #   sphinx-book-theme
 pygithub==1.58.1
     # via rocm-docs-core
-pygments==2.14.0
+pygments==2.15.0
     # via
     #   accessible-pygments
     #   pydata-sphinx-theme
