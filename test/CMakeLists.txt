@@ -618,7 +618,7 @@ function(add_custom_test NAME)
     bool_and_f(${MIOPEN_TEST_GFX90A} ${is_gfx90a_check} is_gfx90a_check)
 
     set(is_gfx94x_check)
-    set(GFX94X_TEST_DEFAULT FALSE)
+    set(GFX94X_TEST_DEFAULT TRUE)
     option_support_check(${PARSE_GFX94X_ENABLED} ${PARSE_GFX94X_DISABLED} ${GFX94X_TEST_DEFAULT} is_gfx94x_check)
     bool_and_f(${MIOPEN_TEST_GFX94X} ${is_gfx94x_check} is_gfx94x_check)
 
@@ -816,7 +816,7 @@ add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_EN
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
+add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED GFX94X_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -827,7 +827,7 @@ add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABL
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
 
-add_custom_test(test_conv_igemm_mlir_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
+add_custom_test(test_conv_igemm_mlir_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED GFX94X_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
@@ -1312,14 +1312,14 @@ set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC)
 
 if(${CODECOV_TEST})
-    add_custom_test(test_conv_igemm_dynamic_small GFX908_DISABLED GFX90A_DISABLED SKIP_XNACK_ON
+    add_custom_test(test_conv_igemm_dynamic_small GFX908_DISABLED GFX90A_DISABLED GFX94X_DISABLED SKIP_XNACK_ON
     COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --disable-validation
     COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data --disable-validation
     COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --disable-validation
     )
     set_tests_properties(test_conv_igemm_dynamic_small PROPERTIES COST 800)
 else()
-    add_custom_test(test_conv_igemm_dynamic_small GFX908_DISABLED GFX90A_DISABLED SKIP_XNACK_ON
+    add_custom_test(test_conv_igemm_dynamic_small GFX908_DISABLED GFX90A_DISABLED GFX94X_DISABLED SKIP_XNACK_ON
     COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
     COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
     COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
@@ -1331,7 +1331,7 @@ else()
     )
 endif() #if CODECOV_TEST
 
-add_custom_test(test_conv_igemm_dynamic SKIP_UNLESS_ALL GFX908_DISABLED GFX90A_DISABLED SKIP_XNACK_ON
+add_custom_test(test_conv_igemm_dynamic SKIP_UNLESS_ALL GFX908_DISABLED GFX90A_DISABLED GFX94X_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_ENVS}     $<TARGET_FILE:test_conv2d> --verbose --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
