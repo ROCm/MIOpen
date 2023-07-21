@@ -575,8 +575,7 @@ bool ThisSolverIsDeprecatedStatic::IsDisabled(const ConvolutionContext& ctx)
                || device == "gfx906"                    // Vega20, MI50/60
                || device == "gfx908"                    // MI100
                || device == "gfx90a"                    // MI200
-               || miopen::StartsWith(device, "gfx103") // Navi2x
-               || miopen::StartsWith(device, "gfx94");  // MI300 
+               || miopen::StartsWith(device, "gfx103"); // Navi2x
     }();
     return !device_is_allowed;
 }
