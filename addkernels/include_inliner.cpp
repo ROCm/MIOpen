@@ -39,7 +39,7 @@
 #include "include_inliner.hpp"
 
 namespace {
-static int GetMaxPath()
+int GetMaxPath()
 {
 #ifdef _WIN32
     return MAX_PATH;
@@ -48,7 +48,7 @@ static int GetMaxPath()
 #endif
 }
 
-static std::string GetAbsolutePath(const std::string& path)
+std::string GetAbsolutePath(const std::string& path)
 {
     std::string result(GetMaxPath(), ' ');
 #ifdef _WIN32
