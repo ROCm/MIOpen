@@ -2450,6 +2450,79 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
                              const PerformanceConfigAsmDirect3x3WrW& config) const override;
 };
 
+struct PerformanceConfigConvWinoFuryRxS : PerfConfigBase<PerformanceConfigConvWinoFuryRxS>
+{
+    int n_groups;
+    PerformanceConfigConvWinoFuryRxS(int n_groups_);
+    PerformanceConfigConvWinoFuryRxS() : PerformanceConfigConvWinoFuryRxS(-1) {}
+    PerformanceConfigConvWinoFuryRxS(bool) : PerformanceConfigConvWinoFuryRxS(1) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_groups, "n_groups");
+    }
+    int GetNGroups() const { return n_groups; }
+
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&, size_t, size_t);
+    bool IsValidValue() const;
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValid(const ConvolutionContext& ctx, const ProblemDescription&) const
+    {
+        return IsValid(ctx);
+    }
+    bool IsValid(const ConvolutionContext&) const;
+    bool operator==(const PerformanceConfigConvWinoFuryRxS& other) const;
+};
+
+template <size_t Winodata, size_t Winofilter>
+struct ConvWinoFuryRxS final : ConvTunableSolver<PerformanceConfigConvWinoFuryRxS>
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId(); }
+
+    static const std::string& GetSolverDbId()
+    {
+        static const std::string dbId = std::string("ConvWinoFuryRxSf")
+                                            .append(std::to_string(Winodata))
+                                            .append("x")
+                                            .append(std::to_string(Winofilter));
+        return dbId;
+    }
+
+    PerformanceConfigConvWinoFuryRxS
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const PerformanceConfigConvWinoFuryRxS&) const override;
+    PerformanceConfigConvWinoFuryRxS Search(const ConvolutionContext&,
+                                            const ProblemDescription&,
+                                            const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
+
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigConvWinoFuryRxS&) const override;
+
+    static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
+    static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
+};
+
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
+extern template struct ConvWinoFuryRxS<2, 3>;
+// extern template struct ConvWinoFuryRxS<3, 2>;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
