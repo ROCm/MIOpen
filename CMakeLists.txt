@@ -706,6 +706,7 @@ enable_clang_tidy(
         ###################################################################
         -cppcoreguidelines-avoid-const-or-ref-data-members
         -cppcoreguidelines-avoid-do-while
+        -misc-use-anonymous-namespace
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
