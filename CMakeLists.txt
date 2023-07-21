@@ -701,6 +701,11 @@ enable_clang_tidy(
         # TODO Code Quality WORKAROUND ROCm 5.4.2
         ###################################################################
         -misc-const-correctness
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.6
+        ###################################################################
+        -cppcoreguidelines-avoid-const-or-ref-data-members
+        -cppcoreguidelines-avoid-do-while
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
