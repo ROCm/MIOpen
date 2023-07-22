@@ -207,6 +207,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
     SQLite::result_type res;
     MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
     {
+        // NOLINTBEGIN(clang-analyzer-core.CallAndMessage)
         auto rc = Retry([&]() {
             return sqlite3_exec(pImpl->ptrDb.get(),
                                 query.c_str(),
@@ -214,6 +215,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
                                 static_cast<void*>(&res),
                                 nullptr);
         });
+        // NOLINTEND(clang-analyzer-core.CallAndMessage)
         if(rc != SQLITE_OK)
         {
             MIOPEN_LOG_I2(query);
