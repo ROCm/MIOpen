@@ -1,21 +1,45 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <tuple>
 
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "conv_2d.hpp"
+#include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-std::string GetFloatArg()
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
+
+static bool IsTestRunWith(const char* float_arg)
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp.front();
-};
+    assert(float_arg != nullptr);
+    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
+}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -42,11 +66,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
-        MIOPEN_THROW(
-            miopenStatusBadParm,
-            "miopenHalf, miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, miopenDouble data "
-            "type not supported by "
-            "conv_hip_igemm_mlir_xdlops test");
+        FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, "
+                  "miopenDouble data "
+                  "type not supported by "
+                  "conv_hip_igemm_mlir_xdlops test";
 
     default: params = ConfigWithInt8::GetParam();
     }
@@ -65,8 +88,18 @@ void Run2dDriver(miopenDataType_t prec)
         test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
         auto capture = testing::internal::GetCapturedStderr();
         EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
+        std::cout << capture;
     }
 };
+
+bool IsTestSupportedForDevice(const miopen::Handle& handle)
+{
+    std::string devName = handle.GetDeviceName();
+    if(devName == "gfx908" || devName == "gfx90a" || devName == "gfx94")
+        return true;
+    else
+        return false;
+}
 
 TEST_P(ConfigWithInt8, Int8Test)
 {
@@ -76,11 +109,9 @@ TEST_P(ConfigWithInt8, Int8Test)
 
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+    if(IsTestSupportedForDevice(handle) &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--int8")
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }
