@@ -227,9 +227,9 @@ template <typename T, typename S>
 struct CArray
 {
     std::vector<T> values;
-    CArray(T* const x, const S& size)
+    CArray(const T* x, S size)
     {
-        if(x != nullptr)
+        if(x != nullptr && size > 0)
             values = {x, x + static_cast<std::size_t>(size)};
     }
 };

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -79,7 +79,8 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     {
         auto sz = real_descriptors[0]->GetElementSize();
         return create_tuple<NTensor>([&](auto itensor) {
-            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {1}};
+            return TensorDescriptor{
+                real_descriptors[itensor]->GetType(), {sz}, {static_cast<std::size_t>(1)}};
         });
     }
 
@@ -103,9 +104,9 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         bool is_all_full_length = true;
         repeat_n(
             [&](auto itensor) {
-                std::size_t stride          = boost::get<itensor + 1>(*i);
-                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                std::size_t full_len        = previous_stride / stride;
+                const std::size_t stride          = boost::get<itensor + 1>(*i);
+                const std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
+                const std::size_t full_len        = previous_stride / stride;
                 is_all_full_length &= (len == full_len);
             },
             NTensorConstant);
@@ -181,8 +182,9 @@ void CopyTensor(const Handle& handle,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
                 Data_t dst,
-                int srcOffset = 0,
-                int dstOffset = 0);
+                int srcOffset   = 0,
+                int dstOffset   = 0,
+                bool forseAsync = false);
 
 void CastTensor(const Handle& handle,
                 const void* alpha,

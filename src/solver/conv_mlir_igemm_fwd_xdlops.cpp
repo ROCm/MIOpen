@@ -153,9 +153,10 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
         return false;
 
     GemmBThreadCopyMoreGemmKPack = true;
-    GemmAThreadCopyMoreGemmK     = true;
     do
     {
+        if(!NextFlag<false, true>(GemmAThreadCopyMoreGemmK))
+            break;
         if(!NextTwoPower<4, 256>(GemmMPerBlock))
             break;
         if(!NextTwoPower<16, 256>(GemmNPerBlock))
@@ -186,9 +187,9 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                    const ProblemDescription&) const
 {
-    std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 

@@ -49,7 +49,6 @@
 #include <thread>
 #include <vector>
 
-#if MIOPEN_ENABLE_SQLITE
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
@@ -96,7 +95,7 @@ static Random& Rnd()
 
 struct ProblemData : SQLiteSerializable<ProblemData>
 {
-    ProblemDescription prob;
+    ProblemDescriptionCompatTemporary prob;
 
     struct NoInit
     {
@@ -153,7 +152,7 @@ struct ProblemData : SQLiteSerializable<ProblemData>
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        ProblemDescription::Visit(self.prob, f);
+        ProblemDescriptionCompatTemporary::Visit(self.prob, f);
     }
 };
 
@@ -1278,14 +1277,9 @@ private:
 };
 } // namespace tests
 } // namespace miopen
-#endif
+
 int main(int argc, const char* argv[])
 {
-#if MIOPEN_ENABLE_SQLITE && !MIOPEN_EMBED_DB
     miopen::tests::exe_path() = argv[0];
     test_drive<miopen::tests::PerfDbDriver>(argc, argv);
-#else
-    (void)(argc);
-    (void)(argv);
-#endif
 }

@@ -128,12 +128,6 @@ float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 #endif
 }
 
-size_t GemmWrw1x1_stride1::GetWorkspaceSize(const ExecutionContext&,
-                                            const conv::ProblemDescription&) const
-{
-    return 0;
-}
-
 bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
                                       const conv::ProblemDescription& problem) const
 {
@@ -233,7 +227,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                     0,
                     dw,
                     0,
-                    nullptr,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
                     group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm,
@@ -273,7 +266,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                                                                    in_offset,
                                                                    dw,
                                                                    0,
-                                                                   nullptr,
                                                                    GemmBackend_t::miopentensile,
                                                                    conv_params.gfx90aFp16alt);
 
@@ -301,7 +293,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                                                                          0,
                                                                          dw,
                                                                          0,
-                                                                         nullptr,
                                                                          GemmBackend_t::miopengemm,
                                                                          conv_params.gfx90aFp16alt);
 
@@ -487,7 +478,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                                         0,
                                                         dw,
                                                         0,
-                                                        nullptr,
                                                         GemmBackend_t::miopentensile,
                                                         conv_params.gfx90aFp16alt);
                     }
@@ -502,7 +492,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                           0,
                                           dw,
                                           0,
-                                          nullptr,
                                           GemmBackend_t::miopengemm,
                                           conv_params.gfx90aFp16alt);
                     }
@@ -548,7 +537,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                     0,
                     dw,
                     0,
-                    nullptr,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemm,
                     group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm,

@@ -49,6 +49,8 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 #cmakedefine01 MIOPEN_USE_MLIR
 #cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
+#cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+#cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 // "_PACKAGE_" to avoid name contentions: the macros like
 // HIP_VERSION_MAJOR are defined in hip_version.h.
@@ -79,7 +81,6 @@
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
-#cmakedefine EXTRACTKERNEL_BIN "@EXTRACTKERNEL_BIN@"
 #cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
 #cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
@@ -152,6 +153,6 @@
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 6
+#define MIOPEN_GOLDEN_DB_VERSION 17
 
 #endif // GUARD_CONFIG_H_IN

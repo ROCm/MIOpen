@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_TEST_DRIVER_HPP
+#define GUARD_MIOPEN_TEST_DRIVER_HPP
+
 #include "args.hpp"
 #include "get_handle.hpp"
 #include "network_data.hpp"
@@ -716,7 +719,7 @@ struct test_driver
     {
         if(disabled_cache)
             return true;
-        auto p = boost::filesystem::path{miopen::ExpandUser(cache_path)} / ".disabled";
+        auto p = miopen::ExpandUser(cache_path) / ".disabled";
         return boost::filesystem::exists(p);
     }
 
@@ -727,8 +730,7 @@ struct test_driver
         if(is_cache_disabled() or not is_const_cpu(v, xs...))
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
-        auto p =
-            boost::filesystem::path{miopen::ExpandUser(cache_path)} / std::to_string(cache_version);
+        auto p   = miopen::ExpandUser(cache_path) / std::to_string(cache_version);
         if(!boost::filesystem::exists(p))
             boost::filesystem::create_directories(p);
         auto f = p / key;
@@ -1372,3 +1374,5 @@ void test_drive(int argc, const char* argv[])
         }
     }
 }
+
+#endif // GUARD_MIOPEN_TEST_DRIVER_HPP

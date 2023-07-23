@@ -29,6 +29,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
@@ -48,7 +49,7 @@ static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
 
 } // namespace ck_utility
 
-bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionContext&)
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ProblemDescription&)
 {
     if(ck_tunable_list_id <
        ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size() - 1)
@@ -84,6 +85,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
@@ -96,31 +99,25 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
-
-    {
-        // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
-        const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
-
-        if(!(problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
-             problem.top_sz < max_index_range))
-            return false;
-    }
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
         ck_utility::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                                         const ProblemDescription& problem) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
-        if(IsValidPerformanceConfig(problem, i))
+        if(IsValidPerformanceConfig(ctx, problem, i))
         {
             return {i};
         }
@@ -132,7 +129,9 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescriptio
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     return config.IsValid(problem);
 }
@@ -195,7 +194,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspace_sz = GetWorkspaceSize(problem);
+    sol.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -244,7 +243,8 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ProblemDescription& problem) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
         ck_utility::get_ck_convolution_problem_descriptor(problem));
