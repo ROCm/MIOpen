@@ -27,7 +27,9 @@
 
 KERNEL_PROLOG fp32_f3x2_dilation2
 
-.if (.amdgcn.gfx_generation_number == 9)
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4)
+    .include "Conv_Winograd_v30_3_1_gfx94x_fp32_f3x2_dilation2.inc"
+.elseif (.amdgcn.gfx_generation_number == 9)
     .include "Conv_Winograd_v30_3_1_gfx9_fp32_f3x2_dilation2.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
     .include "Conv_Winograd_v30_3_1_gfx10_fp32_f3x2_dilation2.inc"

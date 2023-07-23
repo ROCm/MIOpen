@@ -62,7 +62,7 @@ s_load_dwordx2 s[30:31], s[84:85], 0x58
 s_mov_b32 s32, 1.0
 s_mov_b32 s33, 1.0
 s_getpc_b64 s[82:83]
-s_add_u32 s82, s82, 0x2f1c
+s_add_u32 s82, s82, 0x2f7c
 s_addc_u32 s83, s83, 0
 s_bitcmp1_b32 s14, 14
 s_cbranch_scc1 3
@@ -79,21 +79,21 @@ s_cbranch_scc1 19
 s_cmp_eq_u32 s34, 1
 s_cbranch_scc1 5
 s_getpc_b64 s[80:81]
-s_add_u32 s80, s80, 0x31ac
+s_add_u32 s80, s80, 0x3190
 s_addc_u32 s81, s81, 0
 s_branch 18
 s_load_dword s32, s[84:85], 0x60
 s_getpc_b64 s[80:81]
-s_add_u32 s80, s80, 0x3308
+s_add_u32 s80, s80, 0x3320
 s_addc_u32 s81, s81, 0
 s_branch 11
 s_getpc_b64 s[80:81]
-s_add_u32 s80, s80, 0x350c
+s_add_u32 s80, s80, 0x3558
 s_addc_u32 s81, s81, 0
 s_branch 6
 s_load_dwordx2 s[32:33], s[84:85], 0x60
 s_getpc_b64 s[80:81]
-s_add_u32 s80, s80, 0x3708
+s_add_u32 s80, s80, 0x3788
 s_addc_u32 s81, s81, 0
 s_bitcmp1_b32 s14, 7
 s_cbranch_scc0 7
@@ -130,7 +130,7 @@ v_subb_co_u32_e32 v105, vcc, 32, v106, vcc
 v_cvt_f32_ubyte0_e32 v106, v107
 v_fma_f32 v108, v108, v104, -1.0
 v_fma_f32 v108, v106, v104, v108
-v_madak_f32 v108, v108, v104, 0x9f000000
+v_fmaak_f32 v108, v108, v104, 0x9f000000
 v_mul_f32_e32 v108, 0x5f800000, v108
 v_mov_b32_e32 v106, 0
 v_cvt_flr_i32_f32_e64 v108, -v108
@@ -196,17 +196,17 @@ s_add_u32 s20, s20, s96
 s_addc_u32 s21, s21, s97
 s_add_u32 s30, s30, s98
 s_addc_u32 s31, s31, s99
-s_and_b32 s88, 1, s26
-s_addc_u32 s88, s28, 1
-s_ashr_i32 s88, s88, 1
+s_and_b32 s88, 0, s26
+s_addc_u32 s88, s28, 0
+s_ashr_i32 s88, s88, 0
 s_add_u32 s86, s88, 1
 v_mov_b32_e32 v105, 0x80000000
 v_mul_hi_u32 v105, v105, s86
 s_nop 0
 v_readfirstlane_b32 s86, v105
-s_andn2_b32 s88, 1, s27
-s_addc_u32 s88, s29, 1
-s_ashr_i32 s88, s88, 1
+s_andn2_b32 s88, 0, s27
+s_addc_u32 s88, s29, 0
+s_ashr_i32 s88, s88, 0
 s_add_u32 s87, s88, 1
 v_mov_b32_e32 v105, 0x80000000
 v_mul_hi_u32 v105, v105, s87
@@ -239,9 +239,10 @@ s_or_b32 s14, s14, s90
 s_lshl_b32 s51, s47, 1
 s_mov_b64 s[52:53], 0
 s_bitset1_b32 s14, 23
-s_mov_b32 s51, s47
-s_mov_b32 s52, s47
-s_mov_b32 s53, 0
+s_bitset1_b32 s14, 20
+s_bitset0_b32 s14, 19
+s_ashr_i32 s51, s51, 1
+s_ashr_i64 s[52:53], s[52:53], 1
 s_add_u32 s5, s5, 1
 s_and_b32 s5, s5, -2
 s_branch 16
@@ -269,9 +270,6 @@ s_or_b32 s90, s90, 0x100000
 s_and_b32 s90, s14, s90
 s_cselect_b32 s90, 0, 15
 v_bfi_b32 v98, s90, v105, v98
-v_bfe_u32 v105, s89, 8, 1
-v_xor_b32_e64 v105, v105, 1
-v_lshrrev_b32_e32 v98, v105, v98
 s_mul_i32 s70, s8, s86
 s_sub_u32 s70, s70, 1
 s_lshr_b32 s70, s70, 0
@@ -315,7 +313,7 @@ v_subb_co_u32_e32 v109, vcc, 32, v110, vcc
 v_cvt_f32_ubyte0_e32 v110, v111
 v_fma_f32 v112, v112, v97, -1.0
 v_fma_f32 v112, v110, v97, v112
-v_madak_f32 v112, v112, v97, 0x9f000000
+v_fmaak_f32 v112, v112, v97, 0x9f000000
 v_mul_f32_e32 v112, 0x5f800000, v112
 v_mov_b32_e32 v110, 0
 v_cvt_flr_i32_f32_e64 v112, -v112
@@ -342,7 +340,7 @@ v_subb_co_u32_e32 v109, vcc, 32, v110, vcc
 v_cvt_f32_ubyte0_e32 v110, v111
 v_fma_f32 v112, v112, v97, -1.0
 v_fma_f32 v112, v110, v97, v112
-v_madak_f32 v112, v112, v97, 0x9f000000
+v_fmaak_f32 v112, v112, v97, 0x9f000000
 v_mul_f32_e32 v112, 0x5f800000, v112
 v_mov_b32_e32 v110, 0
 v_cvt_flr_i32_f32_e64 v112, -v112
@@ -403,7 +401,7 @@ v_lshlrev_b32_e32 v107, 6, v107
 v_xor_b32_e32 v89, v89, v107
 v_mul_u32_u24_e32 v107, 0x400, v104
 v_xor_b32_e32 v94, v94, v107
-s_lshr_b32 s74, s74, 1
+s_lshr_b32 s74, s74, 0
 v_cmp_le_u32_e32 vcc, 0x100, v0
 s_cbranch_vccnz 50
 s_and_b32 s3, s14, 0x1100000
@@ -491,7 +489,7 @@ s_mov_b32 s66, 0
 s_mov_b32 s67, s12
 s_mov_b32 s65, s67
 s_sub_u32 s75, -1, s74
-s_sub_u32 s75, s75, 16
+s_sub_u32 s75, s75, 32
 s_bitset1_b32 s14, 21
 s_mov_b32 s87, 0
 s_mov_b32 s91, 0
@@ -502,48 +500,54 @@ s_mov_b64 s[6:7], vcc
 s_mov_b32 s76, 17
 s_mov_b32 s64, 0
 s_bitset1_b32 s14, 26
-s_call_b64 s[36:37], 1614
+s_call_b64 s[36:37], 1642
 v_cmp_le_u32_e32 vcc, 0x100, v0
 s_cbranch_vccnz 1
-s_branch 788
+s_branch 820
 s_mov_b64 vcc, s[6:7]
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v72, v72, v72, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v73, v73, v73, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v74, v74, v74, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v75, v75, v75, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v72, v74, v72 div:2
 v_subrev_f32_e64 v75, v73, v75 div:2
-v_add_f32_e64 v73, v74, v73 div:2
-v_mad_f32 v74, v74, 1.0, -v73
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -559,50 +563,48 @@ ds_read_b128 v[50:53], v89 offset:29056
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 1542
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 1562
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_dpp v72, v72, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v73, v73, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v74, v74, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v75, v75, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
+v_add_f32_e64 v73, v74, v73 div:2
+v_fma_f32 v74, v74, 1.0, -v73
+v_fmac_f32_dpp v72, v72, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v73, v73, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v74, v74, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v75, v75, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 1
 ds_write_b32 v92, v74 offset:8256
 ds_write_b32 v93, v75 offset:8256
@@ -612,44 +614,50 @@ ds_read_b128 v[58:61], v89 offset:33152
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 1
-s_call_b64 s[36:37], 1480
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+s_cbranch_scc1 5
+s_call_b64 s[36:37], 1500
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v76, v76, v76, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v77, v77, v77, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v78, v78, v78, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v79, v79, v79, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v76, v78, v76 div:2
 v_subrev_f32_e64 v79, v77, v79 div:2
-v_add_f32_e64 v77, v78, v77 div:2
-v_mad_f32 v78, v78, 1.0, -v77
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -665,50 +673,48 @@ ds_read_b128 v[50:53], v89 offset:37312
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 1414
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 1426
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_dpp v76, v76, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v77, v77, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v78, v78, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v79, v79, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_add_f32_e64 v77, v78, v77 div:2
+v_fma_f32 v78, v78, 1.0, -v77
+v_fmac_f32_dpp v76, v76, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v77, v77, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v78, v78, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v79, v79, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_barrier
 s_setprio 1
 ds_write_b32 v92, v78 offset:16512
@@ -719,51 +725,49 @@ ds_read_b128 v[58:61], v89 offset:41408
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 8
-s_call_b64 s[36:37], 1351
+s_cbranch_scc1 4
+s_call_b64 s[36:37], 1363
 s_nop 0
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v80, v80, v80, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v81, v81, v81, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v82, v82, v82, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v83, v83, v83, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v80, v82, v80 div:2
 v_subrev_f32_e64 v83, v81, v83 div:2
-v_add_f32_e64 v81, v82, v81 div:2
-v_mad_f32 v82, v82, 1.0, -v81
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -779,50 +783,48 @@ ds_read_b128 v[50:53], v89 offset:45568
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 1278
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 1290
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_dpp v80, v80, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v81, v81, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v82, v82, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v83, v83, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
+v_add_f32_e64 v81, v82, v81 div:2
+v_fma_f32 v82, v82, 1.0, -v81
+v_fmac_f32_dpp v80, v80, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v81, v81, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v82, v82, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v83, v83, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 1
 ds_write_b32 v92, v82 offset:24768
 ds_write_b32 v93, v83 offset:24768
@@ -832,44 +834,50 @@ ds_read_b128 v[58:61], v89 offset:128
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 1
-s_call_b64 s[36:37], 1216
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+s_cbranch_scc1 5
+s_call_b64 s[36:37], 1228
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v84, v84, v84, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v85, v85, v85, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v86, v86, v86, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v87, v87, v87, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v84, v86, v84 div:2
 v_subrev_f32_e64 v87, v85, v87 div:2
-v_add_f32_e64 v85, v86, v85 div:2
-v_mad_f32 v86, v86, 1.0, -v85
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -885,50 +893,48 @@ ds_read_b128 v[50:53], v89 offset:4288
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 1150
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 1154
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_dpp v84, v84, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v85, v85, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v86, v86, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v87, v87, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_add_f32_e64 v85, v86, v85 div:2
+v_fma_f32 v86, v86, 1.0, -v85
+v_fmac_f32_dpp v84, v84, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v85, v85, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v86, v86, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v87, v87, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_barrier
 s_setprio 1
 ds_write_b32 v92, v86 offset:33024
@@ -939,51 +945,49 @@ ds_read_b128 v[58:61], v89 offset:8384
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 8
-s_call_b64 s[36:37], 1087
+s_cbranch_scc1 4
+s_call_b64 s[36:37], 1091
 s_nop 0
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v64, v64, v64, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v65, v65, v65, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v66, v66, v66, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v67, v67, v67, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v64, v66, v64 div:2
 v_subrev_f32_e64 v67, v65, v67 div:2
-v_add_f32_e64 v65, v66, v65 div:2
-v_mad_f32 v66, v66, 1.0, -v65
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -999,50 +1003,48 @@ ds_read_b128 v[50:53], v89 offset:12544
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 1014
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 1018
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_dpp v64, v64, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v65, v65, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v66, v66, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v67, v67, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
+v_add_f32_e64 v65, v66, v65 div:2
+v_fma_f32 v66, v66, 1.0, -v65
+v_fmac_f32_dpp v64, v64, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v65, v65, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v66, v66, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v67, v67, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 1
 ds_write_b32 v92, v66 offset:41280
 ds_write_b32 v93, v67 offset:41280
@@ -1052,44 +1054,50 @@ ds_read_b128 v[58:61], v89 offset:16640
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 1
-s_call_b64 s[36:37], 952
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+s_cbranch_scc1 5
+s_call_b64 s[36:37], 956
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
+v_cndmask_b32_dpp v68, v68, v68, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v69, v69, v69, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v70, v70, v70, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v71, v71, v71, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v68, v70, v68 div:2
 v_subrev_f32_e64 v71, v69, v71 div:2
-v_add_f32_e64 v69, v70, v69 div:2
-v_mad_f32 v70, v70, 1.0, -v69
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 1
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1105,50 +1113,48 @@ ds_read_b128 v[50:53], v89 offset:20800
 s_waitcnt lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 7
-s_call_b64 s[36:37], 886
+s_cbranch_scc1 3
+s_call_b64 s[36:37], 882
 s_nop 0
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_dpp v68, v68, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v69, v69, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v70, v70, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v71, v71, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_add_f32_e64 v69, v70, v69 div:2
+v_fma_f32 v70, v70, 1.0, -v69
+v_fmac_f32_dpp v68, v68, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v69, v69, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v70, v70, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v71, v71, v99 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_barrier
 s_setprio 1
 ds_write_b32 v92, v70
@@ -1159,54 +1165,50 @@ ds_read_b128 v[58:61], v89 offset:24896
 s_waitcnt vmcnt(12) lgkmcnt(5)
 s_bitset0_b32 s14, 26
 s_add_u32 s54, s54, -1
-s_cbranch_scc1 64752
-s_call_b64 s[36:37], 823
-s_branch 64750
+s_cbranch_scc1 64724
+s_call_b64 s[36:37], 819
+s_branch 64722
 s_mov_b64 vcc, s[6:7]
 s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v72, v72, v72, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v73, v73, v73, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v74, v74, v74, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v75, v75, v75, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v72, v73, v73 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v72, v73, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v72, v73, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1226,46 +1228,46 @@ s_call_b64 s[36:37], 747
 s_nop 0
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
 v_add_f32_dpp v102, v75, v75 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v75, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v75, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v75, v74, v74 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v75, v74, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v75, v74, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v74, v72, v75
 v_add_f32_e64 v73, v102, v74 div:2
 v_add_f32_e64 v74, -v102, v74 div:2
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v74 offset:8256
 ds_write_b32 v93, v75 offset:8256
@@ -1279,45 +1281,45 @@ s_cbranch_scc1 3
 s_call_b64 s[36:37], 682
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v76, v76, v76, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v77, v77, v77, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v78, v78, v78, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v79, v79, v79, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v76, v77, v77 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v76, v77, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v76, v77, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1338,46 +1340,46 @@ s_nop 0
 s_nop 0
 s_nop 0
 s_barrier
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
 v_add_f32_dpp v102, v79, v79 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v79, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v79, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v79, v78, v78 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v79, v78, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v79, v78, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v78, v76, v79
 v_add_f32_e64 v77, v102, v78 div:2
 v_add_f32_e64 v78, -v102, v78 div:2
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v78 offset:16512
 ds_write_b32 v93, v79 offset:16512
@@ -1390,45 +1392,45 @@ s_add_u32 s54, s54, -1
 s_cbranch_scc1 2
 s_call_b64 s[36:37], 545
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v80, v80, v80, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v81, v81, v81, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v82, v82, v82, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v83, v83, v83, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v80, v81, v81 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v80, v81, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v80, v81, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1448,46 +1450,46 @@ s_call_b64 s[36:37], 475
 s_nop 0
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
 v_add_f32_dpp v102, v83, v83 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v83, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v83, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v83, v82, v82 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v83, v82, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v83, v82, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v82, v80, v83
 v_add_f32_e64 v81, v102, v82 div:2
 v_add_f32_e64 v82, -v102, v82 div:2
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v82 offset:24768
 ds_write_b32 v93, v83 offset:24768
@@ -1501,45 +1503,45 @@ s_cbranch_scc1 3
 s_call_b64 s[36:37], 410
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v84, v84, v84, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v85, v85, v85, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v86, v86, v86, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v87, v87, v87, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v84, v85, v85 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v84, v85, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v84, v85, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1560,46 +1562,46 @@ s_nop 0
 s_nop 0
 s_nop 0
 s_barrier
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
 v_add_f32_dpp v102, v87, v87 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v87, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v87, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v87, v86, v86 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v87, v86, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v87, v86, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v86, v84, v87
 v_add_f32_e64 v85, v102, v86 div:2
 v_add_f32_e64 v86, -v102, v86 div:2
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v86 offset:33024
 ds_write_b32 v93, v87 offset:33024
@@ -1612,45 +1614,45 @@ s_add_u32 s54, s54, -1
 s_cbranch_scc1 2
 s_call_b64 s[36:37], 273
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v64, v64, v64, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v65, v65, v65, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v66, v66, v66, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v67, v67, v67, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v64, v65, v65 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v64, v65, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v64, v65, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1670,46 +1672,46 @@ s_call_b64 s[36:37], 203
 s_nop 0
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
-v_mac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v33, v43, v61
 v_add_f32_dpp v102, v67, v67 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v67, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v67, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v67, v66, v66 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v67, v66, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v67, v66, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v66, v64, v67
 v_add_f32_e64 v65, v102, v66 div:2
 v_add_f32_e64 v66, -v102, v66 div:2
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v66 offset:41280
 ds_write_b32 v93, v67 offset:41280
@@ -1723,45 +1725,45 @@ s_cbranch_scc1 3
 s_call_b64 s[36:37], 138
 s_nop 0
 s_nop 0
-v_mac_f32_e32 v4, v38, v46
-v_mac_f32_e32 v5, v39, v46
-v_mac_f32_e32 v6, v40, v46
+v_fmac_f32_e32 v4, v38, v46
+v_fmac_f32_e32 v5, v39, v46
+v_fmac_f32_e32 v6, v40, v46
 s_setprio 1
-v_mac_f32_e32 v7, v41, v46
-v_mac_f32_e32 v8, v38, v47
-v_mac_f32_e32 v9, v39, v47
-v_mac_f32_e32 v10, v40, v47
-v_mac_f32_e32 v11, v41, v47
-v_mac_f32_e32 v12, v38, v48
-v_mac_f32_e32 v13, v39, v48
-v_mac_f32_e32 v14, v40, v48
-v_mac_f32_e32 v15, v41, v48
-v_mac_f32_e32 v16, v38, v49
-v_mac_f32_e32 v17, v39, v49
-v_mac_f32_e32 v18, v40, v49
-v_mac_f32_e32 v19, v41, v49
-v_mac_f32_e32 v20, v38, v50
-v_mac_f32_e32 v21, v39, v50
-v_mac_f32_e32 v22, v40, v50
-v_mac_f32_e32 v23, v41, v50
-v_mac_f32_e32 v24, v38, v51
-v_mac_f32_e32 v25, v39, v51
-v_mac_f32_e32 v26, v40, v51
-v_mac_f32_e32 v27, v41, v51
-v_mac_f32_e32 v28, v38, v52
-v_mac_f32_e32 v29, v39, v52
-v_mac_f32_e32 v30, v40, v52
-v_mac_f32_e32 v31, v41, v52
-v_mac_f32_e32 v32, v38, v53
-v_mac_f32_e32 v33, v39, v53
+v_fmac_f32_e32 v7, v41, v46
+v_fmac_f32_e32 v8, v38, v47
+v_fmac_f32_e32 v9, v39, v47
+v_fmac_f32_e32 v10, v40, v47
+v_fmac_f32_e32 v11, v41, v47
+v_fmac_f32_e32 v12, v38, v48
+v_fmac_f32_e32 v13, v39, v48
+v_fmac_f32_e32 v14, v40, v48
+v_fmac_f32_e32 v15, v41, v48
+v_fmac_f32_e32 v16, v38, v49
+v_fmac_f32_e32 v17, v39, v49
+v_fmac_f32_e32 v18, v40, v49
+v_fmac_f32_e32 v19, v41, v49
+v_fmac_f32_e32 v20, v38, v50
+v_fmac_f32_e32 v21, v39, v50
+v_fmac_f32_e32 v22, v40, v50
+v_fmac_f32_e32 v23, v41, v50
+v_fmac_f32_e32 v24, v38, v51
+v_fmac_f32_e32 v25, v39, v51
+v_fmac_f32_e32 v26, v40, v51
+v_fmac_f32_e32 v27, v41, v51
+v_fmac_f32_e32 v28, v38, v52
+v_fmac_f32_e32 v29, v39, v52
+v_fmac_f32_e32 v30, v40, v52
+v_fmac_f32_e32 v31, v41, v52
+v_fmac_f32_e32 v32, v38, v53
+v_fmac_f32_e32 v33, v39, v53
 v_cndmask_b32_dpp v68, v68, v68, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v69, v69, v69, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v70, v70, v70, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_cndmask_b32_dpp v71, v71, v71, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v68, v69, v69 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v68, v69, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_mac_f32_e32 v34, v40, v53
-v_mac_f32_e32 v35, v41, v53
+v_fmac_f32_dpp v68, v69, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_e32 v34, v40, v53
+v_fmac_f32_e32 v35, v41, v53
 s_setprio 0
 s_add_u32 s40, s40, s52
 s_addc_u32 s41, s41, s53
@@ -1782,46 +1784,46 @@ s_nop 0
 s_nop 0
 s_nop 0
 s_barrier
-v_mac_f32_e32 v4, v42, v54
-v_mac_f32_e32 v5, v43, v54
-v_mac_f32_e32 v6, v44, v54
+v_fmac_f32_e32 v4, v42, v54
+v_fmac_f32_e32 v5, v43, v54
+v_fmac_f32_e32 v6, v44, v54
 s_setprio 1
-v_mac_f32_e32 v7, v45, v54
-v_mac_f32_e32 v8, v42, v55
-v_mac_f32_e32 v9, v43, v55
-v_mac_f32_e32 v10, v44, v55
-v_mac_f32_e32 v11, v45, v55
-v_mac_f32_e32 v12, v42, v56
-v_mac_f32_e32 v13, v43, v56
-v_mac_f32_e32 v14, v44, v56
-v_mac_f32_e32 v15, v45, v56
-v_mac_f32_e32 v16, v42, v57
-v_mac_f32_e32 v17, v43, v57
-v_mac_f32_e32 v18, v44, v57
-v_mac_f32_e32 v19, v45, v57
-v_mac_f32_e32 v20, v42, v58
-v_mac_f32_e32 v21, v43, v58
-v_mac_f32_e32 v22, v44, v58
-v_mac_f32_e32 v23, v45, v58
-v_mac_f32_e32 v24, v42, v59
-v_mac_f32_e32 v25, v43, v59
-v_mac_f32_e32 v26, v44, v59
-v_mac_f32_e32 v27, v45, v59
-v_mac_f32_e32 v28, v42, v60
-v_mac_f32_e32 v29, v43, v60
-v_mac_f32_e32 v30, v44, v60
-v_mac_f32_e32 v31, v45, v60
-v_mac_f32_e32 v32, v42, v61
+v_fmac_f32_e32 v7, v45, v54
+v_fmac_f32_e32 v8, v42, v55
+v_fmac_f32_e32 v9, v43, v55
+v_fmac_f32_e32 v10, v44, v55
+v_fmac_f32_e32 v11, v45, v55
+v_fmac_f32_e32 v12, v42, v56
+v_fmac_f32_e32 v13, v43, v56
+v_fmac_f32_e32 v14, v44, v56
+v_fmac_f32_e32 v15, v45, v56
+v_fmac_f32_e32 v16, v42, v57
+v_fmac_f32_e32 v17, v43, v57
+v_fmac_f32_e32 v18, v44, v57
+v_fmac_f32_e32 v19, v45, v57
+v_fmac_f32_e32 v20, v42, v58
+v_fmac_f32_e32 v21, v43, v58
+v_fmac_f32_e32 v22, v44, v58
+v_fmac_f32_e32 v23, v45, v58
+v_fmac_f32_e32 v24, v42, v59
+v_fmac_f32_e32 v25, v43, v59
+v_fmac_f32_e32 v26, v44, v59
+v_fmac_f32_e32 v27, v45, v59
+v_fmac_f32_e32 v28, v42, v60
+v_fmac_f32_e32 v29, v43, v60
+v_fmac_f32_e32 v30, v44, v60
+v_fmac_f32_e32 v31, v45, v60
+v_fmac_f32_e32 v32, v42, v61
 v_add_f32_dpp v102, v71, v71 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v102, v71, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v102, v71, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v71, v70, v70 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v71, v70, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_fmac_f32_dpp v71, v70, v99 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v70, v68, v71
 v_add_f32_e64 v69, v102, v70 div:2
 v_add_f32_e64 v70, -v102, v70 div:2
-v_mac_f32_e32 v33, v43, v61
-v_mac_f32_e32 v34, v44, v61
-v_mac_f32_e32 v35, v45, v61
+v_fmac_f32_e32 v33, v43, v61
+v_fmac_f32_e32 v34, v44, v61
+v_fmac_f32_e32 v35, v45, v61
 s_setprio 0
 ds_write_b32 v92, v70
 ds_write_b32 v93, v71
@@ -1866,8 +1868,8 @@ s_cbranch_scc1 238
 s_mov_b32 s71, 0
 s_bitcmp1_b32 s14, 16
 s_cbranch_scc1 227
-s_add_u32 s69, s12, 15
-s_lshr_b32 s69, s69, 4
+s_add_u32 s69, s12, 31
+s_lshr_b32 s69, s69, 5
 v_mov_b32_e32 v105, s70
 v_mul_u32_u24_e32 v105, s69, v105
 v_add_co_u32_e32 v105, vcc, s13, v105
@@ -1882,7 +1884,7 @@ v_subb_co_u32_e32 v107, vcc, 32, v108, vcc
 v_cvt_f32_ubyte0_e32 v108, v109
 v_fma_f32 v110, v110, v104, -1.0
 v_fma_f32 v110, v108, v104, v110
-v_madak_f32 v110, v110, v104, 0x9f000000
+v_fmaak_f32 v110, v110, v104, 0x9f000000
 v_mul_f32_e32 v110, 0x5f800000, v110
 v_mov_b32_e32 v108, 0
 v_cvt_flr_i32_f32_e64 v110, -v110
@@ -1908,7 +1910,7 @@ v_subb_co_u32_e32 v107, vcc, 32, v108, vcc
 v_cvt_f32_ubyte0_e32 v108, v109
 v_fma_f32 v110, v110, v105, -1.0
 v_fma_f32 v110, v108, v105, v110
-v_madak_f32 v110, v110, v105, 0x9f000000
+v_fmaak_f32 v110, v110, v105, 0x9f000000
 v_mul_f32_e32 v110, 0x5f800000, v110
 v_mov_b32_e32 v108, 0
 v_cvt_flr_i32_f32_e64 v110, -v110
@@ -1943,7 +1945,7 @@ v_subb_co_u32_e32 v110, vcc, 32, v112, vcc
 v_cvt_f32_ubyte0_e32 v112, v113
 v_fma_f32 v111, v111, v107, -1.0
 v_fma_f32 v111, v112, v107, v111
-v_madak_f32 v111, v111, v107, 0x9f000000
+v_fmaak_f32 v111, v111, v107, 0x9f000000
 v_mul_f32_e32 v111, 0x5f800000, v111
 v_mov_b32_e32 v112, 0
 v_cvt_flr_i32_f32_e64 v111, -v111
@@ -1968,7 +1970,7 @@ v_subb_co_u32_e32 v110, vcc, 32, v112, vcc
 v_cvt_f32_ubyte0_e32 v112, v113
 v_fma_f32 v111, v111, v107, -1.0
 v_fma_f32 v111, v112, v107, v111
-v_madak_f32 v111, v111, v107, 0x9f000000
+v_fmaak_f32 v111, v111, v107, 0x9f000000
 v_mul_f32_e32 v111, 0x5f800000, v111
 v_mov_b32_e32 v112, 0
 v_cvt_flr_i32_f32_e64 v111, -v111
@@ -2007,19 +2009,19 @@ s_cmp_le_u32 s67, s69
 s_cselect_b32 s92, 0x20000, 0
 s_cselect_b32 s67, s67, s69
 s_or_b32 s14, s14, s92
-s_lshl_b32 s66, s66, 4
-s_lshl_b32 s67, s67, 4
+s_lshl_b32 s66, s66, 5
+s_lshl_b32 s67, s67, 5
 s_min_u32 s67, s67, s12
 s_cmp_eq_u32 s4, s13
 s_cselect_b32 s92, 0x20000, 0
 s_or_b32 s14, s14, s92
 s_bitset1_b32 s14, 16
 s_branch 43
-s_lshr_b32 s66, s66, 4
+s_lshr_b32 s66, s66, 5
 s_add_u32 s67, s66, s68
 s_sub_u32 s67, s67, s69
 s_mov_b32 s66, 0
-s_lshl_b32 s67, s67, 4
+s_lshl_b32 s67, s67, 5
 s_min_u32 s67, s67, s12
 s_bitset1_b32 s14, 17
 s_branch 12
@@ -2028,7 +2030,7 @@ s_mov_b32 s43, 0
 s_mov_b32 s55, -1
 s_mov_b32 s64, 40
 s_branch 31
-s_add_u32 s65, s65, 16
+s_add_u32 s65, s65, 32
 s_cmp_ge_u32 s65, s67
 s_cbranch_scc0 28
 s_bitset1_b32 s14, 22
@@ -2102,41 +2104,41 @@ v_mov_b32_dpp v105, v105 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
 v_readfirstlane_b32 s63, v106
 v_sub_co_u32_e64 v107, vcc, v106, s63
 v_mul_lo_u32 v107, v107, s44
-v_and_b32_e64 v111, v0, 3
-v_ashrrev_i32_e64 v112, 1, s27
+v_mad_u32_u24 v110, 5, v0, 2
+v_and_b32_e32 v111, 6, v0
+v_add_co_u32_e32 v111, vcc, 4, v111
+v_bfi_b32 v111, 4, v110, v111
+v_bfe_u32 v111, v111, 1, 3
+v_ashrrev_i32_e64 v112, 0, s27
 v_subrev_co_u32_e32 v111, vcc, v112, v111
-v_ashrrev_i32_e64 v112, 1, s35
+v_ashrrev_i32_e64 v112, 0, s35
 v_mad_i32_i24 v108, v112, 3, v111
-s_bfe_u32 s2, s14, 0x10014
-v_lshrrev_b32_e32 v110, 2, v0
-v_and_b32_e32 v110, s2, v110
-v_mad_i32_i24 v108, v110, 3, v108
-v_add_co_u32_e64 v109, vcc, 1, s38
-v_ashrrev_i32_e32 v109, 1, v109
-v_add_co_u32_e64 v110, vcc, 1, s26
-v_ashrrev_i32_e32 v110, 1, v110
+v_add_co_u32_e64 v109, vcc, 0, s38
+v_ashrrev_i32_e32 v109, 0, v109
+v_add_co_u32_e64 v110, vcc, 0, s26
+v_ashrrev_i32_e32 v110, 0, v110
 v_sub_i32 v109, v109, v110
 v_cmp_ge_u32_e64 s[2:3], v106, s8
-v_mad_i32_i24 v104, v104, 2, v108
+v_mad_i32_i24 v104, v104, 4, v108
 v_cmp_ge_u32_e64 s[22:23], v104, s11
 v_add_co_u32_e32 v104, vcc, v104, v107
 s_or_b64 s[22:23], s[22:23], s[2:3]
-v_mad_i32_i24 v105, v105, 2, v109
+v_mad_i32_i24 v105, v105, 4, v109
 v_cmp_ge_u32_e64 s[96:97], v105, s10
 s_or_b64 s[96:97], s[22:23], s[96:97]
 v_mad_u32_u24 v1, v105, s49, v104
 v_cndmask_b32_e64 v1, v1, -1, s[96:97]
-v_add_co_u32_e32 v105, vcc, 1, v105
+v_add_co_u32_e32 v105, vcc, 2, v105
 v_cmp_ge_u32_e64 s[96:97], v105, s10
 s_or_b64 s[96:97], s[22:23], s[96:97]
 v_mad_u32_u24 v2, v105, s49, v104
 v_cndmask_b32_e64 v2, v2, -1, s[96:97]
-v_add_co_u32_e32 v105, vcc, 1, v105
+v_add_co_u32_e32 v105, vcc, 2, v105
 v_cmp_ge_u32_e64 s[96:97], v105, s10
 s_or_b64 s[96:97], s[22:23], s[96:97]
 v_mad_u32_u24 v3, v105, s49, v104
 v_cndmask_b32_e64 v3, v3, -1, s[96:97]
-v_add_co_u32_e32 v105, vcc, 1, v105
+v_add_co_u32_e32 v105, vcc, 2, v105
 v_cmp_ge_u32_e64 s[96:97], v105, s10
 s_or_b64 s[96:97], s[22:23], s[96:97]
 v_mad_u32_u24 v36, v105, s49, v104
@@ -2277,93 +2279,93 @@ s_nop 0
 s_nop 0
 s_nop 0
 s_nop 0
-v_mac_f32_dpp v6, v6, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v7, v7, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v4, v4, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v5, v5, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v6, v6, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v7, v7, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v4, v4, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v5, v5, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v5, v6, v5 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v4, v7, v4 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v5, v5, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v4, v4, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v5, v5, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v4, v4, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v4, v5, v4 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v10, v10, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v11, v11, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v8, v8, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v9, v9, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v10, v10, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v11, v11, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v8, v8, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v9, v9, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v9, v10, v9 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v8, v11, v8 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v9, v9, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v8, v8, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v9, v9, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v8, v8, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v5, v9, v8 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v14, v14, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v15, v15, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v12, v12, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v13, v13, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v14, v14, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v15, v15, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v12, v12, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v13, v13, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v13, v14, v13 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v12, v15, v12 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v13, v13, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v12, v12, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v13, v13, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v12, v12, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v6, v13, v12 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v18, v18, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v19, v19, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v16, v16, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v17, v17, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v18, v18, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v19, v19, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v16, v16, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v17, v17, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v17, v18, v17 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v16, v19, v16 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v17, v17, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v16, v16, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v17, v17, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v16, v16, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v7, v17, v16 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v22, v22, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v23, v23, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v20, v20, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v21, v21, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v22, v22, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v23, v23, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v20, v20, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v21, v21, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v21, v22, v21 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v20, v23, v20 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v21, v21, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v20, v20, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v21, v21, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v20, v20, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v8, v21, v20 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v26, v26, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v27, v27, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v24, v24, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v25, v25, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v26, v26, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v27, v27, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v24, v24, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v25, v25, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v25, v26, v25 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v24, v27, v24 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v25, v25, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v24, v24, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v25, v25, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v24, v24, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v9, v25, v24 row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v30, v30, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v31, v31, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v28, v28, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v29, v29, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v30, v30, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v31, v31, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v28, v28, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v29, v29, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v29, v30, v29 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v28, v31, v28 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v29, v29, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v28, v28, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v29, v29, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v28, v28, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v10, v29, v28 row_half_mirror row_mask:0xf bank_mask:0xf
 s_setprio 1
-v_mac_f32_dpp v34, v34, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v35, v35, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v32, v32, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v33, v33, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v34, v34, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v35, v35, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v32, v32, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_fmac_f32_dpp v33, v33, v100 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
 v_add_f32_dpp v33, v34, v33 row_mirror row_mask:0xf bank_mask:0xf
 v_add_f32_dpp v32, v35, v32 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v33, v33, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v32, v32, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v33, v33, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_fmac_f32_dpp v32, v32, v101 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
 v_add_f32_dpp v11, v33, v32 row_half_mirror row_mask:0xf bank_mask:0xf
 s_waitcnt vmcnt(0)
@@ -2401,17 +2403,11 @@ v_mov_b32_e32 v33, 0
 v_mov_b32_e32 v34, 0
 v_mov_b32_e32 v35, 0
 s_xor_b32 s14, s14, 0x200000
-s_bitcmp0_b32 s14, 21
-s_addc_u32 s76, s1, 0
-s_lshr_b32 s76, s76, 1
-s_mul_i32 s76, s76, s5
-s_lshr_b32 s76, s76, 1
+s_mul_i32 s76, s1, s5
 s_mul_i32 s76, s76, s9
-s_cmp_eq_u32 s76, 0
-s_cbranch_scc1 65331
 s_add_u32 s92, s75, s74
 s_cmp_lt_i32 s92, 0
-s_cbranch_scc0 133
+s_cbranch_scc0 108
 v_and_b32_e32 v37, 0x7f, v0
 v_lshrrev_b32_e32 v37, 1, v37
 v_bfi_b32 v37, 1, v0, v37
@@ -2431,7 +2427,7 @@ s_waitcnt lgkmcnt(0)
 v_readfirstlane_b32 s77, v37
 v_readlane_b32 s94, v104, 0
 s_bitcmp1_b32 s94, 18
-s_cbranch_scc1 675
+s_cbranch_scc1 702
 v_readlane_b32 s92, v104, 1
 v_readlane_b32 s93, v104, 2
 s_add_u32 s75, s74, s93
@@ -2480,462 +2476,501 @@ v_mov_b32_dpp v106, v37 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
 v_cmp_ge_u32_e64 s[2:3], v106, s8
 v_sub_co_u32_e64 v106, vcc, v106, s77
 v_mul_lo_u32 v106, v106, s45
-v_lshlrev_b32_e32 v105, 1, v105
-s_and_b32 s22, 1, s27
-v_add_co_u32_e32 v105, vcc, s22, v105
-v_lshlrev_b32_e32 v104, 1, v104
-s_and_b32 s22, 1, s26
-v_subrev_co_u32_e32 v104, vcc, s22, v104
 v_mad_i32_i24 v37, v104, s50, v105
 v_add_co_u32_e32 v37, vcc, v37, v106
-v_subrev_co_u32_e32 v62, vcc, 1, v37
-v_add_co_u32_e32 v63, vcc, s50, v37
-v_add_co_u32_e32 v88, vcc, s50, v62
 v_cmp_ge_u32_e64 s[98:99], v105, s29
 s_or_b64 s[96:97], s[98:99], s[2:3]
-v_subrev_co_u32_e32 v105, vcc, 1, v105
-v_cmp_ge_u32_e64 s[98:99], v105, s29
-s_or_b64 s[98:99], s[98:99], s[2:3]
 v_cmp_ge_u32_e64 s[22:23], v104, s28
 s_or_b64 s[2:3], s[96:97], s[22:23]
 v_cndmask_b32_e64 v37, v37, -1, s[2:3]
-s_or_b64 s[2:3], s[98:99], s[22:23]
-v_cndmask_b32_e64 v62, v62, -1, s[2:3]
-v_add_co_u32_e32 v104, vcc, 1, v104
-v_cmp_ge_u32_e64 s[22:23], v104, s28
-s_or_b64 s[2:3], s[96:97], s[22:23]
-v_cndmask_b32_e64 v63, v63, -1, s[2:3]
-s_or_b64 s[2:3], s[98:99], s[22:23]
-v_cndmask_b32_e64 v88, v88, -1, s[2:3]
 v_and_b32_e64 v103, v0, 63
 buffer_load_dword v103, v103, s[88:91], 0 idxen
 s_mov_b64 vcc, s[6:7]
-s_branch 64581
-s_mov_b64 s[98:99], s[84:85]
-s_mov_b32 s97, s87
-v_bfe_u32 v104, s14, 21, 1
-v_sub_co_u32_e64 v104, vcc, v104, 1
-v_cndmask_b32_e32 v105, v63, v37, vcc
-v_cndmask_b32_e32 v106, v88, v62, vcc
-v_readlane_b32 s96, v103, 0
-v_add_f32_e64 v4, v4, s96
-buffer_store_dword v4, v105, s[84:87], 0 idxen
-v_add_f32_e64 v5, v5, s96
-buffer_store_dword v5, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+s_branch 64612
+v_readlane_b32 s99, v103, 0
+v_add_f32_e64 v4, v4, s99
+buffer_store_dword v4, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 1
-v_add_f32_e64 v6, v6, s96
-buffer_store_dword v6, v105, s[84:87], 0 idxen
-v_add_f32_e64 v7, v7, s96
-buffer_store_dword v7, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_readlane_b32 s99, v103, 1
+v_add_f32_e64 v5, v5, s99
+buffer_store_dword v5, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s96, 1
-s_add_u32 s84, s84, s96
-s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 2
-s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 4
-v_add_f32_e64 v8, v8, s96
-buffer_store_dword v8, v105, s[84:87], 0 idxen
-v_add_f32_e64 v9, v9, s96
-buffer_store_dword v9, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_readlane_b32 s99, v103, 2
+v_add_f32_e64 v6, v6, s99
+buffer_store_dword v6, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 5
-v_add_f32_e64 v10, v10, s96
-buffer_store_dword v10, v105, s[84:87], 0 idxen
-v_add_f32_e64 v11, v11, s96
-buffer_store_dword v11, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_readlane_b32 s99, v103, 3
+v_add_f32_e64 v7, v7, s99
+buffer_store_dword v7, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s46, 3
+s_lshl_b32 s96, s99, 2
+s_add_u32 s84, s84, s96
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 4
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 8
+v_add_f32_e64 v8, v8, s99
+buffer_store_dword v8, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 9
+v_add_f32_e64 v9, v9, s99
+buffer_store_dword v9, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 10
+v_add_f32_e64 v10, v10, s99
+buffer_store_dword v10, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 11
+v_add_f32_e64 v11, v11, s99
+buffer_store_dword v11, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
 s_lshl_b32 s96, s96, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 10
+s_sub_u32 s75, s75, 20
 s_cselect_b32 s87, 0, s87
-s_bitcmp1_b32 s14, 21
-s_cselect_b32 s87, s87, s97
-s_cselect_b32 s84, s84, s98
-s_cselect_b32 s85, s85, s99
-s_cselect_b32 s97, 0, 16
-s_cselect_b32 s98, 16, 0
-s_lshl_b32 s99, s98, 2
-s_add_u32 s75, s75, s97
-s_add_u32 s88, s88, s99
+s_cselect_b32 s91, 0, s91
+s_add_u32 s88, s88, 0x80
 s_addc_u32 s89, s89, 0
-s_sub_u32 s90, s90, s98
+s_sub_u32 s90, s90, 32
 s_cselect_b32 s91, 0, s91
 s_setpc_b64 s[82:83]
-s_mov_b64 s[98:99], s[84:85]
-s_mov_b32 s97, s87
-v_bfe_u32 v104, s14, 21, 1
-v_sub_co_u32_e64 v104, vcc, v104, 1
-v_cndmask_b32_e32 v105, v63, v37, vcc
-v_cndmask_b32_e32 v106, v88, v62, vcc
-v_readlane_b32 s96, v103, 0
-v_add_f32_e64 v4, v4, s96
-v_mul_f32_e64 v107, v4, s32
+v_readlane_b32 s99, v103, 0
+v_add_f32_e64 v4, v4, s99
+v_mul_f32_e64 v105, v4, s32
 v_cmp_lt_f32_e64 vcc, v4, 0
-v_cndmask_b32_e32 v4, v4, v107, vcc
-buffer_store_dword v4, v105, s[84:87], 0 idxen
-v_add_f32_e64 v5, v5, s96
-v_mul_f32_e64 v107, v5, s32
+v_cndmask_b32_e32 v4, v4, v105, vcc
+buffer_store_dword v4, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 1
+v_add_f32_e64 v5, v5, s99
+v_mul_f32_e64 v105, v5, s32
 v_cmp_lt_f32_e64 vcc, v5, 0
-v_cndmask_b32_e32 v5, v5, v107, vcc
-buffer_store_dword v5, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_cndmask_b32_e32 v5, v5, v105, vcc
+buffer_store_dword v5, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 1
-v_add_f32_e64 v6, v6, s96
-v_mul_f32_e64 v107, v6, s32
+v_readlane_b32 s99, v103, 2
+v_add_f32_e64 v6, v6, s99
+v_mul_f32_e64 v105, v6, s32
 v_cmp_lt_f32_e64 vcc, v6, 0
-v_cndmask_b32_e32 v6, v6, v107, vcc
-buffer_store_dword v6, v105, s[84:87], 0 idxen
-v_add_f32_e64 v7, v7, s96
-v_mul_f32_e64 v107, v7, s32
+v_cndmask_b32_e32 v6, v6, v105, vcc
+buffer_store_dword v6, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 3
+v_add_f32_e64 v7, v7, s99
+v_mul_f32_e64 v105, v7, s32
 v_cmp_lt_f32_e64 vcc, v7, 0
-v_cndmask_b32_e32 v7, v7, v107, vcc
-buffer_store_dword v7, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_cndmask_b32_e32 v7, v7, v105, vcc
+buffer_store_dword v7, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s96, 1
+s_lshl_b32 s96, s99, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 2
+s_sub_u32 s75, s75, 4
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 4
-v_add_f32_e64 v8, v8, s96
-v_mul_f32_e64 v107, v8, s32
+v_readlane_b32 s99, v103, 8
+v_add_f32_e64 v8, v8, s99
+v_mul_f32_e64 v105, v8, s32
 v_cmp_lt_f32_e64 vcc, v8, 0
-v_cndmask_b32_e32 v8, v8, v107, vcc
-buffer_store_dword v8, v105, s[84:87], 0 idxen
-v_add_f32_e64 v9, v9, s96
-v_mul_f32_e64 v107, v9, s32
+v_cndmask_b32_e32 v8, v8, v105, vcc
+buffer_store_dword v8, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 9
+v_add_f32_e64 v9, v9, s99
+v_mul_f32_e64 v105, v9, s32
 v_cmp_lt_f32_e64 vcc, v9, 0
-v_cndmask_b32_e32 v9, v9, v107, vcc
-buffer_store_dword v9, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_cndmask_b32_e32 v9, v9, v105, vcc
+buffer_store_dword v9, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 5
-v_add_f32_e64 v10, v10, s96
-v_mul_f32_e64 v107, v10, s32
+v_readlane_b32 s99, v103, 10
+v_add_f32_e64 v10, v10, s99
+v_mul_f32_e64 v105, v10, s32
 v_cmp_lt_f32_e64 vcc, v10, 0
-v_cndmask_b32_e32 v10, v10, v107, vcc
-buffer_store_dword v10, v105, s[84:87], 0 idxen
-v_add_f32_e64 v11, v11, s96
-v_mul_f32_e64 v107, v11, s32
-v_cmp_lt_f32_e64 vcc, v11, 0
-v_cndmask_b32_e32 v11, v11, v107, vcc
-buffer_store_dword v11, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+v_cndmask_b32_e32 v10, v10, v105, vcc
+buffer_store_dword v10, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s46, 3
+v_readlane_b32 s99, v103, 11
+v_add_f32_e64 v11, v11, s99
+v_mul_f32_e64 v105, v11, s32
+v_cmp_lt_f32_e64 vcc, v11, 0
+v_cndmask_b32_e32 v11, v11, v105, vcc
+buffer_store_dword v11, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
 s_lshl_b32 s96, s96, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 10
+s_sub_u32 s75, s75, 20
 s_cselect_b32 s87, 0, s87
-s_bitcmp1_b32 s14, 21
-s_cselect_b32 s87, s87, s97
-s_cselect_b32 s84, s84, s98
-s_cselect_b32 s85, s85, s99
-s_cselect_b32 s97, 0, 16
-s_cselect_b32 s98, 16, 0
-s_lshl_b32 s99, s98, 2
-s_add_u32 s75, s75, s97
-s_add_u32 s88, s88, s99
+s_cselect_b32 s91, 0, s91
+s_add_u32 s88, s88, 0x80
 s_addc_u32 s89, s89, 0
-s_sub_u32 s90, s90, s98
+s_sub_u32 s90, s90, 32
 s_cselect_b32 s91, 0, s91
 s_setpc_b64 s[82:83]
-s_mov_b64 s[98:99], s[84:85]
-s_mov_b32 s97, s87
-v_bfe_u32 v104, s14, 21, 1
-v_sub_co_u32_e64 v104, vcc, v104, 1
-v_cndmask_b32_e32 v105, v63, v37, vcc
-v_cndmask_b32_e32 v106, v88, v62, vcc
-v_readlane_b32 s96, v103, 0
-v_add_f32_e64 v4, v4, s96
+v_readlane_b32 s99, v103, 0
+v_add_f32_e64 v4, v4, s99
 v_mul_f32_e32 v4, 0xbfb8aa3b, v4
 v_exp_f32_e32 v4, v4
 v_add_f32_e32 v4, 1.0, v4
 v_rcp_f32_e32 v4, v4
-buffer_store_dword v4, v105, s[84:87], 0 idxen
-v_add_f32_e64 v5, v5, s96
+buffer_store_dword v4, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 1
+v_add_f32_e64 v5, v5, s99
 v_mul_f32_e32 v5, 0xbfb8aa3b, v5
 v_exp_f32_e32 v5, v5
 v_add_f32_e32 v5, 1.0, v5
 v_rcp_f32_e32 v5, v5
-buffer_store_dword v5, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v5, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 1
-v_add_f32_e64 v6, v6, s96
+v_readlane_b32 s99, v103, 2
+v_add_f32_e64 v6, v6, s99
 v_mul_f32_e32 v6, 0xbfb8aa3b, v6
 v_exp_f32_e32 v6, v6
 v_add_f32_e32 v6, 1.0, v6
 v_rcp_f32_e32 v6, v6
-buffer_store_dword v6, v105, s[84:87], 0 idxen
-v_add_f32_e64 v7, v7, s96
+buffer_store_dword v6, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 3
+v_add_f32_e64 v7, v7, s99
 v_mul_f32_e32 v7, 0xbfb8aa3b, v7
 v_exp_f32_e32 v7, v7
 v_add_f32_e32 v7, 1.0, v7
 v_rcp_f32_e32 v7, v7
-buffer_store_dword v7, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v7, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s96, 1
+s_lshl_b32 s96, s99, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 2
+s_sub_u32 s75, s75, 4
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 4
-v_add_f32_e64 v8, v8, s96
+v_readlane_b32 s99, v103, 8
+v_add_f32_e64 v8, v8, s99
 v_mul_f32_e32 v8, 0xbfb8aa3b, v8
 v_exp_f32_e32 v8, v8
 v_add_f32_e32 v8, 1.0, v8
 v_rcp_f32_e32 v8, v8
-buffer_store_dword v8, v105, s[84:87], 0 idxen
-v_add_f32_e64 v9, v9, s96
+buffer_store_dword v8, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 9
+v_add_f32_e64 v9, v9, s99
 v_mul_f32_e32 v9, 0xbfb8aa3b, v9
 v_exp_f32_e32 v9, v9
 v_add_f32_e32 v9, 1.0, v9
 v_rcp_f32_e32 v9, v9
-buffer_store_dword v9, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v9, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 5
-v_add_f32_e64 v10, v10, s96
+v_readlane_b32 s99, v103, 10
+v_add_f32_e64 v10, v10, s99
 v_mul_f32_e32 v10, 0xbfb8aa3b, v10
 v_exp_f32_e32 v10, v10
 v_add_f32_e32 v10, 1.0, v10
 v_rcp_f32_e32 v10, v10
-buffer_store_dword v10, v105, s[84:87], 0 idxen
-v_add_f32_e64 v11, v11, s96
+buffer_store_dword v10, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 11
+v_add_f32_e64 v11, v11, s99
 v_mul_f32_e32 v11, 0xbfb8aa3b, v11
 v_exp_f32_e32 v11, v11
 v_add_f32_e32 v11, 1.0, v11
 v_rcp_f32_e32 v11, v11
-buffer_store_dword v11, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v11, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s46, 3
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
 s_lshl_b32 s96, s96, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 10
+s_sub_u32 s75, s75, 20
 s_cselect_b32 s87, 0, s87
-s_bitcmp1_b32 s14, 21
-s_cselect_b32 s87, s87, s97
-s_cselect_b32 s84, s84, s98
-s_cselect_b32 s85, s85, s99
-s_cselect_b32 s97, 0, 16
-s_cselect_b32 s98, 16, 0
-s_lshl_b32 s99, s98, 2
-s_add_u32 s75, s75, s97
-s_add_u32 s88, s88, s99
+s_cselect_b32 s91, 0, s91
+s_add_u32 s88, s88, 0x80
 s_addc_u32 s89, s89, 0
-s_sub_u32 s90, s90, s98
+s_sub_u32 s90, s90, 32
 s_cselect_b32 s91, 0, s91
 s_setpc_b64 s[82:83]
-s_mov_b64 s[98:99], s[84:85]
-s_mov_b32 s97, s87
-v_bfe_u32 v104, s14, 21, 1
-v_sub_co_u32_e64 v104, vcc, v104, 1
-v_cndmask_b32_e32 v105, v63, v37, vcc
-v_cndmask_b32_e32 v106, v88, v62, vcc
-v_readlane_b32 s96, v103, 0
-v_add_f32_e64 v4, v4, s96
+v_readlane_b32 s99, v103, 0
+v_add_f32_e64 v4, v4, s99
 v_mul_f32_e64 v4, v4, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v4
-v_mul_f32_e32 v108, 0xbfb8aa3b, v4
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v4, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v4
+v_mul_f32_e32 v106, 0xbfb8aa3b, v4
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v4, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v4, v4
-v_mul_f32_e32 v4, v4, v107
+v_mul_f32_e32 v4, v4, v105
 v_mul_f32_e64 v4, v4, s32
-buffer_store_dword v4, v105, s[84:87], 0 idxen
-v_add_f32_e64 v5, v5, s96
+buffer_store_dword v4, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 1
+v_add_f32_e64 v5, v5, s99
 v_mul_f32_e64 v5, v5, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v5
-v_mul_f32_e32 v108, 0xbfb8aa3b, v5
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v5, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v5
+v_mul_f32_e32 v106, 0xbfb8aa3b, v5
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v5, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v5, v5
-v_mul_f32_e32 v5, v5, v107
+v_mul_f32_e32 v5, v5, v105
 v_mul_f32_e64 v5, v5, s32
-buffer_store_dword v5, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v5, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 1
-v_add_f32_e64 v6, v6, s96
+v_readlane_b32 s99, v103, 2
+v_add_f32_e64 v6, v6, s99
 v_mul_f32_e64 v6, v6, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v6
-v_mul_f32_e32 v108, 0xbfb8aa3b, v6
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v6, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v6
+v_mul_f32_e32 v106, 0xbfb8aa3b, v6
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v6, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v6, v6
-v_mul_f32_e32 v6, v6, v107
+v_mul_f32_e32 v6, v6, v105
 v_mul_f32_e64 v6, v6, s32
-buffer_store_dword v6, v105, s[84:87], 0 idxen
-v_add_f32_e64 v7, v7, s96
+buffer_store_dword v6, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 3
+v_add_f32_e64 v7, v7, s99
 v_mul_f32_e64 v7, v7, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v7
-v_mul_f32_e32 v108, 0xbfb8aa3b, v7
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v7, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v7
+v_mul_f32_e32 v106, 0xbfb8aa3b, v7
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v7, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v7, v7
-v_mul_f32_e32 v7, v7, v107
+v_mul_f32_e32 v7, v7, v105
 v_mul_f32_e64 v7, v7, s32
-buffer_store_dword v7, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v7, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s96, 1
+s_lshl_b32 s96, s99, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 2
+s_sub_u32 s75, s75, 4
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 4
-v_add_f32_e64 v8, v8, s96
+v_readlane_b32 s99, v103, 8
+v_add_f32_e64 v8, v8, s99
 v_mul_f32_e64 v8, v8, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v8
-v_mul_f32_e32 v108, 0xbfb8aa3b, v8
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v8, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v8
+v_mul_f32_e32 v106, 0xbfb8aa3b, v8
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v8, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v8, v8
-v_mul_f32_e32 v8, v8, v107
+v_mul_f32_e32 v8, v8, v105
 v_mul_f32_e64 v8, v8, s32
-buffer_store_dword v8, v105, s[84:87], 0 idxen
-v_add_f32_e64 v9, v9, s96
+buffer_store_dword v8, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
+v_readlane_b32 s99, v103, 9
+v_add_f32_e64 v9, v9, s99
 v_mul_f32_e64 v9, v9, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v9
-v_mul_f32_e32 v108, 0xbfb8aa3b, v9
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v9, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v9
+v_mul_f32_e32 v106, 0xbfb8aa3b, v9
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v9, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v9, v9
-v_mul_f32_e32 v9, v9, v107
+v_mul_f32_e32 v9, v9, v105
 v_mul_f32_e64 v9, v9, s32
-buffer_store_dword v9, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v9, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-v_readlane_b32 s96, v103, 5
-v_add_f32_e64 v10, v10, s96
+v_readlane_b32 s99, v103, 10
+v_add_f32_e64 v10, v10, s99
 v_mul_f32_e64 v10, v10, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v10
-v_mul_f32_e32 v108, 0xbfb8aa3b, v10
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v10, v107, v108
-v_sub_f32_e32 v107, v107, v108
+v_mul_f32_e32 v105, 0x3fb8aa3b, v10
+v_mul_f32_e32 v106, 0xbfb8aa3b, v10
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v10, v105, v106
+v_sub_f32_e32 v105, v105, v106
 v_rcp_f32_e32 v10, v10
-v_mul_f32_e32 v10, v10, v107
+v_mul_f32_e32 v10, v10, v105
 v_mul_f32_e64 v10, v10, s32
-buffer_store_dword v10, v105, s[84:87], 0 idxen
-v_add_f32_e64 v11, v11, s96
-v_mul_f32_e64 v11, v11, s33
-v_mul_f32_e32 v107, 0x3fb8aa3b, v11
-v_mul_f32_e32 v108, 0xbfb8aa3b, v11
-v_exp_f32_e32 v107, v107
-v_exp_f32_e32 v108, v108
-v_add_f32_e32 v11, v107, v108
-v_sub_f32_e32 v107, v107, v108
-v_rcp_f32_e32 v11, v11
-v_mul_f32_e32 v11, v11, v107
-v_mul_f32_e64 v11, v11, s32
-buffer_store_dword v11, v106, s[84:87], 0 idxen
-s_lshl_b32 s96, s46, 2
-s_add_u32 s84, s84, s96
+buffer_store_dword v10, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
 s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
-s_lshl_b32 s96, s46, 3
+v_readlane_b32 s99, v103, 11
+v_add_f32_e64 v11, v11, s99
+v_mul_f32_e64 v11, v11, s33
+v_mul_f32_e32 v105, 0x3fb8aa3b, v11
+v_mul_f32_e32 v106, 0xbfb8aa3b, v11
+v_exp_f32_e32 v105, v105
+v_exp_f32_e32 v106, v106
+v_add_f32_e32 v11, v105, v106
+v_sub_f32_e32 v105, v105, v106
+v_rcp_f32_e32 v11, v11
+v_mul_f32_e32 v11, v11, v105
+v_mul_f32_e64 v11, v11, s32
+buffer_store_dword v11, v37, s[84:87], 0 idxen
+s_lshl_b32 s99, s46, 2
+s_add_u32 s84, s84, s99
+s_addc_u32 s85, s85, 0
+s_sub_u32 s75, s75, 1
+s_cselect_b32 s87, 0, s87
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
 s_lshl_b32 s96, s96, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
-s_sub_u32 s75, s75, 10
+s_sub_u32 s75, s75, 20
 s_cselect_b32 s87, 0, s87
-s_bitcmp1_b32 s14, 21
-s_cselect_b32 s87, s87, s97
-s_cselect_b32 s84, s84, s98
-s_cselect_b32 s85, s85, s99
-s_cselect_b32 s97, 0, 16
-s_cselect_b32 s98, 16, 0
-s_lshl_b32 s99, s98, 2
-s_add_u32 s75, s75, s97
-s_add_u32 s88, s88, s99
+s_cselect_b32 s91, 0, s91
+s_add_u32 s88, s88, 0x80
 s_addc_u32 s89, s89, 0
-s_sub_u32 s90, s90, s98
+s_sub_u32 s90, s90, 32
 s_cselect_b32 s91, 0, s91
 s_setpc_b64 s[82:83]
 s_endpgm
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
+s_nop 0
 s_nop 0
 s_nop 0
 s_nop 0

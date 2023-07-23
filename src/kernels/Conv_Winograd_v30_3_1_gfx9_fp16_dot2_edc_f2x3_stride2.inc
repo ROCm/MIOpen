@@ -30,11 +30,11 @@
 .endm
 
 .macro _buffer_store_short vdata, vidx, srd, idx, mode
-#.if FORCE_CACHE_BYPASS_ON_STORE
-#    buffer_store_short \vdata, \vidx, \srd, \idx \mode sc0 sc1
-#.else
+.if FORCE_CACHE_BYPASS_ON_STORE
+    buffer_store_short \vdata, \vidx, \srd, \idx \mode sc0 sc1
+.else
     buffer_store_short \vdata, \vidx, \srd, \idx \mode
-#.endif
+.endif
 .endm
 
 v_mov_b32_e32 v0, v0
