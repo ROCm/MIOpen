@@ -174,7 +174,8 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
 
 void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
 {
-    if(!miopen::StartsWith(get_handle().GetDeviceName(), "gfx11"))
+    if(!miopen::StartsWith(get_handle().GetDeviceName(), "gfx11") &&
+       !miopen::StartsWith(get_handle().GetDeviceName(), "gfx94"))
     {
         cba_test_cases.push_back(CBATestCase{
             16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
