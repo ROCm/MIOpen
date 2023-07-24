@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,6 @@ protected:
     {
         if(test_skipped)
             return;
-        test::FusionPlan::ComputeRefBN(bn_infer_data);
         auto&& handle = get_handle();
         bn_infer_data.output.data =
             handle.Read<T>(bn_infer_data.out_dev, bn_infer_data.output.data.size());
