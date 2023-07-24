@@ -24,11 +24,11 @@
  *
  *******************************************************************************/
 
-.macro _buffer_store_short vdata, vidx, srd, idx, mode
+.macro _buffer_store_dword vdata, vidx, srd, idx, mode
 .if FORCE_CACHE_BYPASS_ON_STORE
-    buffer_store_short \vdata, \vidx, \srd, \idx \mode sc0 sc1
+    buffer_store_dword \vdata, \vidx, \srd, \idx \mode sc0 sc1
 .else
-    buffer_store_short \vdata, \vidx, \srd, \idx \mode
+    buffer_store_dword \vdata, \vidx, \srd, \idx \mode
 .endif
 .endm
 
@@ -2519,9 +2519,9 @@ v_cndmask_b32_e32 v105, v63, v37, vcc
 v_cndmask_b32_e32 v106, v88, v62, vcc
 v_readlane_b32 s96, v103, 0
 v_add_f32_e64 v4, v4, s96
-buffer_store_dword v4, v105, s[84:87], 0 idxen
+_buffer_store_dword v4, v105, s[84:87], 0 idxen
 v_add_f32_e64 v5, v5, s96
-buffer_store_dword v5, v106, s[84:87], 0 idxen
+_buffer_store_dword v5, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2529,9 +2529,9 @@ s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
 v_readlane_b32 s96, v103, 1
 v_add_f32_e64 v6, v6, s96
-buffer_store_dword v6, v105, s[84:87], 0 idxen
+_buffer_store_dword v6, v105, s[84:87], 0 idxen
 v_add_f32_e64 v7, v7, s96
-buffer_store_dword v7, v106, s[84:87], 0 idxen
+_buffer_store_dword v7, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2544,9 +2544,9 @@ s_sub_u32 s75, s75, 2
 s_cselect_b32 s87, 0, s87
 v_readlane_b32 s96, v103, 4
 v_add_f32_e64 v8, v8, s96
-buffer_store_dword v8, v105, s[84:87], 0 idxen
+_buffer_store_dword v8, v105, s[84:87], 0 idxen
 v_add_f32_e64 v9, v9, s96
-buffer_store_dword v9, v106, s[84:87], 0 idxen
+_buffer_store_dword v9, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2554,9 +2554,9 @@ s_sub_u32 s75, s75, 1
 s_cselect_b32 s87, 0, s87
 v_readlane_b32 s96, v103, 5
 v_add_f32_e64 v10, v10, s96
-buffer_store_dword v10, v105, s[84:87], 0 idxen
+_buffer_store_dword v10, v105, s[84:87], 0 idxen
 v_add_f32_e64 v11, v11, s96
-buffer_store_dword v11, v106, s[84:87], 0 idxen
+_buffer_store_dword v11, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2594,12 +2594,12 @@ v_add_f32_e64 v4, v4, s96
 v_mul_f32_e64 v107, v4, s32
 v_cmp_lt_f32_e64 vcc, v4, 0
 v_cndmask_b32_e32 v4, v4, v107, vcc
-buffer_store_dword v4, v105, s[84:87], 0 idxen
+_buffer_store_dword v4, v105, s[84:87], 0 idxen
 v_add_f32_e64 v5, v5, s96
 v_mul_f32_e64 v107, v5, s32
 v_cmp_lt_f32_e64 vcc, v5, 0
 v_cndmask_b32_e32 v5, v5, v107, vcc
-buffer_store_dword v5, v106, s[84:87], 0 idxen
+_buffer_store_dword v5, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2610,12 +2610,12 @@ v_add_f32_e64 v6, v6, s96
 v_mul_f32_e64 v107, v6, s32
 v_cmp_lt_f32_e64 vcc, v6, 0
 v_cndmask_b32_e32 v6, v6, v107, vcc
-buffer_store_dword v6, v105, s[84:87], 0 idxen
+_buffer_store_dword v6, v105, s[84:87], 0 idxen
 v_add_f32_e64 v7, v7, s96
 v_mul_f32_e64 v107, v7, s32
 v_cmp_lt_f32_e64 vcc, v7, 0
 v_cndmask_b32_e32 v7, v7, v107, vcc
-buffer_store_dword v7, v106, s[84:87], 0 idxen
+_buffer_store_dword v7, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2631,12 +2631,12 @@ v_add_f32_e64 v8, v8, s96
 v_mul_f32_e64 v107, v8, s32
 v_cmp_lt_f32_e64 vcc, v8, 0
 v_cndmask_b32_e32 v8, v8, v107, vcc
-buffer_store_dword v8, v105, s[84:87], 0 idxen
+_buffer_store_dword v8, v105, s[84:87], 0 idxen
 v_add_f32_e64 v9, v9, s96
 v_mul_f32_e64 v107, v9, s32
 v_cmp_lt_f32_e64 vcc, v9, 0
 v_cndmask_b32_e32 v9, v9, v107, vcc
-buffer_store_dword v9, v106, s[84:87], 0 idxen
+_buffer_store_dword v9, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2647,12 +2647,12 @@ v_add_f32_e64 v10, v10, s96
 v_mul_f32_e64 v107, v10, s32
 v_cmp_lt_f32_e64 vcc, v10, 0
 v_cndmask_b32_e32 v10, v10, v107, vcc
-buffer_store_dword v10, v105, s[84:87], 0 idxen
+_buffer_store_dword v10, v105, s[84:87], 0 idxen
 v_add_f32_e64 v11, v11, s96
 v_mul_f32_e64 v107, v11, s32
 v_cmp_lt_f32_e64 vcc, v11, 0
 v_cndmask_b32_e32 v11, v11, v107, vcc
-buffer_store_dword v11, v106, s[84:87], 0 idxen
+_buffer_store_dword v11, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2691,13 +2691,13 @@ v_mul_f32_e32 v4, 0xbfb8aa3b, v4
 v_exp_f32_e32 v4, v4
 v_add_f32_e32 v4, 1.0, v4
 v_rcp_f32_e32 v4, v4
-buffer_store_dword v4, v105, s[84:87], 0 idxen
+_buffer_store_dword v4, v105, s[84:87], 0 idxen
 v_add_f32_e64 v5, v5, s96
 v_mul_f32_e32 v5, 0xbfb8aa3b, v5
 v_exp_f32_e32 v5, v5
 v_add_f32_e32 v5, 1.0, v5
 v_rcp_f32_e32 v5, v5
-buffer_store_dword v5, v106, s[84:87], 0 idxen
+_buffer_store_dword v5, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2709,13 +2709,13 @@ v_mul_f32_e32 v6, 0xbfb8aa3b, v6
 v_exp_f32_e32 v6, v6
 v_add_f32_e32 v6, 1.0, v6
 v_rcp_f32_e32 v6, v6
-buffer_store_dword v6, v105, s[84:87], 0 idxen
+_buffer_store_dword v6, v105, s[84:87], 0 idxen
 v_add_f32_e64 v7, v7, s96
 v_mul_f32_e32 v7, 0xbfb8aa3b, v7
 v_exp_f32_e32 v7, v7
 v_add_f32_e32 v7, 1.0, v7
 v_rcp_f32_e32 v7, v7
-buffer_store_dword v7, v106, s[84:87], 0 idxen
+_buffer_store_dword v7, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2732,13 +2732,13 @@ v_mul_f32_e32 v8, 0xbfb8aa3b, v8
 v_exp_f32_e32 v8, v8
 v_add_f32_e32 v8, 1.0, v8
 v_rcp_f32_e32 v8, v8
-buffer_store_dword v8, v105, s[84:87], 0 idxen
+_buffer_store_dword v8, v105, s[84:87], 0 idxen
 v_add_f32_e64 v9, v9, s96
 v_mul_f32_e32 v9, 0xbfb8aa3b, v9
 v_exp_f32_e32 v9, v9
 v_add_f32_e32 v9, 1.0, v9
 v_rcp_f32_e32 v9, v9
-buffer_store_dword v9, v106, s[84:87], 0 idxen
+_buffer_store_dword v9, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2750,13 +2750,13 @@ v_mul_f32_e32 v10, 0xbfb8aa3b, v10
 v_exp_f32_e32 v10, v10
 v_add_f32_e32 v10, 1.0, v10
 v_rcp_f32_e32 v10, v10
-buffer_store_dword v10, v105, s[84:87], 0 idxen
+_buffer_store_dword v10, v105, s[84:87], 0 idxen
 v_add_f32_e64 v11, v11, s96
 v_mul_f32_e32 v11, 0xbfb8aa3b, v11
 v_exp_f32_e32 v11, v11
 v_add_f32_e32 v11, 1.0, v11
 v_rcp_f32_e32 v11, v11
-buffer_store_dword v11, v106, s[84:87], 0 idxen
+_buffer_store_dword v11, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2801,7 +2801,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v4, v4
 v_mul_f32_e32 v4, v4, v107
 v_mul_f32_e64 v4, v4, s32
-buffer_store_dword v4, v105, s[84:87], 0 idxen
+_buffer_store_dword v4, v105, s[84:87], 0 idxen
 v_add_f32_e64 v5, v5, s96
 v_mul_f32_e64 v5, v5, s33
 v_mul_f32_e32 v107, 0x3fb8aa3b, v5
@@ -2813,7 +2813,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v5, v5
 v_mul_f32_e32 v5, v5, v107
 v_mul_f32_e64 v5, v5, s32
-buffer_store_dword v5, v106, s[84:87], 0 idxen
+_buffer_store_dword v5, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2831,7 +2831,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v6, v6
 v_mul_f32_e32 v6, v6, v107
 v_mul_f32_e64 v6, v6, s32
-buffer_store_dword v6, v105, s[84:87], 0 idxen
+_buffer_store_dword v6, v105, s[84:87], 0 idxen
 v_add_f32_e64 v7, v7, s96
 v_mul_f32_e64 v7, v7, s33
 v_mul_f32_e32 v107, 0x3fb8aa3b, v7
@@ -2843,7 +2843,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v7, v7
 v_mul_f32_e32 v7, v7, v107
 v_mul_f32_e64 v7, v7, s32
-buffer_store_dword v7, v106, s[84:87], 0 idxen
+_buffer_store_dword v7, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2866,7 +2866,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v8, v8
 v_mul_f32_e32 v8, v8, v107
 v_mul_f32_e64 v8, v8, s32
-buffer_store_dword v8, v105, s[84:87], 0 idxen
+_buffer_store_dword v8, v105, s[84:87], 0 idxen
 v_add_f32_e64 v9, v9, s96
 v_mul_f32_e64 v9, v9, s33
 v_mul_f32_e32 v107, 0x3fb8aa3b, v9
@@ -2878,7 +2878,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v9, v9
 v_mul_f32_e32 v9, v9, v107
 v_mul_f32_e64 v9, v9, s32
-buffer_store_dword v9, v106, s[84:87], 0 idxen
+_buffer_store_dword v9, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
@@ -2896,7 +2896,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v10, v10
 v_mul_f32_e32 v10, v10, v107
 v_mul_f32_e64 v10, v10, s32
-buffer_store_dword v10, v105, s[84:87], 0 idxen
+_buffer_store_dword v10, v105, s[84:87], 0 idxen
 v_add_f32_e64 v11, v11, s96
 v_mul_f32_e64 v11, v11, s33
 v_mul_f32_e32 v107, 0x3fb8aa3b, v11
@@ -2908,7 +2908,7 @@ v_sub_f32_e32 v107, v107, v108
 v_rcp_f32_e32 v11, v11
 v_mul_f32_e32 v11, v11, v107
 v_mul_f32_e64 v11, v11, s32
-buffer_store_dword v11, v106, s[84:87], 0 idxen
+_buffer_store_dword v11, v106, s[84:87], 0 idxen
 s_lshl_b32 s96, s46, 2
 s_add_u32 s84, s84, s96
 s_addc_u32 s85, s85, 0
