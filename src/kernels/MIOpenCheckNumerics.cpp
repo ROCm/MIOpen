@@ -26,8 +26,9 @@
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-#include <hip/hip_bfloat16.h>
 #endif
+
+#include <hip/hip_bfloat16.h>
 
 // Copied over from naive_conv.cpp
 #ifdef __HIPCC_RTC__
