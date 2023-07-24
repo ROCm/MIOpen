@@ -60,6 +60,11 @@ miopenGetConvolutionNdDescriptor
 
 .. doxygenfunction::  miopenGetConvolutionNdDescriptor
 
+miopenGetConvolutionGroupCount
+------------------------------
+
+.. doxygenfunction::  miopenGetConvolutionGroupCount
+
 miopenSetConvolutionGroupCount
 ------------------------------
 
