@@ -29,14 +29,6 @@
     .long  0x00003C00
 .endm
 
-.macro _buffer_store_short vdata, vidx, srd, idx, mode
-.if FORCE_CACHE_BYPASS_ON_STORE
-    buffer_store_short \vdata, \vidx, \srd, \idx \mode sc0 sc1
-.else
-    buffer_store_short \vdata, \vidx, \srd, \idx \mode
-.endif
-.endm
-
 v_mov_b32_e32 v0, v0
 s_mov_b32 s0, 0
 v_mov_b32_e32 v115, 0
@@ -2977,9 +2969,9 @@ v_readlane_b32 s99, v115, 0
 v_add_f16_e64 v4, v4, s99
 v_add_f16_e64 v5, v5, s99
 v_add_f16_e64 v6, v6, s99
-_buffer_store_short v4, v37, s[84:87], 0 idxen
-_buffer_store_short v5, v62, s[84:87], 0 idxen
-_buffer_store_short v6, v63, s[84:87], 0 idxen
+buffer_store_short v4, v37, s[84:87], 0 idxen
+buffer_store_short v5, v62, s[84:87], 0 idxen
+buffer_store_short v6, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -2989,9 +2981,9 @@ v_readlane_b32 s99, v115, 1
 v_add_f16_e64 v7, v7, s99
 v_add_f16_e64 v8, v8, s99
 v_add_f16_e64 v9, v9, s99
-_buffer_store_short v7, v37, s[84:87], 0 idxen
-_buffer_store_short v8, v62, s[84:87], 0 idxen
-_buffer_store_short v9, v63, s[84:87], 0 idxen
+buffer_store_short v7, v37, s[84:87], 0 idxen
+buffer_store_short v8, v62, s[84:87], 0 idxen
+buffer_store_short v9, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3001,9 +2993,9 @@ v_readlane_b32 s99, v115, 2
 v_add_f16_e64 v10, v10, s99
 v_add_f16_e64 v11, v11, s99
 v_add_f16_e64 v12, v12, s99
-_buffer_store_short v10, v37, s[84:87], 0 idxen
-_buffer_store_short v11, v62, s[84:87], 0 idxen
-_buffer_store_short v12, v63, s[84:87], 0 idxen
+buffer_store_short v10, v37, s[84:87], 0 idxen
+buffer_store_short v11, v62, s[84:87], 0 idxen
+buffer_store_short v12, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3013,9 +3005,9 @@ v_readlane_b32 s99, v115, 3
 v_add_f16_e64 v13, v13, s99
 v_add_f16_e64 v14, v14, s99
 v_add_f16_e64 v15, v15, s99
-_buffer_store_short v13, v37, s[84:87], 0 idxen
-_buffer_store_short v14, v62, s[84:87], 0 idxen
-_buffer_store_short v15, v63, s[84:87], 0 idxen
+buffer_store_short v13, v37, s[84:87], 0 idxen
+buffer_store_short v14, v62, s[84:87], 0 idxen
+buffer_store_short v15, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3030,9 +3022,9 @@ v_readlane_b32 s99, v115, 8
 v_add_f16_e64 v16, v16, s99
 v_add_f16_e64 v17, v17, s99
 v_add_f16_e64 v18, v18, s99
-_buffer_store_short v16, v37, s[84:87], 0 idxen
-_buffer_store_short v17, v62, s[84:87], 0 idxen
-_buffer_store_short v18, v63, s[84:87], 0 idxen
+buffer_store_short v16, v37, s[84:87], 0 idxen
+buffer_store_short v17, v62, s[84:87], 0 idxen
+buffer_store_short v18, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3042,9 +3034,9 @@ v_readlane_b32 s99, v115, 9
 v_add_f16_e64 v19, v19, s99
 v_add_f16_e64 v20, v20, s99
 v_add_f16_e64 v21, v21, s99
-_buffer_store_short v19, v37, s[84:87], 0 idxen
-_buffer_store_short v20, v62, s[84:87], 0 idxen
-_buffer_store_short v21, v63, s[84:87], 0 idxen
+buffer_store_short v19, v37, s[84:87], 0 idxen
+buffer_store_short v20, v62, s[84:87], 0 idxen
+buffer_store_short v21, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3054,9 +3046,9 @@ v_readlane_b32 s99, v115, 10
 v_add_f16_e64 v22, v22, s99
 v_add_f16_e64 v23, v23, s99
 v_add_f16_e64 v24, v24, s99
-_buffer_store_short v22, v37, s[84:87], 0 idxen
-_buffer_store_short v23, v62, s[84:87], 0 idxen
-_buffer_store_short v24, v63, s[84:87], 0 idxen
+buffer_store_short v22, v37, s[84:87], 0 idxen
+buffer_store_short v23, v62, s[84:87], 0 idxen
+buffer_store_short v24, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3066,9 +3058,9 @@ v_readlane_b32 s99, v115, 11
 v_add_f16_e64 v25, v25, s99
 v_add_f16_e64 v26, v26, s99
 v_add_f16_e64 v27, v27, s99
-_buffer_store_short v25, v37, s[84:87], 0 idxen
-_buffer_store_short v26, v62, s[84:87], 0 idxen
-_buffer_store_short v27, v63, s[84:87], 0 idxen
+buffer_store_short v25, v37, s[84:87], 0 idxen
+buffer_store_short v26, v62, s[84:87], 0 idxen
+buffer_store_short v27, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3100,9 +3092,9 @@ v_add_f16_e64 v6, v6, s99
 v_mul_f16_e64 v117, v6, s32
 v_cmp_lt_f16_e64 vcc, v6, 0
 v_cndmask_b32_e32 v6, v6, v117, vcc
-_buffer_store_short v4, v37, s[84:87], 0 idxen
-_buffer_store_short v5, v62, s[84:87], 0 idxen
-_buffer_store_short v6, v63, s[84:87], 0 idxen
+buffer_store_short v4, v37, s[84:87], 0 idxen
+buffer_store_short v5, v62, s[84:87], 0 idxen
+buffer_store_short v6, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3121,9 +3113,9 @@ v_add_f16_e64 v9, v9, s99
 v_mul_f16_e64 v117, v9, s32
 v_cmp_lt_f16_e64 vcc, v9, 0
 v_cndmask_b32_e32 v9, v9, v117, vcc
-_buffer_store_short v7, v37, s[84:87], 0 idxen
-_buffer_store_short v8, v62, s[84:87], 0 idxen
-_buffer_store_short v9, v63, s[84:87], 0 idxen
+buffer_store_short v7, v37, s[84:87], 0 idxen
+buffer_store_short v8, v62, s[84:87], 0 idxen
+buffer_store_short v9, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3142,9 +3134,9 @@ v_add_f16_e64 v12, v12, s99
 v_mul_f16_e64 v117, v12, s32
 v_cmp_lt_f16_e64 vcc, v12, 0
 v_cndmask_b32_e32 v12, v12, v117, vcc
-_buffer_store_short v10, v37, s[84:87], 0 idxen
-_buffer_store_short v11, v62, s[84:87], 0 idxen
-_buffer_store_short v12, v63, s[84:87], 0 idxen
+buffer_store_short v10, v37, s[84:87], 0 idxen
+buffer_store_short v11, v62, s[84:87], 0 idxen
+buffer_store_short v12, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3163,9 +3155,9 @@ v_add_f16_e64 v15, v15, s99
 v_mul_f16_e64 v117, v15, s32
 v_cmp_lt_f16_e64 vcc, v15, 0
 v_cndmask_b32_e32 v15, v15, v117, vcc
-_buffer_store_short v13, v37, s[84:87], 0 idxen
-_buffer_store_short v14, v62, s[84:87], 0 idxen
-_buffer_store_short v15, v63, s[84:87], 0 idxen
+buffer_store_short v13, v37, s[84:87], 0 idxen
+buffer_store_short v14, v62, s[84:87], 0 idxen
+buffer_store_short v15, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3189,9 +3181,9 @@ v_add_f16_e64 v18, v18, s99
 v_mul_f16_e64 v117, v18, s32
 v_cmp_lt_f16_e64 vcc, v18, 0
 v_cndmask_b32_e32 v18, v18, v117, vcc
-_buffer_store_short v16, v37, s[84:87], 0 idxen
-_buffer_store_short v17, v62, s[84:87], 0 idxen
-_buffer_store_short v18, v63, s[84:87], 0 idxen
+buffer_store_short v16, v37, s[84:87], 0 idxen
+buffer_store_short v17, v62, s[84:87], 0 idxen
+buffer_store_short v18, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3210,9 +3202,9 @@ v_add_f16_e64 v21, v21, s99
 v_mul_f16_e64 v117, v21, s32
 v_cmp_lt_f16_e64 vcc, v21, 0
 v_cndmask_b32_e32 v21, v21, v117, vcc
-_buffer_store_short v19, v37, s[84:87], 0 idxen
-_buffer_store_short v20, v62, s[84:87], 0 idxen
-_buffer_store_short v21, v63, s[84:87], 0 idxen
+buffer_store_short v19, v37, s[84:87], 0 idxen
+buffer_store_short v20, v62, s[84:87], 0 idxen
+buffer_store_short v21, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3231,9 +3223,9 @@ v_add_f16_e64 v24, v24, s99
 v_mul_f16_e64 v117, v24, s32
 v_cmp_lt_f16_e64 vcc, v24, 0
 v_cndmask_b32_e32 v24, v24, v117, vcc
-_buffer_store_short v22, v37, s[84:87], 0 idxen
-_buffer_store_short v23, v62, s[84:87], 0 idxen
-_buffer_store_short v24, v63, s[84:87], 0 idxen
+buffer_store_short v22, v37, s[84:87], 0 idxen
+buffer_store_short v23, v62, s[84:87], 0 idxen
+buffer_store_short v24, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3252,9 +3244,9 @@ v_add_f16_e64 v27, v27, s99
 v_mul_f16_e64 v117, v27, s32
 v_cmp_lt_f16_e64 vcc, v27, 0
 v_cndmask_b32_e32 v27, v27, v117, vcc
-_buffer_store_short v25, v37, s[84:87], 0 idxen
-_buffer_store_short v26, v62, s[84:87], 0 idxen
-_buffer_store_short v27, v63, s[84:87], 0 idxen
+buffer_store_short v25, v37, s[84:87], 0 idxen
+buffer_store_short v26, v62, s[84:87], 0 idxen
+buffer_store_short v27, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3289,9 +3281,9 @@ v_mul_f16_e32 v6, 0xbdc5, v6
 v_exp_f16_e32 v6, v6
 _v_add_f16_e32_1_gfx9x 6, 6
 v_rcp_f16_e32 v6, v6
-_buffer_store_short v4, v37, s[84:87], 0 idxen
-_buffer_store_short v5, v62, s[84:87], 0 idxen
-_buffer_store_short v6, v63, s[84:87], 0 idxen
+buffer_store_short v4, v37, s[84:87], 0 idxen
+buffer_store_short v5, v62, s[84:87], 0 idxen
+buffer_store_short v6, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3313,9 +3305,9 @@ v_mul_f16_e32 v9, 0xbdc5, v9
 v_exp_f16_e32 v9, v9
 _v_add_f16_e32_1_gfx9x 9, 9
 v_rcp_f16_e32 v9, v9
-_buffer_store_short v7, v37, s[84:87], 0 idxen
-_buffer_store_short v8, v62, s[84:87], 0 idxen
-_buffer_store_short v9, v63, s[84:87], 0 idxen
+buffer_store_short v7, v37, s[84:87], 0 idxen
+buffer_store_short v8, v62, s[84:87], 0 idxen
+buffer_store_short v9, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3337,9 +3329,9 @@ v_mul_f16_e32 v12, 0xbdc5, v12
 v_exp_f16_e32 v12, v12
 _v_add_f16_e32_1_gfx9x 12, 12
 v_rcp_f16_e32 v12, v12
-_buffer_store_short v10, v37, s[84:87], 0 idxen
-_buffer_store_short v11, v62, s[84:87], 0 idxen
-_buffer_store_short v12, v63, s[84:87], 0 idxen
+buffer_store_short v10, v37, s[84:87], 0 idxen
+buffer_store_short v11, v62, s[84:87], 0 idxen
+buffer_store_short v12, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3361,9 +3353,9 @@ v_mul_f16_e32 v15, 0xbdc5, v15
 v_exp_f16_e32 v15, v15
 _v_add_f16_e32_1_gfx9x 15, 15
 v_rcp_f16_e32 v15, v15
-_buffer_store_short v13, v37, s[84:87], 0 idxen
-_buffer_store_short v14, v62, s[84:87], 0 idxen
-_buffer_store_short v15, v63, s[84:87], 0 idxen
+buffer_store_short v13, v37, s[84:87], 0 idxen
+buffer_store_short v14, v62, s[84:87], 0 idxen
+buffer_store_short v15, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3390,9 +3382,9 @@ v_mul_f16_e32 v18, 0xbdc5, v18
 v_exp_f16_e32 v18, v18
 _v_add_f16_e32_1_gfx9x 18, 18
 v_rcp_f16_e32 v18, v18
-_buffer_store_short v16, v37, s[84:87], 0 idxen
-_buffer_store_short v17, v62, s[84:87], 0 idxen
-_buffer_store_short v18, v63, s[84:87], 0 idxen
+buffer_store_short v16, v37, s[84:87], 0 idxen
+buffer_store_short v17, v62, s[84:87], 0 idxen
+buffer_store_short v18, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3414,9 +3406,9 @@ v_mul_f16_e32 v21, 0xbdc5, v21
 v_exp_f16_e32 v21, v21
 _v_add_f16_e32_1_gfx9x 21, 21
 v_rcp_f16_e32 v21, v21
-_buffer_store_short v19, v37, s[84:87], 0 idxen
-_buffer_store_short v20, v62, s[84:87], 0 idxen
-_buffer_store_short v21, v63, s[84:87], 0 idxen
+buffer_store_short v19, v37, s[84:87], 0 idxen
+buffer_store_short v20, v62, s[84:87], 0 idxen
+buffer_store_short v21, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3438,9 +3430,9 @@ v_mul_f16_e32 v24, 0xbdc5, v24
 v_exp_f16_e32 v24, v24
 _v_add_f16_e32_1_gfx9x 24, 24
 v_rcp_f16_e32 v24, v24
-_buffer_store_short v22, v37, s[84:87], 0 idxen
-_buffer_store_short v23, v62, s[84:87], 0 idxen
-_buffer_store_short v24, v63, s[84:87], 0 idxen
+buffer_store_short v22, v37, s[84:87], 0 idxen
+buffer_store_short v23, v62, s[84:87], 0 idxen
+buffer_store_short v24, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3462,9 +3454,9 @@ v_mul_f16_e32 v27, 0xbdc5, v27
 v_exp_f16_e32 v27, v27
 _v_add_f16_e32_1_gfx9x 27, 27
 v_rcp_f16_e32 v27, v27
-_buffer_store_short v25, v37, s[84:87], 0 idxen
-_buffer_store_short v26, v62, s[84:87], 0 idxen
-_buffer_store_short v27, v63, s[84:87], 0 idxen
+buffer_store_short v25, v37, s[84:87], 0 idxen
+buffer_store_short v26, v62, s[84:87], 0 idxen
+buffer_store_short v27, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3517,9 +3509,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v6, v6
 v_mul_f16_e32 v6, v6, v117
 v_mul_f16_e64 v6, v6, s32
-_buffer_store_short v4, v37, s[84:87], 0 idxen
-_buffer_store_short v5, v62, s[84:87], 0 idxen
-_buffer_store_short v6, v63, s[84:87], 0 idxen
+buffer_store_short v4, v37, s[84:87], 0 idxen
+buffer_store_short v5, v62, s[84:87], 0 idxen
+buffer_store_short v6, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3559,9 +3551,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v9, v9
 v_mul_f16_e32 v9, v9, v117
 v_mul_f16_e64 v9, v9, s32
-_buffer_store_short v7, v37, s[84:87], 0 idxen
-_buffer_store_short v8, v62, s[84:87], 0 idxen
-_buffer_store_short v9, v63, s[84:87], 0 idxen
+buffer_store_short v7, v37, s[84:87], 0 idxen
+buffer_store_short v8, v62, s[84:87], 0 idxen
+buffer_store_short v9, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3601,9 +3593,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v12, v12
 v_mul_f16_e32 v12, v12, v117
 v_mul_f16_e64 v12, v12, s32
-_buffer_store_short v10, v37, s[84:87], 0 idxen
-_buffer_store_short v11, v62, s[84:87], 0 idxen
-_buffer_store_short v12, v63, s[84:87], 0 idxen
+buffer_store_short v10, v37, s[84:87], 0 idxen
+buffer_store_short v11, v62, s[84:87], 0 idxen
+buffer_store_short v12, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3643,9 +3635,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v15, v15
 v_mul_f16_e32 v15, v15, v117
 v_mul_f16_e64 v15, v15, s32
-_buffer_store_short v13, v37, s[84:87], 0 idxen
-_buffer_store_short v14, v62, s[84:87], 0 idxen
-_buffer_store_short v15, v63, s[84:87], 0 idxen
+buffer_store_short v13, v37, s[84:87], 0 idxen
+buffer_store_short v14, v62, s[84:87], 0 idxen
+buffer_store_short v15, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3690,9 +3682,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v18, v18
 v_mul_f16_e32 v18, v18, v117
 v_mul_f16_e64 v18, v18, s32
-_buffer_store_short v16, v37, s[84:87], 0 idxen
-_buffer_store_short v17, v62, s[84:87], 0 idxen
-_buffer_store_short v18, v63, s[84:87], 0 idxen
+buffer_store_short v16, v37, s[84:87], 0 idxen
+buffer_store_short v17, v62, s[84:87], 0 idxen
+buffer_store_short v18, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3732,9 +3724,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v21, v21
 v_mul_f16_e32 v21, v21, v117
 v_mul_f16_e64 v21, v21, s32
-_buffer_store_short v19, v37, s[84:87], 0 idxen
-_buffer_store_short v20, v62, s[84:87], 0 idxen
-_buffer_store_short v21, v63, s[84:87], 0 idxen
+buffer_store_short v19, v37, s[84:87], 0 idxen
+buffer_store_short v20, v62, s[84:87], 0 idxen
+buffer_store_short v21, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3774,9 +3766,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v24, v24
 v_mul_f16_e32 v24, v24, v117
 v_mul_f16_e64 v24, v24, s32
-_buffer_store_short v22, v37, s[84:87], 0 idxen
-_buffer_store_short v23, v62, s[84:87], 0 idxen
-_buffer_store_short v24, v63, s[84:87], 0 idxen
+buffer_store_short v22, v37, s[84:87], 0 idxen
+buffer_store_short v23, v62, s[84:87], 0 idxen
+buffer_store_short v24, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
@@ -3816,9 +3808,9 @@ v_sub_f16_e32 v117, v117, v118
 v_rcp_f16_e32 v27, v27
 v_mul_f16_e32 v27, v27, v117
 v_mul_f16_e64 v27, v27, s32
-_buffer_store_short v25, v37, s[84:87], 0 idxen
-_buffer_store_short v26, v62, s[84:87], 0 idxen
-_buffer_store_short v27, v63, s[84:87], 0 idxen
+buffer_store_short v25, v37, s[84:87], 0 idxen
+buffer_store_short v26, v62, s[84:87], 0 idxen
+buffer_store_short v27, v63, s[84:87], 0 idxen
 s_lshl_b32 s99, s46, 1
 s_add_u32 s84, s84, s99
 s_addc_u32 s85, s85, 0
