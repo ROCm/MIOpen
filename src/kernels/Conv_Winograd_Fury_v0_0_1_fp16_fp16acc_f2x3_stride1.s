@@ -26,11 +26,11 @@
 .include "Conv_Winograd_Fury_v0_0_1_metadata.inc"
 
 .if (.amdgcn.gfx_generation_number == 11)
-    KERNEL_PROLOG fp16_acc_f2x3_stride1
+    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
 
     .include "Conv_Winograd_Fury_v0_0_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
 
-    KERNEL_EPILOG fp16_acc_f2x3_stride1
+    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
 .else
     .error "Unsupported gfx generation"
     .end
