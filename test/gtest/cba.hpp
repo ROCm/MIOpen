@@ -78,7 +78,7 @@ protected:
         if(test_skipped)
             return;
         conv_stats stats;
-        cfsb::TearDownConv(tensor_layout);
+        cfsb::TearDownConv();
         cpu_bias_forward(cfsb::ref_out, bias);
 
         activationHostInfer(activ_mode,

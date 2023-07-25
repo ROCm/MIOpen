@@ -51,7 +51,7 @@ public:
     {
         if(test_skipped)
             return;
-        ConvFwdSolverTestBase<T>::TearDownConv(tensor_layout);
+        ConvFwdSolverTestBase<T>::TearDownConv();
         ConvFwdSolverTestBase<T>::ThresholdChecks();
     }
     ConvTestCase conv_config;
