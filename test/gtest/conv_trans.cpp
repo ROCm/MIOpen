@@ -112,6 +112,7 @@ std::vector<std::string> GetTestCases(void)
     std::string psd1 = " --pads_strides_dilations 0 0 2 2 1 1";
     std::string psd2 = " --pads_strides_dilations 2 2 1 1 1 1";
 
+    std::string cmode_t = " --cmode trans";
     std::string pmode_d = " --pmode	default";
     std::string pmode_s = " --pmode	same";
     std::string pmode_v = " --pmode	valid";
