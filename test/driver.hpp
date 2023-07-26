@@ -37,7 +37,11 @@
 
 #include <functional>
 #include <deque>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <type_traits>
 #include <boost/filesystem.hpp>
 #include <miopen/functional.hpp>
