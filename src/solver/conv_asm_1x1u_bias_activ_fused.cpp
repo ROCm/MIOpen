@@ -38,7 +38,11 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "half.hpp"
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 using half_float::half;
 
