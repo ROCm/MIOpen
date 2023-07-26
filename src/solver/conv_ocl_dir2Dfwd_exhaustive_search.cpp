@@ -33,7 +33,11 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/bfloat16.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 
 #ifdef max
 #undef max
@@ -293,12 +297,10 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     auto bias_ocl_ptr = bias_ocl_buf.get();
 #else
     auto& profile_h           = ctx.GetStream();
-    const auto& invoke_params = invoke_ctx.CastTo<miopen::fusion::FusionInvokeParams>();
-    const auto bot_ocl_ptr    = invoke_params.in;
-    const auto top_ocl_ptr    = invoke_params.out;
-    const auto wei_ocl_ptr =
-        dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*invoke_params.op_args.params[0])
-            .weights;
+    const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto bot_ocl_ptr    = invoke_params.tensors.in;
+    const auto top_ocl_ptr    = invoke_params.tensors.out;
+    const auto wei_ocl_ptr    = invoke_params.tensors.w;
     // There was no place in the source, where it has been actually set to something other than
     // nullptr.
     const auto bias_ocl_ptr = static_cast<Data_t>(nullptr);
