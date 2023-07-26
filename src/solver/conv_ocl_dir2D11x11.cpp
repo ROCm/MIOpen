@@ -129,7 +129,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     int PROCESING_WIDTH =
         ((problem.GetOutWidth_() + result.out_pix_tile0 - 1) / result.out_pix_tile0);
 
-    int OUT_EXTENT1 = std::min(static_cast<int>(problem.GetOutHeight_()), (GRP_SZ / PROCESING_WIDTH));
+    int OUT_EXTENT1 =
+        std::min(static_cast<int>(problem.GetOutHeight_()), (GRP_SZ / PROCESING_WIDTH));
 
     // define a special size for a specific width as a devisor to avoid dealing with out of range
     // param
@@ -155,7 +156,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // param
     // 6 get us the min
     // cppcheck-suppress knownConditionTrueFalse
-    static const unsigned backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
+    static const unsigned backwards_min_output =
+        (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
     result.n_out_pix_tiles =
         (is_forward) ? std::min(6U, (problem.GetOutChannels_() + n_out_stacks - 1) / n_out_stacks)
                      : std::min(problem.GetOutChannels_(), backwards_min_output);
@@ -188,12 +190,12 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     }
 
     // calc bwd grid
-    int n_out_pix_tiles1 =
-        (static_cast<int>(problem.GetOutHeight_()) + result.out_pix_tile1 - 1 + 2 * problem.GetPadH()) /
-        result.out_pix_tile1;
-    int n_out_pix_tiles0 =
-        (static_cast<int>(problem.GetOutWidth_()) + result.out_pix_tile0 - 1 + 2 * problem.GetPadW()) /
-        result.out_pix_tile0;
+    int n_out_pix_tiles1 = (static_cast<int>(problem.GetOutHeight_()) + result.out_pix_tile1 - 1 +
+                            2 * problem.GetPadH()) /
+                           result.out_pix_tile1;
+    int n_out_pix_tiles0 = (static_cast<int>(problem.GetOutWidth_()) + result.out_pix_tile0 - 1 +
+                            2 * problem.GetPadW()) /
+                           result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
     // calculate lcl mem size for backward data

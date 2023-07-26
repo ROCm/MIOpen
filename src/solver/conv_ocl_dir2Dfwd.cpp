@@ -134,8 +134,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     auto group_counts = problem.GetGroupCount();
     result.n_in_data_tiles =
         std::min(static_cast<int>(problem.GetInChannels_()) / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles =
-        std::min(static_cast<int>(problem.GetOutChannels_()) / group_counts, config.n_out_pix_tiles);
+    result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels_()) / group_counts,
+                                      config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
@@ -194,7 +194,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     // int n_out_tile_blocks1 = (problem.GetOutHeight2() + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
-    n_out_tiles_perstack = std::min(n_out_tiles_perstack, static_cast<int>(problem.GetOutChannels_()) / group_counts);
+    n_out_tiles_perstack =
+        std::min(n_out_tiles_perstack, static_cast<int>(problem.GetOutChannels_()) / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
     const auto mlo_filter_size0 = static_cast<long long>(problem.GetWeightsWidth_());
@@ -296,8 +297,8 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
 
     result.n_in_data_tiles =
         std::min(static_cast<int>(problem.GetInChannels_()) / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles =
-        std::min(static_cast<int>(problem.GetOutChannels_()) / group_counts, config.n_out_pix_tiles);
+    result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels_()) / group_counts,
+                                      config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
     result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
@@ -358,7 +359,8 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
 
-    n_out_tiles_perstack = std::min(n_out_tiles_perstack, static_cast<int>(problem.GetOutChannels_()) / group_counts);
+    n_out_tiles_perstack =
+        std::min(n_out_tiles_perstack, static_cast<int>(problem.GetOutChannels_()) / group_counts);
 
     KernelInfo kernel_params;
 

@@ -253,8 +253,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             // parameters
             //	int i_sz = problem.GetInWidth_() * problem.GetInHeight_();
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-            result.out_pix_tile0 = std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
-            result.out_pix_tile1 = std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
+            result.out_pix_tile0 =
+                std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
+            result.out_pix_tile1 =
+                std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
             if(!problem.direction.IsForward())
             {
                 while(problem.GetOutWidth_() % result.out_pix_tile0 != 0 &&
@@ -313,7 +315,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             int GRP_SZ = result.grp_tile0;
 
             // number of inputs inside wk-items
-            result.n_in_data_tiles = std::min(static_cast<int>(problem.GetInChannels_()), result.n_in_data_tiles);
+            result.n_in_data_tiles =
+                std::min(static_cast<int>(problem.GetInChannels_()), result.n_in_data_tiles);
             while(problem.GetInChannels_() % result.n_in_data_tiles != 0 &&
                   result.n_in_data_tiles > 1)
             {
@@ -324,7 +327,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 (problem.GetInChannels_() + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
 
             // number of outputs inside wk_item
-            result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels_()), result.n_out_pix_tiles);
+            result.n_out_pix_tiles =
+                std::min(static_cast<int>(problem.GetOutChannels_()), result.n_out_pix_tiles);
             while(problem.GetOutChannels_() % result.n_out_pix_tiles != 0 &&
                   result.n_out_pix_tiles > 1)
             {
