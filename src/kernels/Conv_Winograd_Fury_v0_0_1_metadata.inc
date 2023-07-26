@@ -122,11 +122,11 @@ s_endpgm
 kernel_end \kernel_name
 
 .if (.amdgcn.gfx_generation_number == 11)
-    vgpr_size = 182
+    vgpr_size = 252
     workgroup_size_x = 384
 .endif
 
-.amdgcn.next_free_sgpr = 82
+.amdgcn.next_free_sgpr = 97
 .amdgcn.next_free_vgpr = vgpr_size
 
 //xnack disabled by default for asm kernels
