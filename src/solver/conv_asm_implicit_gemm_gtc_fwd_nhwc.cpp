@@ -312,12 +312,28 @@ GetFwdXdlopsNHWCConfigList()
     return kernel_param_list;
 }
 
-static std::tuple<std::string, // kernel_name
-                  size_t,      // block_size
-                  size_t,      // grid_size
-                  size_t>      // splits_4G
+// clang-format off
+static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
+GetFwdXdlopsNHWCConfigLargestTileFp32()
+{
+    return {"fwd", "nhwc", miopenFloat,  0, 1, 256,  64,  16, 32, 32,  2, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}};
+}
+static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
+GetFwdXdlopsNHWCConfigLargestTileFp16()
+{
+    return {"fwd", "nhwc", miopenHalf,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 2, 1}, {  1,  4,  1, 64}};
+}
+static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
+GetFwdXdlopsNHWCConfigLargestTileBf16()
+{
+    return {"fwd", "nhwc", miopenBFloat16,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 2, 1}, {  1,  4,  1, 64}};
+}
+// clang-format on
+
+static std::tuple<size_t, // block_size
+                  size_t, // grid_size
+                  size_t> // splits_4G
 GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
-    const ConvolutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
@@ -340,12 +356,11 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     size_t grid_size =
         static_cast<size_t>(group) * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
         integer_divide_ceil(gemm_n, config.gemm_n_per_block) * (1 << config.gemm_k_global_split);
-    std::string kernel_name = config.ToKernelName(ctx);
-    return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
+    return std::make_tuple(block_size, grid_size, splits_4G);
 }
 
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
-    const ConvolutionContext& ctx, const ProblemDescription& problem)
+    const ConvolutionContext&, const ProblemDescription& problem)
 {
     static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
         std::make_tuple(128, 128, 16),
@@ -567,8 +582,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
                     }
                 }
                 size_t current_grid_size;
-                std::tie(std::ignore, std::ignore, current_grid_size, std::ignore) =
-                    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, problem, config);
+                std::tie(std::ignore, current_grid_size, std::ignore) =
+                    GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, config);
                 size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
                                                                      1200,
                                                                      c / group,
@@ -681,6 +696,13 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
+        return false;
+
+    size_t current_block_size, current_grid_size, current_splits_4G;
+    std::tie(current_block_size, current_grid_size, current_splits_4G) =
+        GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, *this);
+
+    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
         return false;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
@@ -841,7 +863,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx940"))
+    if((device_name != "gfx908") && (device_name != "gfx90a") &&
+       (!StartsWith(device_name, "gfx94")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -853,7 +876,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() &&
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -873,6 +897,19 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
                                    miopen::GetTypeSize(problem.GetInDataType())))
         return false;
 
+    {
+        auto largest_config = problem.IsFp32()
+                                  ? GetFwdXdlopsNHWCConfigLargestTileFp32()
+                                  : (problem.IsFp16() ? GetFwdXdlopsNHWCConfigLargestTileFp16()
+                                                      : GetFwdXdlopsNHWCConfigLargestTileBf16());
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, largest_config);
+
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+    }
+
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
@@ -883,14 +920,15 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     ConvSolution result;
     KernelInfo kernel;
 
-    std::string kernel_name;
     size_t block_size;
     size_t grid_size;
 
     int splits_4G;
 
-    std::tie(kernel_name, block_size, grid_size, splits_4G) =
-        GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, problem, config);
+    std::tie(block_size, grid_size, splits_4G) =
+        GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, config);
+
+    std::string kernel_name = config.ToKernelName(ctx);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx, problem);
     result.workspace_sz                = required_workspace_size;
@@ -913,14 +951,34 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
     result.construction_params.push_back(kernel);
     std::ostringstream options;
+    std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
+    if(ctx.GetStream().GetDeviceName() == "gfx940")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
+    }
+    else if(ctx.GetStream().GetDeviceName() == "gfx941")
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 1);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
+    }
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 0);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+    }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate);
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_fwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
-
-    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
