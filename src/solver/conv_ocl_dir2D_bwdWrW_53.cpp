@@ -477,7 +477,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
     total_out_maps =
-        (total_out_maps > problem.GetInChannels2()) ? problem.GetInChannels_() : total_out_maps;
+        (total_out_maps > problem.GetInChannels_()) ? problem.GetInChannels_() : total_out_maps;
 
     result.grp_tile0 = GRP_SZ;
     result.grp_tile1 = 1;
@@ -588,13 +588,13 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
         kernel.l_wk.push_back(grp_tile2);
         // input is output
 
-        size_t gbl_wk1 = ((problem.GetInChannels2() + total_out_maps - 1) / total_out_maps);
+        size_t gbl_wk1 = ((problem.GetInChannels_() + total_out_maps - 1) / total_out_maps);
         size_t gbl_wk2 = n_batch_blks;
         size_t gbl_wk0 = GRP_SZ;
 
         if(problem.GetGroupCount() > 1)
         {
-            gbl_wk0 *= (((problem.GetOutChannels2() / problem.GetGroupCount()) +
+            gbl_wk0 *= (((problem.GetOutChannels_() / problem.GetGroupCount()) +
                          result.n_in_data_tiles - 1) /
                         result.n_in_data_tiles);
 
@@ -604,7 +604,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
         else
         {
             gbl_wk0 *=
-                ((problem.GetOutChannels2() + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
+                ((problem.GetOutChannels_() + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
 
             kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
             kernel.kernel_name = "MIOpenCvBwdWrW";

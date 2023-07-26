@@ -253,11 +253,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             // parameters
             //	int i_sz = problem.GetInWidth_() * problem.GetInHeight_();
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-            result.out_pix_tile0 = std::min(problem.GetOutWidth2(), result.out_pix_tile0);
-            result.out_pix_tile1 = std::min(problem.GetOutHeight2(), result.out_pix_tile1);
+            result.out_pix_tile0 = std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
+            result.out_pix_tile1 = std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
             if(!problem.direction.IsForward())
             {
-                while(problem.GetOutWidth2() % result.out_pix_tile0 != 0 &&
+                while(problem.GetOutWidth_() % result.out_pix_tile0 != 0 &&
                       result.out_pix_tile0 > 1)
                 {
                     result.out_pix_tile0 /= 2;
@@ -265,7 +265,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             }
 
             int read_unit = result.out_pix_tile0;
-            while(problem.GetInWidth2() % read_unit != 0 && read_unit > 1)
+            while(problem.GetInWidth_() % read_unit != 0 && read_unit > 1)
             {
                 read_unit /= 2;
             }
@@ -282,16 +282,16 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 
             int OUT_WIDTH4 = problem.GetOutWidth_();
-            int MAP_SZ4    = (OUT_WIDTH4 * problem.GetOutHeight2() + read_unit - 1) / (read_unit);
+            int MAP_SZ4    = (OUT_WIDTH4 * problem.GetOutHeight_() + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
             if(problem.GetPadW() > 0 || problem.GetKernelStrideW() > 1 || problem.GetPadH() > 0 ||
                problem.GetKernelStrideH() > 1)
             {
                 int step        = is_forward ? read_unit : read_unit * problem.GetKernelStrideW();
-                OUT_WIDTH4      = (problem.GetOutWidth2() + step - 1) / (step);
+                OUT_WIDTH4      = (problem.GetOutWidth_() + step - 1) / (step);
                 int OUT_HEIGHT4 = is_forward
                                       ? problem.GetOutHeight_()
-                                      : (problem.GetOutHeight2() + problem.GetKernelStrideH() - 1) /
+                                      : (problem.GetOutHeight_() + problem.GetKernelStrideH() - 1) /
                                             problem.GetKernelStrideH();
                 MAP_SZ4         = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
@@ -301,11 +301,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             if(!is_forward)
             {
                 VERT_ALIGNED =
-                    (problem.GetOutHeight2() / problem.GetKernelStrideH() == problem.GetInHeight2())
+                    (problem.GetOutHeight_() / problem.GetKernelStrideH() == problem.GetInHeight_())
                         ? 1
                         : 0;
                 HORIZ_ALIGNED =
-                    (problem.GetOutWidth2() / problem.GetKernelStrideW() == problem.GetInWidth2())
+                    (problem.GetOutWidth_() / problem.GetKernelStrideW() == problem.GetInWidth_())
                         ? 1
                         : 0;
             }
@@ -313,19 +313,19 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             int GRP_SZ = result.grp_tile0;
 
             // number of inputs inside wk-items
-            result.n_in_data_tiles = std::min(problem.GetInChannels2(), result.n_in_data_tiles);
-            while(problem.GetInChannels2() % result.n_in_data_tiles != 0 &&
+            result.n_in_data_tiles = std::min(static_cast<int>(problem.GetInChannels_()), result.n_in_data_tiles);
+            while(problem.GetInChannels_() % result.n_in_data_tiles != 0 &&
                   result.n_in_data_tiles > 1)
             {
                 result.n_in_data_tiles /= 2;
             }
 
             int CLOOP0 =
-                (problem.GetInChannels2() + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
+                (problem.GetInChannels_() + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
 
             // number of outputs inside wk_item
-            result.n_out_pix_tiles = std::min(problem.GetOutChannels2(), result.n_out_pix_tiles);
-            while(problem.GetOutChannels2() % result.n_out_pix_tiles != 0 &&
+            result.n_out_pix_tiles = std::min(static_cast<int>(problem.GetOutChannels_()), result.n_out_pix_tiles);
+            while(problem.GetOutChannels_() % result.n_out_pix_tiles != 0 &&
                   result.n_out_pix_tiles > 1)
             {
                 result.n_out_pix_tiles /= 2;
@@ -391,7 +391,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
             size_t gbl_wk0 = static_cast<size_t>(problem.GetBatchSize_()) * MAP_SZ4;
 
             size_t gbl_wk1 =
-                (problem.GetOutChannels2() + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
+                (problem.GetOutChannels_() + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
             size_t gbl_wk2 = 1;
 
             kernel.g_wk.push_back(gbl_wk0);

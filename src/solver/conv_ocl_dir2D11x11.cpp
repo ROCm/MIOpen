@@ -77,18 +77,17 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
         (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 
     // number  of batch iterations
-    result.n_stacks = 1;
-    result.n_stacks = std::min(problem.GetBatchSize2(), result.n_stacks);
+    result.n_stacks = std::min(problem.GetBatchSize_(), 1U);
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
     // param
     int N_BATCH_LOOPS = 1; // (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
-    int n_batch_blks  = (problem.GetBatchSize2() + N_BATCH_LOOPS * result.n_stacks - 1) /
+    int n_batch_blks  = (problem.GetBatchSize_() + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
-    int N_FILTER_SPLITS0 = ((problem.GetWeightsWidth2() + problem.GetKernelStrideW() - 1) /
+    int N_FILTER_SPLITS0 = ((problem.GetWeightsWidth_() + problem.GetKernelStrideW() - 1) /
                             problem.GetKernelStrideW());
-    int N_FILTER_SPLITS1 = ((problem.GetWeightsHeight2() + problem.GetKernelStrideH() - 1) /
+    int N_FILTER_SPLITS1 = ((problem.GetWeightsHeight_() + problem.GetKernelStrideH() - 1) /
                             problem.GetKernelStrideH());
 
     static const int data_multiplier0 =
@@ -128,9 +127,9 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // generate full output width
     // extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
     int PROCESING_WIDTH =
-        ((problem.GetOutWidth2() + result.out_pix_tile0 - 1) / result.out_pix_tile0);
+        ((problem.GetOutWidth_() + result.out_pix_tile0 - 1) / result.out_pix_tile0);
 
-    int OUT_EXTENT1 = std::min(problem.GetOutHeight2(), (GRP_SZ / PROCESING_WIDTH));
+    int OUT_EXTENT1 = std::min(static_cast<int>(problem.GetOutHeight_()), (GRP_SZ / PROCESING_WIDTH));
 
     // define a special size for a specific width as a devisor to avoid dealing with out of range
     // param
@@ -150,16 +149,16 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     // n_in_stacks input map will be written in the local memory.
     int n_in_stacks = 1;
 
-    n_in_stacks  = std::min(problem.GetInChannels2(), n_in_stacks);
-    n_out_stacks = std::min(problem.GetOutChannels2(), n_out_stacks);
+    n_in_stacks  = std::min(static_cast<int>(problem.GetInChannels_()), n_in_stacks);
+    n_out_stacks = std::min(static_cast<int>(problem.GetOutChannels_()), n_out_stacks);
 
     // param
     // 6 get us the min
     // cppcheck-suppress knownConditionTrueFalse
-    static const int backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
+    static const unsigned backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
     result.n_out_pix_tiles =
-        (is_forward) ? std::min(6, (problem.GetOutChannels2() + n_out_stacks - 1) / n_out_stacks)
-                     : std::min(problem.GetOutChannels2(), backwards_min_output);
+        (is_forward) ? std::min(6U, (problem.GetOutChannels_() + n_out_stacks - 1) / n_out_stacks)
+                     : std::min(problem.GetOutChannels_(), backwards_min_output);
 
     // number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
     // param
@@ -174,26 +173,26 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     int grp_tile2    = 1;
 
     // second pass if needed
-    int n_extents           = ((problem.GetOutHeight2() + OUT_EXTENT1 - 1) / OUT_EXTENT1);
-    int n_output_map_blocks = ((problem.GetOutChannels2() + total_out_maps - 1) / total_out_maps);
-    int last_out_extent1    = problem.GetOutHeight2() -
-                           (std::max(1, problem.GetOutHeight2() / OUT_EXTENT1) * OUT_EXTENT1);
+    int n_extents           = ((problem.GetOutHeight_() + OUT_EXTENT1 - 1) / OUT_EXTENT1);
+    int n_output_map_blocks = ((problem.GetOutChannels_() + total_out_maps - 1) / total_out_maps);
+    int last_out_extent1    = problem.GetOutHeight_() -
+                           (std::max(1U, problem.GetOutHeight_() / OUT_EXTENT1) * OUT_EXTENT1);
     last_out_extent1    = (last_out_extent1 < 0) ? 0 : last_out_extent1;
     int n_batches_pass2 = 1;
     bool second_pass    = false;
     if(is_forward && 0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
     {
-        n_extents       = std::max(1, problem.GetOutHeight2() / OUT_EXTENT1);
+        n_extents       = std::max(1U, problem.GetOutHeight_() / OUT_EXTENT1);
         n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH * last_out_extent1));
         second_pass     = true;
     }
 
     // calc bwd grid
     int n_out_pix_tiles1 =
-        (problem.GetOutHeight2() + result.out_pix_tile1 - 1 + 2 * problem.GetPadH()) /
+        (static_cast<int>(problem.GetOutHeight_()) + result.out_pix_tile1 - 1 + 2 * problem.GetPadH()) /
         result.out_pix_tile1;
     int n_out_pix_tiles0 =
-        (problem.GetOutWidth2() + result.out_pix_tile0 - 1 + 2 * problem.GetPadW()) /
+        (static_cast<int>(problem.GetOutWidth_()) + result.out_pix_tile0 - 1 + 2 * problem.GetPadW()) /
         result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
@@ -326,7 +325,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
 
         size_t gbl_wk0 = GRP_SZ;
         size_t gbl_wk1 = n_output_map_blocks;
-        n_batch_blks   = (problem.GetBatchSize2() + n_batches_pass2 - 1) / n_batches_pass2;
+        n_batch_blks   = (problem.GetBatchSize_() + n_batches_pass2 - 1) / n_batches_pass2;
         size_t gbl_wk2 = n_batch_blks;
 
         construction_parameters.g_wk.push_back(gbl_wk0);
