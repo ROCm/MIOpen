@@ -384,6 +384,9 @@ auto GenericSearch(const Solver s,
     const std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
 
+    if(all_configs.empty())
+        all_configs.emplace_back(s.GetDefaultPerformanceConfig(context, problem));
+
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
     size_t n_failed = 0;
