@@ -487,35 +487,36 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
 
             // clang-format off
             MIOPEN_LOG_I2(
-              "n_groups=" << conv.n_groups <<
-              "out_Hs=" << conv.out_Hs <<
-              "out_We=" << conv.out_We <<
-              "d_W_window=" << conv.d_W_window <<
-              "d_H_window=" << conv.d_H_window <<
-              "d_W_clip_bot_neg=" << conv.d_W_clip_bot_neg <<
-              "d_H_clip_bot_neg=" << conv.d_H_clip_bot_neg <<
-              "d_strides.nk=" << d_strides.nk <<
-              "d_strides.h=" << d_strides.h <<
-              "d_strides.c=" << d_strides.c <<
-              "o_W_window=" << conv.o_W_window <<
-              "o_H_window=" << conv.o_H_window <<
-              "o_W_clip_bot_neg=" << conv.o_W_clip_bot_neg <<
-              "o_H_clip_bot_neg=" << conv.o_H_clip_bot_neg <<
-              "o_strides.nk=" << o_strides.nk <<
-              "o_strides.h=" << o_strides.h <<
-              "o_strides.c=" << o_strides.c <<
-              "N=" << conv.N <<
-              "K=" << conv.K <<
-              "C=" << conv.C <<
-              "R=" << conv.R <<
-              "S=" << conv.S <<
-              "f_strides.nk=" << f_strides.nk <<
-              "f_strides.c=" << f_strides.c <<
-              "f_strides.h=" << f_strides.h <<
-              "f_strides.w=" << f_strides.w <<
-              "f_RS_offset=" << f_RS_offset <<
-              "flags=" << flags <<
-              "activation_mode=" << activation_mode);
+              "\nn_groups=" << conv.n_groups <<
+              "\nout_Hs=" << conv.out_Hs <<
+              "\nout_We=" << conv.out_We <<
+              "\nd_W_window=" << conv.d_W_window <<
+              "\nd_H_window=" << conv.d_H_window <<
+              "\nd_W_clip_bot_neg=" << conv.d_W_clip_bot_neg <<
+              "\nd_H_clip_bot_neg=" << conv.d_H_clip_bot_neg <<
+              "\nd_strides.nk=" << d_strides.nk <<
+              "\nd_strides.h=" << d_strides.h <<
+              "\nd_strides.c=" << d_strides.c <<
+              "\no_W_window=" << conv.o_W_window <<
+              "\no_H_window=" << conv.o_H_window <<
+              "\no_W_clip_bot_neg=" << conv.o_W_clip_bot_neg <<
+              "\no_H_clip_bot_neg=" << conv.o_H_clip_bot_neg <<
+              "\no_strides.nk=" << o_strides.nk <<
+              "\no_strides.h=" << o_strides.h <<
+              "\no_strides.c=" << o_strides.c <<
+              "\nN=" << conv.N <<
+              "\nK=" << conv.K <<
+              "\nC=" << conv.C <<
+              "\nR=" << conv.R <<
+              "\nS=" << conv.S <<
+              "\nf_strides.nk=" << f_strides.nk <<
+              "\nf_strides.c=" << f_strides.c <<
+              "\nf_strides.h=" << f_strides.h <<
+              "\nf_strides.w=" << f_strides.w <<
+              "\nf_RS_offset=" << f_RS_offset <<
+              "\nflags=" << flags <<
+              "\nactivation_mode=" << static_cast<uin32_t>(activation_mode) <<
+              "\n");
             // clang-format on
 
             k(conv.n_groups,
