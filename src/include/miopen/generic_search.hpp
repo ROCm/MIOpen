@@ -373,7 +373,7 @@ auto GenericSearch(const Solver s,
     auto& profile_h = context.GetStream();
     const AutoEnableProfiling enableProfiling{profile_h};
 
-    auto tmp_all_configs = GetAllConfigs(s, context, problem);
+    auto tmp_all_configs = GetAllConfigs(s, context, problem); 
     // For random access
     std::vector<PerformanceConfig> all_configs;
     std::copy(tmp_all_configs.begin(), tmp_all_configs.end(), std::back_inserter(all_configs));
