@@ -5,19 +5,25 @@
 #include <ctime>
 #include <cstdint>
 #include <random>
-#include <chrono>
+
+std::minstd_rand& get_minstd_gen()
+{
+    static std::random_device rd;
+    static std::minstd_rand minstd_gen(rd());
+
+    return minstd_gen;
+}
 
 template <typename T>
 inline T FRAND()
 {
-    std::minstd_rand minstd_gen(std::chrono::system_clock::now().time_since_epoch().count());
-    auto d = std::generate_canonical<double, 5>(minstd_gen);
+    double d = std::generate_canonical<double, 1>(get_minstd_gen());
     return static_cast<T>(d);
 }
 
 inline int GET_RAND()
 {
-    std::minstd_rand minstd_gen(std::chrono::system_clock::now().time_since_epoch().count());
+    auto minstd_gen = get_minstd_gen();
     return minstd_gen();
 }
 
