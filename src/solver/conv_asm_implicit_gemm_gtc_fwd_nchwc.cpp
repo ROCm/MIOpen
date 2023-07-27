@@ -262,7 +262,7 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     const int n      = problem.GetBatchSize_();
-    const auto k     = problem.GetOutChannels2() * config.vector_c;
+    const int k      = problem.GetOutChannels_() * config.vector_c;
     const int ho     = problem.GetOutHeight_();
     const int wo     = problem.GetOutWidth_();
     const auto group = problem.GetGroupCount();

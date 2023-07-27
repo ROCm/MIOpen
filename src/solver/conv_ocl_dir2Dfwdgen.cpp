@@ -145,8 +145,8 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
 
     int n_in_pix_horiz = n_out_pix_horiz; // n of input pix per wk_item
     int n_in_pix_vert  = n_out_pix_vert;  // n of input pix per wk_item
-    int n_v_proc0      = (problem.GetOutWidth2() + n_out_pix_horiz - 1) / n_out_pix_horiz;
-    int n_v_proc1      = (problem.GetOutHeight2() + n_out_pix_vert - 1) / n_out_pix_vert;
+    int n_v_proc0      = (problem.GetOutWidth_() + n_out_pix_horiz - 1) / n_out_pix_horiz;
+    int n_v_proc1      = (problem.GetOutHeight_() + n_out_pix_vert - 1) / n_out_pix_vert;
 
     int big = 1;
 
@@ -160,27 +160,27 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
 
     int n_ins = n_ins0 * n_ins1; // number of inputs each a from different stack
 
-    n_outs = std::min(n_outs, problem.GetOutChannels2());
-    n_ins  = std::min(n_ins, problem.GetBatchSize2());
+    n_outs = std::min(n_outs, static_cast<int>(problem.GetOutChannels_()));
+    n_ins  = std::min(n_ins, static_cast<int>(problem.GetBatchSize_()));
 
-    n_out_stacks   = (n_outs * n_out_stacks <= problem.GetOutChannels2()) ? n_out_stacks : 1;
-    n_in_stacks    = (n_ins * n_in_stacks <= problem.GetBatchSize2()) ? n_in_stacks : 1;
+    n_out_stacks   = (n_outs * n_out_stacks <= problem.GetOutChannels_()) ? n_out_stacks : 1;
+    n_in_stacks    = (n_ins * n_in_stacks <= problem.GetBatchSize_()) ? n_in_stacks : 1;
     int total_ins  = n_ins * n_in_stacks;
     int total_outs = n_outs * n_out_stacks;
 
-    int n_out_blocks   = ((problem.GetOutChannels2() + total_outs - 1) / total_outs);
-    int n_stack_blocks = ((problem.GetBatchSize2() + total_ins - 1) / total_ins);
+    int n_out_blocks   = ((problem.GetOutChannels_() + total_outs - 1) / total_outs);
+    int n_stack_blocks = ((problem.GetBatchSize_() + total_ins - 1) / total_ins);
 
     int batch_aligned = 0;
 #if 1
-    if((problem.GetBatchSize2() / n_stack_blocks) * n_stack_blocks == problem.GetBatchSize2())
+    if((problem.GetBatchSize_() / n_stack_blocks) * n_stack_blocks == problem.GetBatchSize_())
     {
         batch_aligned = 1;
     }
 #endif
     int out_aligned = 0;
 #if 1
-    if((problem.GetOutChannels2() / total_outs) * total_outs == problem.GetOutChannels2())
+    if((problem.GetOutChannels_() / total_outs) * total_outs == problem.GetOutChannels_())
     {
         out_aligned = 1;
     }

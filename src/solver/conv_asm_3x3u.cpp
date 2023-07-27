@@ -82,15 +82,15 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ProblemDescription& problem) co
     if(!IsValidValue())
         return false;
     // to-do add support of uneven_outputs into grouped conv
-    bool uneven_outputs = (problem.GetOutChannels2() % filters_per_wave) != 0;
-    auto num_wavefronts = problem.GetOutChannels2() / filters_per_wave;
+    bool uneven_outputs = (problem.GetOutChannels_() % filters_per_wave) != 0;
+    auto num_wavefronts = problem.GetOutChannels_() / filters_per_wave;
     if(problem.GetGroupCount() > 1 &&
        (uneven_outputs || (num_wavefronts % problem.GetGroupCount() != 0)))
         return false;
 
     // Count the number of VGPRs required.
-    const auto img_width  = problem.GetInWidth2();
-    const auto img_height = problem.GetInHeight2();
+    const auto img_width  = problem.GetInWidth_();
+    const auto img_height = problem.GetInHeight_();
     int n                 = 0;
 
     const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
@@ -141,7 +141,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
     filters_per_wave      = 2;
     output_lines_per_wave = 2;
 
-    if(problem.GetOutChannels2() % (filters_per_wave * problem.GetGroupCount()) != 0)
+    if(problem.GetOutChannels_() % (filters_per_wave * problem.GetGroupCount()) != 0)
     {
         filters_per_wave = 1;
     }
@@ -301,8 +301,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
 
     construction_params.g_wk.push_back(static_cast<size_t>(
         active_lanes *
-        ((problem.GetOutChannels2() + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave)));
-    construction_params.g_wk.push_back((problem.GetInHeight2() + pcfg->output_lines_per_wave - 1) /
+        ((problem.GetOutChannels_() + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave)));
+    construction_params.g_wk.push_back((problem.GetInHeight_() + pcfg->output_lines_per_wave - 1) /
                                        pcfg->output_lines_per_wave);
     construction_params.g_wk.push_back(problem.GetBatchSize_());
 

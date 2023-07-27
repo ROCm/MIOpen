@@ -258,7 +258,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
     }
 
     // Check 2: read size
-    if(problem.GetInWidth2() < read_size)
+    if(problem.GetInWidth_() < read_size)
     {
         return false;
     }
@@ -477,7 +477,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            // previous read, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read
            // from device memory. So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
            // TODO: chao: revisit this if failure is encountered.
-           problem.GetWeightsHeight2() - problem.GetKernelStrideH() >= 0 &&
+           problem.GetWeightsHeight_() >= problem.GetKernelStrideH() &&
 #endif
 
            // The first scan of stripe of the input into LDS will read a strip of height
@@ -607,7 +607,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     }
 
     size_t out_n_pixels_off =
-        problem.GetInWidth2() - (problem.GetInWidth2() / config.read_size) * config.read_size;
+        problem.GetInWidth_() - (problem.GetInWidth_() / config.read_size) * config.read_size;
 
     result.grp_tile0       = workgroup_size;
     result.grp_tile1       = 1;
@@ -698,7 +698,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         }
         else
         {
-            gbl_wk0 *= problem.GetOutChannels2();
+            gbl_wk0 *= problem.GetOutChannels_();
             kernel.kernel_file = "MIOpenConvBwdWrWS2.cl";
             kernel.kernel_name = "MIOpenCvBwdWrW";
         }

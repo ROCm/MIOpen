@@ -77,8 +77,8 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
     }
 
     // Min image + padding shall be not smaller than filter matrix.
-    const int min_in_width  = problem.GetWeightsWidth2() - problem.GetPadW() * 2;
-    const int min_in_height = problem.GetWeightsHeight2() - problem.GetPadH() * 2;
+    const int min_in_width  = static_cast<int>(problem.GetWeightsWidth_()) - problem.GetPadW() * 2;
+    const int min_in_height = static_cast<int>(problem.GetWeightsHeight_()) - problem.GetPadH() * 2;
     // These two found experimentally.
     const int max_in_width  = 8192 - 1;
     const int max_in_height = 131077 - 1;
@@ -95,9 +95,9 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
         && problem.GetInChannels_() >= 1             // -c   wei_c   no upper limit
         && problem.GetOutChannels_() % 16 == 0       // -k   wei_k   no upper limit
         && problem.GetOutChannels_() >= 1
-        && problem.GetInWidth2() >= min_in_width     // -W   inp_w
+        && static_cast<int>(problem.GetInWidth_()) >= min_in_width     // -W   inp_w
         && problem.GetInWidth_() <= max_in_width
-        && problem.GetInHeight2() >= min_in_height   // -H   inp_h
+        && static_cast<int>(problem.GetInHeight_()) >= min_in_height   // -H   inp_h
         && problem.GetInHeight_() <= max_in_height
         && problem.IsFp32()
         && problem.GetGroupCount() == 1

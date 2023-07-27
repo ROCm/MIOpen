@@ -1051,7 +1051,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     // compute workload for 1 workgroup and update gemmk splits (remove the ones compute 0 data)
     size_t gemmk = integer_divide_ceil(static_cast<size_t>(problem.GetBatchSize2() / splits_4G),
                                        min_n_per_block) *
-                   problem.GetInHeight2() * problem.GetInWidth2();
+                   problem.GetInHeight_() * problem.GetInWidth_();
     size_t gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
     gemmk_per_wg         = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;
