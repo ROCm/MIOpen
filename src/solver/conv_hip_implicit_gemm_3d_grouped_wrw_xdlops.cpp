@@ -241,6 +241,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
+    std::cout<<"~~~~~~ No instances found!~~~~~~"<<std::endl;
     return false;
 }
 
@@ -416,7 +417,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(const ConvolutionContext&
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
        problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.direction.IsBackwardWrW())
         return false;
     if(!problem.Is3d())
         return false;
