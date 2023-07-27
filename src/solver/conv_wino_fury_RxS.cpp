@@ -515,7 +515,7 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
               "\nf_strides.w=" << f_strides.w <<
               "\nf_RS_offset=" << f_RS_offset <<
               "\nflags=" << flags <<
-              "\nactivation_mode=" << static_cast<uin32_t>(activation_mode) <<
+              "\nactivation_mode=" << static_cast<uint32_t>(activation_mode) <<
               "\n");
             // clang-format on
 
