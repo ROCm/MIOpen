@@ -1185,67 +1185,6 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
 
 #endif
 
-#ifdef USE_1D_TENSOR_GENERIC
-// N
-__kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
-                                global MIOPEN_TYPE* b,
-                                const int b_n,
-                                global MIOPEN_TYPE* c,
-                                const int c_n,
-                                const MIOPEN_TYPE alpha0,
-                                const MIOPEN_TYPE alpha1,
-                                const MIOPEN_TYPE beta,
-                                const unsigned int bitmap,
-                                const int work_per_wg,
-                                const long Aoffset,
-                                const long Boffset,
-                                const long Coffset,
-                                const int num_wg)
-{
-    int gid = get_group_id(0);
-
-    global MIOPEN_TYPE* a_off = a + Aoffset;
-    global MIOPEN_TYPE* b_off = b + Boffset;
-    global MIOPEN_TYPE* c_off = c + Coffset;
-
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-    if(beta == (MIOPEN_TYPE)0)
-    {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
-            int lid             = get_local_id(0);
-            int o_n_gid_off     = gid % b_n;
-            int bindex          = o_n_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-            while(lid < work_per_wg)
-            {
-                int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
-                c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand);
-                lid += get_local_size(0);
-            }
-        }
-    }
-    else
-    {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
-            int lid             = get_local_id(0);
-            int o_n_gid_off     = gid % b_n;
-            int bindex          = o_n_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-            while(lid < work_per_wg)
-            {
-                int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
-                c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand) + beta * c_off[o_n];
-                lid += get_local_size(0);
-            }
-        }
-    }
-}
-
-#endif
-
 #ifdef USE_4D_TENSOR_LITE
 // N - batch size
 // C - # of maps
