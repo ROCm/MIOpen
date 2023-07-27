@@ -941,6 +941,76 @@ void OpTensor4d(const Handle& handle,
     });
 }
 
+struct Unified1dCase
+{
+    Unified1dCase(const TensorDescriptor& aTensorDesc,
+                  const TensorDescriptor& bTensorDesc,
+                  const TensorDescriptor& cTensorDesc)
+    {
+        const auto& a_strides = aTensorDesc.GetStrides();
+        const auto& b_strides = bTensorDesc.GetStrides();
+        const auto& c_strides = cTensorDesc.GetStrides();
+
+        const auto& b_lengths = bTensorDesc.GetLengths();
+        const auto& c_lengths = cTensorDesc.GetLengths();
+
+        bool squashed_bTensor =
+            std::all_of(b_lengths.begin(), b_lengths.end(), [](auto l) { return l == 1; });
+
+        a_stride = a_strides.back();
+        b_stride = squashed_bTensor ? 0 : b_strides.back();
+        c_stride = c_strides.back();
+
+        total_work =
+            std::accumulate(c_lengths.begin(), c_lengths.end(), 1, std::multiplies<uint32_t>());
+
+        // 1d case
+        if(c_lengths.size() == 1)
+        {
+            is_applicable = true;
+            return;
+        }
+
+        bool all_packed =
+            aTensorDesc.IsPacked() && cTensorDesc.IsPacked() && bTensorDesc.IsPacked();
+        bool all_equal = !squashed_bTensor && std::equal(cTensorDesc.GetLengths().begin(),
+                                                         cTensorDesc.GetLengths().end(),
+                                                         bTensorDesc.GetLengths().begin());
+
+        // packed Nd cases - linear chunk of memory can be traversed as 1d
+        if(all_packed && (all_equal || squashed_bTensor))
+        {
+            is_applicable = true;
+            return;
+        }
+
+        auto singe_dimension = std::find(
+            cTensorDesc.GetLengths().begin(), cTensorDesc.GetLengths().end(), size_t(total_work));
+
+        // for some reason we've got only one non squashed dimension (for example 1,1,N,1,1)
+        if(singe_dimension != cTensorDesc.GetLengths().end())
+        {
+            auto singe_dimension_idx =
+                std::distance(cTensorDesc.GetLengths().begin(), singe_dimension);
+            a_stride      = aTensorDesc.GetStrides()[singe_dimension_idx];
+            b_stride      = squashed_bTensor ? 0 : bTensorDesc.GetStrides()[singe_dimension_idx];
+            c_stride      = cTensorDesc.GetStrides()[singe_dimension_idx];
+            is_applicable = true;
+            return;
+        }
+
+        // todo: check if there are any other strided cases when we can reduce operation to 1d
+    }
+
+    operator bool() const noexcept { return is_applicable; }
+
+    uint32_t a_stride{1};
+    uint32_t b_stride{1};
+    uint32_t c_stride{1};
+    uint32_t total_work{0};
+    bool is_applicable{false};
+};
+
 void OpTensorOther(const Handle& handle,
                    miopenTensorOp_t tensorOp,
                    const void* alpha0,
@@ -964,9 +1034,10 @@ void OpTensorOther(const Handle& handle,
     auto bsize    = blens.size();
     auto cstrides = cTensorDesc.GetStrides();
 
-    const bool case_1d = bsize == 1;
-    const bool case_2d = bsize == 2;
-    const bool case_5d = bsize == 5;
+    Unified1dCase case_1d(aTensorDesc, bTensorDesc, cTensorDesc);
+
+    const bool case_2d = !case_1d && bsize == 2;
+    const bool case_5d = !case_1d && bsize == 5;
 
     const bool use_hip = case_1d;
 
@@ -1007,7 +1078,8 @@ void OpTensorOther(const Handle& handle,
     // Special case for adding tensors in place
     size_t global_threads;
     global_threads =
-        (case_1d ? std::clamp(clens[0] / local_threads, size_t(1), size_t(max_num_wg)) : num_wg) *
+        (case_1d ? std::clamp(case_1d.total_work / local_threads, size_t(1), size_t(max_num_wg))
+                 : num_wg) *
         local_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
@@ -1105,13 +1177,13 @@ void OpTensorOther(const Handle& handle,
                        uint64_t(Aoffset),
                        uint64_t(Boffset),
                        uint64_t(Coffset),
-                       uint32_t(astrides[0]),
-                       uint32_t(blens[0] == 1 ? 0 : bstrides[0]),
-                       uint32_t(cstrides[0]),
+                       case_1d.a_stride,
+                       case_1d.b_stride,
+                       case_1d.c_stride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       uint32_t(clens[0]),
+                       case_1d.total_work,
                        !float_equal(miopen_beta, 0.0));
                 return;
             }
@@ -1218,13 +1290,13 @@ void OpTensorOther(const Handle& handle,
                                     uint64_t(Aoffset),
                                     uint64_t(Boffset),
                                     uint64_t(Coffset),
-                                    uint32_t(astrides[0]),
-                                    uint32_t(blens[0] == 1 ? 0 : bstrides[0]),
-                                    uint32_t(cstrides[0]),
+                                    case_1d.a_stride,
+                                    case_1d.b_stride,
+                                    case_1d.c_stride,
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
-                                    uint32_t(clens[0]),
+                                    case_1d.total_work,
                                     !float_equal(miopen_beta, 0.0));
         }
     });
@@ -1298,8 +1370,13 @@ void OpTensor(const Handle& handle,
     }
 
     auto bsize = blens.size();
-    if(bsize == 3)
+
+    // temporary workaround for 3d and 4d cases
+    Unified1dCase case_1d(aTensorDesc, bTensorDesc, cTensorDesc);
+
+    if(!case_1d && bsize == 3)
     {
+        // todo: merge 3d case into common case
         OpTensor3d(handle,
                    tensorOp,
                    alpha0,
@@ -1315,8 +1392,9 @@ void OpTensor(const Handle& handle,
                    Boffset,
                    Coffset);
     }
-    else if(bsize == 4)
+    else if(!case_1d && bsize == 4)
     {
+        // todo: merge 4d case into common case
         OpTensor4d(handle,
                    tensorOp,
                    alpha0,
