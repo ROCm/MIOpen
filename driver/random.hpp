@@ -5,9 +5,7 @@
 
 std::minstd_rand& get_minstd_gen()
 {
-    static std::random_device rd;
-    static std::minstd_rand minstd_gen(rd());
-
+    static thread_local std::minstd_rand minstd_gen(std::random_device{}());
     return minstd_gen;
 }
 
@@ -20,7 +18,7 @@ inline T FRAND()
 
 inline int GET_RAND()
 {
-    auto minstd_gen = get_minstd_gen();
+    decltype(auto) minstd_gen = get_minstd_gen();
     return minstd_gen();
 }
 
