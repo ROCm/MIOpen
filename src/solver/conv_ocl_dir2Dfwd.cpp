@@ -128,8 +128,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     // if(!problem.direction.IsForward())
     // {
     //     // backward
-    //     pad_w = problem.GetWeightsWidth2() - 1 - pad_w;
-    //     pad_h = problem.GetWeightsHeight2() - 1 - pad_h;
+    //     pad_w = problem.GetBackwardPadW();
+    //     pad_h = problem.GetBackwardPadH();
     // }
     auto group_counts = problem.GetGroupCount();
     result.n_in_data_tiles =
@@ -190,8 +190,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     //                                                   : (result.grp_tile1 * result.grp_tile0);
     // }
 
-    // int n_out_tile_blocks0 = (problem.GetOutWidth2() + result.in_tile0 - 1) / (result.in_tile0);
-    // int n_out_tile_blocks1 = (problem.GetOutHeight2() + result.in_tile1 - 1) / (result.in_tile1);
+    // int n_out_tile_blocks0 = (problem.GetOutWidth_() + result.in_tile0 - 1) / (result.in_tile0);
+    // int n_out_tile_blocks1 = (problem.GetOutHeight_() + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
     n_out_tiles_perstack =
@@ -291,8 +291,8 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
     if(!problem.direction.IsForward())
     {
         // backward
-        pad_w = problem.GetWeightsWidth2() - 1 - pad_w;
-        pad_h = problem.GetWeightsHeight2() - 1 - pad_h;
+        pad_w = problem.GetBackwardPadW();
+        pad_h = problem.GetBackwardPadH();
     }
 
     result.n_in_data_tiles =

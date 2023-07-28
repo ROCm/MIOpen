@@ -68,15 +68,9 @@ struct ConvolutionDescriptor;
 struct ProblemDescription : conv::ProblemDescription
 {
 #if 1
-    int GetInChannels2() const { return GetInChannels_(); }
-    int GetInHeight2() const { return GetInHeight_(); }
     int GetInWidth2() const { return GetInWidth_(); }
     int GetWeightsHeight2() const { return GetWeightsHeight_(); }
     int GetWeightsWidth2() const { return GetWeightsWidth_(); }
-    int GetOutChannels2() const { return GetOutChannels_(); }
-    int GetOutHeight2() const { return GetOutHeight_(); }
-    int GetOutWidth2() const { return GetOutWidth_(); }
-    int GetBatchSize2() const { return GetBatchSize_(); }
 #endif
 
     struct Direction

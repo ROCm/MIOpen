@@ -523,7 +523,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
         {
             int tile_sz[3]  = {8, 16, 32};
             result.in_tile1 = tile_sz1[j];
-            if(problem.GetOutHeight2() * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
+            if(problem.GetOutHeight_() * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
             {
                 --runs_left;
                 continue;
@@ -533,7 +533,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
             for(int i = 0; i < n_tile0_sz; ++i)
             {
                 result.in_tile0 = tile_sz0[i];
-                if((problem.GetOutWidth2() * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
+                if((problem.GetOutWidth_() * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
                 {
                     --runs_left;
                     continue;
@@ -577,7 +577,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                         for(int o_t = 0; o_t < n_out_tls; ++o_t)
                         {
                             result.n_out_pix_tiles = n_out_tiles_rg[o_t];
-                            if(problem.GetOutChannels2() < result.n_out_pix_tiles)
+                            if(problem.GetOutChannels_() < result.n_out_pix_tiles)
                             {
                                 --runs_left;
                                 continue;
@@ -586,7 +586,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                             for(int i_t = 0; i_t < n_in_tls; ++i_t)
                             {
                                 result.n_in_data_tiles = n_in_tiles_rg[i_t];
-                                if(problem.GetInChannels2() < result.n_in_data_tiles)
+                                if(problem.GetInChannels_() < result.n_in_data_tiles)
                                 {
                                     --runs_left;
                                     continue;
@@ -596,7 +596,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                                 {
 
                                     result.n_stacks = n_in_stacks_sz[s];
-                                    if(result.n_stacks > problem.GetBatchSize2())
+                                    if(result.n_stacks > problem.GetBatchSize_())
                                     {
                                         --runs_left;
                                         continue;
