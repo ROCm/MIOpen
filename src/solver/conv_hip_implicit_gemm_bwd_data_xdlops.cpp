@@ -372,6 +372,8 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
+    if(problem.GetGroupCount() > 1)
+        return false;
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
