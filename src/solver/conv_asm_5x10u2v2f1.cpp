@@ -115,11 +115,11 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 + problem.GetKernelStrideW() -
-                       static_cast<int>(problem.GetWeightsWidth_())) /
+    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
                       problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 + problem.GetKernelStrideH() -
-                       static_cast<int>(problem.GetWeightsHeight_())) /
+    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
                       problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;

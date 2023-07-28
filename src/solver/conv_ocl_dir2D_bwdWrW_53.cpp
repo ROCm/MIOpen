@@ -387,7 +387,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
 
     // calculate number of input scans in the input block
     int out_lcl_width =
-        ((static_cast<int>(problem.GetOutWidth_()) + read_unit - 1) / read_unit) * read_unit + 2 * problem.GetPadW();
+        ((static_cast<int>(problem.GetOutWidth_()) + read_unit - 1) / read_unit) * read_unit +
+        2 * problem.GetPadW();
 
     // number of input map blocks being process at once
     int out_n_vert_reads = (problem.GetOutHeight_() > 32 && problem.GetOutWidth_() <= 64 &&
