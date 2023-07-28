@@ -945,6 +945,9 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(!ctx.rmv.IsV3())
         return false;
 
+    if(!problem.IsLayoutNHWC())
+        return false;
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
