@@ -176,20 +176,18 @@ protected:
 
         auto&& handle = get_handle();
 
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out     = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
-        output.data = handle.Read<T>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-        EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
+        ref_wei      = tensor<T>{miopen_type<T>{}, tensor_layout, input.desc.GetLengths()};
+        ref_wei      = ref_conv_wrw(input, weights, output, conv_desc);
+        weights.data = handle.Read<T>(wei_dev, weights.data.size());
+        EXPECT_FALSE(miopen::range_zero(ref_wei)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
+        EXPECT_TRUE(miopen::range_distance(ref_wei) == miopen::range_distance(weights));
 
         const double tolerance = 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_out, output);
+        double threshold       = std::numeric_limits<double>::epsilon() * tolerance;
+        auto error             = miopen::rms_range(ref_wei, weights);
 
-        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+        EXPECT_FALSE(miopen::find_idx(ref_wei, miopen::not_finite) >= 0)
             << "Non finite number found in the CPU data";
 
         EXPECT_TRUE(error < threshold)
@@ -200,7 +198,7 @@ protected:
     tensor<T> input;
     tensor<T> weights;
     tensor<T> output;
-    tensor<T> ref_out;
+    tensor<T> ref_wei;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
