@@ -414,9 +414,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
 
     // When a row is split into chunks, each chunk should fully cover the entire filter in
     // horizontal dir
-    out_n_horizon_reads = (out_n_horizon_reads == out_lcl_width)
-                              ? out_lcl_width
-                              : (out_n_horizon_reads + static_cast<int>(problem.GetWeightsWidth_()) - 1);
+    out_n_horizon_reads =
+        (out_n_horizon_reads == out_lcl_width)
+            ? out_lcl_width
+            : (out_n_horizon_reads + static_cast<int>(problem.GetWeightsWidth_()) - 1);
 
     int out_n_horizon_read_loops            = 1;
     int out_horizon_last_chunk_valid_pixels = 0;
@@ -445,10 +446,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
             : read_unit;
 
     // Compute in -> out in kernel i.e. dy
-    int in_width_chunk =
-        (out_n_horizon_read_loops == 1)
-            ? problem.GetInWidth_()
-            : (out_n_horizon_reads + problem.GetPadW() - static_cast<int>(problem.GetWeightsWidth_()) + 1);
+    int in_width_chunk = (out_n_horizon_read_loops == 1)
+                             ? problem.GetInWidth_()
+                             : (out_n_horizon_reads + problem.GetPadW() -
+                                static_cast<int>(problem.GetWeightsWidth_()) + 1);
     int in_width_last_chunk_valid_pixels =
         (out_n_horizon_read_loops == 1) ? 0 : (problem.GetInWidth_() % in_width_chunk);
 

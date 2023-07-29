@@ -483,7 +483,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            // The first scan of stripe of the input into LDS will read a strip of height
            // (kernel_size_h - kernel_stride_h), this stripe should include the whole lower bound
            // padding, as well as some or none of the input.
-           static_cast<int>(problem.GetWeightsHeight_()) - problem.GetKernelStrideH() >= problem.GetPadH() &&
+           static_cast<int>(problem.GetWeightsHeight_()) - problem.GetKernelStrideH() >=
+               problem.GetPadH() &&
            problem.GetBatchSize_() >= N_BATCH_LOOPS &&
            /// \todo Workaround for issue 1693
            !(problem.GetWeightsWidth_() >= 8 && problem.GetWeightsWidth_() % 2 == 0 &&
