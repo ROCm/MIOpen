@@ -293,14 +293,14 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
         return false;
     }
 
-    if(n_out_rows_in_lcl < problem.GetWeightsHeight2())
+    if(n_out_rows_in_lcl < problem.GetWeightsHeight_())
     {
         return false;
     }
 
     // Check 5: n_out_rows_in_lcl  should exceed LDS limit
     size_t in_lcl_height =
-        (n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight2();
+        (n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight_();
     size_t in_lcl_sz = 0;
     {
         // Chao: Reserve space in LDS for left padding, it also reserve
@@ -316,7 +316,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
         size_t in_lcl_width_effective = std::max<size_t>(
             in_width + 2ULL * problem.GetPadW(),
             std::max(problem.GetPadW() + ((in_width + read_size - 1) / read_size) * read_size,
-                     problem.GetWeightsWidth2() + (out_width - 1) * problem.GetKernelStrideW()));
+                     problem.GetWeightsWidth_() + (out_width - 1) * problem.GetKernelStrideW()));
 
         size_t in_lcl_width_right_buffer = std::max(
             static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * problem.GetPadW())), 0);
@@ -483,7 +483,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            // The first scan of stripe of the input into LDS will read a strip of height
            // (kernel_size_h - kernel_stride_h), this stripe should include the whole lower bound
            // padding, as well as some or none of the input.
-           problem.GetWeightsHeight2() - problem.GetKernelStrideH() >= problem.GetPadH() &&
+           static_cast<int>(problem.GetWeightsHeight_()) - problem.GetKernelStrideH() >= problem.GetPadH() &&
            problem.GetBatchSize_() >= N_BATCH_LOOPS &&
            /// \todo Workaround for issue 1693
            !(problem.GetWeightsWidth_() >= 8 && problem.GetWeightsWidth_() % 2 == 0 &&
@@ -568,7 +568,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     size_t n_out_blk =
         std::ceil(static_cast<float>(problem.GetInHeight_()) / config.n_out_rows_in_lcl);
     size_t in_lcl_height =
-        (config.n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight2();
+        (config.n_out_rows_in_lcl - 1) * problem.GetKernelStrideH() + problem.GetWeightsHeight_();
     size_t in_lcl_width = 0;
     size_t in_lcl_sz    = 0;
     {

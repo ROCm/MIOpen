@@ -185,11 +185,11 @@ static inline miopenStatus_t ComputeInputParams(
             out_n_vert_reads = problem.GetInHeight_();
             num_out_channels = std::ceil(static_cast<float>(num_out_channels) / 2);
         }
-        else if(out_n_vert_reads >= problem.GetWeightsHeight2() * 2)
+        else if(out_n_vert_reads >= problem.GetWeightsHeight_() * 2)
         {
             out_n_vert_reads = std::ceil(static_cast<float>(out_n_vert_reads) / 2);
         }
-        else if(out_n_vert_reads >= problem.GetWeightsHeight2() && out_n_horizon_reads > 2)
+        else if(out_n_vert_reads >= problem.GetWeightsHeight_() && out_n_horizon_reads > 2)
         {
             out_n_horizon_reads = std::ceil(static_cast<float>(out_n_horizon_reads) / 2);
         }
@@ -416,7 +416,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     // horizontal dir
     out_n_horizon_reads = (out_n_horizon_reads == out_lcl_width)
                               ? out_lcl_width
-                              : (out_n_horizon_reads + problem.GetWeightsWidth2() - 1);
+                              : (out_n_horizon_reads + static_cast<int>(problem.GetWeightsWidth_()) - 1);
 
     int out_n_horizon_read_loops            = 1;
     int out_horizon_last_chunk_valid_pixels = 0;
@@ -448,9 +448,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     int in_width_chunk =
         (out_n_horizon_read_loops == 1)
             ? problem.GetInWidth_()
-            : (out_n_horizon_reads + problem.GetPadW() - problem.GetWeightsWidth2() + 1);
+            : (out_n_horizon_reads + problem.GetPadW() - static_cast<int>(problem.GetWeightsWidth_()) + 1);
     int in_width_last_chunk_valid_pixels =
-        (out_n_horizon_read_loops == 1) ? 0 : (problem.GetInWidth2() % in_width_chunk);
+        (out_n_horizon_read_loops == 1) ? 0 : (problem.GetInWidth_() % in_width_chunk);
 
     result.in_tile1        = 1;
     result.n_out_pix_tiles = 1;

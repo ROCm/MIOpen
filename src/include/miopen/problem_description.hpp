@@ -67,12 +67,6 @@ struct ConvolutionDescriptor;
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription : conv::ProblemDescription
 {
-#if 1
-    int GetInWidth2() const { return GetInWidth_(); }
-    int GetWeightsHeight2() const { return GetWeightsHeight_(); }
-    int GetWeightsWidth2() const { return GetWeightsWidth_(); }
-#endif
-
     struct Direction
     {
     public:
