@@ -273,8 +273,7 @@ void xorwow_lite_init(prngStates* cur_state,
     cur_state->d += (uint)(offset)*362437;
 }
 
-__kernel void InitKernelState(__global prngStates* state, uint prng_seed,
-                              uint states_num)
+__kernel void InitKernelState(__global prngStates* state, uint prng_seed, uint states_num)
 {
     for(uint gid = get_global_id(0); gid < states_num; gid += get_global_size(0))
     {
