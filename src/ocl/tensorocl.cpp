@@ -2174,9 +2174,6 @@ void TransformTensor(const Handle& handle,
                      size_t Yoffset)
 {
 #if MIOPEN_BACKEND_HIP
-    // TODO
-    (void)handle;
-
     if(x == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -2228,16 +2225,22 @@ void TransformTensor(const Handle& handle,
 
     // Create transpose plan on NULL stream and choose implementation based on heuristics
     gputtHandle plan;
-    hipStream_t stream = nullptr;
-    GPUTT_ERR_CHECK(gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
-                              permutation.data(), dtype, stream));
+    auto err = gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
+                         permutation.data(), dtype, handle.GetStream());
+    if (err != GPUTT_SUCCESS) {
+      MIOPEN_THROW(miopenStatusInternalError, "Tensor transform failed (GPUTT backend returned %d)", static_cast<int>(err));
+    }
 
     // Execute transpose plan
     // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
-    GPUTT_ERR_CHECK(gputtExecute(plan, x + Xoffset, y + Yoffset, alpha, beta));
+    err = gputtExecute(plan, x + Xoffset, y + Yoffset, alpha, beta);
 
     // Destroy transpose plan
-    GPUTT_ERR_CHECK(gputtDestroy(plan));
+    gputtDestroy(plan);
+
+    if (err != GPUTT_SUCCESS) {
+      MIOPEN_THROW(miopenStatusInternalError, "Tensor transform failed (GPUTT backend returned %d)", static_cast<int>(err));
+    }
 #else
     MIOPEN_THROW(miopenStatusInternalError, "Tensor transform is implemented for HIP backend only");
 #endif
