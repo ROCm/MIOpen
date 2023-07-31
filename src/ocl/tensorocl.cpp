@@ -2194,24 +2194,24 @@ void TransformTensor(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimensions must be the same");
     }
-
-    if(xDesc.GetType() == miopenInt8 && yDesc.GetType())
+#if 1
+    // TODO Remove this, when we get non-equal input and output types support.
+    if(xDesc.GetType() != yDesc.GetType())
     {
-        // TODO Must support non-equal input and output types
         MIOPEN_THROW(miopenStatusBadParm, "Input and output tensors must have the same data type");
     }
-
+#endif
     auto type = xDesc.GetType();
     gputtDataType dtype = gputtDataTypeUnknown;
     switch(type)
     {
-    case miopenInt8: dtype = gputtDataTypeInt8;
-    case miopenInt32: dtype = gputtDataTypeInt32;
-    case miopenHalf: dtype = gputtDataTypeFloat16;
-    case miopenFloat: dtype = gputtDataTypeFloat32;
-    case miopenBFloat16: dtype = gputtDataTypeBFloat16;
-    case miopenDouble: dtype = gputtDataTypeFloat64;
-    case miopenInt8x4:
+    case miopenInt8: dtype = gputtDataTypeInt8; break;
+    case miopenInt32: dtype = gputtDataTypeInt32; break;
+    case miopenHalf: dtype = gputtDataTypeFloat16; break;
+    case miopenFloat: dtype = gputtDataTypeFloat32; break;
+    case miopenBFloat16: dtype = gputtDataTypeBFloat16; break;
+    case miopenDouble: dtype = gputtDataTypeFloat64; break;
+    case miopenInt8x4: dtype = gputtDataTypeInt8x4 break;
     default:
       MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type in transform tensor desc.");
     }
@@ -2230,7 +2230,7 @@ void TransformTensor(const Handle& handle,
     gputtHandle plan;
     hipStream_t stream = nullptr;
     GPUTT_ERR_CHECK(gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
-                         permutation.data(), dtype, stream));
+                              permutation.data(), dtype, stream));
 
     // Execute transpose plan
     // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
@@ -2244,3 +2244,4 @@ void TransformTensor(const Handle& handle,
 }
 
 } // namespace miopen
+
