@@ -58,8 +58,12 @@ miopenTensorLayout_t GetLayoutFromString(const std::string& layout)
 {
     if(layout == "NCHW")
         return miopenTensorNCHW;
-    else if("NHWC")
+    else if(layout == "NHWC")
         return miopenTensorNHWC;
+    else if(layout == "NCDHW")
+        return miopenTensorNCDHW;
+    else if(layout == "NDHWC")
+        return miopenTensorNDHWC;
     assert(false && "Invalid layout");
 }
 miopenDataType_t GetDataTypeFromString(const std::string& data_type)
@@ -94,9 +98,9 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
     TensorDescriptor wei{};
     TensorDescriptor out{};
     ConvolutionDescriptor conv;
-    for(const auto& kinder : opt)
-        std::cout << kinder << std::endl;
-    if(opt.size() > 2)
+    // for(const auto& kinder : opt)
+    //     std::cout << kinder << std::endl;
+    if(opt.size() >= 2)
     {
         key = opt[0];
         assert(StartsWith(opt[1], "g"));
@@ -110,8 +114,8 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
         return std::regex_search(key, pat_3d);
     }();
     const auto attrs = SplitDelim(key, '-');
-    for(const auto& kinder : attrs)
-        std::cout << kinder << std::endl;
+    // for(const auto& kinder : attrs)
+    //     std::cout << kinder << std::endl;
     const auto sz = attrs.size();
     dir           = GetDirectionFromString(attrs[sz - 1]);
     precision     = GetDataTypeFromString(attrs[sz - 2]);
@@ -130,7 +134,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             throw std::runtime_error{"FDB key parsing error"};
         }();
 
-        if(dir == conv::Direction::Forward)
+        // if(dir == conv::Direction::Forward)
         {
             in_channels  = std::stoi(attrs[0]);
             in_h         = std::stoi(attrs[1]);
@@ -139,6 +143,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             out_h        = std::stoi(attrs[5]);
             out_w        = std::stoi(attrs[6]);
         }
+#if 0
         else
         {
             out_channels = std::stoi(attrs[0]);
@@ -148,6 +153,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             in_w         = std::stoi(attrs[6]);
             in_channels  = std::stoi(attrs[4]);
         }
+#endif
         batchsize               = std::stoi(attrs[7]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
@@ -183,7 +189,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
                                   GetLayoutFromString(attrs[16])};
         }();
 
-        if(dir == conv::Direction::Forward)
+        // if(dir == conv::Direction::Forward)
         {
             in_channels  = std::stoi(attrs[0]);
             in_d         = std::stoi(attrs[1]);
@@ -194,6 +200,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             out_h        = std::stoi(attrs[7]);
             out_w        = std::stoi(attrs[8]);
         }
+#if 0
         else
         {
             out_channels = std::stoi(attrs[0]);
@@ -205,6 +212,7 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             in_h         = std::stoi(attrs[7]);
             in_w         = std::stoi(attrs[8]);
         }
+#endif
         batchsize               = std::stoi(attrs[9]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
@@ -224,7 +232,11 @@ conv::ProblemDescription ParseProblemKey(const std::string& key_)
             TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_d, out_h, out_w}};
         conv = ConvolutionDescriptor{{pad_d, pad_h, pad_w},
                                      {conv_stride_d, conv_stride_h, conv_stride_w},
-                                     {dil_d, dil_h, dil_w}};
+                                     {dil_d, dil_h, dil_w},
+                                     std::vector<int>(3, 0),
+                                     1,
+                                     1.0};
+        conv::ProblemDescription tmp{in, wei, out, conv, dir};
     }
     conv.group_count = group_cnt;
     conv::ProblemDescription res{in, wei, out, conv, dir};
@@ -328,6 +340,9 @@ int main(int, char*[])
                 assert(pdb_vals.find(val.first) != pdb_vals.end());
                 bool res = solv.TestPerfCfgParams(ctx, problem, pdb_vals.at(val.first));
                 assert(res);
+                auto db        = miopen::GetDb(ctx);
+                const auto sol = solv.FindSolution(ctx, problem, db, {}, pdb_vals.at(val.first));
+                assert(sol.Succeeded());
             }
             else
                 assert(pdb_vals.find(val.first) ==
