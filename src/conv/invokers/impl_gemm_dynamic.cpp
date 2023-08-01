@@ -46,7 +46,7 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     // clang-format off
     int hi          = problem.GetInHeight_();
     int wi          = problem.GetInWidth_();
-    int n           = problem.GetInBatchSize();
+    int n           = problem.GetInBatchSize_();
     int k           = problem.GetOutChannels_();
     int c           = problem.GetInChannels_();
     int ho          = problem.GetOutHeight_();
@@ -119,7 +119,7 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescript
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetInChannels_();
     int c          = problem.GetOutChannels_();
     int ho         = problem.GetInHeight_();
@@ -256,7 +256,7 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetInChannels_();
     int c          = problem.GetOutChannels_();
     int ho         = problem.GetInHeight_();
@@ -444,7 +444,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 {
     int hi         = problem.GetInHeight_();
     int wi         = problem.GetInWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetOutChannels_();
     int c          = problem.GetInChannels_();
     int ho         = problem.GetOutHeight_();
@@ -737,7 +737,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetInChannels_();
     int c          = problem.GetOutChannels_();
     int ho         = problem.GetInHeight_();
@@ -1052,7 +1052,7 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
 {
     int hi         = problem.GetInHeight_();
     int wi         = problem.GetInWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetOutChannels_() * config.vector_c;
     int c          = problem.GetInChannels_();
     int ks         = 1;

@@ -451,7 +451,7 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& problem,
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
-    int n          = problem.GetInBatchSize();
+    int n          = problem.GetInBatchSize_();
     int k          = problem.GetInChannels_();
     int c          = problem.GetOutChannels_();
     int ho         = problem.GetInHeight_();

@@ -52,7 +52,7 @@ ComputeDynamicIGemmForwardKernelArgs<int>(const ProblemDescription& problem, con
     // clang-format off
     int hi          = problem.GetInHeight_();
     int wi          = problem.GetInWidth_();
-    int n           = problem.GetInBatchSize();
+    int n           = problem.GetInBatchSize_();
     int k           = problem.GetOutChannels_();
     int c           = problem.GetInChannels_();
     int ho          = problem.GetOutHeight_();
@@ -100,7 +100,7 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
     // clang-format off
     int hi          = problem.GetInHeight_();
     int wi          = problem.GetInWidth_();
-    int n           = problem.GetInBatchSize();
+    int n           = problem.GetInBatchSize_();
     int k           = problem.GetOutChannels_();
     int c           = problem.GetInChannels_();
     int ho          = problem.GetOutHeight_();

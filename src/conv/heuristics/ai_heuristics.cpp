@@ -231,7 +231,7 @@ protected:
             static_cast<float>(isFwd ? problem.GetOutDepth_() : problem.GetInDepth_()),
             static_cast<float>(isFwd ? problem.GetOutHeight_() : problem.GetInHeight_()),
             static_cast<float>(isFwd ? problem.GetOutWidth_() : problem.GetInWidth_()),
-            static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(problem.GetOutBatchSize_()),
             static_cast<float>(1), // TunaNet was trained on a dataset of 2D
                                    // problems where PadD was incorrectly set to 1
             static_cast<float>(problem.GetPadH()),

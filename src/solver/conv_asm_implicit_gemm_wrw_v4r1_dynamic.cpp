@@ -45,7 +45,7 @@ namespace solver {
 static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& problem,
                                                            const int& GemmKPerBlock)
 {
-    int n            = problem.GetInBatchSize();
+    int n            = problem.GetInBatchSize_();
     int ho           = problem.GetInHeight_();
     int wo           = problem.GetInWidth_();
     int gemmk        = n * ho * wo;
@@ -84,7 +84,7 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
     int wi           = problem.GetOutWidth_();
     int n            = problem.GetOutChannels_();
     int k            = problem.GetInChannels_();
-    int c            = problem.GetInBatchSize();
+    int c            = problem.GetInBatchSize_();
     int ho           = problem.GetWeightsHeight_();
     int wo           = problem.GetWeightsWidth_();
     int dilation_h   = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;

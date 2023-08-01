@@ -184,7 +184,7 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto W  = conv_problem.GetInWidth_();
     const auto H  = conv_problem.GetInHeight_();
     const auto C  = conv_problem.GetInChannels_();
-    const auto N  = conv_problem.GetInBatchSize();
+    const auto N  = conv_problem.GetInBatchSize_();
     const auto K  = conv_problem.GetOutChannels_();
     const auto R  = conv_problem.GetWeightsHeight_();
     const auto S  = conv_problem.GetWeightsWidth_();

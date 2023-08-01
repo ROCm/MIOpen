@@ -114,7 +114,7 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
               'x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
     ss << 'x' << GetOutChannels_();
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
-    ss << 'x' << GetInBatchSize();
+    ss << 'x' << GetInBatchSize_();
     if((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") ||
        (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
@@ -151,7 +151,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
     stream << sep << GetOutChannels_();
     stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
-    stream << sep << GetInBatchSize();
+    stream << sep << GetInBatchSize_();
     stream << sep << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
