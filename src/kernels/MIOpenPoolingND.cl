@@ -30,14 +30,33 @@
 #define USE_GLOBAL_INDEX 1
 #endif
 
+#if defined(MLO_POOLING_SAVE_INDEX) && (MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX)
+#define USE_MASK 1
+#else
+#define USE_MASK 0
+#endif
+
 #ifndef MLO_POOLING_OP_ID
 #define MLO_POOLING_OP_ID 0
 #endif
 
+#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#define AVERAGE_OPS 1
+#else
+#define AVERAGE_OPS 0
+#endif
+
+// Let's use extended-precision accumulator only in FP16 pooling and only for averaging.
+// For all other ops and datatypes, redefine macros used for accum-float conversion
+// and accum types, so they do nothing, i.e. treate FLOAT_ACCUM as FLOAT.
+#if !(AVERAGE_OPS && MIOPEN_USE_FP16)
+#define MIOPEN_USE_NATIVE_DATATYPE_ACCUM 1
+#endif
+#include "float_types.h"
+
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 #define MLO_POOLING_OP(A, B) (fmax((A), (B)))
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#elif AVERAGE_OPS
 #define MLO_POOLING_OP(A, B) ((A) + (B))
 #endif
 
@@ -48,7 +67,7 @@
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0, 1, 1))) __kernel void
 mloPoolingNDFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
-#if !defined(MLO_POOLING_SAVE_INDEX) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
+#if !USE_MASK
                 UNUSED
 #endif
                     __global index_t* mask,
@@ -110,12 +129,10 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
 
                     bot_data[h][j][i] = (vis) ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                              (_FLOAT)(-MAX_VAL)
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-                                              (_FLOAT)(0)
+                                              (_FLOAT)(-MAX_VAL);
+#elif AVERAGE_OPS
+                                              (_FLOAT)(0);
 #endif
-                        ;
                 }
             }
         }
@@ -123,14 +140,14 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
 #pragma unroll
         for(uint m = 0; m < TOP_D_PER_WORK; m++)
         {
-#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#if AVERAGE_OPS
             int dstart = (top_d_id + m) * STRIDE_D - pad_d;
             int dend   = min((dstart + KERNEL_SZ_D), (int)bot_d);
             dstart     = max(dstart, 0);
 #endif
             for(uint k = 0; k < TOP_H_PER_WORK; k++)
             {
-#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#if AVERAGE_OPS
                 int hstart = (top_h_id + k) * STRIDE_H - pad_h;
                 int hend   = min((hstart + KERNEL_SZ_H), (int)bot_h);
                 hstart     = max(hstart, 0);
@@ -138,7 +155,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                 for(uint l = 0; l < TOP_W_PER_WORK; l++)
                 {
 
-#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#if AVERAGE_OPS
                     int wstart = (top_w_id + l) * STRIDE_W - pad_w;
                     int wend   = min((wstart + KERNEL_SZ_W), (int)bot_w);
                     wstart     = max(wstart, 0);
@@ -154,16 +171,14 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                     pool_size = (pool_size == 0) ? 1 : pool_size;
 #endif
 
-                    _FLOAT top_val =
+                    _FLOAT_ACCUM top_val =
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                        (_FLOAT)(-MAX_VAL)
-#elif(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || \
-    (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-                        0
+                        (_FLOAT_ACCUM)(-MAX_VAL_ACCUM);
+#elif AVERAGE_OPS
+                        (_FLOAT_ACCUM)(0);
 #endif
-                        ;
 
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                     index_t mask_idx = 0;
 #endif
 
@@ -174,10 +189,10 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                             for(uint i = 0; i < KERNEL_SZ_W; i++)
                             {
 
-                                _FLOAT bot_val =
-                                    bot_data[h + m * STRIDE_D][j + k * STRIDE_H][i + l * STRIDE_W];
+                                _FLOAT_ACCUM bot_val = CVT_FLOAT2ACCUM(
+                                    bot_data[h + m * STRIDE_D][j + k * STRIDE_H][i + l * STRIDE_W]);
 
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                                 if(bot_val > top_val)
                                 {
                                     top_val = bot_val;
@@ -198,8 +213,8 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                         }
                     }
 
-#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
-                    top_val *= ((_FLOAT)1.f / (_FLOAT)pool_size);
+#if AVERAGE_OPS
+                    top_val *= CVT_FP32_2ACCUM(1.f) / (_FLOAT_ACCUM)pool_size;
 #endif
 
                     if(top_d_id + m < top_d && top_h_id + k < top_h && top_w_id + l < top_w &&
@@ -210,7 +225,7 @@ mloPoolingNDFwd(const __global _FLOAT* bot,
                                        top_w_id + l;
 
                         top[top_idx] = top_val;
-#if defined(MLO_POOLING_SAVE_INDEX) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+#if USE_MASK
                         mask[top_idx] = mask_idx;
 #endif
                     }

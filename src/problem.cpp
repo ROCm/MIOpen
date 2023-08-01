@@ -43,6 +43,16 @@
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/hof/match.hpp>
 
+namespace miopen::debug {
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
+                           const miopen::TensorDescriptor& w,
+                           const miopen::ConvolutionDescriptor& conv,
+                           const miopen::TensorDescriptor& y,
+                           miopenProblemDirection_t dir,
+                           std::optional<uint64_t> solver_id);
+} // namespace miopen::debug
+
 namespace miopen {
 
 namespace detail {
@@ -98,10 +108,19 @@ void VisitType(int id, Args... args)
 std::vector<Solution>
 Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
 {
-    auto buffers = AllocatedBuffers{};
+    auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
+    auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
 
     for(const auto& pair : tensor_descriptors)
     {
+        const auto preallocated = options.preallocated_tensors.find(pair.first);
+
+        if(preallocated != options.preallocated_tensors.end())
+        {
+            buffers.emplace(pair.first, preallocated->second);
+            continue;
+        }
+
         const auto& descriptor  = pair.second;
         const auto element_size = get_data_size(descriptor.GetType());
         auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
@@ -111,7 +130,8 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             SetTensor(handle, descriptor, buffer.get(), &zero);
         });
 
-        buffers.emplace(pair.first, std::move(buffer));
+        buffers.emplace(pair.first, buffer.get());
+        owned_buffers.emplace_back(std::move(buffer));
     }
 
     const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
@@ -206,8 +226,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
-    auto ret           = std::vector<Solution>{};
+    auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
@@ -225,47 +244,29 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& w = buffers.at(miopenTensorConvolutionW);
     const auto& y = buffers.at(miopenTensorConvolutionY);
 
-    const auto workspace_max = [&]() {
-        switch(direction)
-        {
-        case miopenProblemDirectionForward:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-            return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-        case miopenProblemDirectionBackward:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-            return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-        case miopenProblemDirectionBackwardWeights:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, x_desc, y_desc, w_desc);
-            return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
-        default: MIOPEN_THROW(miopenStatusNotImplemented);
-        }
-    }();
+    const auto conv_problem =
+        conv_desc.mode == miopenTranspose ? MakeTransposed().AsConvolution() : AsConvolution();
 
-    const auto workspace_size = std::min(options.workspace_limit, workspace_max);
-    auto workspace            = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
+    std::size_t workspace_size;
+    Allocator::ManageDataPtr owned_workspace;
+    Data_t workspace;
+
+    if(options.preallocated_workspace)
+    {
+        workspace      = options.preallocated_workspace->buffer;
+        workspace_size = options.preallocated_workspace->size;
+    }
+    else
+    {
+        const auto workspace_max = conv_desc.GetWorkSpaceSize({&handle}, conv_problem);
+        workspace_size           = std::min(options.workspace_limit, workspace_max);
+        owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
+        workspace                = owned_workspace.get();
+    }
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
     find1_solutions.resize(max_solutions);
     int found;
-
-    // auto log_tensor = [](auto name, const TensorDescriptor& tensor) {
-    //     std::cerr << name << ": l";
-    //     LogRange(std::cerr, tensor.GetLengths(), "x");
-    //     std::cerr << ", s";
-    //     LogRange(std::cerr, tensor.GetStrides(), "x");
-    //     std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
-    // };
-    //
-    // std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
-    //           << std::endl;
-    //
-    // std::cerr << "Conv: " << conv_desc << std::endl;
-    // log_tensor("X", x_desc);
-    // log_tensor("W", w_desc);
-    // log_tensor("Y", y_desc);
 
     switch(direction)
     {
@@ -276,15 +277,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         (conv_desc.*method)(handle,
                             x_desc,
-                            x.get(),
+                            x,
                             w_desc,
-                            w.get(),
+                            w,
                             y_desc,
-                            y.get(),
+                            y,
                             max_solutions,
                             &found,
                             find1_solutions.data(),
-                            workspace.get(),
+                            workspace,
                             workspace_size,
                             options.exhaustive_search);
         break;
@@ -296,15 +297,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         (conv_desc.*method)(handle,
                             y_desc,
-                            y.get(),
+                            y,
                             w_desc,
-                            w.get(),
+                            w,
                             x_desc,
-                            x.get(),
+                            x,
                             max_solutions,
                             &found,
                             find1_solutions.data(),
-                            workspace.get(),
+                            workspace,
                             workspace_size,
                             options.exhaustive_search);
         break;
@@ -317,15 +318,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         conv_desc.FindConvBwdWeightsAlgorithm(handle,
                                               y_desc_,
-                                              y_.get(),
+                                              y_,
                                               x_desc_,
-                                              x_.get(),
+                                              x_,
                                               w_desc,
-                                              w.get(),
+                                              w,
                                               max_solutions,
                                               &found,
                                               find1_solutions.data(),
-                                              workspace.get(),
+                                              workspace,
                                               workspace_size,
                                               options.exhaustive_search);
         break;
@@ -342,11 +343,11 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto conv_problem = actual.AsConvolution();
-    const auto netcfg       = conv_problem.BuildConfKey();
-    auto conv_ctx           = ConvolutionContext{conv_problem, {&handle}};
+    const auto legacy_problem = ProblemDescription{conv_problem};
+    const auto netcfg         = conv_problem.BuildConfKey();
+    auto conv_ctx             = ConvolutionContext{{&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats();
+    conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
 
@@ -359,11 +360,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetTime(find1_solutions[i].time);
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
-        solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, db));
+        solution.SetPerfConfig(
+            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, legacy_problem, db));
         solution.SetProblem(*this);
-        MIOPEN_LOG_I("Found solvution: " << solution.GetSolver().ToString() << " , "
-                                         << solution.GetWorkspaceSize() << ", "
-                                         << solution.GetTime());
+        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
+                                        << solution.GetWorkspaceSize() << ", "
+                                        << solution.GetTime());
 
         ret.emplace_back(std::move(solution));
     }
@@ -389,6 +391,25 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
         if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
+}
+
+void Problem::LogDriverCommand() const
+{
+    const auto log_function = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+
+    boost::apply_visitor(log_function, operator_descriptor);
+}
+
+void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
+{
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    miopen::debug::LogCmdFindConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)

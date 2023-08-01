@@ -62,93 +62,93 @@ namespace solver {
 static inline std::size_t KernelFilterStrideH(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.kernel_dilation_h;
+        return problem.GetDilationH();
     else
-        return problem.kernel_stride_h;
+        return problem.GetKernelStrideH();
 }
 
 static inline std::size_t KernelFilterStrideW(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.kernel_dilation_w;
+        return problem.GetDilationW();
     else
-        return problem.kernel_stride_w;
+        return problem.GetKernelStrideW();
 }
 
 static inline std::size_t KernelFilterDilationH(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.kernel_stride_h;
+        return problem.GetKernelStrideH();
     else
-        return problem.kernel_dilation_h;
+        return problem.GetDilationH();
 }
 
 static inline std::size_t KernelFilterDilationW(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.kernel_stride_w;
+        return problem.GetKernelStrideW();
     else
-        return problem.kernel_dilation_w;
+        return problem.GetDilationW();
 }
 
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.n_inputs;
+        return problem.GetInChannels();
     else
-        return problem.n_outputs;
+        return problem.GetOutChannels();
 }
 
 static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.batch_sz;
+        return problem.GetBatchSize();
     else
-        return problem.n_inputs / problem.group_counts;
+        return problem.GetInChannels() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.n_outputs / problem.group_counts;
+        return problem.GetOutChannels() / problem.GetGroupCount();
     else
-        return problem.batch_sz;
+        return problem.GetBatchSize();
 }
 
 static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.out_height;
+        return problem.GetOutHeight();
     else if(problem.direction.IsBackwardWrW())
-        return problem.kernel_size_h;
+        return problem.GetWeightsHeight();
     else
-        return problem.in_height;
+        return problem.GetInHeight();
 }
 
 static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.out_width;
+        return problem.GetOutWidth();
     else if(problem.direction.IsBackwardWrW())
-        return problem.kernel_size_w;
+        return problem.GetWeightsWidth();
     else
-        return problem.in_width;
+        return problem.GetInWidth();
 }
 
 static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.in_width;
+        return problem.GetInWidth();
     else
-        return problem.kernel_size_w;
+        return problem.GetWeightsWidth();
 }
 
 static inline std::size_t KernelFilterHeightY(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.in_height;
+        return problem.GetInHeight();
     else
-        return problem.kernel_size_h;
+        return problem.GetWeightsHeight();
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -211,8 +211,9 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
-                               StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a");
+    const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
+                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
+                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     return is_xdlops_supported && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
 }
 
@@ -283,8 +284,8 @@ static inline bool IsIndexRangeLargeEnough(const ProblemDescription& problem)
     // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
     const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-    return problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
-           problem.top_sz < max_index_range;
+    return problem.GetInSize() < max_index_range && problem.GetWeightsSize() < max_index_range &&
+           problem.GetOutSize() < max_index_range;
 }
 
 static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
@@ -307,25 +308,27 @@ static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
         return false;
 
     // check M, N and K
-    std::vector<std::tuple<int, int, int>> validWaveGemmSize = {// std::make_tuple(128, 128, 1),
-                                                                std::make_tuple(128, 64, 1),
-                                                                // std::make_tuple(128, 32, 1),
-                                                                // std::make_tuple(128, 16, 1),
-                                                                std::make_tuple(64, 128, 1),
-                                                                std::make_tuple(64, 64, 1),
-                                                                std::make_tuple(64, 32, 1),
-                                                                std::make_tuple(64, 16, 1),
-                                                                // std::make_tuple(32, 128, 1),
-                                                                std::make_tuple(32, 64, 1),
-                                                                std::make_tuple(32, 32, 2),
-                                                                // std::make_tuple(16, 128, 1),
-                                                                std::make_tuple(16, 64, 1),
-                                                                std::make_tuple(16, 16, 4),
-                                                                // std::make_tuple(8, 128, 1),
-                                                                std::make_tuple(8, 64, 1),
-                                                                // std::make_tuple(4, 128, 1),
-                                                                std::make_tuple(4, 64, 1)};
+    const std::vector<std::tuple<int, int, int>> validWaveGemmSize = {
+        // std::make_tuple(128, 128, 1),
+        std::make_tuple(128, 64, 1),
+        // std::make_tuple(128, 32, 1),
+        // std::make_tuple(128, 16, 1),
+        std::make_tuple(64, 128, 1),
+        std::make_tuple(64, 64, 1),
+        std::make_tuple(64, 32, 1),
+        std::make_tuple(64, 16, 1),
+        // std::make_tuple(32, 128, 1),
+        std::make_tuple(32, 64, 1),
+        std::make_tuple(32, 32, 2),
+        // std::make_tuple(16, 128, 1),
+        std::make_tuple(16, 64, 1),
+        std::make_tuple(16, 16, 4),
+        // std::make_tuple(8, 128, 1),
+        std::make_tuple(8, 64, 1),
+        // std::make_tuple(4, 128, 1),
+        std::make_tuple(4, 64, 1)};
 
+    // NOLINTBEGIN(bugprone-assignment-in-if-condition)
     if(!std::any_of(validWaveGemmSize.cbegin(),
                     validWaveGemmSize.cend(),
                     [GemmMPerWave, GemmNPerWave, GemmKPerBlock](const auto it) noexcept -> bool {
@@ -335,6 +338,7 @@ static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
                                (GemmKPerBlock % validKPerWave == 0);
                     }))
         return false;
+    // NOLINTEND(bugprone-assignment-in-if-condition)
 
     const auto WaveSize = 64;
     const auto BlockSize =
@@ -366,13 +370,13 @@ static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n  = ProblemInterpreter::GetBatchN(problem);
-    std::size_t k  = ProblemInterpreter::GetOutputChannelK(problem) / problem.group_counts;
-    std::size_t c  = ProblemInterpreter::GetInputChannelC(problem) / problem.group_counts;
-    std::size_t y  = ProblemInterpreter::GetFilterHeightY(problem);
-    std::size_t x  = ProblemInterpreter::GetFilterWidthX(problem);
-    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(problem);
-    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(problem);
+    const std::size_t n  = ProblemInterpreter::GetBatchN(problem);
+    const std::size_t k  = ProblemInterpreter::GetOutputChannelK(problem) / problem.GetGroupCount();
+    const std::size_t c  = ProblemInterpreter::GetInputChannelC(problem) / problem.GetGroupCount();
+    const std::size_t y  = ProblemInterpreter::GetFilterHeightY(problem);
+    const std::size_t x  = ProblemInterpreter::GetFilterWidthX(problem);
+    const std::size_t ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    const std::size_t wo = ProblemInterpreter::GetOutputWidthWo(problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward
@@ -448,7 +452,7 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
     const std::size_t lds_size = (static_cast<std::size_t>(BPerBlock) + KPerBlock) * EPerBlock *
-                                     EPACKSize * GetTypeSize(problem.in_data_type) * 2 +
+                                     EPACKSize * GetTypeSize(problem.GetInDataType()) * 2 +
                                  2 * static_cast<std::size_t>(worst_case_alignment_adjustment);
 
     return lds_size;
@@ -604,6 +608,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx94") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 

@@ -286,6 +286,12 @@ void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
     MIOPEN_LOG_NQI(*this);
 }
 
+void Handle::SetStreamFromPool(int) const { MIOPEN_THROW("Error streamPool unsupported at OCl"); }
+void Handle::ReserveExtraStreamsInPool(int) const
+{
+    MIOPEN_THROW("Error streamPool unsupported at OCl");
+}
+
 miopenAcceleratorQueue_t Handle::GetStream() const { return impl->queue.get(); }
 
 void Handle::SetAllocator(miopenAllocatorFunction allocator,
@@ -355,11 +361,6 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
         built.push_back(kernel);
     }
     return factory(built);
-}
-
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config) const

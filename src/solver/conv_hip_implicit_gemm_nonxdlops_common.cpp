@@ -105,7 +105,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
 #endif
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.group_counts != 0)
+    if(KBlockWork % problem.GetGroupCount() != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -210,7 +210,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.group_counts != 0)
+    if(KBlockWork % problem.GetGroupCount() != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -432,7 +432,7 @@ bool PerformanceImplicitGemm::IsValidValue() const
         && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemm::SetNextValue(const ProblemDescription&)
 {
     // GemmNRepeat = 2 cosntant
     do

@@ -51,11 +51,15 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
 extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                                                 miopenDataType_t dataType,
                                                                 miopenTensorLayout_t tensorLayout,
-                                                                int* lens,
+                                                                const int* lens,
                                                                 int num_lens)
 {
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<int, int> lens_in(lens, num_lens);
+        MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens_in.values, num_lens);
+    }
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
     return miopen::try_([&] {
         miopen::deref(tensorDesc) =
             miopen::TensorDescriptor::MakeDescriptor(dataType, tensorLayout, lens, num_lens);
@@ -164,8 +168,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDesc
 extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                     miopenDataType_t dataType,
                                                     int nbDims,
-                                                    int* dimsA,
-                                                    int* stridesA)
+                                                    const int* dimsA,
+                                                    const int* stridesA)
 {
     if(miopen::IsLoggingFunctionCalls())
     {

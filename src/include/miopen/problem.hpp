@@ -92,6 +92,8 @@ struct Problem : miopenProblem
                                    const TensorDescriptor& wDesc,
                                    const ConvolutionDescriptor& conv);
 
+    void LogDriverCommand() const;
+
     friend void to_json(nlohmann::json& j, const Problem& problem);
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
@@ -100,7 +102,7 @@ private:
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Allocator::ManageDataPtr>;
+    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
@@ -109,6 +111,7 @@ private:
                                             const ConvolutionDescriptor& conv_desc) const;
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
+    void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
 };
 
 } // namespace miopen

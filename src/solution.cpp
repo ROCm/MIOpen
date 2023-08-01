@@ -26,14 +26,24 @@
 
 #include <miopen/solution.hpp>
 
+#include <miopen/any_solver.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/any_solver.hpp>
 
 #include <nlohmann/json.hpp>
 
 #include <boost/hof/match.hpp>
+
+namespace miopen::debug {
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdConvolution(const miopen::TensorDescriptor& x,
+                       const miopen::TensorDescriptor& w,
+                       const miopen::ConvolutionDescriptor& conv,
+                       const miopen::TensorDescriptor& y,
+                       miopenProblemDirection_t dir,
+                       std::optional<uint64_t> solver_id);
+} // namespace miopen::debug
 
 namespace miopen {
 
@@ -53,6 +63,26 @@ void Solution::Run(Handle& handle,
     });
 
     boost::apply_visitor(run, problem.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand() const
+{
+    const auto log_function = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+
+    boost::apply_visitor(log_function, problem.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
+{
+    const auto& x_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    miopen::debug::LogCmdConvolution(
+        x_desc, w_desc, conv_desc, y_desc, problem.GetDirection(), solver.Value());
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -79,7 +109,8 @@ void Solution::RunImpl(Handle& handle,
     const auto problem_ =
         conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
 
-    if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    if(problem_.GetDirection() == miopenProblemDirectionBackward &&
+       y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -123,22 +154,6 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    // auto log_tensor = [](auto name, const TensorDescriptor& tensor) {
-    //     std::cerr << name << ": l";
-    //     LogRange(std::cerr, tensor.GetLengths(), "x");
-    //     std::cerr << ", s";
-    //     LogRange(std::cerr, tensor.GetStrides(), "x");
-    //     std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
-    // };
-    //
-    // std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
-    //           << std::endl;
-    //
-    // std::cerr << "Conv: " << conv_desc << std::endl;
-    // log_tensor("X", *x.descriptor);
-    // log_tensor("W", *w.descriptor);
-    // log_tensor("Y", *y.descriptor);
-
     const auto net_cfg       = conv_problem.BuildConfKey();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
@@ -161,13 +176,14 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+    const auto legacy_problem = ProblemDescription{conv_problem};
+    auto conv_ctx             = ConvolutionContext{{&handle}};
     conv_ctx.DetectRocm();
-    conv_ctx.SetupFloats();
+    conv_problem.SetupFloats(conv_ctx);
 
-    decltype(auto) db = GetDb(conv_ctx);
-    const auto conv_solution =
-        GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx, perf_cfg.value_or(""));
+    decltype(auto) db        = GetDb(conv_ctx);
+    const auto conv_solution = GetSolver().GetSolver().FindSolution(
+        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());

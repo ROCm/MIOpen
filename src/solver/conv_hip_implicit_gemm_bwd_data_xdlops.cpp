@@ -34,6 +34,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_backward_data.hpp>
 #endif
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
@@ -194,12 +195,13 @@ bool ConvHipImplicitGemmBwdXdlops::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
-void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigHipImplicitGemmBwdXdlops& config)
 {
     const auto args      = CKArgsBwd{problem};
     const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
@@ -245,6 +247,8 @@ void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescription& problem)
@@ -315,7 +319,8 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmBwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -323,6 +328,7 @@ ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ProblemDescripti
 }
 
 bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
@@ -359,10 +365,16 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    if(!IsXdlopsSupport(ctx))
         return false;
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
+    if(problem.GetGroupCount() > 1)
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
