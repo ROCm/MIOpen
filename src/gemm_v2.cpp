@@ -39,7 +39,11 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else

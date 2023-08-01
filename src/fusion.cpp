@@ -39,7 +39,11 @@
 #include <ios>
 #include <algorithm>
 #include <string>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
