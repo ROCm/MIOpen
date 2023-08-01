@@ -465,6 +465,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "TARGET_GFX94X",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "TARGET_NAVI21",
             defaultValue: true,
             description: "")
@@ -679,7 +683,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -877,7 +881,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
@@ -890,7 +894,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
@@ -954,7 +958,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
@@ -1016,7 +1020,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
@@ -1094,7 +1098,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("mi300") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
