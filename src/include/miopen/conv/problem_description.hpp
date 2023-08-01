@@ -217,8 +217,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        return static_cast<size_t>(GetInBatchSize_()) * GetInChannels_() * GetInDepth_() * GetInHeight_() *
-               GetInWidth_() * GetInElementSize();
+        return static_cast<size_t>(GetInBatchSize_()) * GetInChannels_() * GetInDepth_() *
+               GetInHeight_() * GetInWidth_() * GetInElementSize();
     }
 
     // Out getters
@@ -249,8 +249,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        return static_cast<size_t>(GetOutBatchSize_()) * GetOutChannels_() * GetOutDepth_() * GetOutHeight_() *
-               GetOutWidth_() * GetOutElementSize();
+        return static_cast<size_t>(GetOutBatchSize_()) * GetOutChannels_() * GetOutDepth_() *
+               GetOutHeight_() * GetOutWidth_() * GetOutElementSize();
     }
 
     // Weights getters
