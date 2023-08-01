@@ -181,6 +181,8 @@ protected:
         weights.data = handle.Read<T>(wei_dev, weights.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_wei)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
+ EXPECT_FALSE(miopen::find_idx(ref_wei, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";      
         EXPECT_TRUE(miopen::range_distance(ref_wei) == miopen::range_distance(weights));
 
         const double tolerance = 80;
