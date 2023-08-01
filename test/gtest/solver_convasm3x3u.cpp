@@ -47,7 +47,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     const auto tensors =
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
-    const auto problem = miopen::ProblemDescription{
+    const auto problem = miopen::conv::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
     auto ctx = miopen::ConvolutionContext{};
 
@@ -88,4 +88,5 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::Values(miopenTensorNCHW)));
