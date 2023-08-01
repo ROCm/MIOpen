@@ -26,7 +26,7 @@
 #include <miopen/miopen.h>
 
 #if MIOPEN_BACKEND_HIP
-#include "log_test_helper.hpp"
+#include "log.hpp"
 
 TEST(LOG_TEST, AssertLogCmdOutput)
 {

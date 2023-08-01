@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "log_test_helper.hpp"
+#include "log.hpp"
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
