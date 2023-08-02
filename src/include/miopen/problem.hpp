@@ -92,6 +92,8 @@ struct Problem : miopenProblem
                                    const TensorDescriptor& wDesc,
                                    const ConvolutionDescriptor& conv);
 
+    void LogDriverCommand() const;
+
     friend void to_json(nlohmann::json& j, const Problem& problem);
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
@@ -109,6 +111,7 @@ private:
                                             const ConvolutionDescriptor& conv_desc) const;
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
+    void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
 };
 
 } // namespace miopen
