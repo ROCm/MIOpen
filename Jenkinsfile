@@ -560,6 +560,19 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
+                stage('Fp32 Hip Debug gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, codecov: true)
+                    }
+                }
                 stage('Fp32 Hip Debug gfx90a + LLVM CodeCov') {
                     when {
                         beforeAgent true
