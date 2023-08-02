@@ -392,7 +392,7 @@ struct tensor_transform_driver : test_driver
         float alpha = scales[0];
         float beta  = scales[1];
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
                                   : miopen_type<T>{} == miopenInt8 ? 127
                                                                    : 17;
 

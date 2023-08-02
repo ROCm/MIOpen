@@ -349,7 +349,7 @@ struct tensor_vec_driver : test_driver
                               ? dst_lens[1] + (vec_size - dst_lens[1] % vec_size)
                               : dst_lens[1];
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
                                   : miopen_type<T>{} == miopenInt8 ? 127
                                                                    : 17;
         src                     = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});

@@ -145,12 +145,12 @@ struct HIPOCKernelInvoke
         memcpy(hip_args, &(any_args[0].buffer[0]), any_args[0].size());
         //        copy_arg(any_args[0], hip_args, 0);
 
-        for(unsigned long idx = 1; idx < any_args.size(); idx++)
+        for(size_t idx = 1; idx < any_args.size(); idx++)
         {
             auto& any_arg              = any_args[idx];
-            unsigned long alignment    = any_arg.size();
-            unsigned long padding      = (alignment - (sz_left % alignment)) % alignment;
-            unsigned long second_index = sz_left + padding;
+            size_t alignment    = any_arg.size();
+            size_t padding      = (alignment - (sz_left % alignment)) % alignment;
+            size_t second_index = sz_left + padding;
             memcpy(hip_args + second_index, &(any_arg.buffer[0]), any_arg.size());
             // copy_arg(any_arg, hip_args, second_index);
             sz_left = second_index + alignment;

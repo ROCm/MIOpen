@@ -154,7 +154,7 @@ struct tensor_copy_driver : test_driver
 
     void run()
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
                                   : miopen_type<T>{} == miopenInt8 ? 127
                                                                    : 17;
 

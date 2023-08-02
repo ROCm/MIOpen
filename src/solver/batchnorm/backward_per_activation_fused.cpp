@@ -97,7 +97,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& context,
         {
             if(in_cstride <= 1024 && in_cstride > 512)
                 xlocalsize =
-                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned long>(1024));
+                    std::min(64 * ((in_cstride + 63) / 64), static_cast<size_t>(1024));
             else
                 xlocalsize = 1024;
         }
