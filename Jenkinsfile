@@ -465,7 +465,7 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "TARGET_GFX94X",
+            name: "TARGET_GFX940",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -675,15 +675,15 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug gfx94X') {
+                stage('Fp32 Hip Debug gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X }
+                        expression { params.TARGET_GFX940 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -873,28 +873,28 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp16 Hip gfx94X') {
+                stage('Fp16 Hip gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_FP16 }
+                        expression { params.TARGET_GFX940 && params.DATATYPE_FP16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Bf16 Hip gfx94X') {
+                stage('Bf16 Hip gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_BF16 }
+                        expression { params.TARGET_GFX940 && params.DATATYPE_BF16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
@@ -950,15 +950,15 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
                 }
-                stage('Bf16 Hip Install All gfx94X') {
+                stage('Bf16 Hip Install All gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_BF16 }
+                        expression { params.TARGET_GFX940 && params.DATATYPE_BF16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
@@ -1012,15 +1012,15 @@ pipeline {
                 //         buildHipClangJobAndReboot(setup_flags: Full_test, enforce_xnack_on: true)
                 //     }
                 // }
-                stage('Fp32 Hip All gfx94X') {
+                stage('Fp32 Hip All gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_FP32 }
+                        expression { params.TARGET_GFX940 && params.DATATYPE_FP32 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
@@ -1090,15 +1090,15 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
                 }
-                stage('Fp16 Hip All Install gfx94X') {
+                stage('Fp16 Hip All Install gfx940') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_FP16 }
+                        expression { params.TARGET_GFX940 && params.DATATYPE_FP16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx940") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
