@@ -296,7 +296,7 @@ def buildHipClangJob(Map conf=[:]){
                                 /opt/rocm/llvm/bin/llvm-profdata merge -sparse ./**/*.profraw -o ./miopen.profdata
 
                                 #For some reason, with the -object flag, we can't just specify the source directory, so we have to filter out the files we don't want.
-                                /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
+                                /opt/rocm/llvm/bin/llvm-cov report -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.report
                                 cat ./code_cov_miopen.report
                                 /opt/rocm/llvm/bin/llvm-cov show -Xdemangler=/opt/rocm/llvm/bin/llvm-cxxfilt -object ./lib/libMIOpen.so -instr-profile=./miopen.profdata -ignore-filename-regex="(.*googletest-src.*)|(.*/yaml-cpp-src/.*)|(.*hip/include.*)|(.*/include/llvm/.*)|(.*test/unit.*)|(.*/spdlog/.*)|(.*/msgpack-src/.*)" > ./code_cov_miopen.txt
 
