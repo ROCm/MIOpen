@@ -147,7 +147,7 @@ struct HIPOCKernelInvoke
 
         for(size_t idx = 1; idx < any_args.size(); idx++)
         {
-            auto& any_arg              = any_args[idx];
+            auto& any_arg       = any_args[idx];
             size_t alignment    = any_arg.size();
             size_t padding      = (alignment - (sz_left % alignment)) % alignment;
             size_t second_index = sz_left + padding;

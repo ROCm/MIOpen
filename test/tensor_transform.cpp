@@ -393,8 +393,8 @@ struct tensor_transform_driver : test_driver
         float beta  = scales[1];
 
         uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
-                                  : miopen_type<T>{} == miopenInt8 ? 127
-                                                                   : 17;
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
 
         bool skip_layout = !(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
                              miopen::float_equal(static_cast<const float>(beta), 0.0) &&

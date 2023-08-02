@@ -530,7 +530,8 @@ struct tensor_elem_gen_integer
         assert(max_value > 0);
         std::array<uint64_t, sizeof...(Ts)> left = {{Xs...}};
         std::array<uint64_t, 5> right            = {{613, 547, 701, 877, 1049}};
-        uint64_t dot = std::inner_product(left.begin(), left.end(), right.begin(), static_cast<uint64_t>(173));
+        uint64_t dot =
+            std::inner_product(left.begin(), left.end(), right.begin(), static_cast<uint64_t>(173));
         return static_cast<double>(dot % max_value);
     }
 };

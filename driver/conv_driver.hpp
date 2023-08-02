@@ -2464,7 +2464,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         std::tie(out_n, out_c, out_h, out_w) =
             miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-        size_t flopCnt     = 2LL * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
+        size_t flopCnt = 2LL * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
         size_t weightBytes = wei_n * wei_c * wei_h * wei_w *
                              miopen::GetTypeSize(miopen::deref(weightTensor).GetType());
         size_t inputBytes =
@@ -2674,8 +2674,8 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         std::tie(out_n, out_c, out_h, out_w) =
             miopen::tien<4>(miopen::deref(outputTensor).GetLengths());
 
-        size_t flopCnt     = 2LL * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
-        size_t readBytes   = 0;
+        size_t flopCnt   = 2LL * in_n * in_c * wei_h * wei_w * out_c * out_h * out_w / group_count;
+        size_t readBytes = 0;
         size_t outputBytes = 0;
 
         printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
