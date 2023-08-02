@@ -259,7 +259,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     else
     {
         auto tmp_ctx = ExecutionContext{&handle};
-        tmp_ctx.DetectRocm();
         const auto workspace_max = conv_desc.GetWorkSpaceSize(tmp_ctx, conv_problem);
         workspace_size           = std::min(options.workspace_limit, workspace_max);
         owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
@@ -348,7 +347,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto legacy_problem = ProblemDescription{conv_problem};
     const auto netcfg         = conv_problem.BuildConfKey();
     auto conv_ctx             = ConvolutionContext{{&handle}};
-    conv_ctx.DetectRocm();
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
