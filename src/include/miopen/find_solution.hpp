@@ -361,7 +361,7 @@ struct SolverContainer
             return;
         }
 
-        auto ctx = ExecutionContext{&handle};
+        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())
