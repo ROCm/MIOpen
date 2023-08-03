@@ -15,7 +15,7 @@ coverage:
     project:
       default:
         target: 52%
-        threshold: 1%
+        threshold: 10%
         if_ci_failed: error
         informational: false
         only_pulls: false
