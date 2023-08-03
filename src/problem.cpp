@@ -156,8 +156,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     return ret;
 }
 
-const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
-                                                            const std::string& name_str) const
+const TensorDescriptor&
+Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
+                                    [[maybe_unused]] const std::string& name_str) const
 {
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
