@@ -40,6 +40,7 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "layernorm_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 

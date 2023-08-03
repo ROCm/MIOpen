@@ -53,6 +53,7 @@
  * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
+ * @defgroup layernorm
  * @defgroup LRN
  * @defgroup batchnorm
  * @defgroup activation
@@ -439,6 +440,17 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
+
+/*! @ingroup layernorm
+ * @enum miopenLayerNormAlgorithm_t
+ * LayerNorm implementation algorithms
+ */
+typedef enum
+{
+    MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
+    MIOPEN_WEIGHT_BIAS =
+        1, /*!< learnable weights and biases of the module of shape normalized_shape */
+} miopenLayerNormMode_t;
 
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
@@ -2402,6 +2414,95 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
+
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a layernorm forward layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+                                                    miopenLayerNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const double epsilon,
+                                                    const int normalized_dim,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/*! @brief Execute a layernorm backwards layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for input data tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param dyDesc         Tensor descriptor for input data tensor dy (input)
+ * @param dy             Data delta tensor dy (input)
+ * @param weightDesc     Tensor descriptor for input data tensor weight (input)
+ * @param weight         Data delta tensor weight (input)
+ * @param meanDesc       Tensor descriptor for input data tensor mean (input)
+ * @param mean           Data delta tensor mean (input)
+ * @param rstdDesc       Tensor descriptor for input data tensor rstd (input)
+ * @param rstd           Data delta tensor rstd (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param dxDesc         Tensor descriptor for data output tensor dx (input)
+ * @param dx             Output data delta tensor dx (output)
+ * @param dwDesc         Tensor descriptor for data output tensor dw (input)
+ * @param dw             Output data delta tensor dw (output)
+ * @param dbDesc         Tensor descriptor for data output tensor db (input)
+ * @param db             Output data delta tensor db (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
+                                                     miopenLayerNormMode_t mode,
+                                                     const miopenTensorDescriptor_t xDesc,
+                                                     const void* x,
+                                                     const miopenTensorDescriptor_t dyDesc,
+                                                     const void* dy,
+                                                     const miopenTensorDescriptor_t weightDesc,
+                                                     const void* weight,
+                                                     const miopenTensorDescriptor_t meanDesc,
+                                                     const void* mean,
+                                                     const miopenTensorDescriptor_t rstdDesc,
+                                                     const void* rstd,
+                                                     const int normalized_dim,
+                                                     const miopenTensorDescriptor_t dxDesc,
+                                                     void* dx const miopenTensorDescriptor_t dwDesc,
+                                                     void* dw const miopenTensorDescriptor_t dbDesc,
+                                                     void* db);
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm

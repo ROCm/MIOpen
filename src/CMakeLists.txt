@@ -122,6 +122,7 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
+    layernorm_api.cpp
     lrn_api.cpp
     op_args.cpp
     operator.cpp
@@ -397,6 +398,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
@@ -521,6 +523,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
+        ocl/layerNorm_ocl.cpp
         ocl/lrn_ocl.cpp
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
