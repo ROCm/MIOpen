@@ -51,7 +51,7 @@ public:
     MiirHandle operator()() { return handle; }
 };
 
-void check_miir_error(MiirStatus status, const std::string& miir_fn_name)
+void check_miir_error(MiirStatus status, [[maybe_unused]] const std::string& miir_fn_name)
 {
     switch(status)
     {
