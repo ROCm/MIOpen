@@ -126,6 +126,7 @@ auto FindSolutionImpl(rank<1>,
             catch(const miopen::Exception& ex)
             {
                 MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
+                return ConvSolution(miopenStatusInternalError);
             }
         }
     }
