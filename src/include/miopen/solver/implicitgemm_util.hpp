@@ -499,17 +499,13 @@ static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name
 template <typename T>
 int amd_buffer_load_max_length()
 {
-    if(std::is_same<float, T>())
+    if(std::is_same<float, T>() || WORKAROUND_SWDEV_413051)
     {
         return 4;
     }
     else if(std::is_same<half_float::half, T>())
     {
-#if WORKAROUND_SWDEV_413051
-        return 4;
-#else
         return 8;
-#endif
     }
     else
     {
