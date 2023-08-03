@@ -124,10 +124,12 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         const int kernel_dilation_w = rnd.NextPositive();
         const int bias              = rnd.Next();
 
-        const TensorDescriptor in = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
-        const TensorDescriptor weights = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
-        const TensorDescriptor out = {miopenFloat, {1, n_outputs, 1, 1}};
-        const ConvolutionDescriptor conv = {{pad_h, pad_w}, {kernel_stride_h, kernel_stride_w}, {kernel_dilation_h, kernel_dilation_w}};
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
 
         prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
@@ -150,10 +152,12 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         const int kernel_dilation_w = i;
         const int bias              = i;
 
-        const TensorDescriptor in = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
-        const TensorDescriptor weights = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
-        const TensorDescriptor out = {miopenFloat, {1, n_outputs, 1, 1}};
-        const ConvolutionDescriptor conv = {{pad_h, pad_w}, {kernel_stride_h, kernel_stride_w}, {kernel_dilation_h, kernel_dilation_w}};
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
 
         prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
