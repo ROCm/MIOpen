@@ -117,6 +117,7 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             OUTPUT_VARIABLE ROCMINFO_OUTPUT
             RESULT_VARIABLE ROCMINFO_EXIT_STATUS
         )
+        message(STATUS "${ROCMINFO_OUTPUT}")
         if(ROCMINFO_OUTPUT MATCHES "no GPU devices")
             message(WARNING "ROCk module is NOT loaded, possibly no GPU devices")
             set(MIOPEN_NO_GPU TRUE)
