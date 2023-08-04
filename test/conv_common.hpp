@@ -1584,7 +1584,6 @@ struct verify_backward_weights_conv : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
-
 template <class T>
 struct verify_forward_conv_int8 : conv_base<T>
 {
