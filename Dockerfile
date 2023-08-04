@@ -21,7 +21,7 @@ RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc
 RUN wget https://repo.radeon.com/amdgpu-install/5.6/ubuntu/focal/amdgpu-install_5.6.50600-1_all.deb  --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.4.50403-1_all.deb
+    ./amdgpu-install_5.6.50600-1_all.deb
 
 # Add rocm repository
 RUN export ROCM_APT_VER=5.4.3;\
