@@ -43,9 +43,9 @@ namespace solver {
 template <typename DataType>
 using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
     3,
-    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GNDHWC,
     ck::tensor_layout::convolution::GKZYXC,
-    ck::tensor_layout::convolution::NDHWGK,
+    ck::tensor_layout::convolution::GNDHWK,
     DataType,
     DataType,
     DataType,
@@ -67,8 +67,8 @@ struct CKArgs
         N  = ProblemInterpreter::GetBatchN(problem);
         K1 = ProblemInterpreter::GetOutputChannelK(problem);
         C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
+        C  = C1/G; // Number of input Channel per group
+        K  = K1/G; // Number of output Channel per group
         Hi = ProblemInterpreter::GetInputHeightHi(problem);
         Wi = ProblemInterpreter::GetInputWidthWi(problem);
         Ho = ProblemInterpreter::GetOutputHeightHo(problem);
@@ -84,12 +84,13 @@ struct CKArgs
         weight = {Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        //in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        //out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        //wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
-        //in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, Hi * Wi * C, Wi * C, C, 1};
-        //out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, Ho * Wo * K, Wo * K, K, 1};
+        in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+        out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -119,7 +120,7 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    ck::index_t split_k = 1;
+    ck::index_t split_k = 2;
     std::array<ck::index_t, 3> input;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 3> output;
@@ -152,6 +153,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
                                                               args.weight,
                                                               args.output,
                                                               args.in_strides,
+                                                              args.wei_strides,
                                                               args.out_strides,
                                                               args.strides,
                                                               args.dilation,
@@ -164,6 +166,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
             valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
+            std::cout<<"****"<<conv_ptrs[i]->GetTypeString()<<std::endl;
         }
     }
     assert(!valid_kernels.empty());
@@ -200,6 +203,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
                                                               args.weight,
                                                               args.output,
                                                               args.in_strides,
+                                                              args.wei_strides,
                                                               args.out_strides,
                                                               args.strides,
                                                               args.dilation,
@@ -232,6 +236,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
                                                               args.weight,
                                                               args.output,
                                                               args.in_strides,
+                                                              args.wei_strides,
                                                               args.out_strides,
                                                               args.strides,
                                                               args.dilation,
@@ -271,6 +276,40 @@ void RunCKSolution(const Handle& handle,
     auto& data_ctx      = primitive_parameters.CastTo<conv::WrWInvokeParams>();
     const auto& tensors = data_ctx.tensors;
 
+    std::cout<<"************************G: "<<args.G<<std::endl;
+    std::cout<<"************************N: "<<args.N<<std::endl;
+    std::cout<<"************************K: "<<args.K<<std::endl;
+    std::cout<<"************************C: "<<args.C<<std::endl;
+    std::cout<<"***********************Di: "<<args.input[0]<<std::endl;
+    std::cout<<"***********************Hi: "<<args.input[1]<<std::endl;
+    std::cout<<"***********************Wi: "<<args.input[2]<<std::endl;
+    std::cout<<"***********************Do: "<<args.output[0]<<std::endl;
+    std::cout<<"***********************Ho: "<<args.output[1]<<std::endl;
+    std::cout<<"***********************Wo: "<<args.output[2]<<std::endl;
+    std::cout<<"************************Z: "<<args.weight[0]<<std::endl;
+    std::cout<<"************************Y: "<<args.weight[1]<<std::endl;
+    std::cout<<"************************X: "<<args.weight[2]<<std::endl;
+
+    std::cout<<"***input strides: "<<std::endl;
+    for(auto x:args.in_strides){
+        std::cout<<x<<" ";
+    }
+    std::cout<<std::endl;
+
+    std::cout<<"***weight strides: "<<std::endl;
+    for(auto x:args.wei_strides){
+        std::cout<<x<<" ";
+    }
+    std::cout<<std::endl;
+
+    std::cout<<"***output strides: "<<std::endl;
+    for(auto x:args.out_strides){
+        std::cout<<x<<" ";
+    }
+    std::cout<<std::endl;
+
+    std::cout<<" *** split_k: "<<args.split_k<<std::endl;
+
     auto argument_ptr = conv_ptr->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.x)),
@@ -285,6 +324,7 @@ void RunCKSolution(const Handle& handle,
         args.weight,
         args.output,
         args.in_strides,
+        args.wei_strides,
         args.out_strides,
         args.strides,
         args.dilation,
