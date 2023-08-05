@@ -755,7 +755,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool IsWarned;
+    static bool IsWarned = false;
     if(!IsWarned)
     {
         if(ctx.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
@@ -801,7 +801,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_3_1";
     std::string kernel_name          = "miopenSp3AsmConv" + kernel_version;
     std::string kernel_file          = "Conv_Winograd" + kernel_version;
     std::string kernel_postfix;
@@ -850,76 +850,121 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
     result.construction_params.push_back(kernel);
 
-    if(!problem.direction.IsBackwardWrW())
+    constexpr int F_REVERSE_R = 1 << 0;
+    constexpr int F_REVERSE_S = 1 << 1;
+    constexpr int F_FLIP_K_C  = 1 << 2;
+    // These are not used yet. Nevertheless let's keep as a shader documentation.
+    // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
+    // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
+    // constexpr int F_ADDR_INDIRECT  = 1 << 6;
+    // constexpr int F_BIAS  = 1 << 7;
+    // constexpr int F_LEAKY_RELU  = 1 << 8;
+    constexpr int F_NKC_STRIDES   = 1 << 9;
+    constexpr int F_GROUP_STRIDES = 1 << 10;
+    // constexpr int F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
+    // constexpr int F_FILTER_TRAVERSE_DUAL  = 1 << 12;
+    // constexpr int F_TENSOR_OFFSETS  = 1 << 13;
+    constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
+    // constexpr int F_USE_EXTENDED_FLAGS_64  = 1 << 15;
+    int flags = F_NKC_STRIDES | F_GROUP_STRIDES | (is_v21 ? 0 : F_USE_ACTIVATION_MODE);
+
+    constexpr uint8_t IDENTITY = 0;
+    // constexpr uint8_t LEAKY_RELU = 1;
+    // constexpr uint8_t SIGMOID = 2;
+    // constexpr uint8_t SCALED_TANH = 3;
+    uint8_t identity_activation = IDENTITY;
+
+    int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
+    MemLayout_t d_layout, o_layout, f_layout;
+
+    const bool is_forward = problem.direction.IsForward();
+    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const int group_cnt   = problem.GetGroupCount();
+
+    if(!is_backWrW)
     {
-        const bool is_forward     = problem.direction.IsForward();
-        constexpr int F_REVERSE_R = 1 << 0;
-        constexpr int F_REVERSE_S = 1 << 1;
-        constexpr int F_FLIP_K_C  = 1 << 2;
-        // These are not used yet. Nevertheless let's keep as a shader documentation.
-        // constexpr int F_FLIP_DATA_N_C = 1 << 3; // Unsupported in f3x2.
-        // constexpr int F_FLIP_OUT_N_K = 1 << 4; // Unsupported in f3x2.
-        // constexpr int L_F_ADDR_INDIRECT  = 1 << 6;
-        // constexpr int L_F_BIAS  = 1 << 7;
-        // constexpr int L_F_LEAKY_RELU  = 1 << 8;
-        constexpr int L_F_NKC_STRIDES   = 1 << 9;
-        constexpr int L_F_GROUP_STRIDES = 1 << 10;
-        // constexpr int L_F_FORCE_FILTER_TRAVERSE_MODE  = 1 << 11;
-        // constexpr int L_F_FILTER_TRAVERSE_DUAL  = 1 << 12;
-        // constexpr int L_F_TENSOR_OFFSETS  = 1 << 13;
-        // constexpr int L_F_USE_EXTENDED_FLAGS_64  = 1 << 15;
-        int reserved             = 0;
-        uint64_t reserved_offset = 0;
-        int* reserved_ptr        = nullptr;
-        int ignore;
+        int unused_n_groups = 0;
+        GetCompiledInParameters(ctx,
+                                problem,
+                                &N,
+                                &C,
+                                &H,
+                                &W,
+                                &K,
+                                &unused_n_groups,
+                                &out_H,
+                                &out_W,
+                                &R,
+                                &S,
+                                &pad_H,
+                                &pad_W);
+        C /= group_cnt;
+        K /= group_cnt;
 
-        int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(
-            ctx, problem, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        const auto group_cnt = problem.GetGroupCount();
-        C                    = C / group_cnt;
-        K                    = K / group_cnt;
-        int flags            = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-        flags |= L_F_NKC_STRIDES + L_F_GROUP_STRIDES;
+        d_layout = GetGroupConvLayout(GetMemLayout_t(problem.GetInLayout()), true);
+        o_layout = GetGroupConvLayout(GetMemLayout_t(problem.GetOutLayout()), true);
+        f_layout = GetGroupConvLayout(
+            is_forward ? MemLayout_t::NCHW : GetSwappedNCLayout(MemLayout_t::NCHW), false);
 
-        // cppcheck-suppress unreadVariable
-        BuffInfo d_buf(GetGroupConvLayout(GetMemLayout_t(problem.GetInLayout()), true),
-                       N,
-                       C,
-                       H,
-                       W,
-                       group_cnt,
-                       GetTypeSize(problem.GetInDataType())),
-            // cppcheck-suppress unreadVariable
-            o_buf(GetGroupConvLayout(GetMemLayout_t(problem.GetOutLayout()), true),
-                  N,
-                  K,
-                  out_H,
-                  out_W,
-                  group_cnt,
-                  GetTypeSize(problem.GetOutDataType())),
-            // cppcheck-suppress unreadVariable
-            f_buf(GetGroupConvLayout(is_forward ? (MemLayout_t::NCHW)
-                                                : GetSwappedNCLayout(MemLayout_t::NCHW),
-                                     false),
-                  K,
-                  C,
-                  R,
-                  S,
-                  group_cnt,
-                  GetTypeSize(problem.GetWeightsDataType()));
+        flags |= is_forward ? 0 : F_REVERSE_R | F_REVERSE_S | F_FLIP_K_C;
+    }
+    else
+    {
+        int unused_n_groups = 0;
+        GetCompiledInParameters(ctx,
+                                problem,
+                                &C,
+                                &K,
+                                &R,
+                                &S,
+                                &N,
+                                &unused_n_groups,
+                                &H,
+                                &W,
+                                &out_H,
+                                &out_W,
+                                &pad_H,
+                                &pad_W);
+        N /= group_cnt;
+        K /= group_cnt;
+        pad_H = problem.conv_problem.GetConv().GetConvPads()[0];
+        pad_W = problem.conv_problem.GetConv().GetConvPads()[1];
 
-        const auto d_strides = is_v21 ? d_buf.byte_stride : d_buf.stride;
-        const auto f_strides = is_v21 ? f_buf.byte_stride : f_buf.stride;
-        const auto o_strides = is_v21 ? o_buf.byte_stride : o_buf.stride;
+        d_layout =
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true);
+        o_layout =
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())), false);
+        f_layout = GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true);
+    }
 
-        result.invoker_factory = [=](std::vector<Kernel> kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto k         = handle.Run(kernels[0]);
-                const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
-                const auto& tensors  = data_ctx.tensors;
+    // cppcheck-suppress unreadVariable
+    BuffInfo d_buf(d_layout, N, C, H, W, group_cnt, GetTypeSize(problem.GetInDataType()));
+    // cppcheck-suppress unreadVariable
+    BuffInfo o_buf(o_layout, N, K, out_H, out_W, group_cnt, GetTypeSize(problem.GetOutDataType()));
+    // cppcheck-suppress unreadVariable
+    BuffInfo f_buf(f_layout, K, C, R, S, group_cnt, GetTypeSize(problem.GetWeightsDataType()));
+    const auto d_strides = is_v21 ? d_buf.byte_stride : d_buf.stride;
+    const auto f_strides = is_v21 ? f_buf.byte_stride : f_buf.stride;
+    const auto o_strides = is_v21 ? o_buf.byte_stride : o_buf.stride;
 
-                // clang-format off
+    result.invoker_factory = [=](std::vector<Kernel> kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
+            int reserved             = 0;
+            uint64_t reserved_offset = 0;
+            int* reserved_ptr        = nullptr;
+
+            const auto k = handle.Run(kernels[0]);
+            const auto data_tensors =
+                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+            const auto filter_tensors =
+                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+            const auto out_tensors =
+                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+
+            // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
@@ -931,8 +976,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                     << " o_H_stride=" << o_strides.h   << " o_W_stride=" << o_strides.w
                     << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
                     << " o_G_stride=" << o_strides.g);
-                // clang-format on
-
+            // clang-format on
+            if(is_v21)
+            {
                 k(N,
                   C,
                   H,
@@ -941,13 +987,13 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   n_groups,
                   flags,
                   reserved,
-                  tensors.in,
-                  tensors.w,
-                  tensors.out,
+                  data_tensors,
+                  filter_tensors,
+                  out_tensors,
                   reserved_ptr, // Unused return_addr.
                   R,
                   S,
-                  pad_H, // Like Fwd wino.
+                  pad_H,
                   pad_W,
                   out_H,
                   out_W,
@@ -974,119 +1020,54 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   d_strides.g,
                   f_strides.g,
                   o_strides.g);
-            };
-        };
-    }
-    else
-    {
-        int unused = 0;
-        int N, C, H, W, K, out_H, out_W, R, S;
-        GetCompiledInParameters(
-            ctx, problem, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
-        const auto group_cnt             = problem.GetGroupCount();
-        static const int F_NKC_STRIDES   = 1 << 9;
-        static const int F_GROUP_STRIDES = 1 << 10;
-        int flags                        = F_NKC_STRIDES + F_GROUP_STRIDES;
-        N                                = N / group_cnt;
-        K                                = K / group_cnt;
-        int pad_H                        = problem.conv_problem.GetConv().GetConvPads()[0];
-        int pad_W                        = problem.conv_problem.GetConv().GetConvPads()[1];
-
-        BuffInfo d_buf(
-            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetInLayout())), true),
-            N,
-            C,
-            H,
-            W,
-            group_cnt,
-            GetTypeSize(problem.GetInDataType())),
-            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.GetOutLayout())),
-                                     false),
-                  N,
-                  K,
-                  out_H,
-                  out_W,
-                  group_cnt,
-                  GetTypeSize(problem.GetOutDataType())),
-            f_buf(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true),
-                  K,
+            }
+            else
+            {
+                k(N,
                   C,
+                  H,
+                  W,
+                  K,
+                  n_groups,
+                  flags,
+                  reserved,
+                  data_tensors,
+                  filter_tensors,
+                  out_tensors,
+                  reserved_ptr, // Unused return_addr.
                   R,
                   S,
+                  pad_H,
+                  pad_W,
+                  out_H,
+                  out_W,
+                  reserved_ptr,    // Unused bias_addr.
+                  reserved,        // Unused alpha.
+                  reserved,        // Unused beta.
+                  reserved_offset, // Unused d_offset.
+                  reserved_offset, // Unused f_offset.
+                  reserved_offset, // Unused o_offset.
+                  reserved_offset, // Unused b_offset.
+                  d_strides.nk,
+                  d_strides.c,
+                  d_strides.h,
+                  d_strides.w,
+                  f_strides.nk,
+                  f_strides.c,
+                  f_strides.h,
+                  f_strides.w,
+                  o_strides.nk,
+                  o_strides.c,
+                  o_strides.h,
+                  o_strides.w,
                   group_cnt,
-                  GetTypeSize(problem.GetWeightsDataType()));
-
-        const auto d_strides = is_v21 ? d_buf.byte_stride : d_buf.stride;
-        const auto f_strides = is_v21 ? f_buf.byte_stride : f_buf.stride;
-        const auto o_strides = is_v21 ? o_buf.byte_stride : o_buf.stride;
-
-        result.invoker_factory = [=](std::vector<Kernel> kernels) {
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors          = invoke_params.tensors;
-
-                // clang-format off
-                MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                    << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                    << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_N_stride=" << d_strides.nk  << " d_C_stride=" << d_strides.c
-                    << " d_H_stride=" << d_strides.h   << " d_W_stride=" << d_strides.w
-                    << " f_K_stride=" << f_strides.nk  << " f_C_stride=" << f_strides.c
-                    << " f_R_stride=" << f_strides.h   << " f_S_stride=" << f_strides.w
-                    << " o_N_stride=" << o_strides.nk  << " o_K_stride=" << o_strides.c
-                    << " o_H_stride=" << o_strides.h   << " o_W_stride=" << o_strides.w
-                    << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
-                    << " o_G_stride=" << o_strides.g);
-                // clang-format on
-
-                int reserved             = 0;
-                uint64_t reserved_offset = 0;
-                int* reserved_ptr        = nullptr;
-
-                handle.Run(kernels[0])(N,
-                                       C,
-                                       H,
-                                       W,
-                                       K,
-                                       n_groups,
-                                       flags,
-                                       reserved,
-                                       tensors.x,
-                                       tensors.dy,
-                                       tensors.dw,
-                                       reserved_ptr, // Unused return_addr.
-                                       R,
-                                       S,
-                                       pad_H, // Like Fwd wino.
-                                       pad_W,
-                                       out_H,
-                                       out_W,
-                                       reserved_ptr,    // Unused bias_addr.
-                                       reserved,        // Unused relu_alpha.
-                                       reserved,        // Unused reserved2.
-                                       reserved_offset, // Unused d_offset.
-                                       reserved_offset, // Unused f_offset.
-                                       reserved_offset, // Unused o_offset.
-                                       reserved_offset, // Unused b_offset.
-                                       d_strides.nk,
-                                       d_strides.c,
-                                       d_strides.h,
-                                       d_strides.w,
-                                       f_strides.nk,
-                                       f_strides.c,
-                                       f_strides.h,
-                                       f_strides.w,
-                                       o_strides.nk,
-                                       o_strides.c,
-                                       o_strides.h,
-                                       o_strides.w,
-                                       group_cnt,
-                                       d_strides.g,
-                                       f_strides.g,
-                                       o_strides.g);
-            };
+                  d_strides.g,
+                  f_strides.g,
+                  o_strides.g,
+                  identity_activation);
+            }
         };
-    }
+    };
 
     return result;
 }
