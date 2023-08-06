@@ -81,15 +81,18 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        const auto problem = miopen::ProblemDescription{
-            xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        const auto dir = static_cast<miopen::conv::Direction>(direction);
+        const auto problem =
+            (dir == miopen::conv::Direction::Forward)
+                ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir}
+                : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
         auto ctx                    = miopen::ConvolutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
-        problem.conv_problem.SetupFloats(ctx);
+        problem.SetupFloats(ctx);
         ctx.DetectRocm();
         if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
@@ -106,8 +109,8 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    const auto problem = miopen::ProblemDescription{
-        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    const auto problem = miopen::conv::ProblemDescription{
+        yDesc, wDesc, xDesc, convDesc, miopen::conv::Direction::BackwardWeights};
     auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
@@ -115,7 +118,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    problem.conv_problem.SetupFloats(ctx);
+    problem.SetupFloats(ctx);
     ctx.DetectRocm();
 
     return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
@@ -132,9 +135,10 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    const auto problem =
-        miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ConvolutionContext{};
+    const auto conv_problem = miopen::conv::ProblemDescription{
+        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{conv_problem};
+    auto ctx           = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -1580,7 +1584,6 @@ struct verify_backward_weights_conv : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
-
 template <class T>
 struct verify_forward_conv_int8 : conv_base<T>
 {

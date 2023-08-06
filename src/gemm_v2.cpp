@@ -39,7 +39,11 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else
@@ -62,7 +66,8 @@
 #define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
 
 /// Maintain API compatibility with various rocBLAS version
-#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000)
+#define USE_GEMM_FLAGS_PACK_INT8X4 \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000) && (MIOPEN_ROCBLAS_VERSION_FLAT < 4000000))
 
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)
@@ -126,14 +131,13 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 {
     MIOPEN_LOG_I2("");
     rocblas_atomics_mode cur_mode;
-    rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
+    [[maybe_unused]] rocblas_status status =
+        rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
     assert(status == rocblas_status::rocblas_status_success);
-    (void)status; // WA till C++17 [[maybe_unused]]
     if(cur_mode == rocblas_atomics_allowed)
     {
         status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
         assert(status == rocblas_status::rocblas_status_success);
-        (void)status; // WA till C++17 [[maybe_unused]]
     }
     return cur_mode;
 }
@@ -141,9 +145,8 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
 {
     MIOPEN_LOG_I2("");
-    rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
+    [[maybe_unused]] rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
     assert(status == rocblas_status::rocblas_status_success);
-    (void)status; // WA till C++17 [[maybe_unused]]
 }
 
 #endif
