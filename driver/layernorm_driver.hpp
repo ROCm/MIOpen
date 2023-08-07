@@ -56,10 +56,10 @@ public:
         miopenCreateTensorDescriptor(&meanDesc);
         miopenCreateTensorDescriptor(&rstdDesc);
 
-        miopenCreateTensorDescriptor(&dInputDesc);
-        miopenCreateTensorDescriptor(&dWeightDesc);
-        miopenCreateTensorDescriptor(&dBiasDesc);
-        miopenCreateTensorDescriptor(&dOutputDesc);
+        miopenCreateTensorDescriptor(&dinputDesc);
+        miopenCreateTensorDescriptor(&dweightDesc);
+        miopenCreateTensorDescriptor(&dbiasDesc);
+        miopenCreateTensorDescriptor(&doutputDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -82,7 +82,7 @@ public:
     Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
-    ~SoftmaxDriver() override
+    ~LayerNormDriver() override
     {
 
         miopenDestroyTensorDescriptor(inputDesc);
@@ -92,15 +92,16 @@ public:
         miopenDestroyTensorDescriptor(meanDesc);
         miopenDestroyTensorDescriptor(rstdDesc);
 
-        miopenDestroyTensorDescriptor(dInputDesc);
-        miopenDestroyTensorDescriptor(dWeightDesc);
-        miopenDestroyTensorDescriptor(dBiasDesc);
-        miopenDestroyTensorDescriptor(dOutputDesc);
+        miopenDestroyTensorDescriptor(dinputDesc);
+        miopenDestroyTensorDescriptor(dweightDesc);
+        miopenDestroyTensorDescriptor(dbiasDesc);
+        miopenDestroyTensorDescriptor(doutputDesc);
     }
 
 private:
     InputFlags inflags;
 
+    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t inputDesc;
@@ -127,10 +128,10 @@ private:
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
 
-    miopenTensorDescriptor_t dinDesc;
+    miopenTensorDescriptor_t dinputDesc;
     miopenTensorDescriptor_t dweightDesc;
     miopenTensorDescriptor_t dbiasDesc;
-    miopenTensorDescriptor_t doutDesc;
+    miopenTensorDescriptor_t doutputDesc;
 
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> dweight_dev;
@@ -188,10 +189,10 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(meanDesc, outer_len, data_type);
     SetTensorNd(rstdDesc, outer_len, data_type);
 
-    SetTensorNd(dinDesc, in_len, data_type);
+    SetTensorNd(dinputDesc, in_len, data_type);
     SetTensorNd(dweightDesc, inner_len, data_type);
     SetTensorNd(dbiasDesc, inner_len, data_type);
-    SetTensorNd(doutDesc, in_len, data_type);
+    SetTensorNd(doutputDesc, in_len, data_type);
 
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
@@ -211,7 +212,7 @@ int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag("nomalized_dim", 'o', "2", "Nomalized Dim (Default=2)", "int");
-    = inflags.AddInputFlag(
+    inflags.AddInputFlag(
         "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -352,8 +353,7 @@ int LayerNormDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenLayerNormForward(GetHandle(),
-                               mode inputDesc,
-                               in_dev->GetMem(),
+                               mode,
                                inputDesc,
                                in_dev->GetMem(),
                                weightDesc,
@@ -366,8 +366,8 @@ int LayerNormDriver<Tgpu, Tref>::RunForwardGPU()
                                out_dev->GetMem(),
                                meanDesc,
                                mean_dev->GetMem(),
-                               biasDesc,
-                               bias_dev->GetMem());
+                               rstdDesc,
+                               rstd_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -441,7 +441,7 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
                                 rstdDesc,
                                 rstd_dev->GetMem(),
                                 dim,
-                                dinDesc,
+                                dinputDesc,
                                 din_dev->GetMem(),
                                 dweightDesc,
                                 dweight_dev->GetMem(),
@@ -520,8 +520,8 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 {
-    auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = GetTolerance();
+    auto error           = miopen::rms_range(outhost, out);
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward LayerNorm FAILED: " << error << std::endl;
@@ -532,7 +532,6 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     }
 
     auto meanerror       = miopen::rms_range(meanhost, mean);
-    const Tref tolerance = GetTolerance();
     if(!std::isfinite(meanerror) || meanerror > tolerance)
     {
         std::cout << "Forward LayerNorm mean FAILED: " << meanerror << std::endl;
@@ -543,7 +542,6 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     }
 
     auto rstderror       = miopen::rms_range(rstdhost, rstd);
-    const Tref tolerance = GetTolerance();
     if(!std::isfinite(rstderror) || rstderror > tolerance)
     {
         std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << std::endl;
@@ -559,8 +557,8 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
 {
-    auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = GetTolerance();
+    auto error           = miopen::rms_range(dinhost, din);
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward LayerNorm FAILED: " << error << std::endl;
@@ -571,7 +569,6 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
     }
 
     auto dweighterror    = miopen::rms_range(dweighthost, dweight);
-    const Tref tolerance = GetTolerance();
     if(!std::isfinite(dweighterror) || dweighterror > tolerance)
     {
         std::cout << "Backward LayerNorm dweight FAILED: " << dweighterror << std::endl;
@@ -582,7 +579,6 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
     }
 
     auto dbiaserror      = miopen::rms_range(dbiashost, dbias);
-    const Tref tolerance = GetTolerance();
     if(!std::isfinite(dbiaserror) || dbiaserror > tolerance)
     {
         std::cout << "Backward LayerNorm bias FAILED: " << dbiaserror << std::endl;

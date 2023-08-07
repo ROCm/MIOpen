@@ -45,15 +45,15 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                Tcheck* meanhost,
                                Tcheck* rstdhost,
                                double eps,
-                               int dim,
+                               int normalized_dim,
                                miopenLayerNormMode_t mode)
 {
-    auto dims         = inputTensor.GetLengths();
+    auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dims; i++)
+    for(; i < dims.size() - normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -78,15 +78,15 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
             pmean += tmp * tmp;
         }
         pmean /= inner_size;
-        pvar /= inner_size - mean * mean;
+        pvar /= inner_size - pmean * pmean;
 
         meanhost[o] = pmean;
         rstdhost[o] = sqrt(pvar + eps);
 
         for(i = 0; i < inner_size; i++)
         {
-            double pweight = elemwise_affine ? 1 : weight[i];
-            double pbias   = elemwise_affine ? 0 : bias[i];
+            double pweight = weight ? weight[i] : 1;
+            double pbias   = bias ? bias[i] : 0;
             outputhost[o * inner_size + o] =
                 (input[o * inner_size + i] - pmean) * sqrt(pvar + eps) * pweight + pbias;
         }
@@ -112,15 +112,15 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                 Tcheck* dinputhost,
                                 Tcheck* dweighthost,
                                 Tcheck* dbiashost,
-                                int dim,
+                                int normalized_dim,
                                 miopenLayerNormMode_t mode)
 {
-    auto dims         = inputTensor.GetLengths();
+    auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dims; i++)
+    for(; i < dims.size() - normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -167,24 +167,26 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         }
     }
 
-    for(i = 0; i < inner_size; i++)
+    if(dweighthost && dbiashost)
     {
-        double sum1 = 0;
-        double sum2 = 0;
-
-        for(int o = 0; o < outer_size; o++)
+        for(i = 0; i < inner_size; i++)
         {
-            double dy = doutput ? doutput[i * inner_size + o] : 0;
-            double x  = input[i * inner_size + o];
+            double sum1 = 0;
+            double sum2 = 0;
 
-            sum1 += dy * (x - mean[o]) * rstd[o];
-            sum2 += dy;
-        };
+            for(int o = 0; o < outer_size; o++)
+            {
+                double dy = doutput ? doutput[i * inner_size + o] : 0;
+                double x  = input[i * inner_size + o];
 
-        dweighthost[i] = sum1;
-        dbiashost[i]   = sum2;
+                sum1 += dy * (x - mean[o]) * rstd[o];
+                sum2 += dy;
+            };
+
+            dweighthost[i] = sum1;
+            dbiashost[i]   = sum2;
+        }
     }
-
     return ret;
 }
 

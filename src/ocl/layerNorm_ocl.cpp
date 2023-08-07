@@ -48,7 +48,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
                                 const double epsilon,
-                                const int normalized_dims)
+                                const int normalized_dim)
 {
     if(x == nullptr || y == nullptr)
     {
@@ -73,7 +73,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dims; i++)
+    for(; i < dims.size() - normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -92,8 +92,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
     std::string algo_name = "LayerNormForward";
     std::string network_config =
-        "lnfwd" + "dtype" + static_cast<int>(dtype) + "g" + std::to_string(vgd[0]) + "l" +
-        std::to_string(vld[0]) + "normalized_dims" + std::to_string(normalized_dims) + "grid" +
+        "lnfwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) + "l" +
+        std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
         std::to_string(inner_size) + "xpk" + std::to_string(static_cast<int>(xDesc.IsPacked()));
     if(weight)
@@ -127,7 +127,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     parms +=
         " -DIS_INPUT_PACKED=" +
         std::to_string(static_cast<int>(xDesc.IsPacked() && (!weight || weightDesc.IsPacked()) &&
-                                        (!bais || baisDesc.IsPacked()))) +
+                                        (!bias || biasDesc.IsPacked()))) +
         " -DIS_OUTPUT_PACKED=" +
         std::to_string(static_cast<int>(yDesc.IsPacked() && (!mean || meanDesc.IsPacked()) &&
                                         (!rstd || rstdDesc.IsPacked())));
@@ -182,15 +182,15 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
         miopen::checkNumericsInput(handle, xDesc, x);
     }
 
-    bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
-                         yDesc.IsPacked() && meanDesc.IsPacked() && rstdDesc.IsPacked();
+    bool is_all_packed = xDesc.IsPacked() && dyDesc.IsPacked() && weightDesc.IsPacked() && meanDesc.IsPacked() && rstdDesc.IsPacked() &&
+                         dxDesc.IsPacked() && dwDesc.IsPacked() && dbDesc.IsPacked();
 
     auto dims         = xDesc.GetLengths();
     size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dims; i++)
+    for(; i < dims.size() - normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -209,8 +209,8 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
 
     std::string algo_name = "LayerNormBackward";
     std::string network_config =
-        "lnbwd" + "dtype" + static_cast<int>(dtype) + "g" + std::to_string(vgd[0]) + "l" +
-        std::to_string(vld[0]) + "normalized_dims" + std::to_string(normalized_dims) + "grid" +
+        "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) + "l" +
+        std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
         std::to_string(inner_size) + "xpk" + std::to_string(static_cast<int>(xDesc.IsPacked())) +
         "dypk" + std::to_string(static_cast<int>(dyDesc.IsPacked()));
@@ -255,8 +255,8 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
 
         std::string algo_name = "LayerNormWeightBiasBackward";
         std::string network_config =
-            "lnbwd" + "dtype" + static_cast<int>(dtype) + "g" + std::to_string(vgd[0]) + "l" +
-            std::to_string(vld[0]) + "normalized_dims" + std::to_string(normalized_dims) + "grid" +
+            "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) + "l" +
+            std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
             std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
             std::to_string(inner_size) + "xpk" +
             std::to_string(static_cast<int>(xDesc.IsPacked())) + "dypk" +

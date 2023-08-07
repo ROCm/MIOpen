@@ -33,7 +33,7 @@
 #include <memory>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
-#include <miopen/softmax.hpp>
+#include <miopen/layernorm.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
 
@@ -83,7 +83,7 @@ struct verify_forward_layernorm
         size_t outer_size = 1;
         size_t inner_size = 1;
         size_t i          = 0;
-        for(; i < dims.size() - normalized_dims; i++)
+        for(; i < dims.size() - dim; i++)
         {
             outer_size *= dims[i];
             grid_size *= dims[i];
@@ -95,27 +95,33 @@ struct verify_forward_layernorm
             grid_size *= dims[i];
         }
 
+	auto toutput = output;
+	auto tmean = mean;
+	auto trstd = rstd;
+
         par_ford(outer_size)([&](int o) {
-            double pmean = 0;
-            double pvar  = 0;
+            double mean_v = 0;
+            double var_v  = 0;
             ford(inner_size)([&](int i) {
-                double tmp = input[o * inner_size + i];
-                pmean += tmp;
-                pmean += tmp * tmp;
+                float tmp = input[o * inner_size + i];
+                mean_v += tmp;
+                mean_v += tmp * tmp;
             });
-            pmean /= inner_size;
-            pvar /= inner_size - mean * mean;
-
-            mean[o] = pmean;
-            rstd[o] = sqrt(pvar + eps);
+            mean_v /= inner_size;
+            var_v /= inner_size - mean_v * mean_v;
+            
+            tmean[o] = mean_v;
+            trstd[o] = sqrt(var_v + eps);
 
             ford(inner_size)([&](int i) {
-                double pweight = elemwise_affine ? 1 : weight[i];
-                double pbias   = elemwise_affine ? 0 : bias, [i];
-                output[o * inner_size + i] =
-                    (input[o * inner_size + i] - pmean) * sqrt(pvar + eps) * pweight + pbias;
+                double weight_v = (weight.data.size()==0) ? weight[i] : 1;
+                double bias_v = (bias.data.size()==0) ? bias[i] : 0;
+                toutput[o * inner_size + i] =
+                    (input[o * inner_size + i] - mean_v) * sqrt(var_v + eps) * weight_v + bias_v;
             });
-        }) return std::make_tuple(output, mean, rstd >);
+        });
+       	
+	return std::make_tuple(toutput, tmean, trstd);
     }
 
     std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu() const
@@ -129,27 +135,32 @@ struct verify_forward_layernorm
         auto mean_dev   = handle.Write(mean.data);
         auto rstd_dev   = handle.Write(rstd.data);
 
+	auto toutput = output;
+	auto tmean = mean;
+	auto trstd = rstd;
+
         miopen::LayerNormForward(handle,
-                                 mode,
                                  input.desc,
                                  in_dev.get(),
                                  weight.desc,
                                  weight_dev.get(),
                                  bias.desc,
                                  bias_dev.get(),
-                                 eps,
-                                 dim,
                                  output.desc,
                                  out_dev.get(),
                                  mean.desc,
                                  mean_dev.get(),
                                  rstd.desc,
-                                 rstd_dev.get());
+                                 rstd_dev.get(),
+				 mode,
+				 eps,
+				 dim);
 
-        output.data = handle.Read<T>(out_dev, output.data.size());
-        mean.data   = handle.Read<T>(mean_dev, mean.data.size());
-        rstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
-        return std::make_tuple(output, mean, rstd);
+        toutput.data = handle.Read<T>(out_dev, output.data.size());
+        tmean.data   = handle.Read<T>(mean_dev, mean.data.size());
+        trstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
+        
+	return std::make_tuple(toutput, tmean, trstd);
     }
 
     void fail(int = 0) const
@@ -203,7 +214,7 @@ struct verify_backward_layernorm
         size_t outer_size = 1;
         size_t inner_size = 1;
         size_t i          = 0;
-        for(; i < dims.size() - normalized_dims; i++)
+        for(; i < dims.size() - dim; i++)
         {
             outer_size *= dims[i];
             grid_size *= dims[i];
@@ -215,16 +226,18 @@ struct verify_backward_layernorm
             grid_size *= dims[i];
         }
 
+	auto tdinput = dinput;
+
         par_ford(outer_size)([&](int o) {
             double sum1 = 0;
             double sum2 = 0;
             ford(inner_size)([&](int i) {
-                double weight_v = weight ? weight[o * inner_size + i] : 1;
-                double dy       = doutput ? doutput[o * inner_size + i] : 0;
+                double weight_v = (weight.data.size()==0) ? weight[o * inner_size + i] : 1;
+                double dy       = (doutput.data.size()==0) ? doutput[o * inner_size + i] : 0;
                 double x        = input[i * inner_size + o];
 
                 sum1 += dy * x * weight_v;
-                sum2 += dy * weight;
+                sum2 += dy * weight_v;
             });
 
             double s = 1.0 / inner_size;
@@ -236,32 +249,37 @@ struct verify_backward_layernorm
             double c2 = -(a * mean_v + sum2 * rstd_v * s);
 
             ford(inner_size)([&](int i) {
-                double weight_v = weight ? weight[o * inner_size + i] : 1;
-                double dy       = doutput ? doutput[o * inner_size + i] : 0;
+                double weight_v = (weight.data.size()==0) ? weight[o * inner_size + i] : 1;
+                double dy       = (doutput.data.size()==0) ? doutput[o * inner_size + i] : 0;
                 double x        = input[i * inner_size + o];
 
                 double val                 = rstd_v * dy * weight_v + a * x + c2;
-                dinput[i * inner_size + o] = val;
+                tdinput[i * inner_size + o] = val;
             });
-        })
-
-            par_ford(iner_size)([&](int i) {
+        });
+	
+	auto tdweight = dweight;
+	auto tdbias = dbias;
+	if((dweight.data.size()!=0) || dbias.data.size()!=0)
+	{
+            par_ford(inner_size)([&](int i) {
                 double sum1 = 0;
                 double sum2 = 0;
 
                 ford(outer_size)([&](int o) {
-                    double dy = doutput ? doutput[i * inner_size + o] : 0;
+                    double dy = (doutput.data.size()==0) ? doutput[i * inner_size + o] : 0;
                     double x  = input[i * inner_size + o];
 
                     sum1 += dy * (x - mean[o]) * rstd[o];
                     sum2 += dy;
                 });
 
-                dweight[i] = sum1;
-                dbias[i]   = sum2;
-            })
+                tdweight[i] = sum1;
+                tdbias[i]   = sum2;
+            });
+	}
 
-                return std::make_tuple(dinput, dweight, dbias);
+        return std::make_tuple(tdinput, tdweight, tdbias);
     }
 
     std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu() const
@@ -277,8 +295,11 @@ struct verify_backward_layernorm
         auto dw_dev     = handle.Write(dweight.data);
         auto db_dev     = handle.Write(dbias.data);
 
+	auto tdinput = dinput;
+	auto tdweight = dweight;
+	auto tdbias = dbias;
+
         miopen::LayerNormBackward(handle,
-                                  mode,
                                   input.desc,
                                   in_dev.get(),
                                   doutput.desc,
@@ -289,18 +310,20 @@ struct verify_backward_layernorm
                                   mean_dev.get(),
                                   rstd.desc,
                                   rstd_dev.get(),
-                                  dim,
                                   dinput.desc,
                                   din_dev.get(),
                                   dweight.desc,
                                   dw_dev.get(),
                                   dbias.desc,
-                                  db_dev.get());
+                                  db_dev.get(),
+				  mode,
+				  dim);
 
-        dinput.data  = handle.Read<T>(din_dev, dinput.data.size());
-        dweight.data = handle.Read<T>(dw_dev, dweight.data.size());
-        dbias.data   = handle.Read<T>(db_dev, dbias.data.size());
-        return std::make_tuple(dinput, dweight, dbias);
+        tdinput.data  = handle.Read<T>(din_dev, dinput.data.size());
+        tdweight.data = handle.Read<T>(dw_dev, dweight.data.size());
+        tdbias.data   = handle.Read<T>(db_dev, dbias.data.size());
+        
+	return std::make_tuple(tdinput, tdweight, tdbias);
     }
 
     void fail(int = 0) const
@@ -319,11 +342,7 @@ struct layernorm_driver : test_driver
     tensor<T> output;
     tensor<T> mean;
     tensor<T> rstd;
-    tensor<T> input;
     tensor<T> doutput;
-    tensor<T> weight;
-    tensor<T> mean;
-    tensor<T> rstd;
     tensor<T> dinput;
     tensor<T> dweight;
     tensor<T> dbias;
@@ -336,7 +355,7 @@ struct layernorm_driver : test_driver
 
     layernorm_driver()
     {
-        std::set<std::vector<int>> in_dim_set = get_3d_ln_inputs(batch_factor);
+        std::set<std::vector<int>> in_dim_set = get_ln_inputs(batch_factor);
 
         std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
 
@@ -353,7 +372,7 @@ struct layernorm_driver : test_driver
     {
         miopenLayerNormMode_t mode = miopenLayerNormMode_t(mode_cmd);
         unsigned long max_value;
-        if((miopen_type<T>{} == miopenHalf) || miopen_type<T>{} == miopenBfloat16)
+        if((miopen_type<T>{} == miopenHalf) || miopen_type<T>{} == miopenBFloat16)
             max_value = 5;
         else
             max_value = 17;
@@ -377,8 +396,8 @@ struct layernorm_driver : test_driver
         else
             outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - dim_cmd)};
 
-        mean = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{max_value});
-        rstd = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{max_value});
+        mean = tensor<T>{outer_dim}.generate(tensor_elem_gen_integer{max_value});
+        rstd = tensor<T>{outer_dim}.generate(tensor_elem_gen_integer{max_value});
 
         size_t total_mem =
             2 * (input.desc.GetNumBytes() + weight.desc.GetNumBytes() + bias.desc.GetNumBytes() +
@@ -394,10 +413,10 @@ struct layernorm_driver : test_driver
         }
 
         output = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
-        eps    = eps_cmd;
-        dim    = dim_cmd;
+        double eps = eps_cmd;
+        int dim = dim_cmd;
 
-        verify(verify_forward_layernorm<T>{input, weight, bias, output, mean, rstd, eps, dimmode});
+        verify(verify_forward_layernorm<T>{input, weight, bias, output, mean, rstd, eps, dim, mode});
 
         doutput = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         dinput  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
