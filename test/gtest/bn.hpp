@@ -77,7 +77,7 @@ protected:
         bn_bwd_data.SetUpImpl(bn_config, tensor_layout);
 
         test::FusionPlan::InitFusionPlan(fusePlanDesc, bn_bwd_data);
-        test::FusionPlan::AddBwd(fusePlanDesc, params, bn_bwd_data);
+        test::FusionPlan::AddBwdTrain(fusePlanDesc, params, bn_bwd_data);
     }
 
     void TearDown() override
@@ -87,7 +87,7 @@ protected:
         auto&& handle = get_handle();
         bn_bwd_data.output.data =
             handle.Read<T>(bn_bwd_data.out_dev, bn_bwd_data.output.data.size());
-        test::FusionPlan::ComputeRefBNBwd(bn_bwd_data);
+        test::FusionPlan::ComputeRefBNBwdTrain(bn_bwd_data);
         test::FusionPlan::BnCmpare(bn_bwd_data.output, bn_bwd_data.ref_out);
     }
     BNTestCase bn_config;

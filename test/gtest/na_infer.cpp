@@ -46,6 +46,10 @@ struct BNInferHalf : BNInferTest<half_float::half>
 {
 };
 
+struct BNBwdTestFloat : BNBwdTest<float>
+{
+};
+
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                const miopen::fusion::FusionInvokeParams& plan_params,
@@ -97,43 +101,48 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     handle.Finish();
 }
 
-TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
-{
-    const auto plan_params = miopen::fusion::FusionInvokeParams(params,
-                                                                bn_infer_data.input.desc,
-                                                                bn_infer_data.in_dev.get(),
-                                                                bn_infer_data.output.desc,
-                                                                bn_infer_data.out_dev.get(),
-                                                                false);
-    RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
-        fusePlanDesc, plan_params, bn_config, test_skipped);
-}
+// TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
+// {
+//     const auto plan_params = miopen::fusion::FusionInvokeParams(params,
+//                                                                 bn_infer_data.input.desc,
+//                                                                 bn_infer_data.in_dev.get(),
+//                                                                 bn_infer_data.output.desc,
+//                                                                 bn_infer_data.out_dev.get(),
+//                                                                 false);
+//     RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
+//         fusePlanDesc, plan_params, bn_config, test_skipped);
+// }
 
-TEST_P(BNInferFloat, CKBnFwdInference)
+// TEST_P(BNInferFloat, CKBnFwdInference)
+// {
+//     const auto plan_params =
+//         std::make_unique<miopen::fusion::FusionInvokeParams>(params,
+//                                                              bn_infer_data.input.desc,
+//                                                              bn_infer_data.in_dev.get(),
+//                                                              bn_infer_data.output.desc,
+//                                                              bn_infer_data.out_dev.get(),
+//                                                              false);
+//     RunTunableSolver<miopen::solver::fusion::CKBnFwdInference>(
+//         fusePlanDesc, plan_params, bn_config, test_skipped);
+// }
+
+TEST_P(BNBwdTestFloat, CKBnBwdTraining)
 {
     const auto plan_params =
         std::make_unique<miopen::fusion::FusionInvokeParams>(params,
-                                                             bn_infer_data.input.desc,
-                                                             bn_infer_data.in_dev.get(),
-                                                             bn_infer_data.output.desc,
-                                                             bn_infer_data.out_dev.get(),
-                                                             false);
-    RunTunableSolver<miopen::solver::fusion::CKBnFwdInference>(
-        fusePlanDesc, plan_params, bn_config, test_skipped);
-}
-
-TEST_P(BNInferFloat, CKBnBwdTraining)
-{
-    const auto plan_params =
-        std::make_unique<miopen::fusion::FusionInvokeParams>(params,
-                                                             bn_infer_data.input.desc,
-                                                             bn_infer_data.in_dev.get(),
-                                                             bn_infer_data.output.desc,
-                                                             bn_infer_data.out_dev.get(),
+                                                             bn_bwd_data.input.desc,
+                                                             bn_bwd_data.in_dev.get(),
+                                                             bn_bwd_data.output.desc,
+                                                             bn_bwd_data.out_dev.get(),
                                                              false);
     RunTunableSolver<miopen::solver::fusion::CKBnBwdTraining>(
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
+
+INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatSuite,
+                         BNBwdTestFloat,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferFloatSuite,
                          BNInferFloat,

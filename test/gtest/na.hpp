@@ -50,7 +50,7 @@ protected:
     {
         if(test_skipped)
             return;
-        test::FusionPlan::ComputeRefBN(bn_infer_data);
+        test::FusionPlan::ComputeRefBNInfer(bn_infer_data);
         activationHostInfer(activ_mode,
                             bn_infer_data.activ_gamma,
                             bn_infer_data.activ_beta,

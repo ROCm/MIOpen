@@ -59,7 +59,7 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {128, 16, 3, 1024, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -232,8 +232,8 @@ struct BNBwdSolverTest : public BNSolverTestBase<T, TConfig>
     }
 
     tensor<T> x_input;
-    tensor<T> bnscale;
-    tensor<T> bnbias;
+    tensor<T> bnScale;
+    tensor<T> bnBias;
     tensor<T> savedMean;
     tensor<T> savedInvVariance;
 
@@ -241,8 +241,8 @@ struct BNBwdSolverTest : public BNSolverTestBase<T, TConfig>
     tensor<T> resBnBiasDiff; // dbeta
 
     miopen::Allocator::ManageDataPtr x_input_dev;
-    miopen::Allocator::ManageDataPtr bnscale_dev;
-    miopen::Allocator::ManageDataPtr bnbias_dev;
+    miopen::Allocator::ManageDataPtr bnScale_dev;
+    miopen::Allocator::ManageDataPtr bnBias_dev;
     miopen::Allocator::ManageDataPtr savedMean_dev;
     miopen::Allocator::ManageDataPtr savedInvVariance_dev;
 
@@ -265,10 +265,10 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNSolverTestBase<T, TConfig>::input.desc,
                                          BNSolverTestBase<T, TConfig>::bn_mode);
-        bnscale       = tensor<T>{miopen_type<T>{},
+        bnScale       = tensor<T>{miopen_type<T>{},
                           BNSolverTestBase<T, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
-        bnbias       = tensor<T>{miopen_type<T>{},
+        bnBias       = tensor<T>{miopen_type<T>{},
                           BNSolverTestBase<T, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
         savedMean     = tensor<T>{miopen_type<T>{},
@@ -294,8 +294,8 @@ private:
         auto gen_value = [&](auto...) {
             return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
         };
-        bnscale.generate(gen_value);
-        bnbias.generate(gen_value);
+        bnScale.generate(gen_value);
+        bnBias.generate(gen_value);
         savedMean.generate(gen_value);
         auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
         savedInvVariance.generate(gen_var);
@@ -308,8 +308,8 @@ private:
         auto&& handle   = get_handle();
  
         x_input_dev          = handle.Write(x_input.data);
-        bnscale_dev          = handle.Write(bnscale.data);
-        bnbias_dev           = handle.Write(bnbias.data);
+        bnScale_dev          = handle.Write(bnScale.data);
+        bnBias_dev           = handle.Write(bnBias.data);
         savedMean_dev        = handle.Write(savedMean.data);
         savedInvVariance_dev = handle.Write(savedInvVariance.data);
         

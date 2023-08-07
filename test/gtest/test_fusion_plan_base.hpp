@@ -57,19 +57,18 @@ void AddBwdTrain(miopen::FusionPlanDescriptor& fusePlanDesc,
                 miopen::OperatorArgs& params,
                 DLModule& dl_module)
 {
-    auto bnOp = std::make_shared<miopen::BatchNormBwdTrainFusionOpDescriptor>(dl_module.bn_mode,
-                                                                               dl_module.bn_desc);
+    auto bnOp = std::make_shared<miopen::BatchNormBwdTrainFusionOpDescriptor>(dl_module.bn_mode);
     EXPECT_EQ(fusePlanDesc.AddOp(bnOp), miopenStatusSuccess);
     bnOp->SetArgs(params,
                   &dl_module.alpha,
                   &dl_module.beta,
-                  dl_module.x.get(),
-                  dl_module.bnScale.get(),
-                  dl_module.bnBias.get(),
-                  dl_module.resultBnScaleDiff.get(),
-                  dl_module.resultBnBiasDiff.get(),
-                  dl_module.savedMean.get(),
-                  dl_module.savedInvVariance.get());
+                  dl_module.x_input_dev.get(),
+                  dl_module.bnScale_dev.get(),
+                  dl_module.bnBias_dev.get(),
+                  dl_module.resBnScaleDiff_dev.get(),
+                  dl_module.resBnBiasDiff_dev.get(),
+                  dl_module.savedMean_dev.get(),
+                  dl_module.savedInvVariance_dev.get());
 }
 
 
@@ -136,9 +135,7 @@ void ComputeRefBNBwdTrain(DLModule& dl_module)
     batchNormSpatialHostBwdTrain(dl_module.x_input,
                                  dl_module.input,
                                  dl_module.ref_out,
-                                 dl_module.bnscale,
-                                 dl_module.resBnScaleDiff,
-                                 dl_module.dbeta,
+                                 dl_module.bnScale,
                                  dl_module.resBnScaleDiff,
                                  dl_module.resBnBiasDiff,
                                  dl_module.savedMean,

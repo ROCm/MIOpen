@@ -73,7 +73,7 @@ struct CKArgsBNormFwd
                   problem.GetXDesc().GetStrides().end(),
                   xyStrides.begin());
 
-        auto scaleBiasMeanVarStrides = problem.GetBnScaleBiasMeanVarDesc().GetStrides();
+        auto scaleBiasMeanVarStrides = problem.GetScaleBiasDiffDesc().GetStrides();
         std::copy(scaleBiasMeanVarStrides.begin(),
               scaleBiasMeanVarStrides.end(),
               arrScaleBiasMeanVarStrides.begin());
@@ -106,10 +106,10 @@ template <typename DataType>
 void PerformanceConfigCKBnBwdTraining::Init(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
-    for(const auto& it : bn_fwd_ptrs)
+    assert(!bn_bwd_ptrs.empty());
+    for(const auto& it : bn_bwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
                                                     args.xyStrides,
@@ -146,13 +146,13 @@ bool PerformanceConfigCKBnBwdTraining::CheckIsSupportCKArgs(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
     const auto& args       = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
 
     int i = 0;
-    for(; i < bn_fwd_ptrs.size(); i++)
+    for(; i < bn_bwd_ptrs.size(); i++)
     {
-        if(bn_fwd_ptrs[i]->GetTypeString() == this->kernel_id)
+        if(bn_bwd_ptrs[i]->GetTypeString() == this->kernel_id)
         {
             break;
         }
@@ -162,7 +162,7 @@ bool PerformanceConfigCKBnBwdTraining::CheckIsSupportCKArgs(
         return false;
     }
     auto argument_ptr =
-        bn_fwd_ptrs[i]->MakeArgumentPointer(args.xyLengths,
+        bn_bwd_ptrs[i]->MakeArgumentPointer(args.xyLengths,
                                                     args.xyStrides,
                                                     args.xyStrides,
                                                     args.xyStrides,
@@ -181,7 +181,7 @@ bool PerformanceConfigCKBnBwdTraining::CheckIsSupportCKArgs(
                                                     nullptr,
                                                     nullptr,
                                                     nullptr);
-    return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
+    return bn_bwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
@@ -189,11 +189,11 @@ bool CKBnBwdTraining::CheckCKApplicability(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
     const auto& args       = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    assert(!bn_bwd_ptrs.empty());
 
-    for(const auto& it : bn_fwd_ptrs)
+    for(const auto& it : bn_bwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
                                                     args.xyStrides,
@@ -228,19 +228,19 @@ void RunCKSolution(const Handle& handle,
 {
     const auto& args = CKArgsBNormFwd{problem};
 
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
 
     int index = 0;
-    for(; index < bn_fwd_ptrs.size(); index++)
+    for(; index < bn_bwd_ptrs.size(); index++)
     {
-        if(bn_fwd_ptrs[index]->GetTypeString() == config.kernel_id)
+        if(bn_bwd_ptrs[index]->GetTypeString() == config.kernel_id)
         {
             break;
         }
     }
-    assert(index < bn_fwd_ptrs.size());
-    auto& bn_ptr           = bn_fwd_ptrs.at(index);
+    assert(index < bn_bwd_ptrs.size());
+    auto& bn_ptr           = bn_bwd_ptrs.at(index);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     assert(invoke_ctx.op_args.params[0] != nullptr);
     const auto& params = dynamic_cast<miopen::fusion::BatchNormBwdTrainingOpInvokeParam&>(
@@ -411,7 +411,7 @@ bool CKBnBwdTraining::IsApplicable(const FusionContext& ctx,
         return false;
 
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx1030") // add proper function for check
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
