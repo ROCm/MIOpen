@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/kernel_cache.hpp>
-#include <miopen/softmax.hpp>
+#include <miopen/layernorm.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
@@ -73,7 +73,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dim; i++)
+    for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -132,8 +132,16 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         std::to_string(static_cast<int>(yDesc.IsPacked() && (!mean || meanDesc.IsPacked()) &&
                                         (!rstd || rstdDesc.IsPacked())));
 
-    handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-        x, y, weight, bias, mean, rstd, inner_size, !mode);
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
+    {
+        kernels.front()(x, y, weight, bias, mean, rstd, inner_size, !mode);
+    }
+    else
+    {
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            x, y, weight, bias, mean, rstd, inner_size, !mode);
+    }
 
     if(miopen::CheckNumericsEnabled())
     {
@@ -191,7 +199,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dim; i++)
+    for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -245,10 +253,18 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                                              (!weight || weightDesc.IsPacked()) &&
                                              meanDesc.IsPacked() && rstdDesc.IsPacked())) +
              " -DIS_OUTPUT_PACKED=" + std::to_string(static_cast<int>(dxDesc.IsPacked()));
-
-    handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-        x, dy, weight, mean, rstd, dx, inner_size);
-
+    printf("before bwd\n");
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
+    {
+        kernels.front()(x, dy, weight, mean, rstd, dx, inner_size);
+    }
+    else
+    {
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            x, dy, weight, mean, rstd, dx, inner_size);
+    }
+    printf("after bwd\n");
     if(dw && db)
     {
         const std::vector<size_t> vld{LOCAL_SIZE, 1, 1};
@@ -291,9 +307,16 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                                                  rstdDesc.IsPacked())) +
                  " -DIS_OUTPUT_PACKED=" +
                  std::to_string(static_cast<int>(dwDesc.IsPacked() && dbDesc.IsPacked()));
-
-        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, dy, mean, rstd, dw, db, outer_size, inner_size);
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+        if(!kernels.empty())
+        {
+            kernels.front()(x, dy, mean, rstd, dw, db, outer_size, inner_size);
+        }
+        else
+        {
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x, dy, mean, rstd, dw, db, outer_size, inner_size);
+        }
     }
 
     if(miopen::CheckNumericsEnabled())

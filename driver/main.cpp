@@ -180,6 +180,10 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
+    else if(base_arg == "layernorm")
+    {
+        drv = new LayerNormDriver<float, float>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");

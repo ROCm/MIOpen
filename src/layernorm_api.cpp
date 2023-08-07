@@ -42,15 +42,15 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
         }
         else if(dtype == miopenFloat)
         {
-            ss << "softmaxfp32";
+            ss << "layernormfp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "softmaxbf16";
+            ss << "layernormbf16";
         }
         else if(dtype == miopenDouble)
         {
-            ss << "softmaxfp64";
+            ss << "layernormfp64";
         }
 
         int size = {0};
@@ -63,12 +63,12 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
                << miopen::deref(xDesc).GetLengths()[3] << " -W "
                << miopen::deref(xDesc).GetLengths()[4];
         }
-        else if(size = 4)
+        else if(size == 4)
         {
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2] << " -W "
                << miopen::deref(xDesc).GetLengths()[3];
         }
-        else if(size = 3)
+        else if(size == 3)
         {
             ss << " -W " << miopen::deref(xDesc).GetLengths()[2];
         }

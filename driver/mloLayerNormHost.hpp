@@ -53,7 +53,7 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dim; i++)
+    for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];
@@ -120,7 +120,7 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
-    for(; i < dims.size() - normalized_dim; i++)
+    for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
         grid_size *= dims[i];

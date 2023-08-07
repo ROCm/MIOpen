@@ -168,7 +168,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    dim = static_cast<int>(inflags.GetValueDouble("dim"));
+    dim = static_cast<int>(inflags.GetValueDouble("nomalized_dim"));
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
@@ -203,11 +203,11 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Softmax (Default=1)", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LayerNorm (Default=1)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=0)", "int");
+    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
@@ -233,9 +233,9 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     int in_d = inflags.GetValueInt("in_d");
 
-    if(in_h)
+    if(in_h != 0)
     {
-        if(in_d)
+        if(in_d != 0)
         {
             dim_size = 5;
             return std::vector<int>({in_n, in_c, in_d, in_h, in_w});

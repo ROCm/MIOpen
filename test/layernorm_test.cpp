@@ -83,7 +83,7 @@ struct verify_forward_layernorm
         size_t outer_size = 1;
         size_t inner_size = 1;
         size_t i          = 0;
-        for(; i < dims.size() - dim; i++)
+        for(; i < dim; i++)
         {
             outer_size *= dims[i];
             grid_size *= dims[i];
@@ -102,11 +102,13 @@ struct verify_forward_layernorm
         par_ford(outer_size)([&](int o) {
             double mean_v = 0;
             double var_v  = 0;
+
             ford(inner_size)([&](int i) {
                 float tmp = input[o * inner_size + i];
                 mean_v += tmp;
                 mean_v += tmp * tmp;
             });
+
             mean_v /= inner_size;
             var_v /= inner_size - mean_v * mean_v;
 
@@ -120,7 +122,6 @@ struct verify_forward_layernorm
                     (input[o * inner_size + i] - mean_v) * sqrt(var_v + eps) * weight_v + bias_v;
             });
         });
-
         return std::make_tuple(toutput, tmean, trstd);
     }
 
@@ -128,16 +129,16 @@ struct verify_forward_layernorm
     {
         auto&& handle = get_handle();
 
-        auto in_dev     = handle.Write(input.data);
-        auto weight_dev = handle.Write(weight.data);
-        auto bias_dev   = handle.Write(bias.data);
-        auto out_dev    = handle.Write(output.data);
-        auto mean_dev   = handle.Write(mean.data);
-        auto rstd_dev   = handle.Write(rstd.data);
-
         auto toutput = output;
         auto tmean   = mean;
         auto trstd   = rstd;
+
+        auto in_dev     = handle.Write(input.data);
+        auto weight_dev = handle.Write(weight.data);
+        auto bias_dev   = handle.Write(bias.data);
+        auto out_dev    = handle.Write(toutput.data);
+        auto mean_dev   = handle.Write(tmean.data);
+        auto rstd_dev   = handle.Write(trstd.data);
 
         miopen::LayerNormForward(handle,
                                  input.desc,
@@ -146,19 +147,19 @@ struct verify_forward_layernorm
                                  weight_dev.get(),
                                  bias.desc,
                                  bias_dev.get(),
-                                 output.desc,
+                                 toutput.desc,
                                  out_dev.get(),
-                                 mean.desc,
+                                 tmean.desc,
                                  mean_dev.get(),
-                                 rstd.desc,
+                                 trstd.desc,
                                  rstd_dev.get(),
                                  mode,
                                  eps,
                                  dim);
 
-        toutput.data = handle.Read<T>(out_dev, output.data.size());
-        tmean.data   = handle.Read<T>(mean_dev, mean.data.size());
-        trstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
+        toutput.data = handle.Read<T>(out_dev, toutput.data.size());
+        tmean.data   = handle.Read<T>(mean_dev, tmean.data.size());
+        trstd.data   = handle.Read<T>(rstd_dev, trstd.data.size());
 
         return std::make_tuple(toutput, tmean, trstd);
     }
@@ -214,7 +215,7 @@ struct verify_backward_layernorm
         size_t outer_size = 1;
         size_t inner_size = 1;
         size_t i          = 0;
-        for(; i < dims.size() - dim; i++)
+        for(; i < dim; i++)
         {
             outer_size *= dims[i];
             grid_size *= dims[i];
@@ -286,18 +287,18 @@ struct verify_backward_layernorm
     {
         auto&& handle = get_handle();
 
+        auto tdinput  = dinput;
+        auto tdweight = dweight;
+        auto tdbias   = dbias;
+
         auto in_dev     = handle.Write(input.data);
         auto dout_dev   = handle.Write(doutput.data);
         auto weight_dev = handle.Write(weight.data);
         auto mean_dev   = handle.Write(mean.data);
         auto rstd_dev   = handle.Write(rstd.data);
-        auto din_dev    = handle.Write(dinput.data);
-        auto dw_dev     = handle.Write(dweight.data);
-        auto db_dev     = handle.Write(dbias.data);
-
-        auto tdinput  = dinput;
-        auto tdweight = dweight;
-        auto tdbias   = dbias;
+        auto din_dev    = handle.Write(tdinput.data);
+        auto dw_dev     = handle.Write(tdweight.data);
+        auto db_dev     = handle.Write(tdbias.data);
 
         miopen::LayerNormBackward(handle,
                                   input.desc,
@@ -310,18 +311,18 @@ struct verify_backward_layernorm
                                   mean_dev.get(),
                                   rstd.desc,
                                   rstd_dev.get(),
-                                  dinput.desc,
+                                  tdinput.desc,
                                   din_dev.get(),
-                                  dweight.desc,
+                                  tdweight.desc,
                                   dw_dev.get(),
-                                  dbias.desc,
+                                  tdbias.desc,
                                   db_dev.get(),
                                   mode,
                                   dim);
 
-        tdinput.data  = handle.Read<T>(din_dev, dinput.data.size());
-        tdweight.data = handle.Read<T>(dw_dev, dweight.data.size());
-        tdbias.data   = handle.Read<T>(db_dev, dbias.data.size());
+        tdinput.data  = handle.Read<T>(din_dev, tdinput.data.size());
+        tdweight.data = handle.Read<T>(dw_dev, tdweight.data.size());
+        tdbias.data   = handle.Read<T>(db_dev, tdbias.data.size());
 
         return std::make_tuple(tdinput, tdweight, tdbias);
     }
@@ -415,7 +416,6 @@ struct layernorm_driver : test_driver
         output     = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         double eps = eps_cmd;
         int dim    = dim_cmd;
-
         verify(
             verify_forward_layernorm<T>{input, weight, bias, output, mean, rstd, eps, dim, mode});
 

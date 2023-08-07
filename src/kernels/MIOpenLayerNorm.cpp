@@ -24,11 +24,13 @@
  *
  *******************************************************************************/
 
+#define MIOPEN_TYPE float
+
 #define GET(buf, idx) buf[idx]
 #define SET(buf, idx, val) buf[idx] = val
 
-#define GET_VAL(x, idx) GET(x, idx + x##_off)
-#define SET_VAL(x, idx, val) SET(x, idx + x##_off, val)
+#define GET_VAL(x, idx) GET(x, idx)
+#define SET_VAL(x, idx, val) SET(x, idx, val)
 
 #if MIOPEN_USE_FP64 == 1
 #define FSTYPE double
@@ -39,7 +41,7 @@
 #define LOCAL_SIZE 256
 
 extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict__ x,
-                                                  MIOPEN_TYPE* __restrict__y,
+                                                  MIOPEN_TYPE* __restrict__ y,
                                                   const MIOPEN_TYPE* __restrict__ weight,
                                                   const MIOPEN_TYPE* __restrict__ bias,
                                                   MIOPEN_TYPE* __restrict__ mean,
@@ -65,70 +67,70 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
      * Reduction to calculate mean and rstd
      */
 
-    const uint64_t gid = blockIdx.x;
-    const uint64_t lid = threadIdx.x;
+        const uint64_t gid = blockIdx.x;
+        const uint64_t lid = threadIdx.x;
 
-    FSTYPE pmean = 0.0;
-    FSTYPE pvar  = 0.0;
-    __shared__ FSTYPE ltmp1[LOCAL_SIZE];
-    __shared__ FSTYPE ltmp2[LOCAL_SIZE];
+        FSTYPE pmean = 0.0;
+        FSTYPE pvar  = 0.0;
+        __shared__ FSTYPE ltmp1[LOCAL_SIZE];
+        __shared__ FSTYPE ltmp2[LOCAL_SIZE];
 
-    // reduce sum for mean and var
-    for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
-    {
-        uint64_t x_idx = gid * inner_size + i;
-
-        FSTYPE tmp = GET_VAL(x, x_idx);
-        pmean += tmp;
-        pvar += tmp * tmp;
-    }
-
-    ltmp1[lid] = pmean;
-    ltmp2[lid] = pvar;
-    __syncthreads();
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
-    {
-        if(lid < i)
+        // reduce sum for mean and var
+        for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
         {
-            ltmp1[lid] += ltmp1[lid + i];
-            ltmp2[lid] += ltmp2[lid + i];
+            uint64_t x_idx = gid * inner_size + i;
+
+            FSTYPE tmp = GET_VAL(x, x_idx);
+            pmean += tmp;
+            pvar += tmp * tmp;
         }
+
+        ltmp1[lid] = pmean;
+        ltmp2[lid] = pvar;
         __syncthreads();
-    }
-    pmean = ltmp1[0] / inner_size;
-    pvar  = ltmp2[0] / inner_size - pmean * pmean;
+        for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
+        {
+            if(lid < i)
+            {
+                ltmp1[lid] += ltmp1[lid + i];
+                ltmp2[lid] += ltmp2[lid + i];
+            }
+            __syncthreads();
+        }
+        pmean = ltmp1[0] / inner_size;
+        pvar  = ltmp2[0] / inner_size - pmean * pmean;
 
-    if(lid == 0)
-    {
-        if(mean)
-            SET_5D_VAL(mean, gid, pmean);
-        if(rstd)
-            SET_5D_VAL(rstd, gid, rsqrt(pvar + eps));
-    }
+        if(lid == 0)
+        {
+            if(mean)
+                SET_VAL(mean, gid, pmean);
+            if(rstd)
+                SET_VAL(rstd, gid, rsqrt(pvar + eps));
+        }
 
-    // forward calculation
-    for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
-    {
-        uint64_t idx = gid * inner_size + i;
+        // forward calculation
+        for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
+        {
+            uint64_t idx = gid * inner_size + i;
 
-        FSTYPE pweight;
-        FSTYPE pbias;
+            FSTYPE pweight;
+            FSTYPE pbias;
 
-        pweight = elemwise_affine ? 1 : GET_VAL(weight, i);
-        pbias   = elemwise_affine ? 0 : GET_VAL(bias, i);
+            pweight = elemwise_affine ? 1 : GET_VAL(weight, i);
+            pbias   = elemwise_affine ? 0 : GET_VAL(bias, i);
 
-        FSTYPE val = (GET_VAL(x, idx) - pmean) * rsqrt(pvar + eps) * pweight + pbias;
-        SET_VAL(y, idx, val);
-    }
+            FSTYPE val = (GET_VAL(x, idx) - pmean) * rsqrt(pvar + eps) * pweight + pbias;
+            SET_VAL(y, idx, val);
+        }
 }
 
-__kernel void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict__ x,
-                                     const MIOPEN_TYPE* __restrict__ dy,
-                                     const MIOPEN_TYPE* __restrict__ weight,
-                                     const MIOPEN_TYPE* __restrict__ mean,
-                                     const MIOPEN_TYPE* __restrict__ rstd,
-                                     MIOPEN_TYPE* __restrict__ dx,
-                                     uint64_t inner_size)
+extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict__ x,
+                                                  const MIOPEN_TYPE* __restrict__ dy,
+                                                  const MIOPEN_TYPE* __restrict__ weight,
+                                                  const MIOPEN_TYPE* __restrict__ mean,
+                                                  const MIOPEN_TYPE* __restrict__ rstd,
+                                                  MIOPEN_TYPE* __restrict__ dx,
+                                                  uint64_t inner_size)
 {
 
     const uint64_t gid = blockIdx.x;
@@ -192,14 +194,14 @@ __kernel void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict__ x,
     }
 }
 
-__kernel void LayernormBwdWeightBiasContiguous(const MIOPEN_TYPE* __restrict__ x,
-                                               const MIOPEN_TYPE* __restrict__ dy,
-                                               const MIOPEN_TYPE* __restrict__ mean,
-                                               const MIOPEN_TYPE* __restrict__ rstd,
-                                               MIOPEN_TYPE* __restrict__ dw,
-                                               MIOPEN_TYPE* __restrict__ db,
-                                               uint64_t outer_size,
-                                               uint64_t inner_size)
+extern "C" __global__ void LayernormBwdWeightBiasContiguous(const MIOPEN_TYPE* __restrict__ x,
+                                                            const MIOPEN_TYPE* __restrict__ dy,
+                                                            const MIOPEN_TYPE* __restrict__ mean,
+                                                            const MIOPEN_TYPE* __restrict__ rstd,
+                                                            MIOPEN_TYPE* __restrict__ dw,
+                                                            MIOPEN_TYPE* __restrict__ db,
+                                                            uint64_t outer_size,
+                                                            uint64_t inner_size)
 {
 
     const uint64_t gid = blockIdx.x;
@@ -234,8 +236,8 @@ __kernel void LayernormBwdWeightBiasContiguous(const MIOPEN_TYPE* __restrict__ x
         __syncthreads();
     }
 
-    sum1 = ltmp1;
-    sum2 = ltmp2;
+    sum1 = ltmp1[0];
+    sum2 = ltmp2[0];
 
     if(lid == 0)
     {
