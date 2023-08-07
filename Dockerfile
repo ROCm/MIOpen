@@ -45,7 +45,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     lcov \
     libncurses5-dev \
     llvm-amdgpu \
-    miopengemm \
+    # miopengemm \
     pkg-config \
     python3-dev \
     python3-pip \
