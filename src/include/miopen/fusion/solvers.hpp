@@ -371,6 +371,64 @@ private:
     bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription&) const;
 };
 
+//===== back
+
+struct PerformanceConfigCKBnBwdTraining : PerfConfigBase<PerformanceConfigCKBnBwdTraining>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigCKBnBwdTraining(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigCKBnBwdTraining() : PerformanceConfigCKBnBwdTraining(0, "") {}
+    PerformanceConfigCKBnBwdTraining(bool) : PerformanceConfigCKBnBwdTraining(0, "") {}
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
+    bool IsValidValue() const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigCKBnBwdTraining& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const miopen::batchnorm::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const miopen::batchnorm::ProblemDescription&) const;
+};
+
+struct CKBnBwdTraining final : FusionTunableSolver<PerformanceConfigCKBnBwdTraining>
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<CKBnBwdTraining>(); }
+
+    PerformanceConfigCKBnBwdTraining
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
+    bool IsValidPerformanceConfig(const FusionContext& ctx,
+                                  const FusionDescription& fdesc_problem,
+                                  const PerformanceConfigCKBnBwdTraining& config) const override;
+    PerformanceConfigCKBnBwdTraining Search(const FusionContext& ctx,
+                                             const FusionDescription& fdesc_problem,
+                                             const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
+    ConvSolution GetSolution(const FusionContext& ctx,
+                             const FusionDescription& fdesc_problem,
+                             const PerformanceConfigCKBnBwdTraining& config) const override;
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription&) const;
+};
+
+//====
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

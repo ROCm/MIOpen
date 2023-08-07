@@ -144,10 +144,10 @@ struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
     ConstData_t x;
     ConstData_t bnScale;
     ConstData_t bnBias;
-    Data_t resBnScaleDiff;
-    Data_t resBnBiasDiff;
-    ConstData_t savedMean;
-    ConstData_t savedInvVariance;
+    Data_t resBnScaleDiff; // dgamma
+    Data_t resBnBiasDiff; // dbeta
+    ConstData_t savedMean; // ok
+    ConstData_t savedInvVariance; // ok
 };
 
 struct FusionInvokeParams : InvokeParams

@@ -122,6 +122,19 @@ TEST_P(BNInferFloat, CKBnFwdInference)
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
 
+TEST_P(BNInferFloat, CKBnBwdTraining)
+{
+    const auto plan_params =
+        std::make_unique<miopen::fusion::FusionInvokeParams>(params,
+                                                             bn_infer_data.input.desc,
+                                                             bn_infer_data.in_dev.get(),
+                                                             bn_infer_data.output.desc,
+                                                             bn_infer_data.out_dev.get(),
+                                                             false);
+    RunTunableSolver<miopen::solver::fusion::CKBnBwdTraining>(
+        fusePlanDesc, plan_params, bn_config, test_skipped);
+}
+
 INSTANTIATE_TEST_SUITE_P(BNInferFloatSuite,
                          BNInferFloat,
                          testing::Combine(testing::ValuesIn(Network1()),

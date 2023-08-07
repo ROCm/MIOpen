@@ -53,6 +53,27 @@ void AddBnInfer(miopen::FusionPlanDescriptor& fusePlanDesc,
 }
 
 template <typename DLModule>
+void AddBwdTrain(miopen::FusionPlanDescriptor& fusePlanDesc,
+                miopen::OperatorArgs& params,
+                DLModule& dl_module)
+{
+    auto bnOp = std::make_shared<miopen::BatchNormBwdTrainFusionOpDescriptor>(dl_module.bn_mode,
+                                                                               dl_module.bn_desc);
+    EXPECT_EQ(fusePlanDesc.AddOp(bnOp), miopenStatusSuccess);
+    bnOp->SetArgs(params,
+                  &dl_module.alpha,
+                  &dl_module.beta,
+                  dl_module.x.get(),
+                  dl_module.bnScale.get(),
+                  dl_module.bnBias.get(),
+                  dl_module.resultBnScaleDiff.get(),
+                  dl_module.resultBnBiasDiff.get(),
+                  dl_module.savedMean.get(),
+                  dl_module.savedInvVariance.get());
+}
+
+
+template <typename DLModule>
 void AddActiv(miopen::FusionPlanDescriptor& fusePlanDesc,
               miopen::OperatorArgs& params,
               DLModule& dl_module,
@@ -78,7 +99,7 @@ bool Skip(miopen::Handle& handle)
 }
 
 template <typename DLModule>
-void ComputeRefBN(DLModule& dl_module)
+void ComputeRefBNInfer(DLModule& dl_module)
 {
     if(dl_module.bn_mode == miopenBNPerActivation)
     {
@@ -101,6 +122,30 @@ void ComputeRefBN(DLModule& dl_module)
                                       dl_module.estVariance);
     }
 }
+
+//  tensor<T>& dx_out,
+//                                   const tensor<U>& scale,
+//                                   tensor<U>& dscale,
+//                                   tensor<U>& dbias,
+//                                   const tensor<U>& savedMean,
+//                                   const tensor<U>& savedInvVar)
+
+template <typename DLModule>
+void ComputeRefBNBwdTrain(DLModule& dl_module)
+{
+    batchNormSpatialHostBwdTrain(dl_module.x_input,
+                                 dl_module.input,
+                                 dl_module.ref_out,
+                                 dl_module.bnscale,
+                                 dl_module.resBnScaleDiff,
+                                 dl_module.dbeta,
+                                 dl_module.resBnScaleDiff,
+                                 dl_module.resBnBiasDiff,
+                                 dl_module.savedMean,
+                                 dl_module.savedInvVariance);
+
+}
+
 
 template <typename T>
 void BnCmpare(const tensor<T>& output, const tensor<T>& ref_out)

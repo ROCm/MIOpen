@@ -51,7 +51,7 @@ protected:
         auto&& handle = get_handle();
         bn_infer_data.output.data =
             handle.Read<T>(bn_infer_data.out_dev, bn_infer_data.output.data.size());
-        test::FusionPlan::ComputeRefBN(bn_infer_data);
+        test::FusionPlan::ComputeRefBNInfer(bn_infer_data);
         test::FusionPlan::BnCmpare(bn_infer_data.output, bn_infer_data.ref_out);
     }
     BNTestCase bn_config;
@@ -61,6 +61,42 @@ protected:
     miopen::OperatorArgs params;
 
     BNInferSolverTest<T, BNTestCase> bn_infer_data;
+
+    miopenTensorLayout_t tensor_layout;
+};
+
+
+template <typename T>
+struct BNBwdTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
+{
+protected:
+    void SetUp() override
+    {
+        test_skipped                       = false;
+        std::tie(bn_config, tensor_layout) = GetParam();
+        bn_bwd_data.SetUpImpl(bn_config, tensor_layout);
+
+        test::FusionPlan::InitFusionPlan(fusePlanDesc, bn_bwd_data);
+        test::FusionPlan::AddBwd(fusePlanDesc, params, bn_bwd_data);
+    }
+
+    void TearDown() override
+    {
+        if(test_skipped)
+            return;
+        auto&& handle = get_handle();
+        bn_bwd_data.output.data =
+            handle.Read<T>(bn_bwd_data.out_dev, bn_bwd_data.output.data.size());
+        test::FusionPlan::ComputeRefBNBwd(bn_bwd_data);
+        test::FusionPlan::BnCmpare(bn_bwd_data.output, bn_bwd_data.ref_out);
+    }
+    BNTestCase bn_config;
+
+    bool test_skipped = false;
+    miopen::FusionPlanDescriptor fusePlanDesc;
+    miopen::OperatorArgs params;
+
+    BNBwdSolverTest<T, BNTestCase> bn_bwd_data;
 
     miopenTensorLayout_t tensor_layout;
 };

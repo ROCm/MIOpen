@@ -217,3 +217,103 @@ private:
         estVariance_dev = handle.Write(estVariance.data);
     }
 };
+
+
+
+template <typename T, typename TConfig>
+struct BNBwdSolverTest : public BNSolverTestBase<T, TConfig>
+{
+    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    {
+        BNSolverTestBase<T, TConfig>::SetUpImpl(config, t_layout);
+        CreateTensors();
+        InitTensorsWithRandValue();
+        WriteToGPU();
+    }
+
+    tensor<T> x_input;
+    tensor<T> bnscale;
+    tensor<T> bnbias;
+    tensor<T> savedMean;
+    tensor<T> savedInvVariance;
+
+    tensor<T> resBnScaleDiff; // dgamma
+    tensor<T> resBnBiasDiff; // dbeta
+
+    miopen::Allocator::ManageDataPtr x_input_dev;
+    miopen::Allocator::ManageDataPtr bnscale_dev;
+    miopen::Allocator::ManageDataPtr bnbias_dev;
+    miopen::Allocator::ManageDataPtr savedMean_dev;
+    miopen::Allocator::ManageDataPtr savedInvVariance_dev;
+
+    miopen::Allocator::ManageDataPtr resBnScaleDiff_dev;
+    miopen::Allocator::ManageDataPtr resBnBiasDiff_dev;
+
+    double epsilon          = 1.0e-5;
+    double expAvgFactor     = 1;
+
+    const float alpha       = static_cast<float>(1.0f);
+    const float beta        = static_cast<float>(0);
+    const float activ_alpha = static_cast<double>(0.5f);
+    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_gamma = static_cast<double>(0.5f);
+
+private:
+    void CreateTensors()
+    {
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc,
+                                         BNSolverTestBase<T, TConfig>::input.desc,
+                                         BNSolverTestBase<T, TConfig>::bn_mode);
+        bnscale       = tensor<T>{miopen_type<T>{},
+                          BNSolverTestBase<T, TConfig>::tensor_layout,
+                          derivedBnDesc.GetLengths()};
+        bnbias       = tensor<T>{miopen_type<T>{},
+                          BNSolverTestBase<T, TConfig>::tensor_layout,
+                          derivedBnDesc.GetLengths()};
+        savedMean     = tensor<T>{miopen_type<T>{},
+                            BNSolverTestBase<T, TConfig>::tensor_layout,
+                            derivedBnDesc.GetLengths()};
+        savedInvVariance = tensor<T>{miopen_type<T>{},
+                                BNSolverTestBase<T, TConfig>::tensor_layout,
+                                derivedBnDesc.GetLengths()};
+        resBnScaleDiff   = tensor<T>{miopen_type<T>{},
+                                BNSolverTestBase<T, TConfig>::tensor_layout,
+                                derivedBnDesc.GetLengths()};
+        resBnBiasDiff   = tensor<T>{miopen_type<T>{},
+                                BNSolverTestBase<T, TConfig>::tensor_layout,
+                                derivedBnDesc.GetLengths()};
+    }
+
+    void InitTensorsWithRandValue()
+    {
+        x_input        = BNSolverTestBase<T, TConfig>::input;
+        std::random_device rd{};
+        std::mt19937 gen{rd()};
+        std::uniform_int_distribution<> d{0, 100};
+        auto gen_value = [&](auto...) {
+            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        };
+        bnscale.generate(gen_value);
+        bnbias.generate(gen_value);
+        savedMean.generate(gen_value);
+        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
+        savedInvVariance.generate(gen_var);
+
+        std::fill(resBnScaleDiff.begin(), resBnScaleDiff.end(), 0.);
+        std::fill(resBnBiasDiff.begin(), resBnBiasDiff.end(), 0.);
+    }
+    void WriteToGPU()
+    {
+        auto&& handle   = get_handle();
+ 
+        x_input_dev          = handle.Write(x_input.data);
+        bnscale_dev          = handle.Write(bnscale.data);
+        bnbias_dev           = handle.Write(bnbias.data);
+        savedMean_dev        = handle.Write(savedMean.data);
+        savedInvVariance_dev = handle.Write(savedInvVariance.data);
+        
+        resBnScaleDiff_dev   = handle.Write(resBnScaleDiff.data);
+        resBnBiasDiff_dev    = handle.Write(resBnBiasDiff.data);
+    }
+};
