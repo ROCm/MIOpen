@@ -531,7 +531,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
         printf("Forward LayerNorm Verifies on CPU and GPU (err=%f)\n", error);
     }
 
-    auto meanerror       = miopen::rms_range(meanhost, mean);
+    auto meanerror = miopen::rms_range(meanhost, mean);
     if(!std::isfinite(meanerror) || meanerror > tolerance)
     {
         std::cout << "Forward LayerNorm mean FAILED: " << meanerror << std::endl;
@@ -541,7 +541,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
         printf("Forward LayerNorm mean Verifies on CPU and GPU (err=%f)\n", meanerror);
     }
 
-    auto rstderror       = miopen::rms_range(rstdhost, rstd);
+    auto rstderror = miopen::rms_range(rstdhost, rstd);
     if(!std::isfinite(rstderror) || rstderror > tolerance)
     {
         std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << std::endl;
@@ -568,7 +568,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
         printf("Backward LayerNorm Verifies on CPU and GPU (err=%f)\n", error);
     }
 
-    auto dweighterror    = miopen::rms_range(dweighthost, dweight);
+    auto dweighterror = miopen::rms_range(dweighthost, dweight);
     if(!std::isfinite(dweighterror) || dweighterror > tolerance)
     {
         std::cout << "Backward LayerNorm dweight FAILED: " << dweighterror << std::endl;
@@ -578,7 +578,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
         printf("Backward LayerNorm dweight Verifies on CPU and GPU (err=%f)\n", dweighterror);
     }
 
-    auto dbiaserror      = miopen::rms_range(dbiashost, dbias);
+    auto dbiaserror = miopen::rms_range(dbiashost, dbias);
     if(!std::isfinite(dbiaserror) || dbiaserror > tolerance)
     {
         std::cout << "Backward LayerNorm bias FAILED: " << dbiaserror << std::endl;

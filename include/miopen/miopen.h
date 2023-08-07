@@ -2498,10 +2498,10 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
                                                      const void* rstd,
                                                      const int normalized_dim,
                                                      const miopenTensorDescriptor_t dxDesc,
-                                                     void* dx, 
-						     const miopenTensorDescriptor_t dwDesc,
-                                                     void* dw, 
-						     const miopenTensorDescriptor_t dbDesc,
+                                                     void* dx,
+                                                     const miopenTensorDescriptor_t dwDesc,
+                                                     void* dw,
+                                                     const miopenTensorDescriptor_t dbDesc,
                                                      void* db);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
