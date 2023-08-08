@@ -196,25 +196,25 @@ struct ProblemDescriptionCompatTemporary
     int in_depth     = 0;
     // TODO add check to solver that vectorLength = 1
     // int vectorLength      = 1;
-    int n_outputs         = 0;
-    int out_height        = 0;
-    int out_width         = 0;
-    int out_depth         = 0;
-    int batch_sz          = 0;
-    int bias              = 0;
+    int n_outputs  = 0;
+    int out_height = 0;
+    int out_width  = 0;
+    int out_depth  = 0;
+    int batch_sz   = 0;
+    int bias       = 0;
     std::string in_layout;
     std::string out_layout;
-    miopenDataType_t in_data_type      = miopenFloat;
-    miopenDataType_t out_data_type     = miopenFloat;
-    size_t bot_sz                      = 0;
-    size_t top_sz                      = 0;
-    size_t bias_sz                     = 0;
-    int in_stride                      = 0; // GetInStrideH()
-    int out_stride                     = 0; // GetOutStrideH()
-    int in_channel_stride              = 0;
-    int in_batch_stride                = 0;
-    int out_channel_stride             = 0;
-    int out_batch_stride               = 0;
+    miopenDataType_t in_data_type  = miopenFloat;
+    miopenDataType_t out_data_type = miopenFloat;
+    size_t bot_sz                  = 0;
+    size_t top_sz                  = 0;
+    size_t bias_sz                 = 0;
+    int in_stride                  = 0; // GetInStrideH()
+    int out_stride                 = 0; // GetOutStrideH()
+    int in_channel_stride          = 0;
+    int in_batch_stride            = 0;
+    int out_channel_stride         = 0;
+    int out_batch_stride           = 0;
 
     int GetSpatialDims() const { return spatial_dims; }
     int GetInChannels() const { return n_inputs; }

@@ -257,10 +257,10 @@ struct mlo_construct_base
 {
     mlo_construct_base(miopen::conv::Direction dir) : _problem(dir)
     {
-        _problem.bias              = 0;
-        _problem.bot_sz            = 0; // bytes
-        _problem.top_sz            = 0; // bytes
-        _problem.bias_sz           = 0; // bytes
+        _problem.bias    = 0;
+        _problem.bot_sz  = 0; // bytes
+        _problem.top_sz  = 0; // bytes
+        _problem.bias_sz = 0; // bytes
     }
 
     /*
