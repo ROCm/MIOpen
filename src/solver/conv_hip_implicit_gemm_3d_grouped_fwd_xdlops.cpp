@@ -287,17 +287,40 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         {});
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    if(enable_profiling)
-    {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
-    }
+    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
+    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream()});
 }
+
+namespace conv {
+
+InvokerFactory MakeCK3DGroupFwdInvokerFactory(
+    const miopen::ProblemDescription& problem,
+    const miopen::solver::PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+{
+    return [=](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            switch(problem.conv_problem.GetInDataType())
+            {
+            case miopenHalf:
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
+                break;
+            case miopenFloat:
+                RunCKSolution<float>(handle, primitive_parameters, problem, config);
+                break;
+            case miopenInt8:
+                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
+                break;
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenBFloat16:
+            case miopenDouble: break;
+            }
+        };
+    };
+}
+
+} // namespace conv
 
 } // namespace
 #endif
@@ -407,7 +430,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
@@ -448,27 +471,7 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
-            {
-            case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenInt32:
-            case miopenInt8x4:
-            case miopenBFloat16:
-            case miopenDouble: break;
-            }
-        };
-    };
+    result.invoker_factory = conv::MakeCK3DGroupFwdInvokerFactory(problem, config);
     return result;
 #endif
 }
