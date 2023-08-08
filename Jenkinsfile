@@ -469,6 +469,10 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
+            name: "TARGET_NAVI31"
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
             description: "")
@@ -929,6 +933,19 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test)
+                    }
+                }
+                stage('Fp32 Hip All gfx1100') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI31 && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx1100") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
