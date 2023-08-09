@@ -839,6 +839,8 @@ if(NOT WIN32 AND NOT APPLE)
         target_link_libraries(MIOpen PUBLIC ${LIBRT})
     endif()
 endif()
+############################################################
+target_link_libraries(MIOpen PRIVATE "-lroctx64")
 
 ############################################################
 # Installation

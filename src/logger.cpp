@@ -60,6 +60,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
 /// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
+/// Enable logging of function calls to ROCTX api.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ROCTX)
+
 namespace debug {
 
 bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
@@ -121,6 +124,11 @@ bool IsLoggingDebugQuiet()
 bool IsLoggingFunctionCalls()
 {
     return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}) && !IsLoggingDebugQuiet();
+}
+
+bool IsLoggingToRoctx()
+{
+    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ROCTX{}) && !IsLoggingDebugQuiet();
 }
 
 bool IsLogging(const LoggingLevel level, const bool disableQuieting)
