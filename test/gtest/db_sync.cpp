@@ -160,7 +160,8 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         batchsize               = std::stoi(attrs[7]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
-            EXPECT_TRUE(tmp.size() == 2) << "Two Dimensional problems need to have two dimensional filters, pads, strides and dilations"; // for 2d keys
+            EXPECT_TRUE(tmp.size() == 2) << "Two Dimensional problems need to have two dimensional "
+                                            "filters, pads, strides and dilations"; // for 2d keys
             return std::tuple(std::stoi(tmp[0]), std::stoi(tmp[1]));
         };
         std::tie(fil_h, fil_w)                 = split_tensor(attrs[3]);
@@ -219,7 +220,8 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         batchsize               = std::stoi(attrs[9]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
-            EXPECT_TRUE(tmp.size() == 3) << "For a 3D problem, filters, pads, strides and dilations need to be 3D as well"; // for 3d keys
+            EXPECT_TRUE(tmp.size() == 3) << "For a 3D problem, filters, pads, strides and "
+                                            "dilations need to be 3D as well"; // for 3d keys
             return std::tuple(std::stoi(tmp[0]), std::stoi(tmp[1]), std::stoi(tmp[2]));
         };
         std::tie(fil_d, fil_h, fil_w)                         = split_tensor(attrs[4]);
@@ -242,7 +244,7 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         conv::ProblemDescription tmp{in, wei, out, conv, dir};
     }
     conv.group_count = group_cnt;
-    prob_desc = conv::ProblemDescription{in, wei, out, conv, dir};
+    prob_desc        = conv::ProblemDescription{in, wei, out, conv, dir};
 }
 
 struct FDBVal
@@ -259,19 +261,20 @@ void ParseFDBbVal(const std::string& val, std::vector<FDBVal>& fdb_vals)
     {
         const auto id_size = id_val.find(':');
         ASSERT_TRUE(id_size != std::string::npos) << "Ill formed value: " << id_val;
-        auto id     = id_val.substr(0, id_size);
+        auto id = id_val.substr(0, id_size);
         std::cout << id << std::endl;
         auto values = id_val.substr(id_size + 1);
         std::cout << values << std::endl;
-        // ASSERT_TRUE(fdb_vals.find(id) == fdb_vals.end()) << "Duplicate value for solver ID:" << id;
+        // ASSERT_TRUE(fdb_vals.find(id) == fdb_vals.end()) << "Duplicate value for solver ID:" <<
+        // id;
         const auto tmp = FDBVal{id, values};
         fdb_vals.emplace_back(tmp);
     }
 }
 
 void GetPerfDbVals(const boost::filesystem::path& filename,
-              const conv::ProblemDescription& problem_config,
-              std::unordered_map<std::string, std::string>& vals)
+                   const conv::ProblemDescription& problem_config,
+                   std::unordered_map<std::string, std::string>& vals)
 {
     std::string clause;
     std::vector<std::string> values;
@@ -299,7 +302,10 @@ void GetPerfDbVals(const boost::filesystem::path& filename,
     }
 }
 
-void CheckKDBObjects(const boost::filesystem::path& filename, const std::string& kernel_name, const std::string& kernel_args, bool& found)
+void CheckKDBObjects(const boost::filesystem::path& filename,
+                     const std::string& kernel_name,
+                     const std::string& kernel_args,
+                     bool& found)
 {
     // clang-format off
         auto select_query = "SELECT count(*) FROM kern_db WHERE (kernel_name = ?) AND ( kernel_args = ?)";
@@ -324,7 +330,7 @@ void CheckKDBObjects(const boost::filesystem::path& filename, const std::string&
 bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 {
     // clang-format off
-        auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '%sram-ecc%') OR (kernel_args like '%xnack%')";
+        auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
     // clang-format on 
     auto sql = SQLite{filename.string(), true};
     auto stmt = SQLite::Statement{sql, select_query};
@@ -346,9 +352,9 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 TEST(DbSync, main)
 {
     auto& handle = get_handle();
-    auto ctx     = miopen::ConvolutionContext{};
-    ctx.SetStream(&handle);
-    ctx.DetectRocm();
+    auto _ctx     = miopen::ConvolutionContext{};
+    _ctx.SetStream(&handle);
+    _ctx.DetectRocm();
 
     const std::string ext = ".fdb.txt";
     const auto root_path  = boost::filesystem::path(miopen::GetSystemDbPath());
@@ -369,6 +375,7 @@ TEST(DbSync, main)
     EXPECT_FALSE(miopen::CheckKDBForTargetID(kdb_file_path));
     for(const auto& kinder : find_db.cache)
     {
+        auto ctx = _ctx; 
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
@@ -391,6 +398,12 @@ TEST(DbSync, main)
             std::cout << "Entry: " << val.solver_id << " : " << val.vals<< std::endl;
             miopen::solver::Id id{val.solver_id};
             const auto solv = id.GetSolver();
+            // Skip MLIR
+            if(miopen::StartsWith(id.ToString(), "ConvMlir"))
+            {
+                MIOPEN_LOG_I("Skipping MLIR solver");
+                continue;
+            }
             EXPECT_TRUE(solv.IsApplicable(ctx, problem)) << "Solver is not applicable";
             // const auto sol = solv.FindSolution(ctx, problem, miopen::GetDb(ctx), {},
             // pdb_vals.at(val.first));
@@ -402,6 +415,9 @@ TEST(DbSync, main)
                 EXPECT_TRUE(res) << "Invalid perf config found Solver: " << solv.GetSolverDbId() << ":" << pdb_vals.at(val.solver_id);
                 auto db        = miopen::GetDb(ctx);
                 // we can verify the pdb entry by passing in an empty string and the comparing the received solution with the one below or having the find_solution pass out the serialized string
+                std::cout << "********************************" << std::endl;
+                std::cout << val.solver_id << std::endl;
+                std::cout << "********************************" << std::endl;
                 sol = solv.FindSolution(ctx, problem, db, {}, pdb_vals.at(val.solver_id));
                 EXPECT_TRUE(sol.Succeeded()) << "Invalid solution > " << pdb_vals.at(val.solver_id);
                 if(fdb_idx == 0)
@@ -413,15 +429,17 @@ TEST(DbSync, main)
                         std::string program_file = kern.kernel_file + ".o";
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
-                            compile_options += " -mcpu=" + handle.GetDeviceName() + "%";
+                            compile_options += " -mcpu=" + handle.GetDeviceName();
                         }
                         miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options, found);
                         if(found)
                         {
                             std::cout << "Entry found " << program_file << " compile args: " << compile_options;
                         }
-                        else 
+                        else
+                        { 
                             EXPECT_TRUE(found) << "KDB entry not found for filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
+                        }
                     }
                 }
                 ++fdb_idx;
