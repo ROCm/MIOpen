@@ -469,7 +469,7 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "TARGET_NAVI31"
+            name: "TARGET_NAVI31",
             defaultValue: true,
             description: "")
         booleanParam(
