@@ -141,8 +141,6 @@ kernel void Im2d2Col(const int data_size_off,
 #endif
 
     global data_t* im_off = im + im_offset;
-    // This does not need to be a division and should be a right shift
-    const int threads_per_ch = 256 / num_ch_per_wg;
 
 #ifndef EXTREME_LARGE
 
@@ -154,6 +152,8 @@ kernel void Im2d2Col(const int data_size_off,
     index_t gid = get_group_id(0);
 
 #if NUM_IM_BLKS_EQ_1 == 1 && STRIDE_GT_1 == 0
+    // This does not need to be a division and should be a right shift
+    const int threads_per_ch = 256 / num_ch_per_wg;
 
     // Load image into LDS
     /// max (LOCAL_MEM_SIZE) = 65536
