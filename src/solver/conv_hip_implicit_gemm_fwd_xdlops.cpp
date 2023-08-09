@@ -188,12 +188,11 @@ namespace {
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const ProblemDescription& problem,
-                   const PerformanceConfigHipImplicitGemmFwdXdlops& config)
+                   const CKArgs& ck_args,
+                   size_t config_idx)
 {
-    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto& conv_ptr       = conv_ptrs.at(config.index);
+    auto& conv_ptr       = conv_ptrs.at(config_idx);
     const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors  = data_ctx.tensors;
     auto argument_ptr    = conv_ptr->MakeArgumentPointer(
@@ -202,16 +201,16 @@ void RunCKSolution(const Handle& handle,
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.w)),
         static_cast<void*>(tensors.out),
-        args.N,
-        args.K,
-        args.C,
-        args.input,
-        args.filter,
-        args.output,
-        args.strides,
-        args.dilation,
-        args.lPadding,
-        args.rPadding,
+        ck_args.N,
+        ck_args.K,
+        ck_args.C,
+        ck_args.input,
+        ck_args.filter,
+        ck_args.output,
+        ck_args.strides,
+        ck_args.dilation,
+        ck_args.lPadding,
+        ck_args.rPadding,
         {},
         {},
         {});
@@ -225,6 +224,40 @@ void RunCKSolution(const Handle& handle,
         handle.ResetKernelTime();
         handle.AccumKernelTime(elapsed_time);
     }
+}
+
+InvokerFactory MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem, 
+    const PerformanceConfigHipImplicitGemmFwdXdlops& config) {
+
+  auto ck_args = CKArgs{problem};
+  miopenDataType_t data_type = problem.conv_problem.GetInDataType();
+  auto config_idx = config.index;
+
+
+  InvokerFactory ret = [ck_args, data_type, config_idx] (const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [ck_args, data_type, config_idx] (const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            switch(data_type)
+            {
+            case miopenInt8:
+                RunCKSolution<int8_t>(handle, primitive_parameters, ck_args, config_idx);
+                break;
+            case miopenHalf:
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, ck_args, config_idx);
+                break;
+            case miopenFloat:
+                RunCKSolution<float>(handle, primitive_parameters, ck_args, config_idx);
+                break;
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenBFloat16:
+            case miopenDouble: break;
+            }
+        };
+    };
+
+  return ret;
+
 }
 
 } // namespace
@@ -378,27 +411,11 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
-            {
-            case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenInt32:
-            case miopenInt8x4:
-            case miopenBFloat16:
-            case miopenDouble: break;
-            }
-        };
-    };
+    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(
+        problem, 
+        config.index
+        );
+
     return result;
 #endif
 }
