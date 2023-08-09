@@ -937,7 +937,7 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
                 }
-                stage('Fp32 Hip All gfx1100') {
+                stage('Fp16 Hip All gfx1100') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_NAVI31 && params.DATATYPE_FP16 }
