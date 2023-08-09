@@ -613,6 +613,8 @@ enable_clang_tidy(
         -cppcoreguidelines-pro-type-union-access
         -cppcoreguidelines-pro-type-vararg
         -cppcoreguidelines-special-member-functions
+        -cppcoreguidelines-avoid-do-while
+        -cppcoreguidelines-avoid-const-or-ref-data-members
         -fuchsia-*
         -google-explicit-constructor
         -google-readability-braces-around-statements
@@ -644,6 +646,7 @@ enable_clang_tidy(
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
         -misc-no-recursion
+        -misc-use-anonymous-namespace
         -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
