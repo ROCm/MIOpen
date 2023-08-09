@@ -255,7 +255,7 @@ option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MI
 
 # No assumption that HIP kernels are launched with uniform block size for backward compatibility
 # SWDEV-413293 and https://reviews.llvm.org/D155213, effective HIP_FLAT_VERSION 500723302
-if(${MIOPEN_hip_VERSION_FLAT} GREATER 500723300)
+if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
