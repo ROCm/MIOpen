@@ -99,7 +99,7 @@ struct ProblemDescription : conv::ProblemDescription
 #endif
 };
 
-// For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
+// For mlo_construct_base and SQLitePerfDb
 // TODO remove this
 struct ProblemDescriptionCompatTemporary
 #if MIOPEN_ENABLE_SQLITE

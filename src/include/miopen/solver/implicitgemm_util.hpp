@@ -52,6 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // corresponding llvm intrinsic functions
 // so we disable using those llvm intrinsic functions on gfx1030
 #define WORKAROUND_MIOPEN_ISSUE_557 1
+#define WORKAROUND_SWDEV_413051 1
 
 namespace miopen {
 
@@ -498,7 +499,7 @@ static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name
 template <typename T>
 int amd_buffer_load_max_length()
 {
-    if(std::is_same<float, T>())
+    if(std::is_same<float, T>() || WORKAROUND_SWDEV_413051)
     {
         return 4;
     }
