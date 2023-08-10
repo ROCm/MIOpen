@@ -207,13 +207,15 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
     SQLite::result_type res;
     MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
     {
+        std::string filename(sqlite3_db_filename(pImpl->ptrDb.get(), "main"));
         auto rc = Retry([&]() {
             return sqlite3_exec(pImpl->ptrDb.get(),
                                 query.c_str(),
                                 find_callback,
                                 static_cast<void*>(&res),
                                 nullptr);
-        });
+        }, filename);
+
         if(rc != SQLITE_OK)
         {
             MIOPEN_LOG_I2(query);

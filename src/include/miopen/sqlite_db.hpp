@@ -230,8 +230,7 @@ public:
             dbInvalid = true;
             return;
         }
-
-        if(!is_system && !filename.empty())
+        else if(!is_system)
         {
             auto file            = boost::filesystem::path(filename_);
             const auto directory = file.remove_filename();
