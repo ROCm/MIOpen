@@ -185,7 +185,7 @@ struct ProblemDescription
     void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
 };
 
-// For mlo_construct_base, SQLitePerfDb and test_sqlite_perfdb
+// For mlo_construct_base and SQLitePerfDb
 // TODO remove this
 struct ProblemDescriptionCompatTemporary
 #if MIOPEN_ENABLE_SQLITE

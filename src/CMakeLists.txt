@@ -836,7 +836,7 @@ if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
     if(LIBRT)
         MESSAGE(STATUS "Librt: " ${LIBRT})
-        target_link_libraries(MIOpen PUBLIC ${LIBRT})
+        target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
 
