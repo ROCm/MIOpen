@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_CONV_HPP
-#define GUARD_CPU_CONV_HPP
+#ifndef GUARD_CPU_LAYERNORM_HPP
+#define GUARD_CPU_LAYERNORM_HPP
 
 #include "tensor_holder.hpp"
 
@@ -140,7 +140,7 @@ void cpu_layernorm_backward(tensor<T> input,
         });
     });
 
-    if((dweight.data.size() != 0) || dbias.data.size() != 0)
+    if((ref_dweight.data.size() != 0) || ref_dbias.data.size() != 0)
     {
         par_ford(inner_size)([&](int i) {
             double sum1 = 0;
@@ -159,3 +159,4 @@ void cpu_layernorm_backward(tensor<T> input,
         });
     }
 }
+#endif

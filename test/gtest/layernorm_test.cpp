@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <miopen/fusion/solvers.hpp>
-#include <miopen/fusion/fusion_invoke_params.hpp>
-
 #include "layernorm_test.hpp"
 
-TEST_P(LayerNormTest, LayerNormTestFwBw);
+struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
+{
+};
+
+TEST_P(LayerNormSolverTestFloat, LayerNormTestFwBw){};
 
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTest,
+                         LayerNormSolverTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
