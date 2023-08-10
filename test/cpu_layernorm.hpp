@@ -28,6 +28,7 @@
 
 #include "tensor_holder.hpp"
 
+template <class T>
 void cpu_layernorm_forward(tensor<T> input,
                            tensor<T> weight,
                            tensor<T> bias,
@@ -80,6 +81,7 @@ void cpu_layernorm_forward(tensor<T> input,
     });
 }
 
+template <class T>
 void cpu_layernorm_backward(tensor<T> input,
                             tensor<T> doutput,
                             tensor<T> weight,

@@ -53,121 +53,39 @@ struct LayerNormTestCase
 
 std::vector<LayerNormTestCase> LayerNormTestConfigs()
 { // n c h d w nomalized_dim eps ln_mode
+// clang-format off
     return {
-        {32,
-         1,
-         32,
-         32,
-         32,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 32x32x32 based on VoxNet arch
-        {32, 1, 14, 14, 14, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 14, 14, 14, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 12, 12, 12, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 6, 6, 6, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {256,
-         1,
-         32,
-         32,
-         32,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 32x32x32 based on VoxNet arch
-        {256, 32, 14, 14, 14, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {256, 32, 12, 12, 12, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {256, 32, 6, 6, 6, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {512,
-         1,
-         32,
-         32,
-         32,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 32x32x32 based on VoxNet arch
-        {512, 32, 14, 14, 14, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {512, 32, 12, 12, 12, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {512, 32, 6, 6, 6, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32,
-         2,
-         32,
-         57,
-         125,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // Hand-gesture recognition CVPR 2015 paper High Res Net Path
-        {32, 32, 14, 25, 59, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 6, 10, 27, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 4, 6, 11, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 2, 2, 3, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32,
-         32,
-         32,
-         28,
-         62,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
-        {32, 32, 14, 12, 29, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 6, 4, 12, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {32, 32, 4, 2, 2, MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
-        {16,
-         32,
-         6,
-         50,
-         50,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // Multi-view 3D convnet
-        {1,
-         3,
-         8,
-         240,
-         320,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 3D convet on video
-        {1,
-         3,
-         16,
-         240,
-         320,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 3D convet on video
-        {1,
-         3,
-         8,
-         128,
-         171,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 3D convet on video
-        {1,
-         3,
-         16,
-         128,
-         171,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 3D convet on video
-        {1,
-         3,
-         8,
-         112,
-         112,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE}, // 3D convet on video
-        {1,
-         3,
-         16,
-         112,
-         112,
-         MIOPEN_ELEMENTWISE_AFFINE,
-         1e-5,
-         MIOPEN_ELEMENTWISE_AFFINE} // 3D convet on video
-    };
+        { 32,   1,   32,  32,  32  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // 32x32x32 based on VoxNet arch
+        { 32,   1,   14,  14,  14  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   14,  14,  14  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,   12,  12,  12  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32,  32,    6,   6,   6  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256,  1,   32,  32,  32  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 32x32x32 based on VoxNet arch
+        { 256, 32,   14,  14,  14  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256, 32,   12,  12,  12  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 256, 32,    6,   6,   6  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},        
+        { 512,  1,   32,  32,  32  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 32x32x32 based on VoxNet arch
+        { 512, 32,   14,  14,  14  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 512, 32,   12,  12,  12  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 512, 32,    6,   6,   6  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},                
+        { 32,  2,   32,  57, 125  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Hand-gesture recognition CVPR 2015 paper High Res Net Path
+        { 32, 32,   14,  25,  59  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32, 32,    6,  10,  27  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32, 32,    4,   6,  11  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},                        
+        { 32, 32,    2,   2,   3  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},                        
+        { 32, 32,   32,  28,  62  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path 
+        { 32, 32,   14,  12,  29  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
+        { 32, 32,    6,   4,  12  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},                        
+        { 32, 32,    4,   2,   2  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},                        
+        { 16, 32,    6,  50,  50  ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // Multi-view 3D convnet
+        { 1, 3,     8,  240, 320 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
+        { 1, 3,    16,  240, 320 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
+        { 1, 3,     8,  128, 171 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
+        { 1, 3,    16,  128, 171 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
+        { 1, 3,     8,  112, 112 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
+        { 1, 3,    16,  112, 112 ,MIOPEN_ELEMENTWISE_AFFINE, 1e-5, MIOPEN_ELEMENTWISE_AFFINE}      // 3D convet on video
+      };
+// clang-format on
 }
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -291,7 +209,7 @@ protected:
 
         auto&& handle = get_handle();
 
-        cpu_layernorm_forward(input, weight, bias, ref_output, ref_mean, ref_rstd, eps, dim, mode);
+        cpu_layernorm_forward<T>(input, weight, bias, ref_output, ref_mean, ref_rstd, eps, dim, mode);
         miopenStatus_t status;
 
         status = miopen::LayerNormForward(handle,
@@ -335,7 +253,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error rstd beyond tolerance Error:" << error << ",  Threshold: " << threshold;
 
-        cpu_layernorm_backward(
+        cpu_layernorm_backward<T>(
             input, doutput, weight, mean, rstd, ref_dinput, ref_dweight, ref_dbias, dim, mode);
 
         status = miopen::LayerNormBackward(handle,
