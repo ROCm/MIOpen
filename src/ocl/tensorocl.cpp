@@ -988,7 +988,9 @@ struct Unified1dCase
             cTensorDesc.GetLengths().begin(), cTensorDesc.GetLengths().end(), size_t(total_work));
 
         // for some reason we've got only one non squashed dimension (for example 1,1,N,1,1)
-        if(singe_dimension != cTensorDesc.GetLengths().end())
+        // but we must avoid special "3d" squashed case
+        // where some of the dimensions of B are not squashed and not equal to A and C
+        if(all_equal && singe_dimension != cTensorDesc.GetLengths().end())
         {
             auto singe_dimension_idx =
                 std::distance(cTensorDesc.GetLengths().begin(), singe_dimension);
