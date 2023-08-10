@@ -488,8 +488,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
             // clang-format off
             MIOPEN_LOG_I2(
               "\nn_groups=" << conv.n_groups <<
-              "\nout_Hs=" << conv.out_Hs <<
               "\nout_We=" << conv.out_We <<
+              "\nout_Hs=" << conv.out_Hs <<
               "\nd_W_window=" << conv.d_W_window <<
               "\nd_H_window=" << conv.d_H_window <<
               "\nd_W_clip_bot_neg=" << conv.d_W_clip_bot_neg <<
@@ -520,8 +520,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
             // clang-format on
 
             k(conv.n_groups,
-              conv.out_Hs,
               conv.out_We,
+              conv.out_Hs,
               conv.d_W_window,
               conv.d_H_window,
               conv.d_W_clip_bot_neg,
@@ -539,11 +539,11 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
               data_tensors,
               out_tensors,
               filter_tensors,
-              conv.N,
-              conv.K,
-              conv.C,
-              conv.R,
-              conv.S,
+              uint32_t(conv.N),
+              uint32_t(conv.K),
+              uint32_t(conv.C),
+              uint32_t(conv.R),
+              uint32_t(conv.S),
               uint32_t(f_strides.nk),
               uint32_t(f_strides.c),
               int32_t(f_strides.h),
@@ -555,7 +555,7 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
               activation_mode,
               uint8_t(0),
               uint16_t(0),
-              0.0);
+              0.0f);
         };
     };
 

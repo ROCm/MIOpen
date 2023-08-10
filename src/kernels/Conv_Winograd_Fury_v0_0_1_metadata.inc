@@ -153,7 +153,7 @@ __dx10_clamp = 0
     .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
     .amdhsa_system_sgpr_workgroup_id_x       __sgpr_workgroup_id_x
     .amdhsa_system_sgpr_workgroup_id_y       __sgpr_workgroup_id_y
-    .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_y
+    .amdhsa_system_sgpr_workgroup_id_z       __sgpr_workgroup_id_z
     .amdhsa_system_vgpr_workitem_id          __vgpr_workitem_id
     .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
     .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
