@@ -39,7 +39,11 @@
 #include <ios>
 #include <algorithm>
 #include <string>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
@@ -513,7 +517,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
-    fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
     std::vector<Allocator::ManageDataPtr> invoke_bufs;

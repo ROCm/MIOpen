@@ -26,7 +26,11 @@
 #ifndef GUARD_CPU_REDUCE_UTIL_HPP
 #define GUARD_CPU_REDUCE_UTIL_HPP
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <limits>
 #include <cmath>
 #include <cassert>

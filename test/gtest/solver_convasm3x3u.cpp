@@ -52,7 +52,6 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     auto ctx = miopen::ConvolutionContext{};
 
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
 
     if(!solv.IsApplicable(ctx, problem))
     {
@@ -88,4 +87,5 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::Values(miopenTensorNCHW)));
