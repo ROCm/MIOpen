@@ -142,7 +142,6 @@ public:
         Solver solv{};
         const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
         auto fusion_ctx           = miopen::FusionContext{handle};
-        fusion_ctx.DetectRocm();
 
         return solv.IsApplicable(fusion_ctx, fusion_problem);
     }

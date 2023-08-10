@@ -69,7 +69,6 @@ struct EmbedSQLite : test_driver
         const auto problem = miopen::ProblemDescription{conv_problem};
         miopen::ConvolutionContext ctx{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         // Check PerfDb
         {
             // Get filename for the sys db

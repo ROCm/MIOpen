@@ -517,7 +517,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
-    fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
     std::vector<Allocator::ManageDataPtr> invoke_bufs;
