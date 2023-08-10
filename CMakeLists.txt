@@ -466,6 +466,12 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+    # Add composablekernel-dev/devel as package dependency
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, composablekernel-dev")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${CPACK_RPM_PACKAGE_REQUIRES}, composablekernel-devel")
+endif()
+
 # Unpack DB files
 function(unpack_db db_bzip2_file)
     set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
