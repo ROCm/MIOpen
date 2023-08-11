@@ -38,7 +38,7 @@ struct ConvWrwSolverTest3D : ConvWrwSolverTest<half_float::half>
 
 template <typename Solver>
 void SolverWrw(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input,  //x
+               ConstData_t input, // x
                const miopen::TensorDescriptor& wDesc,
                Data_t weight, // w
                const miopen::TensorDescriptor& outputDesc,
@@ -69,17 +69,17 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                      << conv_config;
     }
     const auto invoke_params = miopen::conv::WrWInvokeParams{tensors, nullptr, 0, false};
-    std::cout<<"~~~111~~~"<<std::endl;
+    std::cout << "~~~111~~~" << std::endl;
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    std::cout<<"~~~222~~~"<<std::endl;
+    std::cout << "~~~222~~~" << std::endl;
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
     (invoker)(handle, invoke_params);
-    std::cout<<"~~~333~~~"<<std::endl;
+    std::cout << "~~~333~~~" << std::endl;
     handle.Finish();
-    std::cout<<"~~~end~~~"<<std::endl;
+    std::cout << "~~~end~~~" << std::endl;
 }
 
 TEST_P(ConvWrwSolverTest3D, CKGroupConvWrw3D)
@@ -95,8 +95,9 @@ TEST_P(ConvWrwSolverTest3D, CKGroupConvWrw3D)
                                                                    test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvWrwTest,
-                         ConvWrwSolverTest3D,
-                         testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNDHWC)));
+INSTANTIATE_TEST_SUITE_P(
+    ConvWrwTest,
+    ConvWrwSolverTest3D,
+    testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
+                     testing::ValuesIn(ConvTestConfigs()),
+                     testing::Values(miopenTensorNDHWC)));

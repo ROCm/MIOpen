@@ -4881,7 +4881,6 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
-
 struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
 {

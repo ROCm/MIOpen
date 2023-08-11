@@ -67,8 +67,8 @@ struct CKArgs
         N  = ProblemInterpreter::GetBatchN(problem);
         K1 = ProblemInterpreter::GetOutputChannelK(problem);
         C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1/G; // Number of input Channel per group
-        K  = K1/G; // Number of output Channel per group
+        C  = C1 / G; // Number of input Channel per group
+        K  = K1 / G; // Number of output Channel per group
         Hi = ProblemInterpreter::GetInputHeightHi(problem);
         Wi = ProblemInterpreter::GetInputWidthWi(problem);
         Ho = ProblemInterpreter::GetOutputHeightHo(problem);
@@ -79,14 +79,14 @@ struct CKArgs
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {Di, Hi, Wi};
-        output = {Do, Ho, Wo};
-        weight = {Z, Y, X};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-        //in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-        //out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-        //wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        // in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        // out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        // wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
         in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
         out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
@@ -121,11 +121,11 @@ struct CKArgs
     int X;
     int Z;
     ck::index_t split_k = 2;
-    std::array<ck::index_t, 3> input;
+    std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 3> output;
+    std::array<ck::index_t, 6> output;
     std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 3> weight;
+    std::array<ck::index_t, 6> weight;
     std::array<ck::index_t, 6> wei_strides;
     std::array<ck::index_t, 3> strides;
     std::array<ck::index_t, 3> dilation;
@@ -145,10 +145,6 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               nullptr,
-                                                              args.G,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
                                                               args.input,
                                                               args.weight,
                                                               args.output,
@@ -166,7 +162,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
             valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
-            std::cout<<"****"<<conv_ptrs[i]->GetTypeString()<<std::endl;
+            std::cout << "****" << conv_ptrs[i]->GetTypeString() << std::endl;
         }
     }
     assert(!valid_kernels.empty());
@@ -193,26 +189,22 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
         return false;
     }
     auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              args.G,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
-                                                              args.input,
-                                                              args.weight,
-                                                              args.output,
-                                                              args.in_strides,
-                                                              args.wei_strides,
-                                                              args.out_strides,
-                                                              args.strides,
-                                                              args.dilation,
-                                                              args.lPadding,
-                                                              args.rPadding,
-                                                              {},
-                                                              {},
-                                                              {},
-                                                              args.split_k);
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.input,
+                                                          args.weight,
+                                                          args.output,
+                                                          args.in_strides,
+                                                          args.wei_strides,
+                                                          args.out_strides,
+                                                          args.strides,
+                                                          args.dilation,
+                                                          args.lPadding,
+                                                          args.rPadding,
+                                                          {},
+                                                          {},
+                                                          {},
+                                                          args.split_k);
     return conv_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
@@ -228,10 +220,6 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
                                                               nullptr,
-                                                              args.G,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
                                                               args.input,
                                                               args.weight,
                                                               args.output,
@@ -249,7 +237,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout<<"~~~~~~ No instances found!~~~~~~"<<std::endl;
+    std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
 
@@ -276,39 +264,42 @@ void RunCKSolution(const Handle& handle,
     auto& data_ctx      = primitive_parameters.CastTo<conv::WrWInvokeParams>();
     const auto& tensors = data_ctx.tensors;
 
-    std::cout<<"************************G: "<<args.G<<std::endl;
-    std::cout<<"************************N: "<<args.N<<std::endl;
-    std::cout<<"************************K: "<<args.K<<std::endl;
-    std::cout<<"************************C: "<<args.C<<std::endl;
-    std::cout<<"***********************Di: "<<args.input[0]<<std::endl;
-    std::cout<<"***********************Hi: "<<args.input[1]<<std::endl;
-    std::cout<<"***********************Wi: "<<args.input[2]<<std::endl;
-    std::cout<<"***********************Do: "<<args.output[0]<<std::endl;
-    std::cout<<"***********************Ho: "<<args.output[1]<<std::endl;
-    std::cout<<"***********************Wo: "<<args.output[2]<<std::endl;
-    std::cout<<"************************Z: "<<args.weight[0]<<std::endl;
-    std::cout<<"************************Y: "<<args.weight[1]<<std::endl;
-    std::cout<<"************************X: "<<args.weight[2]<<std::endl;
+    std::cout << "************************G: " << args.G << std::endl;
+    std::cout << "************************N: " << args.N << std::endl;
+    std::cout << "************************K: " << args.K << std::endl;
+    std::cout << "************************C: " << args.C << std::endl;
+    std::cout << "***********************Di: " << args.input[0] << std::endl;
+    std::cout << "***********************Hi: " << args.input[1] << std::endl;
+    std::cout << "***********************Wi: " << args.input[2] << std::endl;
+    std::cout << "***********************Do: " << args.output[0] << std::endl;
+    std::cout << "***********************Ho: " << args.output[1] << std::endl;
+    std::cout << "***********************Wo: " << args.output[2] << std::endl;
+    std::cout << "************************Z: " << args.weight[0] << std::endl;
+    std::cout << "************************Y: " << args.weight[1] << std::endl;
+    std::cout << "************************X: " << args.weight[2] << std::endl;
 
-    std::cout<<"***input strides: "<<std::endl;
-    for(auto x:args.in_strides){
-        std::cout<<x<<" ";
+    std::cout << "***input strides: " << std::endl;
+    for(auto x : args.in_strides)
+    {
+        std::cout << x << " ";
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
 
-    std::cout<<"***weight strides: "<<std::endl;
-    for(auto x:args.wei_strides){
-        std::cout<<x<<" ";
+    std::cout << "***weight strides: " << std::endl;
+    for(auto x : args.wei_strides)
+    {
+        std::cout << x << " ";
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
 
-    std::cout<<"***output strides: "<<std::endl;
-    for(auto x:args.out_strides){
-        std::cout<<x<<" ";
+    std::cout << "****output strides: " << std::endl;
+    for(auto x : args.out_strides)
+    {
+        std::cout << x << " ";
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
 
-    std::cout<<" *** split_k: "<<args.split_k<<std::endl;
+    std::cout << " *** split_k: " << args.split_k << std::endl;
 
     auto argument_ptr = conv_ptr->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
@@ -316,10 +307,6 @@ void RunCKSolution(const Handle& handle,
         static_cast<void*>(tensors.dw),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.dy)),
-        args.G,
-        args.N,
-        args.K,
-        args.C,
         args.input,
         args.weight,
         args.output,
@@ -339,6 +326,7 @@ void RunCKSolution(const Handle& handle,
 
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    std::cout << "****after run*****" << std::endl;
     if(enable_profiling)
     {
         handle.ResetKernelTime();

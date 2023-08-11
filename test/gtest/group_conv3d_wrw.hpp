@@ -151,21 +151,21 @@ protected:
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        //SetTensorLayout(input.desc);
-        //SetTensorLayout(weights.desc);
+        SetTensorLayout(input.desc);
+        SetTensorLayout(weights.desc);
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
-        
+
         std::fill(weights.begin(), weights.end(), std::numeric_limits<double>::quiet_NaN());
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        //SetTensorLayout(output.desc);
+        SetTensorLayout(output.desc);
         output.generate(gen_value);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -210,6 +210,6 @@ protected:
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
     miopenConvBwdWeightsAlgorithm_t algo = miopenConvolutionBwdWeightsAlgoImplicitGEMM;
-    bool test_skipped             = false;
+    bool test_skipped                    = false;
     miopenTensorLayout_t tensor_layout;
 };
