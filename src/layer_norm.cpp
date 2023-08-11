@@ -233,7 +233,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                       std::to_string(static_cast<int>(mode));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
-    std::string kernel_name  = "LayernormBwdContiguous";
+    std::string kernel_name  = "LayerNormBwdContiguous";
 
     // compile parameters
     std::string parms =
