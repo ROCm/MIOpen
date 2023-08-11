@@ -133,6 +133,11 @@ kernel void Im2d2Col(const int data_size_off,
 {
     /// NUM_CH_PER_WG {1;4}
     /// THREADS_PER_CH {256; 64}
+    (void)num_ch_per_wg;
+    (void)num_im_blks_x;
+    (void)num_im_blks;
+    (void)tile_sz_x;
+    (void)tile_sz_y;
 
 #if USE_IM_OFF_GUARD
 #define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
