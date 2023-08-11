@@ -209,13 +209,13 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = prng::gen_canonical<Tgpu>();
     }
 
-    Tgpu Data_scale = static_cast<Tgpu>(0.001);
+    const Tgpu Data_scale = static_cast<Tgpu>(0.001);
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+        dout[i] = Data_scale * prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
 
 #if MIOPEN_BACKEND_OPENCL

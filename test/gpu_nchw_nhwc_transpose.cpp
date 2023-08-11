@@ -36,7 +36,6 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <tuple> // std::ignore
 #include "test.hpp"
 #include "driver.hpp"
 #include "random.hpp"
@@ -178,25 +177,15 @@ struct to_miopen_data_type<uint8_t>
     static miopenDataType_t get() { return miopenInt8; }
 };
 
-#define RAND_INTEGER_MAX 120
-#define RAND_INTEGER_MIN -88
-
-static int gen_rand_integer()
-{
-    static const int inited = []() -> int {
-        std::srand(std::time(nullptr));
-        return 1;
-    }();
-    std::ignore = inited;
-    return GET_RAND();
-}
+static constexpr int RAND_INTEGER_MAX = 120;
+static constexpr int RAND_INTEGER_MIN = -88;
 
 template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
-    for(int i = 0; i < t.data.size(); i++)
-        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+    for(size_t i = 0; i < t.data.size(); i++)
+        t[i] = static_cast<T>(prng::gen_A_to_B(min, max));
 }
 
 template <typename T>
@@ -258,9 +247,9 @@ struct transpose_base
         std::vector<uint32_t> channel_list = get_channel_size();
         std::vector<uint32_t> image_list   = get_image_size();
         std::vector<uint32_t> batch_list   = get_batch_size();
-        channel_list.push_back(gen_rand_integer() % 13 + 29);
-        image_list.push_back(gen_rand_integer() % 13 + 15);
-        batch_list.push_back(gen_rand_integer() % 4 + 3);
+        channel_list.push_back(prng::gen_off_range(29, 13));
+        image_list.push_back(prng::gen_off_range(15, 13));
+        batch_list.push_back(prng::gen_off_range(3, 4));
 
         for(uint32_t c : channel_list)
         {

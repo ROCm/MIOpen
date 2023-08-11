@@ -558,8 +558,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
             runningMean[i]     = 0.;
             runningVariance[i] = 1.;
 #else
-            runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            runningMean[i]     = prng::gen_canonical<Tgpu>();
+            runningVariance[i] = prng::gen_canonical<Tgpu>();
 #endif
         }
 
@@ -620,7 +620,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         b           = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
         for(int i = 0; i < b_sz; i++)
         {
-            b[i] = std::fabs(RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)));
+            b[i] = prng::gen_canonical<Tgpu>();
         }
         status |= b_dev->ToGPU(q, b.data());
     }
@@ -645,12 +645,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < sb_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            scale[i] = 1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0),
-                           // static_cast<Tgpu>(1.0))); // 1.0;
-            bias[i] = 10.;
+            scale[i] = 1.; // prng::gen_canonical<Tgpu>(); // 1.0;
+            bias[i]  = 10.;
 #else
-            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i] = prng::gen_canonical<Tgpu>();
+            bias[i]  = prng::gen_canonical<Tgpu>();
 #endif
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -671,12 +670,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < in_sz; i++)
     {
 #if(CBA_DEBUG_VALUES == 1)
-        auto rval =
-            1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
+        auto rval  = 1.; // prng::gen_canonical<Tgpu>(); // 1.0;
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
-        auto rval  = std::fabs(RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)));
+        auto rval  = prng::gen_canonical<Tgpu>();
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #endif
@@ -688,10 +686,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            wei[i] = 1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0),
-                         // static_cast<Tgpu>(1.0))); // 1.;
+            wei[i] = 1.; // prng::gen_canonical<Tgpu>(); // 1.;
 #else
-            wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
+            wei[i] = prng::gen_canonical<Tgpu>();
 #endif
         }
         status |= wei_dev->ToGPU(q, wei.data());

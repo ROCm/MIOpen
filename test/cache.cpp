@@ -42,7 +42,7 @@ std::string random_string(size_t length)
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
         const size_t max_index = (sizeof(charset) - 1);
-        return charset[GET_RAND() % max_index];
+        return charset[prng::gen_0_to_B(max_index)];
     };
     std::string str(length, 0);
     std::generate_n(str.begin(), length, randchar);

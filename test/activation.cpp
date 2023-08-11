@@ -170,18 +170,6 @@ struct select_first
     auto operator()(const T& x) MIOPEN_RETURNS(x.first); // NOLINT (readability-const-return-type)
 };
 
-// Borrowed from conv_common.h
-struct scalar_gen_random_float
-{
-    double min_val = 0;
-    double max_val = 1;
-
-    double operator()() const
-    {
-        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
-    }
-};
-
 template <class T>
 struct activation_driver : test_driver
 {
@@ -319,7 +307,7 @@ struct activation_driver : test_driver
         auto desc = make_descriptor(m);
 
         auto gen_sign_value = [=](auto... is) {
-            return scalar_gen_random_float{-4, 4}() * tensor_elem_gen_checkboard_sign{}(is...);
+            return prng::gen_A_to_B(-4., 4.) * tensor_elem_gen_checkboard_sign{}(is...);
         };
         input.generate(gen_sign_value);
 

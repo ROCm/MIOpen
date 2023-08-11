@@ -68,6 +68,7 @@ struct verify_forward_train_3d_bn_per_activation
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
+    const int fixed_seed = prng::details::get_prng()();
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
     {
@@ -104,13 +105,15 @@ struct verify_forward_train_3d_bn_per_activation
         }
         else
         {
-            srand(0);
+            prng::details::get_prng().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
+
+            const U Data_scale = static_cast<U>(0.001);
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
-                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
+                runMean[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
+                runVar[i]  = prng::gen_descreet_unsigned(Data_scale, 100);
             }
         }
 
@@ -237,13 +240,15 @@ struct verify_forward_train_3d_bn_per_activation
         }
         else
         {
-            srand(0);
+            prng::details::get_prng().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
+
+            const U Data_scale = static_cast<U>(0.001);
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
-                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
+                runMean[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
+                runVar[i]  = prng::gen_descreet_unsigned(Data_scale, 100);
             }
         }
 
@@ -1027,17 +1032,18 @@ struct batch_norm_3d_per_activation_driver : test_driver
         }
         else
         {
-            srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
+
+            const PREC_TYPE Data_scale = static_cast<PREC_TYPE>(0.001);
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(GET_RAND() % 100);
-                shift[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(GET_RAND() % 100);
+                scale[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
+                shift[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (1e-4 * T(GET_RAND() % 100));
+                input[i] = prng::gen_descreet_uniform_sign(static_cast<T>(1e-4), 100);
             }
         }
 

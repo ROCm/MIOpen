@@ -31,7 +31,7 @@ struct conv3d_bias_driver : public conv_bias_driver<T>
     conv3d_bias_driver()
     {
         auto gen_value = [](auto... is) {
-            return scalar_gen_random_integer{1, miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+            return prng::gen_A_to_B(1, miopen_type<T>{} == miopenHalf ? 5 : 17) *
                    tensor_elem_gen_checkboard_sign{}(is...);
         };
 
