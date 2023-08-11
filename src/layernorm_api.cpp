@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef MIOPEN_BETA_API
 #include <miopen/layernorm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -198,3 +199,4 @@ extern "C" miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
                                   normalized_dim);
     });
 }
+#endif

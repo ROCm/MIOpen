@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+#ifdef MIOPEN_BETA_API
 #ifndef MLO_LAYERNORMHOST_H_
 #define MLO_LAYERNORMHOST_H_
 
@@ -190,4 +190,5 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
     return ret;
 }
 
+#endif
 #endif

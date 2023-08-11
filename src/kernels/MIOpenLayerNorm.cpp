@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
+#ifdef MIOPEN_BETA_API
 #define MIOPEN_TYPE float
 
 #define GET(buf, idx) buf[idx]
@@ -251,3 +251,4 @@ extern "C" __global__ void LayernormBwdWeightBiasContiguous(const MIOPEN_TYPE* _
         }
     }
 }
+#endif

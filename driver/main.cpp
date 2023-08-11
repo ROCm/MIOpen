@@ -40,7 +40,9 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#ifdef MIOPEN_BETA_API
 #include "layernorm_driver.hpp"
+#endif
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 
@@ -180,10 +182,12 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
+#ifdef MIOPEN_BETA_API
     else if(base_arg == "layernorm")
     {
         drv = new LayerNormDriver<float, float>();
     }
+#endif
     else
     {
         printf("Incorrect BaseArg\n");

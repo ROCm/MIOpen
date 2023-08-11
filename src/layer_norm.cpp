@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef MIOPEN_BETA_API
 #include <miopen/layernorm.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -328,3 +329,4 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
 }
 
 } // namespace miopen
+#endif

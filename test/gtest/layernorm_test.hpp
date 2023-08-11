@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef MIOPEN_BETA_API
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/layernorm.hpp>
@@ -343,3 +344,4 @@ protected:
 
     bool test_skipped = false;
 };
+#endif

@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef MIOPEN_BETA_API
 #include "layernorm_test.hpp"
 
 struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
@@ -34,3 +35,4 @@ TEST_P(LayerNormSolverTestFloat, LayerNormTestFwBw){};
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormSolverTestFloat,
                          testing::ValuesIn(LayerNormTestConfigs()));
+#endif

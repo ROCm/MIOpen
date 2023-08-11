@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef MIOPEN_BETA_API
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 
@@ -592,3 +593,4 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
 }
 
 #endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
+#endif

@@ -440,7 +440,7 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
-
+#ifdef MIOPEN_BETA_API
 /*! @ingroup layernorm
  * @enum miopenLayerNormAlgorithm_t
  * LayerNorm implementation algorithms
@@ -451,7 +451,7 @@ typedef enum
     MIOPEN_WEIGHT_BIAS =
         1, /*!< learnable weights and biases of the module of shape normalized_shape */
 } miopenLayerNormMode_t;
-
+#endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
@@ -2415,6 +2415,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
 
+#ifdef MIOPEN_BETA_API
 // LayerNorm APIs
 /** @addtogroup layernorm
  *
@@ -2505,6 +2506,7 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
                                                      void* db);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm
