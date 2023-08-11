@@ -1,11 +1,23 @@
 #ifndef GUARD_RANDOM_GEN_
 #define GUARD_RANDOM_GEN_
 
+#include <miopen/env.hpp>
+#include <miopen/logger.hpp>
+
 #include <random>
 
 std::minstd_rand& get_minstd_gen()
 {
-    static thread_local std::minstd_rand minstd_gen(std::random_device{}());
+    static thread_local std::minstd_rand minstd_gen{[]() {
+        auto external_seed = miopen::EnvvarValue("MIOPEN_DRIVER_PRNG_SEED", 100500);
+
+        auto seed = external_seed == 0
+                        ? std::random_device{}()
+                        : static_cast<std::random_device::result_type>(external_seed);
+        MIOPEN_LOG_I("Random seed: " << seed);
+        return seed;
+    }()};
+
     return minstd_gen;
 }
 
