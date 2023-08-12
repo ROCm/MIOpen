@@ -613,8 +613,6 @@ enable_clang_tidy(
         -cppcoreguidelines-pro-type-union-access
         -cppcoreguidelines-pro-type-vararg
         -cppcoreguidelines-special-member-functions
-        -cppcoreguidelines-avoid-do-while
-        -cppcoreguidelines-avoid-const-or-ref-data-members
         -fuchsia-*
         -google-explicit-constructor
         -google-readability-braces-around-statements
@@ -641,13 +639,11 @@ enable_clang_tidy(
         -llvmlibc-implementation-in-namespace
         -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
-        -llvmlibc-inline-function-decl
         # This one is extremely slow, and probably has lots of FPs.
         -misc-confusable-identifiers
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
         -misc-no-recursion
-        -misc-use-anonymous-namespace
         -modernize-avoid-bind
         -modernize-avoid-c-arrays
         -modernize-pass-by-value
@@ -705,6 +701,16 @@ enable_clang_tidy(
         # TODO Code Quality WORKAROUND ROCm 5.4.2
         ###################################################################
         -misc-const-correctness
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.7 update
+        ###################################################################
+        -cppcoreguidelines-avoid-do-while
+        -cppcoreguidelines-avoid-const-or-ref-data-members
+        -cppcoreguidelines-avoid-capture-default-when-capturing-this
+        -cppcoreguidelines-rvalue-reference-param-not-moved
+        -llvmlibc-inline-function-decl
+        -misc-use-anonymous-namespace
+        -readability-avoid-unconditional-preprocessor-if
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
