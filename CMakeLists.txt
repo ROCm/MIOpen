@@ -641,6 +641,7 @@ enable_clang_tidy(
         -llvmlibc-implementation-in-namespace
         -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
+        -llvmlibc-inline-function-decl
         # This one is extremely slow, and probably has lots of FPs.
         -misc-confusable-identifiers
         -misc-misplaced-const
