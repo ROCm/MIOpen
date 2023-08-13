@@ -226,38 +226,40 @@ void RunCKSolution(const Handle& handle,
     }
 }
 
-InvokerFactory MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem, 
-    const PerformanceConfigHipImplicitGemmFwdXdlops& config) {
+InvokerFactory
+MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
+                                       const PerformanceConfigHipImplicitGemmFwdXdlops& config)
+{
 
-  auto ck_args = CKArgs{problem};
-  miopenDataType_t data_type = problem.conv_problem.GetInDataType();
-  auto config_idx = config.index;
+    auto ck_args               = CKArgs{problem};
+    miopenDataType_t data_type = problem.conv_problem.GetInDataType();
+    auto config_idx            = config.index;
 
-
-  InvokerFactory ret = [ck_args, data_type, config_idx] (const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [ck_args, data_type, config_idx] (const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(data_type)
-            {
-            case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, ck_args, config_idx);
-                break;
-            case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, ck_args, config_idx);
-                break;
-            case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, ck_args, config_idx);
-                break;
-            case miopenInt32:
-            case miopenInt8x4:
-            case miopenBFloat16:
-            case miopenDouble: break;
-            }
+    InvokerFactory ret =
+        [ck_args = std::move(ck_args), data_type, config_idx](const std::vector<Kernel>& kernels) {
+            std::ignore = kernels;
+            return [ck_args = std::move(ck_args), data_type, config_idx](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                switch(data_type)
+                {
+                case miopenInt8:
+                    RunCKSolution<int8_t>(handle, primitive_parameters, ck_args, config_idx);
+                    break;
+                case miopenHalf:
+                    RunCKSolution<ck::half_t>(handle, primitive_parameters, ck_args, config_idx);
+                    break;
+                case miopenFloat:
+                    RunCKSolution<float>(handle, primitive_parameters, ck_args, config_idx);
+                    break;
+                case miopenInt32:
+                case miopenInt8x4:
+                case miopenBFloat16:
+                case miopenDouble: break;
+                }
+            };
         };
-    };
 
-  return ret;
-
+    return ret;
 }
 
 } // namespace
@@ -411,10 +413,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(
-        problem, 
-        config.index
-        );
+    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(problem, config.index);
 
     return result;
 #endif
