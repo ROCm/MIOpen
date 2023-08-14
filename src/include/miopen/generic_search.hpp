@@ -212,7 +212,7 @@ public:
                 n_recent != 0u ? (static_cast<float>(n_total - n_recent) *
                                   (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
-            MIOPEN_LOG_I(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
+            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent " << n_within_beat << ": " << best_time
                                   << " #" << n_best << ' ' << best_config << ", ETA:" << eta_sec
                                   << " sec.");
@@ -275,7 +275,7 @@ auto GetAllConfigs(const Solver s, const Context& context, const Problem& proble
 
     ComputedContainer<PerformanceConfig, Context, Problem> all_configs = useSpare ? spare : primary;
     const int n_runs_total = useSpare ? spare_size : primary_size;
-    MIOPEN_LOG_I(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
 
     return all_configs;
@@ -381,8 +381,25 @@ auto GenericSearch(const Solver s,
     std::random_device rd{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
-    const std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
+    std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
+
+    if(all_configs.empty())
+    {
+        const auto default_config = s.GetDefaultPerformanceConfig(context, problem);
+
+        if(default_config.IsValid(context, problem))
+        {
+            all_configs.emplace_back(default_config);
+            n_runs_total += 1;
+        }
+        else
+        {
+            const auto id = s.SolverDbId();
+            MIOPEN_THROW("Generic search has failed. Solver " + id +
+                         " cannot produce any valid configuration.");
+        }
+    }
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -517,7 +534,7 @@ auto GenericSearch(const Solver s,
                 }
             }
 
-            // Benchmarked kernels will not be used anymore.
+            // Banchmarked kernels will not be used anymore.
             // Now we can delete Program objects that belong to OCL/HIP
             // runtime and free the associated resources (memory, file handles...)
             for(const auto& kernelInfo : current_solution.construction_params)
@@ -548,10 +565,10 @@ auto GenericSearch(const Solver s,
     for(auto& agent : compile_agents)
         agent.join();
 
-    MIOPEN_LOG_I("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
+    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
 
-    if(!is_passed && n_runs_total)
+    if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.
 
@@ -560,7 +577,7 @@ auto GenericSearch(const Solver s,
     invoker(profile_h, invoke_ctx);
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
-    MIOPEN_LOG_I("...Score: " << score << " (default time " << default_time << ')');
+    MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
 
     return best_config;
 }

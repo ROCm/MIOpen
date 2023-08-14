@@ -38,7 +38,11 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "half.hpp"
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 using half_float::half;
 
@@ -90,9 +94,9 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const FusionContext& context,
                              const FusionDescription& problem,
-                             const AnyInvokeParams& invoke_params) const
+                             const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, problem, invoke_params);
+    return GenericSearch(*this, context, problem, invoke_ctx);
 }
 
 ConvSolution
