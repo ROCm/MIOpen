@@ -413,7 +413,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(problem, config.index);
+    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(problem, config);
 
     return result;
 #endif
