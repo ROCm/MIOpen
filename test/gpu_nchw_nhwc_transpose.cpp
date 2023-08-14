@@ -288,6 +288,9 @@ struct transpose_invoke_param : public miopen::InvokeParams
         : InvokeParams{type_}, src(src_), dst(dst_)
     {
     }
+
+    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return 0; }
 };
 
 template <typename T, typename TRANSPOSE_SOL>
@@ -347,7 +350,6 @@ struct transpose_test : transpose_base
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
-            ctx.DetectRocm();
             // ctx.SetupFloats();
 
             TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);

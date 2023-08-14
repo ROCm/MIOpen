@@ -29,13 +29,17 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/names.hpp>
+#if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
+#endif
 #include <miopen/tensor.hpp>
 #include <miopen/problem_description_base.hpp>
 
 #include <boost/any.hpp>
 
 namespace miopen {
+
+struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
@@ -187,6 +191,7 @@ struct ProblemDescription : ProblemDescriptionBase
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
+    std::size_t GetBatchSize() const { return GetInBatchSize(); } // alias of GetInBatchSize()
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInHeight() const { return GetH5(GetSpatialDims(), in.GetLengths()); }
@@ -212,10 +217,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetInSize() const
     {
-        // clang-format off
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() *
-            GetInWidth() * GetInElementSize();
-        // clang-format on
+        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
+               GetInElementSize();
     }
 
     // Out getters
@@ -246,10 +249,8 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetOutSize() const
     {
-        // clang-format off
         return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
                GetOutWidth() * GetOutElementSize();
-        // clang-format on
     }
 
     // Weights getters
@@ -291,26 +292,27 @@ struct ProblemDescription : ProblemDescriptionBase
 
     std::size_t GetWeightsSize() const
     {
-        // clang-format off
         return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
                GetWeightsWidth() * GetWeightsElementSize();
-        // clang-format on
     }
 
     const TensorDescriptor& GetIn() const { return in; }
     const TensorDescriptor& GetWeights() const { return weights; }
     const TensorDescriptor& GetOut() const { return out; }
     const ConvolutionDescriptor& GetConv() const { return conv; }
+
     Direction GetDirection() const { return direction; }
+    std::string GetDirectionStr() const;
+
     int GetBias() const { return bias; }
 
-    std::size_t GetBaiasSize() const
+    std::size_t GetBiasSize() const
     {
         return (GetBias() != 0) ? (GetOutChannels() * GetOutElementSize()) : 0;
     }
 
-    std::size_t GetBackwardPadW() const { return GetWeightsWidth() - GetPadW() - 1; }
-    std::size_t GetBackwardPadH() const { return GetWeightsHeight() - GetPadH() - 1; }
+    int GetBackwardPadW() const { return static_cast<int>(GetWeightsWidth()) - GetPadW() - 1; }
+    int GetBackwardPadH() const { return static_cast<int>(GetWeightsHeight()) - GetPadH() - 1; }
 
     bool IsAsymmetricPadH() const
     {
@@ -322,6 +324,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool Is2d() const { return GetSpatialDims() == 2; }
+    bool Is3d() const { return GetSpatialDims() == 3; }
 
     bool IsFp32() const
     {
@@ -360,6 +363,10 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsLayoutDefault() const;
+    bool IsLayoutNHWC() const;
+    bool IsLayoutNCHWc() const;
+    bool IsNCHWc_NCHWc() const;
+    bool IsNCHWc_CHWNc() const;
 
     void HeuristicUpdateLayouts();
 
@@ -380,39 +387,48 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; }
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
-        // Todo: shouldn't sqlitedb serialization support 3d convs?
-        f(std::to_string(self.GetInChannels()), "in_channels");
-        f(std::to_string(self.GetInHeight()), "in_h");
-        f(std::to_string(self.GetInWidth()), "in_w");
-        f(std::to_string(self.GetWeightsHeight()), "filter_h");
-        f(std::to_string(self.GetWeightsWidth()), "filter_w");
-        f(std::to_string(self.GetOutChannels()), "out_channels");
-        f(std::to_string(self.GetInBatchSize()), "batchsize");
-        f(std::to_string(self.GetPadH()), "pad_h");
-        f(std::to_string(self.GetPadW()), "pad_w");
-        f(std::to_string(self.GetKernelStrideH()), "conv_stride_1");
-        f(std::to_string(self.GetKernelStrideW()), "conv_stride_0");
-        f(std::to_string(self.GetDilationH()), "dilation_h");
-        f(std::to_string(self.GetDilationW()), "dilation_w");
-        f(std::to_string(self.GetBias()), "bias");
-        f("'" + self.GetInLayout() + "'", "layout");
+        // The column names match the driver command line argument names
+        f(self.GetSpatialDims(), "spatial_dim");
+        f(self.GetInChannels(), "in_channels");
+        f(self.GetInHeight(), "in_h");
+        f(self.GetInWidth(), "in_w");
+        f(self.GetInDepth(), "in_d");
+        f(self.GetWeightsHeight(), "fil_h");
+        f(self.GetWeightsWidth(), "fil_w");
+        f(self.GetWeightsDepth(), "fil_d");
+        f(self.GetOutChannels(), "out_channels");
+        f(self.GetBatchSize(), "batchsize");
+        f(self.GetPadH(), "pad_h");
+        f(self.GetPadW(), "pad_w");
+        f(self.GetPadD(), "pad_d");
+        f(self.GetKernelStrideH(), "conv_stride_h");
+        f(self.GetKernelStrideW(), "conv_stride_w");
+        f(self.GetKernelStrideD(), "conv_stride_d");
+        f(self.GetDilationH(), "dilation_h");
+        f(self.GetDilationW(), "dilation_w");
+        f(self.GetDilationD(), "dilation_d");
+        f(self.GetBias(), "bias");
+        f(self.GetGroupCount(), "group_count");
+    }
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    {
+        f(self.GetInLayout(), "layout");
         std::string data_type = EncodeDataTypesForKey(
             self.GetInDataType(), self.GetWeightsDataType(), self.GetOutDataType());
-        f("'" + data_type + "'", "data_type");
-
-        switch(self.GetDirection())
-        {
-        case Direction::Forward: f("'F'", "direction"); break;
-        case Direction::BackwardData: f("'B'", "direction"); break;
-        case Direction::BackwardWeights: f("'W'", "direction"); break;
-        }
-
-        f(std::to_string(self.GetGroupCount()), "group_count");
+        f(data_type, "data_type");
+        f(self.GetDirectionStr(), "direction");
     }
+#endif
+
+    void SetupFloats(ExecutionContext& ctx) const;
 
 private:
     TensorDescriptor in;

@@ -138,8 +138,11 @@ def cmake_build(Map conf=[:]){
     sh cmd
 
     // Only archive from master or develop
-    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
+    if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master" ||
+        env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH || params.PERF_TEST_BRANCH_OVERRIDE)) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
+        archiveArtifacts artifacts: "build/*.rpm", allowEmptyArchive: true, fingerprint: true
+        stash includes: "build/*tar.gz", name: 'miopen_tar'
     }
 }
 
@@ -166,10 +169,15 @@ def cmake_fin_build_cmd(prefixpath){
     return fin_cmd
 }
 
-def getDockerImageName(prefixpath)
+def getDockerImageName(dockerArgs)
 {
-    def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}"
+    sh "echo ${dockerArgs} > factors.txt"
+    def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
+    sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
+    def docker_hash = sh(script: "md5sum factors.txt | awk '{print \$1}' | head -c 6", returnStdout: true)
+    sh "rm factors.txt"
+    echo "Docker tag hash: ${docker_hash}"
+    image = "${image}:ci_${docker_hash}"
     if(params.DOCKER_IMAGE_OVERRIDE != '')
     {
         echo "Overriding the base docker image with ${params.DOCKER_IMAGE_OVERRIDE}"
@@ -178,15 +186,15 @@ def getDockerImageName(prefixpath)
     return image
 
 }
+
 def getDockerImage(Map conf=[:])
 {
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def gpu_arch = "gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def no_cache = conf.get("no_cache", false)
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
@@ -203,25 +211,28 @@ def getDockerImage(Map conf=[:])
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
     }
-    if(no_cache)
-    {
-        dockerArgs = dockerArgs + " --no-cache "
-    }
     echo "Docker Args: ${dockerArgs}"
-    def image = getDockerImageName(prefixpath)
-    //Check if image exists 
-    def retimage
-    try 
-    {
+
+    def image = getDockerImageName(dockerArgs)
+
+    def dockerImage
+    try{
         echo "Pulling down image: ${image}"
-        retimage = docker.image("${image}")
-        retimage.pull()
+        dockerImage = docker.image("${image}")
+        dockerImage.pull()
+    }
+    catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+        echo "The job was cancelled or aborted"
+        throw e
     }
     catch(Exception ex)
     {
-        error "Unable to locate image: ${image}"
+        dockerImage = docker.build("${image}", "${dockerArgs} .")
+        withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+            dockerImage.push()
+        }        
     }
-    return [retimage, image]
+    return [dockerImage, image]
 }
 
 def buildHipClangJob(Map conf=[:]){
@@ -259,9 +270,7 @@ def buildHipClangJob(Map conf=[:]){
                 throw e
             }
             catch(Exception ex) {
-                conf.put("no_cache", true)
                 (retimage, image) = getDockerImage(conf)
-                retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -313,6 +322,56 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+def RunPerfTest(Map conf=[:]){
+    def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+    try {
+        (retimage, image) = getDockerImage(conf)
+        withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+        timeout(time: 600, unit: 'MINUTES')
+        {
+            unstash 'miopen_tar'
+            sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
+            ld_lib="${env.WORKSPACE}/opt/rocm/lib"
+            def filename = conf.get("filename", "")
+            if (env.BRANCH_NAME == env.MIOPEN_GOLDEN_PERF_BRANCH || params.PERF_TEST_BRANCH_OVERRIDE){
+                if(params.PERF_TEST_OVERRIDE != '')
+                {
+                    echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm --override ${params.PERF_TEST_OVERRRIDE}"
+                }else
+                {
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+                }
+                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+                jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
+                try {
+                    sh "rm -rf ${env.WORKSPACE}/opt/rocm/bin/old_results/"
+                    sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
+                }
+                catch (Exception err){
+                    currentBuild.result = 'SUCCESS'
+                }
+            }
+
+            archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            try{
+              if (env.BRANCH_NAME != env.MIOPEN_GOLDEN_PERF_BRANCH){
+                  sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
+              }
+            }
+            catch (Exception err){
+                currentBuild.result = 'SUCCESS'
+            }
+        }
+        }
+    }
+    catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+        echo "The job was cancelled or aborted"
+        throw e
+    }
+}
+
+
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
@@ -333,19 +392,18 @@ def CheckPerfDbValid(Map conf=[:]){
 /// The only mandatory elements are Backend and BuildType; others are optional.
 ///
 /// DataType := { Fp16 | Bf16 | Int8 | Fp32 }
-/// Backend := { Hip | OpenCL | HipNoGPU}
+/// Backend := { Hip | HipNoGPU}
 /// Compiler := { Clang* | GCC* }
 ///   * "Clang" is the default for the Hip backend, and implies hip-clang compiler.
-///     For the OpenCL backend, "Clang" implies the system x86 compiler.
-///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* } [ Codecov ]
+/// TestSet := { All | Smoke* | Performance Dataset } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Codecov" is optional code coverage analysis.
+///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
 
@@ -358,6 +416,10 @@ pipeline {
         // timeout(time: 90, unit:'MINUTES')
     }
     parameters {
+        booleanParam(
+            name: "BUILD_DOCKER",
+            defaultValue: true,
+            description: "")
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
@@ -377,10 +439,6 @@ pipeline {
         booleanParam(
             name: "BUILD_FULL_TESTS",
             defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "BUILD_FULL_TESTS_OCL",
-            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
@@ -431,9 +489,24 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "OPENCL_BACKEND",
+            name: "PERF_TEST",
             defaultValue: false,
-            description: "Enable OpenCL backend stages")
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_FP16",
+            defaultValue: false,
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_FP32",
+            defaultValue: false,
+            description: "Enable performance testing stages")
+        booleanParam(
+            name: "PERF_TEST_BRANCH_OVERRIDE",
+            defaultValue: false,
+            description: "Enable performance testing stages")
+        string(name: "PERF_TEST_OVERRIDE",
+            defaultValue: '',
+            description: "Add extra env vars for the MIOpenDriver cmd, comma separated")
         string(name: "DOCKER_IMAGE_OVERRIDE",
             defaultValue: '',
             description: "")
@@ -445,10 +518,32 @@ pipeline {
         Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags      = " -DMIOPEN_TEST_INT8=On"
         Full_test       = " -DMIOPEN_TEST_ALL=On"
-        Smoke_targets = "check doc MIOpenDriver"
+        Smoke_targets = "check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
+        stage('Build Docker'){
+            when {
+                expression { params.BUILD_DOCKER && params.TARGET_NOGPU && params.DATATYPE_NA }
+            }
+            agent{ label rocmnode("nogpu") }
+            steps{
+                getDockerImage()
+            }
+        }
+        stage("Packages") {
+            when {
+                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
+            }
+            parallel {
+                stage("HIP Package") {
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
+                    }
+                }
+            }
+        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -458,16 +553,6 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false)
-                    }
-                }
-                stage('OpenCL Tidy') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/opt/rocm -DBUILD_DEV=On .."
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
@@ -534,45 +619,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
-               stage('Fp32 OpenCL Debug + Codecov AnyGPU') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
-                    }
-                }
-                stage('Fp32 OpenCL gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets, gpu_arch: "gfx908")
-                    }
-                }
-                stage('Fp32 OpenCL gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
-                    }
-                }
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
@@ -599,19 +645,6 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 OpenCL Debug gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
-                    }
-                }
                 stage('Fp32 Hip Debug gfx908') {
                     when {
                         beforeAgent true
@@ -621,11 +654,8 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
-                    environment{
-                        gpu_arch = "gfx908"
-                    }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
                 stage('Fp32 Hip Debug gfx90a') {
@@ -637,11 +667,8 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
-                    environment{
-                        gpu_arch = "gfx90a:xnack-"
-                    }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
                 }
             }
@@ -751,32 +778,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
             parallel{
-                stage('Fp16 OpenCL Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
-                    }
-                }
-                stage('Int8 OpenCL Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 && params.OPENCL_BACKEND}
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
-                    }
-                }
                 stage('Fp16 Hip Vega20') {
                     when {
                         beforeAgent true
@@ -813,7 +814,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Bf16 Hip gfx908') {
@@ -826,7 +827,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Fp16 Hip gfx90a') {
@@ -839,7 +840,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
                 stage('Bf16 Hip gfx90a') {
@@ -852,7 +853,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
                 }
             }
@@ -890,7 +891,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Install All gfx90a') {
@@ -903,7 +904,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {
@@ -916,7 +917,7 @@ pipeline {
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
                     }
                 }
                 stage('Fp32 Hip All gfx908') {
@@ -929,7 +930,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
                 }
                 stage('Fp32 Hip All gfx90a') {
@@ -942,7 +943,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test)
                     }
                 }
                 // stage('Fp32 Hip All gfx90a Xnack+') {
@@ -952,7 +953,7 @@ pipeline {
                 //     }
                 //     agent{ label rocmnode("gfx90a") }
                 //     steps{
-                //         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
+                //         buildHipClangJobAndReboot(setup_flags: Full_test, enforce_xnack_on: true)
                 //     }
                 // }
                 stage('Fp16 Hip Install All Vega20') {
@@ -991,7 +992,7 @@ pipeline {
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true", gpu_arch: "gfx1030")
+                        buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All Install gfx908') {
@@ -1004,7 +1005,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip All Install gfx90a') {
@@ -1017,88 +1018,616 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
                     }
                 }
             }
         }
-        stage("Full Tests - OpenCL") {
+        stage("Performance Tests - gfx90a") {
             when {
-                expression { params.BUILD_FULL_TESTS_OCL}
-            }
-            environment{
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                expression {params.PERF_TEST && params.TARGET_GFX90A}
             }
             parallel{
-                stage('Fp32 OpenCL Install All') {
+                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                        expression {params.PERF_TEST_FP32}
                     }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt" )
                     }
                 }
-                stage('Fp32 OpenCL All gfx908') {
+                stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                        expression {params.PERF_TEST_FP32}
                     }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx908") }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt" )
                     }
                 }
-                stage('Fp32 OpenCL All gfx1030') {
+                stage('Fp32 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                        expression {params.PERF_TEST_FP32}
                     }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_cmd: Navi21_build_cmd, gpu_arch: "gfx1030")
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS512.txt" )
                     }
                 }
-                stage('Fp32 OpenCL Install All gfx90a') {
+                stage('Fp16 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                        expression {params.PERF_TEST_FP16}
                     }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS128.txt" )
                     }
                 }
-            }
-        }
-        stage("Packages") {
-            when {
-                expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
-            }
-            parallel {
-                stage('OpenCL Package') {
-                    agent{ label rocmnode("nogpu") }
+                stage('Fp16 BS256 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS256.txt" )
                     }
                 }
-                stage("HIP Package") {
-                    agent{ label rocmnode("nogpu") }
+                stage('Fp16 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS4.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS64.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS4.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS64.txt" )
+                    }
+                }
+                stage('Fp16 BS32 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS32.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS32 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS32.txt" )
+                    }
+                }
+                stage('Fp16 BS64 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS64.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 B512 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS256.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Shufflenet_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "Shufflenet_v2_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS256.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS4.txt" )
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS64.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS512.txt" )
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS128.txt" )
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS512.txt" )
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS128.txt" )
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    agent{ label rocmnode("austin")}
+                    steps{
+                        RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS512.txt" )
                     }
                 }
             }

@@ -27,7 +27,9 @@
 
 #include <miopen/config.h>
 
-#if MIOPEN_ENABLE_SQLITE
+#if !MIOPEN_ENABLE_SQLITE
+#error "MIOPEN_ENABLE_SQLITE = Off"
+#endif
 
 #include <miopen/db_record.hpp>
 #include <miopen/db.hpp>
@@ -254,7 +256,9 @@ public:
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
             else
             {
                 const auto log_level =
@@ -635,4 +639,3 @@ public:
     }
 };
 } // namespace miopen
-#endif

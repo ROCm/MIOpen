@@ -29,7 +29,6 @@
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/finddb_kernel_cache_key.hpp>
 
 #if MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
@@ -40,7 +39,11 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else
@@ -63,7 +66,8 @@
 #define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
 
 /// Maintain API compatibility with various rocBLAS version
-#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000)
+#define USE_GEMM_FLAGS_PACK_INT8X4 \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000) && (MIOPEN_ROCBLAS_VERSION_FLAT < 4000000))
 
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)
@@ -127,14 +131,13 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 {
     MIOPEN_LOG_I2("");
     rocblas_atomics_mode cur_mode;
-    rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
+    [[maybe_unused]] rocblas_status status =
+        rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
     assert(status == rocblas_status::rocblas_status_success);
-    (void)status; // WA till C++17 [[maybe_unused]]
     if(cur_mode == rocblas_atomics_allowed)
     {
         status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
         assert(status == rocblas_status::rocblas_status_success);
-        (void)status; // WA till C++17 [[maybe_unused]]
     }
     return cur_mode;
 }
@@ -142,9 +145,8 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
 {
     MIOPEN_LOG_I2("");
-    rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
+    [[maybe_unused]] rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
     assert(status == rocblas_status::rocblas_status_success);
-    (void)status; // WA till C++17 [[maybe_unused]]
 }
 
 #endif
@@ -242,7 +244,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    int b_offset,
                                    Data_t C,
                                    int c_offset,
-                                   FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend,
@@ -262,7 +263,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                      b_offset,
                      C,
                      c_offset,
-                     nullptr,
                      gemm_backend,
                      gfx90a_alt_impl);
         }
@@ -275,7 +275,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                         b_offset,
                         C,
                         c_offset,
-                        kcache_key,
                         gemm_backend,
                         gfx90a_alt_impl);
     }
@@ -291,7 +290,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    b_offset,
                                    C,
                                    c_offset,
-                                   nullptr,
                                    gemm_backend,
                                    gfx90a_alt_impl);
         }
@@ -304,7 +302,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                       b_offset,
                                       C,
                                       c_offset,
-                                      kcache_key,
                                       gemm_backend,
                                       gfx90a_alt_impl);
     }
@@ -320,7 +317,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                              b_offset,
                                              C,
                                              c_offset,
-                                             nullptr,
                                              gemm_backend,
                                              gfx90a_alt_impl);
         }
@@ -333,7 +329,6 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                                 b_offset,
                                                 C,
                                                 c_offset,
-                                                kcache_key,
                                                 gemm_backend,
                                                 gfx90a_alt_impl);
     }
@@ -349,8 +344,7 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
                                      ConstData_t B,
                                      int b_offset,
                                      Data_t C,
-                                     int c_offset,
-                                     FindDbKCacheKey* kcache_key)
+                                     int c_offset)
 {
     MIOPEN_LOG_FUNCTION("MIOpenTensile");
 
@@ -446,9 +440,6 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
     (void)mtC;
 #endif
 
-    if(kcache_key != nullptr)
-        *kcache_key = FindDbKCacheKey::MakeUnused("MIOpenTensile");
-
     if(mt_status != miopen_tensile_status_success)
         MIOPEN_THROW(miopenStatusInternalError, "Failed to run miopen_tensile_gemm_hip");
 
@@ -480,7 +471,6 @@ miopenStatus_t CallGemm(const Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        FindDbKCacheKey* kcache_key,
                         GemmBackend_t gemm_backend,
                         bool gfx90a_alt_impl)
 {
@@ -510,7 +500,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 #if MIOPEN_USE_MIOPENTENSILE
         std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
@@ -683,9 +673,6 @@ miopenStatus_t CallGemm(const Handle& handle,
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
-
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
         return miopenStatusSuccess;
@@ -719,9 +706,6 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         const std::string algorithm_name = "MIOpenGEMM";
         const std::string network_config = gemm_desc_to_string();
-
-        if(kcache_key != nullptr)
-            *kcache_key = {algorithm_name, network_config};
 
         auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -788,7 +772,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      FindDbKCacheKey* kcache_key,
                                       GemmBackend_t gemm_backend,
                                       bool gfx90a_alt_impl)
 {
@@ -819,7 +802,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #if MIOPEN_USE_MIOPENTENSILE
         std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
@@ -1015,8 +998,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -1028,7 +1009,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
         std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
 #else
         return miopenStatusNotImplemented;
 #endif
@@ -1046,7 +1027,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                FindDbKCacheKey* kcache_key,
                                                 GemmBackend_t gemm_backend,
                                                 bool gfx90a_alt_impl)
 {
@@ -1077,7 +1057,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 #if MIOPEN_USE_MIOPENTENSILE
         std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr);
 #endif
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
@@ -1265,8 +1245,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
-        if(kcache_key != nullptr)
-            *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
         return miopenStatusSuccess;
 #else
@@ -1299,9 +1277,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         const std::string algorithm_name = "MIOpenGEMM";
         const std::string network_config = gemm_desc_to_string();
-
-        if(kcache_key != nullptr)
-            *kcache_key = {algorithm_name, network_config};
 
         auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 

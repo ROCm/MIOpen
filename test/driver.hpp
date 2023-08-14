@@ -37,7 +37,11 @@
 
 #include <functional>
 #include <deque>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <type_traits>
 #include <boost/filesystem.hpp>
 #include <miopen/functional.hpp>
@@ -719,7 +723,7 @@ struct test_driver
     {
         if(disabled_cache)
             return true;
-        auto p = boost::filesystem::path{miopen::ExpandUser(cache_path)} / ".disabled";
+        auto p = miopen::ExpandUser(cache_path) / ".disabled";
         return boost::filesystem::exists(p);
     }
 
@@ -730,8 +734,7 @@ struct test_driver
         if(is_cache_disabled() or not is_const_cpu(v, xs...))
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
-        auto p =
-            boost::filesystem::path{miopen::ExpandUser(cache_path)} / std::to_string(cache_version);
+        auto p   = miopen::ExpandUser(cache_path) / std::to_string(cache_version);
         if(!boost::filesystem::exists(p))
             boost::filesystem::create_directories(p);
         auto f = p / key;

@@ -29,9 +29,12 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+
+#define WORKAROUND_SWDEV_411729 1
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
@@ -82,7 +85,13 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& p
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
                                                const ProblemDescription& problem) const
 {
+#if WORKAROUND_SWDEV_411729
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
+#endif
+        return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
     if(!ctx.use_hip_kernels)
         return false;
@@ -96,20 +105,13 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
-    if(problem.group_counts != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
-
-    {
-        // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
-        const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
-
-        if(!(problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
-             problem.top_sz < max_index_range))
-            return false;
-    }
+    if(!IsIndexRangeLargeEnough(problem))
+        return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
         ck_utility::get_ck_convolution_problem_descriptor(problem));

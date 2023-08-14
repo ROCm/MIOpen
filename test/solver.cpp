@@ -51,7 +51,7 @@ public:
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
     {
-        return problem.in_width == 1;
+        return problem.GetInWidth() == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
@@ -210,11 +210,11 @@ private:
         const std::initializer_list<size_t>& in,
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
-        const auto problem = ProblemDescription{TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                ConvolutionDescriptor{},
-                                                conv::Direction::Forward};
+        const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      ConvolutionDescriptor{},
+                                                      conv::Direction::Forward};
         auto ctx           = ConvolutionContext{};
         ctx.SetStream(&get_handle());
         context_filler(ctx);

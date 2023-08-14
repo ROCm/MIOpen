@@ -31,7 +31,10 @@
 
 namespace miopen {
 
-struct FusionDescription : SQLiteSerializable<FusionDescription>
+struct FusionDescription
+#if MIOPEN_ENABLE_SQLITE
+    : SQLiteSerializable<FusionDescription>
+#endif
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
     FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
@@ -70,15 +73,29 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         MIOPEN_LOG_I2(net_config.str());
     }
+
+#if !MIOPEN_ENABLE_SQLITE
+    /// \todo This function will be necessary for tuning of fusions
+    void Serialize(std::ostream& stream) const
+    {
+        auto conv_problem = GetConvProblem(0, conv::Direction::Forward);
+        conv_problem.Serialize(stream);
+    }
+#endif
+
+#if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return "config"; } // revisit this
+
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
         auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
         ProblemDescription::Visit(conv_prob, f);
     }
+#endif
+
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
+    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -86,18 +103,19 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         {
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
-            return miopen::ProblemDescription{conv_op.input_desc,
-                                              conv_op.filter_desc,
-                                              out_desc,
-                                              conv_op.base_desc /* conv desc */,
-                                              dir};
+            return miopen::conv::ProblemDescription{conv_op.input_desc,
+                                                    conv_op.filter_desc,
+                                                    out_desc,
+                                                    conv_op.base_desc /* conv desc */,
+                                                    dir,
+                                                    bias};
         }
         else
         {
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
-        return {};
     }
+
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
     {

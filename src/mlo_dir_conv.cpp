@@ -58,36 +58,9 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 #endif
 
-miopen::PerformanceDb mlo_construct_base::GetDb() const
-{
-    return {db_path(), _ctx.GetUserPerfDbPath()};
-}
-
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
 {
     return {ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath()};
-}
-miopen::solver::ConvSolution
-mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
-                                            const miopen::AnyInvokeParams& invoke_ctx)
-{
-    miopen::solver::ConvSolution solution{miopenStatusUnknownError};
-    std::string solver_id;
-    auto db = this->GetDb();
-    for(auto& solver : solvers)
-    {
-        solution = solver.FindSolution(_ctx, _problem, db, invoke_ctx);
-        if(solution.Succeeded() && solver.IsApplicable(_ctx, _problem))
-        {
-            solver_id = solver.GetSolverDbId();
-            break;
-        }
-    }
-    if(solution.Succeeded() && solution.construction_params.empty())
-    {
-        MIOPEN_THROW(std::string("Internal error in solver: ") + solver_id);
-    }
-    return solution;
 }
 
 static auto GetGemmSolvers()
@@ -149,6 +122,7 @@ static auto GetImplicitGemmSolvers()
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvHipImplicitGemmFwdXdlops,
         miopen::solver::ConvHipImplicitGemmBwdXdlops,
+        miopen::solver::ConvHipImplicitGemmGroupFwdXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
@@ -382,35 +356,20 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
     return GetFFTSolvers().GetWorkspaceSizes(ctx, problem);
 }
 
-void miopen::ConvolutionContext::SetupFloats(const miopen::ProblemDescription& problem)
-{
-    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
-    {
-        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
-    }
-    else
-    {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.out_data_type));
-    }
-}
-
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)
+    if(_problem.GetInDataType() == miopenFloat && _problem.GetOutDataType() == miopenFloat)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_problem.in_data_type == miopenHalf && _problem.out_data_type == miopenHalf)
+    else if(_problem.GetInDataType() == miopenHalf && _problem.GetOutDataType() == miopenHalf)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_problem.out_data_type));
+                     << miopen::GetDataTypeName(_problem.GetInDataType()) << "x"
+                     << miopen::GetDataTypeName(_problem.GetOutDataType()));
     }
 }

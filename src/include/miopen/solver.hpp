@@ -128,6 +128,8 @@ protected:
         static const auto result = ComputeSolverDbId(get_type_name<Solver>());
         return result;
     }
+    SolverBase()                  = default;
+    SolverBase(const SolverBase&) = default;
 
 private:
     static std::string ComputeSolverDbId(const std::string& type_name)
@@ -361,15 +363,35 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
-    void HeuristicInit(const ProblemDescription&);
-    bool IsValidValue() const;
+    void StaticHeuristic(const ProblemDescription& problem);
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    void
+    RunParmeterPredictionModel(const ConvolutionContext&, const ProblemDescription&, bool& valid);
+    bool ModelApplyToken(int index, int value, const ProblemDescription&);
+#endif
+    bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription&) const;
+    bool IsValid(const ProblemDescription& problem) const { return IsValidImpl(problem, 8); }
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
+
+private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    bool IsPartiallyValid(const ProblemDescription& problem, int sequence_length) const
+    {
+        return IsValidImpl(problem, sequence_length);
+    }
+    bool IsPartiallyValidValue(int sequence_length) const
+    {
+        return IsValidValueImpl(sequence_length);
+    }
+#endif
+    bool IsValidImpl(const ProblemDescription& problem, int sequence_length) const;
+    bool IsValidValueImpl(int sequence_length) const;
 };
 
 struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
@@ -2326,9 +2348,11 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     static int GetSolverWinoXformHWSize(const ProblemDescription& problem, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.kernel_stride_h);
+            return WinoDataH +
+                   (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : problem.GetKernelStrideH());
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.kernel_stride_w);
+            return WinoDataW +
+                   (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.GetKernelStrideW());
     }
 
 private:
@@ -4688,31 +4712,99 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
+struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops()
+        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemmGroupFwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
+    // Magic Number Alert:
+    // Naive convolutions have GetWti() that return very small value (0.01f).
+    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
+    // have known WTIs. Right now this means that in case of find-db miss,
+    // the library will try to use Winograd or GEMM (whatever is faster according
+    // to their GetWti's), but if both are not applicable, the library will
+    // use Naive Solver
+    // Since we would like to us CK before naive, and use it instead (because
+    // we do expect that CK is faster than Naive), therefore we use a
+    // value bigger than 0.01f, e.g. 0.02f.
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
 struct AnySolver;
+
+// Use struct as a syntactic sugar to make the intent as clear as possible.
+struct ThisSolverIsDeprecatedStatic
+{
+    static bool IsDisabled(const ConvolutionContext& ctx);
+};
 
 } // namespace solver
 } // namespace miopen
-
-struct mlo_construct_direct2D_fusion : mlo_construct_base
-{
-    mlo_construct_direct2D_fusion(miopen::conv::Direction dir, bool do_bias = false)
-        : mlo_construct_base(dir, do_bias)
-    {
-    }
-    mlo_construct_direct2D_fusion(const miopen::TensorDescriptor& in,
-                                  const miopen::TensorDescriptor& weights,
-                                  const miopen::TensorDescriptor& out,
-                                  const miopen::ConvolutionDescriptor& conv,
-                                  miopen::conv::Direction dir,
-                                  bool do_bias = false)
-        : mlo_construct_base(in, weights, out, conv, dir, do_bias)
-    {
-    }
-
-    bool IsAutoTuneEnabled() const { return _ctx.do_search; }
-
-    miopen::solver::ConvSolution FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
-                                              const miopen::AnyInvokeParams& invoke_ctx);
-};
 
 #endif // GUARD_MIOPEN_SOLVER_HPP_

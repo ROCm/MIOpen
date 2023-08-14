@@ -104,7 +104,7 @@ void* default_allocator(void*, size_t sz)
     MIOPEN_THROW_HIP_STATUS(status_host, "hipHostMalloc " + std::to_string(sz));
 }
 
-inline std::string to_string(void* const ptr)
+[[maybe_unused]] inline std::string to_string(void* const ptr)
 {
     std::ostringstream oss;
     oss << ptr;
@@ -119,8 +119,10 @@ void default_deallocator(void*, void* mem)
         MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
     status = hipFree(mem);
     if(status != hipSuccess)
+    {
         MIOPEN_THROW_HIP_STATUS(status,
                                 "hipFree " + std::to_string(size) + " at " + to_string(mem));
+    }
     else
         MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
 }
@@ -171,6 +173,15 @@ struct HandleImpl
     {
         hipStream_t result;
         auto status = hipStreamCreate(&result);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
+        return StreamPtr{result, &hipStreamDestroy};
+    }
+
+    StreamPtr create_stream_non_blocking()
+    {
+        hipStream_t result;
+        auto status = hipStreamCreateWithFlags(&result, hipStreamNonBlocking);
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status, "Failed to allocate stream");
         return StreamPtr{result, &hipStreamDestroy};
@@ -326,7 +337,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     if(last_stream_id < cnt)
         for(; last_stream_id < cnt; last_stream_id++)
         {
-            auto new_stream = this->impl->create_stream();
+            auto new_stream = this->impl->create_stream_non_blocking();
 #if MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
@@ -456,11 +467,6 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
                                                   const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
-}
-
-bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
-{
-    return this->impl->cache.HasKernels(algorithm, network_config);
 }
 
 KernelInvoke Handle::Run(Kernel k) const

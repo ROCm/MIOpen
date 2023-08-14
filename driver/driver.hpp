@@ -26,7 +26,11 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#include "half.hpp"
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 #include "random.hpp"
 
@@ -77,17 +81,17 @@ struct GPUMem
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
 
-    int ToGPU(cl_command_queue& q, void* p)
+    int ToGPU(cl_command_queue& q, void* p) const
     {
         return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
-    int FromGPU(cl_command_queue& q, void* p)
+    int FromGPU(cl_command_queue& q, void* p) const
     {
         return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
 
-    cl_mem GetMem() { return buf; }
-    size_t GetSize() { return sz * data_sz; }
+    cl_mem GetMem() const { return buf; }
+    size_t GetSize() const { return sz * data_sz; }
 
     ~GPUMem() { clReleaseMemObject(buf); }
 

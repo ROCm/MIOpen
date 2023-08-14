@@ -367,6 +367,9 @@ struct reorder_invoke_param : public miopen::InvokeParams
         : InvokeParams{type_}, src(src_), dst(dst_)
     {
     }
+
+    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return 0; }
 };
 template <typename T>
 struct tensor_reorder_driver : tensor_reorder_base_driver
@@ -405,7 +408,6 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
-            ctx.DetectRocm();
             // ctx.SetupFloats();
             auto reorder_sol = MakeTensorReorderAttributes(ctx,
                                                            to_miopen_data_type<T>::get(),

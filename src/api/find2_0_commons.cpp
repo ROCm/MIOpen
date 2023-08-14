@@ -33,6 +33,7 @@
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/solver_id.hpp>
 #include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
@@ -147,6 +148,9 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
     return miopen::try_([&] {
         auto& handle_deref        = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem);
+
+        problem_deref.LogDriverCommand();
+
         const auto& options_deref =
             options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
@@ -196,6 +200,8 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
     return miopen::try_([&] {
         auto& handle_deref   = miopen::deref(handle);
         auto& solution_deref = miopen::deref(solution);
+
+        solution_deref.LogDriverCommand();
 
         const auto inputs_deref = [&]() {
             auto ret = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{};
@@ -292,6 +298,30 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
         *time                      = solution_deref.GetTime();
+    });
+}
+
+miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId)
+{
+    MIOPEN_LOG_FUNCTION(solution, solverId);
+
+    return miopen::try_([&] {
+        const auto& solution_deref = miopen::deref(solution);
+        *solverId                  = solution_deref.GetSolver().Value();
+    });
+}
+
+miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result)
+{
+    MIOPEN_LOG_FUNCTION(solverId, result);
+
+    return miopen::try_([&] {
+        const auto id_deref = miopen::solver::Id{solverId};
+
+        if(!id_deref.IsValid() || id_deref.GetPrimitive() != miopen::solver::Primitive::Convolution)
+            MIOPEN_THROW(miopenStatusInvalidValue);
+
+        *result = id_deref.GetAlgo();
     });
 }
 }
