@@ -4561,7 +4561,7 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+    explicit PerformanceConfigHipImplicitGemmFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
