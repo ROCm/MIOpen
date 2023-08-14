@@ -685,7 +685,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx940") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'release', config_targets: Smoke_targets)
                     }
                 }
             }
