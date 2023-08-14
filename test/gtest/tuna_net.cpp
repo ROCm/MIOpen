@@ -93,7 +93,6 @@ void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t 
         GTEST_SKIP();
     miopen::ConvolutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =
         std::distance(solvers.begin(), std::max_element(solvers.begin(), solvers.end()));

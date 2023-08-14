@@ -91,7 +91,6 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
             input.desc, weights.desc, rout.desc, filter, miopen::conv::Direction::Forward};
         auto ctx = miopen::ConvolutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
@@ -128,7 +127,6 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
             output.desc, weights.desc, input.desc, filter, miopen::conv::Direction::BackwardData};
         auto ctx = miopen::ConvolutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
@@ -169,7 +167,6 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                                              miopen::conv::Direction::BackwardWeights};
         auto ctx = miopen::ConvolutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
