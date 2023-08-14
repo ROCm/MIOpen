@@ -182,14 +182,11 @@ float Im2d2ColGPU(const Handle& handle,
             }
         }
 
-        params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
-        params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
-        params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
-        params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
+        params += " -DLOCAL_MEM_SIZE=" +
+                  std::to_string(local_mem_sz); // needs some changes to the kernel launch
         params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
-        params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
-        params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-        params += " -DUSE_IM_OFF_GUARD=1";
+        params += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
+        params += " -DUSE_IM_OFF_GUARD=1"; // always one
 
         params += GetDataTypeKernelParams(type);
 
@@ -272,7 +269,12 @@ float Im2d2ColGPU(const Handle& handle,
             stride_w,
             dilation_h,
             dilation_w,
-            col);
+            col,
+            num_ch_per_wg,
+            num_blks_x,
+            num_blks,
+            tile_sz_x,
+            tile_sz_y);
     }
 
     return handle.GetKernelTime();
