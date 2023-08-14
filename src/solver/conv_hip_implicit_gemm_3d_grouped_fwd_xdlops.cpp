@@ -247,15 +247,14 @@ namespace {
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const ProblemDescription& problem,
-                   const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+                   const CKArgs& args,
+                   const std::string& kernel_id)
 {
-    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        if(conv_ptrs[i]->GetTypeString() == kernel_id)
         {
             break;
         }
@@ -293,23 +292,28 @@ void RunCKSolution(const Handle& handle,
 
 namespace conv {
 
-InvokerFactory MakeCK3DGroupFwdInvokerFactory(
-    const miopen::ProblemDescription& problem,
-    const miopen::solver::PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+InvokerFactory
+MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
+                               const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
 {
-    return [=](const std::vector<Kernel>& kernels) {
+    auto args                  = CKArgs{problem};
+    miopenDataType_t data_type = problem.conv_problem.GetInDataType();
+    auto kernel_id             = config.kernel_id;
+
+    return [args, data_type, kernel_id](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
+        return [args, data_type, kernel_id](const Handle& handle,
+                                            const AnyInvokeParams& primitive_parameters) {
+            switch(data_type)
             {
             case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, args, kernel_id);
                 break;
             case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, problem, config);
+                RunCKSolution<float>(handle, primitive_parameters, args, kernel_id);
                 break;
             case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
+                RunCKSolution<int8_t>(handle, primitive_parameters, args, kernel_id);
                 break;
             case miopenInt32:
             case miopenInt8x4:
