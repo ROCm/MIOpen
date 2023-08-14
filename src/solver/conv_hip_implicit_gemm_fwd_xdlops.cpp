@@ -238,8 +238,8 @@ MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
     InvokerFactory ret =
         [ck_args = std::move(ck_args), data_type, config_idx](const std::vector<Kernel>& kernels) {
             std::ignore = kernels;
-            return [ck_args, data_type, config_idx](
-                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            return [ck_args, data_type, config_idx](const Handle& handle,
+                                                    const AnyInvokeParams& primitive_parameters) {
                 switch(data_type)
                 {
                 case miopenInt8:
