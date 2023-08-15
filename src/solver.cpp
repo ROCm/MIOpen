@@ -566,16 +566,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ConvolutionContext& ctx)
 {
+    std::ignore                         = ctx;
     static const bool device_is_allowed = [&]() {
         if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))
             return true;
-        const auto device = ctx.GetStream().GetTargetProperties().Name();
-        return device == "gfx803"                       // Fiji
-               || device == "gfx900"                    // Vega10
-               || device == "gfx906"                    // Vega20, MI50/60
-               || device == "gfx908"                    // MI100
-               || device == "gfx90a"                    // MI200
-               || miopen::StartsWith(device, "gfx103"); // Navi2x
+        else
+            return false;
     }();
     return !device_is_allowed;
 }
