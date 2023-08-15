@@ -75,7 +75,7 @@ amdhsa.kernels:
     - { .size: 8, .offset:  56, .value_kind: global_buffer, .name: output_addr, .address_space: global, .is_const: false }
     - { .size: 8, .offset:  64, .value_kind: global_buffer, .name: filter_addr, .address_space: global, .is_const: true }
 
-    - { .size: 4, .offset:  72, .value_kind: by_value, .name: N }
+    - { .size: 4, .offset:  72, .value_kind: by_value, .name: BATCH_SIZE }
     - { .size: 4, .offset:  76, .value_kind: by_value, .name: K }
     - { .size: 4, .offset:  80, .value_kind: by_value, .name: C }
     - { .size: 4, .offset:  84, .value_kind: by_value, .name: R }
