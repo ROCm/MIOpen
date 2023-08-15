@@ -60,9 +60,9 @@ constexpr inline S Ceil(const T val, const T div)
 
 class ShaderModel : public UnifiedDescriptionConv2d
 {
-    static constexpr uint32_t Tw  = 4;
-    static constexpr uint32_t Toh = 2;
-    static constexpr uint32_t Tow = 2;
+    uint32_t Tw;
+    uint32_t Toh;
+    uint32_t Tow;
 
     uint32_t Hs;
     uint32_t We;
@@ -98,9 +98,12 @@ public:
 
     ShaderModel(const ProblemDescription& problem,
                 size_t groups,
-                size_t /*Winodata*/,
-                size_t /*Winofilter*/)
+                uint32_t Winodata,
+                uint32_t Winofilter)
         : UnifiedDescriptionConv2d(problem),
+          Tw{Winodata + Winofilter - 1},
+          Toh{Winodata},
+          Tow{Winodata},
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
@@ -174,7 +177,7 @@ public:
 
 } // namespace
 
-template <size_t Winodata, size_t Winofilter>
+template <uint32_t Winodata, uint32_t Winofilter>
 bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
@@ -201,7 +204,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContex
     return ShaderModel(problem, n_groups, Winodata, Winofilter).isApplicable();
 }
 
-template <size_t Winodata, size_t Winofilter>
+template <uint32_t Winodata, uint32_t Winofilter>
 float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ConvolutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
@@ -209,7 +212,7 @@ float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ConvolutionContext& ct
     return ShaderModel(problem, n_groups, Winodata, Winofilter).GetWTI();
 }
 
-template <size_t Winodata, size_t Winofilter>
+template <uint32_t Winodata, uint32_t Winofilter>
 ConvSolution
 ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx,
                                                    const ProblemDescription& problem) const
