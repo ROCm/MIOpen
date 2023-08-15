@@ -171,11 +171,11 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 .endm
 
 .macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_fury_v0_0_1_gfx\machine_version\()_\kernel_name_postfix
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_fury_v1_0_0_gfx\machine_version\()_\kernel_name_postfix
 .endm
 
 .macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_fury_v0_0_1_gfx\machine_version\()_\kernel_name_postfix
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_fury_v1_0_0_gfx\machine_version\()_\kernel_name_postfix
 .endm
 
 .macro KERNEL_PROLOG kernel_name_postfix
