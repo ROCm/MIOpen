@@ -109,8 +109,8 @@ class ShaderModel : public UnifiedDescriptionConv2d
     uint32_t Hs;
     uint32_t We;
 
-    uint32_t H;
     uint32_t W;
+    uint32_t H;
 
     int32_t d_H_clip;
     int32_t d_W_clip;
@@ -146,33 +146,33 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          H{uint32_t(problem.direction.IsBackwardWrW() ? problem.GetWeightsWidth()
-                                                       : problem.GetInWidth())},
-          W{uint32_t(problem.direction.IsBackwardWrW() ? problem.GetWeightsHeight()
-                                                       : problem.GetInHeight())},
+          W{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutWidth()
+                                                                    : problem.GetInHeight())},
+          H{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutHeight()
+                                                                    : problem.GetInWidth())},
 
-          d_H_clip{int32_t(int64_t(Hs * Toh) - pad_h)},
-          d_W_clip{int32_t(We - pad_w)},
+          d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
+          d_W_clip{static_cast<int32_t>(We - pad_w)},
 
-          o_H_clip{int32_t(Hs * Toh)},
-          o_W_clip{int32_t(We - (Tw - Tow) / 2)},
+          o_H_clip{static_cast<int32_t>(Hs * Toh)},
+          o_W_clip{static_cast<int32_t>(We - (Tw - Tow) / 2)},
 
-          out_Hs{uint16_t(Hs)},
-          out_We{uint16_t(We)},
+          out_Hs{static_cast<uint16_t>(Hs)},
+          out_We{static_cast<uint16_t>(We)},
 
-          d_H_clip_bot_neg{int16_t(d_H_clip)},
-          d_W_clip_bot_neg{int16_t(d_W_clip)},
+          d_H_clip_bot_neg{static_cast<int16_t>(d_H_clip)},
+          d_W_clip_bot_neg{static_cast<int16_t>(d_W_clip)},
 
-          o_H_clip_bot_neg{int16_t(o_H_clip)},
-          o_W_clip_bot_neg{int16_t(o_W_clip)},
+          o_H_clip_bot_neg{static_cast<int16_t>(o_H_clip)},
+          o_W_clip_bot_neg{static_cast<int16_t>(o_W_clip)},
 
-          d_H_window{uint16_t(H)},
-          d_W_window{uint16_t(W)},
+          d_H_window{static_cast<uint16_t>(H)},
+          d_W_window{static_cast<uint16_t>(W)},
 
-          o_H_window{uint16_t(out_h)},
-          o_W_window{uint16_t(out_w)},
+          o_H_window{static_cast<uint16_t>(out_h)},
+          o_W_window{static_cast<uint16_t>(out_w)},
 
-          n_groups{uint16_t(groups)}
+          n_groups{static_cast<uint16_t>(groups)}
     {
         is_applicable = problem.IsFp16() && problem.Is2d() && problem.GetGroupCount() == 1 &&
                         problem.GetInLayout() == "NCHW";
@@ -184,32 +184,32 @@ public:
     {
         return is_applicable
                // clang-format off
-            && U == 1
-            && V == 1
-            && input_stride_h == 1
-            && input_stride_w == 1
-            && filter_stride_h == 1
-            && filter_stride_w == 1
-            && C <= 16
-            && K <= 16
-            && S <= 3
-            && R <= 3
-            && N < std::numeric_limits<uint16_t>::max()
-            && pad_h <= std::numeric_limits<int16_t>::max()
-            && pad_h >= std::numeric_limits<int16_t>::lowest()
-            && pad_w <= std::numeric_limits<int16_t>::max()
-            && pad_w >= std::numeric_limits<int16_t>::lowest()
-            && n_groups < std::numeric_limits<uint16_t>::max()
-            && uint32_t(out_Hs) == Hs
-            && uint32_t(out_We) == We
-            && int32_t(d_H_clip_bot_neg) == d_H_clip
-            && int32_t(d_W_clip_bot_neg) == d_W_clip
-            && int32_t(o_H_clip_bot_neg) == o_H_clip
-            && int32_t(o_W_clip_bot_neg) == o_W_clip
-            && uint32_t(d_H_window) == H
-            && uint32_t(d_W_window) == W
-            && uint32_t(o_H_window) == out_h
-            && uint32_t(o_W_window) == out_w;
+               && U == 1
+               && V == 1
+               && input_stride_h == 1
+               && input_stride_w == 1
+               && filter_stride_h == 1
+               && filter_stride_w == 1
+               && C <= 16
+               && K <= 16
+               && S <= 3
+               && R <= 3
+               && N < std::numeric_limits<uint16_t>::max()
+               && pad_h <= std::numeric_limits<int16_t>::max()
+               && pad_h >= std::numeric_limits<int16_t>::lowest()
+               && pad_w <= std::numeric_limits<int16_t>::max()
+               && pad_w >= std::numeric_limits<int16_t>::lowest()
+               && n_groups < std::numeric_limits<uint16_t>::max()
+               && static_cast<uint32_t>(out_Hs) == Hs
+               && static_cast<uint32_t>(out_We) == We
+               && static_cast<int32_t>(d_H_clip_bot_neg) == d_H_clip
+               && static_cast<int32_t>(d_W_clip_bot_neg) == d_W_clip
+               && static_cast<int32_t>(o_H_clip_bot_neg) == o_H_clip
+               && static_cast<int32_t>(o_W_clip_bot_neg) == o_W_clip
+               && static_cast<uint32_t>(d_H_window) == H
+               && static_cast<uint32_t>(d_W_window) == W
+               && static_cast<uint32_t>(o_H_window) == out_h
+               && static_cast<uint32_t>(o_W_window) == out_w;
         // clang-format on
     }
 };
@@ -526,35 +526,35 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
               conv.d_H_window,
               conv.d_W_clip_bot_neg,
               conv.d_H_clip_bot_neg,
-              uint32_t(d_strides.nk),
-              uint32_t(d_strides.h), // todo: check < 2^16
-              uint32_t(d_strides.c),
+              static_cast<uint32_t>(d_strides.nk),
+              static_cast<uint32_t>(d_strides.h), // todo: check < 2^16
+              static_cast<uint32_t>(d_strides.c),
               conv.o_W_window,
               conv.o_H_window,
               conv.o_W_clip_bot_neg,
               conv.o_H_clip_bot_neg,
-              uint32_t(o_strides.nk),
-              uint32_t(o_strides.h), // todo: check < 2^16
-              uint32_t(o_strides.c),
+              static_cast<uint32_t>(o_strides.nk),
+              static_cast<uint32_t>(o_strides.h), // todo: check < 2^16
+              static_cast<uint32_t>(o_strides.c),
               data_tensors,
               out_tensors,
               filter_tensors,
-              uint32_t(conv.N),
-              uint32_t(conv.K),
-              uint32_t(conv.C),
-              uint32_t(conv.R),
-              uint32_t(conv.S),
-              uint32_t(f_strides.nk),
-              uint32_t(f_strides.c),
-              int32_t(f_strides.h),
-              int32_t(f_strides.w),
+              static_cast<uint32_t>(conv.N),
+              static_cast<uint32_t>(conv.K),
+              static_cast<uint32_t>(conv.C),
+              static_cast<uint32_t>(conv.R),
+              static_cast<uint32_t>(conv.S),
+              static_cast<uint32_t>(f_strides.nk),
+              static_cast<uint32_t>(f_strides.c),
+              static_cast<int32_t>(f_strides.h),
+              static_cast<int32_t>(f_strides.w),
               f_RS_offset,
-              uint64_t(0),
+              nullptr,
               nullptr,
               flags,
               activation_mode,
-              uint8_t(0),
-              uint16_t(0),
+              static_cast<uint8_t>(0),
+              static_cast<uint16_t>(0),
               0.0f);
         };
     };
