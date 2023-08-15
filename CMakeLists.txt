@@ -711,7 +711,6 @@ enable_clang_tidy(
         -llvmlibc-inline-function-decl
         -misc-use-anonymous-namespace
         -readability-avoid-unconditional-preprocessor-if
-        -Wextra-semi-stmt
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER

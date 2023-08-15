@@ -68,6 +68,7 @@ static std::vector<std::string> HipKernelWarnings()
         "-Wno-double-promotion",
         "-Wno-exit-time-destructors",
         "-Wno-extra-semi",
+        "-Wno-extra-semi-stmt",
         "-Wno-float-conversion",
         "-Wno-gnu-anonymous-struct",
         "-Wno-gnu-zero-variadic-macro-arguments",
