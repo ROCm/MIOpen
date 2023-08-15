@@ -468,8 +468,8 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
     const auto o_strides = o_buf.stride;
 
     auto f_strides       = f_buf.stride;
-    f_strides.h          = is_forward ? f_strides.h : -f_strides.h;
-    f_strides.w          = is_forward ? f_strides.w : -f_strides.w;
+    f_strides.h          = is_forward || is_backWrW ? f_strides.h : -f_strides.h;
+    f_strides.w          = is_forward || is_backWrW ? f_strides.w : -f_strides.w;
     uint32_t f_RS_offset = is_forward ? 0 : ((conv.R - 1) * conv.S + (conv.S - 1));
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
