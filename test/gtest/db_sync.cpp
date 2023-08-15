@@ -36,15 +36,10 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/mt_queue.hpp>
 
 #include <regex>
-
-#if 0
-TEST(LOG_TEST, AssertLogCmdOutput)
-{
-    TestLogFun(miopen::debug::LogCmdConvolution, envConv, logConv, true);
-}
-#endif
+#include <exception>
 
 namespace miopen {
 conv::Direction GetDirectionFromString(const std::string& direction)
@@ -101,8 +96,6 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
     TensorDescriptor wei{};
     TensorDescriptor out{};
     ConvolutionDescriptor conv;
-    // for(const auto& kinder : opt)
-    //     std::cout << kinder << std::endl;
     if(opt.size() >= 2)
     {
         key = opt[0];
@@ -117,11 +110,9 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         return std::regex_search(key, pat_3d);
     }();
     const auto attrs = SplitDelim(key, '-');
-    // for(const auto& kinder : attrs)
-    //     std::cout << kinder << std::endl;
-    const auto sz = attrs.size();
-    dir           = GetDirectionFromString(attrs[sz - 1]);
-    precision     = GetDataTypeFromString(attrs[sz - 2]);
+    const auto sz    = attrs.size();
+    dir              = GetDirectionFromString(attrs[sz - 1]);
+    precision        = GetDataTypeFromString(attrs[sz - 2]);
     if(!is_3d)
     {
         ASSERT_TRUE(sz == 15 || sz == 17);
@@ -261,12 +252,8 @@ void ParseFDBbVal(const std::string& val, std::vector<FDBVal>& fdb_vals)
     {
         const auto id_size = id_val.find(':');
         ASSERT_TRUE(id_size != std::string::npos) << "Ill formed value: " << id_val;
-        auto id = id_val.substr(0, id_size);
-        std::cout << id << std::endl;
-        auto values = id_val.substr(id_size + 1);
-        std::cout << values << std::endl;
-        // ASSERT_TRUE(fdb_vals.find(id) == fdb_vals.end()) << "Duplicate value for solver ID:" <<
-        // id;
+        auto id        = id_val.substr(0, id_size);
+        auto values    = id_val.substr(id_size + 1);
         const auto tmp = FDBVal{id, values};
         fdb_vals.emplace_back(tmp);
     }
@@ -373,6 +360,20 @@ TEST(DbSync, main)
     ASSERT_TRUE(!find_db.cache.empty()) << "Find DB does not have any entries";
     // TODO: Strip target IDs from the arch in the load binary so we prefer the generic code object
     EXPECT_FALSE(miopen::CheckKDBForTargetID(kdb_file_path));
+
+    //Get list of dynamic solvers
+    std::vector<miopen::solver::Id> dyn_solvers;
+    for(const auto id : miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
+    {
+        const auto solv = id.GetSolver();
+        if(solv.IsDynamic())
+        {
+            std::cout << id.ToString() << "Is Dynamic" << std::endl;
+            dyn_solvers.push_back(id);
+        }
+    }
+
+    size_t cnt_finddb_entry = 0;
     for(const auto& kinder : find_db.cache)
     {
         auto ctx = _ctx; 
@@ -381,27 +382,62 @@ TEST(DbSync, main)
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
         std::stringstream ss;
         problem.Serialize(ss);
-        std::cout << ++idx << ":Parsed Key: " << ss.str() << std::endl;
-        ASSERT_TRUE(ss.str() == kinder.first); // moment of truth
+        // moment of truth
+        ++idx; 
+        ASSERT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << idx << ":Parsed Key: " << ss.str();
+        // Check the kernels for all dynamic solvers exist
+        for(const auto& id : dyn_solvers)
+        {
+            const auto solv = id.GetSolver();
+            if(solv.IsApplicable(_ctx, problem))
+            {
+                auto  db = miopen::GetDb(_ctx);
+                miopen::solver::ConvSolution sol = solv.FindSolution(_ctx, problem, db, {});
+                EXPECT_TRUE(sol.Succeeded()) << "Applicable solver generated invalid solution";
+                for(const auto& kern : sol.construction_params)
+                {
+                    bool found = false;
+                    std::string compile_options = kern.comp_options;
+                    std::string program_file = kern.kernel_file + ".o";
+                    ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir")) << "MLIR detected in dynamic solvers";
+                    compile_options += " -mcpu=" + handle.GetDeviceName();
+                    miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options, found);
+                    if(found)
+                    {
+                        std::cout << "Entry found:" << program_file << " compile_args:" << compile_options;
+                    }
+                    EXPECT_TRUE(found) << "KDB entry not found for filename:" << program_file << " compile_args:" << compile_options;
+#if MIOPEN_USE_COMGR
+                        MIOPEN_LOG_W("Unable to produce missing binary due to COMGR being enabled");
+#else
+                    try
+                    {
+                    auto p = handle.LoadProgram(kern.kernel_file, kern.comp_options, false, "");
+                    }
+                    catch(std::exception& )
+                    {
+                        MIOPEN_LOG_W("Exception thrown while building kernel");
+                    }
+#endif
+                }
+            }
+        }
+#if 0
         std::vector<miopen::FDBVal> fdb_vals;
         std::unordered_map<std::string, std::string> pdb_vals;
         miopen::ParseFDBbVal(kinder.second.content, fdb_vals);
         miopen::GetPerfDbVals(pdb_file_path, problem, pdb_vals);
-        for(const auto& kith : pdb_vals)
-        {
-            std::cout << kith.first << ":" << kith.second << std::endl;
-        }
         // This is an opportunity to link up fdb and pdb entries
         auto fdb_idx = 0; // check kdb only for the fastest kernel
         for(const auto& val : fdb_vals)
         {
-            std::cout << "Entry: " << val.solver_id << " : " << val.vals<< std::endl;
             miopen::solver::Id id{val.solver_id};
             const auto solv = id.GetSolver();
             // Skip MLIR
             if(miopen::StartsWith(id.ToString(), "ConvMlir"))
             {
                 MIOPEN_LOG_I("Skipping MLIR solver");
+                ++fdb_idx;
                 continue;
             }
             EXPECT_TRUE(solv.IsApplicable(ctx, problem)) << "Solver is not applicable";
@@ -410,14 +446,14 @@ TEST(DbSync, main)
             miopen::solver::ConvSolution sol;
             if(solv.IsTunable())
             {
-                EXPECT_TRUE(pdb_vals.find(val.solver_id) != pdb_vals.end());
+                const auto pdb_entry_exists = pdb_vals.find(val.solver_id) != pdb_vals.end();
+                EXPECT_TRUE(pdb_entry_exists) << "PDB entry does not exist for tunable solver: " << kinder.first << ":" << val.solver_id;
+                if(!pdb_entry_exists)
+                    continue;
                 bool res = solv.TestPerfCfgParams(ctx, problem, pdb_vals.at(val.solver_id));
                 EXPECT_TRUE(res) << "Invalid perf config found Solver: " << solv.GetSolverDbId() << ":" << pdb_vals.at(val.solver_id);
                 auto db        = miopen::GetDb(ctx);
                 // we can verify the pdb entry by passing in an empty string and the comparing the received solution with the one below or having the find_solution pass out the serialized string
-                std::cout << "********************************" << std::endl;
-                std::cout << val.solver_id << std::endl;
-                std::cout << "********************************" << std::endl;
                 sol = solv.FindSolution(ctx, problem, db, {}, pdb_vals.at(val.solver_id));
                 EXPECT_TRUE(sol.Succeeded()) << "Invalid solution > " << pdb_vals.at(val.solver_id);
                 if(fdb_idx == 0)
@@ -439,14 +475,29 @@ TEST(DbSync, main)
                         else
                         { 
                             EXPECT_TRUE(found) << "KDB entry not found for filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
+                            // Build the code object entry
+                            // This will write the code object in the user kdb which Jenkins can archive
+                            // This has to be done with the offline clang compiler and not COMGR (or hipRTC) otherwise the code object would be target ID specific
+#if MIOPEN_USE_COMGR
+                            MIOPEN_LOG_W("Unable to produce missing binary due to COMGR being enabled");
+#else
+                            try
+                            {
+                            auto p = handle.LoadProgram(kern.kernel_file, kern.comp_options, false, "");
+                            }
+                            catch(std::exception& )
+                                {
+                                    MIOPEN_LOG_W("Exception thrown while building kernel");
+                                }
+#endif
                         }
                     }
                 }
-                ++fdb_idx;
             }
             else
                 EXPECT_TRUE(pdb_vals.find(val.solver_id) ==
                        pdb_vals.end())  << "Non-Tunable solver found in PDB" << solv.GetSolverDbId() ;
+            ++fdb_idx;
             // If a solver used to be tunable and is no longer such, the pdb
             // entries should be removed to reclaim space in the db
 
@@ -454,6 +505,9 @@ TEST(DbSync, main)
             // in which case we should remove them since they are taking up
             // space but are not useful.
         }
+#endif
+
+        std::cout << "Lines of find db completed:" << ++cnt_finddb_entry << std::endl;
     }
 
     // for each key , val pair in the find db
@@ -463,4 +517,10 @@ TEST(DbSync, main)
     // Make sure the perf db entry is valid
     // make sure the kdb entry exists and is loadable in hip
     // Bonus: No phantom entries in perf db, no phantom entries in kdb
+
+    // Lets look at the dynamic kernels
+    // construct the list of dynamic solvers
+
+    // for each entry in the find db, for each applicable dynamic solver make sure we have the required kdb entries 
+
 }

@@ -484,16 +484,15 @@ Program Handle::LoadProgram(const std::string& program_name,
     this->impl->set_ctx();
     std::string arch_name = this->GetTargetProperties().Name();
 
-    const auto get_params = [&](const auto& arch) {
-        if(!miopen::EndsWith(program_name, ".mlir"))
-            return params + " -mcpu=" + arch;
-        return params;
-    };
+    std::string orig_params = params; // make a copy for target ID fallback
+
+    if(!miopen::EndsWith(program_name, ".mlir"))
+        params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,
-                                    get_params(arch_name),
+                                    params,
                                     is_kernel_str);
     if(hsaco.empty())
     {
@@ -502,11 +501,16 @@ Program Handle::LoadProgram(const std::string& program_name,
         {
             // The target name has target ID in there, fall back on the generic code object
             const auto base_arch = arch_target_id.at(0);
-            hsaco = miopen::LoadBinary(this->GetTargetProperties(), this->GetMaxComputeUnits(),  program_name, get_params(base_arch), is_kernel_str);
+            hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
+                                       this->GetMaxComputeUnits(),
+                                       program_name,
+                                       orig_params + " -mcpu=" + base_arch,
+                                       is_kernel_str);
         }
     }
 
-    // Still unable to find the object, build it with the available compiler possibly a target ID specific code object
+    // Still unable to find the object, build it with the available compiler possibly a target ID
+    // specific code object
     if(hsaco.empty())
     {
         CompileTimer ct;
