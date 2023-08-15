@@ -58,48 +58,6 @@ constexpr inline S Ceil(const T val, const T div)
     return (val - 1 + div) / div;
 }
 
-auto PerfFieldRules()
-{
-    return seq::MakeRuleSet(std::make_tuple(seq::Span<int, 1, int(max_cu_limit)>{},
-                                            &PerformanceConfigConvWinoFuryRxS::n_groups));
-}
-
-template <size_t Winodata, size_t Winofilter>
-inline boost::optional<PerformanceConfigConvWinoFuryRxS>
-GetPerfConfFromEnv(const ConvolutionContext& ctx)
-{
-    PerformanceConfigConvWinoFuryRxS fromEnv;
-    std::string s;
-    const char* p_asciz = nullptr;
-    const char* env_name;
-
-    if(ConvWinoFuryRxS<Winodata, Winofilter>::is2x3())
-    {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3_PERF_VALS::value();
-    }
-    else if(ConvWinoFuryRxS<Winodata, Winofilter>::is3x2())
-    {
-        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2_PERF_VALS::value();
-    }
-
-    if(p_asciz == nullptr)
-        return {};
-
-    s = std::string(p_asciz);
-
-    if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx))
-    {
-        MIOPEN_LOG_E(env_name << "Tuning config: Bad value or invalid format: `" << s << '\'');
-        return boost::none;
-    }
-
-    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-
-    return fromEnv;
-}
-
 class ShaderModel : public UnifiedDescriptionConv2d
 {
     static constexpr uint32_t Tw  = 4;
@@ -139,7 +97,7 @@ public:
     uint32_t n_groups;
 
     ShaderModel(const ProblemDescription& problem,
-                int groups,
+                size_t groups,
                 size_t /*Winodata*/,
                 size_t /*Winofilter*/)
         : UnifiedDescriptionConv2d(problem),
@@ -172,7 +130,7 @@ public:
           o_H_window{static_cast<uint16_t>(out_h)},
           o_W_window{static_cast<uint16_t>(out_w)},
 
-          n_groups{static_cast<uint16_t>(groups)}
+          n_groups{static_cast<uint32_t>(groups)}
     {
         is_applicable = problem.IsFp16() && problem.Is2d() && problem.GetGroupCount() == 1 &&
                         problem.GetInLayout() == "NCHW";
@@ -216,70 +174,6 @@ public:
 
 } // namespace
 
-PerformanceConfigConvWinoFuryRxS::PerformanceConfigConvWinoFuryRxS(int n_groups_)
-    : n_groups(n_groups_)
-{
-}
-
-void PerformanceConfigConvWinoFuryRxS::HeuristicInit(const ConvolutionContext& ctx,
-                                                     const ProblemDescription& /*problem*/,
-                                                     size_t /*Winodata*/,
-                                                     size_t /*Winofilter*/)
-{
-    n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
-}
-
-bool PerformanceConfigConvWinoFuryRxS::SetNextValue(const ProblemDescription&)
-{
-    return !PerfFieldRules().Next(*this);
-}
-
-bool PerformanceConfigConvWinoFuryRxS::IsValidValue() const { return PerfFieldRules().IsIn(*this); }
-
-bool PerformanceConfigConvWinoFuryRxS::IsValid(const ConvolutionContext& ctx) const
-{
-    if(ctx.GetStream().GetMaxHardwareComputeUnits() < n_groups)
-        return false;
-
-    if(!IsValidValue())
-        return false;
-    return true;
-}
-
-bool PerformanceConfigConvWinoFuryRxS::operator==(
-    const PerformanceConfigConvWinoFuryRxS& other) const
-{
-    return n_groups == other.n_groups;
-}
-
-template <size_t Winodata, size_t Winofilter>
-PerformanceConfigConvWinoFuryRxS ConvWinoFuryRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
-{
-    PerformanceConfigConvWinoFuryRxS pp;
-    pp.HeuristicInit(ctx, problem, Winodata, Winofilter);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
-}
-
-template <size_t Winodata, size_t Winofilter>
-bool ConvWinoFuryRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
-    const ProblemDescription&,
-    const PerformanceConfigConvWinoFuryRxS& config) const
-{
-    return config.IsValidValue() && config.IsValid(ctx);
-}
-
-template <size_t Winodata, size_t Winofilter>
-PerformanceConfigConvWinoFuryRxS
-ConvWinoFuryRxS<Winodata, Winofilter>::Search(const ConvolutionContext& ctx,
-                                              const ProblemDescription& problem,
-                                              const AnyInvokeParams& invoke_ctx) const
-{
-    return GenericSearch(*this, ctx, problem, invoke_ctx);
-}
-
 template <size_t Winodata, size_t Winofilter>
 bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
                                                          const ProblemDescription& problem) const
@@ -303,7 +197,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContex
     if(!StartsWith(name, "gfx11"))
         return false;
 
-    int n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
+    auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
     return ShaderModel(problem, n_groups, Winodata, Winofilter).isApplicable();
 }
 
@@ -311,15 +205,14 @@ template <size_t Winodata, size_t Winofilter>
 float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ConvolutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
-    int n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
+    auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
     return ShaderModel(problem, n_groups, Winodata, Winofilter).GetWTI();
 }
 
 template <size_t Winodata, size_t Winofilter>
-ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
-    const ConvolutionContext& ctx,
-    const ProblemDescription& problem,
-    const PerformanceConfigConvWinoFuryRxS& config) const
+ConvSolution
+ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool IsWarned = false;
@@ -335,20 +228,14 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
 
     ConvSolution result;
 
-    const PerformanceConfigConvWinoFuryRxS* pcfg = &config;
-
-    const auto fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(ctx);
-    if(fromEnv)
-    {
-        pcfg = &(*fromEnv);
-    }
-
     const auto name = ctx.GetStream().GetDeviceName();
-    size_t wg_size  = 384;
+
+    const size_t wg_size  = 384;
+    const size_t n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
 
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups());
+    kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
@@ -440,7 +327,7 @@ ConvSolution ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(
         f_layout = GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true);
     }
 
-    ShaderModel conv(problem, config.n_groups, Winodata, Winofilter);
+    ShaderModel conv(problem, n_groups, Winodata, Winofilter);
 
     BuffInfo d_buf(d_layout,
                    conv.N,
