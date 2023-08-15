@@ -80,6 +80,13 @@ struct CKArgs
         rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
+
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
+    CKArgs& operator=(const CKArgs&) = default;
+    CKArgs& operator=(CKArgs&&) = default;
+    ~CKArgs()                   = default;
+
     int N;
     int K;
     int C;
@@ -226,40 +233,48 @@ void RunCKSolution(const Handle& handle,
     }
 }
 
+template <typename DataType>
+InvokerFactory MakeInvokerFactoryHelper(CKArgs ck_args, size_t config_idx)
+{
+    return std::move([ck_args = std::move(ck_args),
+                      config_idx](const std::vector<Kernel>& kernels) mutable {
+        std::ignore = kernels;
+
+        return std::move([ck_args = std::move(ck_args), config_idx](
+                             const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            RunCKSolution<DataType>(handle, primitive_parameters, ck_args, config_idx);
+        });
+    });
+}
+
+InvokerFactory MakeInvokerFactoryThrowError()
+{
+    return [](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "Convolution operation not implemented for this data type");
+        return [](const Handle&, const AnyInvokeParams&) {};
+    };
+}
+
 InvokerFactory
 MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
                                        const PerformanceConfigHipImplicitGemmFwdXdlops& config)
 {
 
-    auto ck_args               = CKArgs{problem};
-    miopenDataType_t data_type = problem.conv_problem.GetInDataType();
-    auto config_idx            = config.index;
+    auto ck_args          = CKArgs{problem};
+    const auto config_idx = config.index;
 
-    InvokerFactory ret =
-        [ck_args = std::move(ck_args), data_type, config_idx](const std::vector<Kernel>& kernels) {
-            std::ignore = kernels;
-            return [ck_args, data_type, config_idx](const Handle& handle,
-                                                    const AnyInvokeParams& primitive_parameters) {
-                switch(data_type)
-                {
-                case miopenInt8:
-                    RunCKSolution<int8_t>(handle, primitive_parameters, ck_args, config_idx);
-                    break;
-                case miopenHalf:
-                    RunCKSolution<ck::half_t>(handle, primitive_parameters, ck_args, config_idx);
-                    break;
-                case miopenFloat:
-                    RunCKSolution<float>(handle, primitive_parameters, ck_args, config_idx);
-                    break;
-                case miopenInt32:
-                case miopenInt8x4:
-                case miopenBFloat16:
-                case miopenDouble: break;
-                }
-            };
-        };
-
-    return ret;
+    switch(problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8: return MakeInvokerFactoryHelper<int8_t>(std::move(ck_args), config_idx);
+    case miopenHalf: return MakeInvokerFactoryHelper<ck::half_t>(std::move(ck_args), config_idx);
+    case miopenFloat: return MakeInvokerFactoryHelper<float>(std::move(ck_args), config_idx);
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: return MakeInvokerFactoryThrowError();
+    }
 }
 
 } // namespace
