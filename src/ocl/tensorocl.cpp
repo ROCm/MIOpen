@@ -1287,7 +1287,7 @@ void OpTensor(const Handle& handle,
                      blens[1] != clens[1] && blens[2] == clens[2];
     if(!is_squash)
     {
-        for(size_t i = 0; i < clens.size(); i++)
+        for(std::size_t i = 0; i < clens.size(); i++)
         {
             if(blens[i] != 1 && blens[i] != clens[i])
             {
@@ -1795,7 +1795,7 @@ void CopyTensor(const Handle& handle,
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
                                 GetDataTypeKernelParams(srcDesc_flat.GetType());
-            for(size_t i = 0; i < srcDim_flat; ++i)
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -2014,7 +2014,7 @@ void CastTensor(const Handle& handle,
                 GetCastTensorBuildOptionFromType(" -DMIOPEN_SRC_TYPE=", srcDesc_flat.GetType()) +
                 GetCastTensorBuildOptionFromType(" -DMIOPEN_DST_TYPE=", dstDesc_flat.GetType());
 
-            for(size_t i = 0; i < srcDim_flat; ++i)
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
