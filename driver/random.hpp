@@ -12,7 +12,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_LEGACY)
 inline std::minstd_rand& get_minstd_gen()
 {
     static thread_local std::minstd_rand minstd_gen{[]() {
-        auto external_seed = miopen::Value(MIOPEN_DRIVER_PRNG_SEED{}, 100500);
+        auto external_seed = miopen::Value(MIOPEN_DEBUG_DRIVER_PRNG_SEED{}, 100500);
 
         auto seed = external_seed == 0
                         ? std::random_device{}()
@@ -27,7 +27,7 @@ inline std::minstd_rand& get_minstd_gen()
 template <typename T>
 inline T FRAND()
 {
-    return miopen::IsEnabled(MIOPEN_DRIVER_PRNG_LEGACY{})
+    return miopen::IsEnabled(MIOPEN_DEBUG_DRIVER_PRNG_LEGACY{})
                ? static_cast<T>(rand() / (static_cast<double>(RAND_MAX)))
                : std::generate_canonical<T, 1>(get_minstd_gen());
 }
@@ -36,8 +36,8 @@ inline int GET_RAND()
 {
     using prng_type = std::decay_t<decltype(get_minstd_gen())>::result_type;
 
-    return miopen::IsEnabled(MIOPEN_DRIVER_PRNG_LEGACY{}) ? static_cast<prng_type>(rand())
-                                                          : get_minstd_gen()();
+    return miopen::IsEnabled(MIOPEN_DEBUG_DRIVER_PRNG_LEGACY{}) ? static_cast<prng_type>(rand())
+                                                                : get_minstd_gen()();
 }
 
 template <typename T>

@@ -30,12 +30,12 @@
 #include <iostream>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_PRNG_SEED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TEST_PRNG_SEED)
 
 inline std::minstd_rand& get_minstd_gen()
 {
     static thread_local std::minstd_rand minstd_gen{[]() {
-        auto external_seed = miopen::Value(MIOPEN_TEST_PRNG_SEED{}, 100500);
+        auto external_seed = miopen::Value(MIOPEN_DEBUG_TEST_PRNG_SEED{}, 100500);
 
         auto seed = external_seed == 0
                         ? std::random_device{}()
