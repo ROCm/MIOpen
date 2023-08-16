@@ -31,9 +31,7 @@
 #include <miopen/kernel_build_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2_PERF_VALS)
 
 namespace miopen {
 namespace solver {
@@ -96,10 +94,10 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          W{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutWidth()
-                                                                    : problem.GetInHeight())},
-          H{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutHeight()
-                                                                    : problem.GetInWidth())},
+          W{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetInHeight()
+                                                                    : problem.GetOutWidth())},
+          H{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetInWidth()
+                                                                    : problem.GetOutHeight())},
 
           d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
           d_W_clip{static_cast<int32_t>(We - pad_w)},
