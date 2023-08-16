@@ -204,6 +204,6 @@ protected:
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
     miopenConvBwdDataAlgorithm_t algo = miopenConvolutionBwdDataAlgoImplicitGEMM;
-    bool test_skipped             = false;
+    bool test_skipped                 = false;
     miopenTensorLayout_t tensor_layout;
 };
