@@ -256,7 +256,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
     std::stringstream kernel_name;
     std::stringstream kernel_file;
 
-    std::string_view kernel_version = "_v1_0_0";
+    std::string_view kernel_version = "_v1_1_1";
     kernel_name << "miopenSp3AsmConv_fury" << kernel_version;
     kernel_file << "Conv_Winograd_Fury" << kernel_version;
 
