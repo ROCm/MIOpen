@@ -461,13 +461,13 @@ tensor<Tout> ref_conv_bwd(const tensor<T>& input,
     {
         MIOPEN_LOG_W("GPU reference skipped");
         cpu_convolution_backward_data(filter.GetSpatialDimension(),
-                                        rin,
-                                        weights,
-                                        out,
-                                        filter.GetConvPads(),
-                                        filter.GetConvStrides(),
-                                        filter.GetConvDilations(),
-                                        filter.GetGroupCount());
+                                      rin,
+                                      weights,
+                                      out,
+                                      filter.GetConvPads(),
+                                      filter.GetConvStrides(),
+                                      filter.GetConvDilations(),
+                                      filter.GetGroupCount());
     }
     return rin;
 }
