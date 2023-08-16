@@ -236,15 +236,14 @@ void RunCKSolution(const Handle& handle,
 template <typename DataType>
 InvokerFactory MakeInvokerFactoryHelper(CKArgs ck_args, size_t config_idx)
 {
-    return std::move([ck_args = std::move(ck_args),
-                      config_idx](const std::vector<Kernel>& kernels) mutable {
+    return [ck_args = std::move(ck_args), config_idx](const std::vector<Kernel>& kernels) mutable {
         std::ignore = kernels;
 
-        return std::move([ck_args = std::move(ck_args), config_idx](
-                             const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+        return [ck_args = std::move(ck_args),
+                config_idx](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             RunCKSolution<DataType>(handle, primitive_parameters, ck_args, config_idx);
-        });
-    });
+        };
+    };
 }
 
 InvokerFactory MakeInvokerFactoryThrowError()
