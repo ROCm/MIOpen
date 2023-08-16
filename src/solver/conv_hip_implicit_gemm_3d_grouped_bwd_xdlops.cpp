@@ -32,7 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
@@ -41,12 +41,12 @@ namespace solver {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
-using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
+using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
     3,
-    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::NDHWGK,
     ck::tensor_layout::convolution::GKZYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NDHWGK,
+    ck::tensor_layout::convolution::NDHWGC,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -56,8 +56,8 @@ using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD
     ck::tensor_operation::element_wise::PassThrough>;
 
 template <typename DataType>
-using DeviceOpGFwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwd<DataType>>;
+using DeviceOpGBwdPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
 
 namespace {
 
@@ -132,10 +132,10 @@ struct CKArgs
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::Init(const ProblemDescription& problem)
 {
     const auto args      = CKArgs{problem};
-    const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
+    const auto conv_ptrs = DeviceOpGBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
@@ -143,14 +143,14 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
                                                               nullptr,
                                                               {},
                                                               nullptr,
-                                                              args.input,
-                                                              args.in_strides,
+                                                              args.output,
+                                                              args.out_strides,
                                                               args.weight,
                                                               args.wei_strides,
                                                               {},
                                                               {},
-                                                              args.output,
-                                                              args.out_strides,
+                                                              args.input,
+                                                              args.in_strides,
                                                               args.strides,
                                                               args.dilation,
                                                               args.lPadding,
@@ -169,11 +169,11 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
 }
 
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
+bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
     const auto args      = CKArgs{problem};
-    const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
+    const auto conv_ptrs = DeviceOpGBwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
@@ -190,14 +190,14 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
                                                           nullptr,
                                                           {},
                                                           nullptr,
-                                                          args.input,
-                                                          args.in_strides,
+                                                          args.output,
+                                                          args.out_strides,
                                                           args.weight,
                                                           args.wei_strides,
                                                           {},
                                                           {},
-                                                          args.output,
-                                                          args.out_strides,
+                                                          args.input,
+                                                          args.in_strides,
                                                           args.strides,
                                                           args.dilation,
                                                           args.lPadding,
@@ -209,10 +209,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
+bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
+    const auto conv_ptrs = DeviceOpGBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{problem};
     for(int i = 0; i < conv_ptrs.size(); i++)
@@ -221,14 +221,14 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
                                                               nullptr,
                                                               {},
                                                               nullptr,
-                                                              args.input,
-                                                              args.in_strides,
+                                                              args.output,
+                                                              args.out_strides,
                                                               args.weight,
                                                               args.wei_strides,
                                                               {},
                                                               {},
-                                                              args.output,
-                                                              args.out_strides,
+                                                              args.input,
+                                                              args.in_strides,
                                                               args.strides,
                                                               args.dilation,
                                                               args.lPadding,
@@ -248,10 +248,10 @@ template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
                    const ProblemDescription& problem,
-                   const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+                   const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& config)
 {
     const auto args      = CKArgs{problem};
-    const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
+    const auto conv_ptrs = DeviceOpGBwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
@@ -272,14 +272,14 @@ void RunCKSolution(const Handle& handle,
             static_cast<const void*>(tensors.w)),
         {},
         static_cast<void*>(tensors.out),
-        args.input,
-        args.in_strides,
+        args.output,
+        args.out_strides,
         args.weight,
         args.wei_strides,
         {},
         {},
-        args.output,
-        args.out_strides,
+        args.input,
+        args.in_strides,
         args.strides,
         args.dilation,
         args.lPadding,
@@ -302,7 +302,7 @@ void RunCKSolution(const Handle& handle,
 } // namespace
 #endif
 
-void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
+void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     const ProblemDescription& problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -321,7 +321,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
+bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::SetNextValue(
     const ProblemDescription& problem)
 {
     if(valid_kernels.empty())
@@ -340,12 +340,12 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValidValue() const
+bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValidValue() const
 {
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
+bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -366,38 +366,38 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
-    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const
+bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::operator==(
+    const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
 
-PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
+PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+ConvHipImplicitGemm3DGroupBwdXdlops::GetDefaultPerformanceConfig(
     const ConvolutionContext&, const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops pp;
     pp.HeuristicInit(problem);
     return pp;
 }
 
-bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemm3DGroupBwdXdlops::IsValidPerformanceConfig(
     const ConvolutionContext&,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& config) const
 {
     return config.IsValid(problem);
 }
 
-PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ConvolutionContext& ctx,
+PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+ConvHipImplicitGemm3DGroupBwdXdlops::Search(const ConvolutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -436,10 +436,10 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
 #endif
 }
 
-ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
+ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     const ConvolutionContext& ctx,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& config) const
 {
     std::ignore = ctx;
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
