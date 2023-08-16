@@ -2263,6 +2263,22 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX103X_ENABLED GFX110X_
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
+add_custom_test(smoke_solver_ConvWinogradFuryRxSf3x2_f16 GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
+      ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
+      ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 3 3 8 8 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
+      ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+# FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW GFX94X_DISABLED HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>' $<TARGET_FILE:test_conv2d>
