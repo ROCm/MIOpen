@@ -362,7 +362,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
     auto f_strides       = f_buf.stride;
     f_strides.h          = is_forward || is_backWrW ? f_strides.h : -f_strides.h;
     f_strides.w          = is_forward || is_backWrW ? f_strides.w : -f_strides.w;
-    uint32_t f_RS_offset = is_forward ? 0 : ((conv.R - 1) * conv.S + (conv.S - 1));
+    uint32_t f_RS_offset = is_forward || is_backWrW ? 0 : ((conv.R - 1) * conv.S + (conv.S - 1));
 
     result.invoker_factory = [=](std::vector<Kernel> kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
