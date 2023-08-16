@@ -41,7 +41,6 @@ amdhsa.kernels:
     .symbol: \kernel_name\().kd
     .language: "OpenCL C"
     .language_version: [ 1, 2 ]
-    .lds_size: 65536
     .sgpr_count: \sc
     .vgpr_count: \wc
     .group_segment_fixed_size: 65536
