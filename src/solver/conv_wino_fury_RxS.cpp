@@ -136,7 +136,7 @@ public:
           n_groups{static_cast<uint32_t>(groups)}
     {
         is_applicable = problem.IsFp16() && problem.Is2d() && problem.GetGroupCount() == 1 &&
-                        problem.GetInLayout() == "NCHW";
+                        problem.GetInLayout() == "NCHW" && !problem.direction.IsBackwardWrW();
     }
 
     float GetWTI() const { return -2.f; } // unknown
