@@ -197,7 +197,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContex
         return false;
 
     const auto name = ctx.GetStream().GetDeviceName();
-    if(!StartsWith(name, "gfx1100"))
+    if(!(StartsWith(name, "gfx1100") || StartsWith(name, "gfx1101")))
         return false;
 
     auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -307,6 +307,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
     // constexpr uint8_t SCALED_TANH = 3;
     uint8_t activation_mode = IDENTITY;
 
+    // constexpr uint32_t F_ADDR_INDIRECT  = 1 << 6;
+    // constexpr uint32_t F_TENSOR_OFFSETS = 1 << 13;
     uint32_t flags = 0;
 
     const bool is_forward = problem.direction.IsForward();
@@ -374,6 +376,9 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
             const auto out_tensors =
                 !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
                             : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+
+            float alpha_beta_reserved = 0.0f;
+            uint64_t offset_reserved  = 0;
 
             // clang-format off
             MIOPEN_LOG_I2(
@@ -445,7 +450,13 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
               activation_mode,
               static_cast<uint8_t>(0),
               static_cast<uint16_t>(0),
-              0.0f);
+              alpha_beta_reserved,
+              alpha_beta_reserved,
+              offset_reserved,
+              offset_reserved,
+              offset_reserved,
+              offset_reserved,
+              offset_reserved);
         };
     };
 

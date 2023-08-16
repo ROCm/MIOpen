@@ -45,7 +45,7 @@ amdhsa.kernels:
     .vgpr_count: \wc
     .group_segment_fixed_size: 65536
     .private_segment_fixed_size: 0
-    .kernarg_segment_size: 168
+    .kernarg_segment_size: 208
     .kernarg_segment_align: 8
     .reqd_workgroup_size: [ \wg_x, 1, 1 ]
     .max_flat_workgroup_size: \wg_x
@@ -96,11 +96,17 @@ amdhsa.kernels:
     - { .size: 2, .offset: 134, .value_kind: hidden_none }
 
     - { .size: 4, .offset: 136, .value_kind: by_value, .name: alpha }
-    - { .size: 4, .offset: 140, .value_kind: hidden_none }
+    - { .size: 4, .offset: 140, .value_kind: by_value, .name: beta }
 
-    - { .size: 8, .offset: 144, .value_kind: hidden_global_offset_x }
-    - { .size: 8, .offset: 152, .value_kind: hidden_global_offset_y }
-    - { .size: 8, .offset: 160, .value_kind: hidden_global_offset_z }
+    - { .size: 8, .offset: 144, .value_kind: by_value, .name: d_offset }
+    - { .size: 8, .offset: 152, .value_kind: by_value, .name: o_offset }
+    - { .size: 8, .offset: 160, .value_kind: by_value, .name: f_offset }
+    - { .size: 8, .offset: 168, .value_kind: hidden_none }
+    - { .size: 8, .offset: 176, .value_kind: by_value, .name: b_offset }
+
+    - { .size: 8, .offset: 184, .value_kind: hidden_global_offset_x }
+    - { .size: 8, .offset: 192, .value_kind: hidden_global_offset_y }
+    - { .size: 8, .offset: 200, .value_kind: hidden_global_offset_z }
 ...
 .end_amdgpu_metadata
 .endm // METADATA
