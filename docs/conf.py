@@ -6,7 +6,6 @@
 
 from rocm_docs import ROCmDocs
 
-
 external_projects_current_project = "miopen"
 
 docs_core = ROCmDocs("MIOpen Documentation")

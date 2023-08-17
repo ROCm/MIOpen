@@ -23,46 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv_common.hpp"
-
-template <class T>
-struct conv2d_driver : conv_driver<T>
-{
-    conv2d_driver() : conv_driver<T>()
-    {
-        this->add(this->input_dims, "input");
-        this->add(this->weight_tensor_dims, "weights");
-        this->add(this->batch_size,
-                  "batch_size",
-                  this->generate_data_limited(this->get_batch_sizes(), 1));
-        this->add(this->input_channels,
-                  "input_channels",
-                  this->generate_data_limited(this->get_input_channels(), 1, {32}));
-        this->add(this->output_channels,
-                  "output_channels",
-                  this->generate_data_limited(this->get_output_channels(), 1, {64}));
-        this->add(this->spatial_dim_elements,
-                  "spatial_dim_elements",
-                  this->generate_data_limited(this->get_2d_spatial_dims(), 1, {28, 28}));
-        this->add(this->filter_dims,
-                  "filter_dims",
-                  this->generate_data_limited(this->get_2d_filter_dims(), 2, {3, 3}));
-        this->add(this->pads_strides_dilations,
-                  "pads_strides_dilations",
-                  this->generate_data_limited(this->get_2d_pads_strides_dilations(), 2));
-        this->add(this->trans_output_pads,
-                  "trans_output_pads",
-                  this->generate_data(this->get_2d_trans_output_pads()));
-        this->add(this->in_layout, "in_layout", this->generate_data({"NCHW"}));
-        this->add(this->fil_layout, "fil_layout", this->generate_data({"NCHW"}));
-        this->add(this->out_layout, "out_layout", this->generate_data({"NCHW"}));
-        this->add(this->deterministic, "deterministic", this->generate_data({false}));
-        this->add(this->tensor_vect, "tensor_vect", this->generate_data({0}));
-        this->add(this->vector_length, "vector_length", this->generate_data({1}));
-        // Only valid for int8 input and weights
-        this->add(this->output_type, "output_type", this->generate_data({"int32"}));
-        this->add(this->int8_vectorize, "int8_vectorize", this->generate_data({false}));
-    }
-};
+#include "conv2d.hpp"
 
 int main(int argc, const char* argv[]) { test_drive<conv2d_driver>(argc, argv); }
