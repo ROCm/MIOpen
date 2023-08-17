@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "solver_fwd.hpp"
+
 struct ConvFwdFp8 : ConvFwdSolverTest<float8, float>
 {
 };
@@ -58,10 +59,12 @@ TEST_P(ConvFwdFp8Naive, Fwd)
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdFp8,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::Values(miopenTensorNCHW)));
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdFp8Naive,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::Values(miopenTensorNCHW)));

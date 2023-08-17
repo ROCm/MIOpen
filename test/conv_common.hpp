@@ -413,7 +413,7 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     auto rout = out;
     if(filter.mode == miopenTranspose)
     {
-        std::fill(rout.begin(), rout.end(), 0);
+        std::fill(rout.begin(), rout.end(), static_cast<Tout>(0));
         bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
         if(!gpu_ref_used)
         {

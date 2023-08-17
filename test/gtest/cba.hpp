@@ -38,7 +38,6 @@
 #include "conv_common.hpp"
 
 #include "conv_test_base.hpp"
-#include "conv_test_case.hpp"
 #include "conv_tensor_gen.hpp"
 
 template <typename T = float>

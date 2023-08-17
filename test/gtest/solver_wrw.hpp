@@ -36,7 +36,7 @@
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 
-#include "conv_test_case.hpp"
+#include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
 
 #include "get_solver.hpp"
