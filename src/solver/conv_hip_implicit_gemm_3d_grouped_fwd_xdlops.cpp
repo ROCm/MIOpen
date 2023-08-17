@@ -317,6 +317,8 @@ MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
                 break;
             case miopenInt32:
             case miopenInt8x4:
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenBFloat16:
             case miopenDouble: break;
             }
@@ -342,6 +344,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -386,6 +390,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -456,6 +462,8 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
