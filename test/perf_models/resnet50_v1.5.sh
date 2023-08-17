@@ -7,9 +7,15 @@
 # for backwards data, they are weights and output tensors
 # for backwards weights, they are input and output tensors
 export MIOPEN_DRIVER_USE_GPU_REFERENCE=1
+# Enable/Disable if needed
 export MIOPEN_FIND_MODE=1
-export MIOPEN_DISABLE_CACHE=1
+# export MIOPEN_DISABLE_CACHE=1
 export MIOPEN_LOG_LEVEL=7
+# algorithm control
+export MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=0
+export MIOPEN_DEBUG_CONV_DIRECT=0
+export MIOPEN_DEBUG_CONV_WINOGRAD=0
+# export MIOPEN_DEBUG_CONV_GEMM=0
 
 cmd=$1
 bs=$2
