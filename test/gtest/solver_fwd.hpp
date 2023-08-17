@@ -64,7 +64,6 @@ struct ConvFwdSolverTest
                                              miopen::conv::Direction::Forward});
         const miopen::ConvolutionContext ctx = [&] {
             auto tmp = miopen::ConvolutionContext{&handle};
-            tmp.DetectRocm();
             problem.conv_problem.SetupFloats(tmp);
             return tmp;
         }();

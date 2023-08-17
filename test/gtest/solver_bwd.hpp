@@ -62,7 +62,6 @@ struct ConvBwdSolverTest
         const auto problem                   = miopen::ProblemDescription{conv_problem};
         const miopen::ConvolutionContext ctx = [&] {
             auto tmp = miopen::ConvolutionContext{&handle};
-            tmp.DetectRocm();
             problem.conv_problem.SetupFloats(tmp);
             return tmp;
         }();
