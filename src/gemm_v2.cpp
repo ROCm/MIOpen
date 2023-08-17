@@ -64,25 +64,6 @@
 #include <boost/range/adaptors.hpp>
 #include <tuple> // std::ignore
 
-/////////////
-// TODO Remove!!!
-#if 1
-typedef enum rocblas_computetype_
-{
-    rocblas_compute_type_f8_f8_f32,
-    rocblas_compute_type_f8_bf8_f32,
-    rocblas_compute_type_bf8_f8_f32,
-    rocblas_compute_type_bf8_bf8_f32,
-    rocblas_compute_type_f32
-} rocblas_computetype;
-
-rocblas_status rocblas_gemm_ex3(rocblas_handle...) { return rocblas_status_not_implemented; }
-
-#define rocblas_datatype_f8_r rocblas_datatype_invalid
-#define rocblas_datatype_bf8_r rocblas_datatype_invalid
-#endif
-/////////////
-
 #if MIOPEN_USE_ROCBLAS
 
 /// Avoid warnings "The workspace_size and workspace arguments are obsolete" and
