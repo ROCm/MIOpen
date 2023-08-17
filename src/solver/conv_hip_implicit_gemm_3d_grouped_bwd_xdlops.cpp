@@ -215,6 +215,40 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
     const auto conv_ptrs = DeviceOpGBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{problem};
+    std::cout << "************************G: " << args.G << std::endl;
+    std::cout << "************************N: " << args.N << std::endl;
+    std::cout << "************************K: " << args.K << std::endl;
+    std::cout << "************************C: " << args.C << std::endl;
+    std::cout << "***********************Di: " << args.input[0] << std::endl;
+    std::cout << "***********************Hi: " << args.input[1] << std::endl;
+    std::cout << "***********************Wi: " << args.input[2] << std::endl;
+    std::cout << "***********************Do: " << args.output[0] << std::endl;
+    std::cout << "***********************Ho: " << args.output[1] << std::endl;
+    std::cout << "***********************Wo: " << args.output[2] << std::endl;
+    std::cout << "************************Z: " << args.weight[0] << std::endl;
+    std::cout << "************************Y: " << args.weight[1] << std::endl;
+    std::cout << "************************X: " << args.weight[2] << std::endl;
+
+    std::cout << "***input strides: " << std::endl;
+    for(auto x : args.in_strides)
+    {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "***weight strides: " << std::endl;
+    for(auto x : args.wei_strides)
+    {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "****output strides: " << std::endl;
+    for(auto x : args.out_strides)
+    {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -239,6 +273,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
+    std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
 
@@ -413,7 +448,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
        problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.direction.IsBackwardData())
         return false;
     if(!problem.Is3d())
         return false;
