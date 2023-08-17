@@ -179,7 +179,7 @@ protected:
 
         auto&& handle = get_handle();
 
-        ref_wei      = tensor<T>{miopen_type<T>{}, tensor_layout, input.desc.GetLengths()};
+        ref_wei      = tensor<T>{miopen_type<T>{}, tensor_layout, weights.desc.GetLengths()};
         ref_wei      = ref_conv_wrw(input, weights, output, conv_desc);
         weights.data = handle.Read<T>(wei_dev, weights.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_wei)) << "Cpu data is all zeros";
