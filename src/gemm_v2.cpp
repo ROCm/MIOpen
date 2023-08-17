@@ -76,10 +76,7 @@ typedef enum rocblas_computetype_
     rocblas_compute_type_f32
 } rocblas_computetype;
 
-rocblas_status rocblas_gemm_ex3(rocblas_handle...)
-{
-    return rocblas_status_not_implemented;
-}
+rocblas_status rocblas_gemm_ex3(rocblas_handle...) { return rocblas_status_not_implemented; }
 
 #define rocblas_datatype_f8_r rocblas_datatype_invalid
 #define rocblas_datatype_bf8_r rocblas_datatype_invalid
