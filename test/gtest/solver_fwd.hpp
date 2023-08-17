@@ -40,17 +40,28 @@
 #include "get_solver.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
-struct ConvFwdSolverTest : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>, ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
+struct ConvFwdSolverTest
+    : public ::testing::TestWithParam<
+          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>,
+      ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
     template <typename Solver>
     void SolverFwd(Solver solv)
     {
         auto&& handle = get_handle();
 
-        const auto tensors = miopen::ConvFwdTensors{
-            this->input.desc, this->in_dev.get(), this->weights.desc, this->wei_dev.get(), this->output.desc, this->out_dev.get()};
-        const auto problem = miopen::ProblemDescription(miopen::conv::ProblemDescription{
-            this->input.desc, this->weights.desc, this->output.desc, this->conv_desc, miopen::conv::Direction::Forward});
+        const auto tensors = miopen::ConvFwdTensors{this->input.desc,
+                                                    this->in_dev.get(),
+                                                    this->weights.desc,
+                                                    this->wei_dev.get(),
+                                                    this->output.desc,
+                                                    this->out_dev.get()};
+        const auto problem = miopen::ProblemDescription(
+            miopen::conv::ProblemDescription{this->input.desc,
+                                             this->weights.desc,
+                                             this->output.desc,
+                                             this->conv_desc,
+                                             miopen::conv::Direction::Forward});
         const miopen::ConvolutionContext ctx = [&] {
             auto tmp = miopen::ConvolutionContext{&handle};
             tmp.DetectRocm();
@@ -93,7 +104,7 @@ struct ConvFwdSolverTest : public ::testing::TestWithParam<std::tuple<miopenConv
 protected:
     void SetUp() override
     {
-        test_skipped                = false;
+        test_skipped                               = false;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         this->SetUpImpl(conv_config, tensor_layout);
     }
