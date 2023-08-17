@@ -246,16 +246,6 @@ InvokerFactory MakeInvokerFactoryHelper(CKArgs ck_args, size_t config_idx)
     };
 }
 
-InvokerFactory MakeInvokerFactoryThrowError()
-{
-    return [](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        MIOPEN_THROW(miopenStatusNotImplemented,
-                     "Convolution operation not implemented for this data type");
-        return [](const Handle&, const AnyInvokeParams&) {};
-    };
-}
-
 InvokerFactory
 MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
                                        const PerformanceConfigHipImplicitGemmFwdXdlops& config)
@@ -272,7 +262,10 @@ MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenDouble: return MakeInvokerFactoryThrowError();
+    case miopenDouble:
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
     }
 }
 
