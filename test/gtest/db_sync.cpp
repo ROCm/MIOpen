@@ -358,7 +358,6 @@ TEST(DBSync, KDBTargetID)
 
 void BuildKernel(const std::string& program_file, const std::string& program_args)
 {
-    auto& handle =  get_handle();
     // Build the code object entry
     // This will write the code object in the user kdb which Jenkins can archive
     // This has to be done with the offline clang compiler and not COMGR (or hipRTC) otherwise the code object would be target ID specific
@@ -367,6 +366,7 @@ void BuildKernel(const std::string& program_file, const std::string& program_arg
     std::ignore = program_file;
     std::ignore = program_args;
 #else
+    auto& handle =  get_handle();
     try
     {
         auto p = handle.LoadProgram(program_file, program_args, false, "");
