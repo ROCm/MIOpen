@@ -964,6 +964,12 @@ void OpTensorOther(const Handle& handle,
     auto bsize    = blens.size();
     auto cstrides = cTensorDesc.GetStrides();
 
+    const bool case_1d = bsize == 1;
+    const bool case_2d = bsize == 2;
+    const bool case_5d = bsize == 5;
+
+    const bool use_hip = case_1d;
+
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
     auto d             = std::distance(blens.begin(), first_not_one.base());
@@ -994,13 +1000,15 @@ void OpTensorOther(const Handle& handle,
 
     size_t local_threads = 256;
 
-    std::string program_name = "MIOpenTensorKernels.cl";
+    std::string program_name = use_hip ? "MIOpenTensorKernelsHip.cpp" : "MIOpenTensorKernels.cl";
 
     const std::vector<size_t> vld{local_threads, 1, 1};
 
     // Special case for adding tensors in place
     size_t global_threads;
-    global_threads = num_wg * local_threads;
+    global_threads =
+        (case_1d ? std::clamp(clens[0] / local_threads, size_t(1), size_t(max_num_wg)) : num_wg) *
+        local_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -1014,7 +1022,7 @@ void OpTensorOther(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(bsize == 5)
+        if(case_5d)
         {
             auto&& kernels = handle.GetKernels("Op5dTensorGeneric", network_config);
 
@@ -1056,7 +1064,7 @@ void OpTensorOther(const Handle& handle,
                 return;
             }
         }
-        else if(bsize == 2)
+        else if(case_2d)
         {
             auto&& kernels = handle.GetKernels("Op2dTensorGeneric", network_config);
 
@@ -1083,7 +1091,7 @@ void OpTensorOther(const Handle& handle,
                 return;
             }
         }
-        else if(bsize == 1)
+        else if(case_1d)
         {
             auto&& kernels = handle.GetKernels("Op1dTensorGeneric", network_config);
 
@@ -1093,18 +1101,18 @@ void OpTensorOther(const Handle& handle,
                 auto kernel = kernels.front();
                 kernel(ATensor,
                        BTensor,
-                       int(blens[0]),
                        CTensor,
-                       int(clens[0]),
+                       uint64_t(Aoffset),
+                       uint64_t(Boffset),
+                       uint64_t(Coffset),
+                       uint32_t(astrides[0]),
+                       uint32_t(blens[0] == 1 ? 0 : bstrides[0]),
+                       uint32_t(cstrides[0]),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       bitmap,
-                       work_per_wg,
-                       long(Aoffset),
-                       long(Boffset),
-                       long(Coffset),
-                       int(num_wg_orig));
+                       uint32_t(clens[0]),
+                       !float_equal(miopen_beta, 0.0));
                 return;
             }
         }
@@ -1123,7 +1131,7 @@ void OpTensorOther(const Handle& handle,
         case 3: parms += "miopenMax"; break;
         }
 
-        if(bsize == 5)
+        if(case_5d)
         {
             parms += " -DUSE_5D_TENSOR_GENERIC";
 
@@ -1166,7 +1174,7 @@ void OpTensorOther(const Handle& handle,
                                     long(Coffset),
                                     int(num_wg_orig));
         }
-        else if(bsize == 2)
+        else if(case_2d)
         {
             parms += " -DUSE_2D_TENSOR_GENERIC";
 
@@ -1194,7 +1202,7 @@ void OpTensorOther(const Handle& handle,
                                     long(Coffset),
                                     int(num_wg_orig));
         }
-        else if(bsize == 1)
+        else if(case_1d)
         {
             parms += " -DUSE_1D_TENSOR_GENERIC";
 
@@ -1206,18 +1214,18 @@ void OpTensorOther(const Handle& handle,
                              vgd,
                              parms)(ATensor,
                                     BTensor,
-                                    int(blens[0]),
                                     CTensor,
-                                    int(clens[0]),
+                                    uint64_t(Aoffset),
+                                    uint64_t(Boffset),
+                                    uint64_t(Coffset),
+                                    uint32_t(astrides[0]),
+                                    uint32_t(blens[0] == 1 ? 0 : bstrides[0]),
+                                    uint32_t(cstrides[0]),
                                     miopen_alpha0,
                                     miopen_alpha1,
                                     miopen_beta,
-                                    bitmap,
-                                    work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_orig));
+                                    uint32_t(clens[0]),
+                                    !float_equal(miopen_beta, 0.0));
         }
     });
 }
