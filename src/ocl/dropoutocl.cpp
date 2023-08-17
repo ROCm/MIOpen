@@ -132,8 +132,8 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    size_t states_num = prng_stateSizeInBytes / sizeof(prngStates);
-    size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
+    unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    size_t wk_grp_num             = std::min(MAX_PRNG_STATE / 256ULL, (states_num + 255) / 256);
 
     std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
                                  std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
@@ -141,9 +141,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(prng_states,
-                        static_cast<unsigned int>(prng_seed),
-                        static_cast<unsigned int>(states_num));
+        kernels.front()(prng_states, prng_seed, states_num);
     }
     else
     {
@@ -157,9 +155,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
 #endif
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            prng_states,
-            static_cast<unsigned int>(prng_seed),
-            static_cast<unsigned int>(states_num));
+            prng_states, prng_seed, states_num);
 #if DROPOUT_DEBUG
         std::cout << "Succeeded in launching InitPRNGState()." << stateSizeInBytes << std::endl;
 #endif
