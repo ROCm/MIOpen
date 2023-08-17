@@ -43,7 +43,11 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else
@@ -59,6 +63,28 @@
 
 #include <boost/range/adaptors.hpp>
 #include <tuple> // std::ignore
+
+/////////////
+// TODO Remove!!!
+#if 1
+typedef enum rocblas_computetype_
+{
+    rocblas_compute_type_f8_f8_f32,
+    rocblas_compute_type_f8_bf8_f32,
+    rocblas_compute_type_bf8_f8_f32,
+    rocblas_compute_type_bf8_bf8_f32,
+    rocblas_compute_type_f32
+} rocblas_computetype;
+
+rocblas_status rocblas_gemm_ex3(rocblas_handle...)
+{
+    return rocblas_status_not_implemented;
+}
+
+#define rocblas_datatype_f8_r rocblas_datatype_invalid
+#define rocblas_datatype_bf8_r rocblas_datatype_invalid
+#endif
+/////////////
 
 #if MIOPEN_USE_ROCBLAS
 

@@ -36,7 +36,11 @@
 
 #include "serialize.hpp"
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include <miopen/hip_float8.h>
