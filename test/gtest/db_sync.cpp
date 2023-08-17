@@ -50,7 +50,7 @@ conv::Direction GetDirectionFromString(const std::string& direction)
         return conv::Direction::BackwardData;
     else if(direction == "W")
         return conv::Direction::BackwardWeights;
-    MIOPEN_THROW("Invalid Direction");
+    throw std::runtime_error("Invalid Direction");
 }
 miopenTensorLayout_t GetLayoutFromString(const std::string& layout)
 {
@@ -62,7 +62,7 @@ miopenTensorLayout_t GetLayoutFromString(const std::string& layout)
         return miopenTensorNCDHW;
     else if(layout == "NDHWC")
         return miopenTensorNDHWC;
-    MIOPEN_THROW("Invalid layout");
+    throw std::runtime_error("Invalid Layout");
 }
 miopenDataType_t GetDataTypeFromString(const std::string& data_type)
 {
@@ -128,26 +128,12 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
             throw std::runtime_error{"FDB key parsing error"};
         }();
 
-        // if(dir == conv::Direction::Forward)
-        {
-            in_channels  = std::stoi(attrs[0]);
-            in_h         = std::stoi(attrs[1]);
-            in_w         = std::stoi(attrs[2]);
-            out_channels = std::stoi(attrs[4]);
-            out_h        = std::stoi(attrs[5]);
-            out_w        = std::stoi(attrs[6]);
-        }
-#if 0
-        else
-        {
-            out_channels = std::stoi(attrs[0]);
-            out_h        = std::stoi(attrs[1]);
-            out_w        = std::stoi(attrs[2]);
-            in_h         = std::stoi(attrs[5]);
-            in_w         = std::stoi(attrs[6]);
-            in_channels  = std::stoi(attrs[4]);
-        }
-#endif
+        in_channels             = std::stoi(attrs[0]);
+        in_h                    = std::stoi(attrs[1]);
+        in_w                    = std::stoi(attrs[2]);
+        out_channels            = std::stoi(attrs[4]);
+        out_h                   = std::stoi(attrs[5]);
+        out_w                   = std::stoi(attrs[6]);
         batchsize               = std::stoi(attrs[7]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
@@ -184,30 +170,14 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
                                   GetLayoutFromString(attrs[16])};
         }();
 
-        // if(dir == conv::Direction::Forward)
-        {
-            in_channels  = std::stoi(attrs[0]);
-            in_d         = std::stoi(attrs[1]);
-            in_h         = std::stoi(attrs[2]);
-            in_w         = std::stoi(attrs[3]);
-            out_channels = std::stoi(attrs[5]);
-            out_d        = std::stoi(attrs[6]);
-            out_h        = std::stoi(attrs[7]);
-            out_w        = std::stoi(attrs[8]);
-        }
-#if 0
-        else
-        {
-            out_channels = std::stoi(attrs[0]);
-            out_d        = std::stoi(attrs[1]);
-            out_h        = std::stoi(attrs[2]);
-            out_w        = std::stoi(attrs[3]);
-            in_channels  = std::stoi(attrs[5]);
-            in_d         = std::stoi(attrs[6]);
-            in_h         = std::stoi(attrs[7]);
-            in_w         = std::stoi(attrs[8]);
-        }
-#endif
+        in_channels             = std::stoi(attrs[0]);
+        in_d                    = std::stoi(attrs[1]);
+        in_h                    = std::stoi(attrs[2]);
+        in_w                    = std::stoi(attrs[3]);
+        out_channels            = std::stoi(attrs[5]);
+        out_d                   = std::stoi(attrs[6]);
+        out_h                   = std::stoi(attrs[7]);
+        out_w                   = std::stoi(attrs[8]);
         batchsize               = std::stoi(attrs[9]);
         const auto split_tensor = [](const std::string& s) {
             const auto tmp = miopen::SplitDelim(s, 'x');
@@ -286,7 +256,7 @@ void GetPerfDbVals(const boost::filesystem::path& filename,
         else if(rc == SQLITE_DONE)
             break;
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+            throw std::runtime_error(sql.ErrorMessage());
     }
 }
 
@@ -310,7 +280,7 @@ void CheckKDBObjects(const boost::filesystem::path& filename,
         else if(rc == SQLITE_DONE)
             break;
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+            throw std::runtime_error(sql.ErrorMessage());
     }
     found = count != 0;
 }
@@ -331,7 +301,7 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
         else if(rc == SQLITE_DONE)
             break;
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
-            MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+            throw std::runtime_error(sql.ErrorMessage());
     }
     return count != 0;
 }
@@ -353,7 +323,6 @@ struct std::hash<KDBKey>
 {
     std::size_t operator()(const KDBKey& k) const
     {
-        using std::size_t;
         using std::hash;
         using std::string;
 
@@ -414,10 +383,10 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
 
-    const auto find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     size_t idx         = 0;
     // assert that find_db.cache is not empty, since that indicates the file was not readable
-    ASSERT_TRUE(!find_db.cache.empty()) << "Find DB does not have any entries";
+    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
      //Get list of dynamic solvers
     std::vector<miopen::solver::Id> dyn_solvers;
@@ -437,7 +406,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     _ctx.SetStream(&handle);
     _ctx.DetectRocm();
 
-    for(const auto& kinder : find_db.cache)
+    for(const auto& kinder : find_db.GetCacheMap())
     {
         auto ctx = _ctx; 
         miopen::conv::ProblemDescription problem;
@@ -482,10 +451,10 @@ TEST(DbSync, StaticFDBSync)
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
 
-    const auto find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     size_t idx         = 0;
     // assert that find_db.cache is not empty, since that indicates the file was not readable
-    ASSERT_TRUE(!find_db.cache.empty()) << "Find DB does not have any entries";
+    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
     std::unordered_map<KDBKey, bool> checked_kdbs;
 
@@ -494,7 +463,7 @@ TEST(DbSync, StaticFDBSync)
     _ctx.SetStream(&handle);
     _ctx.DetectRocm();
     size_t cnt_finddb_entry = 0;
-    for(const auto& kinder : find_db.cache)
+    for(const auto& kinder : find_db.GetCacheMap())
     {
         auto ctx = _ctx; 
         miopen::conv::ProblemDescription problem;
@@ -579,12 +548,6 @@ TEST(DbSync, StaticFDBSync)
                 EXPECT_TRUE(pdb_vals.find(val.solver_id) ==
                        pdb_vals.end())  << "Non-Tunable solver found in PDB" << solv.GetSolverDbId() ;
             ++fdb_idx;
-            // If a solver used to be tunable and is no longer such, the pdb
-            // entries should be removed to reclaim space in the db
-
-            // It is possible that some perf db entries are not accessed in the map,
-            // in which case we should remove them since they are taking up
-            // space but are not useful.
         }
 
         std::cout << "Lines of find db completed:" << ++cnt_finddb_entry << std::endl;
