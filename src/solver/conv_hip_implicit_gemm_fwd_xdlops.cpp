@@ -354,8 +354,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-
     if(problem.IsTensorsCasted())
+        return false;
+    if(problem.GetGroupCount() > 1)
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
