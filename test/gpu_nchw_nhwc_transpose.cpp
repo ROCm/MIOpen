@@ -350,7 +350,6 @@ struct transpose_test : transpose_base
 
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
-            ctx.DetectRocm();
             // ctx.SetupFloats();
 
             TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);

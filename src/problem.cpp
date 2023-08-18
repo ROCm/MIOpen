@@ -158,8 +158,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     return ret;
 }
 
-const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
-                                                            const std::string& name_str) const
+const TensorDescriptor&
+Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
+                                    [[maybe_unused]] const std::string& name_str) const
 {
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
@@ -295,7 +296,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
     else
     {
-        const auto workspace_max = conv_desc.GetWorkSpaceSize({&handle}, conv_problem);
+        auto tmp_ctx             = ExecutionContext{&handle};
+        const auto workspace_max = conv_desc.GetWorkSpaceSize(tmp_ctx, conv_problem);
         workspace_size           = std::min(options.workspace_limit, workspace_max);
         owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
         workspace                = owned_workspace.get();
