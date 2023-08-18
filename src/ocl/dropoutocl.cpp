@@ -132,18 +132,16 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    size_t states_num = prng_stateSizeInBytes / sizeof(prngStates);
-    size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
+    unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    size_t wk_grp_num             = std::min(MAX_PRNG_STATE / 256ULL, (states_num + 255) / 256);
 
-    std::string network_config = "initprngs-" + std::to_string(states_num) + "x" +
-                                 std::to_string(sizeof(prngStates)) + "x" +
-                                 std::to_string(rng_mode) + "x" + std::to_string(prng_seed) + "x" +
-                                 std::to_string(wk_grp_num);
+    std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
+                                 std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(prng_states);
+        kernels.front()(prng_states, prng_seed, states_num);
     }
     else
     {
@@ -152,14 +150,12 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
 
         std::string params;
         params += " -DRUN_INIT_PRNG=1";
-        params += " -DPRNG_SEED=" + std::to_string(prng_seed);
-        params += " -DSTATES_NUM=" + std::to_string(states_num);
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
 #endif
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            prng_states);
+            prng_states, prng_seed, states_num);
 #if DROPOUT_DEBUG
         std::cout << "Succeeded in launching InitPRNGState()." << stateSizeInBytes << std::endl;
 #endif
