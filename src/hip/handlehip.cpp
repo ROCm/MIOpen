@@ -532,7 +532,16 @@ Program Handle::LoadProgram(const std::string& program_name,
                            is_kernel_str);
 
         if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
             p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
+        }
+        else
+        {
+            MIOPEN_LOG_I2("Skipped attaching a binary to the program for future serialization as "
+                          "it is in permanent file storage");
+        }
+
         p.FreeCodeObjectFileStorage();
 #else
         boost::filesystem::path cache_path;
@@ -551,6 +560,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 
         if(force_attach_binary && p.IsCodeObjectInTempFile())
         {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
             if(cache_path.empty())
                 p.AttachBinary(LoadFileAsVector(p.GetCodeObjectPathname()));
             else

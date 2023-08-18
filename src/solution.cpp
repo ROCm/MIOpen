@@ -304,6 +304,9 @@ struct SerializedSolutionKernelInfo
             {fields::kernels::LocalWorkDims, kernel_info.local_work_dims},
             {fields::kernels::GlobalWorkDims, kernel_info.global_work_dims},
         };
+
+        MIOPEN_LOG_I2("Serialized solution kernel info <" << kernel_info.program_name << ":"
+                                                          << kernel_info.kernel_name);
     }
 
     friend void from_json(const nlohmann::json& json, SerializedSolutionKernelInfo& kernel_info)
@@ -313,6 +316,9 @@ struct SerializedSolutionKernelInfo
         json.at(fields::kernels::File).get_to(kernel_info.program_name);
         json.at(fields::kernels::LocalWorkDims).get_to(kernel_info.local_work_dims);
         json.at(fields::kernels::GlobalWorkDims).get_to(kernel_info.global_work_dims);
+
+        MIOPEN_LOG_I2("Deserialized solution kernel info <" << kernel_info.program_name << ":"
+                                                            << kernel_info.kernel_name);
     }
 };
 
@@ -329,7 +335,6 @@ void to_json(nlohmann::json& json, const Solution& solution)
     if(solution.perf_cfg.has_value())
         json[fields::PerfCfg] = *solution.perf_cfg;
 
-#if MIOPEN_BACKEND_HIP
     if(solution.kernels.empty())
     {
         MIOPEN_LOG_I2("Solution lacks kernels information. This would slowdown the first "
@@ -410,7 +415,6 @@ void to_json(nlohmann::json& json, const Solution& solution)
     }
 
     json[fields::Binaries] = std::move(programs_json);
-#endif
 }
 
 void from_json(const nlohmann::json& json, Solution& solution)
@@ -438,7 +442,6 @@ void from_json(const nlohmann::json& json, Solution& solution)
                                    ? std::optional{perf_cfg_json->get<std::string>()}
                                    : std::nullopt;
 
-#if MIOPEN_BACKEND_HIP
     solution.kernels.clear();
     if(const auto binaries_json = json.find(fields::Binaries); binaries_json != json.end())
     {
@@ -465,6 +468,5 @@ void from_json(const nlohmann::json& json, Solution& solution)
             solution.kernels.emplace_back(std::move(kernel_info));
         }
     }
-#endif
 }
 } // namespace miopen
