@@ -48,7 +48,7 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
                                                   MIOPEN_TYPE* __restrict__ rstd,
                                                   float eps,
                                                   uint64_t inner_size,
-                                                  bool elemwise_affine)
+                                                  bool mode)
 {
     /*
      * Each group works on a single channel.
@@ -116,8 +116,8 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
         FSTYPE pweight;
         FSTYPE pbias;
 
-        pweight = elemwise_affine ? 1 : GET_VAL(weight, i);
-        pbias   = elemwise_affine ? 0 : GET_VAL(bias, i);
+        pweight = mode ? 1 : GET_VAL(weight, i);
+        pbias   = mode ? 0 : GET_VAL(bias, i);
 
         FSTYPE val = (GET_VAL(x, idx) - pmean) * rsqrt(pvar + eps) * pweight + pbias;
         SET_VAL(y, idx, val);
@@ -130,7 +130,8 @@ extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict_
                                                   const MIOPEN_TYPE* __restrict__ mean,
                                                   const MIOPEN_TYPE* __restrict__ rstd,
                                                   MIOPEN_TYPE* __restrict__ dx,
-                                                  uint64_t inner_size)
+                                                  uint64_t inner_size,
+                                                  bool mode)
 {
 
     const uint64_t gid = blockIdx.x;
@@ -147,10 +148,8 @@ extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict_
     {
         size_t idx = gid * inner_size + i;
 
-        FSTYPE weight_v = 1;
-        if(weight)
-            weight_v = GET_VAL(weight, i);
-        FSTYPE dy_v = dy ? GET_VAL(dy, idx) : 0;
+        FSTYPE weight_v = mode ? 1 : GET_VAL(weight, i);
+        FSTYPE dy_v     = GET_VAL(dy, idx);
 
         sum1 += dy_v * GET_VAL(x, idx) * weight_v;
         sum2 += dy_v * weight_v;
@@ -184,10 +183,8 @@ extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict_
     {
         size_t idx = gid * inner_size + i;
 
-        FSTYPE weight_v = 1;
-        if(weight)
-            weight_v = GET_VAL(weight, i);
-        FSTYPE dy_v = dy ? GET_VAL(dy, idx) : 0;
+        FSTYPE weight_v = mode ? 1 : GET_VAL(weight, i);
+        FSTYPE dy_v     = GET_VAL(dy, idx);
 
         FSTYPE val = rstd_v * dy_v * weight_v + a * GET_VAL(x, idx) + c2;
         SET_VAL(dx, idx, val);

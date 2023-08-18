@@ -23,12 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
 #ifdef MIOPEN_BETA_API
 #ifndef MIOPEN_LAYERNORM_HPP_
 #define MIOPEN_LAYERNORM_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
 
 namespace miopen {
 

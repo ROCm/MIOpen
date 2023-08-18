@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
 #ifdef MIOPEN_BETA_API
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
@@ -37,7 +38,6 @@
 #include <cstdlib>
 #include <cfloat>
 #include <memory>
-#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>

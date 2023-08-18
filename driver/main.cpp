@@ -40,11 +40,11 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include <miopen/config.h>
+#include <miopen/stringutils.hpp>
 #ifdef MIOPEN_BETA_API
 #include "layernorm_driver.hpp"
 #endif
-#include <miopen/config.h>
-#include <miopen/stringutils.hpp>
 
 int main(int argc, char* argv[])
 {

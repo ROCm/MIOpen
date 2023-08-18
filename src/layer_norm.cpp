@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
 #include <miopen/layernorm.hpp>
+#ifdef MIOPEN_BETA_API
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
@@ -136,12 +136,12 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(x, y, weight, bias, mean, rstd, inner_size, !mode);
+        kernels.front()(x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, weight, bias, mean, rstd, inner_size, !mode);
+            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
 
     if(miopen::CheckNumericsEnabled())
@@ -254,68 +254,69 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                                              (!weight || weightDesc.IsPacked()) &&
                                              meanDesc.IsPacked() && rstdDesc.IsPacked())) +
              " -DIS_OUTPUT_PACKED=" + std::to_string(static_cast<int>(dxDesc.IsPacked()));
-    printf("before bwd\n");
+
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(x, dy, weight, mean, rstd, dx, inner_size);
+        kernels.front()(x, dy, weight, mean, rstd, dx, inner_size, mode);
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, dy, weight, mean, rstd, dx, inner_size);
+            x, dy, weight, mean, rstd, dx, inner_size, mode);
     }
-    printf("after bwd\n");
+
     if(dw && db)
     {
-        const std::vector<size_t> vld{LOCAL_SIZE, 1, 1};
-        const std::vector<size_t> vgd{inner_size * vld[0], 1, 1};
+        const std::vector<size_t> vld2{LOCAL_SIZE, 1, 1};
+        const std::vector<size_t> vgd2{inner_size * vld[0], 1, 1};
 
-        std::string algo_name = "LayerNormWeightBiasBackward";
-        std::string network_config =
-            "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) +
-            "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) +
-            "grid" + std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) +
-            "inner_size" + std::to_string(inner_size) + "xpk" +
+        std::string algo_name2 = "LayerNormWeightBiasBackward";
+        std::string network_config2 =
+            "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" +
+            std::to_string(vgd2[0]) + "l" + std::to_string(vld2[0]) + "normalized_dim" +
+            std::to_string(normalized_dim) + "grid" + std::to_string(grid_size) + "outer_size" +
+            std::to_string(outer_size) + "inner_size" + std::to_string(inner_size) + "xpk" +
             std::to_string(static_cast<int>(xDesc.IsPacked())) + "dypk" +
             std::to_string(static_cast<int>(dyDesc.IsPacked()));
         if(mean)
-            network_config += "meanpk" + std::to_string(static_cast<int>(meanDesc.IsPacked()));
+            network_config2 += "meanpk" + std::to_string(static_cast<int>(meanDesc.IsPacked()));
         if(rstd)
-            network_config += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
-        network_config += "dwpk" + std::to_string(static_cast<int>(dwDesc.IsPacked())) + "dbpk" +
-                          std::to_string(static_cast<int>(dbDesc.IsPacked())) + "mode" +
-                          std::to_string(static_cast<int>(mode));
+            network_config2 += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
+        network_config2 += "dwpk" + std::to_string(static_cast<int>(dwDesc.IsPacked())) + "dbpk" +
+                           std::to_string(static_cast<int>(dbDesc.IsPacked())) + "mode" +
+                           std::to_string(static_cast<int>(mode));
 
-        std::string program_name = "MIOpenLayerNorm.cpp";
-        std::string kernel_name  = "LayernormBwdWeightBiasContiguous";
+        std::string program_name2 = "MIOpenLayerNorm.cpp";
+        std::string kernel_name2  = "LayernormBwdWeightBiasContiguous";
 
         // compile parameters
-        std::string parms =
+        std::string parms2 =
             " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
             " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
             " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
             " -DMIOPEN_USE_BF16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            parms += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
+            parms2 += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
         else
-            parms += " -DUSE_MIOPEN_WEIGHT_BIAS=1";
+            parms2 += " -DUSE_MIOPEN_WEIGHT_BIAS=1";
 
-        parms += " -DRUN_FORWARD=0";
-        parms += " -DIS_INPUT_PACKED=" +
-                 std::to_string(static_cast<int>(xDesc.IsPacked() && meanDesc.IsPacked() &&
-                                                 rstdDesc.IsPacked())) +
-                 " -DIS_OUTPUT_PACKED=" +
-                 std::to_string(static_cast<int>(dwDesc.IsPacked() && dbDesc.IsPacked()));
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
-        if(!kernels.empty())
+        parms2 += " -DRUN_FORWARD=0";
+        parms2 += " -DIS_INPUT_PACKED=" +
+                  std::to_string(static_cast<int>(xDesc.IsPacked() && meanDesc.IsPacked() &&
+                                                  rstdDesc.IsPacked())) +
+                  " -DIS_OUTPUT_PACKED=" +
+                  std::to_string(static_cast<int>(dwDesc.IsPacked() && dbDesc.IsPacked()));
+        auto&& kernels2 = handle.GetKernels(algo_name2, network_config2);
+        if(!kernels2.empty())
         {
-            kernels.front()(x, dy, mean, rstd, dw, db, outer_size, inner_size);
+            kernels2.front()(x, dy, mean, rstd, dw, db, outer_size, inner_size);
         }
         else
         {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(
+                algo_name2, network_config2, program_name2, kernel_name2, vld2, vgd2, parms2)(
                 x, dy, mean, rstd, dw, db, outer_size, inner_size);
         }
     }

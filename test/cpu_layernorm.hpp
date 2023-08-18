@@ -58,26 +58,26 @@ void cpu_layernorm_forward(tensor<T> input,
     }
 
     par_ford(outer_size)([&](int o) {
-        double mean_v = 0;
-        double var_v  = 0;
+        T mean_v = 0;
+        T var_v  = 0;
 
         ford(inner_size)([&](int i) {
-            float tmp = input[o * inner_size + i];
+            T tmp = input[o * inner_size + i];
             mean_v += tmp;
-            mean_v += tmp * tmp;
+            var_v += tmp * tmp;
         });
 
-        mean_v /= inner_size;
-        var_v /= inner_size - mean_v * mean_v;
+        mean_v = mean_v / inner_size;
+        var_v  = var_v / inner_size - mean_v * mean_v;
 
         ref_mean[o] = mean_v;
-        ref_rstd[o] = sqrt(var_v + eps);
+        ref_rstd[o] = 1.0 / sqrt(var_v + eps);
 
         ford(inner_size)([&](int i) {
-            double weight_v = (weight.data.size() == 0) ? weight[i] : 1;
-            double bias_v   = (bias.data.size() == 0) ? bias[i] : 0;
+            T weight_v = mode ? 1 : weight[i];
+            T bias_v   = mode ? 0 : bias[i];
             ref_output[o * inner_size + i] =
-                (input[o * inner_size + i] - mean_v) * sqrt(var_v + eps) * weight_v + bias_v;
+                (input[o * inner_size + i] - mean_v) * 1.0 / sqrt(var_v + eps) * weight_v + bias_v;
         });
     });
 }
@@ -112,44 +112,47 @@ void cpu_layernorm_backward(tensor<T> input,
     }
 
     par_ford(outer_size)([&](int o) {
-        double sum1 = 0;
-        double sum2 = 0;
+        T sum1 = 0;
+        T sum2 = 0;
         ford(inner_size)([&](int i) {
-            double weight_v = (weight.data.size() == 0) ? weight[o * inner_size + i] : 1;
-            double dy       = (doutput.data.size() == 0) ? doutput[o * inner_size + i] : 0;
-            double x        = input[i * inner_size + o];
+            T weight_v = mode ? 1 : weight[i];
+            T dy       = doutput[o * inner_size + i];
+            T x        = input[o * inner_size + i];
 
             sum1 += dy * x * weight_v;
             sum2 += dy * weight_v;
         });
 
-        double s = 1.0 / inner_size;
+        T ds = sum1;
+        T db = sum2;
 
-        double mean_v = mean[o];
-        double rstd_v = rstd[o];
+        T s = 1.0 / inner_size;
 
-        double a  = (sum2 * mean_v - sum1) * rstd_v * rstd_v * rstd_v * s;
-        double c2 = -(a * mean_v + sum2 * rstd_v * s);
+        T mean_v = mean[o];
+        T rstd_v = rstd[o];
+
+        T a  = (db * mean_v - ds) * rstd_v * rstd_v * rstd_v * s;
+        T c2 = -(a * mean_v + db * rstd_v * s);
 
         ford(inner_size)([&](int i) {
-            double weight_v = (weight.data.size() == 0) ? weight[o * inner_size + i] : 1;
-            double dy       = (doutput.data.size() == 0) ? doutput[o * inner_size + i] : 0;
-            double x        = input[i * inner_size + o];
+            T weight_v = mode ? 1 : weight[i];
+            T dy       = doutput[o * inner_size + i];
+            T x        = input[o * inner_size + i];
 
-            double val                     = rstd_v * dy * weight_v + a * x + c2;
-            ref_dinput[i * inner_size + o] = val;
+            T val                          = rstd_v * dy * weight_v + a * x + c2;
+            ref_dinput[o * inner_size + i] = val;
         });
     });
 
     if((ref_dweight.data.size() != 0) || ref_dbias.data.size() != 0)
     {
         par_ford(inner_size)([&](int i) {
-            double sum1 = 0;
-            double sum2 = 0;
+            T sum1 = 0;
+            T sum2 = 0;
 
             ford(outer_size)([&](int o) {
-                double dy = (doutput.data.size() == 0) ? doutput[i * inner_size + o] : 0;
-                double x  = input[i * inner_size + o];
+                T dy = doutput[o * inner_size + i];
+                T x  = input[o * inner_size + i];
 
                 sum1 += dy * (x - mean[o]) * rstd[o];
                 sum2 += dy;

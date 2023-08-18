@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
 #include <miopen/layernorm.hpp>
+#ifdef MIOPEN_BETA_API
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
