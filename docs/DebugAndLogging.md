@@ -214,7 +214,7 @@ The library uses lazy initialization in many places. This is useful in terms of 
 
 > Example: MIOpen handle creates a rocBlas handle. With lazy initialization, the latter is initialized on the first time GEMM is called, which involves loading code objects for the target GPU, which affects benchmarking. Therefore, we use explicit initialization of rocBlas handle when creating the MIOpen handle. But there may be cases where a handle is created but never used with GEMM algorithms, so explicit initialization can be a waste of resources.
 
-* `MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION` - Wherever both explicit and lazy initialization is implemented, disable explicit initialization. This can be useful for triaging initialization related issues. The variable is "two-state" and can be set to the values listed in the _NOTE 1:_ above. Disabled by default.
+* `MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION` - Disables explicit initialization in the most places where _both explicit and lazy_ initialization are implemented. This can be useful for triaging initialization related issues. The variable is "two-state" and can be set to the values listed in the "_NOTE 1_" above (default value is _false_).
 
 
 ## Experimental controls
