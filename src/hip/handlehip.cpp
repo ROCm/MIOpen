@@ -62,6 +62,7 @@
     (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION)
 
 namespace miopen {
 
@@ -693,7 +694,8 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     rocblas_set_stream(result.get(), stream);
-    rocblas_initialize();
+    if(!IsDisabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
+        rocblas_initialize();
     return result;
 }
 #endif
