@@ -65,6 +65,8 @@ struct verify_forward_train_3d_bn_spatial
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
+    const int fixed_seed = GET_RAND();
+
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
     {
 
@@ -97,7 +99,7 @@ struct verify_forward_train_3d_bn_spatial
         }
         else
         {
-            srand(0);
+            get_minstd_gen().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -282,7 +284,7 @@ struct verify_forward_train_3d_bn_spatial
         }
         else
         {
-            srand(0);
+            get_minstd_gen().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -1228,7 +1230,6 @@ struct batch_norm_3d_spatial_driver : test_driver
         }
         else
         {
-            srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)

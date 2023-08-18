@@ -68,6 +68,7 @@ struct verify_forward_train_bn_per_activation
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
+    const int fixed_seed = GET_RAND();
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
     {
@@ -103,7 +104,7 @@ struct verify_forward_train_bn_per_activation
         }
         else
         {
-            srand(0);
+            get_minstd_gen().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -227,7 +228,7 @@ struct verify_forward_train_bn_per_activation
         }
         else
         {
-            srand(0);
+            get_minstd_gen().seed(fixed_seed);
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
@@ -985,7 +986,6 @@ struct batch_norm_per_activation_driver : test_driver
         }
         else
         {
-            srand(0);
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
