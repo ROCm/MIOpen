@@ -112,6 +112,15 @@ struct ProblemDescription
     int GetOutBatchStride() const { return conv_problem.GetOutBatchStride(); }
     int GetGroupCount() const { return conv_problem.GetGroupCount(); }
 
+    auto GetInCastType() const { return conv_problem.GetInCastType(); }
+    auto GetWeightsCastType() const { return conv_problem.GetWeightsCastType(); }
+    auto GetOutCastType() const { return conv_problem.GetOutCastType(); }
+
+    const TensorDescriptor& GetIn() const { return conv_problem.GetIn(); }
+    const TensorDescriptor& GetWeights() const { return conv_problem.GetWeights(); }
+    const TensorDescriptor& GetOut() const { return conv_problem.GetOut(); }
+    const ConvolutionDescriptor& GetConv() const { return conv_problem.GetConv(); }
+
 #if MIOPEN_ENABLE_SQLITE
     static std::string table_name() { return conv::ProblemDescription::table_name(); }
 #endif

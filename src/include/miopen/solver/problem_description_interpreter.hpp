@@ -108,9 +108,9 @@ struct ProblemInterpreter
     static auto GetInputCastType(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.conv_problem.GetInCastType();
+            return problem.GetInCastType();
         else
-            return problem.conv_problem.GetOutCastType();
+            return problem.GetOutCastType();
     }
 
     static auto GetOutputDepthDo(const ProblemDescription& problem)
@@ -140,9 +140,9 @@ struct ProblemInterpreter
     static auto GetOutputCastType(const ProblemDescription& problem)
     {
         if(problem.direction.IsForward())
-            return problem.conv_problem.GetOutCastType();
+            return problem.GetOutCastType();
         else
-            return problem.conv_problem.GetInCastType();
+            return problem.GetInCastType();
     }
 
     static auto GetOutputDataType(const ProblemDescription& problem)
