@@ -1,7 +1,7 @@
 Debugging and Logging
 =====================
 
-> **_WARNING 1:_** **All the variables that begin with MIOPEN_DEBUG are debugging tools and is intended to be used by qualified engineers only.**
+> **_WARNING 1:_** **All the variables that begin with `MIOPEN_DEBUG` are debugging tools and intended to be used by qualified engineers only.**
 
 ## Logging
 
@@ -180,7 +180,7 @@ both MIOpenGEMM and rocBlas depending on the input configuration:
 * `MIOPEN_GEMM_ENFORCE_BACKEND=4`, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled
 * `MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>`, use default behavior
 
-> **_WARNING 2:_** **The MIOPEN_GEMM_ENFORCE_BACKEND variable is a debugging tool and intended to be used by qualified engineers only.**
+> **_WARNING 3:_** **`MIOPEN_GEMM_ENFORCE_BACKEND` variable is a debugging tool and intended to be used by qualified engineers only.**
 
 To disable using rocBlas entirely, set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off` during MIOpen configuration.
 
