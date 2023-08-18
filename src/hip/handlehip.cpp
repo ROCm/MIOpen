@@ -694,7 +694,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     rocblas_set_stream(result.get(), stream);
-    if(!IsDisabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
+    if(!IsEnabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
         rocblas_initialize();
     return result;
 }

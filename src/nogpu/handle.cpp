@@ -298,7 +298,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
     rocblas_handle x = nullptr;
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
-    if(!IsDisabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
+    if(!IsEnabled(MIOPEN_DEBUG_PREFER_LAZY_INITIALIZATION{}))
         rocblas_initialize();
     return result;
 }
