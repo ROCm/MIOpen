@@ -163,6 +163,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         {
             valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
             std::cout << "****" << conv_ptrs[i]->GetTypeString() << std::endl;
+            break;
         }
     }
     assert(!valid_kernels.empty());
@@ -268,15 +269,15 @@ void RunCKSolution(const Handle& handle,
     std::cout << "************************N: " << args.N << std::endl;
     std::cout << "************************K: " << args.K << std::endl;
     std::cout << "************************C: " << args.C << std::endl;
-    std::cout << "***********************Di: " << args.input[0] << std::endl;
-    std::cout << "***********************Hi: " << args.input[1] << std::endl;
-    std::cout << "***********************Wi: " << args.input[2] << std::endl;
-    std::cout << "***********************Do: " << args.output[0] << std::endl;
-    std::cout << "***********************Ho: " << args.output[1] << std::endl;
-    std::cout << "***********************Wo: " << args.output[2] << std::endl;
-    std::cout << "************************Z: " << args.weight[0] << std::endl;
-    std::cout << "************************Y: " << args.weight[1] << std::endl;
-    std::cout << "************************X: " << args.weight[2] << std::endl;
+    std::cout << "***********************Di: " << args.Di << std::endl;
+    std::cout << "***********************Hi: " << args.Hi << std::endl;
+    std::cout << "***********************Wi: " << args.Wi << std::endl;
+    std::cout << "***********************Do: " << args.Do << std::endl;
+    std::cout << "***********************Ho: " << args.Ho << std::endl;
+    std::cout << "***********************Wo: " << args.Wo << std::endl;
+    std::cout << "************************Z: " << args.Z << std::endl;
+    std::cout << "************************Y: " << args.Y << std::endl;
+    std::cout << "************************X: " << args.X << std::endl;
 
     std::cout << "***input strides: " << std::endl;
     for(auto x : args.in_strides)
