@@ -156,7 +156,6 @@ void Solution::RunImpl(Handle& handle,
     {
         const auto legacy_problem = ProblemDescription{conv_problem};
         auto conv_ctx             = ConvolutionContext{{&handle}};
-        conv_ctx.DetectRocm();
         conv_problem.SetupFloats(conv_ctx);
         const auto invoker_factory = GetSolver().GetSolver().GetInvokeFactory(
             conv_ctx, legacy_problem, perf_cfg.value_or(""));
