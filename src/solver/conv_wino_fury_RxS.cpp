@@ -184,7 +184,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContex
         return false;
 
     const auto name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx1100") || StartsWith(name, "gfx1101")))
+    if(!(name == "gfx1100" || name == "gfx1101"))
         return false;
 
     auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
