@@ -114,6 +114,10 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
     return static_cast<int8_t>(val & 0xff);
 }
 
+inline __device__ __host__ bool checkIndexLimits(int idx, int upperLimit) {
+  return ((idx >= 0) && (idx < upperLimit));
+}
+
 template <typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
@@ -165,16 +169,12 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
         {
             for(int iy = 0; iy < fy; iy++)
             {
-                int valid_h = 1;
                 int cur_h   = sy * iho - py + dy * iy;
-                if(cur_h < 0 || cur_h >= hi)
-                    valid_h &= 0;
+                bool valid_h = checkIndexLimits(cur_h, hi);
                 for(int ix = 0; ix < fx; ix++)
                 {
-                    int valid_w = 1;
                     int cur_w   = sx * iwo - px + dx * ix;
-                    if(cur_w < 0 || cur_w >= wi)
-                        valid_w &= 0;
+                    bool valid_w = checkIndexLimits(cur_w, wi);
 
                     if(valid_w & valid_h)
                     {
@@ -245,11 +245,10 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
         {
             for(int iy = 0; iy < fy; iy++)
             {
-                int valid_h = 1;
                 int cur_ho  = ihi + py - dy * iy; // cur_h = sy*iho-py+dy*iy;
-                if(cur_ho < 0 || cur_ho % sy)
-                    valid_h &= 0;
+                bool valid_h = ((cur_ho % sy) == 0);
                 cur_ho /= sy;
+                valid_h &&= checkIndexLimits(cur_ho, ho);
                 if(cur_ho >= ho)
                     valid_h &= 0;
                 for(int ix = 0; ix < fx; ix++)
