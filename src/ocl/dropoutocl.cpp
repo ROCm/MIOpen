@@ -133,7 +133,8 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
     }
 
     unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
-    size_t wk_grp_num             = std::min(MAX_PRNG_STATE / 256ULL, (states_num + 255) / 256);
+    size_t wk_grp_num =
+        std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
     std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
                                  std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
