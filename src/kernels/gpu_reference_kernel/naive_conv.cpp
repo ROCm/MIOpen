@@ -154,7 +154,7 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
     p_out += static_cast<size_t>(in) * k * ho * wo +
              static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int iho = tid / wo;
         int iwo = tid % wo;
@@ -234,7 +234,7 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
     p_out +=
         static_cast<size_t>(in) * k * ho * wo + static_cast<size_t>(ig) * k_per_group * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ihi = tid / wi;
         int iwi = tid % wi;
@@ -320,7 +320,7 @@ inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
              static_cast<size_t>(ik) * c_per_group * fy * fx;
     p_out += static_cast<size_t>(ig) * k_per_group * ho * wo + static_cast<size_t>(ik) * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ix = tid % fx;
         int iy = (tid / fx) % fy;
@@ -413,7 +413,7 @@ inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
              static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
              static_cast<size_t>(ik) * do_ * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int iwo = tid % wo;
         int iho = (tid / wo) % ho;
@@ -514,7 +514,7 @@ inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
     p_out += static_cast<size_t>(in) * k * do_ * ho * wo +
              static_cast<size_t>(ig) * k_per_group * do_ * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int iwi = tid % wi;
         int ihi = (tid / wi) % hi;
@@ -621,7 +621,7 @@ inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
     p_out += static_cast<size_t>(ig) * k_per_group * do_ * ho * wo +
              static_cast<size_t>(ik) * do_ * ho * wo;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ix = tid % fx;
         int iy = (tid / fx) % fy;
@@ -716,7 +716,7 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
     p_out += static_cast<size_t>(in) * ho * wo * k + static_cast<size_t>(ig) * k_per_group +
              static_cast<size_t>(iho) * wo * k;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int iwo = tid / k_per_group;
         int ik  = tid % k_per_group;
@@ -797,7 +797,7 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
     p_wei += static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group;
     p_out += static_cast<size_t>(in) * ho * wo * k + static_cast<size_t>(ig) * k_per_group;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int iwi = tid / c_per_group;
         int ic  = tid % c_per_group;
@@ -884,7 +884,7 @@ inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
              static_cast<size_t>(ik) * fy * fx * c_per_group;
     p_out += static_cast<size_t>(ig) * k_per_group + static_cast<size_t>(ik);
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ic = tid % c_per_group;
         int ix = (tid / c_per_group) % fx;
@@ -975,7 +975,7 @@ inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
     p_out += static_cast<size_t>(in) * do_ * ho * wo * k + static_cast<size_t>(ido) * ho * wo * k +
              static_cast<size_t>(ig) * k_per_group;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ik  = tid % k_per_group;
         int iwo = (tid / k_per_group) % wo;
@@ -1072,7 +1072,7 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
     p_wei += static_cast<size_t>(ig) * k_per_group * fz * fy * fx * c_per_group;
     p_out += static_cast<size_t>(in) * do_ * ho * wo * k + static_cast<size_t>(ig) * k_per_group;
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ic  = tid % c_per_group;
         int iwi = (tid / c_per_group) % wi;
@@ -1179,7 +1179,7 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
              static_cast<size_t>(ik) * fz * fy * fx * c_per_group;
     p_out += static_cast<size_t>(ig) * k_per_group + static_cast<size_t>(ik);
 
-    for(int tid = threadIdx.x; tid < thread_length; tid += 256)
+    for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
         int ic = tid % c_per_group;
         int ix = (tid / c_per_group) % fx;
