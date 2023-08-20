@@ -144,6 +144,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
 
     int G_stride_idx = GetGroupStrideIndex(problem);
 
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
     {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
