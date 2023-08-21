@@ -97,11 +97,11 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
         }
         __syncthreads();
     }
-    pmean = ltmp1[0] / inner_size;
-    pvar  = ltmp2[0] / inner_size - pmean * pmean;
+    pmean        = ltmp1[0] / inner_size;
+    pvar         = ltmp2[0] / inner_size - pmean * pmean;
     FSTYPE prstd = rsqrt(pvar + eps)
 
-    if(lid == 0)
+        if(lid == 0)
     {
         if(mean)
             SET_VAL(mean, gid, pmean);

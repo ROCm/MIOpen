@@ -78,8 +78,8 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
             pvar += tmp * tmp;
         }
 
-        pmean = pmean / inner_size;
-        pvar = pvar / inner_size - pmean * pmean;
+        pmean        = pmean / inner_size;
+        pvar         = pvar / inner_size - pmean * pmean;
         Tcheck prstd = 1.0f / sqrt(pvar + eps);
 
         meanhost[o] = pmean;
@@ -96,7 +96,7 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     return ret;
 }
 
-template <typename Tgpu, typename Tcheck >
+template <typename Tgpu, typename Tcheck>
 int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                 miopenTensorDescriptor_t doutputDesc,
                                 miopenTensorDescriptor_t weightDesc,
@@ -142,8 +142,8 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         for(i = 0; i < inner_size; i++)
         {
             Tcheck pweight = mode ? 1 : weight[i];
-            Tcheck dy       = doutput[o * inner_size + i];
-            Tcheck x        = input[o * inner_size + i];
+            Tcheck dy      = doutput[o * inner_size + i];
+            Tcheck x       = input[o * inner_size + i];
 
             sum1 += dy * x * pweight;
             sum2 += dy * pweight;
@@ -162,8 +162,8 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
 
         for(i = 0; i < inner_size; i++)
         {
-            Tcheck pweight  = mode ? 1 : weight[i];
-            Tcheck dy       = doutput[o * inner_size + i];
+            Tcheck pweight = mode ? 1 : weight[i];
+            Tcheck dy      = doutput[o * inner_size + i];
 
             Tcheck val = prstd * dy * pweight + a * input[o * inner_size + i] + c2;
             dinputhost[o * inner_size + i] = val;

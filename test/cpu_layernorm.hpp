@@ -67,8 +67,8 @@ void cpu_layernorm_forward(tensor<T> input,
             var_v += tmp * tmp;
         });
 
-        mean_v = mean_v / inner_size;
-        var_v  = var_v / inner_size - mean_v * mean_v;
+        mean_v   = mean_v / inner_size;
+        var_v    = var_v / inner_size - mean_v * mean_v;
         T rstd_v = 1.0f / sqrt(var_v + eps);
 
         ref_mean[o] = mean_v;

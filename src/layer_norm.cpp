@@ -136,8 +136,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(
-            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
+        kernels.front()(x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
     else
     {
