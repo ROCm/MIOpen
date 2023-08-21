@@ -70,8 +70,8 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
 
-    FSTYPE pmean = 0.0;
-    FSTYPE pvar  = 0.0;
+    FSTYPE pmean = 0.0f;
+    FSTYPE pvar  = 0.0f;
     __shared__ FSTYPE ltmp1[LOCAL_SIZE];
     __shared__ FSTYPE ltmp2[LOCAL_SIZE];
 
@@ -99,13 +99,14 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
     }
     pmean = ltmp1[0] / inner_size;
     pvar  = ltmp2[0] / inner_size - pmean * pmean;
+    FSTYPE prstd = rsqrt(pvar + eps)
 
     if(lid == 0)
     {
         if(mean)
             SET_VAL(mean, gid, pmean);
         if(rstd)
-            SET_VAL(rstd, gid, rsqrt(pvar + eps));
+            SET_VAL(rstd, gid, prstd);
     }
 
     // forward calculation
@@ -119,7 +120,7 @@ extern "C" __global__ void LayernormFwdContiguous(const MIOPEN_TYPE* __restrict_
         pweight = mode ? 1 : GET_VAL(weight, i);
         pbias   = mode ? 0 : GET_VAL(bias, i);
 
-        FSTYPE val = (GET_VAL(x, idx) - pmean) * rsqrt(pvar + eps) * pweight + pbias;
+        FSTYPE val = (GET_VAL(x, idx) - pmean) * prstd * pweight + pbias;
         SET_VAL(y, idx, val);
     }
 }
@@ -138,8 +139,8 @@ extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict_
     const uint64_t lid = threadIdx.x;
 
     // reduce sum for sum1, sum2
-    FSTYPE sum1 = 0;
-    FSTYPE sum2 = 0;
+    FSTYPE sum1 = 0.0f;
+    FSTYPE sum2 = 0.0f;
 
     __shared__ FSTYPE ltmp1[LOCAL_SIZE];
     __shared__ FSTYPE ltmp2[LOCAL_SIZE];
@@ -171,7 +172,7 @@ extern "C" __global__ void LayerNormBwdContiguous(const MIOPEN_TYPE* __restrict_
     FSTYPE ds = ltmp1[0];
     FSTYPE db = ltmp2[0];
 
-    FSTYPE s = (FSTYPE)(1.0) / inner_size;
+    FSTYPE s = 1.0f / inner_size;
 
     FSTYPE mean_v = GET_VAL(mean, gid);
     FSTYPE rstd_v = GET_VAL(rstd, gid);

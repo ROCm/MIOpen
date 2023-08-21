@@ -48,7 +48,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
-                                const double epsilon,
+                                const float epsilon,
                                 const int normalized_dim)
 {
     if(x == nullptr || y == nullptr)
@@ -107,7 +107,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     if(rstd)
         network_config += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
     network_config += "mode" + std::to_string(static_cast<int>(mode)) + "eps" +
-                      std::to_string(static_cast<int>(epsilon));
+                      std::to_string(static_cast<float>(epsilon));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
     std::string kernel_name  = "LayernormFwdContiguous";
@@ -137,12 +137,12 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     if(!kernels.empty())
     {
         kernels.front()(
-            x, y, weight, bias, mean, rstd, static_cast<float>(epsilon), inner_size, mode);
+            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, weight, bias, mean, rstd, static_cast<float>(epsilon), inner_size, mode);
+            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
 
     if(miopen::CheckNumericsEnabled())

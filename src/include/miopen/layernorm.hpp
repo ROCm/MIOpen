@@ -49,7 +49,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
-                                const double epsilon,
+                                const float epsilon,
                                 const int normalized_dim);
 
 miopenStatus_t LayerNormBackward(const Handle& handle,

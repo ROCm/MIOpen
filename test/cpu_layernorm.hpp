@@ -36,7 +36,7 @@ void cpu_layernorm_forward(tensor<T> input,
                            tensor<T>& ref_output,
                            tensor<T>& ref_mean,
                            tensor<T>& ref_rstd,
-                           double eps,
+                           float eps,
                            int dim,
                            miopenLayerNormMode_t mode)
 {
@@ -58,8 +58,8 @@ void cpu_layernorm_forward(tensor<T> input,
     }
 
     par_ford(outer_size)([&](int o) {
-        T mean_v = 0;
-        T var_v  = 0;
+        T mean_v = 0.0f;
+        T var_v  = 0.0f;
 
         ford(inner_size)([&](int i) {
             T tmp = input[o * inner_size + i];
@@ -69,15 +69,16 @@ void cpu_layernorm_forward(tensor<T> input,
 
         mean_v = mean_v / inner_size;
         var_v  = var_v / inner_size - mean_v * mean_v;
+        T rstd_v = 1.0f / sqrt(var_v + eps);
 
         ref_mean[o] = mean_v;
-        ref_rstd[o] = 1.0 / sqrt(var_v + eps);
+        ref_rstd[o] = rstd_v;
 
         ford(inner_size)([&](int i) {
             T weight_v = mode ? 1 : weight[i];
             T bias_v   = mode ? 0 : bias[i];
             ref_output[o * inner_size + i] =
-                (input[o * inner_size + i] - mean_v) * 1.0 / sqrt(var_v + eps) * weight_v + bias_v;
+                (input[o * inner_size + i] - mean_v) * rstd_v * weight_v + bias_v;
         });
     });
 }
@@ -146,8 +147,8 @@ void cpu_layernorm_backward(tensor<T> input,
     if((ref_dweight.data.size() != 0) || ref_dbias.data.size() != 0)
     {
         par_ford(inner_size)([&](int i) {
-            T sum1 = 0;
-            T sum2 = 0;
+            T sum1 = 0.0f;
+            T sum2 = 0.0f;
 
             ford(outer_size)([&](int o) {
                 T dy = doutput[o * inner_size + i];

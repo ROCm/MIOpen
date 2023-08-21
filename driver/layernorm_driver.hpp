@@ -147,7 +147,7 @@ private:
     std::vector<Tref> dweighthost;
     std::vector<Tref> dbiashost;
 
-    double eps;
+    float eps;
     int dim;
     miopenLayerNormMode_t mode;
 };
