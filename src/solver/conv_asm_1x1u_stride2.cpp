@@ -407,9 +407,9 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
                        1,
                        GetTypeSize(problem.GetOutDataType()));
         int n_miss = n_mult * GetNPerGpr() - 1;
-        if((static_cast<long>(problem.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
+        if((static_cast<int64_t>(problem.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
                (1LL << 31) ||
-           (static_cast<long>(problem.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
+           (static_cast<int64_t>(problem.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
                (1LL << 31))
             return false;
     }
@@ -537,13 +537,13 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     }
 
     // Check limits:
-    auto h_w = static_cast<long>(problem.GetInHeight()) * problem.GetInWidth();
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
-    const auto c_h_w   = static_cast<long>(problem.GetInChannels()) * h_w;  // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetOutChannels()) * h_w; // K*H*W
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize()) * c_h_w; // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize()) * k_h_w; // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetInChannels()) * problem.GetOutChannels() * r_s; // C*K*R*S
+    auto h_w = static_cast<int64_t>(problem.GetInHeight()) * problem.GetInWidth();
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetInChannels()) * h_w;  // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetOutChannels()) * h_w; // K*H*W
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize()) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize()) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetInChannels()) * problem.GetOutChannels() * r_s; // C*K*R*S
     ok = problem.GetBatchSize() < std::pow(2, 16)       // -n   N batch_size
          && problem.GetInChannels() < std::pow(2, 16)   // -c   C input_channels
          && problem.GetOutChannels() < std::pow(2, 16)  // -k   K output_channels
@@ -579,9 +579,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
         const int eurictic_init_max_chunk_size = 16;
         const int n_miss = eurictic_init_min_n_mult * (64 / eurictic_init_max_chunk_size) - 1;
 
-        if((static_cast<long>(config.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
+        if((static_cast<int64_t>(config.GetInChannels()) + n_miss) * ibuf.byte_stride.nk >=
                (1LL << 31) ||
-           (static_cast<long>(config.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
+           (static_cast<int64_t>(config.GetOutChannels()) + n_miss) * obuf.byte_stride.nk >=
                (1LL << 31))
             ok = false;
     }

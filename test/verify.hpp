@@ -139,7 +139,7 @@ std::size_t mismatch_idx(R1&& r1, R2&& r2, Compare compare)
 }
 
 template <class R1, class Predicate>
-long find_idx(R1&& r1, Predicate p)
+int64_t find_idx(R1&& r1, Predicate p)
 {
     auto it = std::find_if(r1.begin(), r1.end(), p);
     if(it == r1.end())
