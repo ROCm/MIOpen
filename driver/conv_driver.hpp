@@ -1304,10 +1304,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     std::string biasFileName = inflags.GetValueStr("in_bias");
     std::string doutFileName = inflags.GetValueStr("dout_data");
 
-    /* Unless seed is persistent between runs validation using cache stored in file is impossible.
-     */
-    srand(0);
-
     bool dataRead = false;
     if(is_fwd || is_wrw)
         if(!inFileName.empty())

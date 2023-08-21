@@ -660,8 +660,6 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::string inFileName  = inflags.GetValueStr("in_data");
         std::string weiFileName = inflags.GetValueStr("weights");*/
 
-    // Unless seed is persistent between runs validation using cache stored in file is impossible.
-    srand(0);
     double scale = 0.01;
 
     /*    bool dataRead = false;

@@ -268,7 +268,6 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     states_host = std::vector<prngStates>(states_size);
 
-    srand(0);
     Tgpu Data_scale = static_cast<Tgpu>(0.01);
 
     for(int i = 0; i < in_sz; i++)

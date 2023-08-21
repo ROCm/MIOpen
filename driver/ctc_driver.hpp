@@ -303,7 +303,6 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workspace      = std::vector<Tgpu>(workSpaceSize / sizeof(Tgpu), 0);
     workspace_host = std::vector<Tref>(workSpaceSizeCPU / sizeof(Tref), 0);
 
-    srand(0);
     double scale = 0.01;
 
     for(int i = 0; i < probs_sz; i++)
