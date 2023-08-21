@@ -2262,7 +2262,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX103X_ENABLED GFX110X_
       ${TEST_CONV_VERBOSE_W} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvWinogradFuryRxSf2x3_f16 GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_solver_ConvWinogradFuryRxSf2x3_f16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
       ${MIOPEN_TEST_FLAGS_ARGS}
