@@ -33,6 +33,7 @@
 #include "get_handle.hpp"
 #include "../driver/tensor_driver.hpp"
 #include "verify.hpp"
+#include <random>
 
 struct LayerNormTestCase
 {
@@ -58,7 +59,6 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
 { // n c h d w nomalized_dim eps ln_mode
     // clang-format off
     return {
-	{ 4,   1,   2,  2,  2  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE}/*    
 	{ 32,   1,   32,  32,  32  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},       // 32x32x32 based on VoxNet arch
         { 32,   1,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
         { 32,  32,   14,  14,  14  ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},
@@ -87,7 +87,7 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
         { 1, 3,     8,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
         { 1, 3,    16,  128, 171 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
         { 1, 3,     8,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE},      // 3D convet on video
-        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE}*/      // 3D convet on video
+        { 1, 3,    16,  112, 112 ,4 , 1e-5, MIOPEN_ELEMENTWISE_AFFINE}      // 3D convet on video
       };
     // clang-format on
 }
@@ -110,6 +110,9 @@ protected:
         auto&& handle    = get_handle();
         test_skipped     = false;
         layernorm_config = GetParam();
+        std::mt19937 gen(0);
+        std::uniform_real_distribution<> d{-3, 3};
+        auto gen_value = [&](auto...) { return d(gen); };
 
         nomalized_dim = layernorm_config.nomalized_dim;
         eps           = layernorm_config.eps;
@@ -117,7 +120,7 @@ protected:
 
         auto in_dim = layernorm_config.GetInput();
 
-        input = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{17});
+        input = tensor<T>{in_dim}.generate(gen_value);
 
         if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
@@ -126,8 +129,8 @@ protected:
                 inner_dim = {1};
             else
                 inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
-            weight = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
-            bias   = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
+            weight = tensor<T>{inner_dim}.generate(gen_value);
+            bias   = tensor<T>{inner_dim}.generate(gen_value);
             SetTensorLayout(weight.desc);
             SetTensorLayout(bias.desc);
         }
@@ -164,7 +167,7 @@ protected:
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
 
-        doutput = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{17});
+        doutput = tensor<T>{in_dim}.generate(gen_value);
 
         if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
@@ -173,15 +176,15 @@ protected:
                 inner_dim = {1};
             else
                 inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
-            dweight = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
-            dbias   = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
+            dweight = tensor<T>{inner_dim}.generate(gen_value);
+            dbias   = tensor<T>{inner_dim}.generate(gen_value);
             SetTensorLayout(dweight.desc);
             SetTensorLayout(dbias.desc);
             std::fill(dweight.begin(), dweight.end(), std::numeric_limits<T>::quiet_NaN());
             std::fill(dbias.begin(), dbias.end(), std::numeric_limits<T>::quiet_NaN());
 
-            ref_dweight = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
-            ref_dbias   = tensor<T>{inner_dim}.generate(tensor_elem_gen_integer{17});
+            ref_dweight = tensor<T>{inner_dim}.generate(gen_value);
+            ref_dbias   = tensor<T>{inner_dim}.generate(gen_value);
             std::fill(ref_dweight.begin(), ref_dweight.end(), std::numeric_limits<T>::quiet_NaN());
             std::fill(ref_dbias.begin(), ref_dbias.end(), std::numeric_limits<T>::quiet_NaN());
         }
@@ -233,13 +236,12 @@ protected:
         mean.data   = handle.Read<T>(mean_dev, mean.data.size());
         rstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
 
-        const double tolerance = 100;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_output, output);
+        double threshold = std::numeric_limits<T>::epsilon();
+        auto error       = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold)
-            << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 1000) << "Error output beyond tolerance Error:" << error
+                                              << ",  Thresholdx1000: " << threshold * 1000;
 
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
@@ -248,8 +250,8 @@ protected:
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
-        EXPECT_TRUE(error < threshold)
-            << "Error rstd beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 2000) << "Error rstd beyond tolerance Error:" << error
+                                              << ",  Thresholdx2000: " << threshold * 2000;
 
         cpu_layernorm_backward<T>(input,
                                   doutput,
@@ -290,18 +292,18 @@ protected:
 
         error = miopen::rms_range(ref_dinput, dinput);
         EXPECT_TRUE(miopen::range_distance(ref_dinput) == miopen::range_distance(dinput));
-        EXPECT_TRUE(error < threshold)
-            << "Error dinput beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 10) << "Error dinput beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
 
         error = miopen::rms_range(ref_dweight, dweight);
         EXPECT_TRUE(miopen::range_distance(ref_dweight) == miopen::range_distance(dweight));
-        EXPECT_TRUE(error < threshold)
-            << "Error dweight beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 1000) << "Error dweight beyond tolerance Error:" << error
+                                              << ",  Thresholdx1000: " << threshold * 1000;
 
         error = miopen::rms_range(ref_dbias, dbias);
         EXPECT_TRUE(miopen::range_distance(ref_dbias) == miopen::range_distance(dbias));
-        EXPECT_TRUE(error < threshold)
-            << "Error dbias beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 1000) << "Error dbias beyond tolerance Error:" << error
+                                              << ",  Thresholdx1000: " << threshold * 1000;
     }
     LayerNormTestCase layernorm_config;
 

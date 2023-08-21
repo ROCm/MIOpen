@@ -136,12 +136,13 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
+        kernels.front()(
+            x, y, weight, bias, mean, rstd, static_cast<float>(epsilon), inner_size, mode);
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
+            x, y, weight, bias, mean, rstd, static_cast<float>(epsilon), inner_size, mode);
     }
 
     if(miopen::CheckNumericsEnabled())

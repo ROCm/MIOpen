@@ -112,8 +112,8 @@ void cpu_layernorm_backward(tensor<T> input,
     }
 
     par_ford(outer_size)([&](int o) {
-        T sum1 = 0;
-        T sum2 = 0;
+        T sum1 = 0.0f;
+        T sum2 = 0.0f;
         ford(inner_size)([&](int i) {
             T weight_v = mode ? 1 : weight[i];
             T dy       = doutput[o * inner_size + i];
@@ -126,7 +126,7 @@ void cpu_layernorm_backward(tensor<T> input,
         T ds = sum1;
         T db = sum2;
 
-        T s = 1.0 / inner_size;
+        T s = 1.0f / inner_size;
 
         T mean_v = mean[o];
         T rstd_v = rstd[o];
@@ -137,9 +137,8 @@ void cpu_layernorm_backward(tensor<T> input,
         ford(inner_size)([&](int i) {
             T weight_v = mode ? 1 : weight[i];
             T dy       = doutput[o * inner_size + i];
-            T x        = input[o * inner_size + i];
 
-            T val                          = rstd_v * dy * weight_v + a * x + c2;
+            T val = rstd_v * dy * weight_v + a * input[o * inner_size + i] + c2;
             ref_dinput[o * inner_size + i] = val;
         });
     });
@@ -152,9 +151,8 @@ void cpu_layernorm_backward(tensor<T> input,
 
             ford(outer_size)([&](int o) {
                 T dy = doutput[o * inner_size + i];
-                T x  = input[o * inner_size + i];
 
-                sum1 += dy * (x - mean[o]) * rstd[o];
+                sum1 += dy * (input[o * inner_size + i] - mean[o]) * rstd[o];
                 sum2 += dy;
             });
 

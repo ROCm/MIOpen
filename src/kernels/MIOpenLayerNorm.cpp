@@ -214,7 +214,7 @@ extern "C" __global__ void LayernormBwdWeightBiasContiguous(const MIOPEN_TYPE* _
     {
         size_t idx = i * (inner_size) + gid;
 
-        FSTYPE dy_v = dy ? GET_VAL(dy, idx) : 0;
+        FSTYPE dy_v = GET_VAL(dy, idx);
 
         sum1 += dy_v * (GET_VAL(x, idx) - GET_VAL(mean, i)) * GET_VAL(rstd, i);
         sum2 += dy_v;
