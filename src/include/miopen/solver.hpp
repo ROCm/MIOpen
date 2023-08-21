@@ -2954,7 +2954,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsDynamic() const override { return true; }
+    bool IsDynamic() const override { return false; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
     GetDefaultPerformanceConfig(const ConvolutionContext&,
                                 const ProblemDescription&) const override;
@@ -4561,7 +4561,7 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+    explicit PerformanceConfigHipImplicitGemmFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
