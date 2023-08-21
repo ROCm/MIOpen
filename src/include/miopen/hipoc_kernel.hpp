@@ -57,9 +57,9 @@ struct KernelArgsPair
     KernelArgsPair(T x, U y)
     {
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
-        alignas(U) new(buffer + second_index) U(y);
+        new(buffer + second_index) U(y);
     }
-    char buffer[second_index + sizeof(U)] = {};
+    alignas(U) char buffer[second_index + sizeof(U)] = {};
 };
 #else
 template <class T, class U>
