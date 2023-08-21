@@ -211,8 +211,8 @@ struct scalar_gen_random_float
 
 struct scalar_gen_random_integer
 {
-    unsigned long min_val = 1;
-    unsigned long max_val = 16;
+    uint64_t min_val = 1;
+    uint64_t max_val = 16;
 
     double operator()() const
     {

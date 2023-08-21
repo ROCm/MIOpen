@@ -630,7 +630,7 @@ struct pooling_driver : test_driver
         filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
 
         for(int i = 0; i < spt_dim; i++)
-            if(lens[i] >= (input_desc.GetLengths()[i + 2] + 2UL * pads[i]))
+            if(lens[i] >= (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
             {
                 return;
             }

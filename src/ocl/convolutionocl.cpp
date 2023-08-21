@@ -1237,24 +1237,24 @@ void ConvolutionBackwardBias(const Handle& handle,
     {
         kernels.front()(dy,
                         db,
-                        uint(out_k),
-                        uint(stride_k),
-                        uint(stride_n),
-                        uint(map_size_aligned),
-                        uint(off_pix),
-                        uint(total_work));
+                        static_cast<unsigned>(out_k),
+                        static_cast<unsigned>(stride_k),
+                        static_cast<unsigned>(stride_n),
+                        static_cast<unsigned>(map_size_aligned),
+                        static_cast<unsigned>(off_pix),
+                        static_cast<unsigned>(total_work));
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
             dy,
             db,
-            uint(out_k),
-            uint(stride_k),
-            uint(stride_n),
-            uint(map_size_aligned),
-            uint(off_pix),
-            uint(total_work));
+            static_cast<unsigned>(out_k),
+            static_cast<unsigned>(stride_k),
+            static_cast<unsigned>(stride_n),
+            static_cast<unsigned>(map_size_aligned),
+            static_cast<unsigned>(off_pix),
+            static_cast<unsigned>(total_work));
     }
 
     if(miopen::CheckNumericsEnabled())

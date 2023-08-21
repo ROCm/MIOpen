@@ -364,18 +364,17 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
            problem.GetInChannels() % 16 == 0 && problem.GetOutChannels() % 16 == 0)
         {
 
-            // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
+            // unsigned N_LCL_IN_MAPS = result.n_in_data_tiles;
             n_in_tiles_rg[0] = 0;
             n_in_tiles_rg[1] = 3;
             n_in_tls         = 4;
 
-            //					int N_LCL_OUT_MAPS = result.n_out_pix_tiles;
+            // int N_LCL_OUT_MAPS = result.n_out_pix_tiles;
             n_out_tiles_rg[0] = 4;
             n_out_tiles_rg[1] = 6;
             // 0 or 1
             out_pix_tl_cnt = 3;
-            //					uint CHEAT_SHADER_COMPILER =
-            // result.out_pix_tile0;
+            // unsigned CHEAT_SHADER_COMPILER = result.out_pix_tile0;
             out_pix_tile_sz[0] = 0;
             out_pix_tile_sz[1] = 1;
             n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);

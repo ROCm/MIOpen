@@ -409,15 +409,15 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
        return false;
 
     // Check limits:
-    const auto h_w     = static_cast<long>(problem.GetOutHeight()) * problem.GetOutWidth();
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
-    const auto c_h_w   = static_cast<long>(problem.GetOutChannels()) * h_w;     // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetInChannels()) * h_w;      // K*H*W
-    const auto c_r_s   = static_cast<long>(problem.GetOutChannels()) * r_s;     // C*R*S
-    const auto k_r_s   = static_cast<long>(problem.GetInChannels()) * r_s;      // K*R*S
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize()) * c_h_w;     // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize()) * k_h_w;     // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetOutChannels()) * k_r_s;   // C*K*R*S
+    const auto h_w     = static_cast<int64_t>(problem.GetOutHeight()) * problem.GetOutWidth();
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetOutChannels()) * h_w;     // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetInChannels()) * h_w;      // K*H*W
+    const auto c_r_s   = static_cast<int64_t>(problem.GetOutChannels()) * r_s;     // C*R*S
+    const auto k_r_s   = static_cast<int64_t>(problem.GetInChannels()) * r_s;      // K*R*S
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize()) * c_h_w;     // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize()) * k_h_w;     // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetOutChannels()) * k_r_s;   // C*K*R*S
     ok = problem.GetOutWidth() > 0
          && problem.GetOutWidth() <= 512
          && (IsReverseInOutAllowed(problem)
