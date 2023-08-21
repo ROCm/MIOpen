@@ -216,7 +216,8 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        seed ^= (static_cast<size_t>(GET_RAND()) << 32) | static_cast<size_t>(GET_RAND());
+        get_minstd_gen().seed(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -238,7 +239,8 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        seed ^= (static_cast<size_t>(GET_RAND()) << 32) | static_cast<size_t>(GET_RAND());
+        get_minstd_gen().seed(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {

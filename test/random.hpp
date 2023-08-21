@@ -40,19 +40,18 @@ inline std::minstd_rand& get_minstd_gen()
         auto seed = external_seed == 0
                         ? std::random_device{}()
                         : static_cast<std::random_device::result_type>(external_seed);
-        std::cout << "PRNG seed: " << seed << "\n";
+        std::cout << "test PRNG seed: " << seed << "\n";
         return seed;
     }()};
 
     return minstd_gen;
 }
 
-// template <typename T>
-// inline T FRAND()
-// {
-//
-//     return std::generate_canonical<T, 1>(get_minstd_gen());
-// }
+template <typename T>
+inline T FRAND()
+{
+    return std::generate_canonical<T, 1>(get_minstd_gen());
+}
 
 /// Basically, this is a copy of driver/random.hpp. Why:
 /// We want to have the same functionality as implemented in driver/random.hpp,

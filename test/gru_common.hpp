@@ -3056,7 +3056,6 @@ struct gru_basic_driver : test_driver
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
         std::size_t in_sz = static_cast<std::size_t>(inVecReal) * batch_n;
         std::vector<T> input(in_sz);
-        srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
             input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);

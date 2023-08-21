@@ -263,7 +263,6 @@ struct na_fusion_driver : test_driver
         estVariance = tensor<PREC_TYPE>{
             ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
 
-        srand(0);
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
 

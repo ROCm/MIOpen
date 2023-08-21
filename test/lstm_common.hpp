@@ -1632,7 +1632,6 @@ struct lstm_basic_driver : test_driver
                                                true,
                                                usePadding);
         std::vector<T> input(in_sz);
-        srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
             input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
