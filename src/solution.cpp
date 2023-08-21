@@ -304,7 +304,8 @@ struct SerializedSolutionKernelInfo
         };
 
         MIOPEN_LOG_I2("Serialized solution kernel info <" << kernel_info.program_name << ":"
-                                                          << kernel_info.kernel_name);
+                                                          << kernel_info.kernel_name << ", binary "
+                                                          << kernel_info.program << ">");
     }
 
     friend void from_json(const nlohmann::json& json, SerializedSolutionKernelInfo& kernel_info)
@@ -315,8 +316,9 @@ struct SerializedSolutionKernelInfo
         json.at(fields::kernels::LocalWorkDims).get_to(kernel_info.local_work_dims);
         json.at(fields::kernels::GlobalWorkDims).get_to(kernel_info.global_work_dims);
 
-        MIOPEN_LOG_I2("Deserialized solution kernel info <" << kernel_info.program_name << ":"
-                                                            << kernel_info.kernel_name);
+        MIOPEN_LOG_I2("Deserialized solution kernel info <"
+                      << kernel_info.program_name << ":" << kernel_info.kernel_name << ", binary "
+                      << kernel_info.program << ">");
     }
 };
 
@@ -384,9 +386,11 @@ void to_json(nlohmann::json& json, const Solution& solution)
             // With disabled cache programs after build would be attached as a char vector. Same for
             // the sqlite cache.
 
-            const auto chars = program.GetCodeObjectBlobAsVector();
+            const auto& chars = program.GetCodeObjectBlobAsVector();
             binary.resize(chars.size());
             std::memcpy(binary.data(), chars.data(), chars.size());
+
+            MIOPEN_LOG_I2("Serialized binary to solution blob, " << chars.size() << " bytes");
         }
         else if(program.IsCodeObjectInFile())
         {
@@ -397,12 +401,14 @@ void to_json(nlohmann::json& json, const Solution& solution)
             constexpr auto mode = std::ios::binary | std::ios::ate;
             const auto path     = program.GetCodeObjectPathname();
             auto file           = std::ifstream(path, mode);
-            const auto fileSize = file.tellg();
+            const auto filesize = file.tellg();
 
             file.unsetf(std::ios::skipws);
             file.seekg(0, std::ios::beg);
-            binary.reserve(fileSize);
+            binary.reserve(filesize);
             binary.insert(binary.begin(), Iterator{file}, Iterator{});
+
+            MIOPEN_LOG_I2("Serialized binary to solution blob, " << filesize << " bytes");
         }
         else
         {
@@ -448,6 +454,7 @@ void from_json(const nlohmann::json& json, Solution& solution)
         for(const auto& bin : *binaries_json)
         {
             const auto& binary = bin.get_ref<const nlohmann::json::binary_t&>();
+            MIOPEN_LOG_I2("Derializing binary from solution blob, " << binary.size() << " bytes");
             programs.emplace_back(HIPOCProgram{"", binary});
         }
 
