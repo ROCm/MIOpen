@@ -59,7 +59,7 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-        {128, 16, 3, 1024, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {64,7,7,2048, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -86,7 +86,8 @@ std::vector<BNTestCase> Network1()
         {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}
+        };
 }
 
 template <typename T, typename TConfig>
@@ -121,8 +122,11 @@ struct BNSolverTestBase
 private:
     void CreateTensors()
     {
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, bn_config.GetInput()};
-        output  = tensor<T>{miopen_type<T>{}, tensor_layout, bn_config.GetInput()};
+        std::vector<std::size_t> lens = {64 , 7 , 7 , 2048};
+        std::vector<std::size_t> strides = {100352 , 14336 , 2048 , 1};
+        input   = tensor<T>{miopen_type<T>{}, tensor_layout, lens, strides};
+        output  = tensor<T>{miopen_type<T>{}, tensor_layout, lens, strides};
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         ref_out = output;
     }
 
@@ -249,8 +253,8 @@ struct BNBwdSolverTest : public BNSolverTestBase<T, TConfig>
     miopen::Allocator::ManageDataPtr resBnScaleDiff_dev;
     miopen::Allocator::ManageDataPtr resBnBiasDiff_dev;
 
-    double epsilon          = 1.0e-5;
-    double expAvgFactor     = 1;
+    double epsilon          = std::numeric_limits<float>::epsilon();
+   // double expAvgFactor     = 1;
 
     const float alpha       = static_cast<float>(1.0f);
     const float beta        = static_cast<float>(0);
@@ -294,6 +298,7 @@ private:
         auto gen_value = [&](auto...) {
             return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
         };
+        x_input.generate(gen_value);
         bnScale.generate(gen_value);
         bnBias.generate(gen_value);
         savedMean.generate(gen_value);

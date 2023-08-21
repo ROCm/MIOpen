@@ -71,26 +71,29 @@ struct CKArgsBNormFwd
 
         std::copy(problem.GetXDesc().GetStrides().begin(),
                   problem.GetXDesc().GetStrides().end(),
-                  xyStrides.begin());
+                  xyStrides.begin()); 
 
-        auto scaleBiasMeanVarStrides = problem.GetScaleBiasDiffDesc().GetStrides();
-        std::copy(scaleBiasMeanVarStrides.begin(),
-              scaleBiasMeanVarStrides.end(),
-              arrScaleBiasMeanVarStrides.begin());
+        // auto scaleBiasMeanVarStrides = problem.GetScaleBiasDiffDesc().GetStrides();
+        // std::copy(scaleBiasMeanVarStrides.begin(),
+        //       scaleBiasMeanVarStrides.end(),
+        //       arrScaleBiasMeanVarStrides.begin());
+        arrScaleBiasMeanVarLengths[0] = 1;
+        arrScaleBiasMeanVarStrides[0] = 1;
 
-        std::vector<size_t> scaleBiasMeanVarLengths;
-        for(int dim = 0; dim < Rank; dim++)
-        {
-            if(std::none_of(reduceDims.begin(), reduceDims.end(), [&](int d) { return dim == d; }))
-            {
-                scaleBiasMeanVarLengths.push_back(xyLengths[dim]);
-            };
-        }
-        std::copy(scaleBiasMeanVarLengths.begin(),
-              scaleBiasMeanVarLengths.end(),
-              arrScaleBiasMeanVarLengths.begin());
+
+        // std::vector<size_t> scaleBiasMeanVarLengths;
+        // for(int dim = 0; dim < Rank; dim++)
+        // {
+        //     if(std::none_of(reduceDims.begin(), reduceDims.end(), [&](int d) { return dim == d; }))
+        //     {
+        //         scaleBiasMeanVarLengths.push_back(xyLengths[dim]);
+        //     };
+        // }
+        // std::copy(scaleBiasMeanVarLengths.begin(),
+        //       scaleBiasMeanVarLengths.end(),
+        //       arrScaleBiasMeanVarLengths.begin());
+              
     }
-
     std::array<ck::index_t, Rank> xyLengths; // inOutLengths
     std::array<ck::index_t, Rank> xyStrides; // inOutStrides
     std::vector<int> invariantDims;
@@ -220,6 +223,12 @@ bool CKBnBwdTraining::CheckCKApplicability(
     return false;
 }
 
+std::vector<float> convertToFloatVector(const void* data, size_t length) {
+    const float* floatData = static_cast<const float*>(data);
+    std::vector<float> result(floatData, floatData + length);
+    return result;
+}
+
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
@@ -239,6 +248,7 @@ void RunCKSolution(const Handle& handle,
             break;
         }
     }
+    
     assert(index < bn_bwd_ptrs.size());
     auto& bn_ptr           = bn_bwd_ptrs.at(index);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
@@ -246,8 +256,12 @@ void RunCKSolution(const Handle& handle,
     const auto& params = dynamic_cast<miopen::fusion::BatchNormBwdTrainingOpInvokeParam&>(
         *invoke_ctx.op_args.params[0]);
 
-    const auto& dy_buf = invoke_ctx.in;
-    const auto& dx_buf = invoke_ctx.out;
+    // from ck's perspective
+    const auto& x_dev  = invoke_ctx.in; 
+    const auto& dy_dev = params.x;
+    auto& dx_dev = invoke_ctx.out;
+
+
 
     auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
                                                     args.xyStrides,
@@ -258,14 +272,14 @@ void RunCKSolution(const Handle& handle,
                                                     args.arrScaleBiasMeanVarStrides,
                                                     args.arrScaleBiasMeanVarStrides,
                                                     args.arrScaleBiasMeanVarStrides,
-                                                    params.x,
-                                                    dy_buf,
+                                                    x_dev,
+                                                    dy_dev,
                                                     params.bnScale,
-                                                    params.savedMean,
-                                                    params.savedInvVariance,
+                                                    nullptr,
+                                                    nullptr,
                                                     args.epsilon,
                                                     PassThroughOp{},
-                                                    dx_buf,
+                                                    dx_dev,
                                                     params.resBnScaleDiff,
                                                     params.resBnBiasDiff);
 
@@ -407,8 +421,8 @@ bool CKBnBwdTraining::IsApplicable(const FusionContext& ctx,
         return false;
     const auto& bn_problem =
         fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::Backward);
-    if(!bn_problem.IsLayoutNHWC())
-        return false;
+    // if(!bn_problem.IsLayoutNHWC())
+    //     return false;
 
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx1030") // add proper function for check

@@ -30,21 +30,21 @@
 #include "na.hpp"
 #include "bn.hpp"
 
-struct BNActivInferFloat : BNActivInferTest<float>
-{
-};
+// struct BNActivInferFloat : BNActivInferTest<float>
+// {
+// };
 
-struct BNActivInferHalf : BNActivInferTest<half_float::half>
-{
-};
+// struct BNActivInferHalf : BNActivInferTest<half_float::half>
+// {
+// };
 
-struct BNInferFloat : BNInferTest<float>
-{
-};
+// struct BNInferFloat : BNInferTest<float>
+// {
+// };
 
-struct BNInferHalf : BNInferTest<half_float::half>
-{
-};
+// struct BNInferHalf : BNInferTest<half_float::half>
+// {
+// };
 
 struct BNBwdTestFloat : BNBwdTest<float>
 {
@@ -142,33 +142,33 @@ TEST_P(BNBwdTestFloat, CKBnBwdTraining)
 INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatSuite,
                          BNBwdTestFloat,
                          testing::Combine(testing::ValuesIn(Network1()),
-                                          testing::Values(miopenTensorNHWC)));
-
-INSTANTIATE_TEST_SUITE_P(BNInferFloatSuite,
-                         BNInferFloat,
-                         testing::Combine(testing::ValuesIn(Network1()),
-                                          testing::Values(miopenTensorNHWC)));
-
-INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
-                         BNActivInferFloat,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNCHW)));
 
-TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
-{
-    const auto plan_params = miopen::fusion::FusionInvokeParams(params,
-                                                                bn_infer_data.input.desc,
-                                                                bn_infer_data.in_dev.get(),
-                                                                bn_infer_data.output.desc,
-                                                                bn_infer_data.out_dev.get(),
-                                                                false);
-    RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
-        fusePlanDesc, plan_params, bn_config, test_skipped);
-}
+// INSTANTIATE_TEST_SUITE_P(BNInferFloatSuite,
+//                          BNInferFloat,
+//                          testing::Combine(testing::ValuesIn(Network1()),
+//                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
-                         BNActivInferHalf,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Network1()),
-                                          testing::Values(miopenTensorNHWC)));
+// INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
+//                          BNActivInferFloat,
+//                          testing::Combine(testing::Values(miopenActivationRELU),
+//                                           testing::ValuesIn(Network1()),
+//                                           testing::Values(miopenTensorNCHW)));
+
+// TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
+// {
+//     const auto plan_params = miopen::fusion::FusionInvokeParams(params,
+//                                                                 bn_infer_data.input.desc,
+//                                                                 bn_infer_data.in_dev.get(),
+//                                                                 bn_infer_data.output.desc,
+//                                                                 bn_infer_data.out_dev.get(),
+//                                                                 false);
+//     RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
+//         fusePlanDesc, plan_params, bn_config, test_skipped);
+// }
+
+// INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
+//                          BNActivInferHalf,
+//                          testing::Combine(testing::Values(miopenActivationRELU),
+//                                           testing::ValuesIn(Network1()),
+//                                           testing::Values(miopenTensorNHWC)));

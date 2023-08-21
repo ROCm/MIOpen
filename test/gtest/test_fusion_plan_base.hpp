@@ -26,6 +26,11 @@
 #pragma once
 
 #include "bn_test_base.hpp"
+// add ck guard
+#include "ck/library/reference_tensor_operation/cpu/reference_batchnorm_backward.hpp"
+
+#include "ck/tensor_operation/gpu/element/unary_element_wise_operation.hpp"
+
 namespace test {
 namespace FusionPlan {
 template <typename DLModule>
@@ -130,17 +135,112 @@ void ComputeRefBNInfer(DLModule& dl_module)
 //                                   const tensor<U>& savedInvVar)
 
 template <typename DLModule>
-void ComputeRefBNBwdTrain(DLModule& dl_module)
+void ComputeRefBNBwdTrain(DLModule& dl_module, const miopen::batchnorm::ProblemDescription& problem)
 {
-    batchNormSpatialHostBwdTrain(dl_module.x_input,
-                                 dl_module.input,
-                                 dl_module.ref_out,
-                                 dl_module.bnScale,
-                                 dl_module.resBnScaleDiff,
-                                 dl_module.resBnBiasDiff,
-                                 dl_module.savedMean,
-                                 dl_module.savedInvVariance);
+    // batchNormSpatialHostBwdTrain(dl_module.input,
+    //                              dl_module.x_input,
+    //                              dl_module.ref_out,
+    //                              dl_module.bnScale,
+    //                              dl_module.resBnScaleDiff,
+    //                              dl_module.resBnBiasDiff,
+    //                              dl_module.savedMean,
+    //                              dl_module.savedInvVariance);
+    
+    using PassThroughOp = ck::tensor_operation::element_wise::PassThrough;
 
+    constexpr ck::index_t Rank         = 4;
+    constexpr ck::index_t NumReduceDim = 3;
+
+    using ReferenceBatchNormBwdInstance =
+            ck::tensor_operation::host::ReferenceBatchNormBwd<float,
+                                                              float,
+                                                              float,
+                                                              float,
+                                                              float,
+                                                              float,
+                                                              float,
+                                                              PassThroughOp,
+                                                              Rank,
+                                                              NumReduceDim>;
+
+        auto batchNormBwd_ref = ReferenceBatchNormBwdInstance{};
+        std::array<int, NumReduceDim> arrReduceDims{0, 1, 2};
+        
+        std::array<ck::index_t, Rank - NumReduceDim> arrScaleBiasMeanVarLengths;
+        std::array<ck::index_t, Rank - NumReduceDim> arrScaleBiasMeanVarStrides;
+
+        arrScaleBiasMeanVarLengths[0] = 1;
+        arrScaleBiasMeanVarStrides[0] = 1;
+
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc,
+                                         dl_module.input.desc,
+                                         dl_module.bn_mode);
+
+
+        tensor<float> ref_out(miopen_type<float>{}, 
+                                miopenTensorLayout_t::miopenTensorNHWC, 
+                                dl_module.input.desc.GetLengths());
+        tensor<float> dscale_ref(miopen_type<float>{},
+                                miopenTensorLayout_t::miopenTensorNHWC,
+                                derivedBnDesc.GetLengths());
+        tensor<float> dbias_ref(miopen_type<float>{},
+                                miopenTensorLayout_t::miopenTensorNHWC,
+                                derivedBnDesc.GetLengths());
+        
+        std::array<ck::index_t, Rank> xyLengths; // inOutLengths
+        std::array<ck::index_t, Rank> xyStrides;
+
+        std::copy(problem.GetXDesc().GetLengths().begin(),
+                  problem.GetXDesc().GetLengths().end(),
+                  xyLengths.begin());
+
+        std::copy(problem.GetXDesc().GetStrides().begin(),
+                  problem.GetXDesc().GetStrides().end(),
+                  xyStrides.begin());
+        // xyLengths[0] = 1;
+        // xyLengths[1] = 1;
+        // xyLengths[2] = 8;
+        // xyLengths[3] = 8;
+        
+        auto argument_ptr_ref = batchNormBwd_ref.MakeArgumentPointer(
+            xyLengths,
+            xyStrides,
+            xyStrides,
+            xyStrides,
+            arrReduceDims,
+            arrScaleBiasMeanVarLengths,
+            arrScaleBiasMeanVarStrides,
+            arrScaleBiasMeanVarStrides,
+            arrScaleBiasMeanVarStrides,
+            dl_module.input.data.data(),
+            dl_module.x_input.data.data(),
+            dl_module.bnScale.data.data(),
+            nullptr,
+            nullptr,
+            dl_module.epsilon,
+            PassThroughOp{},
+            ref_out.data.data(),
+            dscale_ref.data.data(),
+            dbias_ref.data.data());
+
+        if(!batchNormBwd_ref.IsSupportedArgument(argument_ptr_ref.get()))
+        {
+            std::cerr << "The runtime parameters not supported by the reference instance, exiting!"
+                      << std::endl;
+            exit(1);
+        };
+
+        auto invoker_ptr_ref = batchNormBwd_ref.MakeInvokerPointer();
+
+        (void)invoker_ptr_ref->Run(argument_ptr_ref.get());
+        std::cout << "printing ref ck out \n";
+        for(auto it : ref_out.data)
+        {
+            std::cout << it << " , ";
+        }
+        std::cout << "\n\n";
+        dl_module.ref_out = ref_out;
 }
 
 

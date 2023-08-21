@@ -454,7 +454,8 @@ static auto GetFusedSolvers()
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
                                    solver::fusion::BnBwdTrgActivationFused,
-                                   solver::fusion::ConvCKIgemmFwdBiasActivFused>{};
+                                   solver::fusion::ConvCKIgemmFwdBiasActivFused,
+                                   solver::fusion::CKBnFwdInference>{};
 }
 
 static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,

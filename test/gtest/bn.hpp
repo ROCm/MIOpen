@@ -29,7 +29,8 @@
 
 #include "bn_test_base.hpp"
 #include "test_fusion_plan_base.hpp"
-
+#include "ck/library/reference_tensor_operation/cpu/reference_batchnorm_backward.hpp"
+#include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
 template <typename T>
 struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
@@ -85,9 +86,32 @@ protected:
         if(test_skipped)
             return;
         auto&& handle = get_handle();
+        std::cout << "\n\n before start output\n\n";
+        for(const auto&it : bn_bwd_data.output.data)
+        {
+            std::cout << it  << " , ";
+        }
+        std::cout << "\n\n before end output\n\n";
         bn_bwd_data.output.data =
             handle.Read<T>(bn_bwd_data.out_dev, bn_bwd_data.output.data.size());
-        test::FusionPlan::ComputeRefBNBwdTrain(bn_bwd_data);
+        std::cout << "bn_bwd_data.out_devptr " << bn_bwd_data.out_dev.get() << std::endl;
+        std::cout << "\n\n after start output\n\n";
+        for(const auto&it : bn_bwd_data.output.data)
+        {
+            std::cout << it  << " , ";
+        }
+        std::cout << "\n\n after end output\n\n";
+        const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
+        const auto& bn_problem =
+            fusion_problem.GetBnProblem(0, miopen::batchnorm::Direction::Backward);
+        test::FusionPlan::ComputeRefBNBwdTrain(bn_bwd_data, bn_problem);
+
+        std::cout << "\n\n start ref output\n\n";
+        for(const auto&it : bn_bwd_data.ref_out.data)
+        {
+            std::cout << it  << " , ";
+        }
+        std::cout << "\n\n end ref output\n\n";
         test::FusionPlan::BnCmpare(bn_bwd_data.output, bn_bwd_data.ref_out);
     }
     BNTestCase bn_config;
