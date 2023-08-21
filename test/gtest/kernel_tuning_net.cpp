@@ -95,7 +95,6 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
         GTEST_SKIP();
     miopen::ConvolutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     T perf_config;
     bool valid = false;
     perf_config.RunParmeterPredictionModel(ctx, problem, valid);
