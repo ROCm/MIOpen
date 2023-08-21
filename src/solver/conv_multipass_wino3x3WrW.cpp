@@ -496,9 +496,9 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const long input_line_size = 4L * problem.GetInWidth();
-        const long input_feature_map_size = input_line_size * problem.GetInHeight();
-        const long input_stack_size = input_feature_map_size * problem.GetInChannels();
+        const int64_t input_line_size = static_cast<int64_t>(4) * problem.GetInWidth();
+        const int64_t input_feature_map_size = input_line_size * problem.GetInHeight();
+        const int64_t input_stack_size = input_feature_map_size * problem.GetInChannels();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
