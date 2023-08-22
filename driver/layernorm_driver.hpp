@@ -464,6 +464,8 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
+    dweight_dev->FromGPU(GetStream(), dweight.data());
+    dbias_dev->FromGPU(GetStream(), dbias.data());
 
     return miopenStatusSuccess;
 }
@@ -476,6 +478,7 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardCPU()
                                             dout.data(),
                                             weight.data(),
                                             mean.data(),
+					    rstd.data(),
                                             dinhost.data(),
                                             dweighthost.data(),
                                             dbiashost.data(),
@@ -504,6 +507,7 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
     {
         return 1e-3;
     }
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -572,7 +576,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
     auto dbiaserror = miopen::rms_range(dbiashost, dbias);
     if(!std::isfinite(dbiaserror) || dbiaserror > tolerance)
     {
-        std::cout << "Backward LayerNorm bias FAILED: " << dbiaserror << std::endl;
+        std::cout << "Backward LayerNorm dbias FAILED: " << dbiaserror << std::endl;
     }
     else
     {
