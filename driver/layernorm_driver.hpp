@@ -212,7 +212,7 @@ int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
-    inflags.AddInputFlag("nomalized_dim", 'o', "2", "Nomalized Dim (Default=2)", "int");
+    inflags.AddInputFlag("nomalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
 
@@ -400,11 +400,6 @@ template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloLayerNormForwardRunHost<Tgpu, Tref>(inputDesc,
-                                           weightDesc,
-                                           biasDesc,
-                                           outputDesc,
-                                           meanDesc,
-                                           rstdDesc,
                                            in.data(),
                                            weight.data(),
                                            bias.data(),
@@ -477,13 +472,6 @@ template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     mloLayerNormBackwardRunHost<Tgpu, Tref>(inputDesc,
-                                            doutputDesc,
-                                            weightDesc,
-                                            meanDesc,
-                                            rstdDesc,
-                                            dinputDesc,
-                                            dweightDesc,
-                                            dbiasDesc,
                                             in.data(),
                                             dout.data(),
                                             weight.data(),
@@ -521,6 +509,7 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 {
+    RunForwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
     if(!std::isfinite(error) || error > tolerance)
@@ -558,6 +547,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
 {
+    RunBackwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(dinhost, din);
     if(!std::isfinite(error) || error > tolerance)

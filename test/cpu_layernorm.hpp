@@ -41,20 +41,17 @@ void cpu_layernorm_forward(tensor<T> input,
                            miopenLayerNormMode_t mode)
 {
     auto dims         = input.desc.GetLengths();
-    size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
     for(; i < dim; i++)
     {
         outer_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     for(; i < dims.size(); i++)
     {
         inner_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     par_ford(outer_size)([&](int o) {
@@ -96,20 +93,17 @@ void cpu_layernorm_backward(tensor<T> input,
                             miopenLayerNormMode_t mode)
 {
     auto dims         = input.desc.GetLengths();
-    size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
     for(; i < dim; i++)
     {
         outer_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     for(; i < dims.size(); i++)
     {
         inner_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     par_ford(outer_size)([&](int o) {

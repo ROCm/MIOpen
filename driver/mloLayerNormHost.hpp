@@ -33,11 +33,6 @@
 
 template <typename Tgpu, typename Tcheck>
 int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                               miopenTensorDescriptor_t weightDesc,
-                               miopenTensorDescriptor_t biasDesc,
-                               miopenTensorDescriptor_t outputDesc,
-                               miopenTensorDescriptor_t meanDesc,
-                               miopenTensorDescriptor_t rstdDesc,
                                Tgpu* input,
                                Tgpu* weight,
                                Tgpu* bias,
@@ -49,20 +44,17 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                miopenLayerNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
-    size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
     for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     for(; i < dims.size(); i++)
     {
         inner_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     int ret = 0;
@@ -98,13 +90,6 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
 template <typename Tgpu, typename Tcheck>
 int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                miopenTensorDescriptor_t doutputDesc,
-                                miopenTensorDescriptor_t weightDesc,
-                                miopenTensorDescriptor_t meanDesc,
-                                miopenTensorDescriptor_t rstdDesc,
-                                miopenTensorDescriptor_t dinputDesc,
-                                miopenTensorDescriptor_t dmeanDesc,
-                                miopenTensorDescriptor_t drstdDesc,
                                 Tgpu* input,
                                 Tgpu* doutput,
                                 Tgpu* weight,
@@ -117,20 +102,17 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                 miopenLayerNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
-    size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
     for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     for(; i < dims.size(); i++)
     {
         inner_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     int ret = 0;
