@@ -1146,9 +1146,7 @@ void run_config(std::vector<std::string>& config,
 
     for(int j = 0; j < test_repeat_count; j++)
     {
-        run_data(config_data_args.begin(), config_data_args.end(), [&] {
-            config_driver.run();
-        });
+        run_data(config_data_args.begin(), config_data_args.end(), [&] { config_driver.run(); });
     }
 }
 
