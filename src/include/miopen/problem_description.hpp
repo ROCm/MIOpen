@@ -185,12 +185,9 @@ struct ProblemDescription
     void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
 };
 
-// For mlo_construct_base and SQLitePerfDb
+// For mlo_construct_base
 // TODO remove this
 struct ProblemDescriptionCompatTemporary
-#if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescriptionCompatTemporary>
-#endif
 {
     int spatial_dims = 2;
     int n_inputs     = 0;
@@ -199,75 +196,44 @@ struct ProblemDescriptionCompatTemporary
     int in_depth     = 0;
     // TODO add check to solver that vectorLength = 1
     // int vectorLength      = 1;
-    int kernel_size_h     = 0;
-    int kernel_size_w     = 0;
-    int kernel_size_d     = 0;
-    int n_outputs         = 0;
-    int out_height        = 0;
-    int out_width         = 0;
-    int out_depth         = 0;
-    int batch_sz          = 0;
-    int pad_h             = 0;
-    int pad_w             = 0;
-    int pad_d             = 0;
-    int kernel_stride_h   = 0;
-    int kernel_stride_w   = 0;
-    int kernel_stride_d   = 0;
-    int kernel_dilation_h = 0;
-    int kernel_dilation_w = 0;
-    int kernel_dilation_d = 0;
-    int bias              = 0;
+    int n_outputs  = 0;
+    int out_height = 0;
+    int out_width  = 0;
+    int out_depth  = 0;
+    int batch_sz   = 0;
+    int bias       = 0;
     std::string in_layout;
-    // std::string weights_layout;
     std::string out_layout;
-    miopenDataType_t in_data_type      = miopenFloat;
-    miopenDataType_t weights_data_type = miopenFloat;
-    miopenDataType_t out_data_type     = miopenFloat;
-    size_t bot_sz                      = 0;
-    size_t top_sz                      = 0;
-    size_t weights_sz                  = 0;
-    size_t bias_sz                     = 0;
-    int in_stride                      = 0; // GetInStrideH()
-    int out_stride                     = 0; // GetOutStrideH()
-    int in_channel_stride              = 0;
-    int in_batch_stride                = 0;
-    int out_channel_stride             = 0;
-    int out_batch_stride               = 0;
-    int group_counts                   = 0;
+    miopenDataType_t in_data_type  = miopenFloat;
+    miopenDataType_t out_data_type = miopenFloat;
+    size_t bot_sz                  = 0;
+    size_t top_sz                  = 0;
+    size_t bias_sz                 = 0;
+    int in_stride                  = 0; // GetInStrideH()
+    int out_stride                 = 0; // GetOutStrideH()
+    int in_channel_stride          = 0;
+    int in_batch_stride            = 0;
+    int out_channel_stride         = 0;
+    int out_batch_stride           = 0;
 
     int GetSpatialDims() const { return spatial_dims; }
     int GetInChannels() const { return n_inputs; }
     int GetInHeight() const { return in_height; }
     int GetInWidth() const { return in_width; }
-    int GetInDepth() const { return in_depth; }
+    // int GetInDepth() const { return in_depth; }
     // int GetVectorLength() const { return vectorLength; }
-    int GetWeightsHeight() const { return kernel_size_h; }
-    int GetWeightsWidth() const { return kernel_size_w; }
-    int GetWeightsDepth() const { return kernel_size_d; }
     int GetOutChannels() const { return n_outputs; }
     int GetOutHeight() const { return out_height; }
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    int GetPadH() const { return pad_h; }
-    int GetPadW() const { return pad_w; }
-    int GetPadD() const { return pad_d; }
-    int GetKernelStrideH() const { return kernel_stride_h; }
-    int GetKernelStrideW() const { return kernel_stride_w; }
-    int GetKernelStrideD() const { return kernel_stride_d; }
-    int GetDilationH() const { return kernel_dilation_h; }
-    int GetDilationW() const { return kernel_dilation_w; }
-    int GetDilationD() const { return kernel_dilation_d; }
-    int GetBias() const { return bias; }
-    std::string GetInLayout() const { return in_layout; }
-    // std::string GetWeightsLayout() const { return weights_layout; }
+    // int GetBias() const { return bias; }
+    // std::string GetInLayout() const { return in_layout; }
     // std::string GetOutLayout() const { return out_layout; }
     miopenDataType_t GetInDataType() const { return in_data_type; }
-    miopenDataType_t GetWeightsDataType() const { return weights_data_type; }
     miopenDataType_t GetOutDataType() const { return out_data_type; }
     // size_t GetInSize() const { return bot_sz; }
     // size_t GetOutSize() const { return top_sz; }
-    // size_t GetWeightsSize() const { return weights_sz; }
     // size_t GetBiasSize() const { return bias_sz; }
     int GetInStride() const { return in_stride; }
     int GetOutStride() const { return out_stride; }
@@ -275,24 +241,10 @@ struct ProblemDescriptionCompatTemporary
     int GetInBatchStride() const { return in_batch_stride; }
     int GetOutChannelStride() const { return out_channel_stride; }
     int GetOutBatchStride() const { return out_batch_stride; }
-    int GetGroupCount() const { return group_counts; }
 
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return ProblemDescription::table_name(); }
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        ProblemDescription::Visit(self, f);
-    }
-#endif
-
-    ProblemDescriptionCompatTemporary() = default;
     ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
 
     ProblemDescription::Direction direction;
-
-    std::string GetDirectionStr() const { return direction.GetStr(); }
 
     /*
      * set top tensor

@@ -106,12 +106,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 
-using mlo_kernel_info = std::tuple<const std::string,
-                                   const std::string,
-                                   const std::string,
-                                   const std::vector<size_t>,
-                                   const std::vector<size_t>>;
-
 inline int mloLg2(int v)
 {
     auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -263,21 +257,10 @@ struct mlo_construct_base
 {
     mlo_construct_base(miopen::conv::Direction dir) : _problem(dir)
     {
-        _problem.bias              = 0;
-        _problem.pad_w             = 1;
-        _problem.pad_h             = 1;
-        _problem.kernel_size_d     = 3;
-        _problem.kernel_size_w     = 3;
-        _problem.kernel_size_h     = 3;
-        _problem.kernel_stride_w   = 1;
-        _problem.kernel_stride_h   = 1;
-        _problem.kernel_dilation_w = 1;
-        _problem.kernel_dilation_h = 1;
-        _problem.bot_sz            = 0; // bytes
-        _problem.top_sz            = 0; // bytes
-        _problem.weights_sz        = 0; // bytes
-        _problem.bias_sz           = 0; // bytes
-        _problem.group_counts      = 1;
+        _problem.bias    = 0;
+        _problem.bot_sz  = 0; // bytes
+        _problem.top_sz  = 0; // bytes
+        _problem.bias_sz = 0; // bytes
     }
 
     /*
