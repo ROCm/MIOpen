@@ -27,6 +27,7 @@
 #define GUARD_TENSOR_HOLDER_HPP
 
 #include "ford.hpp"
+#include "random.hpp"
 #include "network_data.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
