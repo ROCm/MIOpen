@@ -424,31 +424,81 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenLayerNormBackward(GetHandle(),
-                                mode,
-                                inputDesc,
-                                in_dev->GetMem(),
-                                doutputDesc,
-                                dout_dev->GetMem(),
-                                weightDesc,
-                                weight_dev->GetMem(),
-                                meanDesc,
-                                mean_dev->GetMem(),
-                                rstdDesc,
-                                rstd_dev->GetMem(),
-                                dim,
-                                dinputDesc,
-                                din_dev->GetMem(),
-                                dweightDesc,
-                                dweight_dev->GetMem(),
-                                dbiasDesc,
-                                dbias_dev->GetMem());
+        if(inflags.GetValueInt("time") == 1)
+        {
+            miopenLayerNormBackward(GetHandle(),
+                                    mode,
+                                    inputDesc,
+                                    in_dev->GetMem(),
+                                    doutputDesc,
+                                    dout_dev->GetMem(),
+                                    weightDesc,
+                                    weight_dev->GetMem(),
+                                    meanDesc,
+                                    mean_dev->GetMem(),
+                                    rstdDesc,
+                                    rstd_dev->GetMem(),
+                                    dim,
+                                    dinputDesc,
+                                    din_dev->GetMem(),
+                                    dweightDesc,
+                                    nullptr,
+                                    dbiasDesc,
+                                    nullptr);
 
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            kernel_total_time += time;
+            if(i == 0)
+                kernel_first_time = time;
+
+            miopenLayerNormBackward(GetHandle(),
+                                    mode,
+                                    inputDesc,
+                                    in_dev->GetMem(),
+                                    doutputDesc,
+                                    dout_dev->GetMem(),
+                                    weightDesc,
+                                    weight_dev->GetMem(),
+                                    meanDesc,
+                                    mean_dev->GetMem(),
+                                    rstdDesc,
+                                    rstd_dev->GetMem(),
+                                    dim,
+                                    dinputDesc,
+                                    din_dev->GetMem(),
+                                    dweightDesc,
+                                    dweight_dev->GetMem(),
+                                    dbiasDesc,
+                                    dbias_dev->GetMem());
+            float time2 = 0.0;
+            miopenGetKernelTime(GetHandle(), &time2);
+            kernel_total_time += time2;
+            if(i == 0)
+                kernel_first_time += time2;
+        }
+        else
+        {
+            miopenLayerNormBackward(GetHandle(),
+                                    mode,
+                                    inputDesc,
+                                    in_dev->GetMem(),
+                                    doutputDesc,
+                                    dout_dev->GetMem(),
+                                    weightDesc,
+                                    weight_dev->GetMem(),
+                                    meanDesc,
+                                    mean_dev->GetMem(),
+                                    rstdDesc,
+                                    rstd_dev->GetMem(),
+                                    dim,
+                                    dinputDesc,
+                                    din_dev->GetMem(),
+                                    dweightDesc,
+                                    dweight_dev->GetMem(),
+                                    dbiasDesc,
+                                    dbias_dev->GetMem());
+        }
     }
 
     if(inflags.GetValueInt("time") == 1)
