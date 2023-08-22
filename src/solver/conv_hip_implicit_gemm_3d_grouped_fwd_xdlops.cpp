@@ -34,7 +34,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
@@ -42,11 +42,11 @@ namespace solver {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
-    2,
-    ck::tensor_layout::convolution::NHWGC,
-    ck::tensor_layout::convolution::GKYXC,
+    3,
+    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GKZYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK,
+    ck::tensor_layout::convolution::NDHWGK,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -77,22 +77,30 @@ struct CKArgs
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
+        Di = ProblemInterpreter::GetInputDepthDi(problem);
+        Do = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {G, N, C, Hi, Wi};
-        output = {G, N, K, Ho, Wo};
-        weight = {G, K, C, Y, X};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
+        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+                    ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
     int G;
@@ -103,25 +111,28 @@ struct CKArgs
     int K1;
     int Hi;
     int Wi;
+    int Di;
     int Ho;
     int Wo;
+    int Do;
     int Y;
     int X;
-    std::array<ck::index_t, 5> input;
-    std::array<ck::index_t, 5> in_strides;
-    std::array<ck::index_t, 5> output;
-    std::array<ck::index_t, 5> out_strides;
-    std::array<ck::index_t, 5> weight;
-    std::array<ck::index_t, 5> wei_strides;
-    std::array<ck::index_t, 2> strides;
-    std::array<ck::index_t, 2> dilation;
-    std::array<ck::index_t, 2> lPadding;
-    std::array<ck::index_t, 2> rPadding;
+    int Z;
+    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 3> strides;
+    std::array<ck::index_t, 3> dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescription& problem)
 {
     const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
@@ -158,7 +169,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
 }
 
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
     const auto args      = CKArgs{problem};
@@ -198,14 +209,12 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
+bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{problem};
-    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
-        return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -238,15 +247,14 @@ namespace {
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const ProblemDescription& problem,
-                   const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config)
+                   const CKArgs& args,
+                   const std::string& kernel_id)
 {
-    const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpGFwdPtrs<DataType>::GetInstances();
     int i                = 0;
     for(; i < conv_ptrs.size(); i++)
     {
-        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        if(conv_ptrs[i]->GetTypeString() == kernel_id)
         {
             break;
         }
@@ -278,22 +286,50 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         {});
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    if(enable_profiling)
-    {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
-    }
+    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
+    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream()});
 }
+
+namespace conv {
+
+InvokerFactory
+MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
+                               const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+{
+    auto args                  = CKArgs{problem};
+    miopenDataType_t data_type = problem.conv_problem.GetInDataType();
+    auto kernel_id             = config.kernel_id;
+
+    return [args, data_type, kernel_id](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [args, data_type, kernel_id](const Handle& handle,
+                                            const AnyInvokeParams& primitive_parameters) {
+            switch(data_type)
+            {
+            case miopenHalf:
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, args, kernel_id);
+                break;
+            case miopenFloat:
+                RunCKSolution<float>(handle, primitive_parameters, args, kernel_id);
+                break;
+            case miopenInt8:
+                RunCKSolution<int8_t>(handle, primitive_parameters, args, kernel_id);
+                break;
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenBFloat16:
+            case miopenDouble: break;
+            }
+        };
+    };
+}
+
+} // namespace conv
 
 } // namespace
 #endif
 
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
+void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     const ProblemDescription& problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -312,7 +348,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
     if(valid_kernels.empty())
     {
@@ -330,12 +367,12 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValidValue() const
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValidValue() const
 {
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -356,46 +393,46 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
+    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
 
-PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
+PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
+ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
     const ConvolutionContext&, const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
     pp.HeuristicInit(problem);
     return pp;
 }
 
-bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
     const ConvolutionContext&,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
     return config.IsValid(problem);
 }
 
-PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::Search(const ConvolutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
+ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem,
+                                            const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
-                                                     const ProblemDescription& problem) const
+bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                       const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
     std::ignore = problem;
     return false;
 #else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
@@ -405,7 +442,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& c
         return false;
     if(!problem.direction.IsForward())
         return false;
-    if(!problem.Is2d())
+    if(!problem.Is3d())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
@@ -426,10 +463,10 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& c
 #endif
 }
 
-ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
+ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     const ConvolutionContext& ctx,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
     std::ignore = ctx;
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -438,27 +475,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
-            {
-            case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, problem, config);
-                break;
-            case miopenInt32:
-            case miopenInt8x4:
-            case miopenBFloat16:
-            case miopenDouble: break;
-            }
-        };
-    };
+    result.invoker_factory = conv::MakeCK3DGroupFwdInvokerFactory(problem, config);
     return result;
 #endif
 }
