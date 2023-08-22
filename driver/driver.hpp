@@ -148,7 +148,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
            "tensorop[fp16], reduce[fp16,fp64]"
 #ifdef MIOPEN_BETA_API
-           ", layernorm"
+           ", layernorm[bf16, fp16, fp32]"
 #endif
            "\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
@@ -172,7 +172,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
        arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
 #ifdef MIOPEN_BETA_API
-       arg != "layernorm" &&
+       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" &&
 #endif
        arg != "--version")
     {

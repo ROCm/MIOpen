@@ -187,6 +187,14 @@ int main(int argc, char* argv[])
     {
         drv = new LayerNormDriver<float, float>();
     }
+    else if(base_arg == "layernormfp16")
+    {
+        drv = new LayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "layernormbfp16")
+    {
+        drv = new LayerNormDriver<bfloat16, float>();
+    }
 #endif
     else
     {
