@@ -478,7 +478,7 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardCPU()
                                             dout.data(),
                                             weight.data(),
                                             mean.data(),
-					    rstd.data(),
+                                            rstd.data(),
                                             dinhost.data(),
                                             dweighthost.data(),
                                             dbiashost.data(),
