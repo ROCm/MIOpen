@@ -55,11 +55,14 @@ struct KernelArgsPair
     static const int padding      = (alignment - (sizeof(T) % alignment)) % alignment;
     static const int second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
+#if defined(__clang__)
+        __attribute__((no_sanitize("undefined")))
+#endif
     {
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
-    alignas(U) char buffer[second_index + sizeof(U)] = {};
+    char buffer[second_index + sizeof(U)] = {};
 };
 #else
 template <class T, class U>
