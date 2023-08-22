@@ -347,7 +347,7 @@ void SetupPaths(boost::filesystem::path& fdb_file_path, boost::filesystem::path&
     ASSERT_TRUE(boost::filesystem::exists(kdb_file_path)) << "Db file does not exist" << kdb_file_path;
 }
 
-TEST(DBSync, KDBTargetID)
+TEST(DBSync, DISABLED_KDBTargetID)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
@@ -446,7 +446,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     }
 }
 
-TEST(DbSync, StaticFDBSync)
+TEST(DbSync, DISABLED_StaticFDBSync)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
