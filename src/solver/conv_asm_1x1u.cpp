@@ -582,27 +582,27 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     }
     /// \todo Ilya: The checks below look adequate but needs to be double-checked.
     {
-        const long input_line_size = 4 * static_cast<long>(problem.GetInWidth_());
-        const long input_feature_map_size = input_line_size * problem.GetInHeight_();
-        const long input_stack_size = input_feature_map_size * problem.GetInChannels_();
+        const int64_t input_line_size = 4 * static_cast<int64_t>(problem.GetInWidth_());
+        const int64_t input_feature_map_size = input_line_size * problem.GetInHeight_();
+        const int64_t input_stack_size = input_feature_map_size * problem.GetInChannels_();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     {
-        const long output_line_size = 4 * static_cast<long>(problem.GetOutWidth_());
-        const long output_feature_map_size = output_line_size * problem.GetOutHeight_();
-        const long output_stack_size = output_feature_map_size * problem.GetOutChannels_();
+        const int64_t output_line_size = 4 * static_cast<int64_t>(problem.GetOutWidth_());
+        const int64_t output_feature_map_size = output_line_size * problem.GetOutHeight_();
+        const int64_t output_stack_size = output_feature_map_size * problem.GetOutChannels_();
         if (! (output_stack_size < (1U << 24)))
             return false;
     }
     // Check limits:
-    auto h_w = static_cast<long>(AsmImgHeight(problem)) * AsmImgWidth(problem);
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
-    const auto c_h_w   = static_cast<long>(problem.GetInChannels_()) * h_w;  // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetOutChannels_()) * h_w; // K*H*W
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetInChannels_()) * problem.GetOutChannels_() * r_s; // C*K*R*S
+    auto h_w = static_cast<int64_t>(AsmImgHeight(problem)) * AsmImgWidth(problem);
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;  // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w; // K*H*W
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetInChannels_()) * problem.GetOutChannels_() * r_s; // C*K*R*S
     ok = problem.GetBatchSize_() < std::pow(2, 16)       // -n   N batch_size
          && problem.GetInChannels_() < std::pow(2, 16)   // -c   C input_channels
          && problem.GetOutChannels_() < std::pow(2, 16)  // -k   K output_channels

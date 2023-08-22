@@ -520,13 +520,13 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    const auto h_w     = static_cast<long>(AsmImgHeight(problem)) * AsmImgWidth(problem);
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
-    const auto c_h_w   = static_cast<long>(problem.GetOutChannels_()) * h_w; // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetInChannels_()) * h_w;  // K*H*W
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetOutChannels_()) * problem.GetInChannels_() * r_s; // C*K*R*S
+    const auto h_w     = static_cast<int64_t>(AsmImgHeight(problem)) * AsmImgWidth(problem);
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w; // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;  // K*H*W
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w; // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w; // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetOutChannels_()) * problem.GetInChannels_() * r_s; // C*K*R*S
     ok = problem.GetBatchSize_() < std::pow(2, 16)       // -n   N batch_size
          && problem.GetOutChannels_() < std::pow(2, 16)  // -c   C input_channels
          && problem.GetInChannels_() < std::pow(2, 16)   // -k   K output_channels
