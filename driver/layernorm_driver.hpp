@@ -456,11 +456,11 @@ int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Softmax Elapsed: %f ms\n", t.gettime_ms() / iter);
+            printf("Wall-clock Time Backward LayerNorm Elapsed: %f ms\n", t.gettime_ms() / iter);
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward Softmax Elapsed: %f ms\n", kernel_average_time);
+        printf("GPU Kernel Time Backward LayerNorm Elapsed: %f ms\n", kernel_average_time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());
