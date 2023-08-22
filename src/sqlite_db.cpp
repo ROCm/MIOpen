@@ -78,12 +78,12 @@ class SQLite::impl
     {
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
-#ifdef __clang__
+#if defined(__clang__) || defined(__llvm__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-function-type-strict"
 #endif
         sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(miopen_sqlite3_memvfs_init));
-#ifdef __clang__
+#if defined(__clang__) || defined(__llvm__)
 #pragma clang diagnostic pop
 #endif
         // Open an in-memory database to use as a handle for loading the memvfs extension
