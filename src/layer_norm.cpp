@@ -117,7 +117,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
         " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-        " -DMIOPEN_USE_BF16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
     if(mode == MIOPEN_ELEMENTWISE_AFFINE)
         parms += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
@@ -241,7 +241,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
         " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
         " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-        " -DMIOPEN_USE_BF16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
     if(mode == MIOPEN_ELEMENTWISE_AFFINE)
         parms += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
@@ -295,7 +295,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
             " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
             " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
             " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-            " -DMIOPEN_USE_BF16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+            " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
         if(mode == MIOPEN_ELEMENTWISE_AFFINE)
             parms2 += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
