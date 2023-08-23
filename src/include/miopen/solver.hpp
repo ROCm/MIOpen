@@ -2450,6 +2450,37 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
                              const PerformanceConfigAsmDirect3x3WrW& config) const override;
 };
 
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoFuryRxS final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
+    }
+
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
+
+    ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const override;
+
+    static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
+    static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
+};
+
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
+extern template struct ConvWinoFuryRxS<2, 3>;
+// extern template struct ConvWinoFuryRxS<3, 2>;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
