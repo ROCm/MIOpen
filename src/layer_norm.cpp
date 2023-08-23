@@ -69,6 +69,11 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
                          yDesc.IsPacked() && meanDesc.IsPacked() && rstdDesc.IsPacked();
 
+    if(!is_all_packed)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "All tensor is not packed.");
+    }
+
     auto dims         = xDesc.GetLengths();
     size_t grid_size  = 1;
     size_t outer_size = 1;
@@ -96,18 +101,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         "lnfwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) +
         "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
-        std::to_string(inner_size) + "xpk" + std::to_string(static_cast<int>(xDesc.IsPacked()));
-    if(weight)
-        network_config += "weightpk" + std::to_string(static_cast<int>(weightDesc.IsPacked()));
-    if(bias)
-        network_config += "biaspk" + std::to_string(static_cast<int>(biasDesc.IsPacked()));
-    network_config += "ypk" + std::to_string(static_cast<int>(yDesc.IsPacked()));
-    if(mean)
-        network_config += "meanpk" + std::to_string(static_cast<int>(meanDesc.IsPacked()));
-    if(rstd)
-        network_config += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
-    network_config += "mode" + std::to_string(static_cast<int>(mode)) + "eps" +
-                      std::to_string(static_cast<float>(epsilon));
+        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int>(mode)) + "eps" +
+        std::to_string(static_cast<float>(epsilon));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
     std::string kernel_name  = "LayernormFwdContiguous";
@@ -119,19 +114,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
         " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
-    if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-        parms += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
-    else
-        parms += " -DUSE_MIOPEN_WEIGHT_BIAS=1";
-
-    parms += " -DRUN_FORWARD=1";
-    parms +=
-        " -DIS_INPUT_PACKED=" +
-        std::to_string(static_cast<int>(xDesc.IsPacked() && (!weight || weightDesc.IsPacked()) &&
-                                        (!bias || biasDesc.IsPacked()))) +
-        " -DIS_OUTPUT_PACKED=" +
-        std::to_string(static_cast<int>(yDesc.IsPacked() && (!mean || meanDesc.IsPacked()) &&
-                                        (!rstd || rstdDesc.IsPacked())));
+    parms += " -DMIOPEN_BETA_API=1";
+    parms += " -DLOCAL_SIZE=256";
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
@@ -144,10 +128,6 @@ miopenStatus_t LayerNormForward(const Handle& handle,
             x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
     }
 
-    if(miopen::CheckNumericsEnabled())
-    {
-        miopen::checkNumericsOutput(handle, yDesc, y);
-    }
     return miopenStatusSuccess;
 }
 
@@ -186,14 +166,14 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(miopen::CheckNumericsEnabled())
-    {
-        miopen::checkNumericsInput(handle, xDesc, x);
-    }
-
     bool is_all_packed = xDesc.IsPacked() && dyDesc.IsPacked() && weightDesc.IsPacked() &&
                          meanDesc.IsPacked() && rstdDesc.IsPacked() && dxDesc.IsPacked() &&
                          dwDesc.IsPacked() && dbDesc.IsPacked();
+
+    if(!is_all_packed)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "All tensor is not packed.");
+    }
 
     auto dims         = xDesc.GetLengths();
     size_t grid_size  = 1;
@@ -222,16 +202,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
         "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) +
         "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
-        std::to_string(inner_size) + "xpk" + std::to_string(static_cast<int>(xDesc.IsPacked())) +
-        "dypk" + std::to_string(static_cast<int>(dyDesc.IsPacked()));
-    if(weight)
-        network_config += "weightpk" + std::to_string(static_cast<int>(weightDesc.IsPacked()));
-    if(mean)
-        network_config += "meanpk" + std::to_string(static_cast<int>(meanDesc.IsPacked()));
-    if(rstd)
-        network_config += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
-    network_config += "dxpk" + std::to_string(static_cast<int>(dxDesc.IsPacked())) + "mode" +
-                      std::to_string(static_cast<int>(mode));
+        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int>(mode));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
     std::string kernel_name  = "LayerNormBwdContiguous";
@@ -243,18 +214,8 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
         " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
-    if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-        parms += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
-    else
-        parms += " -DUSE_MIOPEN_WEIGHT_BIAS=1";
-
-    parms += " -DRUN_FORWARD=0";
-    parms += " -DIS_INPUT_PACKED=" +
-             std::to_string(static_cast<int>(xDesc.IsPacked() && dyDesc.IsPacked() &&
-                                             (!weight || weightDesc.IsPacked()) &&
-                                             meanDesc.IsPacked() && rstdDesc.IsPacked())) +
-             " -DIS_OUTPUT_PACKED=" + std::to_string(static_cast<int>(dxDesc.IsPacked()));
-
+    parms += " -DMIOPEN_BETA_API=1";
+    parms += " -DLOCAL_SIZE=256";
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
@@ -276,16 +237,8 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
             "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" +
             std::to_string(vgd2[0]) + "l" + std::to_string(vld2[0]) + "normalized_dim" +
             std::to_string(normalized_dim) + "grid" + std::to_string(grid_size) + "outer_size" +
-            std::to_string(outer_size) + "inner_size" + std::to_string(inner_size) + "xpk" +
-            std::to_string(static_cast<int>(xDesc.IsPacked())) + "dypk" +
-            std::to_string(static_cast<int>(dyDesc.IsPacked()));
-        if(mean)
-            network_config2 += "meanpk" + std::to_string(static_cast<int>(meanDesc.IsPacked()));
-        if(rstd)
-            network_config2 += "rstdpk" + std::to_string(static_cast<int>(rstdDesc.IsPacked()));
-        network_config2 += "dwpk" + std::to_string(static_cast<int>(dwDesc.IsPacked())) + "dbpk" +
-                           std::to_string(static_cast<int>(dbDesc.IsPacked())) + "mode" +
-                           std::to_string(static_cast<int>(mode));
+            std::to_string(outer_size) + "inner_size" + std::to_string(inner_size) + "mode" +
+            std::to_string(static_cast<int>(mode));
 
         std::string program_name2 = "MIOpenLayerNorm.cpp";
         std::string kernel_name2  = "LayernormBwdWeightBiasContiguous";
@@ -297,17 +250,8 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
             " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
             " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
 
-        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
-            parms2 += " -DUSE_MIOPEN_ELEMENTWISE_AFFINE=1";
-        else
-            parms2 += " -DUSE_MIOPEN_WEIGHT_BIAS=1";
-
-        parms2 += " -DRUN_FORWARD=0";
-        parms2 += " -DIS_INPUT_PACKED=" +
-                  std::to_string(static_cast<int>(xDesc.IsPacked() && meanDesc.IsPacked() &&
-                                                  rstdDesc.IsPacked())) +
-                  " -DIS_OUTPUT_PACKED=" +
-                  std::to_string(static_cast<int>(dwDesc.IsPacked() && dbDesc.IsPacked()));
+        parms2 += " -DMIOPEN_BETA_API=1";
+        parms2 += " -DLOCAL_SIZE=256";
         auto&& kernels2 = handle.GetKernels(algo_name2, network_config2);
         if(!kernels2.empty())
         {
@@ -319,11 +263,6 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                 algo_name2, network_config2, program_name2, kernel_name2, vld2, vgd2, parms2)(
                 x, dy, mean, rstd, dw, db, outer_size, inner_size);
         }
-    }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 
     return miopenStatusSuccess;

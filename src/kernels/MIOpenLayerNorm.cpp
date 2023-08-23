@@ -32,8 +32,6 @@
 //#define FLOAT hip_bfloat16
 //#endif
 
-#define LOCAL_SIZE 256
-
 extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
                                                   FLOAT* __restrict__ y,
                                                   const FLOAT* __restrict__ weight,
