@@ -62,6 +62,11 @@ struct CBATestCase
     }
 };
 
+using miopenConvolutionDescriptor_ptr = MIOPEN_MANAGE_PTR(miopenConvolutionDescriptor_t,
+                                                          miopenDestroyConvolutionDescriptor);
+using miopenActivationDescriptor_ptr  = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
+                                                         miopenDestroyActivationDescriptor);
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ConvBiasActivFwdTest);
 struct ConvBiasActivFwdTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
@@ -75,11 +80,15 @@ protected:
         weights = tensor<float>{cba_config.k, cba_config.C, cba_config.x, cba_config.y};
         input.generate(tensor_elem_gen_integer{17});
         weights.generate(tensor_elem_gen_integer{17});
-        miopenCreateConvolutionDescriptor(&conv_desc);
-        miopenCreateActivationDescriptor(&activ_desc);
+        miopenConvolutionDescriptor_t conv_desc_tmp;
+        miopenCreateConvolutionDescriptor(&conv_desc_tmp);
+        conv_desc = miopenConvolutionDescriptor_ptr{conv_desc_tmp};
+        miopenActivationDescriptor_t activ_desc_tmp;
+        miopenCreateActivationDescriptor(&activ_desc_tmp);
+        activ_desc = miopenActivationDescriptor_ptr{activ_desc_tmp};
         miopenSetActivationDescriptor(
-            activ_desc, cba_config.activ_mode, double_zero, double_zero, double_zero);
-        miopenInitConvolutionDescriptor(conv_desc,
+            activ_desc.get(), cba_config.activ_mode, double_zero, double_zero, double_zero);
+        miopenInitConvolutionDescriptor(conv_desc.get(),
                                         cba_config.conv_mode,
                                         cba_config.pad_y,
                                         cba_config.pad_x,
@@ -88,7 +97,8 @@ protected:
                                         cba_config.dilation_y,
                                         cba_config.dialtion_x);
         int n, c, h, w;
-        miopenGetConvolutionForwardOutputDim(conv_desc, &input.desc, &weights.desc, &n, &c, &h, &w);
+        miopenGetConvolutionForwardOutputDim(
+            conv_desc.get(), &input.desc, &weights.desc, &n, &c, &h, &w);
         output  = tensor<float>{static_cast<size_t>(n),
                                static_cast<size_t>(c),
                                static_cast<size_t>(h),
@@ -110,9 +120,11 @@ protected:
     }
     void TearDown() override
     {
+        if(::testing::Test::HasFailure() || ::testing::Test::IsSkipped())
+            return;
         const double double_zero = 0.0f;
         int bias_mode            = 1; // zero disables bias
-        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
+        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc.get());
         activationHostInfer(cba_config.activ_mode,
                             double_zero,
                             double_zero,
@@ -129,12 +141,10 @@ protected:
         EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
             << "Non finite number found in the CPU data";
         EXPECT_FALSE(idx < miopen::range_distance(ref_out));
-        miopenDestroyConvolutionDescriptor(conv_desc);
-        miopenDestroyActivationDescriptor(activ_desc);
     }
     CBATestCase cba_config;
-    miopenConvolutionDescriptor_t conv_desc;
-    miopenActivationDescriptor_t activ_desc;
+    miopenConvolutionDescriptor_ptr conv_desc;
+    miopenActivationDescriptor_ptr activ_desc;
     tensor<float> input;
     tensor<float> weights;
     tensor<float> output;
@@ -157,7 +167,7 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
                                                                in_dev.get(),
                                                                &weights.desc,
                                                                wei_dev.get(),
-                                                               conv_desc,
+                                                               conv_desc.get(),
                                                                algo,
                                                                nullptr,
                                                                0,
@@ -166,9 +176,11 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
                                                                nullptr,
                                                                &bias.desc,
                                                                bias_dev.get(),
-                                                               activ_desc,
+                                                               activ_desc.get(),
                                                                &output.desc,
                                                                out_dev.get());
+    if(status == miopenStatusUnsupportedOp)
+        GTEST_SKIP();
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
