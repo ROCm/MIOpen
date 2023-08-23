@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef SOURCE_FILE_DESC_HPP
+.include "Conv_Winograd_Fury_v1_1_1_metadata.inc"
 
-#define SOURCE_FILE_DESC_HPP
-#include <string>
-#include <memory>
+.if (.amdgcn.gfx_generation_number == 11)
+    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
 
-class SourceFileDesc
-{
-public:
-    std::string path;
-    int included_line;
-    std::shared_ptr<SourceFileDesc> included_from;
+    .include "Conv_Winograd_Fury_v1_1_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
 
-    SourceFileDesc(const std::string& path_, std::shared_ptr<SourceFileDesc> from, int line)
-        : path(path_), included_line(line), included_from(from)
-    {
-    }
-};
-
-#endif // SOURCE_FILE_DESC_HPP
+    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
+.else
+    .error "Unsupported gfx generation"
+    .end
+.endif

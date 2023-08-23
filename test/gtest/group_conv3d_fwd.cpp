@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "solver.hpp"
+#include <gtest/gtest.h>
+#include <miopen/miopen.h>
+#include <miopen/solver_id.hpp>
+#include <serialize.hpp>
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
+#include "tensor_util.hpp"
+#include "get_handle.hpp"
+#include "group_conv3d_fwd.hpp"
+
+struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
 {
 };
 
@@ -56,11 +63,11 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     if(!solv.IsApplicable(ctx, problem))
     {
         test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
+        GTEST_SKIP() << solv.SolverDbId()
+                     << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::DataInvokeParams{
-        tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -71,21 +78,21 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
-TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
+TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
 {
-    SolverFwd<miopen::solver::ConvAsm3x3U>(input.desc,
-                                           in_dev.get(),
-                                           weights.desc,
-                                           wei_dev.get(),
-                                           output.desc,
-                                           out_dev.get(),
-                                           conv_desc,
-                                           conv_config,
-                                           test_skipped);
+    SolverFwd<miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
+                                                                   in_dev.get(),
+                                                                   weights.desc,
+                                                                   wei_dev.get(),
+                                                                   output.desc,
+                                                                   out_dev.get(),
+                                                                   conv_desc,
+                                                                   conv_config,
+                                                                   test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
+                         ConvFwdSolverTest3D,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNCHW)));
+                                          testing::Values(miopenTensorNDHWC)));

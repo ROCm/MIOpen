@@ -104,7 +104,7 @@ void* default_allocator(void*, size_t sz)
     MIOPEN_THROW_HIP_STATUS(status_host, "hipHostMalloc " + std::to_string(sz));
 }
 
-inline std::string to_string(void* const ptr)
+[[maybe_unused]] inline std::string to_string(void* const ptr)
 {
     std::ostringstream oss;
     oss << ptr;
@@ -119,8 +119,10 @@ void default_deallocator(void*, void* mem)
         MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
     status = hipFree(mem);
     if(status != hipSuccess)
+    {
         MIOPEN_THROW_HIP_STATUS(status,
                                 "hipFree " + std::to_string(size) + " at " + to_string(mem));
+    }
     else
         MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
 }

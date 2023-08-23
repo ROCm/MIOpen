@@ -156,8 +156,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     return ret;
 }
 
-const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
-                                                            const std::string& name_str) const
+const TensorDescriptor&
+Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
+                                    [[maybe_unused]] const std::string& name_str) const
 {
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
@@ -258,8 +259,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
     else
     {
-        auto tmp_ctx = ExecutionContext{&handle};
-        tmp_ctx.DetectRocm();
+        auto tmp_ctx             = ExecutionContext{&handle};
         const auto workspace_max = conv_desc.GetWorkSpaceSize(tmp_ctx, conv_problem);
         workspace_size           = std::min(options.workspace_limit, workspace_max);
         owned_workspace          = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
@@ -348,7 +348,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto legacy_problem = ProblemDescription{conv_problem};
     const auto netcfg         = conv_problem.BuildConfKey();
     auto conv_ctx             = ConvolutionContext{{&handle}};
-    conv_ctx.DetectRocm();
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
