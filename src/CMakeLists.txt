@@ -217,6 +217,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
+    solver/conv_wino_fury_RxS.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
@@ -479,6 +480,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_dilation2.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride1.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride2.s
+        kernels/Conv_Winograd_Fury_v1_1_1_fp16_fp16acc_f2x3_stride1.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
