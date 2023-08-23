@@ -294,7 +294,7 @@ struct tensor_ops_driver : test_driver
                              int offset,
                              bool isPacked)
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         if(!isPacked)
         {
