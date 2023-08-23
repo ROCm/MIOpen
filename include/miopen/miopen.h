@@ -270,6 +270,14 @@ MIOPEN_DECLARE_OBJECT(miopenFusionOpDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
 
+/*! @ingroup tensor
+ * @brief Creates the miopenSeqTensorDescriptor_t type
+ *
+ * SeqTensor descriptor is an object that allows the user to specify tensor with sequence dimension.
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenSeqTensorDescriptor);
+
 /*! @ingroup convolutions
  * @brief Creates the miopenConvolutionDescriptor_t type
  *
@@ -720,6 +728,22 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t 
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
+
+/*! @brief Create a Tensor Descriptor for sequence data
+ *
+ * API for creating an uninitialized sequence data tensor descriptor.
+ * @param tensorDesc Pointer to a sequence data tensor descriptor type (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc);
+
+/*! @brief Destroys the sequence data tensor descriptor
+ *
+ * @param tensorDesc Tensor descriptor (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc);
 
 /*! @brief Execute element-wise tensor operations
  *
@@ -3298,6 +3322,17 @@ typedef enum
     miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
 } miopenRNNPaddingMode_t;
 
+/*! @enum miopenRNNBaseLayout_t
+ * Data layouts for RNN operations
+ */
+typedef enum
+{
+    miopenRNNDataUnknownLayout = 0,
+    miopenRNNDataSeqMajorNotPadded = 1,
+    miopenRNNDataSeqMajorPadded = 2,
+    miopenRNNDataBatchMajorPadded = 3,
+} miopenRNNBaseLayout_t;
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -3414,6 +3449,59 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnn
                                                        miopenRNNBiasMode_t biasMode,
                                                        miopenRNNAlgo_t algo,
                                                        miopenDataType_t dataType);
+
+/*! @brief Set shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ * 
+ * @param seqTensorDesc     Tensor descriptor (input/output)
+ * @param dataType          MIOpen datatype (input)
+ * @param layout            One of the main supported layouts for RNN data(input)
+ * @param maxSequenceLen      Sequence length limit within this SeqTensor(input)
+ * @param batchSize         Number of sequences within this SeqTensor (input)
+ * @param vectorSize        Vector size (input)
+ * @param sequenceLenArray  Array containing the length of each sequence in the SeqTensor(input)
+ * @param paddingMarker     Not used, should be NULL (input)
+ * @return                  miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t dataType,
+                                    miopenRNNBaseLayout_t layout,
+                                    int maxSequenceLen,
+                                    int batchSize,
+                                    int vectorSize,
+                                    const int* sequenceLenArray,
+                                    void* paddingMarker);
+
+/*! @brief Get shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ *
+ * @param seqTensorDesc             Tensor descriptor (input)
+ * @param dataType                  MIOpen datatype (output)
+ * @param layout                    One of the main supported layouts for RNN data(output)
+ * @param maxSequenceLen              Sequence length limit within this SeqTensor(output)
+ * @param batchSize                 Number of sequences within this SeqTensor (output)
+ * @param vectorSize                Vector size (output)
+ * @param sequenceLenArrayLimit  Limit for number of elements that can be returned to user 
+ * by sequenceLenArray (input)
+ * @param sequenceLenArray          Array containing the length of each sequence in the 
+ * SeqTensor. This is allowed to be a NULL pointer if sequenceLenArrayLimit is 0 (output)
+ * @param paddingMarker             Not used, should be NULL (input)
+ * @return                          miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t* dataType,
+                                    miopenRNNBaseLayout_t* layout,
+                                    int* maxSequenceLen,
+                                    int* batchSize,
+                                    int* vectorSize,
+                                    int sequenceLenArrayLimit,
+                                    int* sequenceLenArray,
+                                    void* paddingMarker);
 
 /*! @brief Query the amount of memory required to execute the RNN layer
  *

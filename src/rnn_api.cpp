@@ -36,6 +36,26 @@ enum RNNDir_t
     BackwardData,
     BackwardWeights
 };
+
+extern "C" miopenStatus_t
+miopenSetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t dataType,
+                                    miopenRNNBaseLayout_t layout,
+                                    int maxSequenceLen,
+                                    int batchSize,
+                                    int vectorSize,
+                                    const int* sequenceLenArray,
+                                    void* paddingMarker)
+{
+    MIOPEN_LOG_FUNCTION(
+        seqTensorDesc, dataType, layout, maxSequenceLen, batchSize, vectorSize, sequenceLenArray);
+
+    return miopen::try_([&] {
+        miopen::deref(seqTensorDesc) = miopen::RNNDescriptor::makeSeqTensorDescriptor(
+            dataType, layout, maxSequenceLen, batchSize, vectorSize, sequenceLenArray);
+    });
+}
+
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc);

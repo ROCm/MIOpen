@@ -34,6 +34,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/seq_tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
 #include <cstddef>
@@ -111,6 +112,15 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     std::vector<int>
     pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer, int paramID) const;
+
+    static SeqTensorDescriptor makeSeqTensorDescriptor(miopenDataType_t t,
+                                                  miopenRNNBaseLayout_t layout,
+                                                  int maxSeqLength,
+                                                  int batchSize,
+                                                  int vectorSize,
+                                                  const int* seq_len);
+    
+    static miopenRNNBaseLayout_t getBaseLayoutFromDataTensor(const SeqTensorDescriptor& desc);
 
     size_t GetWorkspaceSize(Handle& handle,
                             int seqLength,

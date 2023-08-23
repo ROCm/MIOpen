@@ -905,37 +905,87 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
                                                   bool is_src_padded)
 {
 
-    const int seq_len = bsize_per_time.size();
-    if(seq_len == 0)
-        MIOPEN_THROW("Wrong seq_len size");
-
-    auto max_batch_size = bsize_per_time[0];
-    auto vector_size    = padded_tensor_desc.GetLengths()[1];
-
-    const std::vector<size_t> padded_stride //= single_desc.GetStrides();
-        {static_cast<size_t>(max_batch_size) * vector_size, static_cast<size_t>(vector_size), 1};
-
-    unsigned int left_id    = 0;
-    unsigned int src_offset = 0, dst_offset = 0;
-
-    for(int i = 1; i <= seq_len; i++)
+std::tuple<std::initializer_list<unsigned int>, bool>
+convertRNNBaseLayout(miopenRNNBaseLayout_t layout)
+{ 
+    switch(layout)
     {
-        if(i == seq_len || bsize_per_time[left_id] != bsize_per_time[i])
+    case miopenRNNDataBatchMajorPadded: return {std::initializer_list<unsigned int>{0, 1, 2}, true};
+    case miopenRNNDataSeqMajorNotPadded:
+        return {std::initializer_list<unsigned int>{1, 0, 2}, false};
+    case miopenRNNDataSeqMajorPadded: return {std::initializer_list<unsigned int>{1, 0, 2}, true};
+
+    case miopenRNNDataUnknownLayout:
+    default: MIOPEN_THROW(miopenStatusBadParm, "error: Unknown miopenRNNBaseLayout_t "); break;
+    }
+}
+
+miopenRNNBaseLayout_t RNNDescriptor::getBaseLayoutFromDataTensor(const SeqTensorDescriptor& desc)
+{
+    std::initializer_list<miopenRNNBaseLayout_t> base_layouts = {
+        miopenRNNDataBatchMajorPadded, miopenRNNDataSeqMajorNotPadded, miopenRNNDataSeqMajorPadded};
+
+    const std::vector<unsigned> desc_dim_order = desc.GetLayoutVector();
+    bool desc_seq_is_padded = desc.IsPaddedSeqLayout();
+
+    if(desc_dim_order.size() == 3)
+    {
+        for(auto base_layout : base_layouts) 
         {
-            auto copy_seq_cnt = i - left_id;
-            auto copy_bsize   = bsize_per_time[left_id];
+            std::initializer_list<unsigned int> base_dim_order;
+            bool base_seq_is_padded;
+            std::tie(base_dim_order, base_seq_is_padded) = convertRNNBaseLayout(base_layout);
+            
+            bool layout_equal =
+                (desc_seq_is_padded == base_seq_is_padded) &&
+                std::equal(desc_dim_order.begin(), desc_dim_order.end(), base_dim_order.begin());
+            
+            if(layout_equal)
+                return base_layout;
+        }
+    }
+    return miopenRNNDataUnknownLayout;
+}
 
-            const std::vector<size_t> copy_size{static_cast<size_t>(copy_seq_cnt),
-                                                static_cast<size_t>(copy_bsize),
-                                                static_cast<size_t>(vector_size)};
+SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
+                                                miopenRNNBaseLayout_t layout,
+                                                int maxSeqLength,
+                                                int batchSize,
+                                                int vectorSize,
+                                                const int* seq_len)
+        {
+    const std::initializer_list<int> lens = {batchSize, maxSeqLength, vectorSize};
+    std::initializer_list<unsigned int> dim_order;
+    bool padded_sequences;
+    std::tie(dim_order, padded_sequences) = convertRNNBaseLayout(layout);
 
-            auto packed_desc = miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size);
-            auto padded_desc =
-                miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size, padded_stride);
+    return SeqTensorDescriptor(t,
+                               dim_order,
+                               lens,
+                               std::vector<int>(seq_len, seq_len + maxSeqLength),
+                               true,
+                               padded_sequences);
+}
 
-            // Result from GetElementSpace does not include the padding from the last sequence
-            // WA: So calculated manually.
-            unsigned int WA_padded_ElementSpace = padded_stride[0] * copy_size[0];
+
+void SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
+                                       std::vector<miopen::TensorDescriptor>& td,
+                                       std::vector<miopenTensorDescriptor_t>& ptd)
+{
+    if(!desc.IsPacked())
+        MIOPEN_THROW(miopenStatusInternalError, "Only packed SeqTensorDescriptor supported.");
+
+    const std::vector<size_t> bs = desc.GetBatchesPerSequence();
+    const size_t vector_size     = desc.GetLengths()[2];
+    const auto dataType          = desc.GetType();
+
+    std::transform(bs.begin(), bs.end(), std::back_inserter(td), [&](size_t batch_size) {
+        return miopen::TensorDescriptor(dataType, {batch_size, vector_size});
+    });
+    std::transform(td.begin(), td.end(), std::back_inserter(ptd), [](miopen::TensorDescriptor& x) {
+        return &x;
+    });
+}
 
             if(is_src_padded)
             {
