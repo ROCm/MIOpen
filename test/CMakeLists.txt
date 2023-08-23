@@ -1761,9 +1761,11 @@ add_custom_test(test_regression_float_mi100 SKIP_UNLESS_ALL GFX900_DISABLED GFX9
 COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
+# MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is disabled by default via #2306
 set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_FIND_MODE=normal
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw)
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw
+    MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW=1)
 
 # gfx908 disabled as a workaround for https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1790/files?diff=split&w=1#r982923610
 add_custom_test(test_conv_ck_igemm_fwd_v6r1_dlops_nchw FLOAT_ENABLED HALF_ENABLED BF16_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_UNLESS_ALL
@@ -2069,10 +2071,11 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC GFX900_D
 )
 
 # MIOPEN_DEBUG_TUNING_ITERATIONS_MAX is set to 2 because kernels are very slow to build.
+# MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is disabled by default via #2306
 add_custom_test(smoke_solver_ConvCkIgemmFwdV6r1DlopsNchw GFX103X_ENABLED HALF_ENABLED TEST_TUNING SKIP_UNLESS_STATICS_ENABLED
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=2
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw $<TARGET_FILE:test_conv2d>
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW=1 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 256 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 

@@ -561,6 +561,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNaive{}.SolverDbId());
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemm3DGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

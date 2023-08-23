@@ -1014,7 +1014,7 @@ struct batch_norm_per_activation_driver : test_driver
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         this->tolerance = 8000 * input.desc.GetElementSize();
         auto dy_input   = tensor<T>{n, c, h, w}.generate(

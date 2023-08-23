@@ -528,14 +528,14 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
     wksp_sz_lb += total_label_len;
 
     // labels with blanks
-    wksp_sz_lb += static_cast<unsigned long>(batch_size) * (2UL * max_label_len + 1);
+    wksp_sz_lb += static_cast<size_t>(batch_size) * (static_cast<size_t>(2) * max_label_len + 1);
 
     // logsoftmax of probs
-    wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * class_sz;
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat +=
-        static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size *
+                   (static_cast<size_t>(2) * max_label_len + 1);
 
     *workSpaceSizeCPU = (wksp_sz_dat + wksp_sz_lb) * sizeof(T);
 }
@@ -737,7 +737,7 @@ struct ctc_driver : test_driver
         std::vector<int> probsDims  = {max_time_step, batch_sz, class_sz};
         std::vector<int> lossesDims = {batch_sz};
 
-        unsigned long max_value = 17;
+        uint64_t max_value = 17;
 
         probs = tensor<T>{probsDims}.generate(tensor_elem_gen_integer{max_value});
         for(int j = 0; j < batch_sz * max_time_step; j++)
