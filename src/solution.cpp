@@ -446,9 +446,7 @@ void from_json(const nlohmann::json& json, Solution& solution)
                                    ? std::optional{perf_cfg_json->get<std::string>()}
                                    : std::nullopt;
 
-    solution.programs.clear();
     solution.kernels.clear();
-
     if(const auto binaries_json = json.find(fields::Binaries); binaries_json != json.end())
     {
         auto programs = std::vector<HIPOCProgram>{};
