@@ -94,9 +94,9 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const FusionContext& context,
                              const FusionDescription& problem,
-                             const AnyInvokeParams& invoke_ctx) const
+                             const AnyInvokeParams& invoke_params) const
 {
-    return GenericSearch(*this, context, problem, invoke_ctx);
+    return GenericSearch(*this, context, problem, invoke_params);
 }
 
 ConvSolution
