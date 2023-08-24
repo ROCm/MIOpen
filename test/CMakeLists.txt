@@ -2393,7 +2393,7 @@ set(ARGS_ENABLE_FORWARD_ONLY
     --disable-backward-data
     --disable-backward-weights)
 
-add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
+add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED SKIP_UNLESS_STATICS_ENABLED
     # Issue-internal #4
     COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
 )
