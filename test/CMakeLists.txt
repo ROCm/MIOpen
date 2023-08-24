@@ -649,8 +649,8 @@ function(add_custom_test NAME)
     # For example, MIOPEN_DEBUG_FIND_ONLY_SOLVER results in non-optimal records in user-find-db.
     # Another example is tuning tests. These use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time,
     # but the side effect of such savings is sub-optimal tuning values in user-perf-db.
-    # 
-    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in 
+    #
+    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in
     # the non-default directory. This preserves the state of the actual user databases
     # and prevents performance degradation after the tests complete.
     #
@@ -2099,7 +2099,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENA
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
 # smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and FP32 tests because of
 # WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16 datatypes in this test,
-# see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.  
+# see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.
 add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
@@ -2260,6 +2260,15 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2_f32 GFX103X_ENABLED GFX110X_
       ${TEST_CONV_VERBOSE_B} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvWinogradFuryRxSf2x3_f16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
+      ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinoFuryRxS<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1
+      ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
