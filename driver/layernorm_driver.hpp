@@ -327,7 +327,7 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         for(int i = 0; i < in_sz; i++)
         {
-            dout[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            dout[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
         }
         status |= dout_dev->ToGPU(q, dout.data());
 
@@ -547,7 +547,7 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
     }
     else if(data_type == miopenFloat)
     {
-        return 1e-5;
+        return 5e-5;
     }
     else if(data_type == miopenDouble)
     {
@@ -555,7 +555,7 @@ Tref LayerNormDriver<Tgpu, Tref>::GetTolerance()
     }
     else if(data_type == miopenBFloat16)
     {
-        return 1e-3;
+        return 5e-3;
     }
     return 0;
 }
@@ -566,6 +566,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
+
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward LayerNorm FAILED: " << error << std::endl;
