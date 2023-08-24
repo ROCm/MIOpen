@@ -458,7 +458,7 @@ void from_json(const nlohmann::json& json, Solution& solution)
         }
     }
 
-    auto& kernel_infos = json.at(fields::Kernels).get<std::vector<SerializedSolutionKernelInfo>>();
+    auto kernel_infos = json.at(fields::Kernels).get<std::vector<SerializedSolutionKernelInfo>>();
 
     solution.kernels.clear();
     solution.kernels.reserve(kernel_infos.size());
