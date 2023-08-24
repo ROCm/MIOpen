@@ -54,7 +54,7 @@ LogCmdLayerNorm(const miopenTensorDescriptor_t xDesc, const miopenLayerNormMode_
             ss << "layernormfp64";
         }
 
-        int size = {0};
+        int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
         ss << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
            << miopen::deref(xDesc).GetLengths()[1];
@@ -89,7 +89,7 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t biasDesc,
                                                  const void* bias,
                                                  const float epsilon,
-                                                 const int normalized_dim,
+                                                 const int32_t normalized_dim,
                                                  const miopenTensorDescriptor_t yDesc,
                                                  void* y,
                                                  const miopenTensorDescriptor_t meanDesc,
@@ -147,7 +147,7 @@ extern "C" miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
                                                   const void* mean,
                                                   const miopenTensorDescriptor_t rstdDesc,
                                                   const void* rstd,
-                                                  const int normalized_dim,
+                                                  const int32_t normalized_dim,
                                                   const miopenTensorDescriptor_t dxDesc,
                                                   void* dx,
                                                   const miopenTensorDescriptor_t dwDesc,

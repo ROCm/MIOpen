@@ -49,7 +49,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
                                 const float epsilon,
-                                const int normalized_dim)
+                                const int32_t normalized_dim)
 {
     if(x == nullptr || y == nullptr)
     {
@@ -98,10 +98,10 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
     std::string algo_name = "LayerNormForward";
     std::string network_config =
-        "lnfwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) +
+        "lnfwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) + "g" + std::to_string(vgd[0]) +
         "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
-        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int>(mode)) + "eps" +
+        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int32_t>(mode)) + "eps" +
         std::to_string(static_cast<float>(epsilon));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
@@ -109,13 +109,13 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
     // compile parameters
     std::string parms =
-        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
-        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
-        " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int32_t>(dtype == miopenHalf)) +
+        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int32_t>(dtype == miopenFloat)) +
+        " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
+        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
 
     parms += " -DMIOPEN_BETA_API=1";
-    parms += " -DLOCAL_SIZE=256";
+    parms += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
@@ -149,7 +149,7 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                                  const TensorDescriptor& dbDesc,
                                  Data_t db,
                                  miopenLayerNormMode_t mode,
-                                 const int normalized_dim)
+                                 const int32_t normalized_dim)
 {
     if(dx == nullptr || x == nullptr || mean == nullptr || rstd == nullptr || dy == nullptr)
     {
@@ -199,23 +199,24 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
 
     std::string algo_name = "LayerNormBackward";
     std::string network_config =
-        "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" + std::to_string(vgd[0]) +
+        "lnbwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) + "g" + std::to_string(vgd[0]) +
         "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
         std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
-        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int>(mode));
+        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int32_t>(mode));
 
     std::string program_name = "MIOpenLayerNorm.cpp";
     std::string kernel_name  = "LayerNormBwdContiguous";
 
     // compile parameters
     std::string parms =
-        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
-        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
-        " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int32_t>(dtype == miopenHalf)) +
+        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int32_t>(dtype == miopenFloat)) +
+        " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
+        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
 
     parms += " -DMIOPEN_BETA_API=1";
-    parms += " -DLOCAL_SIZE=256";
+    parms += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
+
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
@@ -234,24 +235,25 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
 
         std::string algo_name2 = "LayerNormWeightBiasBackward";
         std::string network_config2 =
-            "lnbwd-dtype" + std::to_string(static_cast<int>(dtype)) + "g" +
+            "lnbwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) + "g" +
             std::to_string(vgd2[0]) + "l" + std::to_string(vld2[0]) + "normalized_dim" +
             std::to_string(normalized_dim) + "grid" + std::to_string(grid_size) + "outer_size" +
             std::to_string(outer_size) + "inner_size" + std::to_string(inner_size) + "mode" +
-            std::to_string(static_cast<int>(mode));
+            std::to_string(static_cast<int32_t>(mode));
 
         std::string program_name2 = "MIOpenLayerNorm.cpp";
         std::string kernel_name2  = "LayernormBwdWeightBiasContiguous";
 
         // compile parameters
         std::string parms2 =
-            " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(dtype == miopenHalf)) +
-            " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(dtype == miopenFloat)) +
-            " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int>(dtype == miopenDouble)) +
-            " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int>(dtype == miopenBFloat16));
+            " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int32_t>(dtype == miopenHalf)) +
+            " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int32_t>(dtype == miopenFloat)) +
+            " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
+            " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
 
         parms2 += " -DMIOPEN_BETA_API=1";
-        parms2 += " -DLOCAL_SIZE=256";
+        parms2 += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
+
         auto&& kernels2 = handle.GetKernels(algo_name2, network_config2);
         if(!kernels2.empty())
         {

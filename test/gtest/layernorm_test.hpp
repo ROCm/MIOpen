@@ -92,13 +92,13 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
     // clang-format on
 }
 
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
+inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
+    std::vector<int32_t> int32_t_lens(lens.begin(), lens.end());
 
     // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, desc.GetType());
+    return SetTensorNd(&desc, int32_t_lens, desc.GetType());
 }
 
 template <typename T = float>
@@ -171,7 +171,7 @@ protected:
 
         if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
-            std::vector<int> inner_dim;
+            std::vector<int32_t> inner_dim;
             if(nomalized_dim == in_dim.size())
                 inner_dim = {1};
             else

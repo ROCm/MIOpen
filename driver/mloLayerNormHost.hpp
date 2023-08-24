@@ -32,16 +32,16 @@
 ///////////////////////////////////////////////////////////
 
 template <typename Tgpu, typename Tcheck>
-int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                               Tgpu* input,
-                               Tgpu* weight,
-                               Tgpu* bias,
-                               Tcheck* outputhost,
-                               Tcheck* meanhost,
-                               Tcheck* rstdhost,
-                               float eps,
-                               int normalized_dim,
-                               miopenLayerNormMode_t mode)
+int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                   Tgpu* input,
+                                   Tgpu* weight,
+                                   Tgpu* bias,
+                                   Tcheck* outputhost,
+                                   Tcheck* meanhost,
+                                   Tcheck* rstdhost,
+                                   float eps,
+                                   int32_t normalized_dim,
+                                   miopenLayerNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
@@ -57,9 +57,9 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
         inner_size *= dims[i];
     }
 
-    int ret = 0;
+    int32_t ret = 0;
 
-    for(int o = 0; o < outer_size; o++)
+    for(int32_t o = 0; o < outer_size; o++)
     {
         Tcheck pmean = 0.0f;
         Tcheck pvar  = 0.0f;
@@ -89,17 +89,17 @@ int mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                Tgpu* input,
-                                Tgpu* doutput,
-                                Tgpu* weight,
-                                Tgpu* mean,
-                                Tgpu* rstd,
-                                Tcheck* dinputhost,
-                                Tcheck* dweighthost,
-                                Tcheck* dbiashost,
-                                int normalized_dim,
-                                miopenLayerNormMode_t mode)
+int32_t mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                    Tgpu* input,
+                                    Tgpu* doutput,
+                                    Tgpu* weight,
+                                    Tgpu* mean,
+                                    Tgpu* rstd,
+                                    Tcheck* dinputhost,
+                                    Tcheck* dweighthost,
+                                    Tcheck* dbiashost,
+                                    int32_t normalized_dim,
+                                    miopenLayerNormMode_t mode)
 {
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
@@ -115,9 +115,9 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         inner_size *= dims[i];
     }
 
-    int ret = 0;
+    int32_t ret = 0;
 
-    for(int o = 0; o < outer_size; o++)
+    for(int32_t o = 0; o < outer_size; o++)
     {
         Tcheck sum1 = 0.0f;
         Tcheck sum2 = 0.0f;
@@ -159,7 +159,7 @@ int mloLayerNormBackwardRunHost(miopenTensorDescriptor_t inputDesc,
             Tcheck sum1 = 0.0f;
             Tcheck sum2 = 0.0f;
 
-            for(int o = 0; o < outer_size; o++)
+            for(int32_t o = 0; o < outer_size; o++)
             {
                 Tcheck dy = doutput[o * inner_size + i];
 
