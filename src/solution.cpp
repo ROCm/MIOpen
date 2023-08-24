@@ -446,32 +446,32 @@ void from_json(const nlohmann::json& json, Solution& solution)
                                    ? std::optional{perf_cfg_json->get<std::string>()}
                                    : std::nullopt;
 
-    solution.kernels.clear();
+    auto programs = std::vector<HIPOCProgram>{};
+
     if(const auto binaries_json = json.find(fields::Binaries); binaries_json != json.end())
     {
-        auto programs = std::vector<HIPOCProgram>{};
-
         for(const auto& bin : *binaries_json)
         {
             const auto& binary = bin.get_ref<const nlohmann::json::binary_t&>();
             MIOPEN_LOG_I2("Derializing binary from solution blob, " << binary.size() << " bytes");
             programs.emplace_back(HIPOCProgram{"", binary});
         }
+    }
 
-        auto kernel_infos =
-            json.at(fields::Kernels).get<std::vector<SerializedSolutionKernelInfo>>();
-        solution.kernels.reserve(kernel_infos.size());
+    auto& kernel_infos = json.at(fields::Kernels).get<std::vector<SerializedSolutionKernelInfo>>();
 
-        for(auto&& serialized_kernel_info : kernel_infos)
-        {
-            auto kernel_info             = Solution::KernelInfo{};
-            kernel_info.program          = programs[serialized_kernel_info.program];
-            kernel_info.local_work_dims  = std::move(serialized_kernel_info.local_work_dims);
-            kernel_info.global_work_dims = std::move(serialized_kernel_info.global_work_dims);
-            kernel_info.kernel_name      = std::move(serialized_kernel_info.kernel_name);
-            kernel_info.program_name     = std::move(serialized_kernel_info.program_name);
-            solution.kernels.emplace_back(std::move(kernel_info));
-        }
+    solution.kernels.clear();
+    solution.kernels.reserve(kernel_infos.size());
+
+    for(auto&& serialized_kernel_info : kernel_infos)
+    {
+        auto kernel_info             = Solution::KernelInfo{};
+        kernel_info.program          = programs[serialized_kernel_info.program];
+        kernel_info.local_work_dims  = std::move(serialized_kernel_info.local_work_dims);
+        kernel_info.global_work_dims = std::move(serialized_kernel_info.global_work_dims);
+        kernel_info.kernel_name      = std::move(serialized_kernel_info.kernel_name);
+        kernel_info.program_name     = std::move(serialized_kernel_info.program_name);
+        solution.kernels.emplace_back(std::move(kernel_info));
     }
 }
 } // namespace miopen
