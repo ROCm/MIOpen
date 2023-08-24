@@ -404,7 +404,6 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     auto& handle = get_handle();
     auto _ctx     = miopen::ConvolutionContext{};
     _ctx.SetStream(&handle);
-    _ctx.DetectRocm();
 
     for(const auto& kinder : find_db.GetCacheMap())
     {
@@ -461,7 +460,6 @@ TEST(DbSync, DISABLED_StaticFDBSync)
     auto& handle = get_handle();
     auto _ctx     = miopen::ConvolutionContext{};
     _ctx.SetStream(&handle);
-    _ctx.DetectRocm();
     size_t cnt_finddb_entry = 0;
     for(const auto& kinder : find_db.GetCacheMap())
     {
