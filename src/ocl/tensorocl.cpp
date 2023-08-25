@@ -131,7 +131,8 @@ void OpTensor3d(const Handle& handle,
                 Data_t CTensor,
                 const size_t Aoffset,
                 const size_t Boffset,
-                const size_t Coffset)
+                const size_t Coffset,
+                const bool nonStandardSquash)
 {
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
@@ -192,8 +193,8 @@ void OpTensor3d(const Handle& handle,
     bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
                    (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
 
-    bool is_squashed =
-        !is_lite && (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
+    bool is_squashed = nonStandardSquash && !is_lite &&
+                       (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
 
     grp_sz        = std::min(size_t(max_num_wg), grp_sz);
     size_t glb_sz = local_threads * grp_sz;
@@ -1251,7 +1252,8 @@ void OpTensor(const Handle& handle,
               Data_t CTensor,
               const size_t Aoffset,
               const size_t Boffset,
-              const size_t Coffset)
+              const size_t Coffset,
+              bool nonStandardSquash)
 {
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
@@ -1291,9 +1293,7 @@ void OpTensor(const Handle& handle,
                      std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    bool is_squash = clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && clens[1] == 1 &&
-                     blens[1] != clens[1] && blens[2] == clens[2];
-    if(!is_squash)
+    if(!nonStandardSquash)
     {
         for(unsigned long i = 0; i < clens.size(); i++)
         {
@@ -1302,6 +1302,15 @@ void OpTensor(const Handle& handle,
                 MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
                              std::to_string(i));
             }
+        }
+    }
+    else
+    {
+        // non standard behavior because blens[1] can be not equalt to clens[1]
+        if(!(clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && blens[2] == clens[2]))
+        {
+            MIOPEN_THROW("Non standard squashed operation supported only for 3d tensors and for "
+                         "the specific configuration");
         }
     }
 
@@ -1321,7 +1330,8 @@ void OpTensor(const Handle& handle,
                    CTensor,
                    Aoffset,
                    Boffset,
-                   Coffset);
+                   Coffset,
+                   nonStandardSquash);
     }
     else if(bsize == 4)
     {

@@ -173,9 +173,10 @@ void OpTensor(const Handle& handle,
               const void* beta,
               const TensorDescriptor& cTensorDesc,
               Data_t CTensor,
-              size_t Aoffset = 0,
-              size_t Boffset = 0,
-              size_t Coffset = 0);
+              size_t Aoffset         = 0,
+              size_t Boffset         = 0,
+              size_t Coffset         = 0,
+              bool nonStandardSquash = false);
 
 void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,

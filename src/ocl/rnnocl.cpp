@@ -390,7 +390,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                  reserveSpace,           // C
                  RB_layer_out_off,       // A offset
                  w_bias_layer_start_off, // B offset
-                 RB_layer_out_off);      // C offset
+                 RB_layer_out_off,       // C offset
+                 true);
 
         OpTensor(handle,
                  miopenTensorOpAdd,
@@ -405,7 +406,8 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                  reserveSpace,
                  RB_layer_out_off,
                  w_bias_layer_start_off + bias_stride,
-                 RB_layer_out_off);
+                 RB_layer_out_off,
+                 true);
     };
 
     auto call_hx_gemm = [&RBuff,
@@ -1305,7 +1307,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                      workSpace,
                      hid_shift,
                      wei_shift_bias_temp,
-                     hid_shift);
+                     hid_shift,
+                     true);
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -1377,7 +1380,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                          workSpace,
                          hid_shift,
                          wei_shift_bias_temp,
-                         hid_shift);
+                         hid_shift,
+                         true);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -1424,7 +1428,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                  workSpace,
                                  hid_shift + wei_len,
                                  wei_shift_bias_temp + wei_len,
-                                 hid_shift + wei_len);
+                                 hid_shift + wei_len,
+                                 true);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -1773,7 +1778,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                          offset + hy_h + static_cast<size_t>(ri) * wei_len,
                                          hx_shift + ri * hy_n * hy_h,
                                          offset + static_cast<size_t>(bi) * wei_len +
-                                             static_cast<size_t>(ri) * hy_h);
+                                             static_cast<size_t>(ri) * hy_h,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2035,7 +2041,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                          workSpace,
                                          offset + static_cast<size_t>(ri) * wei_len,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2068,7 +2075,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                              static_cast<size_t>(in_n.at(use_time)) * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
                                          offset + hid_off + static_cast<size_t>(ri) * hy_h +
-                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2781,7 +2789,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                      reserveSpace,
                      hid_shift,
                      wei_shift_bias_temp,
-                     hid_shift);
+                     hid_shift,
+                     true);
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -2852,7 +2861,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                          reserveSpace,
                          hid_shift,
                          wei_shift_bias_temp,
-                         hid_shift);
+                         hid_shift,
+                         true);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -2878,7 +2888,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                          reserveSpace,
                          hid_shift + in_n.at(0) * hy_stride,
                          wei_shift_bias_temp,
-                         hid_shift + in_n.at(0) * hy_stride);
+                         hid_shift + in_n.at(0) * hy_stride,
+                         true);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
 
@@ -2899,7 +2910,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                  reserveSpace,
                                  hid_shift + wei_len,
                                  wei_shift_bias_temp + wei_len,
-                                 hid_shift + wei_len);
+                                 hid_shift + wei_len,
+                                 true);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -2930,7 +2942,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          reserveSpace,
                                          static_cast<int>(offset) + wei_len,
                                          wei_shift_bias_temp + wei_len,
-                                         static_cast<int>(offset) + wei_len);
+                                         static_cast<int>(offset) + wei_len,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3253,7 +3266,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                              nLayers * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h,
                                          offset + static_cast<size_t>(bi) * wei_len +
-                                             static_cast<size_t>(ri) * hy_h);
+                                             static_cast<size_t>(ri) * hy_h,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3288,7 +3302,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h +
-                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3541,7 +3556,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          offset + static_cast<size_t>(ri) * wei_len +
                                              static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3575,7 +3591,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                              static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
                                          offset + hid_off + static_cast<size_t>(ri) * hy_h +
-                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -4624,7 +4641,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                      pretime_shift + hy_h + ri * wei_len +
                                          nLayers * batch_n * hy_stride,
                                      offset + static_cast<size_t>(bi) * wei_len +
-                                         static_cast<size_t>(ri) * hy_h);
+                                         static_cast<size_t>(ri) * hy_h,
+                                     true);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
 
@@ -4664,7 +4682,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          offset + static_cast<size_t>(bi) * wei_len +
                                              static_cast<size_t>(ri) * hy_h,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hy_h + static_cast<size_t>(ri) * wei_len);
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                         true);
                             }
                         }
                         else
@@ -4696,7 +4715,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                              static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time2) * hy_h,
                                          offset + hy_h + static_cast<size_t>(ri) * wei_len +
-                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride);
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
+                                         true);
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc =
@@ -5016,7 +5036,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          offset + dhd_off + static_cast<size_t>(ri) * hy_h +
                                              static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
                                          offset + static_cast<size_t>(ri) * wei_len +
-                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride);
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
+                                         true);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -5828,7 +5849,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                      dw,
                      wei_shift,
                      hid_shift,
-                     wei_shift);
+                     wei_shift,
+                     true);
 
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -5889,7 +5911,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                              dw,
                              wei_shift,
                              hid_shift,
-                             wei_shift);
+                             wei_shift,
+                             true);
 
                     // Update time
                     profileRNNkernels(handle, 1, ctime);
