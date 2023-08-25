@@ -38,7 +38,7 @@ inline T gen_canonical()
     }
     else if constexpr(std::is_integral_v<T>)
     {
-        return static_cast<T>(details::get_prng()() & 0x1);
+        return static_cast<T>((details::get_prng()() >> 4) & 0x1);
     }
     else
     {
