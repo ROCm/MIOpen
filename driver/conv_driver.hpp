@@ -1353,6 +1353,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         {
             for(int i = 0; i < out_sz; i++)
             {
+                /// \anchor move_rand
+                /// Generate random value, even if buffer is unused. This provides the same
+                /// initialization of input buffers regardless of which kinds of
+                /// convolutions are currently selectedfor testing (see the "-F" option).
+                /// Verification cache would be broken otherwise.
                 auto val = prng::gen_0_to_B(Data_scale);
                 if(is_bwd || is_wrw)
                     dout.data[i] = val;
@@ -1387,6 +1392,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
+            /// \ref move_rand
             auto val = prng::gen_0_to_B(Data_scale);
             if(is_fwd || is_wrw)
                 in.data[i] = val;
@@ -1397,6 +1403,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < wei_sz; i++)
         {
+            /// \ref move_rand
             auto w = Data_scale * detail::RanGenWeights<Tgpu>();
             if(is_fwd || is_bwd)
                 wei.data[i] = w;
