@@ -91,7 +91,7 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
     }
     pmean             = ltmp1[0] / inner_size;
     pvar              = ltmp2[0] / inner_size - pmean * pmean;
-    FLOAT_ACCUM prstd = rsqrt(pvar + eps);
+    FLOAT_ACCUM prstd = rsqrt(pvar + FLOAT_ACCUM(eps));
 
     if(lid == 0)
     {
