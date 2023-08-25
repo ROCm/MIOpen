@@ -2345,7 +2345,7 @@ add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90
 )
 
 # Add here regression tests that should be run on Vega10/20 and GFX908 only with FP16.
-add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED
+add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED SKIP_UNLESS_STATICS_ENABLED
 # Issue #894.
 # Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
 COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
