@@ -18,10 +18,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/.5.7/ubuntu/focal/amdgpu-install_5.7-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/.5.7/ubuntu/focal/amdgpu-install_5.7.50700-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.7-1_all.deb
+    ./amdgpu-install_5.7.50700-1_all.deb
 
 # Add rocm repository
 RUN export ROCM_APT_VER=5.7;\
