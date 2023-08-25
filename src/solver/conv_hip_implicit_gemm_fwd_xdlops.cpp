@@ -87,6 +87,44 @@ struct CKArgs
     CKArgs& operator=(CKArgs&&) = default;
     ~CKArgs()                   = default;
 
+    template <typename ConvPtr>
+    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    {
+
+        return conv_ptr->MakeArgumentPointer(
+            const_cast<Data_t>(in), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            const_cast<Data_t>(w),  // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            out,
+            this->N,
+            this->K,
+            this->C,
+            this->input,
+            this->filter,
+            this->output,
+            this->strides,
+            this->dilation,
+            this->lPadding,
+            this->rPadding,
+            {},
+            {},
+            {});
+    }
+
+    template <typename ConvPtr>
+    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
+    {
+
+        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out);
+    }
+
+    // TODO(Amber): make method const
+    template <typename ConvPtr>
+    bool IsSupportedBy(const ConvPtr& conv_ptr) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr);
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
     int N;
     int K;
     int C;
@@ -108,29 +146,16 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& p
     this->total_size = conv_ptrs.size();
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
-        auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
-                                                              args.input,
-                                                              args.filter,
-                                                              args.output,
-                                                              args.strides,
-                                                              args.dilation,
-                                                              args.lPadding,
-                                                              args.rPadding,
-                                                              {},
-                                                              {},
-                                                              {});
-        if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
+        if(args.IsSupportedBy(conv_ptrs[i]))
         {
             this->kernel_id = conv_ptrs[i]->GetTypeString();
             break;
         }
         ++this->index;
     }
+    // TODO(Amber): This logic is broken and different from other
+    // PerformanceConfigHipImplicitsGemm* classes. Other classes keep a vector of
+    // strings called 'valid_kernels'
 }
 
 template <typename DataType>
@@ -139,23 +164,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
 {
     const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto argument_ptr    = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
-                                                                    nullptr,
-                                                                    nullptr,
-                                                                    args.N,
-                                                                    args.K,
-                                                                    args.C,
-                                                                    args.input,
-                                                                    args.filter,
-                                                                    args.output,
-                                                                    args.strides,
-                                                                    args.dilation,
-                                                                    args.lPadding,
-                                                                    args.rPadding,
-                                                                    {},
-                                                                    {},
-                                                                    {});
-    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
+    return args.IsSupportedBy(conv_ptrs[this->index]);
 }
 
 template <typename DataType>
@@ -168,23 +177,7 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription
         return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
-        auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
-                                                              args.input,
-                                                              args.filter,
-                                                              args.output,
-                                                              args.strides,
-                                                              args.dilation,
-                                                              args.lPadding,
-                                                              args.rPadding,
-                                                              {},
-                                                              {},
-                                                              {});
-        if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
+        if(args.IsSupportedBy(conv_ptrs[i]))
             return true;
     }
     return false;
@@ -192,35 +185,14 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription
 
 namespace {
 
-template <typename DataType>
+template <typename DataType, typename CKConvPtr>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
                    const CKArgs& ck_args,
-                   size_t config_idx)
+                   const CKConvPtr& conv_ptr)
 {
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto& conv_ptr       = conv_ptrs.at(config_idx);
-    const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-    const auto& tensors  = data_ctx.tensors;
-    auto argument_ptr    = conv_ptr->MakeArgumentPointer(
-        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            static_cast<const void*>(tensors.in)),
-        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            static_cast<const void*>(tensors.w)),
-        static_cast<void*>(tensors.out),
-        ck_args.N,
-        ck_args.K,
-        ck_args.C,
-        ck_args.input,
-        ck_args.filter,
-        ck_args.output,
-        ck_args.strides,
-        ck_args.dilation,
-        ck_args.lPadding,
-        ck_args.rPadding,
-        {},
-        {},
-        {});
+    const auto& data_ctx        = primitive_parameters.CastTo<conv::DataInvokeParams>();
+    auto argument_ptr           = ck_args.MakeArgPtr(conv_ptr, data_ctx.tensors);
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
 
@@ -234,39 +206,24 @@ void RunCKSolution(const Handle& handle,
 }
 
 template <typename DataType>
-InvokerFactory MakeInvokerFactoryHelper(CKArgs ck_args, size_t config_idx)
+InvokerFactory MakeInvokerFactoryHipImplGemmFwdXdlops(CKArgs ck_args, size_t config_idx)
 {
-    return [ck_args = std::move(ck_args), config_idx](const std::vector<Kernel>& kernels) mutable {
-        std::ignore = kernels;
+    auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    auto conv_ptr  = std::move(conv_ptrs.at(config_idx));
 
-        return [ck_args = std::move(ck_args),
-                config_idx](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            RunCKSolution<DataType>(handle, primitive_parameters, ck_args, config_idx);
+    using UniqPtr = typename std::remove_reference<decltype(conv_ptr)>::type;
+    using T       = typename UniqPtr::element_type;
+
+    std::shared_ptr<T> sh_conv_ptr{std::move(conv_ptr)};
+
+    return [ck_args     = std::move(ck_args),
+            sh_conv_ptr = std::move(sh_conv_ptr)](const std::vector<Kernel>& kernels) mutable {
+        std::ignore = kernels;
+        return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            RunCKSolution<DataType>(handle, primitive_parameters, ck_args, sh_conv_ptr);
         };
     };
-}
-
-InvokerFactory
-MakeInvokerFactoryHipImplGemmFwdXdlops(const ProblemDescription& problem,
-                                       const PerformanceConfigHipImplicitGemmFwdXdlops& config)
-{
-
-    auto ck_args          = CKArgs{problem};
-    const auto config_idx = config.index;
-
-    switch(problem.GetInDataType())
-    {
-    case miopenInt8: return MakeInvokerFactoryHelper<int8_t>(std::move(ck_args), config_idx);
-    case miopenHalf: return MakeInvokerFactoryHelper<ck::half_t>(std::move(ck_args), config_idx);
-    case miopenFloat: return MakeInvokerFactoryHelper<float>(std::move(ck_args), config_idx);
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
 }
 
 } // namespace
@@ -420,7 +377,31 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = MakeInvokerFactoryHipImplGemmFwdXdlops(problem, config);
+    auto ck_args          = CKArgs{problem};
+    const auto config_idx = config.index;
+
+    switch(problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8:
+        result.invoker_factory =
+            MakeInvokerFactoryHipImplGemmFwdXdlops<int8_t>(std::move(ck_args), config_idx);
+        return result;
+    case miopenHalf:
+        result.invoker_factory =
+            MakeInvokerFactoryHipImplGemmFwdXdlops<ck::half_t>(std::move(ck_args), config_idx);
+        return result;
+    case miopenFloat:
+        result.invoker_factory =
+            MakeInvokerFactoryHipImplGemmFwdXdlops<float>(std::move(ck_args), config_idx);
+        return result;
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble:
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+    }
 
     return result;
 #endif
