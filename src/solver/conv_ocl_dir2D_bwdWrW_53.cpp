@@ -166,7 +166,7 @@ static inline miopenStatus_t ComputeInputParams(
 
     // As each width chunk starts to get split,
     // it should include complete kernel filter in horizontal span.
-    const uint filter_adjustment = problem.GetWeightsWidth() - 1;
+    const unsigned filter_adjustment = problem.GetWeightsWidth() - 1;
 
     const auto lds_size = 64 * 1024; /// TBD Obtain this from device info.
     const auto max_lds_elements =
