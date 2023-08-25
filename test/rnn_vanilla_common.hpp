@@ -2491,7 +2491,7 @@ struct rnn_basic_vanilla_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
+            weights[i] = prng::gen_descreet_uniform_sign(Data_scale / 10, 100);
         }
 
 #if(MIO_RNN_TEST_DEBUG > 0)
