@@ -554,10 +554,10 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
-    MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
-    MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
-    MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
+    MIOPEN_32BIT_INDICES = 0, /*!< 32-bit unsigned integer indices */
+    MIOPEN_64BIT_INDICES = 1, /*!< 64-bit unsigned integer indices */
+    MIOPEN_16BIT_INDICES = 2, /*!< 16-bit unsigned integer indices */
+    MIOPEN_8BIT_INDICES  = 3, /*!< 8-bit unsigned integer indices */
 } miopenIndicesType_t;
 
 /*! @ingroup convolutions

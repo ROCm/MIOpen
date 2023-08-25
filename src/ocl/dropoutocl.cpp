@@ -132,18 +132,17 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    size_t states_num = prng_stateSizeInBytes / sizeof(prngStates);
-    size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
+    unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    size_t wk_grp_num =
+        std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
-    std::string network_config = "initprngs-" + std::to_string(states_num) + "x" +
-                                 std::to_string(sizeof(prngStates)) + "x" +
-                                 std::to_string(rng_mode) + "x" + std::to_string(prng_seed) + "x" +
-                                 std::to_string(wk_grp_num);
+    std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
+                                 std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(prng_states);
+        kernels.front()(prng_states, prng_seed, states_num);
     }
     else
     {
@@ -152,14 +151,12 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
 
         std::string params;
         params += " -DRUN_INIT_PRNG=1";
-        params += " -DPRNG_SEED=" + std::to_string(prng_seed);
-        params += " -DSTATES_NUM=" + std::to_string(states_num);
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
 #endif
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            prng_states);
+            prng_states, prng_seed, states_num);
 #if DROPOUT_DEBUG
         std::cout << "Succeeded in launching InitPRNGState()." << stateSizeInBytes << std::endl;
 #endif
@@ -290,25 +287,25 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         kernels.front()(pstates,
                         dropout,
                         amp_scale,
-                        int(in_len[1]),
-                        int(in_len[2]),
-                        int(in_len[3]),
-                        int(in_len[4]),
+                        static_cast<int>(in_len[1]),
+                        static_cast<int>(in_len[2]),
+                        static_cast<int>(in_len[3]),
+                        static_cast<int>(in_len[4]),
                         y,
-                        int(out_str[0]),
-                        int(out_str[1]),
-                        int(out_str[2]),
-                        int(out_str[3]),
+                        static_cast<int>(out_str[0]),
+                        static_cast<int>(out_str[1]),
+                        static_cast<int>(out_str[2]),
+                        static_cast<int>(out_str[3]),
                         x,
-                        int(in_str[0]),
-                        int(in_str[1]),
-                        int(in_str[2]),
-                        int(in_str[3]),
+                        static_cast<int>(in_str[0]),
+                        static_cast<int>(in_str[1]),
+                        static_cast<int>(in_str[2]),
+                        static_cast<int>(in_str[3]),
                         reserveSpace,
-                        uint(total_work),
-                        uint(in_offset),
-                        uint(out_offset),
-                        uint(rsvsp_offset));
+                        static_cast<unsigned>(total_work),
+                        static_cast<unsigned>(in_offset),
+                        static_cast<unsigned>(out_offset),
+                        static_cast<unsigned>(rsvsp_offset));
     }
     else
     {
@@ -341,25 +338,25 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
             pstates,
             dropout,
             amp_scale,
-            int(in_len[1]),
-            int(in_len[2]),
-            int(in_len[3]),
-            int(in_len[4]),
+            static_cast<int>(in_len[1]),
+            static_cast<int>(in_len[2]),
+            static_cast<int>(in_len[3]),
+            static_cast<int>(in_len[4]),
             y,
-            int(out_str[0]),
-            int(out_str[1]),
-            int(out_str[2]),
-            int(out_str[3]),
+            static_cast<int>(out_str[0]),
+            static_cast<int>(out_str[1]),
+            static_cast<int>(out_str[2]),
+            static_cast<int>(out_str[3]),
             x,
-            int(in_str[0]),
-            int(in_str[1]),
-            int(in_str[2]),
-            int(in_str[3]),
+            static_cast<int>(in_str[0]),
+            static_cast<int>(in_str[1]),
+            static_cast<int>(in_str[2]),
+            static_cast<int>(in_str[3]),
             reserveSpace,
-            uint(total_work),
-            uint(in_offset),
-            uint(out_offset),
-            uint(rsvsp_offset));
+            static_cast<unsigned>(total_work),
+            static_cast<unsigned>(in_offset),
+            static_cast<unsigned>(out_offset),
+            static_cast<unsigned>(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())
@@ -495,25 +492,25 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         kernels.front()(pstates,
                         dropout,
                         amp_scale,
-                        int(in_len[1]),
-                        int(in_len[2]),
-                        int(in_len[3]),
-                        int(in_len[4]),
+                        static_cast<int>(in_len[1]),
+                        static_cast<int>(in_len[2]),
+                        static_cast<int>(in_len[3]),
+                        static_cast<int>(in_len[4]),
                         dy,
-                        int(out_str[0]),
-                        int(out_str[1]),
-                        int(out_str[2]),
-                        int(out_str[3]),
+                        static_cast<int>(out_str[0]),
+                        static_cast<int>(out_str[1]),
+                        static_cast<int>(out_str[2]),
+                        static_cast<int>(out_str[3]),
                         dx,
-                        int(in_str[0]),
-                        int(in_str[1]),
-                        int(in_str[2]),
-                        int(in_str[3]),
+                        static_cast<int>(in_str[0]),
+                        static_cast<int>(in_str[1]),
+                        static_cast<int>(in_str[2]),
+                        static_cast<int>(in_str[3]),
                         reserveSpace,
-                        uint(total_work),
-                        uint(in_offset),
-                        uint(out_offset),
-                        uint(rsvsp_offset));
+                        static_cast<unsigned>(total_work),
+                        static_cast<unsigned>(in_offset),
+                        static_cast<unsigned>(out_offset),
+                        static_cast<unsigned>(rsvsp_offset));
     }
     else
     {
@@ -548,25 +545,25 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
             pstates,
             dropout,
             amp_scale,
-            int(in_len[1]),
-            int(in_len[2]),
-            int(in_len[3]),
-            int(in_len[4]),
+            static_cast<int>(in_len[1]),
+            static_cast<int>(in_len[2]),
+            static_cast<int>(in_len[3]),
+            static_cast<int>(in_len[4]),
             dy,
-            int(out_str[0]),
-            int(out_str[1]),
-            int(out_str[2]),
-            int(out_str[3]),
+            static_cast<int>(out_str[0]),
+            static_cast<int>(out_str[1]),
+            static_cast<int>(out_str[2]),
+            static_cast<int>(out_str[3]),
             dx,
-            int(in_str[0]),
-            int(in_str[1]),
-            int(in_str[2]),
-            int(in_str[3]),
+            static_cast<int>(in_str[0]),
+            static_cast<int>(in_str[1]),
+            static_cast<int>(in_str[2]),
+            static_cast<int>(in_str[3]),
             reserveSpace,
-            uint(total_work),
-            uint(in_offset),
-            uint(out_offset),
-            uint(rsvsp_offset));
+            static_cast<unsigned>(total_work),
+            static_cast<unsigned>(in_offset),
+            static_cast<unsigned>(out_offset),
+            static_cast<unsigned>(rsvsp_offset));
     }
 
     if(miopen::CheckNumericsEnabled())

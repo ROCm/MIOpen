@@ -1056,7 +1056,7 @@ struct batch_norm_3d_per_activation_driver : test_driver
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         auto dy_input = tensor<T>{n, c, d, h, w}.generate(
             tensor_elem_gen_integer{max_value}); //= std::get<0>(outpair.first);//
