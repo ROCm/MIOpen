@@ -363,7 +363,7 @@ void to_json(nlohmann::json& json, const Solution& solution)
 
     for(const auto& kernel : solution.kernels)
     {
-        const auto program_it   = std::find_if(programs.begin(), programs.end(), kernel.program);
+        const auto program_it   = std::find(programs.begin(), programs.end(), kernel.program);
         auto prepared_kernel    = SerializedSolutionKernelInfo{};
         prepared_kernel.program = std::distance(programs.begin(), program_it);
         prepared_kernel.kernel_name      = kernel.kernel_name;
