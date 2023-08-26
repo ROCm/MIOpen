@@ -126,6 +126,7 @@ auto FindSolutionImpl(rank<1>,
             catch(const miopen::Exception& ex)
             {
                 MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
+                return ConvSolution(miopenStatusInternalError);
             }
         }
     }
@@ -360,8 +361,7 @@ struct SolverContainer
             return;
         }
 
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
+        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())

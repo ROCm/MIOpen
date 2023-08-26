@@ -10,7 +10,7 @@ struct TunaNetTestCase : AIModelTestCase
 
 std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 {
-    return {{{{5, 256, 267, 300, 64, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{5, 256, 267, 300, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -19,7 +19,7 @@ std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 {
-    return {{{{16, 256, 20, 84, 512, 5, 5, 1, 1, 1, 1, 1, 1},
+    return {{{{16, 256, 20, 84, 512, 5, 5, 1, 1, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -28,7 +28,7 @@ std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
 {
-    return {{{{32, 1024, 15, 15, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{32, 1024, 15, 15, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
@@ -93,7 +93,6 @@ void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t 
         GTEST_SKIP();
     miopen::ConvolutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =
         std::distance(solvers.begin(), std::max_element(solvers.begin(), solvers.end()));
