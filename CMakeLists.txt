@@ -386,7 +386,7 @@ set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
-find_path(HALF_INCLUDE_DIR half.hpp)
+find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
@@ -676,6 +676,13 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-const-or-ref-data-members
         -cppcoreguidelines-avoid-do-while
         -misc-use-anonymous-namespace
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.7
+        ###################################################################
+        -llvmlibc-inline-function-decl
+        -cppcoreguidelines-avoid-capture-default-when-capturing-this
+        -cppcoreguidelines-rvalue-reference-param-not-moved
+        -readability-avoid-unconditional-preprocessor-if
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
