@@ -132,7 +132,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     /// not require widening to size_t prior mul, but (d_stride * dim * dim)
     /// requires it because the total number of muls is 4.
 
-    const auto spatial_dim = is2d ? 2 : 3;
+    const auto spatial_dim = is2d ? 2U : 3U;
     uint32_t all_n, all_c, bot_d, bot_h, bot_w;
     std::tie(all_n, all_c, bot_d, bot_h, bot_w) = miopen::GetNCDHW(spatial_dim, bot.GetLengths());
     uint32_t bot_w_stride, bot_h_stride, bot_d_stride;
