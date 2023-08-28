@@ -92,7 +92,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.20.0)
+rocm_setup_version(VERSION 3.00.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -423,7 +423,7 @@ endif()
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 # FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" ON)
+option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
@@ -705,6 +705,12 @@ enable_clang_tidy(
         # TODO Code Quality WORKAROUND ROCm 5.4.2
         ###################################################################
         -misc-const-correctness
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.6
+        ###################################################################
+        -cppcoreguidelines-avoid-const-or-ref-data-members
+        -cppcoreguidelines-avoid-do-while
+        -misc-use-anonymous-namespace
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER

@@ -248,7 +248,7 @@ struct cba_fusion_driver : test_driver
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
-    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    uint64_t max_value           = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
