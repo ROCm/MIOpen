@@ -5,8 +5,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN dpkg --add-architecture i386
 
 # Install preliminary dependencies
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt update && \
+    apt install -y --allow-unauthenticated \
     apt-utils \
     ca-certificates \
     curl \
@@ -33,10 +33,9 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -
 RUN amdgpu-install -y --usecase=rocm --no-dkms
 
 # Install dependencies
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt update && \
+    apt install -y --allow-unauthenticated \
     build-essential \
-    cmake \
     clang-format-12 \
     doxygen \
     gdb \
@@ -50,8 +49,24 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3-venv \
     rocblas \
     rpm \
-    software-properties-common && \
-    apt-get clean && \
+    software-properties-common \
+    gpg \
+    wget \
+    lsb-release
+
+# Install cmake
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
+    gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+
+RUN apt update && \
+    apt install -y --allow-unauthenticated \
+    cmake
+
+RUN rm /usr/share/keyrings/kitware-archive-keyring.gpg && \
+    DEBIAN_FRONTEND=noninteractive apt install -y --allow-unauthenticated \
+    kitware-archive-keyring && \
+    apt clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Setup ubsan environment to printstacktrace
