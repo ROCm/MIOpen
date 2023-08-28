@@ -3063,7 +3063,7 @@ struct GemmFwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3086,7 +3086,7 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3094,13 +3094,13 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3121,7 +3121,7 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3129,13 +3129,13 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3156,7 +3156,7 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3164,13 +3164,13 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3191,7 +3191,7 @@ struct GemmFwdRest final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3199,13 +3199,13 @@ struct GemmFwdRest final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3223,7 +3223,7 @@ struct GemmBwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3246,7 +3246,7 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3254,13 +3254,13 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3281,7 +3281,7 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3289,13 +3289,13 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3318,7 +3318,7 @@ struct GemmBwdRest final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3326,13 +3326,13 @@ struct GemmBwdRest final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3350,7 +3350,7 @@ struct GemmWrwBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3371,13 +3371,13 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3397,7 +3397,7 @@ struct GemmWrwUniversal final : GemmWrwBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3405,13 +3405,13 @@ struct GemmWrwUniversal final : GemmWrwBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -4885,8 +4885,6 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
-
-struct AnySolver;
 
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic

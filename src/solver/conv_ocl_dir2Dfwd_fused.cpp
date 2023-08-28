@@ -56,7 +56,7 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
                                  .weights;
     const auto& tensors = miopen::ConvFwdTensors{fusion_invoke_params.inDesc,
                                                  fusion_invoke_params.in,
-                                                 conv_problem.conv_problem.GetWeights(),
+                                                 conv_problem.GetWeights(),
                                                  wei_ocl_ptr,
                                                  fusion_invoke_params.outDesc,
                                                  fusion_invoke_params.out};
