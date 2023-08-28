@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+.include "Conv_Winograd_Fury_v1_1_1_metadata.inc"
 
-#pragma once
+.if (.amdgcn.gfx_generation_number == 11)
+    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
 
-namespace miopen {
+    .include "Conv_Winograd_Fury_v1_1_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
 
-struct FusionContext : miopen::ExecutionContext
-{
-    explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
-
-    ConvolutionContext GetConvContext(const miopen::ProblemDescription& conv_problem) const
-    {
-        auto ctx = ConvolutionContext{*this};
-        conv_problem.SetupFloats(ctx);
-        return ctx;
-    }
-
-    bool is_for_generic_search = false;
-};
-
-} // namespace miopen
+    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
+.else
+    .error "Unsupported gfx generation"
+    .end
+.endif
