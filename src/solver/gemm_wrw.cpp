@@ -26,8 +26,8 @@ namespace solver {
 static bool IsBF16PathValid;
 static bool IsFp16Supported;
 #else
-static const bool IsBF16PathValid = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
-static const bool IsFp16Supported = (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE);
+static const bool IsBF16PathValid = MIOPEN_USE_ROCBLAS;
+static const bool IsFp16Supported = MIOPEN_USE_ROCBLAS;
 #endif
 
 static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
@@ -278,7 +278,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                     0,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
+                    GemmBackend_t::rocblas);
 
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -314,7 +314,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                                                                    in_offset,
                                                                    dw,
                                                                    0,
-                                                                   GemmBackend_t::miopentensile);
+                                                                   GemmBackend_t::rocblas);
 
                         if(status != miopenStatusSuccess)
                             MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -333,7 +333,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 {
                     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
                     const auto status = CallGemmStridedBatchedSequential(
-                        handle, gemm_desc, dy, 0, x, 0, dw, 0, GemmBackend_t::miopengemm);
+                        handle, gemm_desc, dy, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
 
                     if(status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
@@ -530,7 +530,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                                         0,
                                                         dw,
                                                         0,
-                                                        GemmBackend_t::miopentensile);
+                                                        GemmBackend_t::rocblas);
                     }
                     else
                     {
@@ -543,7 +543,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                           0,
                                           dw,
                                           0,
-                                          GemmBackend_t::miopengemm);
+                                          GemmBackend_t::rocblas);
                     }
 
                     if(status != miopenStatusSuccess)
@@ -578,18 +578,18 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                                         workspace,
                                         dyDesc_.GetType());
 
-                const auto status = CallGemmTimeMeasure(
-                    handle,
-                    gemm_desc,
-                    dy,
-                    0,
-                    workspace,
-                    0,
-                    dw,
-                    0,
-                    time_precision,
-                    group_count > 1 ? callGemmStridedBatched : callGemm,
-                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
+                const auto status =
+                    CallGemmTimeMeasure(handle,
+                                        gemm_desc,
+                                        dy,
+                                        0,
+                                        workspace,
+                                        0,
+                                        dw,
+                                        0,
+                                        time_precision,
+                                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                                        GemmBackend_t::rocblas);
 
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");

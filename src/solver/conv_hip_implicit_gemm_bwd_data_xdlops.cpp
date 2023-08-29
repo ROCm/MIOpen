@@ -256,7 +256,7 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
@@ -300,7 +300,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription
     std::ignore = problem;
     return false;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
@@ -357,11 +357,11 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
-       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
+    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
+       problem.GetWeightsDataType() != problem.GetOutDataType() ||
+       problem.GetInDataType() != problem.GetOutDataType())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -377,13 +377,13 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(arch == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(problem.GetGroupCount() > 1)
         return false;
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
@@ -414,7 +414,7 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
+            switch(problem.GetInDataType())
             {
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);

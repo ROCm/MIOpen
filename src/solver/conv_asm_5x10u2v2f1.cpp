@@ -80,8 +80,8 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     // Min image + padding shall be not smaller than filter matrix.
-    const int min_in_width  = problem.GetWeightsWidth() - problem.GetPadW() * 2;
-    const int min_in_height = problem.GetWeightsHeight() - problem.GetPadH() * 2;
+    const int min_in_width  = static_cast<int>(problem.GetWeightsWidth_()) - problem.GetPadW() * 2;
+    const int min_in_height = static_cast<int>(problem.GetWeightsHeight_()) - problem.GetPadH() * 2;
     // These two found experimentally.
     const int max_in_width  = 8192 - 1;
     const int max_in_height = 131077 - 1;
@@ -89,19 +89,19 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
     // clang-format off
     return 0 <= problem.GetPadW() && problem.GetPadW() <= 5 // -q   pad_w   // [0..5] for now FIXME
         && 0 <= problem.GetPadH() && problem.GetPadH() <= 5 // -p   pad_h   // [0..5] for now FIXME
-        && problem.GetKernelStrideW() == 2          // -v   inp_v   fixed
-        && problem.GetKernelStrideH() == 2          // -u   inp_u   fixed
-        && problem.GetWeightsWidth() == 10          // -x   wei_w   fixed
-        && problem.GetWeightsHeight() == 5          // -y   wei_h   fixed
+        && problem.GetKernelStrideW() == 2           // -v   inp_v   fixed
+        && problem.GetKernelStrideH() == 2           // -u   inp_u   fixed
+        && problem.GetWeightsWidth_() == 10          // -x   wei_w   fixed
+        && problem.GetWeightsHeight_() == 5          // -y   wei_h   fixed
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetInChannels() >= 1             // -c   wei_c   no upper limit
-        && problem.GetOutChannels() % 16 == 0       // -k   wei_k   no upper limit
-        && problem.GetOutChannels() >= 1
-        && problem.GetInWidth() >= min_in_width     // -W   inp_w
-        && problem.GetInWidth() <= max_in_width
-        && problem.GetInHeight() >= min_in_height   // -H   inp_h
-        && problem.GetInHeight() <= max_in_height
+        && problem.GetInChannels_() >= 1             // -c   wei_c   no upper limit
+        && problem.GetOutChannels_() % 16 == 0       // -k   wei_k   no upper limit
+        && problem.GetOutChannels_() >= 1
+        && static_cast<int>(problem.GetInWidth_()) >= min_in_width     // -W   inp_w
+        && problem.GetInWidth_() <= max_in_width
+        && static_cast<int>(problem.GetInHeight_()) >= min_in_height   // -H   inp_h
+        && problem.GetInHeight_() <= max_in_height
         && problem.IsFp32()
         && problem.GetGroupCount() == 1
         && problem.GetInLayout() == "NCHW";         // hardcoded
@@ -118,18 +118,18 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (problem.GetInWidth() + problem.GetPadW() * 2 + problem.GetKernelStrideW() -
-                       problem.GetWeightsWidth()) /
+    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
                       problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (problem.GetInHeight() + problem.GetPadH() * 2 + problem.GetKernelStrideH() -
-                       problem.GetWeightsHeight()) /
+    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
                       problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", problem.GetInHeight());
-    GenerateClangDefsym(options, "inp_w", problem.GetInWidth());
-    GenerateClangDefsym(options, "wei_c", problem.GetInChannels());
-    GenerateClangDefsym(options, "wei_k", problem.GetOutChannels());
+    GenerateClangDefsym(options, "inp_h", problem.GetInHeight_());
+    GenerateClangDefsym(options, "inp_w", problem.GetInWidth_());
+    GenerateClangDefsym(options, "wei_c", problem.GetInChannels_());
+    GenerateClangDefsym(options, "wei_k", problem.GetOutChannels_());
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
@@ -145,8 +145,8 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     construction_params.g_wk.push_back(AlignUp(out_w, 64));
     construction_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels() / 2, 8)));
-    construction_params.g_wk.push_back(problem.GetBatchSize());
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
+    construction_params.g_wk.push_back(problem.GetBatchSize_());
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";
     construction_params.kernel_name = "miopenConv5x10u2v2f1";

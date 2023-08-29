@@ -653,7 +653,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const auto invariantLength = cDesc.GetElementSize();
     const auto toReduceLength  = aDesc.GetElementSize() / invariantLength;
 
-    long ws_buf2_bytes_offset = 0;
+    int64_t ws_buf2_bytes_offset = 0;
 
     if(need_indices && workspace != nullptr)
     {

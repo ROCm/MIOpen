@@ -72,18 +72,18 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     if(name != "gfx803")
         return false;
 
-    const auto W           = conv_problem.conv_problem.GetInWidth();
-    const auto H           = conv_problem.conv_problem.GetInHeight();
-    const auto C           = conv_problem.conv_problem.GetInChannels();
-    const auto N           = conv_problem.conv_problem.GetInBatchSize();
-    const auto K           = conv_problem.conv_problem.GetOutChannels();
-    const auto y           = conv_problem.conv_problem.GetWeightsHeight();
-    const auto x           = conv_problem.conv_problem.GetWeightsWidth();
-    const auto OH          = conv_problem.conv_problem.GetOutHeight();
-    const auto OW          = conv_problem.conv_problem.GetOutWidth();
-    const auto pad_h       = conv_problem.conv_problem.GetPadH();
-    const auto pad_w       = conv_problem.conv_problem.GetPadW();
-    const auto group_count = conv_problem.conv_problem.GetGroupCount();
+    const auto W           = conv_problem.GetInWidth_();
+    const auto H           = conv_problem.GetInHeight_();
+    const auto C           = conv_problem.GetInChannels_();
+    const auto N           = conv_problem.GetInBatchSize_();
+    const auto K           = conv_problem.GetOutChannels_();
+    const auto y           = conv_problem.GetWeightsHeight_();
+    const auto x           = conv_problem.GetWeightsWidth_();
+    const auto OH          = conv_problem.GetOutHeight_();
+    const auto OW          = conv_problem.GetOutWidth_();
+    const auto pad_h       = conv_problem.GetPadH();
+    const auto pad_w       = conv_problem.GetPadW();
+    const auto group_count = conv_problem.GetGroupCount();
 
     size_t padded_y = 0;
     size_t padded_x = 0;
@@ -123,10 +123,10 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     return conv_problem.GetKernelStrideH() == conv_problem.GetKernelStrideW()
         && conv_problem.GetDilationH() == 1
         && conv_problem.GetDilationW() == 1 
-        && (C * x * y) <= std::pow(2, 28)
-        && (K * x * y) <= std::pow(2, 28)
-        && (K * OH * OW) <= std::pow(2, 28)
-        && (C *  H *  W) <= std::pow(2, 28)
+        && (static_cast<uint64_t>(C) * x * y) <= std::pow(2, 28)
+        && (static_cast<uint64_t>(K) * x * y) <= std::pow(2, 28)
+        && (static_cast<uint64_t>(K) * OH * OW) <= std::pow(2, 28)
+        && (static_cast<uint64_t>(C) *  H *  W) <= std::pow(2, 28)
         && y <= std::pow(2, 16)
         && x <= std::pow(2, 16)
         && pad_h <= std::pow(2, 16)
@@ -163,8 +163,8 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
         {"ROCM_METADATA_VERSION", conv_ctx.rmv.UseV3() ? 5 : 4},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    const auto x        = conv_problem.conv_problem.GetWeightsWidth();
-    const auto y        = conv_problem.conv_problem.GetWeightsHeight();
+    const auto x        = conv_problem.GetWeightsWidth_();
+    const auto y        = conv_problem.GetWeightsHeight_();
 
     kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
     if(conv_problem.GetKernelStrideH() == 1)

@@ -111,7 +111,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
     if(problem.GetGroupCount() != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+       problem.IsGfx90aFp16altRequired())
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;

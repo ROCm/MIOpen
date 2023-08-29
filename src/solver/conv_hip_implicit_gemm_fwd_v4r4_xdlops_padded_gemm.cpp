@@ -1041,7 +1041,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -1065,8 +1065,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(problem))
@@ -1098,12 +1097,12 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsFp32())
     {
-        if((problem.GetInChannels() == 3 && problem.GetOutChannels() == 1 &&
-            problem.GetInWidth() == 227 && problem.GetInHeight() == 227 &&
-            problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3) //
-           || (problem.GetInChannels() == 64 && problem.GetOutChannels() == 1 &&
-               problem.GetInWidth() == 112 && problem.GetInHeight() == 112 &&
-               problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3 &&
+        if((problem.GetInChannels_() == 3 && problem.GetOutChannels_() == 1 &&
+            problem.GetInWidth_() == 227 && problem.GetInHeight_() == 227 &&
+            problem.GetWeightsWidth_() == 3 && problem.GetWeightsHeight_() == 3) //
+           || (problem.GetInChannels_() == 64 && problem.GetOutChannels_() == 1 &&
+               problem.GetInWidth_() == 112 && problem.GetInHeight_() == 112 &&
+               problem.GetWeightsWidth_() == 3 && problem.GetWeightsHeight_() == 3 &&
                problem.GetKernelStrideW() >= 2 && problem.GetKernelStrideH() >= 2 &&
                problem.GetDilationW() >= 3 && problem.GetDilationH() >= 3))
         {

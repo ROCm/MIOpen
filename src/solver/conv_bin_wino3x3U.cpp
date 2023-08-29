@@ -75,24 +75,24 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     // clang-format off
     return problem.GetPadW() == 1
         && problem.GetPadH() == 1
-        && problem.GetWeightsWidth() == 3
-        && problem.GetWeightsHeight() == 3
+        && problem.GetWeightsWidth_() == 3
+        && problem.GetWeightsHeight_() == 3
         && problem.GetKernelStrideW() == 1
         && problem.GetKernelStrideH() == 1
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetBatchSize() < std::pow(2, 16)
-        && problem.GetInChannels() < std::pow(2, 16)
-        && problem.GetOutChannels() < std::pow(2, 16)
-        && problem.GetInHeight() < std::pow(2, 16)
-        && problem.GetInWidth() < std::pow(2, 16)
+        && problem.GetBatchSize_() < std::pow(2, 16)
+        && problem.GetInChannels_() < std::pow(2, 16)
+        && problem.GetOutChannels_() < std::pow(2, 16)
+        && problem.GetInHeight_() < std::pow(2, 16)
+        && problem.GetInWidth_() < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
-        && (problem.GetInChannels() * problem.GetInHeight() * problem.GetInWidth()) <= std::pow(2, 28)
-        && (problem.GetOutChannels() * problem.GetInHeight() * problem.GetInWidth()) <= std::pow(2, 28)
-        && (problem.GetInChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight()) <= std::pow(2, 28)
-        && (problem.GetOutChannels() * problem.GetWeightsWidth() * problem.GetWeightsHeight()) <= std::pow(2, 28)
-        && problem.GetInChannels() % 2 == 0
-        && problem.GetInChannels() >= (device_is_gfx8 ? 16 : 18)
+        && (problem.GetInChannels_() * problem.GetInHeight_() * problem.GetInWidth_()) <= std::pow(2, 28)
+        && (problem.GetOutChannels_() * problem.GetInHeight_() * problem.GetInWidth_()) <= std::pow(2, 28)
+        && (problem.GetInChannels_() * problem.GetWeightsWidth_() * problem.GetWeightsHeight_()) <= std::pow(2, 28)
+        && (problem.GetOutChannels_() * problem.GetWeightsWidth_() * problem.GetWeightsHeight_()) <= std::pow(2, 28)
+        && problem.GetInChannels_() % 2 == 0
+        && problem.GetInChannels_() >= (device_is_gfx8 ? 16 : 18)
         && problem.IsFp32()
         && problem.GetGroupCount() == 1
         && problem.GetInLayout() == "NCHW";

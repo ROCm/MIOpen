@@ -78,18 +78,18 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     }
 
     // clang-format off
-    return problem.GetPadW() == 3           // -q
-        && problem.GetPadH() == 3           // -p
-        && problem.GetKernelStrideW() == 2  // -v
-        && problem.GetKernelStrideH() == 2  // -u
-        && problem.GetWeightsWidth() == 7   // -x
-        && problem.GetWeightsHeight() == 7  // -y
+    return problem.GetPadW() == 3            // -q
+        && problem.GetPadH() == 3            // -p
+        && problem.GetKernelStrideW() == 2   // -v
+        && problem.GetKernelStrideH() == 2   // -u
+        && problem.GetWeightsWidth_() == 7   // -x
+        && problem.GetWeightsHeight_() == 7  // -y
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetInChannels() == 3     // -c
-        && problem.GetOutChannels() == 64   // -k
-        && problem.GetInWidth() == 224      // -W
-        && problem.GetInHeight() == 224     // -H
+        && problem.GetInChannels_() == 3     // -c
+        && problem.GetOutChannels_() == 64   // -k
+        && problem.GetInWidth_() == 224      // -W
+        && problem.GetInHeight_() == 224     // -H
         && problem.IsFp32()
         && problem.GetGroupCount() == 1
         && problem.GetInLayout() == "NCHW";
@@ -101,11 +101,11 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
                                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (problem.GetInWidth() + problem.GetPadW() * 2 + problem.GetKernelStrideW() -
-                       problem.GetWeightsWidth()) /
+    const int out_w = (static_cast<int>(problem.GetInWidth_()) + problem.GetPadW() * 2 +
+                       problem.GetKernelStrideW() - static_cast<int>(problem.GetWeightsWidth_())) /
                       problem.GetKernelStrideW(); // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (problem.GetInHeight() + problem.GetPadH() * 2 + problem.GetKernelStrideH() -
-                       problem.GetWeightsHeight()) /
+    const int out_h = (static_cast<int>(problem.GetInHeight_()) + problem.GetPadH() * 2 +
+                       problem.GetKernelStrideH() - static_cast<int>(problem.GetWeightsHeight_())) /
                       problem.GetKernelStrideH(); // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
@@ -120,8 +120,8 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
     constr_params.g_wk.push_back(
-        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels() / 2, 8)));
-    constr_params.g_wk.push_back(problem.GetBatchSize());
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.GetOutChannels_() / 2, 8)));
+    constr_params.g_wk.push_back(problem.GetBatchSize_());
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";

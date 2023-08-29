@@ -37,7 +37,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
 
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
 #endif
@@ -68,15 +68,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
                 GetSolverWinoXformHWSize(problem, 1);
 
 #define DEFINE_SHADER_ALIASES(problem)               \
-    const auto C     = (problem).GetBatchSize();     \
-    const auto N     = (problem).GetOutChannels();   \
-    const auto K     = (problem).GetInChannels();    \
-    const auto out_H = (problem).GetWeightsHeight(); \
-    const auto out_W = (problem).GetWeightsWidth();  \
-    const auto R     = (problem).GetInHeight();      \
-    const auto S     = (problem).GetInWidth();       \
-    const auto H     = (problem).GetOutHeight();     \
-    const auto W     = (problem).GetOutWidth();      \
+    const int C     = (problem).GetBatchSize_();     \
+    const int N     = (problem).GetOutChannels_();   \
+    const int K     = (problem).GetInChannels_();    \
+    const int out_H = (problem).GetWeightsHeight_(); \
+    const int out_W = (problem).GetWeightsWidth_();  \
+    const int R     = (problem).GetInHeight_();      \
+    const int S     = (problem).GetInWidth_();       \
+    const int H     = (problem).GetOutHeight_();     \
+    const int W     = (problem).GetOutWidth_();      \
     DEFINE_GETXFORMHWSIZE(problem)
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -375,7 +375,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
 
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
@@ -458,7 +458,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || StartsWith(name, "gfx94"))
         return false;
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     {
@@ -499,26 +499,26 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const long input_line_size = 4L * problem.GetInWidth();
-        const long input_feature_map_size = input_line_size * problem.GetInHeight();
-        const long input_stack_size = input_feature_map_size * problem.GetInChannels();
+        const int64_t input_line_size = static_cast<int64_t>(4) * problem.GetInWidth_();
+        const int64_t input_feature_map_size = input_line_size * problem.GetInHeight_();
+        const int64_t input_stack_size = input_feature_map_size * problem.GetInChannels_();
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     bool ok = (
-           (problem.GetWeightsWidth() == WinoDataW && problem.GetWeightsHeight() == WinoDataH)
+           (problem.GetWeightsWidth_() == WinoDataW && problem.GetWeightsHeight_() == WinoDataH)
         && (problem.GetKernelStrideW() == 1
             ||
-            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight() == 3 && problem.GetWeightsWidth() == 3)
+            (problem.GetKernelStrideW() == 2 && problem.GetWeightsHeight_() == 3 && problem.GetWeightsWidth_() == 3)
             )
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetBatchSize() < std::pow(2, 24)
-        && problem.GetInChannels() < std::pow(2, 24)
-        && problem.GetOutChannels() < std::pow(2, 24)
-        && problem.GetInHeight() < std::pow(2, 24)
-        && problem.GetInWidth() < std::pow(2, 24)
+        && problem.GetBatchSize_() < std::pow(2, 24)
+        && problem.GetInChannels_() < std::pow(2, 24)
+        && problem.GetOutChannels_() < std::pow(2, 24)
+        && problem.GetInHeight_() < std::pow(2, 24)
+        && problem.GetInWidth_() < std::pow(2, 24)
         && problem.GetBias() == 0
         && problem.GetInLayout() == "NCHW"
         && problem.GetGroupCount() == 1);
@@ -566,7 +566,7 @@ InvokerFactory
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::PrepareInvokerFactory(
     const ExecutionContext& ctx, const ProblemDescription& problem, std::size_t ws_sz) const
 {
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
     int flags         = 0;
     int reserved      = 0;
     int* reserved_ptr = nullptr;
@@ -679,7 +679,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,
                         lda,ldb,ldc,batch_count,strideA,strideB,
-                                        strideC,alpha,beta,in_data_type, problem.conv_problem.GetConv().attribute.deterministic};
+                                        strideC,alpha,beta,in_data_type, problem.GetConv().attribute.deterministic};
 
                     CallGemmStridedBatched(handle,
                                         wino_gemm_desc,
@@ -689,7 +689,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                                         static_cast<int>(wino_wei_offset / GetTypeSize(in_data_type)),
                                         invoke_params.workSpace,
                                         static_cast<int>(wino_out_offset / GetTypeSize(in_data_type)),
-                                GemmBackend_t::miopentensile);
+                                GemmBackend_t::rocblas);
                     // clang-format on
 
                     if(handle.IsProfilingEnabled())

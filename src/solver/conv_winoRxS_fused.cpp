@@ -180,19 +180,19 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     if(conv_problem.IsTensorsCasted())
         return false;
 
-    const auto group_count = conv_problem.conv_problem.GetGroupCount();
+    const auto group_count = conv_problem.GetGroupCount();
     if(group_count != 1)
         return false;
 
-    const auto W  = conv_problem.conv_problem.GetInWidth();
-    const auto H  = conv_problem.conv_problem.GetInHeight();
-    const auto C  = conv_problem.conv_problem.GetInChannels();
-    const auto N  = conv_problem.conv_problem.GetInBatchSize();
-    const auto K  = conv_problem.conv_problem.GetOutChannels();
-    const auto R  = conv_problem.conv_problem.GetWeightsHeight();
-    const auto S  = conv_problem.conv_problem.GetWeightsWidth();
-    const auto OH = conv_problem.conv_problem.GetOutHeight();
-    const auto OW = conv_problem.conv_problem.GetOutWidth();
+    const auto W  = conv_problem.GetInWidth_();
+    const auto H  = conv_problem.GetInHeight_();
+    const auto C  = conv_problem.GetInChannels_();
+    const auto N  = conv_problem.GetInBatchSize_();
+    const auto K  = conv_problem.GetOutChannels_();
+    const auto R  = conv_problem.GetWeightsHeight_();
+    const auto S  = conv_problem.GetWeightsWidth_();
+    const auto OH = conv_problem.GetOutHeight_();
+    const auto OW = conv_problem.GetOutWidth_();
 
     return IsWinogradV21Preferred<2, 3>(name, conv_problem)
                ? IsShaderConstraintsMetV21(conv_problem, R, S, C, K, H, W, OH, OW, N)
@@ -254,8 +254,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.conv_problem.GetWeightsHeight();
+    const auto x = conv_problem.GetWeightsWidth_();
+    const auto y = conv_problem.GetWeightsHeight_();
 
     if(x == 3 && y == 3)
         result.weight = 100;

@@ -43,7 +43,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx,
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!problem.direction.IsBackwardData())
         return false;

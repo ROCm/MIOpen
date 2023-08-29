@@ -151,39 +151,41 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
     assert(chunk_size != 0);
     if(reverse_inout == 0)
     {
-        if((problem.GetOutChannels() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % (GetKPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
+           (problem.GetInChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0))
             return false;
     }
     else
     {
-        if((problem.GetOutChannels() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
-           (problem.GetInChannels() % (GetCPerWave() * problem.GetGroupCount()) != 0))
+        if((problem.GetOutChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
+           (problem.GetInChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0))
             return false;
     }
-    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
-       (problem.GetInChannels() % (64 / chunk_size) != 0))
+    if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels_() % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout != 0 ? problem.GetInChannels() : problem.GetOutChannels()) % GetCPerWave() !=
+    if((reverse_inout != 0 ? problem.GetInChannels_() : problem.GetOutChannels_()) %
+           GetCPerWave() !=
        0)
         return false;
     if(!(chunk_size * k_per_wave <= 64))
         return false;
-    if((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave != 0)
+    if((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) % k_per_wave !=
+       0)
         return false;
-    if(!(n_per_group <= problem.GetBatchSize()))
+    if(!(n_per_group <= problem.GetBatchSize_()))
         return false;
-    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(problem.GetOutHeight(), 16)))
+    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(problem.GetOutHeight_(), 16U)))
         return false;
     if((reverse_inout != 0) && !IsReverseInOutAllowed(problem))
         return false;
     {
-        const int accums_cnt = (problem.GetWeightsWidth() * problem.GetWeightsHeight() *
+        const int accums_cnt = (problem.GetWeightsWidth_() * problem.GetWeightsHeight_() *
                                 GetCPerWave() * k_per_wave * chunk_size) /
                                64;
         assert(chunk_size);
         const int out_w_vec =
-            (problem.GetOutWidth() + elements_in_dword(problem) - 1) / elements_in_dword(problem);
+            (problem.GetOutWidth_() + elements_in_dword(problem) - 1) / elements_in_dword(problem);
         int gprs_per_line_in = (out_w_vec + chunk_size - 1) / chunk_size;
         if(chunk_size != 16)
         {
@@ -196,7 +198,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
         const int gprs_per_line_out =
             (gprs_per_line_in > 1) ? gprs_per_line_in / problem.GetKernelStrideW() : 1;
 
-        const int lines_in           = pipe_lines_depth + problem.GetWeightsHeight() - 1;
+        const int lines_in           = pipe_lines_depth + problem.GetWeightsHeight_() - 1;
         const int vgprs_for_lines_in = lines_in * elements_in_dword(problem) * gprs_per_line_in;
         assert(problem.GetKernelStrideH());
         const int lines_out =
@@ -205,7 +207,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
         const int vgprs_for_division =
             (vgprs_for_lines_in >= 4 ? 0 : 4) + (vgprs_for_lines_out >= 3 ? 0 : 3);
 
-        const int k_group_size = problem.GetInChannels() /
+        const int k_group_size = problem.GetInChannels_() /
                                  (reverse_inout != 0 ? GetCPerWave() : GetKPerWave()) /
                                  problem.GetGroupCount();
         const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
@@ -225,7 +227,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
             return false;
 
         const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
-        const int steps         = std::max(0, problem.GetOutHeight() - 1 - pipe_lines_depth);
+        const int steps =
+            std::max(0, static_cast<int>(problem.GetOutHeight_()) - 1 - pipe_lines_depth);
         assert(unroll_factor);
         const int loops        = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
         const int m_instr      = 3 + (gprs_per_line_in + 3) / 4;
@@ -234,9 +237,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
         /// information here and in all similar places across other Solvers.
         const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(problem) == 2);
-        const int v_instr          = (k_per_wave * problem.GetWeightsHeight() * gprs_per_line_out *
-                             problem.GetWeightsWidth() * 4 * (dot2_emulate ? 2 : 1)) /
-                            3 * elements_in_dword(problem);
+        const int v_instr =
+            (k_per_wave * static_cast<int>(problem.GetWeightsHeight_()) * gprs_per_line_out *
+             static_cast<int>(problem.GetWeightsWidth_()) * 4 * (dot2_emulate ? 2 : 1)) /
+            3 * elements_in_dword(problem);
         const int exch_instr = elements_in_dword(problem) == 2 ? 3 * m_instr : 0;
         const int total =
             loops * (m_instr + v_instr + exch_instr) * elements_in_dword(problem); // instructions
@@ -251,25 +255,26 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
 {
     limit_wave_cnt = 0;
 
-    chunk_size = (problem.GetOutWidth() < 48) ? 8 : 16;
-    if((problem.GetOutChannels() % (64 / chunk_size) != 0) &&
-       (problem.GetInChannels() % (64 / chunk_size) != 0))
+    chunk_size = (problem.GetOutWidth_() < 48) ? 8 : 16;
+    if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
+       (problem.GetInChannels_() % (64 / chunk_size) != 0))
         chunk_size = 16; // Fixup for correctness
 
     reverse_inout = 0;
     if(IsReverseInOutAllowed(problem) &&
-       ((problem.GetOutChannels() % 4 != 0) || (problem.GetOutWidth() < 8)))
+       ((problem.GetOutChannels_() % 4 != 0) || (problem.GetOutWidth_() < 8)))
         reverse_inout = 1;
 
     const auto c_k =
-        problem.GetOutChannels() * problem.GetInChannels() / problem.GetGroupCount(); // C*K
+        problem.GetOutChannels_() * problem.GetInChannels_() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
         k_per_wave = 1;
     else if(c_k < 16384)
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.GetOutChannels() : problem.GetInChannels()) % k_per_wave !=
+    while((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) %
+              k_per_wave !=
           0)
         k_per_wave /= 2; // Fixup for correctness
 
@@ -281,16 +286,16 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
         n_per_group = 2;
     else
         n_per_group = 1;
-    if(n_per_group > problem.GetBatchSize())
-        n_per_group = problem.GetBatchSize(); // n_per_group should never be > batch size.
-    if(problem.GetOutWidth() >= 256 &&
+    if(n_per_group > problem.GetBatchSize_())
+        n_per_group = problem.GetBatchSize_(); // n_per_group should never be > batch size.
+    if(problem.GetOutWidth_() >= 256 &&
        n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
         n_per_group = 4;
 
-    pipe_lines_depth = (problem.GetOutHeight() <= 1) ? 1 : 2;
-    if((problem.GetOutHeight() < 8) && (problem.GetOutWidth() < 64))
+    pipe_lines_depth = (problem.GetOutHeight_() <= 1) ? 1 : 2;
+    if((problem.GetOutHeight_() < 8) && (problem.GetOutWidth_() < 64))
     {
-        pipe_lines_depth = problem.GetOutHeight(); // Special case.
+        pipe_lines_depth = problem.GetOutHeight_(); // Special case.
     }
 
     if(!IsValid(ctx, problem))
@@ -302,7 +307,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
         k_per_wave       = 1;
         pipe_lines_depth = 2;
         n_per_group      = 1;
-        if(problem.GetOutChannels() % (4 * problem.GetGroupCount()) != 0)
+        if(problem.GetOutChannels_() % (4 * problem.GetGroupCount()) != 0)
         {
             /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
             /// Toggling reverse swaps C and K in the condition above.
@@ -382,7 +387,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
         return false;
 #endif
 
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
 #if WORKAROUND_SWDEV_330460
@@ -396,8 +401,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetPadH() == 1           // -p  pad_h
         && problem.GetKernelStrideW() <= 2  // -v  stride_w
         && problem.GetKernelStrideH() <= 2  // -u  stride_h
-        && problem.GetWeightsWidth() == 3   // -x  S wei_w
-        && problem.GetWeightsHeight() == 3  // -y  R wei_h
+        && problem.GetWeightsWidth_() == 3   // -x  S wei_w
+        && problem.GetWeightsHeight_() == 3  // -y  R wei_h
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
         && problem.GetBias() == 0
@@ -408,28 +413,28 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
 
     if(problem.IsFp16()
           && (StartsWith(name, "gfx8") // Not supported.
-             || problem.GetBatchSize() % 2 != 0)) /// \todo Initial version.
+             || problem.GetBatchSize_() % 2 != 0)) /// \todo Initial version.
        return false;
 
     // Check limits:
-    const auto h_w     = static_cast<long>(problem.GetOutHeight()) * problem.GetOutWidth();
-    const auto r_s     = static_cast<long>(problem.GetWeightsHeight()) * problem.GetWeightsWidth();
-    const auto c_h_w   = static_cast<long>(problem.GetOutChannels()) * h_w;     // C*H*W
-    const auto k_h_w   = static_cast<long>(problem.GetInChannels()) * h_w;      // K*H*W
-    const auto c_r_s   = static_cast<long>(problem.GetOutChannels()) * r_s;     // C*R*S
-    const auto k_r_s   = static_cast<long>(problem.GetInChannels()) * r_s;      // K*R*S
-    const auto n_c_h_w = static_cast<long>(problem.GetBatchSize()) * c_h_w;     // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(problem.GetBatchSize()) * k_h_w;     // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(problem.GetOutChannels()) * k_r_s;   // C*K*R*S
-    ok = problem.GetOutWidth() > 0
-         && problem.GetOutWidth() <= 512
+    const auto h_w     = static_cast<int64_t>(problem.GetOutHeight_()) * problem.GetOutWidth_();
+    const auto r_s     = static_cast<int64_t>(problem.GetWeightsHeight_()) * problem.GetWeightsWidth_();
+    const auto c_h_w   = static_cast<int64_t>(problem.GetOutChannels_()) * h_w;     // C*H*W
+    const auto k_h_w   = static_cast<int64_t>(problem.GetInChannels_()) * h_w;      // K*H*W
+    const auto c_r_s   = static_cast<int64_t>(problem.GetOutChannels_()) * r_s;     // C*R*S
+    const auto k_r_s   = static_cast<int64_t>(problem.GetInChannels_()) * r_s;      // K*R*S
+    const auto n_c_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * c_h_w;     // N*C*H*W
+    const auto n_k_h_w = static_cast<int64_t>(problem.GetBatchSize_()) * k_h_w;     // N*K*H*W
+    const auto c_k_r_s = static_cast<int64_t>(problem.GetOutChannels_()) * k_r_s;   // C*K*R*S
+    ok = problem.GetOutWidth_() > 0
+         && problem.GetOutWidth_() <= 512
          && (IsReverseInOutAllowed(problem)
-                ? ((problem.GetOutChannels() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels() % (4 * problem.GetGroupCount()) == 0))
-                : (problem.GetOutChannels() % (4 * problem.GetGroupCount()) == 0))
-         && problem.GetOutHeight() < std::pow(2, 16)    // -H   H img_h
-         && problem.GetBatchSize() < std::pow(2, 16)    // -n   N batch_size
-         && problem.GetOutChannels() < std::pow(2, 16)  // -c   C input_channels
-         && problem.GetInChannels() < std::pow(2, 16)   // -k   K output_channels
+                ? ((problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0) || (problem.GetInChannels_() % (4 * problem.GetGroupCount()) == 0))
+                : (problem.GetOutChannels_() % (4 * problem.GetGroupCount()) == 0))
+         && problem.GetOutHeight_() < std::pow(2, 16)    // -H   H img_h
+         && problem.GetBatchSize_() < std::pow(2, 16)    // -n   N batch_size
+         && problem.GetOutChannels_() < std::pow(2, 16)  // -c   C input_channels
+         && problem.GetInChannels_() < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 22)
          && k_h_w < std::pow(2, 22)
          && c_r_s < std::pow(2, 22)
@@ -447,14 +452,14 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     ConvSolution result;
     std::ostringstream options;
     GenerateClangDefsym(options, "elements_in_dword", (problem.IsFp16()) ? 2 : 1);
-    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize()); // N
-    GenerateClangDefsym(options, "img_h", problem.GetOutHeight());      // H
-    GenerateClangDefsym(options, "img_w", problem.GetOutWidth());       // W
+    GenerateClangDefsym(options, "batch_size", problem.GetBatchSize_()); // N
+    GenerateClangDefsym(options, "img_h", problem.GetOutHeight_());      // H
+    GenerateClangDefsym(options, "img_w", problem.GetOutWidth_());       // W
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels()); // C
-    GenerateClangDefsym(options, "output_channels", problem.GetInChannels()); // K
-    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight());        // R
-    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth());         // S
+    GenerateClangDefsym(options, "input_channels", problem.GetOutChannels_()); // C
+    GenerateClangDefsym(options, "output_channels", problem.GetInChannels_()); // K
+    GenerateClangDefsym(options, "wei_h", problem.GetWeightsHeight_());        // R
+    GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());         // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
     GenerateClangDefsym(options, "stride_h", problem.GetKernelStrideH());
@@ -501,7 +506,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "group_counts", problem.GetGroupCount());
 
     const int k_group_size =
-        problem.GetInChannels() /
+        problem.GetInChannels_() /
         (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
         problem.GetGroupCount();
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
@@ -521,15 +526,15 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetCPerWave() /
+        kernel.g_wk.push_back(problem.GetOutChannels_() / pcfg->GetCPerWave() /
                               problem.GetGroupCount());
-        kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetKPerWave());
+        kernel.g_wk.push_back(problem.GetInChannels_() / pcfg->GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(problem.GetOutChannels() / pcfg->GetKPerWave() /
+        kernel.g_wk.push_back(problem.GetOutChannels_() / pcfg->GetKPerWave() /
                               problem.GetGroupCount());
-        kernel.g_wk.push_back(problem.GetInChannels() / pcfg->GetCPerWave());
+        kernel.g_wk.push_back(problem.GetInChannels_() / pcfg->GetCPerWave());
     }
 
     kernel.kernel_file = "conv3x3wrw.s";

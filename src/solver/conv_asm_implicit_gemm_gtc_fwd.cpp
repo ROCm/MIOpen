@@ -1351,19 +1351,19 @@ static std::tuple<bool, // is suitable kernel found
 FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const auto n          = problem.GetBatchSize();
-    const auto c          = problem.GetInChannels();
-    const auto k          = problem.GetOutChannels();
-    const auto ho         = problem.GetOutHeight();
-    const auto wo         = problem.GetOutWidth();
-    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const int n           = problem.GetBatchSize_();
+    const int c           = problem.GetInChannels_();
+    const int k           = problem.GetOutChannels_();
+    const int ho          = problem.GetOutHeight_();
+    const int wo          = problem.GetOutWidth_();
+    const auto stride_h   = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
@@ -1536,8 +1536,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
-       (problem.GetInChannels() % 8 != 0))
+    if((problem.GetWeightsHeight_() == 1) && (problem.GetWeightsWidth_() == 1) &&
+       (problem.GetInChannels_() % 8 != 0))
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
             return false;
 #endif

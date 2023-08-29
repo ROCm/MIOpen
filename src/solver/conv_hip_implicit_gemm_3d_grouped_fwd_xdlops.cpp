@@ -297,7 +297,7 @@ MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
                                const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
 {
     auto args                  = CKArgs{problem};
-    miopenDataType_t data_type = problem.conv_problem.GetInDataType();
+    miopenDataType_t data_type = problem.GetInDataType();
     auto kernel_id             = config.kernel_id;
 
     return [args, data_type, kernel_id](const std::vector<Kernel>& kernels) {
@@ -337,7 +337,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
@@ -383,7 +383,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     std::ignore = problem;
     return false;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
@@ -440,11 +440,11 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
-       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
+    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
+       problem.GetWeightsDataType() != problem.GetOutDataType() ||
+       problem.GetInDataType() != problem.GetOutDataType())
         return false;
     if(!problem.direction.IsForward())
         return false;
@@ -455,7 +455,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);

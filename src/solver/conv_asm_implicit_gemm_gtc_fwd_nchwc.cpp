@@ -261,15 +261,15 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto n     = problem.GetBatchSize();
-    const auto k     = problem.GetOutChannels() * config.vector_c;
-    const auto ho    = problem.GetOutHeight();
-    const auto wo    = problem.GetOutWidth();
+    const int n      = problem.GetBatchSize_();
+    const int k      = problem.GetOutChannels_() * config.vector_c;
+    const int ho     = problem.GetOutHeight_();
+    const int wo     = problem.GetOutWidth_();
     const auto group = problem.GetGroupCount();
 
-    const auto hi = problem.GetInHeight();
-    const auto wi = problem.GetInWidth();
-    const auto c  = problem.GetInChannels();
+    const int hi = problem.GetInHeight_();
+    const int wi = problem.GetInWidth_();
+    const int c  = problem.GetInChannels_();
 
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
@@ -370,13 +370,13 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
     }
 #endif
 
-    const auto n     = problem.GetBatchSize();
-    const auto c     = problem.GetInChannels();
-    const auto k     = problem.GetOutChannels();
-    const auto ho    = problem.GetOutHeight();
-    const auto wo    = problem.GetOutWidth();
-    const auto y     = problem.GetWeightsHeight();
-    const auto x     = problem.GetWeightsWidth();
+    const int n      = problem.GetBatchSize_();
+    const int c      = problem.GetInChannels_();
+    const int k      = problem.GetOutChannels_();
+    const int ho     = problem.GetOutHeight_();
+    const int wo     = problem.GetOutWidth_();
+    const int y      = problem.GetWeightsHeight_();
+    const int x      = problem.GetWeightsWidth_();
     const auto group = problem.GetGroupCount();
 
     size_t gemm_m = static_cast<size_t>(n) * ho * wo;
@@ -478,17 +478,17 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
          (problem.IsNCHWc_CHWNc() && tensor_layout == "nchwc_cyxkc")))
         return false;
 
-    const auto c          = problem.GetInChannels();
-    const auto k          = problem.GetOutChannels();
+    const int c           = problem.GetInChannels_();
+    const int k           = problem.GetOutChannels_();
     const auto group      = problem.GetGroupCount();
-    const auto stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -577,13 +577,13 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(problem.GetInHeight(),
-                                   problem.GetInWidth(),
-                                   problem.GetOutHeight(),
-                                   problem.GetOutWidth(),
-                                   problem.GetBatchSize(),
-                                   problem.GetOutChannels(),
-                                   problem.GetInChannels(),
+    if(0 == igemm_split_batch_size(problem.GetInHeight_(),
+                                   problem.GetInWidth_(),
+                                   problem.GetOutHeight_(),
+                                   problem.GetOutWidth_(),
+                                   problem.GetBatchSize_(),
+                                   problem.GetOutChannels_(),
+                                   problem.GetInChannels_(),
                                    miopen::GetTypeSize(problem.GetInDataType())))
         return false;
 
