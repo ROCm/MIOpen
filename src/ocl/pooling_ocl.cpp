@@ -115,9 +115,9 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         }
     }
 
-    const auto algo_name =
-        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
-    const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
+    // So far, all pooling solvers implement the Direct (trivial) computation algorithm.
+    const auto algo_name = AlgorithmName{"miopenPoolingForwardDirect"};
+    const auto problem   = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
 
     const auto invoke_params = [&]() {
         auto tmp           = pooling::FwdInvokeParams{};
@@ -180,9 +180,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         MIOPEN_THROW("Unsupported pooling dimension");
     }
 
-    const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, dxDesc, dyDesc};
-    const auto algo_name =
-        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdBackward" : "miopenPooling2dBackward"};
+    const auto problem   = pooling::ProblemDescription{*this, xDesc, yDesc, dxDesc, dyDesc};
+    const auto algo_name = AlgorithmName{"miopenPoolingBackwardDirect"};
 
     const auto invoke_params = [&]() {
         auto tmp      = pooling::BwdInvokeParams{};
