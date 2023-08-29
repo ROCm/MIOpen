@@ -457,6 +457,10 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
+    auto g_count = problem.GetGroupCount();
+    auto c_count = problem.GetInChannels();
+    if(g_count > 1 && (g_count != c_count))
+        return false;
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
