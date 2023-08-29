@@ -57,7 +57,7 @@ inline T gen_0_to_B(T B)
     {
         // can only generate 31bit range, so it may not be suitable
         // for huge 64 bit ranges, but we do not expect such ranges
-        return static_cast<T>(details::get_prng()() % (B + 1));
+        return static_cast<T>(details::get_prng()() % B);
     }
     else // half/bfloat/etc
     {
