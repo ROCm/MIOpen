@@ -89,9 +89,8 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
-        FAIL("miopenHalf, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, miopenDouble data "
-             "type not supported by "
-             "conv_igemm_dynamic test");
+        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, miopenDouble "
+                  "data type not supported by conv_igemm_dynamic test";
 
     default: params = Conv2dFloat::GetParam();
     }
