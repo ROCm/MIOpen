@@ -59,6 +59,26 @@ static int num_uint64_case = 0;
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 static int num_uint64_case_imgidx = 0;
 
+namespace {
+
+void print(const miopen::PoolingDescriptor& filter)
+{
+    std::cout << "Pooling: ";
+    if(filter.GetMode() == miopenPoolingAverage)
+        std::cout << "Average";
+    else if(filter.GetMode() == miopenPoolingAverageInclusive)
+        std::cout << "AverageInclusive";
+    else
+        std::cout << "Max";
+    std::cout << std::endl;
+    std::cout << "Lengths: ";
+    miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
+    std::cout << "Pads: ";
+    miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
+    std::cout << "Strides: ";
+    miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
+}
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::PoolingDescriptor& filter, const tensor<T>& input)
 {
@@ -208,20 +228,8 @@ struct verify_forward_pooling
               const miopen::PoolingDescriptor& filter,
               const std::vector<Index>&) const
     {
-        std::cout << "Forward pooling: ";
-        if(filter.GetMode() == miopenPoolingAverage)
-            std::cout << "Average";
-        else if(filter.GetMode() == miopenPoolingAverageInclusive)
-            std::cout << "AverageInclusive";
-        else
-            std::cout << "Max";
-        std::cout << std::endl;
-        std::cout << "Lengths: ";
-        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
-        std::cout << "Pads: ";
-        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
-        std::cout << "Strides: ";
-        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
+        std::cout << "Forward ";
+        print(filter);
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Output tensor: " << filter.GetForwardOutputTensor(input.desc).ToString()
                   << std::endl;
@@ -432,24 +440,14 @@ struct verify_backward_pooling
               bool,
               bool) const
     {
-        std::cout << "Backward pooling: ";
-        if(filter.GetMode() == miopenPoolingAverage)
-            std::cout << "Average";
-        else if(filter.GetMode() == miopenPoolingAverageInclusive)
-            std::cout << "AverageInclusive";
-        else
-            std::cout << "Max";
-        std::cout << std::endl;
-        std::cout << "Lengths: ";
-        miopen::LogRange(std::cout, filter.GetLengths(), ", ") << std::endl;
-        std::cout << "Pads: ";
-        miopen::LogRange(std::cout, filter.GetPads(), ", ") << std::endl;
-        std::cout << "Strides: ";
-        miopen::LogRange(std::cout, filter.GetStrides(), ", ") << std::endl;
-        std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
+        std::cout << "Backward ";
+        print(filter);
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
+        std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
     }
 };
+
+}; // namespace
 
 template <class T>
 struct pooling_driver : test_driver
@@ -531,28 +529,51 @@ struct pooling_driver : test_driver
         int spt_dim  = in_shape.size() - 2;
         const bool skip_many_configs_with_non_int8_index =
             (dataset_id == 0); // Otherwise the default dataset takes too much time.
+
+        filter = miopen::PoolingDescriptor
+        {
+            mode_lookup.at(miopen::ToUpper(mode)),
+#if TEST_PADDING_MODE == 1
+                pmode_lookup.at(miopen::ToUpper(pmode)),
+#else
+                miopenPaddingDefault,
+#endif
+                lens, strides, pads
+        };
+
+        filter.SetIndexType(idx_typ);
+        filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
         switch(idx_typ)
         {
         case miopenIndexUint8: {
-            // index size too small for 3D image
             if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
+                std::cout << "Warning: Config skipped: uint8 index is too small "
+                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
+                          << std::endl;
+                print(filter);
                 return;
             }
             break;
         }
         case miopenIndexUint16: {
-            // index size too small for 3D image
             if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
             {
+                std::cout << "Warning: Config skipped: uint16 index is too small "
+                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
+                          << std::endl;
+                print(filter);
                 return;
             }
-
             if(skip_many_configs_with_non_int8_index)
             {
                 // test_pooling_test --all only test 5 uint16 cases
                 if(num_uint16_case > 5)
                 {
+                    std::cout << "Warning: Config skipped for the default dataset to speed "
+                                 "up testing (num_uint16_case > 5)"
+                              << std::endl;
+                    print(filter);
                     return;
                 }
                 ++num_uint16_case;
@@ -567,19 +588,28 @@ struct pooling_driver : test_driver
                 if(wsidx == 0)
                 {
                     if(num_uint32_case > 5 || spt_dim == 3)
+                    {
+                        std::cout << "Warning: Config skipped for the default dataset to speed up "
+                                     "testing (wsidx == 0) && (num_uint32_case > 5 || spt_dim == 3)"
+                                  << std::endl;
+                        print(filter);
                         return;
-
+                    }
                     ++num_uint32_case;
                 }
                 else
                 {
                     if(num_uint32_case_imgidx > 5)
+                    {
+                        std::cout << "Warning: Config skipped to speed up testing of the "
+                                     "default dataset (wsidx != 0) && (num_uint32_case_imgidx > 5)"
+                                  << std::endl;
+                        print(filter);
                         return;
-
+                    }
                     ++num_uint32_case_imgidx;
                 }
             }
-
             idx_sz = sizeof(uint32_t);
             break;
         }
@@ -589,19 +619,29 @@ struct pooling_driver : test_driver
                 if(wsidx == 0)
                 {
                     if(num_uint64_case > 5 || spt_dim == 3)
+                    {
+                        std::cout << "Warning: Config skipped for the default dataset to speed up "
+                                     "testing (wsidx == 0) && (num_uint64_case > 5 || spt_dim == 3)"
+                                  << std::endl;
+                        print(filter);
                         return;
-
+                    }
                     ++num_uint64_case;
                 }
                 else
                 {
                     if(num_uint64_case_imgidx > 5 && spt_dim == 2)
+                    {
+                        std::cout << "Warning: Config skipped to speed up testing of the "
+                                     "default dataset (wsidx != 0) && (num_uint64_case_imgidx > 5 "
+                                     "&& spt_dim == 2)"
+                                  << std::endl;
+                        print(filter);
                         return;
-
+                    }
                     ++num_uint64_case_imgidx;
                 }
             }
-
             idx_sz = sizeof(uint64_t);
             break;
         }
@@ -611,27 +651,18 @@ struct pooling_driver : test_driver
 
         if(spt_dim != 2 && spt_dim != 3)
         {
+            std::cout << "Warning: Config skipped (spt_dim != 2 && spt_dim != 3)" << std::endl;
+            print(filter);
             return;
         }
 
-        filter = miopen::PoolingDescriptor
-        {
-            mode_lookup.at(miopen::ToUpper(mode)),
-#if TEST_PADDING_MODE == 1
-                pmode_lookup.at(miopen::ToUpper(pmode))
-#else
-                miopenPaddingDefault
-#endif
-                    ,
-                lens, strides, pads
-        };
-
-        filter.SetIndexType(idx_typ);
-        filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
-
         for(int i = 0; i < spt_dim; i++)
-            if(lens[i] >= (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
+            if(lens[i] > (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
             {
+                std::cout << "Warning: Config skipped "
+                             "(lens[i] > (input_desc.GetLengths()[i + 2] + 2 * pads[i]))"
+                          << std::endl;
+                print(filter);
                 return;
             }
 
@@ -642,10 +673,10 @@ struct pooling_driver : test_driver
         size_t device_mem = get_handle().GetGlobalMemorySize();
         if(total_mem >= device_mem)
         {
-            show_command();
             std::cout << "Config requires " << total_mem
                       << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
                       << " Bytes of memory." << std::endl;
+            print(filter);
             return;
         }
 
@@ -691,61 +722,52 @@ struct pooling_driver : test_driver
                 return;
         }
 #endif
-        std::vector<int> check_dim(spt_dim);
-        for(int i = 0; i < spt_dim; i++)
+        switch(filter.GetIndexType())
         {
-            check_dim[i] = in_dim[i] + 2 * filter.GetPads()[i] - ker_dim[i];
-        }
-
-        if(std::all_of(check_dim.begin(), check_dim.end(), [](int i) { return i > 0; }))
-        {
-            switch(filter.GetIndexType())
+        case miopenIndexUint8: {
+            if(spt_dim == 3)
             {
-            case miopenIndexUint8: {
-                if(spt_dim == 3)
-                {
-                    run_impl<uint8_t, 3>();
-                }
-                else
-                {
-                    run_impl<uint8_t, 2>();
-                }
-                break;
+                run_impl<uint8_t, 3>();
             }
-            case miopenIndexUint16: {
-                if(spt_dim == 3)
-                {
-                    run_impl<uint16_t, 3>();
-                }
-                else
-                {
-                    run_impl<uint16_t, 2>();
-                }
-                break;
+            else
+            {
+                run_impl<uint8_t, 2>();
             }
-            case miopenIndexUint32: {
-                if(spt_dim == 3)
-                {
-                    run_impl<uint32_t, 3>();
-                }
-                else
-                {
-                    run_impl<uint32_t, 2>();
-                }
-                break;
+            break;
+        }
+        case miopenIndexUint16: {
+            if(spt_dim == 3)
+            {
+                run_impl<uint16_t, 3>();
             }
-            case miopenIndexUint64: {
-                if(spt_dim == 3)
-                {
-                    run_impl<uint64_t, 3>();
-                }
-                else
-                {
-                    run_impl<uint64_t, 2>();
-                }
-                break;
+            else
+            {
+                run_impl<uint16_t, 2>();
             }
+            break;
+        }
+        case miopenIndexUint32: {
+            if(spt_dim == 3)
+            {
+                run_impl<uint32_t, 3>();
             }
+            else
+            {
+                run_impl<uint32_t, 2>();
+            }
+            break;
+        }
+        case miopenIndexUint64: {
+            if(spt_dim == 3)
+            {
+                run_impl<uint64_t, 3>();
+            }
+            else
+            {
+                run_impl<uint64_t, 2>();
+            }
+            break;
+        }
         }
     }
 };
