@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -554,10 +554,10 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
-    MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
-    MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
-    MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
+    MIOPEN_32BIT_INDICES = 0, /*!< 32-bit unsigned integer indices */
+    MIOPEN_64BIT_INDICES = 1, /*!< 64-bit unsigned integer indices */
+    MIOPEN_16BIT_INDICES = 2, /*!< 16-bit unsigned integer indices */
+    MIOPEN_8BIT_INDICES  = 3, /*!< 8-bit unsigned integer indices */
 } miopenIndicesType_t;
 
 /*! @ingroup convolutions
@@ -869,9 +869,9 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 MIOPEN_EXPORT miopenStatus_t
 miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                   int spatialDim,
-                                  int* padA,
-                                  int* strideA,
-                                  int* dilationA,
+                                  const int* padA,
+                                  const int* strideA,
+                                  const int* dilationA,
                                   miopenConvolutionMode_t c_mode);
 
 /*! @brief Retrieves the spatial dimension of a convolution layer descriptor
@@ -927,6 +927,15 @@ miopenGetConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                  int* dilationA,
                                  miopenConvolutionMode_t* c_mode);
 
+/*! @brief Get the number of groups to be used in Group/Depthwise convolution
+ *
+ * @param convDesc   Convolution layer descriptor (input)
+ * @param groupCount Pointer to number of groups in group/depthwise convolution (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                            int* groupCount);
+
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
  *
  * Must be called before all computational APIs of group/depthwise convolution, it is preferable to
@@ -971,7 +980,7 @@ miopenSetTransposeConvOutputPadding(miopenConvolutionDescriptor_t convDesc, int 
  * @return              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetTransposeConvNdOutputPadding(
-    miopenConvolutionDescriptor_t convDesc, int spatialDim, int* adjA);
+    miopenConvolutionDescriptor_t convDesc, int spatialDim, const int* adjA);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *
@@ -2107,9 +2116,9 @@ miopenGetPoolingForwardOutputDim(const miopenPoolingDescriptor_t poolDesc,
 MIOPEN_EXPORT miopenStatus_t miopenSetNdPoolingDescriptor(miopenPoolingDescriptor_t poolDesc,
                                                           const miopenPoolingMode_t mode,
                                                           int nbDims,
-                                                          int* windowDimA,
-                                                          int* padA,
-                                                          int* stridesA);
+                                                          const int* windowDimA,
+                                                          const int* padA,
+                                                          const int* stridesA);
 
 /*! @brief Get details of a N-D pooling layer descriptor
  *
@@ -3280,6 +3289,15 @@ typedef enum
     miopenRNNAlgoGEMM = 0,
 } miopenRNNGEMMalgoMode_t;
 
+/*! @enum miopenRNNPaddingMode_t
+ * Recurrent Neural Network input/output data padding mode
+ */
+typedef enum
+{
+    miopenRNNIONotPadded   = 0, /*!< Not padded data at RNN input/output */
+    miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
+} miopenRNNPaddingMode_t;
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -3982,6 +4000,30 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                    const int biasID,
                                                    miopenTensorDescriptor_t biasDesc,
                                                    const void* layerBias);
+
+/*! @brief Sets a bias for a specific layer in an RNN stack
+ *
+ * This function changes padidng mode at previously created and initialized RNN descriptor.
+ * This function must be called before using miopenGetRNNWorkspaceSize()
+ * and miopenGetRNNTrainingReserveSize() functions.
+ * By default, not padded data is expected at the RNN input/output.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input/output)
+ * @param paddingMode     RNN input/output data padding mode (input)
+ * @return                miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t paddingMode);
+
+/*! @brief This function retrieves the RNN padding mode from the RNN descriptor.
+ *
+ * @param rnnDesc         RNN layer descriptor type (input)
+ * @param paddingMode     Pointer to the RNN padding mode (output)
+ * @return                miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
+                                                     miopenRNNPaddingMode_t* paddingMode);
 
 /*! @brief Execute forward training for recurrent layer
  *

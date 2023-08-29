@@ -94,13 +94,14 @@ struct ExecutionContext
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext(Handle* stream_) : stream(stream_) {}
+    ExecutionContext() { DetectRocm(); }
+    ExecutionContext(Handle* stream_) : stream(stream_) { DetectRocm(); }
 
-    ExecutionContext()                        = default;
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
-
-    ExecutionContext& DetectRocm();
+    ExecutionContext(ExecutionContext&&)      = default;
+    ExecutionContext& operator=(const ExecutionContext&) = default;
+    ExecutionContext& operator=(ExecutionContext&&) = default;
 
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
@@ -263,26 +264,23 @@ struct ExecutionContext
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
-        // clang-format off
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
 #else
-        filename << "."
-             << GetUserDbSuffix()
-             << ".cd.updb.txt";
+        filename << "." << GetUserDbSuffix() << ".cd.updb.txt";
 #endif
-        // clang-format on
-        return (pdb_path / filename.str()).string();
+        return (udb / filename.str()).string();
     }
 
 private:
     Handle* stream = nullptr;
+
+    void DetectRocm();
 };
 
 bool IsHipKernelsEnabled();

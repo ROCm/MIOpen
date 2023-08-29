@@ -77,13 +77,17 @@ static bool& full_set()
 class Random
 {
 public:
-    Random(unsigned int seed = 0) : rng(seed) {}
+    Random(unsigned int seed = 0) : rng(seed), dist_positive(1) {}
 
     std::mt19937::result_type Next() { return dist(rng); }
+    auto NextNonNegative() { return dist_non_negative(rng); }
+    auto NextPositive() { return dist_positive(rng); }
 
 private:
     std::mt19937 rng;
     std::uniform_int_distribution<std::mt19937::result_type> dist;
+    std::uniform_int_distribution<> dist_non_negative;
+    std::uniform_int_distribution<> dist_positive;
 };
 
 static Random& Rnd()
@@ -95,7 +99,7 @@ static Random& Rnd()
 
 struct ProblemData : SQLiteSerializable<ProblemData>
 {
-    ProblemDescription prob;
+    conv::ProblemDescription prob;
 
     struct NoInit
     {
@@ -103,56 +107,66 @@ struct ProblemData : SQLiteSerializable<ProblemData>
 
     ProblemData(NoInit) {}
     ProblemData() : ProblemData(Rnd()) {}
-    ProblemData(Random& rnd) : prob(conv::Direction::Forward)
+    ProblemData(Random& rnd)
     {
-        prob.n_inputs          = rnd.Next();
-        prob.in_height         = rnd.Next();
-        prob.in_width          = rnd.Next();
-        prob.kernel_size_h     = rnd.Next();
-        prob.kernel_size_w     = rnd.Next();
-        prob.n_outputs         = rnd.Next();
-        prob.batch_sz          = rnd.Next();
-        prob.pad_h             = rnd.Next();
-        prob.pad_w             = rnd.Next();
-        prob.kernel_stride_h   = rnd.Next();
-        prob.kernel_stride_w   = rnd.Next();
-        prob.kernel_dilation_h = rnd.Next();
-        prob.kernel_dilation_w = rnd.Next();
-        prob.bias              = rnd.Next();
-        prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopenFloat;
-        prob.weights_data_type = miopenFloat;
-        prob.out_data_type     = miopenFloat;
-        prob.group_counts      = 1;
+        const int n_inputs          = rnd.NextPositive();
+        const int in_height         = rnd.NextPositive();
+        const int in_width          = rnd.NextPositive();
+        const int kernel_size_h     = rnd.NextPositive();
+        const int kernel_size_w     = rnd.NextPositive();
+        const int n_outputs         = rnd.NextPositive();
+        const int batch_sz          = rnd.NextPositive();
+        const int pad_h             = rnd.NextNonNegative();
+        const int pad_w             = rnd.NextNonNegative();
+        const int kernel_stride_h   = rnd.NextPositive();
+        const int kernel_stride_w   = rnd.NextPositive();
+        const int kernel_dilation_h = rnd.NextPositive();
+        const int kernel_dilation_w = rnd.NextPositive();
+        const int bias              = rnd.Next();
+
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
+
+        prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
-    ProblemData(int i) : prob(conv::Direction::Forward)
+    ProblemData(int i)
     {
-        prob.n_inputs          = i;
-        prob.in_height         = i;
-        prob.in_width          = i;
-        prob.kernel_size_h     = i;
-        prob.kernel_size_w     = i;
-        prob.n_outputs         = i;
-        prob.batch_sz          = i;
-        prob.pad_h             = i;
-        prob.pad_w             = i;
-        prob.kernel_stride_h   = i;
-        prob.kernel_stride_w   = i;
-        prob.kernel_dilation_h = i;
-        prob.kernel_dilation_w = i;
-        prob.bias              = i;
-        prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopenFloat;
-        prob.weights_data_type = miopenFloat;
-        prob.out_data_type     = miopenFloat;
-        prob.group_counts      = 1;
+        i += 1;
+
+        const int n_inputs          = i;
+        const int in_height         = i;
+        const int in_width          = i;
+        const int kernel_size_h     = i;
+        const int kernel_size_w     = i;
+        const int n_outputs         = i;
+        const int batch_sz          = i;
+        const int pad_h             = i;
+        const int pad_w             = i;
+        const int kernel_stride_h   = i;
+        const int kernel_stride_w   = i;
+        const int kernel_dilation_h = i;
+        const int kernel_dilation_w = i;
+        const int bias              = i;
+
+        const TensorDescriptor in        = {miopenFloat, {batch_sz, n_inputs, in_height, in_width}};
+        const TensorDescriptor weights   = {miopenFloat, {1, 1, kernel_size_h, kernel_size_w}};
+        const TensorDescriptor out       = {miopenFloat, {1, n_outputs, 1, 1}};
+        const ConvolutionDescriptor conv = {{pad_h, pad_w},
+                                            {kernel_stride_h, kernel_stride_w},
+                                            {kernel_dilation_h, kernel_dilation_w}};
+
+        prob = {in, weights, out, conv, conv::Direction::Forward, bias};
     }
 
     static std::string table_name() { return "config"; }
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        ProblemDescription::Visit(self.prob, f);
+        conv::ProblemDescription::Visit(self.prob, f);
     }
 };
 

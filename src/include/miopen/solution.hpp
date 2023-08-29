@@ -53,8 +53,8 @@ struct Solution : miopenSolution
 
     struct SerializationMetadata final
     {
-        unsigned long validation_number;
-        unsigned long version;
+        uint64_t validation_number;
+        uint64_t version;
 
         static constexpr SerializationMetadata Current() { return {0x123456789ABCDEF0, 1}; }
 
@@ -91,6 +91,8 @@ struct Solution : miopenSolution
              Data_t workspace,
              size_t workspace_size);
 
+    void LogDriverCommand() const;
+
     friend void to_json(nlohmann::json& json, const Solution& solution);
     friend void from_json(const nlohmann::json& json, Solution& solution);
 
@@ -108,6 +110,7 @@ private:
                  const ConvolutionDescriptor& conv_desc);
 
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
+    void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
 };
 
 } // namespace miopen

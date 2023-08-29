@@ -194,6 +194,8 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -215,6 +217,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
+    solver/conv_wino_fury_RxS.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
@@ -223,6 +226,7 @@ set( MIOpen_Source
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
+    solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
@@ -233,6 +237,11 @@ set( MIOpen_Source
     tensor_api.cpp
     )
 
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+    list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
+    list(APPEND MIOpen_Source anyramdb.cpp)
+endif()
+
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
     list(APPEND MIOpen_Source sqlite_db.cpp)
@@ -241,10 +250,6 @@ endif()
 if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
 endif()
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
-    list(APPEND MIOpen_Source conv/heuristic_model/tuning_heuristic.cpp)
-endif()
-
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_INCLUDE "kernels/static_composable_kernel/include/*/*.hpp")
@@ -305,55 +310,55 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f2x3_stride2.inc
         kernels/Conv_Winograd_v21_1_3_gfx9_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v21_1_3_metadata.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp16_dot2_edc_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx94x_fp32_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_dilation2.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_stride1.inc
-        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_stride2.inc
-        kernels/Conv_Winograd_v30_2_6_metadata.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx94x_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx9_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp16_dot2_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx10_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp16_dot2_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_3_1_metadata.inc
         kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
@@ -399,8 +404,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
-        kernels/MIOpenPoolingND.cl
         kernels/MIOpenPoolingBwdND.cl
+        kernels/MIOpenPoolingForwardNaive.cl
+        kernels/MIOpenPoolingND.cl
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -435,6 +441,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_out.s
         kernels/gcnAsmBNBwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
+        kernels/MIOpenTensorKernelsHip.cpp
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
@@ -461,18 +468,19 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v21_1_3_fp32_f2x3_stride1.s
         kernels/Conv_Winograd_v21_1_3_fp32_f2x3_stride2.s
         kernels/Conv_Winograd_v21_1_3_fp32_f3x2_stride1.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_dilation2.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_stride1.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_stride2.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_dilation2.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_stride1.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_stride2.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_dilation2.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_stride1.s
-        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_stride2.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_dilation2.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_stride1.s
-        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_stride2.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f2x3_dilation2.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f2x3_stride1.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f2x3_stride2.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f2x3_dilation2.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f2x3_stride1.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f2x3_stride2.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f3x2_dilation2.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f3x2_stride1.s
+        kernels/Conv_Winograd_v30_3_1_fp16_dot2_f3x2_stride2.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f3x2_dilation2.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride1.s
+        kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride2.s
+        kernels/Conv_Winograd_Fury_v1_1_1_fp16_fp16acc_f2x3_stride1.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
@@ -542,10 +550,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS OR MIOPEN_USE_MIOPENTENSILE)
+if(MIOPEN_USE_ROCBLAS)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
-        miopengemm.cpp
     )
 endif()
 
@@ -683,25 +690,41 @@ endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+# Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+#               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
 
-if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
         find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
-        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
         if(${FDEEP_INCLUDE_DIR} STREQUAL "FDEEP_INCLUDE_DIR-NOTFOUND")
-            message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
+            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement frugally-deep not found")
+            endif()
+            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
+            endif()
         endif()
+
+        find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
         if(${EIGEN_INCLUDE_DIR} STREQUAL "EIGEN_INCLUDE_DIR-NOTFOUND")
-            message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
+            if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_KERNEL_TUNING requirement Eigen not found")
+            endif()
+            if(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
+                message(FATAL_ERROR "MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK requirement frugally-deep not found")
+            endif()
         endif()
+
         target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
         target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
         if(NOT BUILD_DEV)
             file(GLOB MODEL_FILES kernels/*.model)
-            install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            if( NOT ENABLE_ASAN_PACKAGING )
+              install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+            endif() 
             foreach(MODEL_FILE ${MODEL_FILES})
                 get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
                 configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
@@ -730,14 +753,6 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
 endif()
 
-############################################################
-# MIOpen depends on miopengemm
-if(miopengemm_FOUND)
-    list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
-    target_internal_library(MIOpen miopengemm)
-    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE miopengemm)
-endif()
-
 if(MIOPEN_USE_COMGR)
     list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
     target_internal_library(MIOpen amd_comgr)
@@ -747,11 +762,6 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
-endif()
-
-# MIOpen depends on miopentensile
-if(miopentensile_FOUND)
-    target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
 # For backward compatibility with ROCm 5.3
@@ -815,7 +825,7 @@ if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
     if(LIBRT)
         MESSAGE(STATUS "Librt: " ${LIBRT})
-        target_link_libraries(MIOpen PUBLIC ${LIBRT})
+        target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
 
@@ -878,9 +888,11 @@ else()
     file(GLOB PERF_DB_FILES kernels/*.db)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
-        install(FILES
-            ${FIND_DB_FILES}
-         DESTINATION ${DATA_INSTALL_DIR}/db)
+        if( NOT ENABLE_ASAN_PACKAGING )
+          install(FILES
+              ${FIND_DB_FILES}
+           DESTINATION ${DATA_INSTALL_DIR}/db)
+         endif()
          foreach(DB_FILE ${FIND_DB_FILES})
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
             configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)

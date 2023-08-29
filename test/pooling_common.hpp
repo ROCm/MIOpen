@@ -502,7 +502,7 @@ struct pooling_driver : test_driver
 #if TEST_PADDING_MODE == 1
         add(pmode, "pmode", generate_data({"default", "same", "valid"}));
 #endif
-        add(verify_indices, "verify_indices", generate_data({0}));
+        add(verify_indices, "verify_indices", generate_data({1}));
     }
 
     template <class Index, int SptDim>
@@ -630,7 +630,7 @@ struct pooling_driver : test_driver
         filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
 
         for(int i = 0; i < spt_dim; i++)
-            if(lens[i] >= (input_desc.GetLengths()[i + 2] + 2UL * pads[i]))
+            if(lens[i] >= (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
             {
                 return;
             }

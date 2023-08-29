@@ -50,6 +50,7 @@ struct lstm_driver : lstm_basic_driver<T>
         this->add(this->nodcx, "no-dcx", this->flag());
         this->add(this->flatBatchFill, "flat-batch-fill", this->flag());
         this->add(this->useDropout, "use-dropout", this->generate_data({0}));
+        this->add(this->usePadding, "use-padding", this->generate_data({false, true}));
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         this->biasMode  = 0;

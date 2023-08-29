@@ -55,8 +55,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
 namespace miopen {
+
+namespace {
 
 std::size_t GetMaxWorkSpaceSize(const std::vector<std::pair<std::string, std::size_t>>& values)
 {
@@ -77,13 +80,13 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) ||
-       miopen::any_of(problem.conv_problem.GetConv().GetConvDilations(),
-                      [](auto v) { return v > 1; }))
+       miopen::any_of(problem.GetConv().GetConvDilations(), [](auto v) { return v > 1; }))
         return 0;
 
     return GetMaxWorkSpaceSize(AllGemmWorkspaceSize(ctx, problem));
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return 0;
 #endif
 }
@@ -143,6 +146,8 @@ std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ConvolutionContext& ct
         return 0;
     return GetMaxWorkSpaceSize(FindImplicitGemmWrWWorkspaceSizes(ctx, problem));
 }
+
+} // namespace
 
 ConvolutionDescriptor::ConvolutionDescriptor(std::size_t spatial_dim,
                                              miopenConvolutionMode_t c_mode,
@@ -389,39 +394,10 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::Convolut
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(problem.GetOutChannels() >= 16 && problem.GetOutChannels() % 2 == 0))
+    if(!(problem.GetOutChannels_() >= 16 && problem.GetOutChannels_() % 2 == 0))
         return false;
 
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
-}
-
-std::size_t
-ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& xDesc,
-                                                    const TensorDescriptor& dwDesc) const
-{
-#if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
-        return 0;
-
-    const auto problem =
-        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    const auto ctx                  = ConvolutionContext{};
-    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, problem);
-
-    if(!gemm_ws_sz_pairs.empty())
-    {
-        decltype(auto) gemm_ws_szs =
-            gemm_ws_sz_pairs | boost::adaptors::transformed([](const auto& p) { return p.second; });
-        return *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
-    }
-#else
-    std::ignore = dyDesc;
-    std::ignore = xDesc;
-    std::ignore = dwDesc;
-#endif
-
-    return 0;
 }
 
 std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
@@ -447,7 +423,8 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         /// actually required workspace here.
         auto fallback        = bool{};
         const auto solutions = GetSolutions(ctx, problem, 1, &fallback);
-        if(solutions.empty() || (findMode.IsHybrid(ctx) && fallback))
+        if(solutions.empty() || ((findMode.IsHybrid(ctx) && fallback) &&
+                                 !miopen::IsEnabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK{})))
         {
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
