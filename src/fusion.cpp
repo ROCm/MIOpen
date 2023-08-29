@@ -136,7 +136,7 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
                                << " , size: " << conv_problem.GetWeightsSize() << " , out addr: "
                                << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
 
-    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    const auto gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
     auto conv_data =
         std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
@@ -153,9 +153,9 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     params.SetArg(2, std::move(activ_data));
 
     return miopen::fusion::FusionInvokeParams(params,
-                                              conv_problem.conv_problem.GetIn(),
+                                              conv_problem.GetIn(),
                                               invoke_bufs[1].get(),
-                                              conv_problem.conv_problem.GetOut(),
+                                              conv_problem.GetOut(),
                                               invoke_bufs[3].get(),
                                               gfx90aaltimpl);
 }
@@ -517,7 +517,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
-    fusion_ctx.DetectRocm();
     AnyInvokeParams invoke_params;
     miopen::OperatorArgs params;
     std::vector<Allocator::ManageDataPtr> invoke_bufs;

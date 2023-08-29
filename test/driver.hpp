@@ -65,11 +65,11 @@ struct tensor_elem_gen_checkboard_sign
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
-        std::array<unsigned long, sizeof...(Ts)> dims = {{Xs...}};
+        std::array<uint64_t, sizeof...(Ts)> dims = {{Xs...}};
         return std::accumulate(dims.begin(),
                                dims.end(),
                                true,
-                               [](int init, unsigned long x) -> int { return init != (x % 2); })
+                               [](int init, uint64_t x) -> int { return init != (x % 2); })
                    ? 1
                    : -1;
     }
