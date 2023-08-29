@@ -27,6 +27,8 @@
 #include "float_types.h"
 #include "pooling_functions.h"
 
+#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+
 #ifndef MLO_POOLING_INDEX_MAX
 #error "MLO_POOLING_INDEX_MAX not defined"
 #endif
@@ -144,6 +146,8 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
         }
     }
 }
+
+#elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE || MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0, 1, 1))) __kernel void
 mloPoolingNDAveBwd(const __global _FLOAT* top_df,
@@ -276,3 +280,4 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
         }
     }
 }
+#endif
