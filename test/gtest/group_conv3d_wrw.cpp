@@ -47,6 +47,7 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                const ConvTestCase& conv_config,
                bool& test_skipped)
 {
+    
     auto&& handle = get_handle();
 
     Solver solv{};

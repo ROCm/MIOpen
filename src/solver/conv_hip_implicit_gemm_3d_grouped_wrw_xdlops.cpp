@@ -43,9 +43,9 @@ namespace solver {
 template <typename DataType>
 using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
     3,
-    ck::tensor_layout::convolution::GNDHWC,
+    ck::tensor_layout::convolution::NDHWGC,
     ck::tensor_layout::convolution::GKZYXC,
-    ck::tensor_layout::convolution::GNDHWK,
+    ck::tensor_layout::convolution::NDHWGK,
     DataType,
     DataType,
     DataType,
@@ -78,19 +78,34 @@ struct CKArgs
         Di = ProblemInterpreter::GetInputDepthDi(problem);
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+    std::cout <<"in CKArgs*******"<<std::endl;
+    std::cout << "************************G: " << G << std::endl;
+    std::cout << "************************N: " << N << std::endl;
+    std::cout << "************************K: " << K << std::endl;
+    std::cout << "************************C: " << C << std::endl;
+    std::cout << "***********************Di: " << Di << std::endl;
+    std::cout << "***********************Hi: " << Hi << std::endl;
+    std::cout << "***********************Wi: " << Wi << std::endl;
+    std::cout << "***********************Do: " << Do << std::endl;
+    std::cout << "***********************Ho: " << Ho << std::endl;
+    std::cout << "***********************Wo: " << Wo << std::endl;
+    std::cout << "************************Z: " << Z << std::endl;
+    std::cout << "************************Y: " << Y << std::endl;
+    std::cout << "************************X: " << X << std::endl;
+    std::cout<<std::endl;
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-        // in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-        // out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-        // wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+         in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+         out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+         wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
-        in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
-        out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
-        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        //in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+        //out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+        //wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -120,7 +135,7 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    ck::index_t split_k = 2;
+    ck::index_t split_k = 1;
     std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> output;
@@ -146,10 +161,10 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
                                                               nullptr,
                                                               nullptr,
                                                               args.input,
-                                                              args.weight,
-                                                              args.output,
                                                               args.in_strides,
+                                                              args.weight,
                                                               args.wei_strides,
+                                                              args.output,
                                                               args.out_strides,
                                                               args.strides,
                                                               args.dilation,
@@ -163,7 +178,6 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         {
             valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
             std::cout << "****" << conv_ptrs[i]->GetTypeString() << std::endl;
-            break;
         }
     }
     assert(!valid_kernels.empty());
@@ -193,10 +207,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
                                                           nullptr,
                                                           nullptr,
                                                           args.input,
-                                                          args.weight,
-                                                          args.output,
                                                           args.in_strides,
+                                                          args.weight,
                                                           args.wei_strides,
+                                                          args.output,
                                                           args.out_strides,
                                                           args.strides,
                                                           args.dilation,
@@ -222,10 +236,10 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
                                                               nullptr,
                                                               nullptr,
                                                               args.input,
-                                                              args.weight,
-                                                              args.output,
                                                               args.in_strides,
+                                                              args.weight,
                                                               args.wei_strides,
+                                                              args.output,
                                                               args.out_strides,
                                                               args.strides,
                                                               args.dilation,
@@ -241,6 +255,27 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
+
+using InDataType  = ck::half_t;
+using WeiDataType = ck::half_t;
+using OutDataType = ck::half_t;
+
+
+struct SimpleDeviceMem
+{
+    SimpleDeviceMem() = delete;
+
+    SimpleDeviceMem(std::size_t mem_size) : p_mem_{}
+    {
+        (void)hipMalloc(static_cast<void**>(&p_mem_), mem_size);
+    }
+
+    void* GetDeviceBuffer() { return p_mem_; }
+
+    ~SimpleDeviceMem() { (void)hipFree(p_mem_); }
+
+    void* p_mem_;
+};
 
 namespace {
 
@@ -264,6 +299,24 @@ void RunCKSolution(const Handle& handle,
     auto& conv_ptr      = conv_ptrs.at(i);
     auto& data_ctx      = primitive_parameters.CastTo<conv::WrWInvokeParams>();
     const auto& tensors = data_ctx.tensors;
+
+    auto G = args.G;
+    auto N = args.N;
+    auto C = args.C;
+    auto K = args.K;
+    auto Z = args.Z;
+    auto Y = args.Y;
+    auto X = args.X;
+    auto Di = args.Di;
+    auto Hi = args.Hi;
+    auto Wi = args.Wi;
+    auto Do = args.Do;
+    auto Ho = args.Ho;
+    auto Wo = args.Wo;
+
+    SimpleDeviceMem in(sizeof(InDataType) * G * N * Di * Hi * Wi * C);
+    SimpleDeviceMem wei(sizeof(WeiDataType) * G * K * Z * Y * X * C);
+    SimpleDeviceMem out(sizeof(OutDataType) * G * N * Do * Ho * Wo * K);
 
     std::cout << "************************G: " << args.G << std::endl;
     std::cout << "************************N: " << args.N << std::endl;
@@ -303,16 +356,19 @@ void RunCKSolution(const Handle& handle,
     std::cout << " *** split_k: " << args.split_k << std::endl;
 
     auto argument_ptr = conv_ptr->MakeArgumentPointer(
+        //in.GetDeviceBuffer(),
+        //wei.GetDeviceBuffer(),
+        //out.GetDeviceBuffer(),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.x)),
         static_cast<void*>(tensors.dw),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.dy)),
         args.input,
-        args.weight,
-        args.output,
         args.in_strides,
+        args.weight,
         args.wei_strides,
+        args.output,
         args.out_strides,
         args.strides,
         args.dilation,
@@ -323,16 +379,8 @@ void RunCKSolution(const Handle& handle,
         {},
         args.split_k);
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
     std::cout << "****after run*****" << std::endl;
-    if(enable_profiling)
-    {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
-    }
 }
 
 } // namespace
