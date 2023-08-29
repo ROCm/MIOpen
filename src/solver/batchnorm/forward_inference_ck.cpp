@@ -33,6 +33,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
@@ -69,15 +70,18 @@ struct CKArgsBNormFwd
         std::copy(problem.GetXDesc().GetStrides().begin(),
                   problem.GetXDesc().GetStrides().end(),
                   xyStrides.begin());
+        // prep for CK
+        std::sort(xyStrides.begin(), xyStrides.end(),  std::greater<>());
+        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
         aligned_scaleBiasMeanVarStrides[0] = 0;
-        aligned_scaleBiasMeanVarStrides[1] = 1;
+        aligned_scaleBiasMeanVarStrides[1] = 0;
         aligned_scaleBiasMeanVarStrides[2] = 0;
-        aligned_scaleBiasMeanVarStrides[3] = 0;
+        aligned_scaleBiasMeanVarStrides[3] = 1;
     }
 
-    std::array<ck::index_t, Rank> xyLengths; // inOutLengths
-    std::array<ck::index_t, Rank> xyStrides; // inOutStrides
+    std::array<ck::index_t, Rank> xyLengths; 
+    std::array<ck::index_t, Rank> xyStrides; 
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
@@ -358,9 +362,7 @@ bool CKBnFwdInference::IsApplicable(const FusionContext& ctx,
         fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
     if(!bn_problem.IsLayoutNHWC())
         return false;
-
-    const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
