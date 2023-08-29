@@ -64,7 +64,7 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+        return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllDirectSolutions(ctx, problem, invoke_ctx)
                    : FindAllBwdWrW2DSolutions(ctx, problem, invoke_ctx);
     }
@@ -92,7 +92,7 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+        return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllImplicitGemmSolutions(ctx, problem, invoke_ctx)
                    : FindImplicitGemmWrWAllSolutions(ctx, problem, invoke_ctx);
     }
@@ -176,7 +176,7 @@ protected:
         auto ctx_copy = ctx;
         if(use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
-        return problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+        return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllWinogradSolutions(ctx_copy, problem, invoke_ctx)
                    : FindWinogradWrWAllSolutions(ctx_copy, problem, invoke_ctx);
     }
@@ -300,7 +300,7 @@ std::vector<Solution> ConvFindCore(const AnyInvokeParams& invoke_ctx,
     auto solutions = std::map<AlgorithmName, std::vector<solver::ConvSolution>>{};
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
-            return std::make_pair(f->GetAlgorithmName(problem.conv_problem),
+            return std::make_pair(f->GetAlgorithmName(problem),
                                   f->Find(ctx, problem, invoke_ctx, use_winograd_only));
         });
 

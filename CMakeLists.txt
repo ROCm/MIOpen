@@ -173,7 +173,6 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
@@ -185,9 +184,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
-
-    # MIOpenTensile does not support opencl backend yet.
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -253,6 +249,11 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
+# WORKAROUND_SWDEV_413293
+if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+    string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
+endif()
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
@@ -267,9 +268,6 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         set(MIOPEN_MODE_NOGPU 1)
     endif()
     set(MIOPEN_BACKEND_HIP 1)
-    set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
-    # miopentensile default off
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     find_program(HIP_OC_COMPILER clang
         PATH_SUFFIXES bin
@@ -370,31 +368,6 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
-# miopentensile
-if(MIOPEN_USE_MIOPENTENSILE)
-    find_package(miopentensile)
-    message(STATUS "Build with miopentensile")
-else()
-    message(STATUS "Build without miopentensile")
-endif()
-
-# miopengemm
-if(MIOPEN_USE_MIOPENGEMM)
-    find_package(miopengemm PATHS /opt/rocm)
-    if(NOT miopengemm_FOUND)
-        set(MIOPEN_USE_MIOPENGEMM 0)
-    endif()
-endif()
-
-if(MIOPEN_USE_MIOPENGEMM)
-    message(STATUS "Build with miopengemm")
-else()
-    if(MIOPEN_BACKEND_OPENCL)
-        message(FATAL_ERROR "MIOpen OpenCL backend requires MIOpenGEMM")
-    endif()
-    message(STATUS "Build without miopengemm")
-endif()
-
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
@@ -413,7 +386,7 @@ set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
-find_path(HALF_INCLUDE_DIR half.hpp)
+find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
@@ -440,10 +413,6 @@ endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 set(MIOPEN_PACKAGE_REQS "hip-rocclr")
-
-if(MIOPEN_USE_MIOPENGEMM)
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
-endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
@@ -707,6 +676,13 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-const-or-ref-data-members
         -cppcoreguidelines-avoid-do-while
         -misc-use-anonymous-namespace
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.7
+        ###################################################################
+        -llvmlibc-inline-function-decl
+        -cppcoreguidelines-avoid-capture-default-when-capturing-this
+        -cppcoreguidelines-rvalue-reference-param-not-moved
+        -readability-avoid-unconditional-preprocessor-if
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -795,7 +771,6 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
         CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
 
