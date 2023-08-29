@@ -78,7 +78,14 @@ class SQLite::impl
     {
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-strict"
+#endif
         sqlite3_auto_extension(reinterpret_cast<void (*)(void)>(miopen_sqlite3_memvfs_init));
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
         // Open an in-memory database to use as a handle for loading the memvfs extension
         if(sqlite3_open(":memory:", &ptr_tmp) != SQLITE_OK)
         {
@@ -207,6 +214,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
     SQLite::result_type res;
     MIOPEN_LOG_T(std::this_thread::get_id() << ":" << query);
     {
+        // NOLINTBEGIN(clang-analyzer-core.CallAndMessage)
         auto rc = Retry([&]() {
             return sqlite3_exec(pImpl->ptrDb.get(),
                                 query.c_str(),
@@ -214,6 +222,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
                                 static_cast<void*>(&res),
                                 nullptr);
         });
+        // NOLINTEND(clang-analyzer-core.CallAndMessage)
         if(rc != SQLITE_OK)
         {
             MIOPEN_LOG_I2(query);
@@ -223,7 +232,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
     return res;
 }
 
-int SQLite::Retry(std::function<int()> f, std::string filename)
+int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
 {
 #if !MIOPEN_ENABLE_SQLITE_BACKOFF
     int rc = f();
@@ -384,7 +393,10 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
             MIOPEN_LOG_I(filename + " database invalid");
         return;
     }
-    ProblemDescriptionCompatTemporary prob_desc{};
+
+    const TensorDescriptor td = {miopenFloat, {1, 1, 1, 1}};
+    const conv::ProblemDescription prob_desc{td, td, td, {}, conv::Direction::Forward};
+
     if(!is_system)
     {
         SQLite::result_type res;

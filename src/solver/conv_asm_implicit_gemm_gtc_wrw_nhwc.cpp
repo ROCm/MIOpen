@@ -309,22 +309,35 @@ GetWrwXdlopsNHWCConfigList()
     return kernel_param_list;
 }
 
-static std::tuple<std::string, // kernel_name
-                  size_t,      // block_size
-                  size_t,      // grid_size
-                  size_t>      // occupancy
+// clang-format off
+static inline PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+GetWrwXdlopsNHWCConfigLargestTileFp32()
+{
+    return {"wrw", "nhwc", miopenFloat,  0, 0, 256, 128,  16, 32, 32,  2, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 1, 1,16}, {  1, 16,  1, 16}, { 1, 1, 1, 8}, {  1, 16,  1, 16}};
+}
+static inline PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+GetWrwXdlopsNHWCConfigLargestTileFp16()
+{
+    return {"wrw", "nhwc", miopenHalf,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}};
+}
+static inline PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
+GetWrwXdlopsNHWCConfigLargestTileBf16()
+{
+    return {"wrw", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}};
+}
+// clang-format on
+
+static std::tuple<size_t, // block_size
+                  size_t, // grid_size
+                  size_t> // occupancy
 GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
-    const ConvolutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config)
 {
-    // const auto n     = problem.GetBatchSize();
-    const auto k = problem.GetInChannels();
-    const auto c = problem.GetOutChannels();
-    // const auto ho    = problem.GetInHeight();
-    // const auto wo    = problem.GetInWidth();
-    const auto y     = problem.GetWeightsHeight();
-    const auto x     = problem.GetWeightsWidth();
+    const int k      = problem.GetInChannels_();
+    const int c      = problem.GetOutChannels_();
+    const int y      = problem.GetWeightsHeight_();
+    const int x      = problem.GetWeightsWidth_();
     const auto group = problem.GetGroupCount();
 
     // c need to be carefully padded
@@ -338,9 +351,8 @@ GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
     size_t grid_size  = static_cast<size_t>(group) *
                        integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
-    std::string kernel_name = config.ToKernelName(ctx);
-    size_t occupancy        = config.ComputeKernelOccupancy();
-    return std::make_tuple(kernel_name, block_size, grid_size, occupancy);
+    size_t occupancy = config.ComputeKernelOccupancy();
+    return std::make_tuple(block_size, grid_size, occupancy);
 }
 
 size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy() const
@@ -546,14 +558,14 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     }
 #endif
 
-    const auto k          = problem.GetInChannels();
-    const auto c          = problem.GetOutChannels();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const int k           = problem.GetInChannels_();
+    const int c           = problem.GetOutChannels_();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
     const auto group      = problem.GetGroupCount();
@@ -624,8 +636,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
 
         size_t current_grid_size;
         size_t occupancy;
-        std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
-            GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, problem, config_list[selected_index]);
+        std::tie(std::ignore, current_grid_size, occupancy) =
+            GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, config_list[selected_index]);
         bool need_k_split = current_grid_size <= non_split_gridsize;
         size_t gks = ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, num_cu);
         need_k_split |= gks != 0;
@@ -663,8 +675,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
             {
                 size_t current_grid_size;
                 size_t occupancy;
-                std::tie(std::ignore, std::ignore, current_grid_size, occupancy) =
-                    GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, problem, config);
+                std::tie(std::ignore, current_grid_size, occupancy) =
+                    GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, config);
                 bool need_k_split = current_grid_size <= non_split_gridsize;
                 size_t gks =
                     ComputeGemmKGlobalSplitsWith2DMerge(current_grid_size, occupancy, num_cu);
@@ -750,14 +762,14 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
            vector_store != 1)
             return false;
 
-    const auto k          = problem.GetInChannels();
-    const auto c          = problem.GetOutChannels();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const int k           = problem.GetInChannels_();
+    const int c           = problem.GetOutChannels_();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
     const auto stride_h   = problem.GetKernelStrideH();
     const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
     const auto precision =
@@ -792,6 +804,13 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
             return false;
     }
 
+    size_t current_block_size, current_grid_size, current_splits_4G;
+    std::tie(current_block_size, current_grid_size, current_splits_4G) =
+        GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, *this);
+
+    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+        return false;
+
     return true;
 }
 
@@ -825,7 +844,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
 #if WORKAROUND_ISSUE_1979
@@ -858,41 +877,54 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(problem.GetOutHeight(),
-                                   problem.GetOutWidth(),
-                                   problem.GetInHeight(),
-                                   problem.GetInWidth(),
-                                   problem.GetBatchSize(),
-                                   problem.GetInChannels(),
-                                   problem.GetOutChannels(),
+    if(0 == igemm_split_batch_size(problem.GetOutHeight_(),
+                                   problem.GetOutWidth_(),
+                                   problem.GetInHeight_(),
+                                   problem.GetInWidth_(),
+                                   problem.GetBatchSize_(),
+                                   problem.GetInChannels_(),
+                                   problem.GetOutChannels_(),
                                    miopen::GetTypeSize(problem.GetInDataType())))
         return false;
+
+    {
+        auto largest_config = problem.IsFp32()
+                                  ? GetWrwXdlopsNHWCConfigLargestTileFp32()
+                                  : (problem.IsFp16() ? GetWrwXdlopsNHWCConfigLargestTileFp16()
+                                                      : GetWrwXdlopsNHWCConfigLargestTileBf16());
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, largest_config);
+
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+    }
 
     return true;
 }
 
 static std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_problem,
+ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& problem,
                                      const int gemm_k_global_splits,
                                      const int gemm_k_per_wg,
                                      const int splits_4G)
 {
-    int hi         = conv_problem.GetOutHeight();
-    int wi         = conv_problem.GetOutWidth();
-    int n          = conv_problem.GetInBatchSize();
-    int k          = conv_problem.GetInChannels();
-    int c          = conv_problem.GetOutChannels();
-    int ho         = conv_problem.GetInHeight();
-    int wo         = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
-    int pad_h      = conv_problem.GetPadH();
-    int pad_w      = conv_problem.GetPadW();
-    int y          = conv_problem.GetWeightsHeight();
-    int x          = conv_problem.GetWeightsWidth();
-    int group      = conv_problem.GetGroupCount();
+    int hi         = problem.GetOutHeight_();
+    int wi         = problem.GetOutWidth_();
+    int n          = problem.GetInBatchSize_();
+    int k          = problem.GetInChannels_();
+    int c          = problem.GetOutChannels_();
+    int ho         = problem.GetInHeight_();
+    int wo         = problem.GetInWidth_();
+    int stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    int stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    int dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    int dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
+    int pad_h      = problem.GetPadH();
+    int pad_w      = problem.GetPadW();
+    int y          = problem.GetWeightsHeight_();
+    int x          = problem.GetWeightsWidth_();
+    int group      = problem.GetGroupCount();
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -923,15 +955,15 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
 size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    const auto hi      = problem.GetOutHeight();
-    const auto wi      = problem.GetOutWidth();
-    const auto n       = problem.GetBatchSize();
-    const auto k       = problem.GetInChannels();
-    const auto c       = problem.GetOutChannels();
-    const auto ho      = problem.GetInHeight();
-    const auto wo      = problem.GetInWidth();
-    const auto y       = problem.GetWeightsHeight();
-    const auto x       = problem.GetWeightsWidth();
+    const int hi       = problem.GetOutHeight_();
+    const int wi       = problem.GetOutWidth_();
+    const int n        = problem.GetBatchSize_();
+    const int k        = problem.GetInChannels_();
+    const int c        = problem.GetOutChannels_();
+    const int ho       = problem.GetInHeight_();
+    const int wo       = problem.GetInWidth_();
+    const int y        = problem.GetWeightsHeight_();
+    const int x        = problem.GetWeightsWidth_();
     const auto group   = problem.GetGroupCount();
     const auto is_nchw = problem.IsLayoutDefault();
 
@@ -982,22 +1014,23 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     ConvSolution result;
     KernelInfo kernel;
 
-    std::string kernel_name;
     size_t block_size;
     size_t grid_size;
 
-    std::tie(kernel_name, block_size, grid_size, std::ignore) =
-        GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, problem, config);
+    std::tie(block_size, grid_size, std::ignore) =
+        GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, config);
 
-    const auto hi    = problem.GetOutHeight();
-    const auto wi    = problem.GetOutWidth();
-    const auto n     = problem.GetBatchSize();
-    const auto k     = problem.GetInChannels();
-    const auto c     = problem.GetOutChannels();
-    const auto ho    = problem.GetInHeight();
-    const auto wo    = problem.GetInWidth();
-    const auto y     = problem.GetWeightsHeight();
-    const auto x     = problem.GetWeightsWidth();
+    std::string kernel_name = config.ToKernelName(ctx);
+
+    const int hi     = problem.GetOutHeight_();
+    const int wi     = problem.GetOutWidth_();
+    const int n      = problem.GetBatchSize_();
+    const int k      = problem.GetInChannels_();
+    const int c      = problem.GetOutChannels_();
+    const int ho     = problem.GetInHeight_();
+    const int wo     = problem.GetInWidth_();
+    const int y      = problem.GetWeightsHeight_();
+    const int x      = problem.GetWeightsWidth_();
     const auto group = problem.GetGroupCount();
 
     auto splits_4G = igemm_split_batch_size(
@@ -1016,9 +1049,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         gemm_k_global_splits = 1;
 
     // compute workload for 1 workgroup and update gemmk splits (remove the ones compute 0 data)
-    size_t gemmk = integer_divide_ceil(static_cast<size_t>(problem.GetBatchSize() / splits_4G),
+    size_t gemmk = integer_divide_ceil(static_cast<size_t>(problem.GetBatchSize_() / splits_4G),
                                        min_n_per_block) *
-                   problem.GetInHeight() * problem.GetInWidth();
+                   problem.GetInHeight_() * problem.GetInWidth_();
     size_t gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
     gemmk_per_wg         = (gemmk_per_wg + nb_per_block - 1) / nb_per_block * nb_per_block;
@@ -1038,10 +1071,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto& conv_problem          = problem.conv_problem;
-    const auto isFp16                 = conv_problem.IsFp16();
+    const auto isFp16                 = problem.IsFp16();
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
-    const bool need_cast              = (conv_problem.IsBfp16() && gemm_k_global_splits >= 1) ||
+    const bool need_cast              = (problem.IsBfp16() && gemm_k_global_splits >= 1) ||
                            (isFp16 && gemm_k_global_splits >= 1 &&
                             (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1));
 
@@ -1085,13 +1117,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", fp16_alt:" << problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
+            msg << ", fp16_alt:" << problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
     }
 
-    const auto lowp_quant = conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = problem.GetConv().lowp_quant;
 
     auto opArgs = ComputeDynamicIGemmWrwKernelArgsNHWC(
-        conv_problem, gemm_k_global_splits, gemmk_per_wg, splits_4G);
+        problem, gemm_k_global_splits, gemmk_per_wg, splits_4G);
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -1178,9 +1210,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
-    const TensorDescriptor cast_desc(miopenFloat,
-                                     problem.conv_problem.GetWeights().GetLengths(),
-                                     problem.conv_problem.GetWeights().GetStrides());
+    const TensorDescriptor cast_desc(
+        miopenFloat, problem.GetWeights().GetLengths(), problem.GetWeights().GetStrides());
     auto null_buf = shared<Data_t>{};
 
     if(need_cast)

@@ -790,21 +790,21 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
 
     // so far, "group" is only supported by bwd fp16 kernels
     const auto group      = problem.IsFp16() ? problem.GetGroupCount() : 1;
-    const auto hi         = problem.GetOutHeight();
-    const auto wi         = problem.GetOutWidth();
-    const auto n          = problem.GetBatchSize();
-    const auto k          = problem.GetInChannels() / group;
-    const auto c          = problem.GetOutChannels() / group;
-    const auto ho         = problem.GetInHeight();
-    const auto wo         = problem.GetInWidth();
-    const auto stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const int hi          = problem.GetOutHeight_();
+    const int wi          = problem.GetOutWidth_();
+    const int n           = problem.GetBatchSize_();
+    const int k           = problem.GetInChannels_() / group;
+    const int c           = problem.GetOutChannels_() / group;
+    const int ho          = problem.GetInHeight_();
+    const int wo          = problem.GetInWidth_();
+    const auto stride_h   = problem.GetOutHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetOutWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight_() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth_() > 1 ? problem.GetDilationW() : 1;
     const auto pad_h      = problem.GetPadH();
     const auto pad_w      = problem.GetPadW();
-    const auto y          = problem.GetWeightsHeight();
-    const auto x          = problem.GetWeightsWidth();
+    const int y           = problem.GetWeightsHeight_();
+    const int x           = problem.GetWeightsWidth_();
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);

@@ -1043,6 +1043,9 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
+/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
+/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
+#define WORKAROUND_SWDEV_413293 (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
 
 namespace hiprtc {
 
@@ -1307,6 +1310,7 @@ void BuildHip(const std::string& name,
         opts.push_back("-Wno-newline-eof");
         opts.push_back("-Wno-reserved-identifier");
         opts.push_back("-Wno-old-style-cast");
+        opts.push_back("-Wno-extra-semi-stmt");
 #endif
 #if WORKAROUND_ISSUE_1674
         opts.push_back("-Wno-gnu-line-marker");
@@ -1314,6 +1318,9 @@ void BuildHip(const std::string& name,
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
         opts.push_back("-O3");
+#if WORKAROUND_SWDEV_413293
+        opts.push_back("-fno-offload-uniform-block");
+#endif
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
                return StartsWith(s, "--std=") || StartsWith(s, "-std=");
            }))
