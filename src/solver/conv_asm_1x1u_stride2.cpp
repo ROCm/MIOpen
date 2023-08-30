@@ -116,7 +116,7 @@ struct config_helper
 {
     config_helper(const ProblemDescription& problem, const PerformanceConfigConvAsm1x1UV2& config)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
         {
             stride_w   = problem.GetKernelStrideW();
             stride_h   = problem.GetKernelStrideH();
@@ -386,7 +386,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
     const auto c_per_wave = (problem.GetInChannels_() + waves_c_in_group - 1) / waves_c_in_group;
     const auto c_per_last_wave = problem.GetInChannels_() - (c_per_wave * (waves_c_in_group - 1));
 
-    if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
+    if(problem.IsDirectionBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
         return false;
 
     {
@@ -418,8 +418,8 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
 
 void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ProblemDescription& problem)
 {
-    int c_check   = problem.direction.IsForward() ? problem.GetInChannels_() : 0;
-    int k_check   = problem.direction.IsForward() ? 0 : problem.GetInChannels_();
+    int c_check   = problem.IsDirectionForward() ? problem.GetInChannels_() : 0;
+    int k_check   = problem.IsDirectionForward() ? 0 : problem.GetInChannels_();
     chunk_size    = 16;
     dwords_per_ld = 1;
     c_mult        = (c_check % 2 == 0) ? 2 : ((c_check % 3 == 0) ? 3 : 1);
@@ -487,7 +487,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -647,7 +647,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
-    GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
+    GenerateClangDefsym(options, "weights_layout", problem.IsDirectionForward() ? 0 : 1);
 
     GenerateClangDefsym(options, "vec_c_in", 1);
     GenerateClangDefsym(options, "vec_k_out", 1);
@@ -673,7 +673,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(problem.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+    buff_info fbuf(problem.IsDirectionForward() ? MemLayout::NCHW : MemLayout::CNHW,
                    problem.GetOutChannels_(),
                    problem.GetInChannels_(),
                    1,

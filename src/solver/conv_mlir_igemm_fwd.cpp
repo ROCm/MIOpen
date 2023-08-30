@@ -165,7 +165,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

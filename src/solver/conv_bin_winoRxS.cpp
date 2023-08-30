@@ -140,7 +140,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     {
         return false;
     }
-    const bool is_dilated_stride_2 = (problem.direction.IsBackwardData() && S_stride != 1);
+    const bool is_dilated_stride_2 = (problem.IsDirectionBackwardData() && S_stride != 1);
     if(fp16)
     {
         if(is_dilated_stride_2)
@@ -177,7 +177,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
             return false;
     }
     // Padding for bwd data shall not be negative.
-    if(problem.direction.IsBackwardData() || problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardData() || problem.IsDirectionBackwardWrW())
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -224,7 +224,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
         return false;
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
@@ -255,7 +255,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     }
     else
     {
-        if(problem.direction.IsBackwardWrW())
+        if(problem.IsDirectionBackwardWrW())
         {
             if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
@@ -278,7 +278,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     // clang-format on
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
@@ -348,7 +348,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
         if(problem.GetKernelStrideW() == 2)
         {
-            if(problem.direction.IsForward())
+            if(problem.IsDirectionForward())
                 kernel.kernel_file += "2_dec";
             else
                 kernel.kernel_file += "2_dil";
@@ -358,7 +358,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
             kernel.kernel_file += "1";
         }
     }
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
         kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
@@ -369,7 +369,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
         if(problem.GetKernelStrideW() == 2)
         {
-            if(problem.direction.IsForward())
+            if(problem.IsDirectionForward())
                 kernel.kernel_file += "_stride_2_dec";
             else
                 kernel.kernel_file += "_stride_2_dil";
@@ -379,7 +379,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
@@ -442,7 +442,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     }
     else
     {
-        const auto is_forward     = problem.direction.IsForward();
+        const auto is_forward     = problem.IsDirectionForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;

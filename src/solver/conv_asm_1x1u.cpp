@@ -52,13 +52,13 @@ namespace solver {
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
-           problem.direction.IsForward();
+           problem.IsDirectionForward();
 }
 
 static inline bool UseUpsample(const ProblemDescription& problem)
 {
     return (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1) &&
-           problem.direction.IsBackwardData();
+           problem.IsDirectionBackwardData();
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -302,7 +302,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     {
         if((k_mult % elements_in_dword) != 0)
             return false;
-        if(problem.direction.IsBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
+        if(problem.IsDirectionBackwardData() && !(problem.GetOutChannels_() % k_mult == 0))
             return false;
     }
     if(sequence_length > 2)
@@ -403,12 +403,12 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
                     // values nominal param can take).
     std::vector<float> features(n * n, 0.0f);
     features[0]                   = problem.IsFp32() ? 2.0 : 1.0;
-    int offset                    = (problem.direction.IsForward() ? 0 : 1) + 1;
+    int offset                    = (problem.IsDirectionForward() ? 0 : 1) + 1;
     features[(offset)*n + offset] = 1.0;
     features[3 * n + 3] =
-        float(problem.direction.IsForward() ? problem.GetInChannels_() : problem.GetOutChannels_());
+        float(problem.IsDirectionForward() ? problem.GetInChannels_() : problem.GetOutChannels_());
     features[4 * n + 4] =
-        float(problem.direction.IsForward() ? problem.GetOutChannels_() : problem.GetInChannels_());
+        float(problem.IsDirectionForward() ? problem.GetOutChannels_() : problem.GetInChannels_());
     features[5 * n + 5] = float(problem.GetInHeight_());
     features[6 * n + 6] = float(problem.GetInWidth_());
     features[7 * n + 7] = float(problem.GetBatchSize_());
@@ -528,7 +528,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -574,7 +574,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetGroupCount() == 1
         && img_hw >= elements_in_dword
         && (elements_in_dword == 1 || problem.GetOutChannels_() >= 4));
-    if(problem.direction.IsBackwardData() && elements_in_dword != 1)
+    if(problem.IsDirectionBackwardData() && elements_in_dword != 1)
         ok = ok && (problem.GetOutChannels_() % 4 == 0);
     if(!ok)
     {
@@ -671,7 +671,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.GetOutStrideH_()) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
             std::string(" -DMLO_IN0_BATCH_STRIDE=") +
-            std::to_string(problem.direction.IsForward() ? problem.GetInBatchStride_()
+            std::to_string(problem.IsDirectionForward() ? problem.GetInBatchStride_()
                                                          : problem.GetOutBatchStride_()) +
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.GetInChannelStride_()) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.GetInStrideH_()) +
@@ -714,7 +714,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "wei_w", problem.GetWeightsWidth_());          // S
     GenerateClangDefsym(options, "pad_h", problem.GetPadH());
     GenerateClangDefsym(options, "pad_w", problem.GetPadW());
-    GenerateClangDefsym(options, "weights_layout", problem.direction.IsForward() ? 0 : 1);
+    GenerateClangDefsym(options, "weights_layout", problem.IsDirectionForward() ? 0 : 1);
 
     GenerateClangDefsym(options, "vec_c_in", 1);
     GenerateClangDefsym(options, "vec_k_out", 1);
@@ -789,7 +789,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(problem.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+    buff_info fbuf(problem.IsDirectionForward() ? MemLayout::NCHW : MemLayout::CNHW,
                    problem.GetOutChannels_(),
                    problem.GetInChannels_(),
                    1,

@@ -186,7 +186,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
@@ -265,7 +265,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
                      group_cnt,
                      GetTypeSize(problem.GetOutDataType())),
             // cppcheck-suppress unreadVariable
-            wei_buff(GetGroupConvLayout(problem.direction.IsForward()
+            wei_buff(GetGroupConvLayout(problem.IsDirectionForward()
                                             ? (MemLayout_t::NCHW)
                                             : GetSwappedNCLayout(MemLayout_t::NCHW),
                                         false),
@@ -381,8 +381,8 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                                                  bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-    const int pad_W = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+    const int pad_H = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+    const int pad_W = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
     const int n_groups = ctx.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(problem)
     DEFINE_GETXFORMHWSIZE()
@@ -402,7 +402,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                  group_cnt,
                  GetTypeSize(problem.GetOutDataType())),
         // cppcheck-suppress unreadVariable
-        weights_buff(GetGroupConvLayout(problem.direction.IsForward()
+        weights_buff(GetGroupConvLayout(problem.IsDirectionForward()
                                             ? (MemLayout_t::NCHW)
                                             : GetSwappedNCLayout(MemLayout_t::NCHW),
                                         false),
@@ -660,7 +660,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 
     std::ostringstream options_filter;
     GENERATE_MAIN_OPTIONS(options_filter)
-    GenerateClangDefsym(options_filter, "xform_mirror", problem.direction.IsBackwardData());
+    GenerateClangDefsym(options_filter, "xform_mirror", problem.IsDirectionBackwardData());
     GenerateClangDefsym(options_filter, "in_type", (problem.IsFp32() ? 1 : 2));
     GenerateClangDefsym(options_filter, "out_type", (transform_data_type == miopenFloat ? 1 : 2));
 

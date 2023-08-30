@@ -554,7 +554,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())

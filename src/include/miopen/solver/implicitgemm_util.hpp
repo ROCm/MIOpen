@@ -62,7 +62,7 @@ namespace solver {
 // they are not supposed to be called by backward-data
 static inline std::size_t KernelFilterStrideH(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetDilationH();
     else
         return problem.GetKernelStrideH();
@@ -70,7 +70,7 @@ static inline std::size_t KernelFilterStrideH(const ProblemDescription& problem)
 
 static inline std::size_t KernelFilterStrideW(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetDilationW();
     else
         return problem.GetKernelStrideW();
@@ -78,7 +78,7 @@ static inline std::size_t KernelFilterStrideW(const ProblemDescription& problem)
 
 static inline std::size_t KernelFilterDilationH(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetKernelStrideH();
     else
         return problem.GetDilationH();
@@ -86,7 +86,7 @@ static inline std::size_t KernelFilterDilationH(const ProblemDescription& proble
 
 static inline std::size_t KernelFilterDilationW(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetKernelStrideW();
     else
         return problem.GetDilationW();
@@ -94,7 +94,7 @@ static inline std::size_t KernelFilterDilationW(const ProblemDescription& proble
 
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetInChannels_();
     else
         return problem.GetOutChannels_();
@@ -102,7 +102,7 @@ static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem
 
 static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetBatchSize_();
     else
         return problem.GetInChannels_() / problem.GetGroupCount();
@@ -110,7 +110,7 @@ static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 
 static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetOutChannels_() / problem.GetGroupCount();
     else
         return problem.GetBatchSize_();
@@ -118,9 +118,9 @@ static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 
 static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem)
 {
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
         return problem.GetOutHeight_();
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
         return problem.GetWeightsHeight_();
     else
         return problem.GetInHeight_();
@@ -128,9 +128,9 @@ static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem
 
 static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 {
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
         return problem.GetOutWidth_();
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
         return problem.GetWeightsWidth_();
     else
         return problem.GetInWidth_();
@@ -138,7 +138,7 @@ static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 
 static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetInWidth_();
     else
         return problem.GetWeightsWidth_();
@@ -146,7 +146,7 @@ static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 
 static inline std::size_t KernelFilterHeightY(const ProblemDescription& problem)
 {
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
         return problem.GetInHeight_();
     else
         return problem.GetWeightsHeight_();
@@ -381,7 +381,7 @@ static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
 
     std::size_t GemmM, GemmN, GemmK;
     // forward
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
         //      one could relax the following restriction for bfp16/fp16,
@@ -394,7 +394,7 @@ static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
         GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
     }
     // backwardData
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
     {
         if(k % GetEPackLength(ctx, problem, true) != 0)
             return false;

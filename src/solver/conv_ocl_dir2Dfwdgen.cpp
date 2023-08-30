@@ -83,7 +83,7 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
             return false;
     }
 
-    return problem.direction.IsForward()
+    return problem.IsDirectionForward()
         && problem.GetKernelStrideW() == problem.GetKernelStrideH()
         && problem.GetPadW() == problem.GetPadH()
         && problem.GetDilationW() == 1

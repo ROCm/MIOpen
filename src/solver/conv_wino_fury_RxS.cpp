@@ -94,10 +94,10 @@ public:
           Hs{Ceil<uint32_t>(out_h, Toh)},
           We{Tow * (Ceil<uint32_t>(out_w, Tow) + Ceil(Tw, Tow) - 1)},
 
-          W{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutWidth_()
-                                                                    : problem.GetInWidth_())},
-          H{static_cast<uint32_t>(problem.direction.IsBackwardWrW() ? problem.GetOutHeight_()
-                                                                    : problem.GetInHeight_())},
+          W{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutWidth_()
+                                                                   : problem.GetInWidth_())},
+          H{static_cast<uint32_t>(problem.IsDirectionBackwardWrW() ? problem.GetOutHeight_()
+                                                                   : problem.GetInHeight_())},
 
           d_H_clip{static_cast<int32_t>(static_cast<int64_t>(Hs * Toh) - pad_h)},
           d_W_clip{static_cast<int32_t>(We - pad_w)},
@@ -123,7 +123,7 @@ public:
           n_groups{static_cast<uint32_t>(groups)}
     {
         is_applicable = problem.IsFp16() && problem.Is2d() && problem.GetGroupCount() == 1 &&
-                        problem.GetInLayout() == "NCHW" && !problem.direction.IsBackwardWrW();
+                        problem.GetInLayout() == "NCHW" && !problem.IsDirectionBackwardWrW();
     }
 
     float GetWTI() const { return -2.f; } // unknown
@@ -270,7 +270,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
         kernel_name << "_stride1";
         kernel_file << "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && !problem.direction.IsBackwardData())
+    else if(problem.GetKernelStrideW() == 2 && !problem.IsDirectionBackwardData())
     {
         kernel_name << "_stride2";
         kernel_file << "_stride2";
@@ -298,8 +298,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
     // constexpr uint32_t F_TENSOR_OFFSETS = 1 << 13;
     uint32_t flags = 0;
 
-    const bool is_forward = problem.direction.IsForward();
-    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const bool is_forward = problem.IsDirectionForward();
+    const bool is_backWrW = problem.IsDirectionBackwardWrW();
     const int group_cnt   = problem.GetGroupCount();
 
     MemLayout_t d_layout, o_layout, f_layout;

@@ -1027,7 +1027,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(y == 1 && x == 1)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())

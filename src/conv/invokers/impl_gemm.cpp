@@ -12,7 +12,7 @@ namespace conv {
 
 InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         return [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -24,7 +24,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& 
     }
     else
     {
-        if(problem.direction.IsBackwardWrW())
+        if(problem.IsDirectionBackwardWrW())
             MIOPEN_THROW("MakeImplGemmDataInvokerFactory shouldn't be used for WrW invokers.");
 
         const auto& conv       = problem.GetConv();

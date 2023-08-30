@@ -65,7 +65,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     {
         return false;
     }
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         return false;
     }

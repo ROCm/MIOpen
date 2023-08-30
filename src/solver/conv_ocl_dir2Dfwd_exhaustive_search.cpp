@@ -87,7 +87,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     {
 
         // version
-        if(problem.GetInDataType() == miopenFloat && problem.direction.IsForward() &&
+        if(problem.GetInDataType() == miopenFloat && problem.IsDirectionForward() &&
            problem.GetInChannels_() % 16 == 0 && problem.GetOutChannels_() % 16 == 0)
         {
             result.n_in_data_tiles = 128;
@@ -107,7 +107,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
 
             if(problem.GetPadW() > 0 || problem.GetKernelStrideW() > 1)
             {
-                if(problem.direction.IsForward())
+                if(problem.IsDirectionForward())
                 {
                     result.out_pix_tile0 = (problem.GetOutWidth_() & 1) != 0 ? 1 : 2;
                 }
@@ -360,7 +360,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(problem.GetInDataType() == miopenFloat && problem.direction.IsForward() &&
+        if(problem.GetInDataType() == miopenFloat && problem.IsDirectionForward() &&
            problem.GetInChannels_() % 16 == 0 && problem.GetOutChannels_() % 16 == 0)
         {
 
@@ -396,7 +396,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
             }
             else
             {
-                if(problem.direction.IsForward())
+                if(problem.IsDirectionForward())
                 {
                     out_pix_tl_cnt = (problem.GetOutWidth_() & 1) != 0 ? 1 : 2;
                 }

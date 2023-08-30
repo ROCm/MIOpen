@@ -440,7 +440,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(const ConvolutionContext&
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is3d())
         return false;

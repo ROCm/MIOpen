@@ -99,7 +99,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;

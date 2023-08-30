@@ -67,7 +67,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
     {
         return false;
     }
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         return false;
     }

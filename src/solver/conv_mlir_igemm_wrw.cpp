@@ -46,7 +46,7 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

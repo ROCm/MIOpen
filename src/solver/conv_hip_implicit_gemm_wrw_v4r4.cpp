@@ -590,7 +590,7 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
         return false;

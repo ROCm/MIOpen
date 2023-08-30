@@ -55,7 +55,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.IsLayoutDefault())
     {
@@ -498,8 +498,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     int n_input_channels_per_group  = problem.GetOutChannels_() / problem.GetGroupCount();
     int n_output_channels_per_group = problem.GetInChannels_() / problem.GetGroupCount();
 
-    if(!problem.direction.IsBackwardWrW())
-        MIOPEN_THROW("!problem.direction.IsBackwardWrW()");
+    if(!problem.IsDirectionBackwardWrW())
+        MIOPEN_THROW("!problem.IsDirectionBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +

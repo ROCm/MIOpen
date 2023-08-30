@@ -56,7 +56,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
-    return problem.direction.IsForward() && problem.GetGroupCount() == 1 &&
+    return problem.IsDirectionForward() && problem.GetGroupCount() == 1 &&
            problem.GetDilationH() == 1 && problem.GetDilationW() == 1 &&
            problem.GetWeightsHeight_() == 11 && problem.GetWeightsWidth_() == 11 &&
            problem.GetKernelStrideH() == 4 && problem.GetKernelStrideW() == 4;
@@ -66,7 +66,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const bool is_forward = problem.direction.IsForward();
+    const bool is_forward = problem.IsDirectionForward();
     // size_t localMemSize = 64 * 1024;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes

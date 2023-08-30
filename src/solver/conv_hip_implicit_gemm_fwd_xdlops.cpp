@@ -377,7 +377,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;

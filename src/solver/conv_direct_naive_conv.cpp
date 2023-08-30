@@ -107,11 +107,11 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
         kernel_name << "fwd_";
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
         kernel_name << "bwd_";
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");

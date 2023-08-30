@@ -89,7 +89,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;

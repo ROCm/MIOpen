@@ -51,7 +51,7 @@ struct ProblemInterpreter
 
     static auto GetOutputLayout(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetOutLayout();
         else
             return problem.GetInLayout();
@@ -59,7 +59,7 @@ struct ProblemInterpreter
 
     static int GetOutputChannelK(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetOutChannels_();
         else
             return problem.GetInChannels_();
@@ -67,7 +67,7 @@ struct ProblemInterpreter
 
     static auto GetInputLayout(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetInLayout();
         else
             return problem.GetOutLayout();
@@ -75,7 +75,7 @@ struct ProblemInterpreter
 
     static int GetInputChannelC(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetInChannels_();
         else
             return problem.GetOutChannels_();
@@ -83,7 +83,7 @@ struct ProblemInterpreter
 
     static int GetInputDepthDi(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetInDepth_();
         else
             return problem.GetOutDepth_();
@@ -91,7 +91,7 @@ struct ProblemInterpreter
 
     static int GetInputHeightHi(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetInHeight_();
         else
             return problem.GetOutHeight_();
@@ -99,7 +99,7 @@ struct ProblemInterpreter
 
     static int GetInputWidthWi(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetInWidth_();
         else
             return problem.GetOutWidth_();
@@ -107,7 +107,7 @@ struct ProblemInterpreter
 
     static int GetOutputDepthDo(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetOutDepth_();
         else
             return problem.GetInDepth_();
@@ -115,7 +115,7 @@ struct ProblemInterpreter
 
     static int GetOutputHeightHo(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetOutHeight_();
         else
             return problem.GetInHeight_();
@@ -123,7 +123,7 @@ struct ProblemInterpreter
 
     static int GetOutputWidthWo(const ProblemDescription& problem)
     {
-        if(problem.direction.IsForward())
+        if(problem.IsDirectionForward())
             return problem.GetOutWidth_();
         else
             return problem.GetInWidth_();
@@ -131,12 +131,12 @@ struct ProblemInterpreter
 
     static auto GetOutputDataType(const ProblemDescription& problem)
     {
-        return problem.direction.IsForward() ? problem.GetOutDataType() : problem.GetInDataType();
+        return problem.IsDirectionForward() ? problem.GetOutDataType() : problem.GetInDataType();
     }
 
     static auto GetInputDataType(const ProblemDescription& problem)
     {
-        return problem.direction.IsForward() ? problem.GetInDataType() : problem.GetOutDataType();
+        return problem.IsDirectionForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
     static int GetFilterDepthZ(const ProblemDescription& problem)

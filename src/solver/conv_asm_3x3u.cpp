@@ -179,7 +179,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!ctx.rmv.IsV2orV3())
         return false;
@@ -280,8 +280,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
         {"img_height", problem.GetInHeight_()},
         {"input_channels", problem.GetInChannels_()},
         {"output_channels", problem.GetOutChannels_()},
-        {"weights_layout", problem.direction.IsForward() ? 0 : 1},
-        {"reverse_weights", problem.direction.IsForward() ? 0 : 1},
+        {"weights_layout", problem.IsDirectionForward() ? 0 : 1},
+        {"reverse_weights", problem.IsDirectionForward() ? 0 : 1},
         {"ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},

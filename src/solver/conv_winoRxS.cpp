@@ -276,7 +276,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(problem.direction.IsBackwardData())
+    if(problem.IsDirectionBackwardData())
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -313,7 +313,7 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
         return;
     }
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         n_groups = GetBestNGroupParam(problem.GetInHeight_(),
                                       problem.GetInWidth_(),
@@ -658,7 +658,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
                n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(problem.GetKernelStrideW() == 2)
             return false;
@@ -699,7 +699,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(problem.GetGroupCount() == 1 && !problem.direction.IsBackwardWrW())
+        if(problem.GetGroupCount() == 1 && !problem.IsDirectionBackwardWrW())
             return false;
 #endif
     }
@@ -836,7 +836,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_postfix += "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && !problem.direction.IsBackwardData())
+    else if(problem.GetKernelStrideW() == 2 && !problem.IsDirectionBackwardData())
     {
         kernel_postfix += "_stride2";
     }
@@ -877,8 +877,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
     MemLayout_t d_layout, o_layout, f_layout;
 
-    const bool is_forward = problem.direction.IsForward();
-    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const bool is_forward = problem.IsDirectionForward();
+    const bool is_backWrW = problem.IsDirectionBackwardWrW();
     const int group_cnt   = problem.GetGroupCount();
 
     if(!is_backWrW)

@@ -77,12 +77,12 @@ std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int
 {
     std::string version;
     std::string direction;
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         version   = "_v4r4";
         direction = "_fwd";
     }
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
     {
         version   = "_v4r1";
         direction = "_bwd";
@@ -103,11 +103,11 @@ std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int
 
 static std::string GetOperation(const ProblemDescription& problem)
 {
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         return "conv2d";
     }
-    else if(problem.direction.IsBackwardData())
+    else if(problem.IsDirectionBackwardData())
     {
         return "conv2d_bwd_data";
     }

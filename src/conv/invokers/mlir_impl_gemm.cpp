@@ -290,7 +290,7 @@ void SetMlirConvArgsPtr(
 
 InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert((problem.direction.IsForward()));
+    assert((problem.IsDirectionForward()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
@@ -356,7 +356,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
 
 InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert(problem.direction.IsBackwardData());
+    assert(problem.IsDirectionBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
@@ -412,7 +412,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& probl
 InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
                                          size_t workspace_req)
 {
-    assert((problem.direction.IsBackwardWrW()));
+    assert((problem.IsDirectionBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;

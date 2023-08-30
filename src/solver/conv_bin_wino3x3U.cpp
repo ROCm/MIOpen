@@ -47,7 +47,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!(ctx.rmv.IsV2orV3() && ctx.use_asm_kernels))
         return false;
@@ -134,7 +134,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    const auto is_forward = problem.direction.IsForward();
+    const auto is_forward = problem.IsDirectionForward();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         constexpr int F_REVERSE_R = 1 << 0;

@@ -49,7 +49,7 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

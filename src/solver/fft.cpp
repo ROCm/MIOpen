@@ -112,7 +112,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     std::ignore = ctx;
 
     // disable running any FFT based convolutions by checking this env variable
-    if(problem.direction.IsBackwardWrW() || !problem.IsFp32())
+    if(problem.IsDirectionBackwardWrW() || !problem.IsFp32())
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -120,7 +120,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
         return false;
     }
 
-    const auto is_fwd    = problem.direction.IsForward();
+    const auto is_fwd    = problem.IsDirectionForward();
     decltype(auto) conv  = problem.GetConv();
     decltype(auto) xDesc = is_fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = is_fwd ? problem.GetOut() : problem.GetIn();
@@ -160,7 +160,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
 
 size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
-    const auto fwd       = problem.direction.IsForward();
+    const auto fwd       = problem.IsDirectionForward();
     decltype(auto) xDesc = fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = fwd ? problem.GetOut() : problem.GetIn();
     decltype(auto) wDesc = problem.GetWeights();
@@ -366,7 +366,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (sizeof(float) * 2 * 2));
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         parms += " -DCFF_BACKWARD";
     }

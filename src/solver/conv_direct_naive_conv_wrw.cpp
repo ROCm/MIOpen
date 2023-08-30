@@ -50,7 +50,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     return true;

@@ -55,7 +55,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -84,7 +84,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
     {
         //        int version = result.out_pix_tile1;
 
-        if((problem.direction.IsForward() && problem.GetInChannels_() % 16 == 0 &&
+        if((problem.IsDirectionForward() && problem.GetInChannels_() % 16 == 0 &&
             problem.GetOutChannels_() % 16 == 0) &&
            (problem.GetInDataType() == miopenFloat))
         {
@@ -257,7 +257,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
                 std::min(static_cast<int>(problem.GetOutWidth_()), result.out_pix_tile0);
             result.out_pix_tile1 =
                 std::min(static_cast<int>(problem.GetOutHeight_()), result.out_pix_tile1);
-            if(!problem.direction.IsForward())
+            if(!problem.IsDirectionForward())
             {
                 while(problem.GetOutWidth_() % result.out_pix_tile0 != 0 &&
                       result.out_pix_tile0 > 1)
@@ -279,7 +279,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
 
             int wei_cstride = problem.GetWeightsWidth_() * problem.GetWeightsHeight_();
             // backward: inputs are forward outputs
-            const bool is_forward = problem.direction.IsForward();
+            const bool is_forward = problem.IsDirectionForward();
             int wei_bstride =
                 (is_forward ? problem.GetInChannels_() : problem.GetOutChannels_()) * wei_cstride;
 

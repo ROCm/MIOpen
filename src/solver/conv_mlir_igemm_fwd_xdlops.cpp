@@ -62,7 +62,7 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

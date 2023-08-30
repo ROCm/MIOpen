@@ -67,6 +67,7 @@ struct ConvolutionDescriptor;
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription : conv::ProblemDescription
 {
+#if 0
     struct Direction
     {
     public:
@@ -74,14 +75,13 @@ struct ProblemDescription : conv::ProblemDescription
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
         bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
 
-        std::string GetStr() const { return IsForward() ? "F" : IsBackwardData() ? "B" : "W"; }
-
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
 
     private:
         conv::Direction v = conv::Direction::Forward;
     } direction;
+#endif
 
     ProblemDescription() = default;
 
@@ -158,7 +158,16 @@ struct ProblemDescriptionCompatTemporary
 
     ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
 
-    ProblemDescription::Direction direction;
+    struct Direction
+    {
+    public:
+        bool IsForward() const { return v == conv::Direction::Forward; }
+
+        Direction(conv::Direction value) : v(value) {}
+
+    private:
+        conv::Direction v;
+    } direction;
 
     /*
      * set top tensor
@@ -303,21 +312,21 @@ struct UnifiedDescriptionConv2d
 
         const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount();
         const auto n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
-        if(!problem.direction.IsBackwardWrW())
+        if(!problem.IsDirectionBackwardWrW())
         {
             R     = problem.GetWeightsHeight_();
             S     = problem.GetWeightsWidth_();
-            U     = problem.direction.IsForward() ? problem.GetKernelStrideH() : 1;
-            V     = problem.direction.IsForward() ? problem.GetKernelStrideW() : 1;
+            U     = problem.IsDirectionForward() ? problem.GetKernelStrideH() : 1;
+            V     = problem.IsDirectionForward() ? problem.GetKernelStrideW() : 1;
             C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
             K     = n_outputs_per_group;     // Ditto.
             out_h = problem.GetOutHeight_(); // Bwd: height/width is reversed in ProblemDescription.
             out_w = problem.GetOutWidth_();  // Ditto.
             N     = problem.GetBatchSize_();
-            pad_h = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-            pad_w = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
-            input_stride_h  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideH();
-            input_stride_w  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideW();
+            pad_h = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+            pad_w = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+            input_stride_h  = problem.IsDirectionForward() ? 1 : problem.GetKernelStrideH();
+            input_stride_w  = problem.IsDirectionForward() ? 1 : problem.GetKernelStrideW();
             filter_stride_h = problem.GetDilationH();
             filter_stride_w = problem.GetDilationW();
         }
