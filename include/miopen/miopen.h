@@ -2460,50 +2460,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t rstdDesc,
                                                     void* rstd);
 
-/*! @brief Execute a layernorm backwards layer
- *
- * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
- *
- * @param handle         MIOpen handle (input)
- * @param mode           LayerNorm mode (input)
- * @param xDesc          Tensor descriptor for input data tensor x (input)
- * @param x              Data tensor x (input)
- * @param dyDesc         Tensor descriptor for input data tensor dy (input)
- * @param dy             Data delta tensor dy (input)
- * @param weightDesc     Tensor descriptor for input data tensor weight (input)
- * @param weight         Data delta tensor weight (input)
- * @param meanDesc       Tensor descriptor for input data tensor mean (input)
- * @param mean           Data delta tensor mean (input)
- * @param rstdDesc       Tensor descriptor for input data tensor rstd (input)
- * @param rstd           Data delta tensor rstd (input)
- * @param normalized_dim Nomalized dimensions in the input array (input)
- * @param dxDesc         Tensor descriptor for data output tensor dx (input)
- * @param dx             Output data delta tensor dx (output)
- * @param dwDesc         Tensor descriptor for data output tensor dw (input)
- * @param dw             Output data delta tensor dw (output)
- * @param dbDesc         Tensor descriptor for data output tensor db (input)
- * @param db             Output data delta tensor db (output)
- * @return               miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
-                                                     miopenLayerNormMode_t mode,
-                                                     const miopenTensorDescriptor_t xDesc,
-                                                     const void* x,
-                                                     const miopenTensorDescriptor_t dyDesc,
-                                                     const void* dy,
-                                                     const miopenTensorDescriptor_t weightDesc,
-                                                     const void* weight,
-                                                     const miopenTensorDescriptor_t meanDesc,
-                                                     const void* mean,
-                                                     const miopenTensorDescriptor_t rstdDesc,
-                                                     const void* rstd,
-                                                     const int32_t normalized_dim,
-                                                     const miopenTensorDescriptor_t dxDesc,
-                                                     void* dx,
-                                                     const miopenTensorDescriptor_t dwDesc,
-                                                     void* dw,
-                                                     const miopenTensorDescriptor_t dbDesc,
-                                                     void* db);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
 #endif

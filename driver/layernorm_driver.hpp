@@ -57,11 +57,6 @@ public:
         miopenCreateTensorDescriptor(&meanDesc);
         miopenCreateTensorDescriptor(&rstdDesc);
 
-        miopenCreateTensorDescriptor(&dinputDesc);
-        miopenCreateTensorDescriptor(&dweightDesc);
-        miopenCreateTensorDescriptor(&dbiasDesc);
-        miopenCreateTensorDescriptor(&doutputDesc);
-
         data_type = miopen_type<Tgpu>{};
     }
 
@@ -78,7 +73,6 @@ public:
     int RunForwardCPU();
 
     int RunBackwardGPU() override;
-    int RunBackwardCPU();
 
     Tref GetTolerance();
     int VerifyBackward() override;
@@ -92,11 +86,6 @@ public:
         miopenDestroyTensorDescriptor(outputDesc);
         miopenDestroyTensorDescriptor(meanDesc);
         miopenDestroyTensorDescriptor(rstdDesc);
-
-        miopenDestroyTensorDescriptor(dinputDesc);
-        miopenDestroyTensorDescriptor(dweightDesc);
-        miopenDestroyTensorDescriptor(dbiasDesc);
-        miopenDestroyTensorDescriptor(doutputDesc);
     }
 
 private:
@@ -128,24 +117,6 @@ private:
     std::vector<Tref> outhost;
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
-
-    miopenTensorDescriptor_t dinputDesc;
-    miopenTensorDescriptor_t dweightDesc;
-    miopenTensorDescriptor_t dbiasDesc;
-    miopenTensorDescriptor_t doutputDesc;
-
-    std::unique_ptr<GPUMem> din_dev;
-    std::unique_ptr<GPUMem> dweight_dev;
-    std::unique_ptr<GPUMem> dbias_dev;
-    std::unique_ptr<GPUMem> dout_dev;
-
-    std::vector<Tgpu> din;
-    std::vector<Tgpu> dweight;
-    std::vector<Tgpu> dbias;
-    std::vector<Tgpu> dout;
-    std::vector<Tref> dinhost;
-    std::vector<Tref> dweighthost;
-    std::vector<Tref> dbiashost;
 
     float eps;
     int dim;
@@ -204,7 +175,6 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LayerNorm (Default=1)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
@@ -257,7 +227,6 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-
     size_t in_sz     = GetTensorSize(inputDesc);
     size_t weight_sz = GetTensorSize(weightDesc);
     size_t bias_sz   = GetTensorSize(biasDesc);
@@ -309,32 +278,6 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= out_dev->ToGPU(q, out.data());
     status |= mean_dev->ToGPU(q, mean.data());
     status |= rstd_dev->ToGPU(q, rstd.data());
-
-    if(!forw)
-    {
-        din_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        dweight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
-        dbias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(Tgpu)));
-        dout_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-
-        din         = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        dweight     = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
-        dbias       = std::vector<Tgpu>(bias_sz, static_cast<Tgpu>(0));
-        dout        = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        dinhost     = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-        dweighthost = std::vector<Tref>(weight_sz, static_cast<Tref>(0));
-        dbiashost   = std::vector<Tref>(bias_sz, static_cast<Tref>(0));
-
-        for(int i = 0; i < in_sz; i++)
-        {
-            dout[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
-        }
-        status |= dout_dev->ToGPU(q, dout.data());
-
-        status |= din_dev->ToGPU(q, din.data());
-        status |= dweight_dev->ToGPU(q, dweight.data());
-        status |= dbias_dev->ToGPU(q, dbias.data());
-    }
 
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
@@ -416,125 +359,6 @@ int LayerNormDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
-
-    Timer t;
-    START_TIME
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        if(inflags.GetValueInt("time") == 1)
-        {
-            miopenLayerNormBackward(GetHandle(),
-                                    mode,
-                                    inputDesc,
-                                    in_dev->GetMem(),
-                                    doutputDesc,
-                                    dout_dev->GetMem(),
-                                    weightDesc,
-                                    weight_dev->GetMem(),
-                                    meanDesc,
-                                    mean_dev->GetMem(),
-                                    rstdDesc,
-                                    rstd_dev->GetMem(),
-                                    dim,
-                                    dinputDesc,
-                                    din_dev->GetMem(),
-                                    dweightDesc,
-                                    nullptr,
-                                    dbiasDesc,
-                                    nullptr);
-
-            float time = 0.0;
-            miopenGetKernelTime(GetHandle(), &time);
-            kernel_total_time += time;
-            if(i == 0)
-                kernel_first_time = time;
-
-            miopenLayerNormBackward(GetHandle(),
-                                    mode,
-                                    inputDesc,
-                                    in_dev->GetMem(),
-                                    doutputDesc,
-                                    dout_dev->GetMem(),
-                                    weightDesc,
-                                    weight_dev->GetMem(),
-                                    meanDesc,
-                                    mean_dev->GetMem(),
-                                    rstdDesc,
-                                    rstd_dev->GetMem(),
-                                    dim,
-                                    dinputDesc,
-                                    din_dev->GetMem(),
-                                    dweightDesc,
-                                    dweight_dev->GetMem(),
-                                    dbiasDesc,
-                                    dbias_dev->GetMem());
-            float time2 = 0.0;
-            miopenGetKernelTime(GetHandle(), &time2);
-            kernel_total_time += time2;
-            if(i == 0)
-                kernel_first_time += time2;
-        }
-        else
-        {
-            miopenLayerNormBackward(GetHandle(),
-                                    mode,
-                                    inputDesc,
-                                    in_dev->GetMem(),
-                                    doutputDesc,
-                                    dout_dev->GetMem(),
-                                    weightDesc,
-                                    weight_dev->GetMem(),
-                                    meanDesc,
-                                    mean_dev->GetMem(),
-                                    rstdDesc,
-                                    rstd_dev->GetMem(),
-                                    dim,
-                                    dinputDesc,
-                                    din_dev->GetMem(),
-                                    dweightDesc,
-                                    dweight_dev->GetMem(),
-                                    dbiasDesc,
-                                    dbias_dev->GetMem());
-        }
-    }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Backward LayerNorm Elapsed: %f ms\n", t.gettime_ms() / iter);
-
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward LayerNorm Elapsed: %f ms\n", kernel_average_time);
-    }
-
-    din_dev->FromGPU(GetStream(), din.data());
-    dweight_dev->FromGPU(GetStream(), dweight.data());
-    dbias_dev->FromGPU(GetStream(), dbias.data());
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int LayerNormDriver<Tgpu, Tref>::RunBackwardCPU()
-{
-    mloLayerNormBackwardRunHost<Tgpu, Tref>(inputDesc,
-                                            in.data(),
-                                            dout.data(),
-                                            weight.data(),
-                                            mean.data(),
-                                            rstd.data(),
-                                            dinhost.data(),
-                                            dweighthost.data(),
-                                            dbiashost.data(),
-                                            dim,
-                                            mode);
-
     return miopenStatusSuccess;
 }
 
@@ -602,38 +426,6 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
 {
-    RunBackwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(dinhost, din);
-    if(!std::isfinite(error) || error > tolerance)
-    {
-        std::cout << "Backward LayerNorm FAILED: " << error << std::endl;
-    }
-    else
-    {
-        printf("Backward LayerNorm Verifies on CPU and GPU (err=%f)\n", error);
-    }
-
-    auto dweighterror = miopen::rms_range(dweighthost, dweight);
-    if(!std::isfinite(dweighterror) || dweighterror > tolerance)
-    {
-        std::cout << "Backward LayerNorm dweight FAILED: " << dweighterror << std::endl;
-    }
-    else
-    {
-        printf("Backward LayerNorm dweight Verifies on CPU and GPU (err=%f)\n", dweighterror);
-    }
-
-    auto dbiaserror = miopen::rms_range(dbiashost, dbias);
-    if(!std::isfinite(dbiaserror) || dbiaserror > tolerance)
-    {
-        std::cout << "Backward LayerNorm dbias FAILED: " << dbiaserror << std::endl;
-    }
-    else
-    {
-        printf("Backward LayerNorm dbias Verifies on CPU and GPU (err=%f)\n", dbiaserror);
-    }
-
     return miopenStatusSuccess;
 }
 

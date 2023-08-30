@@ -52,26 +52,6 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 const float epsilon,
                                 const int32_t normalized_dim);
 
-miopenStatus_t LayerNormBackward(const Handle& handle,
-                                 const TensorDescriptor& xDesc,
-                                 ConstData_t x,
-                                 const TensorDescriptor& dyDesc,
-                                 ConstData_t dy,
-                                 const TensorDescriptor& weightDesc,
-                                 ConstData_t weight,
-                                 const TensorDescriptor& meanDesc,
-                                 ConstData_t mean,
-                                 const TensorDescriptor& rstdDesc,
-                                 ConstData_t rstd,
-                                 const TensorDescriptor& dxDesc,
-                                 Data_t dx,
-                                 const TensorDescriptor& dwDesc,
-                                 Data_t dw,
-                                 const TensorDescriptor& dbDesc,
-                                 Data_t db,
-                                 miopenLayerNormMode_t mode,
-                                 const int32_t normalized_dim);
-
 } // namespace miopen
 #endif // _MIOPEN_LAYERNORM_HPP_
 #endif

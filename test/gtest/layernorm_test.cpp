@@ -30,7 +30,7 @@ struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
 {
 };
 
-TEST_P(LayerNormSolverTestFloat, LayerNormTestFwBw){};
+TEST_P(LayerNormSolverTestFloat, LayerNormTestFw){};
 
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormSolverTestFloat,

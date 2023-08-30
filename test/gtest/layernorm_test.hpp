@@ -166,41 +166,6 @@ protected:
         output_dev = handle.Write(output.data);
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
-
-        doutput = tensor<T>{in_dim}.generate(gen_value);
-
-        if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
-        {
-            std::vector<int32_t> inner_dim;
-            if(nomalized_dim == in_dim.size())
-                inner_dim = {1};
-            else
-                inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
-            dweight = tensor<T>{inner_dim}.generate(gen_value);
-            dbias   = tensor<T>{inner_dim}.generate(gen_value);
-            SetTensorLayout(dweight.desc);
-            SetTensorLayout(dbias.desc);
-            std::fill(dweight.begin(), dweight.end(), std::numeric_limits<T>::quiet_NaN());
-            std::fill(dbias.begin(), dbias.end(), std::numeric_limits<T>::quiet_NaN());
-
-            ref_dweight = tensor<T>{inner_dim}.generate(gen_value);
-            ref_dbias   = tensor<T>{inner_dim}.generate(gen_value);
-            std::fill(ref_dweight.begin(), ref_dweight.end(), std::numeric_limits<T>::quiet_NaN());
-            std::fill(ref_dbias.begin(), ref_dbias.end(), std::numeric_limits<T>::quiet_NaN());
-        }
-
-        SetTensorLayout(doutput.desc);
-
-        dinput = tensor<T>{in_dim};
-        SetTensorLayout(dinput.desc);
-        std::fill(dinput.begin(), dinput.end(), std::numeric_limits<T>::quiet_NaN());
-        ref_dinput = tensor<T>{in_dim};
-        std::fill(ref_dinput.begin(), ref_dinput.end(), std::numeric_limits<T>::quiet_NaN());
-
-        doutput_dev = handle.Write(doutput.data);
-        dinput_dev  = handle.Write(dinput.data);
-        dweight_dev = handle.Write(dweight.data);
-        dbias_dev   = handle.Write(dbias.data);
     }
     void TearDown() override
     {
@@ -252,58 +217,6 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
         EXPECT_TRUE(error < threshold * 2000) << "Error rstd beyond tolerance Error:" << error
                                               << ",  Thresholdx2000: " << threshold * 2000;
-
-        cpu_layernorm_backward<T>(input,
-                                  doutput,
-                                  weight,
-                                  mean,
-                                  rstd,
-                                  ref_dinput,
-                                  ref_dweight,
-                                  ref_dbias,
-                                  nomalized_dim,
-                                  ln_mode);
-
-        status = miopen::LayerNormBackward(handle,
-                                           input.desc,
-                                           input_dev.get(),
-                                           doutput.desc,
-                                           doutput_dev.get(),
-                                           weight.desc,
-                                           weight_dev.get(),
-                                           mean.desc,
-                                           mean_dev.get(),
-                                           rstd.desc,
-                                           rstd_dev.get(),
-                                           dinput.desc,
-                                           dinput_dev.get(),
-                                           dweight.desc,
-                                           dweight_dev.get(),
-                                           dbias.desc,
-                                           dbias_dev.get(),
-                                           ln_mode,
-                                           nomalized_dim);
-
-        EXPECT_EQ(status, miopenStatusSuccess);
-
-        dinput.data  = handle.Read<T>(dinput_dev, dinput.data.size());
-        dweight.data = handle.Read<T>(dweight_dev, dweight.data.size());
-        dbias.data   = handle.Read<T>(dbias_dev, dbias.data.size());
-
-        error = miopen::rms_range(ref_dinput, dinput);
-        EXPECT_TRUE(miopen::range_distance(ref_dinput) == miopen::range_distance(dinput));
-        EXPECT_TRUE(error < threshold * 10) << "Error dinput beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
-
-        error = miopen::rms_range(ref_dweight, dweight);
-        EXPECT_TRUE(miopen::range_distance(ref_dweight) == miopen::range_distance(dweight));
-        EXPECT_TRUE(error < threshold * 1000) << "Error dweight beyond tolerance Error:" << error
-                                              << ",  Thresholdx1000: " << threshold * 1000;
-
-        error = miopen::rms_range(ref_dbias, dbias);
-        EXPECT_TRUE(miopen::range_distance(ref_dbias) == miopen::range_distance(dbias));
-        EXPECT_TRUE(error < threshold * 1000) << "Error dbias beyond tolerance Error:" << error
-                                              << ",  Thresholdx1000: " << threshold * 1000;
     }
     LayerNormTestCase layernorm_config;
 
@@ -313,17 +226,10 @@ protected:
     tensor<T> output;
     tensor<T> mean;
     tensor<T> rstd;
-    tensor<T> doutput;
-    tensor<T> dinput;
-    tensor<T> dweight;
-    tensor<T> dbias;
 
     tensor<T> ref_output;
     tensor<T> ref_mean;
     tensor<T> ref_rstd;
-    tensor<T> ref_dinput;
-    tensor<T> ref_dweight;
-    tensor<T> ref_dbias;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr weight_dev;
@@ -331,10 +237,6 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr mean_dev;
     miopen::Allocator::ManageDataPtr rstd_dev;
-    miopen::Allocator::ManageDataPtr doutput_dev;
-    miopen::Allocator::ManageDataPtr dinput_dev;
-    miopen::Allocator::ManageDataPtr dweight_dev;
-    miopen::Allocator::ManageDataPtr dbias_dev;
 
     size_t nomalized_dim;
     float eps;
