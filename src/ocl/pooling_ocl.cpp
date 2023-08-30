@@ -49,9 +49,9 @@ static auto PoolingForwardSolvers()
 static auto PoolingBackwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingBackward2d,
-                                   solver::pooling::PoolingBackwardNd,
-                                   solver::pooling::TransposedPoolingBwd2d,
-                                   solver::pooling::TransposedPoolingBwdNd>{};
+        solver::pooling::PoolingBackwardNd,
+        solver::pooling::TransposedPoolingBwd2d,
+        solver::pooling::TransposedPoolingBwdNd>{};
 }
 
 miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
@@ -88,8 +88,9 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     auto index_max = get_index_max(GetIndexType());
 
-    // for kernel implementation max pooling backward pass,
-    //   "index_max" means ghost, and thus should not be reached
+    /// \anchor max_pooling_index_max_restriction
+    /// For kernel implementation max pooling backward pass,
+    /// "index_max" means ghost, and thus should not be reached.
     if(mode == miopenPoolingMax && save_index)
     {
         if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
@@ -105,7 +106,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
         if(workspaceIndexMode == miopenPoolingWorkspaceIndexMask && pool_dim == 5)
         {
-            MIOPEN_THROW("3D pooling doesn't support workspace index mask mode");
+            MIOPEN_THROW("3D max pooling doesn't support workspace index mask mode");
         }
 
         if(workSpace == nullptr)
