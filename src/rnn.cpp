@@ -446,16 +446,16 @@ RNNDescriptor::RNNDescriptor(int hsz,
 // Main Solution
 // RNN pure algo miopenRNNDataSeqMajorNotPadded
 size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum, 
-                                       miopenRNNFWDMode_t fwd_mode,
+                                       miopenRNNFWDMode_t ,//fwd_mode,
                                        miopenRNNBaseLayout_t io_layout) const
 {   
     if(io_layout != miopenRNNDataSeqMajorNotPadded)
         MIOPEN_THROW(miopenStatusInternalError, "wrong io_layout");
     
     const bool isBidirect = dirMode == miopenRNNbidirection;
-    const bool isTraining = fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining;
+    //const bool isTraining = fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining;
 
-    return (isTraining ? 0 : workspaceScale * nLayers * batchLenSum * hsize * typeSize) *
+    return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) *
            (isBidirect ? 2 : 1);
 }
 
@@ -579,6 +579,30 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     return GetReserveSize(inputBatchLenSum);
 }
 
+size_t
+RNNDescriptor::GetParamsSize(size_t inputVector) const
+{
+    if(inputMode == miopenRNNskip)
+    {
+        if(inputVector != hsize)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "In miopenRNNskip mode input_vector size and hidden_size shoud be same.");
+        inputVector = 0;
+    }
+
+    int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
+    auto sz = nHiddenTensorsPerLayer * hsize * bi *
+              (inputVector + hsize + (nLayers - 1) * (bi + 1) * hsize);
+#if(MIO_RNN_DEBUG == 1)
+    fprintf(stderr, "weight size: %lu\n", sz);
+#endif
+    if(biasMode == miopenRNNwithBias)
+    {
+        sz += nLayers * 2 * nHiddenTensorsPerLayer * hsize * bi;
+    }
+    return size_t(typeSize * sz);
+ }
+
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
                                     miopenDataType_t dtype) const
@@ -589,20 +613,8 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
     }
     assert(xDesc.GetLengths().size() > 1);
     auto inputVectorLen = xDesc.GetLengths()[1];
-    if(inputMode == miopenRNNskip)
-        inputVectorLen = 0;
-
-    int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
-    auto sz = nHiddenTensorsPerLayer * hsize * bi *
-              (inputVectorLen + hsize + (nLayers - 1) * (bi + 1) * hsize);
-#if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "weight size: %lu\n", sz);
-#endif
-    if(biasMode == miopenRNNwithBias)
-    {
-        sz += nLayers * 2 * nHiddenTensorsPerLayer * hsize * bi;
-    }
-    return size_t(typeSize * sz);
+    
+    return GetParamsSize(inputVectorLen);
 }
 
 size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,

@@ -155,6 +155,7 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
+    size_t GetParamsSize(size_t inputVector) const;
 
     void GetParamsDescriptor(Handle& handle,
                              const TensorDescriptor& xDesc,

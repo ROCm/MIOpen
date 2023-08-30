@@ -248,10 +248,10 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
 
     const std::vector<size_t>& seq_lens_per_sample = tensor_desc.GetSequenceLengthsVector();
 
-    auto it = seq_lens_per_sample.begin();
-    auto r_it = seq_lens_per_sample.rbegin();
-    
-    auto it_end   = seq_lens_per_sample.end();
+    auto it     = seq_lens_per_sample.begin();
+    auto it_end = seq_lens_per_sample.end();
+
+    auto r_it     = seq_lens_per_sample.rbegin();
     auto r_it_end = seq_lens_per_sample.rend();
 
     const size_t vector_size                = tensor_desc.GetLengths()[2];
@@ -261,7 +261,7 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
                                             const std::vector<unsigned>& dim_order,
                                             miopenDataType_t data_type) {
         std::vector<std::size_t> byte_strides(copy_size.size());
-        byte_strides.back() = GetTypeSize(data_type);
+        byte_strides.back() = 1; // GetTypeSize(data_type);
 
         for(size_t i = byte_strides.size() - 1; i > 0; i--)
         {
@@ -272,7 +272,8 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         return byte_strides;
     };
 
-    auto get_box_size = [](auto& sample_it, auto& sample_it_end) -> std::tuple<size_t, size_t> {
+    auto get_box_size_batch_major = [](auto& sample_it,
+                                       auto& sample_it_end) -> std::tuple<size_t, size_t> {
         auto start_pos      = sample_it;
         size_t box_seq_size = *start_pos, box_batch_size;
         while(sample_it != sample_it_end && *sample_it == box_seq_size)
@@ -281,16 +282,27 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         return {box_seq_size, box_batch_size};
     };
 
-    size_t src_offset = 0, dst_offset = 0;
+    auto get_box_size_seq_major = [](auto& sample_it,
+                                     auto& sample_it_end, bool is_first) -> std::tuple<size_t, size_t> {
+        size_t start_len      = *sample_it,
+               box_seq_size   = is_first ? start_len : start_len - *(sample_it - 1),
+               box_batch_size = std::distance(sample_it, sample_it_end);
+        while(sample_it != sample_it_end && *sample_it == start_len)
+            sample_it++;
+        return {box_seq_size, box_batch_size};
+    };
 
-    while(is_seq_major ? (it != it_end) : (r_it != r_it_end))
+
+    size_t src_offset = 0, dst_offset = 0;
+    bool first_iter = true;
+    while(is_seq_major ? (r_it != r_it_end) : (it != it_end))
     {
         size_t copy_seq_cnt, copy_bsize;
         
         if(is_seq_major)
-            std::tie(copy_seq_cnt, copy_bsize) = get_box_size(it, it_end);
+            std::tie(copy_seq_cnt, copy_bsize) = get_box_size_seq_major(r_it, r_it_end, first_iter);
         else
-            std::tie(copy_seq_cnt, copy_bsize) = get_box_size(r_it, r_it_end);
+            std::tie(copy_seq_cnt, copy_bsize) = get_box_size_batch_major(it, it_end);
 
         const std::vector<size_t> copy_size{static_cast<size_t>(copy_bsize),
                                             static_cast<size_t>(copy_seq_cnt),
@@ -323,6 +335,7 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
             src_offset += packed_desc.GetElementSpace();
             dst_offset += WA_padded_ElementSpace;
         }
+        first_iter = false;
     }
 
 }
@@ -403,13 +416,15 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             handle, src_tensor_desc, src, SeqMajorPadded_desc, SeqMajorPadded_ptr);
 
         if(dst_layout != miopenRNNDataSeqMajorPadded)
-            ConvertInputTensorGPUData(handle,
-                                 SeqMajorPadded_desc,
-                                 SeqMajorPadded_ptr,
-                                 dst_tensor_desc,
-                                 dst,
-                                 static_cast<void*>(reinterpret_cast<char*>(workspace) + SeqMajorPadded_desc.GetTensorMaxSpace()),
-                                 reverse);
+            ConvertInputTensorGPUData(
+                handle,
+                SeqMajorPadded_desc,
+                SeqMajorPadded_ptr,
+                dst_tensor_desc,
+                dst,
+                static_cast<void*>(reinterpret_cast<char*>(workspace) +
+                                   SeqMajorPadded_desc.GetTensorMaxByteSpace()),
+                reverse);
     }
     else if(src_layout == miopenRNNDataSeqMajorPadded)
     {
@@ -472,7 +487,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             (!is_reordering_req && (dst_layout == miopenRNNDataSeqMajorPadded))
                 ? dst
                 : (is_reordering_req && (dst_layout != miopenRNNDataSeqMajorPadded)
-                       ? static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxSpace())
+                       ? static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxByteSpace())
                        : workspace);
 
         ChangeTensorGPUDataPadding(handle, src_tensor_desc, src, padded_data);
@@ -503,7 +518,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                                  reordered_tensor_data,
                                  dst_tensor_desc,
                                  dst,
-                                 static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxSpace()),
+                                 static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxByteSpace()),
                                  reverse);
     }
     else

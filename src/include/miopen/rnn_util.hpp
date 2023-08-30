@@ -218,8 +218,8 @@ struct RNNTensorBaseLayoutConverter
     static size_t GetWorkspaceSize(const SeqTensorDescriptor& src_tensor_desc,
                             const SeqTensorDescriptor& dst_tensor_desc, bool reverse)
     {
-        const size_t WorkspaceSize =
-            std::max(src_tensor_desc.GetTensorMaxSpace(), dst_tensor_desc.GetTensorMaxSpace());
+        const size_t WorkspaceSize = std::max(src_tensor_desc.GetTensorMaxByteSpace(),
+                                              dst_tensor_desc.GetTensorMaxByteSpace());
 
         auto src_layout = RNNDescriptor::getBaseLayoutFromDataTensor(src_tensor_desc);
         auto dst_layout = RNNDescriptor::getBaseLayoutFromDataTensor(dst_tensor_desc);

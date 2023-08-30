@@ -229,7 +229,7 @@ const std::vector<std::size_t>& SeqTensorDescriptor::GetSequenceLengthsVector() 
 std::vector<std::size_t> SeqTensorDescriptor::GetPaddedStrides() const 
 {
     std::vector<std::size_t> byte_strides(lens.size());
-    byte_strides.back() = GetTypeSize(GetType()) + padds.back();
+    byte_strides.back() = 1 + padds.back();
     
     for(size_t i = byte_strides.size() - 1; i > 0; i--)
     {
@@ -263,15 +263,15 @@ std::size_t SeqTensorDescriptor::GetElementCount() const
     return acc;
 }
 
-std::size_t SeqTensorDescriptor::GetTensorRealSpace() const 
+std::size_t SeqTensorDescriptor::GetTensorRealByteSpace() const
 {
     if(padded_seq_layout)
-        return GetTensorMaxSpace();
+        return GetTensorMaxByteSpace();
     else
-        return GetTensorRealSpaceSeqPacked();
+        return GetTensorRealByteSpaceSeqPacked();
 }
 
-std::size_t SeqTensorDescriptor::GetTensorRealSpaceSeqPacked() const
+std::size_t SeqTensorDescriptor::GetTensorRealByteSpaceSeqPacked() const
 {
     size_t acc = GetTypeSize(this->type);
     size_t acc_padding_byte_tmp = 0;
@@ -305,7 +305,7 @@ std::size_t SeqTensorDescriptor::GetTensorRealSpaceSeqPacked() const
     return acc + acc_padding_byte_tmp;
 }
 
-std::size_t SeqTensorDescriptor::GetTensorMaxSpace() const
+std::size_t SeqTensorDescriptor::GetTensorMaxByteSpace() const
 {
     auto acc  = GetTypeSize(this->type);
 
@@ -392,6 +392,9 @@ void SeqTensorDescriptor::UpdatePackedFlag()
 
 std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const 
 {
+    if(padded_seq_layout)
+        MIOPEN_THROW(miopenStatusInternalError, "Only packed SeqTensorDescriptor supported.");
+
     if (all_sequences_equal_to_max) {
         return std::vector<size_t>(lens[1], lens[0]);
     }
