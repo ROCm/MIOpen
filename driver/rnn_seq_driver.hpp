@@ -57,11 +57,10 @@
 #include "util_driver.hpp"
 #include "random.hpp"
 
-
 std::vector<size_t> get_default_time_strides(int vec_size, const std::vector<int>& seq_array)
 {
     std::vector<size_t> sum_v(seq_array.size());
-    sum_v[0]       = 0;
+    sum_v[0] = 0;
     std::partial_sum(seq_array.begin(), std::prev(seq_array.end()), std::next(sum_v.begin()));
     for(auto& it : sum_v)
         it *= vec_size;
@@ -84,7 +83,7 @@ void TransformIODefaultLayaoutToTarget(std::vector<Tgpu>& def_array,
     assert(def_batch_sz_per_time[0] == target_batch_order.size());
 
     size_t non_zero_seq_len = def_batch_sz_per_time.size();
-    size_t batch_size = def_batch_sz_per_time[0];
+    size_t batch_size       = def_batch_sz_per_time[0];
 
     const std::vector<size_t> default_time_strides =
         get_default_time_strides(io_vec_size, def_batch_sz_per_time);
@@ -153,7 +152,6 @@ void HiddenTensorReorder(std::vector<Tgpu>& src_array,
     }
 }
 
-
 template <typename Tgpu, typename Tref>
 class RNNSeqDriver : public Driver
 {
@@ -169,27 +167,27 @@ public:
         miopenCreateDropoutDescriptor(&DropoutDesc);
         workspace_dev    = nullptr;
         reservespace_dev = nullptr;
-        
+
         InitDataType<Tgpu>();
     }
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
-    
+
     InputFlags& GetInputFlags() override { return inflags; }
 
     int CheckDescriptor(miopenSeqTensorDescriptor_t desc,
-                         miopenRNNBaseLayout_t layout,
-                         const std::vector<int>& src_lens,
-                         const std::vector<int>& src_Slens);
+                        miopenRNNBaseLayout_t layout,
+                        const std::vector<int>& src_lens,
+                        const std::vector<int>& src_Slens);
     int CheckDescriptor(miopenTensorDescriptor_t src_desc, const std::vector<int>& src_lens);
 
     int GetandSetData() override;
-    
+
     std::vector<int> GetSeqLengthsFromCmdLine();
     miopenRNNBaseLayout_t GetIODataLayoutFromCmdLine();
     miopenRNNFWDMode_t GetRNNFwdModeFromCmdLine();
-    
+
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetHiddenTensorLengthsFromCmdLine();
     std::vector<int> GetOutputTensorLengthsFromCmdLine();
@@ -290,7 +288,6 @@ private:
     unsigned long long dropout_seed;
 };
 
-
 template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
@@ -302,21 +299,22 @@ int RNNSeqDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     }
 
     int nn_dir = inflags.GetValueInt("forw");
-    if (inflags.GetValueInt("fwdtype") == 1 && !(nn_dir == 0 || nn_dir == 1)) {
+    if(inflags.GetValueInt("fwdtype") == 1 && !(nn_dir == 0 || nn_dir == 1))
+    {
         MIOPEN_THROW(
             "Incorrect input, In Inference only fwd direction is allowed ((forw=0) OR (forw=1)).");
     }
 
-    if(inflags.GetValueInt("iter") > 1 && inflags.GetValueInt("verify") !=0 )
-        MIOPEN_THROW("To use non default Number of Iterations >1 need to disable Verification -V 0.");
-
-    
-    if((nn_dir & 4) && !(nn_dir & 2) && !(nn_dir & 1))
+    if(inflags.GetValueInt("iter") > 1 && inflags.GetValueInt("verify") != 0)
         MIOPEN_THROW(
-            "Incorrect input, calculation of BackwardWeights require BackwardData and ForwardData.");
+            "To use non default Number of Iterations >1 need to disable Verification -V 0.");
+
+    if((nn_dir & 4) && !(nn_dir & 2) && !(nn_dir & 1))
+        MIOPEN_THROW("Incorrect input, calculation of BackwardWeights require BackwardData and "
+                     "ForwardData.");
     if((nn_dir & 2) && !(nn_dir & 1))
         MIOPEN_THROW("Incorrect input, calculation of BackwardData require ForwardData.");
-    
+
     return miopenStatusSuccess;
 }
 
@@ -357,19 +355,18 @@ int RNNSeqDriver<Tgpu, Tref>::CheckDescriptor(miopenTensorDescriptor_t src_desc,
     return miopenStatusSuccess;
 }
 
-
 template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
 {
     int status = 0;
-    io_layout = GetIODataLayoutFromCmdLine();
-    
+    io_layout  = GetIODataLayoutFromCmdLine();
+
     unsorted_seq_lens = GetSeqLengthsFromCmdLine();
-    sorted_seq_lens                  = unsorted_seq_lens;
+    sorted_seq_lens   = unsorted_seq_lens;
     std::sort(sorted_seq_lens.begin(), sorted_seq_lens.end(), std::greater<int>());
 
     const std::vector<int> in_lens  = GetInputTensorLengthsFromCmdLine();
-    const std::vector<int> out_lens  = GetOutputTensorLengthsFromCmdLine();
+    const std::vector<int> out_lens = GetOutputTensorLengthsFromCmdLine();
     const std::vector<int> hid_len  = GetHiddenTensorLengthsFromCmdLine();
 
     {
@@ -377,7 +374,7 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
         miopenSetTensorDescriptor(inputTensor_dims, data_type, 2, in_dims.data(), nullptr);
         status = CheckDescriptor(inputTensor_dims, in_dims);
     }
-    
+
     if(status != miopenStatusSuccess)
     {
         printf("Error checking TensorDescriptor:%s content.\n", "inputTensor_dims");
@@ -394,11 +391,11 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
                                         nullptr);
 
     status = CheckDescriptor(inputSeqTensor, io_layout, in_lens, unsorted_seq_lens);
-    if (status != miopenStatusSuccess) {
+    if(status != miopenStatusSuccess)
+    {
         printf("Error checking SeqTensorDescriptor:%s content.\n", "inputSeqTensor");
         return status;
     }
-
 
     miopenSetRNNDataSeqTensorDescriptor(outputSeqTensor,
                                         data_type,
@@ -414,7 +411,7 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
         printf("Error checking SeqTensorDescriptor:%s content.\n", "outputSeqTensor");
         return status;
     }
-        
+
     miopenSetTensorDescriptor(hiddenTensor, data_type, 3, hid_len.data(), nullptr);
     status = CheckDescriptor(hiddenTensor, hid_len);
     if(status != miopenStatusSuccess)
@@ -455,7 +452,7 @@ int RNNSeqDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "SeqMajorPadded = 2"
                          "BatchMajorPadded = 3 (Default=1)",
                          "int");
-    
+
     inflags.AddInputFlag("num_layer", 'l', "1", "Number of hidden stacks (Default=1)", "int");
     inflags.AddInputFlag("batch_size", 'n', "4", "Mini-batch size (Default=4)", "int");
     inflags.AddInputFlag(
@@ -473,9 +470,9 @@ int RNNSeqDriver<Tgpu, Tref>::AddCmdLineArgs()
         "bidirection", 'r', "0", "uni- or bi-direction, default uni- (Default=0)", "int");
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag("inputmode", 'p', "0", "linear == 0 or skip == 1, (Default=0)", "int");
-    
+
     inflags.AddInputFlag("rnnalgo", 'a', "0", "default, fundamental (Default=0)", "int");
-    
+
     inflags.AddInputFlag(
         "use_dropout", 'U', "0", "Use dropout: 1; Not use dropout: 0 (Default=0)", "int");
     inflags.AddInputFlag("dropout", 'P', "0.0", "Dropout rate (Default=0.0)", "float");
@@ -483,7 +480,7 @@ int RNNSeqDriver<Tgpu, Tref>::AddCmdLineArgs()
         "seed_low", 'L', "0", "Least significant 32 bits of seed (Default=0)", "int");
     inflags.AddInputFlag(
         "seed_high", 'M', "0", "Most significant 32 bits of seed (Default=0)", "int");
-    
+
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -526,11 +523,11 @@ miopenRNNFWDMode_t RNNSeqDriver<Tgpu, Tref>::GetRNNFwdModeFromCmdLine()
 template <typename Tgpu, typename Tref>
 std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetSeqLengthsFromCmdLine()
 {
-    int batch_size = inflags.GetValueInt("batch_size");
+    int batch_size  = inflags.GetValueInt("batch_size");
     int seq_len_max = inflags.GetValueInt("seq_len");
-    
+
     std::vector<int> data_seq_lens(batch_size, 0);
-    
+
     std::string s_lens = inflags.GetValueStr("seq_len_array");
     std::stringstream ss(s_lens);
 
@@ -556,10 +553,10 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetSeqLengthsFromCmdLine()
     }
 
     if(io_layout == miopenRNNDataSeqMajorNotPadded && (seq_it != data_seq_lens.begin()) &&
-       (!std::is_sorted(data_seq_lens.begin(), seq_it, std::greater<>{})) 
-        )
+       (!std::is_sorted(data_seq_lens.begin(), seq_it, std::greater<>{})))
     {
-        MIOPEN_THROW("Incorrect input, seq_lens should not to increase with miopenRNNDataSeqMajorNotPadded layout\n");
+        MIOPEN_THROW("Incorrect input, seq_lens should not to increase with "
+                     "miopenRNNDataSeqMajorNotPadded layout\n");
     }
 
     if(seq_it != data_seq_lens.end())
@@ -570,7 +567,7 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetSeqLengthsFromCmdLine()
                static_cast<size_t>(std::distance(data_seq_lens.begin(), seq_it)),
                batch_size,
                padding_val);
-        
+
         for(; seq_it != data_seq_lens.end(); seq_it++)
             *seq_it = padding_val;
     }
@@ -582,8 +579,8 @@ template <typename Tgpu, typename Tref>
 std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int batch_size = inflags.GetValueInt("batch_size");
-    int seq_len = inflags.GetValueInt("seq_len");
-    int in_vec    = inflags.GetValueInt("in_vec");
+    int seq_len    = inflags.GetValueInt("seq_len");
+    int in_vec     = inflags.GetValueInt("in_vec");
 
     return std::vector<int>({batch_size, seq_len, in_vec});
 }
@@ -594,8 +591,8 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetOutputTensorLengthsFromCmdLine()
     int batch_size = inflags.GetValueInt("batch_size");
     int seq_len    = inflags.GetValueInt("seq_len");
 
-    int hid_h = inflags.GetValueInt("hid_h");
-    int bi    = (inflags.GetValueInt("bidirection") == 1) ? 2 : 1;
+    int hid_h   = inflags.GetValueInt("hid_h");
+    int bi      = (inflags.GetValueInt("bidirection") == 1) ? 2 : 1;
     int out_vec = hid_h * bi;
 
     return std::vector<int>({batch_size, seq_len, out_vec});
@@ -607,19 +604,18 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetHiddenTensorLengthsFromCmdLine()
     int n_layer = inflags.GetValueInt("num_layer");
     if((inflags.GetValueInt("bidirection")) == 1)
         n_layer *= 2;
-    
+
     int batch_size = inflags.GetValueInt("batch_size");
-    int hid_vec = inflags.GetValueInt("hid_h");
+    int hid_vec    = inflags.GetValueInt("hid_h");
 
     return std::vector<int>({n_layer, batch_size, hid_vec});
 }
-
 
 template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 {
 
-    const int layer  = inflags.GetValueInt("num_layer");
+    const int layer       = inflags.GetValueInt("num_layer");
     const int hidden_size = inflags.GetValueInt("hid_h");
 
     miopenRNNMode_t mode;
@@ -770,13 +766,13 @@ inline size_t Get3DNoVECTensorSize(miopenTensorDescriptor_t& tensor)
 {
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
-    const auto len          = GetTensorLengths(tensor);
-    size_t sz = std::accumulate(len.begin(), len.end(), 1, std::multiplies<size_t>());
+    const auto len = GetTensorLengths(tensor);
+    size_t sz      = std::accumulate(len.begin(), len.end(), 1, std::multiplies<size_t>());
     return sz;
 }
 
 std::vector<int> GetSamplesIndexDescendingOrder(const std::vector<int>& unsorted_seq_lens,
-                                              bool reverse)
+                                                bool reverse)
 {
     const auto sample_count = unsorted_seq_lens.size();
 
@@ -833,17 +829,17 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     const size_t vectors_cnt_host =
         std::accumulate(sorted_seq_lens.begin(), sorted_seq_lens.end(), 0);
-    const size_t vectors_cnt_gpu  = io_layout == miopenRNNDataSeqMajorNotPadded ? vectors_cnt_host
-                                        : in_lens[0] * in_lens[1];
+    const size_t vectors_cnt_gpu =
+        io_layout == miopenRNNDataSeqMajorNotPadded ? vectors_cnt_host : in_lens[0] * in_lens[1];
 
     const size_t in_host_sz  = vectors_cnt_host * in_lens[2];
     const size_t out_host_sz = vectors_cnt_host * out_lens[2];
-    
-    const size_t in_gpu_sz   = vectors_cnt_gpu * in_lens[2];
+
+    const size_t in_gpu_sz  = vectors_cnt_gpu * in_lens[2];
     const size_t out_gpu_sz = vectors_cnt_gpu * out_lens[2];
 
     const size_t hid_sz = Get3DNoVECTensorSize(hiddenTensor);
-    
+
     size_t workSpace_sz;
     size_t reserveSpace_sz;
     status |= miopenGetRNNTempSpaceSizes(
@@ -911,8 +907,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     outhost        = std::vector<Tref>(out_host_sz, static_cast<Tref>(0));
     workspace_host = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
 
-
-    ///dropout legacy format
+    /// dropout legacy format
     const std::size_t inputBatchLenSum = vectors_cnt_host;
 
     int hid_h = inflags.GetValueInt("hid_h");
@@ -932,7 +927,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         reserveSpaceHost_sz = (reserveSpaceHost_sz + sizeof(Tref) - 1) / sizeof(Tref);
     }
     reservespace_host = std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0));
-    //end dropout
+    // end dropout
 
     if(inflags.GetValueInt("forw") != 1)
     {
@@ -952,8 +947,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // Unless seed is persistent between runs validation using cache stored in file is impossible.
     srand(0);
 
-    auto fill_array_via_gen =
-        [](auto& dst, size_t dst_sz, double range_l, double range_r) { 
+    auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
         for(size_t it = 0; it < dst_sz; it++)
             dst[it] = RAN_GEN<Tgpu>(static_cast<Tgpu>(range_l), static_cast<Tgpu>(range_r));
     };
@@ -983,22 +977,23 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     const std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
-    if (io_layout != miopenRNNDataSeqMajorNotPadded) 
+    if(io_layout != miopenRNNDataSeqMajorNotPadded)
     {
         const std::vector<int> batches_per_time = GetBatchesPerTime(sorted_seq_lens);
-        const std::vector<int> order_idxs = GetSamplesIndexDescendingOrder(unsorted_seq_lens, false);
+        const std::vector<int> order_idxs =
+            GetSamplesIndexDescendingOrder(unsorted_seq_lens, false);
 
         tmp_gpu_in = std::vector<Tgpu>(in_gpu_sz, static_cast<Tgpu>(0));
         tmp_gpu_hx = std::vector<Tgpu>(hid_sz, static_cast<Tgpu>(0));
-        
+
         TransformIODefaultLayaoutToTarget(
-            in, tmp_gpu_in, batches_per_time, order_idxs, in_lens[1],in_lens[2], io_layout, true);
-        
+            in, tmp_gpu_in, batches_per_time, order_idxs, in_lens[1], in_lens[2], io_layout, true);
+
         HiddenTensorReorder(hx, tmp_gpu_hx, order_idxs, hid_len, false);
 
         status |= in_dev->ToGPU(q, tmp_gpu_in.data());
         status |= hx_dev->ToGPU(q, tmp_gpu_hx.data());
-        
+
         if((inflags.GetValueStr("mode")) == "lstm")
         {
             tmp_gpu_cx = std::vector<Tgpu>(hid_sz, static_cast<Tgpu>(0));
@@ -1058,10 +1053,10 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             return miopenStatusNotInitialized;
         }
     }
-    
+
     status |= wei_dev->ToGPU(q, wei.data());
-    //status |= workspace_dev->ToGPU(q, workspace.data());
-    //status |= reservespace_dev->ToGPU(q, reservespace.data());
+    // status |= workspace_dev->ToGPU(q, workspace.data());
+    // status |= reservespace_dev->ToGPU(q, reservespace.data());
 
     if(status != HIP_SUCCESS)
     {
@@ -1071,7 +1066,6 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     return miopenStatusSuccess;
 }
-
 
 template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::RunForwardGPU()
@@ -1083,9 +1077,8 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardGPU()
     Timer t;
     float wl_time_forward = 0.0;
     float kl_time_forward = 0.0;
-    
-    from_gpu_out =
-        std::vector<Tgpu>(out_dev->GetSize() / sizeof(Tgpu), static_cast<Tgpu>(0));
+
+    from_gpu_out = std::vector<Tgpu>(out_dev->GetSize() / sizeof(Tgpu), static_cast<Tgpu>(0));
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -1113,11 +1106,11 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardGPU()
                          workspace_dev->GetSize(),
                          reservespace_dev->GetMem(),
                          reservespace_dev->GetSize());
-        
+
         miopen::deref(GetHandle()).Finish();
         STOP_TIME
-        
-        //TODO chage timing system
+
+        // TODO chage timing system
         if(i > 0 || inflags.GetValueInt("iter") == 1)
         {
             float time = 0.0;
@@ -1142,17 +1135,18 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardGPU()
         printf("Wall-clock Time Forward RNN Elapsed: %f ms\n", wl_time_forward / n_iter);
     }
 
-    if (io_layout != miopenRNNDataSeqMajorNotPadded) 
+    if(io_layout != miopenRNNDataSeqMajorNotPadded)
     {
-        auto from_gpu_hy  = std::vector<Tgpu>(hy_dev->GetSize() / sizeof(Tgpu));
-        auto from_gpu_cy  = std::vector<Tgpu>(cy_dev->GetSize() / sizeof(Tgpu));
+        auto from_gpu_hy = std::vector<Tgpu>(hy_dev->GetSize() / sizeof(Tgpu));
+        auto from_gpu_cy = std::vector<Tgpu>(cy_dev->GetSize() / sizeof(Tgpu));
 
         out_dev->FromGPU(GetStream(), from_gpu_out.data());
         hy_dev->FromGPU(GetStream(), from_gpu_hy.data());
         cy_dev->FromGPU(GetStream(), from_gpu_cy.data());
 
         const std::vector<int> batches_per_time = GetBatchesPerTime(sorted_seq_lens);
-        const std::vector<int> order_idxs = GetSamplesIndexDescendingOrder(unsorted_seq_lens, false);
+        const std::vector<int> order_idxs =
+            GetSamplesIndexDescendingOrder(unsorted_seq_lens, false);
 
         const std::vector<int> hid_lens = GetHiddenTensorLengthsFromCmdLine();
         const std::vector<int> out_lens = GetOutputTensorLengthsFromCmdLine();
@@ -1184,7 +1178,7 @@ template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     int ret = 0;
-    if(inflags.GetValueInt("fwdtype") == 1 ||   inflags.GetValueInt("forw") == 1)
+    if(inflags.GetValueInt("fwdtype") == 1 || inflags.GetValueInt("forw") == 1)
     {
         return ret;
     }
@@ -1198,7 +1192,7 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardGPU()
         workspace_dev->ToGPU(q, workspace.data());
         if(inflags.GetValueInt("inputmode") == 1)
         {
-            //skip mode bug or feature, but din=F(...)+din
+            // skip mode bug or feature, but din=F(...)+din
             auto tmp_gpu_din =
                 std::vector<Tgpu>(din_dev->GetSize() / sizeof(Tgpu), static_cast<Tgpu>(0));
             din_dev->ToGPU(GetStream(), tmp_gpu_din.data());
@@ -1270,7 +1264,7 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardGPU()
                 GetSamplesIndexDescendingOrder(unsorted_seq_lens, false);
 
             const std::vector<int> hid_lens = GetHiddenTensorLengthsFromCmdLine();
-            const std::vector<int> in_lens = GetInputTensorLengthsFromCmdLine();
+            const std::vector<int> in_lens  = GetInputTensorLengthsFromCmdLine();
 
             TransformIODefaultLayaoutToTarget(din,
                                               from_gpu_din,
@@ -1298,24 +1292,24 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardGPU()
         Timer t;
         float wl_time_backward_weight = 0.0;
         float kl_time_backward_weight = 0.0;
-        
+
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
             START_TIME
             ret = miopenRNNBackwardWeightsSeqTensor(GetHandle(),
-                                           rnnDesc,
-                                           inputSeqTensor,
-                                           in_dev->GetMem(),
-                                           hiddenTensor,
-                                           hx_dev->GetMem(),
-                                           outputSeqTensor,
-                                           dout_dev->GetMem(),
-                                           dwei_dev->GetMem(),
-                                           dwei_dev->GetSize(),
-                                           workspace_dev->GetMem(),
-                                           workspace_dev->GetSize(),
-                                           reservespace_dev->GetMem(),
-                                           reservespace_dev->GetSize());
+                                                    rnnDesc,
+                                                    inputSeqTensor,
+                                                    in_dev->GetMem(),
+                                                    hiddenTensor,
+                                                    hx_dev->GetMem(),
+                                                    outputSeqTensor,
+                                                    dout_dev->GetMem(),
+                                                    dwei_dev->GetMem(),
+                                                    dwei_dev->GetSize(),
+                                                    workspace_dev->GetMem(),
+                                                    workspace_dev->GetSize(),
+                                                    reservespace_dev->GetMem(),
+                                                    reservespace_dev->GetSize());
             miopen::deref(GetHandle()).Finish();
             STOP_TIME
             if(i > 0 || inflags.GetValueInt("iter") == 1)
@@ -1353,7 +1347,6 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardGPU()
        }
        */
 
-
     return ret;
 }
 
@@ -1365,8 +1358,8 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardCPU()
 
     const std::vector<int> in_lens  = GetInputTensorLengthsFromCmdLine();
     const std::vector<int> out_lens = GetOutputTensorLengthsFromCmdLine();
-    const int in_vec = in_lens[2];
-    const int out_h  = out_lens[2];
+    const int in_vec                = in_lens[2];
+    const int out_h                 = out_lens[2];
 
     const std::vector<int> hid_lens = GetHiddenTensorLengthsFromCmdLine();
     const int n_layer = hid_lens[0], batch_size = hid_lens[1], hid_vec = hid_lens[2];
@@ -1409,7 +1402,6 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardCPU()
 
     std::vector<Tgpu>* in_packed  = &in;
     std::vector<Tref>* out_packed = &outhost;
-
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
@@ -1545,7 +1537,7 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
-    std::vector<Tgpu>* in_packed =  &in;
+    std::vector<Tgpu>* in_packed   = &in;
     std::vector<Tgpu>* dout_packed = &dout;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
@@ -1675,8 +1667,7 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardDataCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
-
-    std::vector<Tref>* din_packed = &din_host;
+    std::vector<Tref>* din_packed  = &din_host;
     std::vector<Tgpu>* dout_packed = &dout;
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
@@ -1763,7 +1754,6 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardDataCPU()
         printf("illegal RNN mode");
     }
 
-
     if(inflags.GetValueInt("dump_output"))
     {
         dumpBufferToFile("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
@@ -1772,7 +1762,6 @@ int RNNSeqDriver<Tgpu, Tref>::RunBackwardDataCPU()
     //    TrySaveVerificationCache("bwd_dat", din_host);
     return miopenStatusSuccess;
 }
-
 
 template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::VerifyForward()

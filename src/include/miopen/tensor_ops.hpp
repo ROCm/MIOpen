@@ -75,12 +75,11 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         is_all_packed &= real_descriptors[itensor]->IsPacked();
 
-    bool is_all_same_strided = true;
+    bool is_all_same_strided        = true;
     const auto& real_desc_0_strides = real_descriptors[0]->GetStrides();
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         if(real_desc_0_strides != real_descriptors[itensor]->GetStrides())
             is_all_same_strided = false;
-
 
     if(is_all_packed && is_all_same_strided)
     {

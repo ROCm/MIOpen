@@ -104,7 +104,7 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
     const std::vector<std::size_t>& GetPadding() const;
     const std::vector<std::size_t>& GetSequenceLengthsVector() const;
 
-    // Get vector of strides only for padded tensor, 
+    // Get vector of strides only for padded tensor,
     // if IsPaddedSeqLayout()==false function returns an empty vector
     std::vector<std::size_t> GetPaddedStrides() const;
 
@@ -140,7 +140,6 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
     void SetDimOrder(const std::vector<unsigned int>& dims_order);
 
 private:
-
     std::size_t GetTensorRealByteSpaceSeqPacked() const;
 
     static std::vector<unsigned int> GetDefaultLayoutVector(int dims)
@@ -154,7 +153,6 @@ private:
 
     std::size_t GetNonEmptySeqCount() const;
 
-
     void SetSequenceLen(const std::vector<std::size_t>& seq_lens);
     void SetSequenceLen(const std::vector<std::size_t>& seq_lens, bool use_seq_len);
 
@@ -165,13 +163,14 @@ private:
     std::vector<std::size_t> lens;  // length of each dimension
     std::vector<std::size_t> padds; // padding for each dimension
 
-    std::vector<std::size_t> sequence_len; // sequence length of each sample, sequence_len.size()=lens[0]
-    
-    bool all_sequences_equal_to_max  = false;
-    
+    std::vector<std::size_t>
+        sequence_len; // sequence length of each sample, sequence_len.size()=lens[0]
+
+    bool all_sequences_equal_to_max = false;
+
     bool samples_in_descending_order = false;
     bool padded_seq_layout           = false;
-    
+
     bool packed = true;
 
     miopenDataType_t type = miopenFloat;

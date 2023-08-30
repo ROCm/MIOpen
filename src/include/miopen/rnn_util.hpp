@@ -157,24 +157,24 @@ struct RNNTensorPaddingConverter
 struct RNNTensorBaseLayoutConverter
 {
     static void ConvertInputTensorGPUData(const Handle& handle,
-                                     const SeqTensorDescriptor& src_tensor_desc,
-                                     ConstData_t src,
-                                     const SeqTensorDescriptor& dst_tensor_desc,
-                                     Data_t dst,
-                                     Data_t workspace,
-                                     bool reverse);
-    
+                                          const SeqTensorDescriptor& src_tensor_desc,
+                                          ConstData_t src,
+                                          const SeqTensorDescriptor& dst_tensor_desc,
+                                          Data_t dst,
+                                          Data_t workspace,
+                                          bool reverse);
+
     static void ReverseConvertInputTensorGPUData(const Handle& handle,
-                                            const SeqTensorDescriptor& src_tensor_desc,
-                                            ConstData_t src,
-                                            const SeqTensorDescriptor& dst_tensor_desc,
+                                                 const SeqTensorDescriptor& src_tensor_desc,
+                                                 ConstData_t src,
+                                                 const SeqTensorDescriptor& dst_tensor_desc,
                                                  Data_t dst,
                                                  Data_t workspace)
     {
         ConvertInputTensorGPUData(
             handle, src_tensor_desc, src, dst_tensor_desc, dst, workspace, true);
     }
-    
+
     static void ReorderHiddenTensorGPUData(const Handle& handle,
                                            const TensorDescriptor& tensor_desc,
                                            int reordering_dim,
@@ -216,14 +216,15 @@ struct RNNTensorBaseLayoutConverter
     }
 
     static size_t GetWorkspaceSize(const SeqTensorDescriptor& src_tensor_desc,
-                            const SeqTensorDescriptor& dst_tensor_desc, bool reverse)
+                                   const SeqTensorDescriptor& dst_tensor_desc,
+                                   bool reverse)
     {
         const size_t WorkspaceSize = std::max(src_tensor_desc.GetTensorMaxByteSpace(),
                                               dst_tensor_desc.GetTensorMaxByteSpace());
 
         auto src_layout = RNNDescriptor::getBaseLayoutFromDataTensor(src_tensor_desc);
         auto dst_layout = RNNDescriptor::getBaseLayoutFromDataTensor(dst_tensor_desc);
-        
+
         if(src_layout == miopenRNNDataBatchMajorPadded)
         {
             if(dst_layout == miopenRNNDataSeqMajorPadded)
@@ -231,13 +232,15 @@ struct RNNTensorBaseLayoutConverter
             if(dst_layout == miopenRNNDataSeqMajorNotPadded)
                 return WorkspaceSize * 2;
         }
-        else if(src_layout == miopenRNNDataSeqMajorPadded) {
+        else if(src_layout == miopenRNNDataSeqMajorPadded)
+        {
             if(dst_layout == miopenRNNDataBatchMajorPadded)
                 return 0;
             if(dst_layout == miopenRNNDataSeqMajorNotPadded)
-                return WorkspaceSize ;
+                return WorkspaceSize;
         }
-        else if(src_layout == miopenRNNDataSeqMajorNotPadded) {
+        else if(src_layout == miopenRNNDataSeqMajorNotPadded)
+        {
             if(dst_layout == miopenRNNDataBatchMajorPadded)
                 return WorkspaceSize * (reverse ? 2 : 1);
             if(dst_layout == miopenRNNDataSeqMajorPadded)
@@ -253,8 +256,7 @@ struct RNNTensorBaseLayoutConverter
         return reordered_vec;
     }
 
-
-private: 
+private:
     static void ChangeTensorGPUDataPadding(const Handle& handle,
                                            const SeqTensorDescriptor& tensor_desc,
                                            ConstData_t src,
@@ -265,7 +267,6 @@ private:
                                                 const SeqTensorDescriptor& dst_padded_desc,
                                                 Data_t dst);
 };
-
 
 } // namespace miopen
 

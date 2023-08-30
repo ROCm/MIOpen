@@ -61,14 +61,16 @@ bool CheckSequenceLengths(const std::vector<T>& lens)
 }
 
 std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
-                                               const std::string& err_msg, bool is_seq_len=false)
+                                               const std::string& err_msg,
+                                               bool is_seq_len = false)
 {
     if(!is_seq_len)
     {
         if(!CheckLengths(lens_in))
             MIOPEN_THROW(miopenStatusBadParm, err_msg);
     }
-    else {
+    else
+    {
         if(!CheckSequenceLengths(lens_in))
             MIOPEN_THROW(miopenStatusBadParm, err_msg);
     }
@@ -176,8 +178,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<std::size_t>& padding_in,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
-    : 
-      lens(lens_in), padded_seq_layout(with_padded_seq_layout), type(t)
+    : lens(lens_in), padded_seq_layout(with_padded_seq_layout), type(t)
 {
     if(lens_in.size() <= 2)
         MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 2");
@@ -198,24 +199,20 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
         else
             padds = padding_in;
     }
-    
+
     SetSequenceLen(seq_len, use_seq_len);
-    
+
     UpdatePackedFlag();
 }
 
-
-void SeqTensorDescriptor::SetDimOrder(const std::vector<unsigned int>& dims_order_in) {
+void SeqTensorDescriptor::SetDimOrder(const std::vector<unsigned int>& dims_order_in)
+{
     if(dims_order_in.size() != lens.size())
         MIOPEN_THROW(miopenStatusBadParm, "Lengths and layout number dimensions must be equal");
     dim_order = dims_order_in;
 }
 
-
-const std::vector<unsigned int>& SeqTensorDescriptor::GetLayoutVector() const
-{
-    return dim_order;
-};
+const std::vector<unsigned int>& SeqTensorDescriptor::GetLayoutVector() const { return dim_order; };
 
 const std::vector<std::size_t>& SeqTensorDescriptor::GetLengths() const { return lens; }
 
@@ -226,18 +223,18 @@ const std::vector<std::size_t>& SeqTensorDescriptor::GetSequenceLengthsVector() 
     return sequence_len;
 }
 
-std::vector<std::size_t> SeqTensorDescriptor::GetPaddedStrides() const 
+std::vector<std::size_t> SeqTensorDescriptor::GetPaddedStrides() const
 {
     std::vector<std::size_t> byte_strides(lens.size());
     byte_strides.back() = 1 + padds.back();
-    
+
     for(size_t i = byte_strides.size() - 1; i > 0; i--)
     {
         auto index_prev     = dim_order[i];
-        auto index          = dim_order[i-1];
+        auto index          = dim_order[i - 1];
         byte_strides[index] = byte_strides[index_prev] * lens[index_prev] + padds[index];
     }
-    
+
     return byte_strides;
 }
 
@@ -248,7 +245,6 @@ miopenDataType_t SeqTensorDescriptor::GetType() const { return this->type; }
 
 std::size_t SeqTensorDescriptor::GetMaxCountOfSequences() const { return lens[0]; }
 std::size_t SeqTensorDescriptor::GetMaxSequenceLength() const { return lens[1]; }
-
 
 std::size_t SeqTensorDescriptor::GetElementCount() const
 {
@@ -273,9 +269,9 @@ std::size_t SeqTensorDescriptor::GetTensorRealByteSpace() const
 
 std::size_t SeqTensorDescriptor::GetTensorRealByteSpaceSeqPacked() const
 {
-    size_t acc = GetTypeSize(this->type);
+    size_t acc                  = GetTypeSize(this->type);
     size_t acc_padding_byte_tmp = 0;
-    bool is_seq_part = false;
+    bool is_seq_part            = false;
 
     for(auto it = dim_order.rbegin(); it < dim_order.rend(); it++)
     {
@@ -286,7 +282,8 @@ std::size_t SeqTensorDescriptor::GetTensorRealByteSpaceSeqPacked() const
             acc *= lens[next_pos];
             acc_padding_byte_tmp = acc_padding_byte_tmp * lens[next_pos] + padds[next_pos];
         }
-        else {
+        else
+        {
             if(!is_seq_part) // seq begin
             {
                 acc += acc_padding_byte_tmp;
@@ -307,7 +304,7 @@ std::size_t SeqTensorDescriptor::GetTensorRealByteSpaceSeqPacked() const
 
 std::size_t SeqTensorDescriptor::GetTensorMaxByteSpace() const
 {
-    auto acc  = GetTypeSize(this->type);
+    auto acc = GetTypeSize(this->type);
 
     for(auto it = dim_order.rbegin(); it < dim_order.rend(); it++)
     {
@@ -377,7 +374,7 @@ void SeqTensorDescriptor::SetSequenceLen(const std::vector<std::size_t>& seq_len
     sequence_len = std::vector<std::size_t>(lens[0], lens[1]);
 
     samples_in_descending_order = true;
-    all_sequences_equal_to_max = true;
+    all_sequences_equal_to_max  = true;
 }
 
 bool SeqTensorDescriptor::IsZeroBytePadding() const
@@ -390,26 +387,27 @@ void SeqTensorDescriptor::UpdatePackedFlag()
     packed = IsZeroBytePadding() && (all_sequences_equal_to_max || !padded_seq_layout);
 }
 
-std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const 
+std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
 {
     if(padded_seq_layout)
         MIOPEN_THROW(miopenStatusInternalError, "Only packed SeqTensorDescriptor supported.");
 
-    if (all_sequences_equal_to_max) {
+    if(all_sequences_equal_to_max)
+    {
         return std::vector<size_t>(lens[1], lens[0]);
     }
     std::vector<size_t> batches;
     auto block_begin = sequence_len.rbegin();
-    auto sample_ptr = sequence_len.rbegin();
+    auto sample_ptr  = sequence_len.rbegin();
     auto batch_size  = sequence_len.size();
-    
+
     batches.insert(batches.end(), *block_begin, batch_size);
 
-    while( sample_ptr != sequence_len.rend()) 
+    while(sample_ptr != sequence_len.rend())
     {
         if(*sample_ptr != *block_begin)
         {
-            batch_size = batch_size - (sample_ptr - block_begin);
+            batch_size           = batch_size - (sample_ptr - block_begin);
             const auto seq_count = *sample_ptr - *block_begin;
             batches.insert(batches.end(), seq_count, batch_size);
             block_begin = sample_ptr;
@@ -499,6 +497,5 @@ void from_json(const nlohmann::json& j, SeqTensorDescriptor& descriptor)
     j.at("packed").get_to(descriptor.packed);
     j.at("type").get_to(descriptor.type);
 }
-
 
 } // namespace miopen

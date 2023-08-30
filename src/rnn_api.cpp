@@ -69,11 +69,9 @@ miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
                                     void* paddingMarker)
 {
     (void)paddingMarker;
-    MIOPEN_LOG_FUNCTION(seqTensorDesc,
-                        sequenceLenArrayLimit);
+    MIOPEN_LOG_FUNCTION(seqTensorDesc, sequenceLenArrayLimit);
 
     const auto status = miopen::try_([&] {
-        
         *dataType = miopen::deref(seqTensorDesc).GetType();
         *layout = miopen::RNNDescriptor::getBaseLayoutFromDataTensor(miopen::deref(seqTensorDesc));
 
@@ -82,11 +80,12 @@ miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
 
         if(sequenceLenArray != nullptr)
         {
-            size_t copy_sz = std::min(static_cast<size_t>( sequenceLenArrayLimit),
-                                 miopen::deref(seqTensorDesc).GetSequenceLengthsVector().size());
-            const auto seq_lens_begin = miopen::deref(seqTensorDesc).GetSequenceLengthsVector().begin();
-            std::copy(seq_lens_begin, seq_lens_begin + copy_sz,
-                      sequenceLenArray);
+            size_t copy_sz =
+                std::min(static_cast<size_t>(sequenceLenArrayLimit),
+                         miopen::deref(seqTensorDesc).GetSequenceLengthsVector().size());
+            const auto seq_lens_begin =
+                miopen::deref(seqTensorDesc).GetSequenceLengthsVector().begin();
+            std::copy(seq_lens_begin, seq_lens_begin + copy_sz, sequenceLenArray);
         }
     });
 
@@ -278,11 +277,11 @@ extern "C" miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t miopenGetRNNTempSpaceSizes(miopenHandle_t handle,
-                                                       miopenRNNDescriptor_t rnnDesc,
-                                                       miopenSeqTensorDescriptor_t xDesc,
-                                                       miopenRNNFWDMode_t fwdMode,
-                                                       size_t* workSpaceSize,
-                                                       size_t* reserveSpaceSize)
+                                                     miopenRNNDescriptor_t rnnDesc,
+                                                     miopenSeqTensorDescriptor_t xDesc,
+                                                     miopenRNNFWDMode_t fwdMode,
+                                                     size_t* workSpaceSize,
+                                                     size_t* reserveSpaceSize)
 {
     MIOPEN_LOG_FUNCTION(handle, rnnDesc, xDesc, workSpaceSize, reserveSpaceSize);
 
@@ -626,7 +625,7 @@ extern "C" miopenStatus_t miopenRNNForward(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
-    //LogCmdRNN(xDesc, rnnDesc, sequenceLen, ForwardTraining);
+    // LogCmdRNN(xDesc, rnnDesc, sequenceLen, ForwardTraining);
 
     return miopen::try_([&] {
         miopen::deref(rnnDesc).RNNForward(miopen::deref(handle),

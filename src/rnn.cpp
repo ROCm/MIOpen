@@ -445,23 +445,22 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
 // Main Solution
 // RNN pure algo miopenRNNDataSeqMajorNotPadded
-size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum, 
-                                       miopenRNNFWDMode_t ,//fwd_mode,
-                                       miopenRNNBaseLayout_t io_layout) const
-{   
+size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
+                                              miopenRNNFWDMode_t, // fwd_mode,
+                                              miopenRNNBaseLayout_t io_layout) const
+{
     if(io_layout != miopenRNNDataSeqMajorNotPadded)
         MIOPEN_THROW(miopenStatusInternalError, "wrong io_layout");
-    
-    const bool isBidirect = dirMode == miopenRNNbidirection;
-    //const bool isTraining = fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining;
 
-    return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) *
-           (isBidirect ? 2 : 1);
+    const bool isBidirect = dirMode == miopenRNNbidirection;
+    // const bool isTraining = fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining;
+
+    return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) * (isBidirect ? 2 : 1);
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
-                                          const SeqTensorDescriptor& xDesc,
-                                          miopenRNNFWDMode_t fwd_mode) const
+                                       const SeqTensorDescriptor& xDesc,
+                                       miopenRNNFWDMode_t fwd_mode) const
 {
     if(xDesc.GetType() != dataType)
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
@@ -470,7 +469,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
 
     const auto io_layout      = getBaseLayoutFromDataTensor(xDesc);
     const bool isTransformReq = io_layout != miopenRNNDataSeqMajorNotPadded;
-    
+
     size_t tmpSpaceForTransformer = 0;
     if(isTransformReq)
     {
@@ -480,12 +479,10 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
     const std::size_t inputBatchLenSum = xDesc.GetTotalSequenceLen();
 
     return tmpSpaceForTransformer +
-           GetMainSolWorkspaceSize(inputBatchLenSum,
-                                   fwd_mode,
-                                   miopenRNNDataSeqMajorNotPadded);
+           GetMainSolWorkspaceSize(inputBatchLenSum, fwd_mode, miopenRNNDataSeqMajorNotPadded);
 }
 
-size_t RNNDescriptor::GetMaxWorkspaceSize(Handle&  handle ,
+size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
                                           const SeqTensorDescriptor& xDesc,
                                           miopenRNNFWDMode_t fwd_mode) const
 {
@@ -501,7 +498,7 @@ size_t RNNDescriptor::GetMaxWorkspaceSize(Handle&  handle ,
     return GetWorkspaceSize(handle, x_max, fwd_mode);
 }
 
-//legacy
+// legacy
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
@@ -549,10 +546,13 @@ size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
 
-// This function should return the size of the Reserve buffer which will be sufficient for the tensor 
-//  with tensor with maximum sequence length and maximum count of non empty sequences. 
-// The previous version of this function returned a size sufficient only for the current tensor size.
-size_t RNNDescriptor::GetMaxReserveSize(Handle& /* handle */, const SeqTensorDescriptor& xDesc) const
+// This function should return the size of the Reserve buffer which will be sufficient for the
+// tensor
+//  with tensor with maximum sequence length and maximum count of non empty sequences.
+// The previous version of this function returned a size sufficient only for the current tensor
+// size.
+size_t RNNDescriptor::GetMaxReserveSize(Handle& /* handle */,
+                                        const SeqTensorDescriptor& xDesc) const
 {
     if(xDesc.GetType() != dataType)
     {
@@ -579,8 +579,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     return GetReserveSize(inputBatchLenSum);
 }
 
-size_t
-RNNDescriptor::GetParamsSize(size_t inputVector) const
+size_t RNNDescriptor::GetParamsSize(size_t inputVector) const
 {
     if(inputMode == miopenRNNskip)
     {
@@ -601,7 +600,7 @@ RNNDescriptor::GetParamsSize(size_t inputVector) const
         sz += nLayers * 2 * nHiddenTensorsPerLayer * hsize * bi;
     }
     return size_t(typeSize * sz);
- }
+}
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
@@ -613,7 +612,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
     }
     assert(xDesc.GetLengths().size() > 1);
     auto inputVectorLen = xDesc.GetLengths()[1];
-    
+
     return GetParamsSize(inputVectorLen);
 }
 
@@ -986,8 +985,6 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
 #endif
 }
 
-
-
 std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 {
     stream << r.hsize << ", ";
@@ -1005,7 +1002,7 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 
 std::tuple<std::vector<unsigned int>, bool>
 RNNDescriptor::convertRNNBaseLayout(miopenRNNBaseLayout_t layout)
-{ 
+{
     switch(layout)
     {
     case miopenRNNDataBatchMajorPadded: return {std::vector<unsigned int>{0, 1, 2}, true};
@@ -1021,20 +1018,20 @@ miopenRNNBaseLayout_t RNNDescriptor::getBaseLayoutFromDataTensor(const SeqTensor
 {
     std::initializer_list<miopenRNNBaseLayout_t> base_layouts = {
         miopenRNNDataBatchMajorPadded, miopenRNNDataSeqMajorNotPadded, miopenRNNDataSeqMajorPadded};
-    
+
     const std::vector<unsigned> desc_dim_order = desc.GetLayoutVector();
-    bool desc_seq_is_padded = desc.IsPaddedSeqLayout();
+    bool desc_seq_is_padded                    = desc.IsPaddedSeqLayout();
 
     if(desc_dim_order.size() == 3)
     {
-        for(auto base_layout : base_layouts) 
+        for(auto base_layout : base_layouts)
         {
             const auto [base_dim_order, base_seq_is_padded] = convertRNNBaseLayout(base_layout);
-            
+
             bool layout_equal =
                 (desc_seq_is_padded == base_seq_is_padded) &&
                 std::equal(desc_dim_order.begin(), desc_dim_order.end(), base_dim_order.begin());
-            
+
             if(layout_equal)
                 return base_layout;
         }
@@ -1043,15 +1040,15 @@ miopenRNNBaseLayout_t RNNDescriptor::getBaseLayoutFromDataTensor(const SeqTensor
 }
 
 SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
-                                                miopenRNNBaseLayout_t layout,
-                                                int maxSeqLength,
-                                                int batchSize,
-                                                int vectorSize,
-                                                const int* lensPerSeq)
+                                                           miopenRNNBaseLayout_t layout,
+                                                           int maxSeqLength,
+                                                           int batchSize,
+                                                           int vectorSize,
+                                                           const int* lensPerSeq)
 {
     const std::vector<int> lens = {batchSize, maxSeqLength, vectorSize};
 
-    const auto[dim_order, padded_sequences] = convertRNNBaseLayout(layout);
+    const auto [dim_order, padded_sequences] = convertRNNBaseLayout(layout);
 
     return SeqTensorDescriptor(t,
                                dim_order,
@@ -1061,10 +1058,9 @@ SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
                                padded_sequences);
 }
 
-
 void RNNDescriptor::SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
-                                       std::vector<miopen::TensorDescriptor>& td,
-                                       std::vector<miopenTensorDescriptor_t>& ptd)
+                                               std::vector<miopen::TensorDescriptor>& td,
+                                               std::vector<miopenTensorDescriptor_t>& ptd)
 {
     if(!desc.IsPacked())
         MIOPEN_THROW(miopenStatusInternalError, "Only packed SeqTensorDescriptor supported.");
@@ -1210,7 +1206,7 @@ void RNNDescriptor::RNNVanillaBackwardWeights(Handle& handle,
                                               ConstData_t hx,
                                               const SeqTensorDescriptor& yDesc,
                                               Data_t dw,
-                                              size_t weightSpaceSize,
+                                              size_t,
                                               Data_t workSpace,
                                               size_t workSpaceSize,
                                               ConstData_t reserveSpace,
@@ -1228,21 +1224,20 @@ void RNNDescriptor::RNNVanillaBackwardWeights(Handle& handle,
     miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{outputDescs.data(), seqLen};
 
     return RNNBackwardWeightsPackedTensors(handle,
-                                        seqLen,
-                                        xDescArray,
-                                        x,
-                                        hDesc,
-                                        hx,
-                                        yDescArray,
-                                        TensorDescriptor(this->dataType, {1, 1})
-                                        /* wDesc used only for GetType()*/,
-                                        dw,
-                                        workSpace,
-                                        workSpaceSize,
-                                        reserveSpace,
-                                        reserveSpaceSize);
+                                           seqLen,
+                                           xDescArray,
+                                           x,
+                                           hDesc,
+                                           hx,
+                                           yDescArray,
+                                           TensorDescriptor(this->dataType, {1, 1})
+                                           /* wDesc used only for GetType()*/,
+                                           dw,
+                                           workSpace,
+                                           workSpaceSize,
+                                           reserveSpace,
+                                           reserveSpaceSize);
 }
-
 
 void RNNDescriptor::RNNForward(Handle& handle,
                                miopenRNNFWDMode_t fwdMode,
@@ -1281,7 +1276,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if (weightSpaceSize < GetParamsSize(xDesc.GetLengths()[2])) 
+    if(weightSpaceSize < GetParamsSize(xDesc.GetLengths()[2]))
     {
         MIOPEN_THROW("WeightSpace is too small");
     }
@@ -1363,7 +1358,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
-                                    ConstData_t ,
+                                    ConstData_t,
                                     ConstData_t dy,
                                     const TensorDescriptor& hDesc,
                                     ConstData_t hx,

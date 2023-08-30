@@ -93,7 +93,7 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
 
 std::vector<size_t>
 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(const SeqTensorDescriptor& desc,
-                                                      bool reverse)
+                                                        bool reverse)
 {
     const auto sample_count = desc.GetMaxCountOfSequences();
 
@@ -164,17 +164,18 @@ void RNNTensorBaseLayoutConverter::ReorderInputTensorGPUData(
     if(!padded_tensor_desc.IsPaddedSeqLayout())
         MIOPEN_THROW(miopenStatusInternalError, "Wrong tensor layout");
 
-    //auto get_single_samlpe_lens = [](const std::vector<size_t>& SeqTensor_lens) {
+    // auto get_single_samlpe_lens = [](const std::vector<size_t>& SeqTensor_lens) {
     //    std::vector<size_t> new_lens = SeqTensor_lens;
     //    new_lens[0]                  = 1;
     //    return new_lens;
     //};
     //
-    //const std::vector<size_t> copy_size = get_single_samlpe_lens(padded_tensor_desc.GetLengths());
+    // const std::vector<size_t> copy_size =
+    // get_single_samlpe_lens(padded_tensor_desc.GetLengths());
 
     const std::vector<size_t> src_stride = padded_tensor_desc.GetPaddedStrides();
     const std::vector<size_t> dst_stride = dst_padded_tensor_desc.GetPaddedStrides();
-    
+
     ReorderTensorGPUData(handle,
                          padded_tensor_desc.GetLengths(),
                          0,
@@ -185,14 +186,14 @@ void RNNTensorBaseLayoutConverter::ReorderInputTensorGPUData(
                          dst,
                          padded_tensor_desc.GetType());
 
-    //const auto src_desc =
+    // const auto src_desc =
     //    miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size, src_stride);
-    //const auto dst_desc =
+    // const auto dst_desc =
     //    miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size, dst_stride);
     //
-    //const auto src_sample_stride = src_stride[0];
-    //const auto dst_sample_stride = dst_stride[0];
-    //for(size_t i = 0; i < sample_order.size(); i++)
+    // const auto src_sample_stride = src_stride[0];
+    // const auto dst_sample_stride = dst_stride[0];
+    // for(size_t i = 0; i < sample_order.size(); i++)
     //{
     //    const auto dst_offset = i * dst_sample_stride;
     //    const auto src_offset = sample_order[i] * src_sample_stride;
@@ -229,7 +230,8 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
     const Handle& handle, const SeqTensorDescriptor& tensor_desc, ConstData_t src, Data_t dst)
 {
     if(!tensor_desc.IsSequenceLengthsSorted())
-        MIOPEN_THROW(miopenStatusInternalError, "Wrong tensor descriptor, only sorted tensors supported.");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Wrong tensor descriptor, only sorted tensors supported.");
 
     if(!tensor_desc.IsZeroBytePadding())
         MIOPEN_THROW(miopenStatusInternalError,
@@ -258,10 +260,9 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
     const std::vector<size_t> padded_stride = tensor_desc.GetPaddedStrides();
 
     auto get_packed_stride = [](const std::vector<size_t>& copy_size,
-                                            const std::vector<unsigned>& dim_order,
-                                            miopenDataType_t data_type) {
+                                const std::vector<unsigned>& dim_order) {
         std::vector<std::size_t> byte_strides(copy_size.size());
-        byte_strides.back() = 1; // GetTypeSize(data_type);
+        byte_strides.back() = 1;
 
         for(size_t i = byte_strides.size() - 1; i > 0; i--)
         {
@@ -282,8 +283,8 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         return {box_seq_size, box_batch_size};
     };
 
-    auto get_box_size_seq_major = [](auto& sample_it,
-                                     auto& sample_it_end, bool is_first) -> std::tuple<size_t, size_t> {
+    auto get_box_size_seq_major =
+        [](auto& sample_it, auto& sample_it_end, bool is_first) -> std::tuple<size_t, size_t> {
         size_t start_len      = *sample_it,
                box_seq_size   = is_first ? start_len : start_len - *(sample_it - 1),
                box_batch_size = std::distance(sample_it, sample_it_end);
@@ -292,13 +293,12 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         return {box_seq_size, box_batch_size};
     };
 
-
     size_t src_offset = 0, dst_offset = 0;
     bool first_iter = true;
     while(is_seq_major ? (r_it != r_it_end) : (it != it_end))
     {
         size_t copy_seq_cnt, copy_bsize;
-        
+
         if(is_seq_major)
             std::tie(copy_seq_cnt, copy_bsize) = get_box_size_seq_major(r_it, r_it_end, first_iter);
         else
@@ -309,7 +309,7 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
                                             static_cast<size_t>(vector_size)};
 
         const std::vector<size_t> packed_stride =
-            get_packed_stride(copy_size, tensor_desc.GetLayoutVector(), tensor_desc.GetType());
+            get_packed_stride(copy_size, tensor_desc.GetLayoutVector());
 
         const auto packed_desc =
             miopen::TensorDescriptor(tensor_desc.GetType(), copy_size, packed_stride);
@@ -337,7 +337,6 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         }
         first_iter = false;
     }
-
 }
 
 void RNNTensorBaseLayoutConverter::ChangePaddedTensorGPUDataLayout(
@@ -350,14 +349,14 @@ void RNNTensorBaseLayoutConverter::ChangePaddedTensorGPUDataLayout(
     if(!src_padded_desc.IsPaddedSeqLayout() || !dst_padded_desc.IsPaddedSeqLayout())
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, only padded tensors supported.");
-    
+
     const auto data_type = src_padded_desc.GetType();
 
     if(dst_padded_desc.GetType() != data_type)
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, Dst data type should match src data type.");
 
-    const std::vector<size_t> copy_size  = src_padded_desc.GetLengths();
+    const std::vector<size_t> copy_size = src_padded_desc.GetLengths();
     if(dst_padded_desc.GetLengths() != copy_size)
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, Dst desc size should match Src desc size.");
@@ -370,8 +369,6 @@ void RNNTensorBaseLayoutConverter::ChangePaddedTensorGPUDataLayout(
 
     CopyTensor(handle, src_desc, src, dst_desc, dst, 0, 0, true);
 }
-
-
 
 void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
     const Handle& handle,
@@ -451,11 +448,11 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                 auto src_sortedOrder = GetSamplesDescendingOrder(src_tensor_desc);
 
                 ReorderInputTensorGPUData(handle,
-                                         src_tensor_desc,
-                                         src_sortedOrder,
-                                         sorted_padded_tensor_desc,
-                                         src,
-                                         workspace);
+                                          src_tensor_desc,
+                                          src_sortedOrder,
+                                          sorted_padded_tensor_desc,
+                                          src,
+                                          workspace);
             }
             ConstData_t sorted_padded_tensor_data = is_reordering_req ? workspace : src;
 
@@ -487,7 +484,8 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             (!is_reordering_req && (dst_layout == miopenRNNDataSeqMajorPadded))
                 ? dst
                 : (is_reordering_req && (dst_layout != miopenRNNDataSeqMajorPadded)
-                       ? static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxByteSpace())
+                       ? static_cast<void*>(reinterpret_cast<char*>(workspace) +
+                                            reordered_padded_tensor_desc.GetTensorMaxByteSpace())
                        : workspace);
 
         ChangeTensorGPUDataPadding(handle, src_tensor_desc, src, padded_data);
@@ -505,21 +503,23 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                                                          true);
 
             ReorderInputTensorGPUData(handle,
-                                     padded_tensor_desc,
-                                     src_changer_order,
-                                     reordered_padded_tensor_desc,
-                                     padded_data,
-                                     reordered_tensor_data);
+                                      padded_tensor_desc,
+                                      src_changer_order,
+                                      reordered_padded_tensor_desc,
+                                      padded_data,
+                                      reordered_tensor_data);
         }
 
         if(dst_layout == miopenRNNDataBatchMajorPadded)
-            ConvertInputTensorGPUData(handle,
-                                 reordered_padded_tensor_desc,
-                                 reordered_tensor_data,
-                                 dst_tensor_desc,
-                                 dst,
-                                 static_cast<void*>(reinterpret_cast<char*>(workspace) + reordered_padded_tensor_desc.GetTensorMaxByteSpace()),
-                                 reverse);
+            ConvertInputTensorGPUData(
+                handle,
+                reordered_padded_tensor_desc,
+                reordered_tensor_data,
+                dst_tensor_desc,
+                dst,
+                static_cast<void*>(reinterpret_cast<char*>(workspace) +
+                                   reordered_padded_tensor_desc.GetTensorMaxByteSpace()),
+                reverse);
     }
     else
         MIOPEN_THROW(miopenStatusInternalError, "Unsupported layout.");

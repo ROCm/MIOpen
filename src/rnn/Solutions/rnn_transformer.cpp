@@ -33,10 +33,9 @@
 #include <numeric>
 #include <ostream>
 
-
 namespace miopen {
 
-namespace{
+namespace {
 
 size_t RNNLayoutTransformTotalTmpSpace(miopenRNNMode_t rnnMode,
                                        miopenRNNFWDMode_t fwdMode,
@@ -91,14 +90,14 @@ size_t RNNLayoutTransformTotalTmpSpace(miopenRNNMode_t rnnMode,
         rnnMode, fwdMode, batch, seq_len, in_vec, out_vec, h_size, c_size, num_layers);
 }
 
-inline Data_t PostIncBytePtr (Data_t & tmp_prt, size_t inc_size)
+inline Data_t PostIncBytePtr(Data_t& tmp_prt, size_t inc_size)
 {
     auto ret_ptr = tmp_prt;
     tmp_prt      = static_cast<void*>(reinterpret_cast<char*>(tmp_prt) + inc_size);
     return ret_ptr;
 }
 
-}
+} // namespace
 
 size_t RNNDescriptor::RNNTransformerWorkspaceSize(const SeqTensorDescriptor& xDesc,
                                                   miopenRNNFWDMode_t fwdMode) const
@@ -117,26 +116,27 @@ size_t RNNDescriptor::RNNTransformerWorkspaceSize(const SeqTensorDescriptor& xDe
                                            hsize * (dirMode == miopenRNNunidirection ? 1 : 2),
                                            hsize,
                                            hsize,
-                                           nLayers) * typeSize;
+                                           nLayers) *
+           typeSize;
 }
 
 void RNNDescriptor::RNNTransformerForward(Handle& handle,
-                               miopenRNNFWDMode_t fwdMode,
-                               ConstData_t w,
-                               const SeqTensorDescriptor& xDesc,
-                               ConstData_t x,
-                               const TensorDescriptor& hDesc,
-                               ConstData_t hx,
-                               Data_t hy,
-                               const TensorDescriptor& cDesc,
-                               ConstData_t cx,
-                               Data_t cy,
-                               const SeqTensorDescriptor& yDesc,
-                               Data_t y,
-                               Data_t workSpace,
-                               size_t workSpaceSize,
-                               Data_t reserveSpace,
-                               size_t reserveSpaceSize) const
+                                          miopenRNNFWDMode_t fwdMode,
+                                          ConstData_t w,
+                                          const SeqTensorDescriptor& xDesc,
+                                          ConstData_t x,
+                                          const TensorDescriptor& hDesc,
+                                          ConstData_t hx,
+                                          Data_t hy,
+                                          const TensorDescriptor& cDesc,
+                                          ConstData_t cx,
+                                          Data_t cy,
+                                          const SeqTensorDescriptor& yDesc,
+                                          Data_t y,
+                                          Data_t workSpace,
+                                          size_t workSpaceSize,
+                                          Data_t reserveSpace,
+                                          size_t reserveSpaceSize) const
 {
 
     if(workSpaceSize < GetMaxWorkspaceSize(handle, xDesc, fwdMode))
@@ -174,7 +174,7 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
     }
     else
     {
-        auto dataTypeSize = GetTypeSize(xDesc.GetType());
+        auto dataTypeSize                    = GetTypeSize(xDesc.GetType());
         const std::vector<size_t> sorted_seq = RNNTensorBaseLayoutConverter::GetSortedLens(xDesc);
         const auto [layout_dims_order, layout_seq_padding] =
             convertRNNBaseLayout(miopenRNNDataSeqMajorNotPadded);
@@ -235,23 +235,23 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
             RNNDescriptor packedRnnDesc(*this);
             packedRnnDesc.SetPaddingmode(miopenRNNIONotPadded);
             packedRnnDesc.RNNVanillaForward(handle,
-                                        fwdMode,
-                                        w,
-                                        xDesc_packed_SeqMajor,
-                                        packedXIn_data,
-                                        hDesc,
-                                        hx != nullptr ? tmp_layout_hx : nullptr,
-                                        hy != nullptr ? tmp_layout_hy : nullptr,
-                                        cDesc,
-                                        cx != nullptr ? tmp_layout_cx : nullptr,
-                                        cy != nullptr ? tmp_layout_cy : nullptr,
-                                        yDesc_packed_SeqMajor,
-                                        packedYOut_data,
-                                        workSpace_fwd,
-                                        workSpace_fwd_size,
+                                            fwdMode,
+                                            w,
+                                            xDesc_packed_SeqMajor,
+                                            packedXIn_data,
+                                            hDesc,
+                                            hx != nullptr ? tmp_layout_hx : nullptr,
+                                            hy != nullptr ? tmp_layout_hy : nullptr,
+                                            cDesc,
+                                            cx != nullptr ? tmp_layout_cx : nullptr,
+                                            cy != nullptr ? tmp_layout_cy : nullptr,
+                                            yDesc_packed_SeqMajor,
+                                            packedYOut_data,
+                                            workSpace_fwd,
+                                            workSpace_fwd_size,
 
-                                        reserveSpace,
-                                        reserveSpaceSize);
+                                            reserveSpace,
+                                            reserveSpaceSize);
 
             const std::vector<size_t> output_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc, true);
@@ -266,7 +266,6 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
         RNNTensorBaseLayoutConverter::ReverseConvertInputTensorGPUData(
             handle, yDesc_packed_SeqMajor, packedYOut_data, yDesc, y, converter_workSpace);
     }
-
 }
 
 void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
@@ -315,7 +314,6 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
                                workSpaceSize,
                                reserveSpace,
                                reserveSpaceSize);
-        
     }
     else
     {
@@ -345,18 +343,24 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
 
         const Data_t packedDYOut_data = PostIncBytePtr(tmp_space, packedDYOutSize);
         const Data_t packedDXIn_data  = PostIncBytePtr(tmp_space, packedDXInSize);
-        
-        Data_t converter_workSpace    = tmp_space;
+
+        Data_t converter_workSpace = tmp_space;
         RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             handle, yDesc, dy, yDesc_packed_SeqMajor, packedDYOut_data, converter_workSpace, false);
 
         {
-            const Data_t tmp_layout_hx  = PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
-            const Data_t tmp_layout_dhy = PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
-            const Data_t tmp_layout_dhx = PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
-            const Data_t tmp_layout_cx  = PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
-            const Data_t tmp_layout_dcy = PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
-            const Data_t tmp_layout_dcx = PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_hx =
+                PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_dhy =
+                PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_dhx =
+                PostIncBytePtr(tmp_space, hDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_cx =
+                PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_dcy =
+                PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
+            const Data_t tmp_layout_dcx =
+                PostIncBytePtr(tmp_space, cDesc.GetElementSpace() * dataTypeSize);
 
             const std::vector<size_t> input_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc);
@@ -420,17 +424,17 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
 }
 
 void RNNDescriptor::RNNTransformerBackwardWeights(Handle& handle,
-                                       const SeqTensorDescriptor& xDesc,
-                                       ConstData_t x,
-                                       const TensorDescriptor& hDesc,
-                                       ConstData_t hx,
-                                       const SeqTensorDescriptor& yDesc,
-                                       Data_t dw,
-                                       size_t weightSpaceSize,
-                                       Data_t workSpace,
-                                       size_t workSpaceSize,
-                                       ConstData_t reserveSpace,
-                                       size_t reserveSpaceSize) const
+                                                  const SeqTensorDescriptor& xDesc,
+                                                  ConstData_t x,
+                                                  const TensorDescriptor& hDesc,
+                                                  ConstData_t hx,
+                                                  const SeqTensorDescriptor& yDesc,
+                                                  Data_t dw,
+                                                  size_t weightSpaceSize,
+                                                  Data_t workSpace,
+                                                  size_t workSpaceSize,
+                                                  ConstData_t reserveSpace,
+                                                  size_t reserveSpaceSize) const
 {
     if(workSpaceSize < GetMaxWorkspaceSize(handle, xDesc, miopenRNNFWDMode_t::miopenRNNTraining))
     {
@@ -474,7 +478,7 @@ void RNNDescriptor::RNNTransformerBackwardWeights(Handle& handle,
                                                         true,
                                                         layout_seq_padding);
 
-        size_t packedXInSize  = xDesc_packed_SeqMajor.GetTensorMaxByteSpace();
+        size_t packedXInSize = xDesc_packed_SeqMajor.GetTensorMaxByteSpace();
 
         Data_t tmp_space = workSpace;
 
@@ -490,13 +494,14 @@ void RNNDescriptor::RNNTransformerBackwardWeights(Handle& handle,
 
             const std::vector<size_t> input_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc);
-            
+
             if(hx != nullptr)
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, hx, tmp_layout_hx);
 
-            auto workSpace_shift_size = dataTypeSize * RNNLayoutTransformTotalTmpSpace(
-                rnnMode, miopenRNNTraining, xDesc, yDesc, hDesc, hDesc);
+            auto workSpace_shift_size =
+                dataTypeSize * RNNLayoutTransformTotalTmpSpace(
+                                   rnnMode, miopenRNNTraining, xDesc, yDesc, hDesc, hDesc);
 
             {
                 auto shifted_workSpace = workSpace;
