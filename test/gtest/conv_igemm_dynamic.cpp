@@ -33,27 +33,9 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_GPU_XNACK_ENABLED)
 
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
-    return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
-}
-
 static bool SkipTest(void) { return miopen::IsEnabled(MIOPEN_TEST_GPU_XNACK_ENABLED{}); }
-
-std::string GetFloatArg()
-{
-    static const auto tmp = std::getenv("MIOPEN_TEST_FLOAT_ARG");
-    if(tmp == nullptr)
-    {
-        return "";
-    }
-    return tmp;
-};
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
