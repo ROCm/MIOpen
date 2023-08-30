@@ -71,7 +71,7 @@ struct CKArgsBNormFwd
                   problem.GetXDesc().GetStrides().end(),
                   xyStrides.begin());
         // prep for CK
-        std::sort(xyStrides.begin(), xyStrides.end(),  std::greater<>());
+        std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
         std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
         aligned_scaleBiasMeanVarStrides[0] = 0;
@@ -80,8 +80,8 @@ struct CKArgsBNormFwd
         aligned_scaleBiasMeanVarStrides[3] = 1;
     }
 
-    std::array<ck::index_t, Rank> xyLengths; 
-    std::array<ck::index_t, Rank> xyStrides; 
+    std::array<ck::index_t, Rank> xyLengths;
+    std::array<ck::index_t, Rank> xyStrides;
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
