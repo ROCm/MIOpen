@@ -346,7 +346,7 @@ std::size_t SeqTensorDescriptor::GetTotalSequenceLen() const
 {
     return all_sequences_equal_to_max
                ? lens[0] * lens[1]
-               : std::accumulate(sequence_len.begin(), sequence_len.end(), 0);
+               : std::accumulate(sequence_len.begin(), sequence_len.end(), std::size_t{0});
 }
 
 void SeqTensorDescriptor::SetSequenceLen(const std::vector<std::size_t>& seq_lens)
@@ -394,7 +394,7 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
 
     if(all_sequences_equal_to_max)
     {
-        return std::vector<size_t>(lens[1], lens[0]);
+        return {lens[1], lens[0]};
     }
     std::vector<size_t> batches;
     auto block_begin = sequence_len.rbegin();

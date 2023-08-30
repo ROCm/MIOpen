@@ -129,8 +129,8 @@ struct RNNDescriptor : miopenRNNDescriptor
     convertRNNBaseLayout(miopenRNNBaseLayout_t layout);
 
     size_t GetMainSolWorkspaceSize(size_t batchLenSum,
-                                   miopenRNNFWDMode_t fwd_mode,
-                                   miopenRNNBaseLayout_t io_layout) const;
+                                   miopenRNNFWDMode_t fwdMode,
+                                   miopenRNNBaseLayout_t ioLayout) const;
 
     size_t GetWorkspaceSize(Handle& handle,
                             int seqLength,
@@ -235,9 +235,9 @@ struct RNNDescriptor : miopenRNNDescriptor
                     ConstData_t w,
                     size_t weightSpaceSize,
                     Data_t workSpace,
-                    size_t workSpaceNumBytes,
+                    size_t workSpaceSize,
                     Data_t reserveSpace,
-                    size_t reserveSpaceNumBytes) const;
+                    size_t reserveSpaceSize) const;
 
     void RNNForwardTraining(Handle& handle,
                             int seqLen,
@@ -407,7 +407,6 @@ private:
                                        ConstData_t hx,
                                        const SeqTensorDescriptor& yDesc,
                                        Data_t dw,
-                                       size_t weightSpaceSize,
                                        Data_t workSpace,
                                        size_t workSpaceSize,
                                        ConstData_t reserveSpace,
@@ -427,9 +426,9 @@ private:
                            const SeqTensorDescriptor& yDesc,
                            Data_t y,
                            Data_t workSpace,
-                           size_t workSpaceNumBytes,
+                           size_t workSpaceSize,
                            Data_t reserveSpace,
-                           size_t reserveSpaceNumBytes) const;
+                           size_t reserveSpaceSize) const;
 
     void RNNVanillaBackwardData(Handle& handle,
                                 const SeqTensorDescriptor& yDesc,
@@ -457,7 +456,6 @@ private:
                                    ConstData_t hx,
                                    const SeqTensorDescriptor& yDesc,
                                    Data_t dw,
-                                   size_t weightSpaceSize,
                                    Data_t workSpace,
                                    size_t workSpaceSize,
                                    ConstData_t reserveSpace,
