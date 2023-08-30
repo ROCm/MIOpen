@@ -123,7 +123,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 TEST_P(Conv2dFloat, FloatTest)
 {
     const auto& handle = get_handle();
-    if( IsTestSupportedForDevice(handle) && !SkipTest() ）
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
         Run2dDriver(miopenFloat);
     }
