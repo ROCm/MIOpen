@@ -528,7 +528,7 @@ struct pooling_driver : test_driver
         auto idx_sz  = sizeof(uint8_t);
         int spt_dim  = in_shape.size() - 2;
         const bool skip_many_configs_with_non_int8_index =
-            (dataset_id == 0); // Otherwise the default dataset takes too much time.
+            (dataset_id == 0) && full_set; // Otherwise the default dataset takes too much time.
 
         filter = miopen::PoolingDescriptor
         {
@@ -543,10 +543,23 @@ struct pooling_driver : test_driver
 
         filter.SetIndexType(idx_typ);
         filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
+
+        if(wsidx == 0 && spt_dim == 3 && filter.GetMode() == miopenPoolingMax)
+        {
+            std::cout << "Warning: 3D max pooling doesn't support workspace index mask mode"
+                      << std::endl;
+            print(filter);
+            return;
+        }
+
         switch(idx_typ)
         {
+        /// The "index is too small" limitation is an approximation
+        /// of the real limitation, and therefore applied only when
+        /// the "full test" is ran. See:
+        /// \ref max_pooling_index_max_restriction
         case miopenIndexUint8: {
-            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
+            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set)
             {
                 std::cout << "Warning: Config skipped: uint8 index is too small "
                              "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
@@ -557,7 +570,7 @@ struct pooling_driver : test_driver
             break;
         }
         case miopenIndexUint16: {
-            if(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))
+            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set)
             {
                 std::cout << "Warning: Config skipped: uint16 index is too small "
                              "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
@@ -587,10 +600,10 @@ struct pooling_driver : test_driver
                 // test_pooling_test --all only test 5 uint32 cases
                 if(wsidx == 0)
                 {
-                    if(num_uint32_case > 5 || spt_dim == 3)
+                    if(num_uint32_case > 5)
                     {
                         std::cout << "Warning: Config skipped for the default dataset to speed up "
-                                     "testing (wsidx == 0) && (num_uint32_case > 5 || spt_dim == 3)"
+                                     "testing (wsidx == 0 && num_uint32_case > 5)"
                                   << std::endl;
                         print(filter);
                         return;
@@ -601,8 +614,8 @@ struct pooling_driver : test_driver
                 {
                     if(num_uint32_case_imgidx > 5)
                     {
-                        std::cout << "Warning: Config skipped to speed up testing of the "
-                                     "default dataset (wsidx != 0) && (num_uint32_case_imgidx > 5)"
+                        std::cout << "Warning: Config skipped for the default dataset to speed up "
+                                     "testing (wsidx != 0 && num_uint32_case_imgidx > 5)"
                                   << std::endl;
                         print(filter);
                         return;
@@ -618,10 +631,10 @@ struct pooling_driver : test_driver
             {
                 if(wsidx == 0)
                 {
-                    if(num_uint64_case > 5 || spt_dim == 3)
+                    if(num_uint64_case > 5)
                     {
                         std::cout << "Warning: Config skipped for the default dataset to speed up "
-                                     "testing (wsidx == 0) && (num_uint64_case > 5 || spt_dim == 3)"
+                                     "testing (wsidx == 0) && (num_uint64_case > 5)"
                                   << std::endl;
                         print(filter);
                         return;
