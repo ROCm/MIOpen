@@ -1069,9 +1069,13 @@ void RNNDescriptor::SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
     const size_t vector_size     = desc.GetLengths()[2];
     const auto data_type         = desc.GetType();
 
-    std::transform(bs.begin(), bs.end(), std::back_inserter(td), [&](size_t batch_size) {
-        return miopen::TensorDescriptor(data_type, {batch_size, vector_size});
-    });
+    td.reserve(bs.size());
+    ptd.reserve(bs.size());
+
+    std::transform(
+        bs.begin(), bs.end(), std::back_inserter(td), [data_type, vector_size](size_t batch_size) {
+            return miopen::TensorDescriptor(data_type, {batch_size, vector_size});
+        });
     std::transform(td.begin(), td.end(), std::back_inserter(ptd), [](miopen::TensorDescriptor& x) {
         return &x;
     });

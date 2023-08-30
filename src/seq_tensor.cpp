@@ -337,7 +337,7 @@ std::size_t SeqTensorDescriptor::GetNonEmptySeqCount() const
            : samples_in_descending_order
                ? std::distance(sequence_len.begin(),
                                std::lower_bound(sequence_len.begin(), sequence_len.end(), 0))
-               : std::count_if(sequence_len.begin(), sequence_len.end(), [&](auto const& val) {
+               : std::count_if(sequence_len.begin(), sequence_len.end(), [](auto const val) {
                      return val > 0;
                  });
 }
@@ -387,6 +387,7 @@ void SeqTensorDescriptor::UpdatePackedFlag()
     packed = IsZeroBytePadding() && (all_sequences_equal_to_max || !padded_seq_layout);
 }
 
+//? move to RNN maybe
 std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
 {
     if(padded_seq_layout)

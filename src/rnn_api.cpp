@@ -85,7 +85,7 @@ miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
                          miopen::deref(seqTensorDesc).GetSequenceLengthsVector().size());
             const auto seq_lens_begin =
                 miopen::deref(seqTensorDesc).GetSequenceLengthsVector().begin();
-            std::copy(seq_lens_begin, seq_lens_begin + copy_sz, sequenceLenArray);
+            std::copy_n(seq_lens_begin, copy_sz, sequenceLenArray);
         }
     });
 
@@ -620,8 +620,7 @@ extern "C" miopenStatus_t miopenRNNForward(miopenHandle_t handle,
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(rnnDesc).dataType == miopenBFloat16 ||
-       miopen::deref(rnnDesc).dataType == miopenBFloat16)
+    if(miopen::deref(rnnDesc).dataType == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -693,8 +692,7 @@ extern "C" miopenStatus_t miopenRNNBackwardSeqData(miopenHandle_t handle,
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(rnnDesc).dataType == miopenBFloat16 ||
-       miopen::deref(rnnDesc).dataType == miopenBFloat16)
+    if(miopen::deref(rnnDesc).dataType == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -755,8 +753,7 @@ extern "C" miopenStatus_t miopenRNNBackwardWeightsSeqTensor(miopenHandle_t handl
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(rnnDesc).dataType == miopenBFloat16 ||
-       miopen::deref(rnnDesc).dataType == miopenBFloat16)
+    if(miopen::deref(rnnDesc).dataType == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
