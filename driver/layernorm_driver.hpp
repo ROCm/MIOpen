@@ -161,11 +161,6 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(meanDesc, outer_len, data_type);
     SetTensorNd(rstdDesc, outer_len, data_type);
 
-    SetTensorNd(dinputDesc, in_len, data_type);
-    SetTensorNd(dweightDesc, inner_len, data_type);
-    SetTensorNd(dbiasDesc, inner_len, data_type);
-    SetTensorNd(doutputDesc, in_len, data_type);
-
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
 
@@ -175,6 +170,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LayerNorm (Default=1)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
