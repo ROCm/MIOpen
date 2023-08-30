@@ -48,7 +48,7 @@ namespace conv {
 namespace {
 
 std::function<void(std::ostream&)>
-PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
+PrintDHW(char sep, unsigned spatial_dims, int depth, int height, int width)
 {
     return [=](std::ostream& stream) {
         if(spatial_dims > 2)
@@ -107,13 +107,14 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
 {
     std::ostringstream ss;
 
-    ss << GetInChannels();
-    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
+    ss << GetInChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
     ss << 'x'
-       << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
-    ss << 'x' << GetOutChannels();
-    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
-    ss << 'x' << GetInBatchSize();
+       << PrintDHW(
+              'x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    ss << 'x' << GetOutChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
+    ss << 'x' << GetInBatchSize_();
     if((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") ||
        (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
@@ -145,12 +146,12 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     // Problem description with non-default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
-    stream << GetInChannels();
-    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
-    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
-    stream << sep << GetOutChannels();
-    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
-    stream << sep << GetInBatchSize();
+    stream << GetInChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    stream << sep << GetOutChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
+    stream << sep << GetInBatchSize_();
     stream << sep << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());

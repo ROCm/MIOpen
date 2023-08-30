@@ -1,9 +1,9 @@
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
-boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion "
-ROCmSoftwarePlatform/half@4f19ce3e56f3d3a17cf69f9db4ff3722f7445b0d --build
-ROCmSoftwarePlatform/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1 -DCMAKE_IGNORE_PATH=/opt/conda/envs/py_3.8
+boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-deprecated-declarations "
+ROCmSoftwarePlatform/half@10abd99e7815f0ca5d892f58dd7d15a23b7cf92c --build
+ROCmSoftwarePlatform/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1 -DCMAKE_IGNORE_PATH=/opt/conda/envs/py_3.9 -DCMAKE_IGNORE_PREFIX_PATH=/opt/conda
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCmSoftwarePlatform/FunctionalPlus@v0.2.18-p0
 ROCmSoftwarePlatform/eigen@3.4.0
 ROCmSoftwarePlatform/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCmSoftwarePlatform/composable_kernel@f0831350d15c3d368d7ae321dd08441d6569086e -DDTYPES="fp16;fp32;bf16" -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
+ROCmSoftwarePlatform/composable_kernel@0629870d27397ab10a90fde6d7050f3e3d65fc2f -DDTYPES="fp16;fp32;bf16" -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
