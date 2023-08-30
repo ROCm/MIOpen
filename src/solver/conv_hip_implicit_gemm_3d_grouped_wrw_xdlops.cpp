@@ -119,6 +119,29 @@ struct CKArgs
         rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+        std::cout<<"~~~~ filter strides: "<<std::endl;
+        for(auto x:strides){
+            std::cout<<x<<" ";
+        }
+        std::cout<<std::endl;
+
+        std::cout<<"~~~~ filter dilation: "<<std::endl;
+        for(auto x:dilation){
+            std::cout<<x<<" ";
+        }
+        std::cout<<std::endl;
+
+        std::cout<<"~~~~ filter lPadding: "<<std::endl;
+        for(auto x:lPadding){
+            std::cout<<x<<" ";
+        }
+        std::cout<<std::endl;
+
+        std::cout<<"~~~~ filter rPadding: "<<std::endl;
+        for(auto x:rPadding){
+            std::cout<<x<<" ";
+        }
+        std::cout<<std::endl;
     }
     int G;
     int N;
