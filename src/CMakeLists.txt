@@ -136,6 +136,8 @@ set( MIOpen_Source
     reducetensor_api.cpp
     rnn.cpp
     rnn_api.cpp
+    rnn/rnn_util.cpp
+    rnn/Solutions/rnn_transformer.cpp
     softmax_api.cpp
     solution.cpp
     conv/solver_finders.cpp

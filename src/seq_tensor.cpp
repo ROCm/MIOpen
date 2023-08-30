@@ -135,8 +135,8 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 }
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
-                                         const std::initializer_list<unsigned int>& layout_in,
-                                         const std::initializer_list<int>& lens_in,
+                                         const std::vector<unsigned int>& layout_in,
+                                         const std::vector<int>& lens_in,
                                          const std::vector<int>& seq_len,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
@@ -179,8 +179,8 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
     : 
       lens(lens_in), padded_seq_layout(with_padded_seq_layout), type(t)
 {
-    if(lens_in.size() >= 2)
-        MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
+    if(lens_in.size() <= 2)
+        MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 2");
     if(!CheckLengths(lens_in))
         MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0");
 

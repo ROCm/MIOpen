@@ -443,24 +443,73 @@ RNNDescriptor::RNNDescriptor(int hsz,
     }
 }
 
+// Main Solution
+// RNN pure algo miopenRNNDataSeqMajorNotPadded
+size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum, 
+                                       miopenRNNFWDMode_t fwd_mode,
+                                       miopenRNNBaseLayout_t io_layout) const
+{   
+    if(io_layout != miopenRNNDataSeqMajorNotPadded)
+        MIOPEN_THROW(miopenStatusInternalError, "wrong io_layout");
+    
+    const bool isBidirect = dirMode == miopenRNNbidirection;
+    const bool isTraining = fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining;
+
+    return (isTraining ? 0 : workspaceScale * nLayers * batchLenSum * hsize * typeSize) *
+           (isBidirect ? 2 : 1);
+}
+
+size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
+                                          const SeqTensorDescriptor& xDesc,
+                                          miopenRNNFWDMode_t fwd_mode) const
+{
+    if(xDesc.GetType() != dataType)
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
+    if(!xDesc.IsZeroBytePadding())
+        MIOPEN_THROW(miopenStatusInternalError, "wrong BytePadding ");
+
+    const auto io_layout      = getBaseLayoutFromDataTensor(xDesc);
+    const bool isTransformReq = io_layout != miopenRNNDataSeqMajorNotPadded;
+    
+    size_t tmpSpaceForTransformer = 0;
+    if(isTransformReq)
+    {
+        tmpSpaceForTransformer = RNNTransformerWorkspaceSize(xDesc, fwd_mode);
+    }
+
+    const std::size_t inputBatchLenSum = xDesc.GetTotalSequenceLen();
+
+    return tmpSpaceForTransformer +
+           GetMainSolWorkspaceSize(inputBatchLenSum,
+                                   fwd_mode,
+                                   miopenRNNDataSeqMajorNotPadded);
+}
+
+size_t RNNDescriptor::GetMaxWorkspaceSize(Handle&  handle ,
+                                          const SeqTensorDescriptor& xDesc,
+                                          miopenRNNFWDMode_t fwd_mode) const
+{
+    if(xDesc.GetType() != dataType)
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
+
+    const SeqTensorDescriptor x_max = SeqTensorDescriptor(dataType,
+                                                          xDesc.GetLayoutVector(),
+                                                          xDesc.GetLengths(),
+                                                          xDesc.GetPadding(),
+                                                          xDesc.IsPaddedSeqLayout());
+
+    return GetWorkspaceSize(handle, x_max, fwd_mode);
+}
+
+//legacy
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
-
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-
-    std::size_t inputBatchLenSum = 0;
-    inputBatchLenSum             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
-    auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
-
-    bool isBidirect = dirMode == miopenRNNbidirection;
 
     size_t spaceForPaddingTransform = 0;
     if(paddingMode == miopenRNNPaddingMode_t::miopenRNNIOWithPadding)
@@ -471,9 +520,48 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
         spaceForPaddingTransform = packedXInSpace + packedYOutSpace;
     }
 
-    return size_t(isBidirect ? 2 * x : x) + spaceForPaddingTransform;
+    std::size_t inputBatchLenSum = 0;
+    inputBatchLenSum             = std::accumulate(
+        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            return x + deref(y).GetLengths()[0];
+        });
+
+    return spaceForPaddingTransform + GetMainSolWorkspaceSize(inputBatchLenSum,
+                                                              miopenRNNInference,
+                                                              miopenRNNDataSeqMajorNotPadded);
 }
 
+/////////////////////////////////
+
+size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
+{
+    auto x = 2 * workspaceScale * nLayers * batchLenSum * hsize * typeSize;
+    if(algoMode == miopenRNNdefault && rnnMode == miopenLSTM)
+    {
+        x /= 2;
+        x += nLayers * batchLenSum * hsize * typeSize;
+    }
+    if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+    {
+        x += (nLayers - 1) * batchLenSum * hsize * typeSize;
+        x += (nLayers - 1) * batchLenSum * hsize * sizeof(bool);
+    }
+    return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
+}
+
+// This function should return the size of the Reserve buffer which will be sufficient for the tensor 
+//  with tensor with maximum sequence length and maximum count of non empty sequences. 
+// The previous version of this function returned a size sufficient only for the current tensor size.
+size_t RNNDescriptor::GetMaxReserveSize(Handle& /* handle */, const SeqTensorDescriptor& xDesc) const
+{
+    if(xDesc.GetType() != dataType)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
+    }
+    return GetReserveSize(xDesc.GetMaxSequenceLength() * xDesc.GetMaxCountOfSequences());
+}
+
+// Legacy.
 size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
                                      const int seqLength,
                                      c_array_view<const miopenTensorDescriptor_t> xDesc) const
@@ -488,18 +576,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
         xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
             return x + deref(y).GetLengths()[0];
         });
-    auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
-    if(algoMode == miopenRNNdefault && rnnMode == miopenLSTM)
-    {
-        x /= 2;
-        x += nLayers * inputBatchLenSum * hsize * typeSize;
-    }
-    if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
-    {
-        x += (nLayers - 1) * inputBatchLenSum * hsize * typeSize;
-        x += (nLayers - 1) * inputBatchLenSum * hsize * sizeof(bool);
-    }
-    return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
+    return GetReserveSize(inputBatchLenSum);
 }
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
@@ -897,23 +974,31 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
 #endif
 }
 
-void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
-                                                  const TensorDescriptor& padded_tensor_desc,
-                                                  std::vector<int>& bsize_per_time,
-                                                  ConstData_t src,
-                                                  Data_t dst,
-                                                  bool is_src_padded)
-{
 
-std::tuple<std::initializer_list<unsigned int>, bool>
-convertRNNBaseLayout(miopenRNNBaseLayout_t layout)
+
+std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
+{
+    stream << r.hsize << ", ";
+    stream << r.nLayers << ", ";
+    stream << r.nHiddenTensorsPerLayer << ", ";
+    stream << r.workspaceScale << ", ";
+    stream << r.rnnMode << ", ";
+    stream << r.dirMode << ", ";
+    stream << r.algoMode << ", ";
+    stream << r.inputMode << ", ";
+    stream << r.biasMode << ", ";
+    stream << r.dropoutDesc << ", ";
+    return stream;
+}
+
+std::tuple<std::vector<unsigned int>, bool>
+RNNDescriptor::convertRNNBaseLayout(miopenRNNBaseLayout_t layout)
 { 
     switch(layout)
     {
-    case miopenRNNDataBatchMajorPadded: return {std::initializer_list<unsigned int>{0, 1, 2}, true};
-    case miopenRNNDataSeqMajorNotPadded:
-        return {std::initializer_list<unsigned int>{1, 0, 2}, false};
-    case miopenRNNDataSeqMajorPadded: return {std::initializer_list<unsigned int>{1, 0, 2}, true};
+    case miopenRNNDataBatchMajorPadded: return {std::vector<unsigned int>{0, 1, 2}, true};
+    case miopenRNNDataSeqMajorNotPadded: return {std::vector<unsigned int>{1, 0, 2}, false};
+    case miopenRNNDataSeqMajorPadded: return {std::vector<unsigned int>{1, 0, 2}, true};
 
     case miopenRNNDataUnknownLayout:
     default: MIOPEN_THROW(miopenStatusBadParm, "error: Unknown miopenRNNBaseLayout_t "); break;
@@ -924,7 +1009,7 @@ miopenRNNBaseLayout_t RNNDescriptor::getBaseLayoutFromDataTensor(const SeqTensor
 {
     std::initializer_list<miopenRNNBaseLayout_t> base_layouts = {
         miopenRNNDataBatchMajorPadded, miopenRNNDataSeqMajorNotPadded, miopenRNNDataSeqMajorPadded};
-
+    
     const std::vector<unsigned> desc_dim_order = desc.GetLayoutVector();
     bool desc_seq_is_padded = desc.IsPaddedSeqLayout();
 
@@ -932,9 +1017,7 @@ miopenRNNBaseLayout_t RNNDescriptor::getBaseLayoutFromDataTensor(const SeqTensor
     {
         for(auto base_layout : base_layouts) 
         {
-            std::initializer_list<unsigned int> base_dim_order;
-            bool base_seq_is_padded;
-            std::tie(base_dim_order, base_seq_is_padded) = convertRNNBaseLayout(base_layout);
+            const auto [base_dim_order, base_seq_is_padded] = convertRNNBaseLayout(base_layout);
             
             bool layout_equal =
                 (desc_seq_is_padded == base_seq_is_padded) &&
@@ -952,23 +1035,22 @@ SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
                                                 int maxSeqLength,
                                                 int batchSize,
                                                 int vectorSize,
-                                                const int* seq_len)
-        {
-    const std::initializer_list<int> lens = {batchSize, maxSeqLength, vectorSize};
-    std::initializer_list<unsigned int> dim_order;
-    bool padded_sequences;
-    std::tie(dim_order, padded_sequences) = convertRNNBaseLayout(layout);
+                                                const int* lensPerSeq)
+{
+    const std::vector<int> lens = {batchSize, maxSeqLength, vectorSize};
+
+    const auto[dim_order, padded_sequences] = convertRNNBaseLayout(layout);
 
     return SeqTensorDescriptor(t,
                                dim_order,
                                lens,
-                               std::vector<int>(seq_len, seq_len + maxSeqLength),
+                               std::vector<int>(lensPerSeq, lensPerSeq + batchSize),
                                true,
                                padded_sequences);
 }
 
 
-void SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
+void RNNDescriptor::SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
                                        std::vector<miopen::TensorDescriptor>& td,
                                        std::vector<miopenTensorDescriptor_t>& ptd)
 {
@@ -987,40 +1069,507 @@ void SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
     });
 }
 
-            if(is_src_padded)
-            {
-                CopyTensor(
-                    handle, padded_desc, src, packed_desc, dst, src_offset, dst_offset, true);
+void RNNDescriptor::RNNVanillaForward(Handle& handle,
+                                      miopenRNNFWDMode_t fwdMode,
+                                      ConstData_t w,
+                                      const SeqTensorDescriptor& xDesc,
+                                      ConstData_t x,
+                                      const TensorDescriptor& hDesc,
+                                      ConstData_t hx,
+                                      Data_t hy,
+                                      const TensorDescriptor& cDesc,
+                                      ConstData_t cx,
+                                      Data_t cy,
+                                      const SeqTensorDescriptor& yDesc,
+                                      Data_t y,
+                                      Data_t workSpace,
+                                      size_t workSpaceSize,
+                                      Data_t reserveSpace,
+                                      size_t reserveSpaceSize) const
+{
+    std::vector<miopen::TensorDescriptor> inputCPPDescs, outputCPPDescs;
+    std::vector<miopenTensorDescriptor_t> inputDescs, outputDescs;
 
-                src_offset += WA_padded_ElementSpace;
-                dst_offset += packed_desc.GetElementSpace();
-            }
-            else
-            {
-                CopyTensor(
-                    handle, packed_desc, src, padded_desc, dst, src_offset, dst_offset, true);
+    SeqTensorToTensorDescArray(xDesc, inputCPPDescs, inputDescs);
+    SeqTensorToTensorDescArray(yDesc, outputCPPDescs, outputDescs);
 
-                src_offset += packed_desc.GetElementSpace();
-                dst_offset += WA_padded_ElementSpace;
-            }
-            left_id = i;
-        }
-    }
+    auto seqLen = inputDescs.size();
+
+    miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{inputDescs.data(), seqLen};
+    miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{outputDescs.data(), seqLen};
+
+    if(fwdMode == miopenRNNFWDMode_t::miopenRNNTraining)
+        return RNNForwardTrainingPackedTensors(handle,
+                                               seqLen,
+                                               xDescArray,
+                                               x,
+                                               hDesc,
+                                               hx,
+                                               cDesc,
+                                               cx,
+                                               TensorDescriptor(this->dataType, {1, 1})
+                                               /* wDesc used only for GetType()*/,
+                                               w,
+                                               yDescArray,
+                                               y,
+                                               hDesc,
+                                               hy,
+                                               cDesc,
+                                               cy,
+                                               reserveSpace,
+                                               reserveSpaceSize);
+    else
+        return RNNForwardInferencePacked(handle,
+                                         seqLen,
+                                         xDescArray,
+                                         x,
+                                         hDesc,
+                                         hx,
+                                         cDesc,
+                                         cx,
+                                         TensorDescriptor(this->dataType, {1, 1})
+                                         /* wDesc used only for GetType()*/,
+                                         w,
+                                         yDescArray,
+                                         y,
+                                         hDesc,
+                                         hy,
+                                         cDesc,
+                                         cy,
+                                         workSpace,
+                                         workSpaceSize);
 }
 
-std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
+void RNNDescriptor::RNNVanillaBackwardData(Handle& handle,
+                                           const SeqTensorDescriptor& yDesc,
+                                           ConstData_t dy,
+                                           const TensorDescriptor& hDesc,
+                                           ConstData_t hx,
+                                           ConstData_t dhy,
+                                           Data_t dhx,
+                                           const TensorDescriptor& cDesc,
+                                           ConstData_t cx,
+                                           ConstData_t dcy,
+                                           Data_t dcx,
+                                           const SeqTensorDescriptor& xDesc,
+                                           Data_t dx,
+                                           ConstData_t w,
+                                           Data_t workSpace,
+                                           size_t workSpaceSize,
+                                           Data_t reserveSpace,
+                                           size_t reserveSpaceSize) const
 {
-    stream << r.hsize << ", ";
-    stream << r.nLayers << ", ";
-    stream << r.nHiddenTensorsPerLayer << ", ";
-    stream << r.workspaceScale << ", ";
-    stream << r.rnnMode << ", ";
-    stream << r.dirMode << ", ";
-    stream << r.algoMode << ", ";
-    stream << r.inputMode << ", ";
-    stream << r.biasMode << ", ";
-    stream << r.dropoutDesc << ", ";
-    return stream;
+    std::vector<miopen::TensorDescriptor> inputCPPDescs, outputCPPDescs;
+    std::vector<miopenTensorDescriptor_t> inputDescs, outputDescs;
+
+    SeqTensorToTensorDescArray(xDesc, inputCPPDescs, inputDescs);
+    SeqTensorToTensorDescArray(yDesc, outputCPPDescs, outputDescs);
+
+    auto seqLen = inputDescs.size();
+
+    miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{inputDescs.data(), seqLen};
+    miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{outputDescs.data(), seqLen};
+
+    return RNNBackwardDataPackedTensors(handle,
+                                        seqLen,
+                                        yDescArray,
+                                        dy,
+                                        dhy,
+                                        dcy,
+                                        w,
+                                        hx,
+                                        cx,
+                                        xDescArray,
+                                        dx,
+                                        hDesc,
+                                        dhx,
+                                        cDesc,
+                                        dcx,
+                                        workSpace,
+                                        workSpaceSize,
+                                        reserveSpace,
+                                        reserveSpaceSize);
+}
+
+void RNNDescriptor::RNNVanillaBackwardWeights(Handle& handle,
+                                              const SeqTensorDescriptor& xDesc,
+                                              ConstData_t x,
+                                              const TensorDescriptor& hDesc,
+                                              ConstData_t hx,
+                                              const SeqTensorDescriptor& yDesc,
+                                              Data_t dw,
+                                              size_t weightSpaceSize,
+                                              Data_t workSpace,
+                                              size_t workSpaceSize,
+                                              ConstData_t reserveSpace,
+                                              size_t reserveSpaceSize) const
+{
+    std::vector<miopen::TensorDescriptor> inputCPPDescs, outputCPPDescs;
+    std::vector<miopenTensorDescriptor_t> inputDescs, outputDescs;
+
+    SeqTensorToTensorDescArray(xDesc, inputCPPDescs, inputDescs);
+    SeqTensorToTensorDescArray(yDesc, outputCPPDescs, outputDescs);
+
+    auto seqLen = inputDescs.size();
+
+    miopen::c_array_view<const miopenTensorDescriptor_t> xDescArray{inputDescs.data(), seqLen};
+    miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{outputDescs.data(), seqLen};
+
+    return RNNBackwardWeightsPackedTensors(handle,
+                                        seqLen,
+                                        xDescArray,
+                                        x,
+                                        hDesc,
+                                        hx,
+                                        yDescArray,
+                                        TensorDescriptor(this->dataType, {1, 1})
+                                        /* wDesc used only for GetType()*/,
+                                        dw,
+                                        workSpace,
+                                        workSpaceSize,
+                                        reserveSpace,
+                                        reserveSpaceSize);
+}
+
+
+void RNNDescriptor::RNNForward(Handle& handle,
+                               miopenRNNFWDMode_t fwdMode,
+                               const SeqTensorDescriptor& xDesc,
+                               ConstData_t x,
+                               const TensorDescriptor& hDesc,
+                               ConstData_t hx,
+                               Data_t hy,
+                               const TensorDescriptor& cDesc,
+                               ConstData_t cx,
+                               Data_t cy,
+                               const SeqTensorDescriptor& yDesc,
+                               Data_t y,
+                               ConstData_t w,
+                               size_t weightSpaceSize,
+                               Data_t workSpace,
+                               size_t workSpaceSize,
+                               Data_t reserveSpace,
+                               size_t reserveSpaceSize) const
+{
+    if(x == nullptr || w == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(hDesc.GetSize() != cDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(reserveSpaceSize < GetMaxReserveSize(handle, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
+
+    if(workSpaceSize < GetMaxWorkspaceSize(handle, xDesc, fwdMode))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+    if (weightSpaceSize < GetParamsSize(xDesc.GetLengths()[2])) 
+    {
+        MIOPEN_THROW("WeightSpace is too small");
+    }
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+        const auto xDesc_base_layout = RNNDescriptor::getBaseLayoutFromDataTensor(xDesc);
+
+        if(xDesc_base_layout == miopenRNNDataSeqMajorNotPadded)
+        {
+            RNNVanillaForward(handle,
+                              fwdMode,
+                              w,
+                              xDesc,
+                              x,
+                              hDesc,
+                              hx,
+                              hy,
+                              cDesc,
+                              cx,
+                              cy,
+                              yDesc,
+                              y,
+                              workSpace,
+                              workSpaceSize,
+                              reserveSpace,
+                              reserveSpaceSize);
+        }
+        else
+        {
+            RNNTransformerForward(handle,
+                                  fwdMode,
+                                  w,
+                                  xDesc,
+                                  x,
+                                  hDesc,
+                                  hx,
+                                  hy,
+                                  cDesc,
+                                  cx,
+                                  cy,
+                                  yDesc,
+                                  y,
+                                  workSpace,
+                                  workSpaceSize,
+                                  reserveSpace,
+                                  reserveSpaceSize);
+        }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
+}
+
+void RNNDescriptor::RNNBackwardData(Handle& handle,
+                                    const SeqTensorDescriptor& yDesc,
+                                    ConstData_t ,
+                                    ConstData_t dy,
+                                    const TensorDescriptor& hDesc,
+                                    ConstData_t hx,
+                                    ConstData_t dhy,
+                                    Data_t dhx,
+                                    const TensorDescriptor& cDesc,
+                                    ConstData_t cx,
+                                    ConstData_t dcy,
+                                    Data_t dcx,
+                                    const SeqTensorDescriptor& xDesc,
+                                    Data_t dx,
+                                    ConstData_t w,
+                                    size_t weightSpaceSize,
+                                    Data_t workSpace,
+                                    size_t workSpaceSize,
+                                    Data_t reserveSpace,
+                                    size_t reserveSpaceSize) const
+{
+
+    if(dx == nullptr || w == nullptr || dy == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(hDesc.GetSize() != cDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(reserveSpaceSize < GetMaxReserveSize(handle, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
+
+    if(workSpaceSize < GetMaxWorkspaceSize(handle, xDesc, miopenRNNTraining))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+
+    if(weightSpaceSize < GetParamsSize(xDesc.GetLengths()[2]))
+    {
+        MIOPEN_THROW("WeightSpace is too small");
+    }
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+        const auto xDesc_base_layout = RNNDescriptor::getBaseLayoutFromDataTensor(xDesc);
+
+        if(xDesc_base_layout == miopenRNNDataSeqMajorNotPadded)
+        {
+            RNNVanillaBackwardData(handle,
+                                   yDesc,
+                                   dy,
+                                   hDesc,
+                                   hx,
+                                   dhy,
+                                   dhx,
+                                   cDesc,
+                                   cx,
+                                   dcy,
+                                   dcx,
+                                   xDesc,
+                                   dx,
+                                   w,
+                                   workSpace,
+                                   workSpaceSize,
+                                   reserveSpace,
+                                   reserveSpaceSize);
+        }
+        else
+        {
+            RNNTransformerBackwardData(handle,
+                                       yDesc,
+                                       dy,
+                                       hDesc,
+                                       hx,
+                                       dhy,
+                                       dhx,
+                                       cDesc,
+                                       cx,
+                                       dcy,
+                                       dcx,
+                                       xDesc,
+                                       dx,
+                                       w,
+                                       workSpace,
+                                       workSpaceSize,
+                                       reserveSpace,
+                                       reserveSpaceSize);
+        }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
+}
+
+void RNNDescriptor::RNNBackwardWeights(Handle& handle,
+                                       const SeqTensorDescriptor& xDesc,
+                                       ConstData_t x,
+                                       const TensorDescriptor& hDesc,
+                                       ConstData_t hx,
+                                       const SeqTensorDescriptor& yDesc,
+                                       ConstData_t,
+                                       Data_t dw,
+                                       size_t weightSpaceSize,
+                                       Data_t workSpace,
+                                       size_t workSpaceSize,
+                                       ConstData_t reserveSpace,
+                                       size_t reserveSpaceSize) const
+{
+
+    if(x == nullptr || dw == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(reserveSpaceSize < GetMaxReserveSize(handle, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
+
+    if(workSpaceSize < GetMaxWorkspaceSize(handle, xDesc, miopenRNNTraining))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+
+    if(weightSpaceSize < GetParamsSize(xDesc.GetLengths()[2]))
+    {
+        MIOPEN_THROW("WeightSpace is too small");
+    }
+
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    bool is_profiling = handle.IsProfilingEnabled();
+
+    if(is_profiling)
+    {
+        handle.EnableProfiling(false);
+        RNNProfilingBegin(handle, start, stop);
+    }
+    try
+    {
+#endif
+        const auto xDesc_base_layout = RNNDescriptor::getBaseLayoutFromDataTensor(xDesc);
+
+        if(xDesc_base_layout == miopenRNNDataSeqMajorNotPadded)
+        {
+            RNNVanillaBackwardWeights(handle,
+                                      xDesc,
+                                      x,
+                                      hDesc,
+                                      hx,
+                                      yDesc,
+                                      dw,
+                                      weightSpaceSize,
+                                      workSpace,
+                                      workSpaceSize,
+                                      reserveSpace,
+                                      reserveSpaceSize);
+        }
+        else
+        {
+            RNNTransformerBackwardWeights(handle,
+                                          xDesc,
+                                          x,
+                                          hDesc,
+                                          hx,
+                                          yDesc,
+                                          dw,
+                                          weightSpaceSize,
+                                          workSpace,
+                                          workSpaceSize,
+                                          reserveSpace,
+                                          reserveSpaceSize);
+        }
+
+#if MIOPEN_BACKEND_HIP
+    }
+    catch(...)
+    {
+        if(is_profiling)
+            handle.EnableProfiling(true);
+        throw;
+    }
+
+    if(is_profiling)
+    {
+        float eventTime_mS = RNNProfilingEnd(handle, start, stop);
+        handle.EnableProfiling(true);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(eventTime_mS);
+    }
+#endif
 }
 
 } // namespace miopen

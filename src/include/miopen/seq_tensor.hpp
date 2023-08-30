@@ -73,8 +73,8 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
                         bool with_padded_seq_layout);
 
     SeqTensorDescriptor(miopenDataType_t t,
-                        const std::initializer_list<unsigned int>& layout_in,
-                        const std::initializer_list<int>& lens_in,
+                        const std::vector<unsigned int>& layout_in,
+                        const std::vector<int>& lens_in,
                         const std::vector<int>& seq_len,
                         bool use_seq_len,
                         bool with_padded_seq_layout);
@@ -122,9 +122,9 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
     // Calculate the number of tensor significant elements in pieces
     std::size_t GetElementCount() const;
     // Calculating the size of the occupied disk space in bytes
-    std::size_t GetTensorRealSpace() const;
-    // Calculating the maximal tensor size if all sequences are of the maximum size
-    std::size_t GetTensorMaxSpace() const;
+    std::size_t GetTensorRealByteSpace() const;
+    // Calculating the maximal tensor size in bytes if all sequences are of the maximum size
+    std::size_t GetTensorMaxByteSpace() const;
 
     bool operator==(const SeqTensorDescriptor& rhs) const;
     bool operator!=(const SeqTensorDescriptor& rhs) const;
@@ -141,12 +141,12 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
 
 private:
 
-    std::size_t GetTensorRealSpaceSeqPacked() const;
+    std::size_t GetTensorRealByteSpaceSeqPacked() const;
 
     static std::vector<unsigned int> GetDefaultLayoutVector(int dims)
     {
         std::vector<unsigned int> layout_default(dims);
-        std::iota(layout_default.begin(), layout_default.end(), 1);
+        std::iota(layout_default.begin(), layout_default.end(), 0);
         return layout_default;
     };
 
