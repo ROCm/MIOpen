@@ -25,11 +25,8 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.5)
 
-find_package(Threads REQUIRED)
-
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
-target_link_libraries(MIOpenDriver MIOpen)
-target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(MIOpenDriver MIOpen Threads::Threads)
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
 target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
 endif()
