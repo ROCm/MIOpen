@@ -37,11 +37,7 @@
 #include <numeric>
 #include <vector>
 
-#ifdef __MINGW32__
-#include <mingw.thread.h>
-#else
 #include <thread>
-#endif
 
 #include <future>
 

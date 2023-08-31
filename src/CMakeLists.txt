@@ -606,7 +606,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                    COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -776,13 +776,6 @@ if(rocMLIR_FOUND)
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
-
-if(WIN32 AND NOT MSVC)
-    if(BUILD_DEV)
-        target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
-    endif()
-    target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
-endif()
 
 target_internal_library(MIOpen
     Boost::filesystem

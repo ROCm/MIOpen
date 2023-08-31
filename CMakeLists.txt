@@ -44,9 +44,7 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 endif()
 
 # Default installation path
-if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
-else()
+if(NOT WIN32)
     set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
@@ -117,12 +115,6 @@ if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
-endif()
-
-if(WIN32 AND CMAKE_CROSSCOMPILING)
-    set(WINE_CMD "wine")
-else()
-    set(WINE_CMD)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
