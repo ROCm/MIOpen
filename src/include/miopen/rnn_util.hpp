@@ -242,18 +242,26 @@ private:
     }
 
 public:
-    ReluWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode)
+    ReluWeightOffsets(int input_vector_sz,
+                      int hidden_vec_sz,
+                      int layers_cnt,
+                      int bias_mode,
+                      int bidirectional,
+                      int wei_stride = 0)
         : in_vec_sz(input_vector_sz),
           h_vec_sz(hidden_vec_sz),
           x_in_vec_sz(hidden_xinput_size(hidden_vec_sz, 0)),
           bias_cnt(bias_mode),
           matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz)),
-          bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, 0))
+          bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, 0)),
+          bidirectional(bidirectional),
+          wei_stride(wei_stride)
     {
     }
 
 private:
-    const int in_vec_sz, h_vec_sz;
+    const int in_vec_sz;
+    const int bidirectional;
     const int x_in_vec_sz; // for bidirect TODO
 
     const int bias_cnt; // 0 - no bias; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
@@ -267,6 +275,7 @@ private:
     }
 
     auto get_hidden_matrix_size() const { return h_vec_sz * h_vec_sz; }
+
     auto get_matrix_layer_size(int layer_id) const
     {
         return get_input_matrix_size(layer_id) + get_hidden_matrix_size();
@@ -280,6 +289,20 @@ private:
     }
 
 public:
+    const int h_vec_sz;
+    const int wei_stride;
+
+    size_t input_weight_offset(int layer_id) const
+    {
+        return hidden_weight_offset(layer_id) + h_vec_sz * wei_stride;
+    }
+
+    size_t hidden_weight_offset(int layer_id) const
+    {
+        return in_vec_sz * wei_stride +
+               layer_id * (bidirectional * h_vec_sz + h_vec_sz) * wei_stride;
+    }
+
     size_t input_offset(int layer_id) const
     {
         if(layer_id > 0)

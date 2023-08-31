@@ -772,7 +772,8 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
         return layer_id * (static_cast<size_t>(hidden_size) * max_batch);
     };
 
-    ReluWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2);
+    int bi = dirMode != 0u ? 2 : 1;
+    ReluWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2, bi);
     ReluReserveBufferOffsets RBuff(hidden_size, hidden_size, nLayers, total_batch_size);
 
     ActivationDescriptor activDesc;
@@ -2040,8 +2041,9 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                 x_size[2]  = hy_h;
                 sp_size[1] = batch_n;
                 sp_size[2] = hy_h;
-                x_desc     = miopen::TensorDescriptor(wDesc.GetType(), x_size, x_stride);
-                sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
+
+                x_desc  = miopen::TensorDescriptor(wDesc.GetType(), x_size, x_stride);
+                sp_desc = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
 
                 for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
                 {
@@ -4595,8 +4597,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     y_desc     = miopen::TensorDescriptor(wDesc.GetType(), y_size, y_stride);
     sp_desc    = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
 
-    // DumpGPUMemory(reserveSpace, prelayer_shift, sp_stride[0]);
-
     CopyTensor(handle, sp_desc, reserveSpace, y_desc, y, prelayer_shift, 0);
     // Update time
     profileRNNkernels(handle, 2, ctime);
@@ -4688,28 +4688,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     try
     {
 #endif
-
         if(paddingMode == miopenRNNIONotPadded)
         {
-            RNNBackwardDataPackedTensors(handle,
-                                         seqLen,
-                                         dyDesc,
-                                         dy,
-                                         dhy,
-                                         dcy,
-                                         w,
-                                         hx,
-                                         cx,
-                                         dxDesc,
-                                         dx,
-                                         dhxDesc,
-                                         dhx,
-                                         dcxDesc,
-                                         dcx,
-                                         workSpace,
-                                         workSpaceSize,
-                                         reserveSpace,
-                                         reserveSpaceSize);
+            RNNBackwardDataPackedTensorsRelu(handle,
+                                             seqLen,
+                                             dyDesc,
+                                             dy,
+                                             dhy,
+                                             dcy,
+                                             w,
+                                             hx,
+                                             cx,
+                                             dxDesc,
+                                             dx,
+                                             dhxDesc,
+                                             dhx,
+                                             dcxDesc,
+                                             dcx,
+                                             workSpace,
+                                             workSpaceSize,
+                                             reserveSpace,
+                                             reserveSpaceSize);
         }
         else
         {
@@ -4789,6 +4788,511 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
 #endif
 }
+
+void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
+    Handle& handle,
+    const int seqLen,
+    c_array_view<const miopenTensorDescriptor_t> dyDesc,
+    ConstData_t dy,
+    ConstData_t dhy,
+    ConstData_t dcy,
+    ConstData_t w,
+    ConstData_t hx,
+    ConstData_t cx,
+    c_array_view<const miopenTensorDescriptor_t> dxDesc,
+    Data_t dx,
+    const TensorDescriptor& dhxDesc,
+    Data_t dhx,
+    const TensorDescriptor& dcxDesc,
+    Data_t dcx,
+    Data_t workSpace,
+    size_t workSpaceSize,
+    Data_t reserveSpace,
+    size_t reserveSpaceSize) const
+{
+#if MIOPEN_USE_GEMM
+
+    // reset kernel timer
+    // if projections supported, dcxDesc.GetLengths()[2] should be used for hidden_size,
+    // dhxDesc.GetLengths()[2] for proj_size.
+    if(dhxDesc.GetSize() != dcxDesc.GetSize() || dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(paddingMode != miopenRNNIONotPadded)
+    {
+        MIOPEN_THROW("Padded IO is not supported by this solver");
+    }
+
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
+
+    auto rnn_data_type = dhxDesc.GetType();
+
+    std::vector<int> in_n;
+    int in_h         = dxDesc[0].GetLengths()[1];
+    int hy_d         = dhxDesc.GetLengths()[0];
+    int hy_n         = dhxDesc.GetLengths()[1];
+    int hy_h         = dhxDesc.GetLengths()[2];
+    int out_vec_size = dyDesc[0].GetLengths()[1];
+    int bi           = dirMode != 0u ? 2 : 1;
+    int wei_stride   = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
+
+    if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_vec_size <= 0 || seqLen <= 0)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    int total_batches = 0;
+    for(int i = 0; i < seqLen; i++)
+    {
+        int batchval, inputvec, batchvalout, outputvec;
+        std::tie(batchval, inputvec)     = miopen::tien<2>(dxDesc[i].GetLengths());
+        std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
+        if(batchval != batchvalout)
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        if(i == 0)
+        {
+            if(batchval <= 0)
+            {
+                MIOPEN_THROW(miopenStatusBadParm, "Input batch is ZERO!");
+            }
+        }
+        else
+        {
+            if(batchval > in_n.back() || batchval < 0)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Incorrect input batch size at time " + std::to_string(i) +
+                                 "! Batch size must not ascend!");
+            }
+        }
+        in_n.push_back(batchval);
+        total_batches += dxDesc[i].GetLengths()[0];
+    }
+
+    if(out_vec_size != (bi * hy_h))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
+    }
+
+    if(inputMode == miopenRNNskip)
+    {
+        if(in_h != hy_h)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
+        }
+        in_h = 0;
+    }
+
+    // Update time
+    ActivationDescriptor activDesc;
+    if(rnnMode == miopenRNNRELU)
+    {
+        activDesc = {miopenActivationRELU, 1, 0, 1};
+    }
+    else if(rnnMode == miopenRNNTANH)
+    {
+        activDesc = {miopenActivationTANH, 1, 1, 1};
+    }
+
+    ReluWeightOffsets WeiBuf(in_h, hy_h, nLayers, bi * 2, 1, wei_stride);
+    ReluReserveBufferOffsets RBuff(hy_h, hy_h, nLayers, total_batches);
+
+    auto get_HxBuff_offset = [&](int layer_id) {
+        return layer_id * (static_cast<size_t>(hy_h) * hy_n);
+    };
+
+    auto propagate_input =
+        [*this, &RBuff, out_vec_size, &handle, &rnn_data_type, workSpace, dy, &WeiBuf, bi, w](
+            int nLayers, int layer) {
+            // Propagate output
+            //
+            if(layer == nLayers - 1)
+            {
+                const std::vector<size_t> y_copy_size{1,
+                                                      static_cast<size_t>(RBuff.batches_per_layer),
+                                                      static_cast<size_t>(out_vec_size)};
+
+                const std::vector<size_t> y_dst_stride{
+                    RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
+
+                const std::vector<size_t> y_src_stride{
+                    static_cast<size_t>(out_vec_size * RBuff.batches_per_layer),
+                    static_cast<size_t>(out_vec_size),
+                    1};
+
+                auto y_src_desc =
+                    miopen::TensorDescriptor(rnn_data_type, y_copy_size, y_src_stride);
+                auto y_dst_desc =
+                    miopen::TensorDescriptor(rnn_data_type, y_copy_size, y_dst_stride);
+
+                CopyTensor(
+                    handle, y_src_desc, dy, y_dst_desc, workSpace, 0, RBuff.layer_offset(layer));
+            }
+            // Propagate previous layer
+            //
+            else
+            {
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  false,
+                                                                  false,
+                                                                  RBuff.batches_per_layer,
+                                                                  RBuff.h_vec_size * bi,
+                                                                  RBuff.h_vec_size * bi,
+                                                                  RBuff.h_vec_size,
+                                                                  RBuff.h_vec_size * bi,
+                                                                  RBuff.h_vec_size,
+                                                                  1, // batch count
+                                                                  0, // Stride A
+                                                                  0, // Stride B
+                                                                  0, // Stride C
+                                                                  1, // alpha
+                                                                  1, // beta
+                                                                  rnn_data_type,
+                                                                  false};
+
+                miopenStatus_t gemm_status = CallGemm(handle,
+                                                      gemm_desc,
+                                                      workSpace,
+                                                      RBuff.layer_offset(layer + 1),
+                                                      w,
+                                                      WeiBuf.input_weight_offset(layer),
+                                                      workSpace,
+                                                      RBuff.layer_offset(layer),
+                                                      GemmBackend_t::miopengemm);
+
+                if(gemm_status != miopenStatusSuccess)
+                {
+                    if(gemm_status == miopenStatusNotImplemented)
+                    {
+                        MIOPEN_LOG_E("GEMM not implemented");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_E("GEMM failed");
+                    }
+                }
+            }
+        };
+
+    auto propagate_hidden_output =
+        [*this, &RBuff, &handle, in_n, &rnn_data_type, dhy, workSpace, &get_HxBuff_offset](
+            int layer, int accumulated_batches, int ti) {
+            if(dhy != nullptr)
+            {
+                float alpha0 = 1;
+                float alpha1 = 1;
+                float beta_t = 0;
+
+                std::vector<int> hx_stride{in_n.at(0) * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+                std::vector<int> reserve_stride{
+                    RBuff.batches_per_layer * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+
+                std::vector<int> hx_size{1, in_n.at(ti), RBuff.h_vec_size};
+                std::vector<int> reserve_size{1, in_n.at(ti), RBuff.h_vec_size};
+
+                auto hx_desc = miopen::TensorDescriptor(rnn_data_type, hx_size, hx_stride);
+                auto workspace_desc =
+                    miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
+
+                OpTensor(handle,
+                         miopenTensorOpAdd,
+                         &alpha0,
+                         hx_desc,
+                         dhy,
+                         &alpha1,
+                         workspace_desc,
+                         workSpace,
+                         &beta_t,
+                         workspace_desc,
+                         workSpace,
+                         get_HxBuff_offset(layer),
+                         RBuff.gemm_write_offset(layer, accumulated_batches),
+                         RBuff.gemm_write_offset(layer, accumulated_batches));
+            }
+        };
+
+    auto propagate_hidden_prev = [*this,
+                                  &RBuff,
+                                  &handle,
+                                  in_n,
+                                  &rnn_data_type,
+                                  dhy,
+                                  workSpace,
+                                  &get_HxBuff_offset,
+                                  WeiBuf,
+                                  w](int layer, int accumulated_batches, int ti) {
+        if(dhy == nullptr || in_n.at(ti) <= in_n.at(ti + 1))
+            return;
+
+        std::vector<int> hx_stride{in_n.at(0) * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+        std::vector<int> reserve_stride{
+            RBuff.batches_per_layer * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+        std::vector<int> hx_size{1, in_n.at(ti) - in_n.at(ti + 1), RBuff.h_vec_size};
+        std::vector<int> reserve_size{1, in_n.at(ti) - in_n.at(ti + 1), RBuff.h_vec_size};
+
+        float alpha0 = 1;
+        float alpha1 = 1;
+        float beta_t = 0;
+
+        auto hx_desc      = miopen::TensorDescriptor(rnn_data_type, hx_size, hx_stride);
+        auto reserve_desc = miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
+
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 hx_desc,
+                 dhy,
+                 &alpha1,
+                 reserve_desc,
+                 workSpace,
+                 &beta_t,
+                 reserve_desc,
+                 workSpace,
+                 get_HxBuff_offset(layer) + in_n.at(ti + 1) * RBuff.h_vec_size,
+                 RBuff.gemm_write_offset(layer, accumulated_batches + in_n.at(ti + 1)),
+                 RBuff.gemm_write_offset(layer, accumulated_batches + in_n.at(ti + 1)));
+
+        miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                          false,
+                                                          false,
+                                                          in_n.at(ti + 1),
+                                                          RBuff.h_vec_size,
+                                                          RBuff.h_vec_size,
+                                                          RBuff.gemm_write_stride(),
+                                                          RBuff.gemm_write_stride(),
+                                                          RBuff.gemm_write_stride(),
+                                                          1, // batch count
+                                                          0, // Stride A
+                                                          0, // Stride B
+                                                          0, // Stride C
+                                                          1, // alpha
+                                                          1, // beta
+                                                          rnn_data_type,
+                                                          false};
+
+        miopenStatus_t gemm_status =
+            CallGemm(handle,
+                     gemm_desc,
+                     workSpace,
+                     RBuff.gemm_write_offset(layer, accumulated_batches + in_n.at(ti)),
+                     w,
+                     WeiBuf.hidden_weight_offset(layer),
+                     workSpace,
+                     RBuff.gemm_write_offset(layer, accumulated_batches),
+                     GemmBackend_t::miopengemm);
+
+        if(gemm_status != miopenStatusSuccess)
+        {
+            if(gemm_status == miopenStatusNotImplemented)
+            {
+                MIOPEN_LOG_E("GEMM not implemented");
+            }
+            else
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
+        }
+    };
+
+    auto propagate_hidden = [*this,
+                             &RBuff,
+                             &handle,
+                             seqLen,
+                             in_n,
+                             &rnn_data_type,
+                             workSpace,
+                             reserveSpace,
+                             &activDesc,
+                             propagate_hidden_output,
+                             propagate_hidden_prev](int nLayers, int layer) {
+        int accumulated_batches = RBuff.batches_per_layer;
+        std::vector<int> hx_stride{in_n.at(0) * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+        std::vector<int> reserve_stride{
+            RBuff.batches_per_layer * RBuff.h_vec_size, RBuff.h_vec_size, 1};
+
+        for(int ti = seqLen - 1; ti >= 0; ti--)
+        {
+            accumulated_batches -= in_n.at(ti);
+
+            if(ti == seqLen - 1)
+            {
+                propagate_hidden_output(layer, accumulated_batches, ti);
+            }
+            else
+            {
+                propagate_hidden_prev(layer, accumulated_batches, ti);
+            }
+
+            std::vector<int> reserve_size{1, in_n.at(ti), RBuff.h_vec_size};
+            auto reserve_desc =
+                miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
+
+            float alpha = 1, beta = 0;
+
+            activDesc.Backward(handle,
+                               &alpha,
+                               reserve_desc,
+                               reserveSpace,
+                               reserve_desc,
+                               workSpace,
+                               reserve_desc,
+                               reserveSpace,
+                               &beta,
+                               reserve_desc,
+                               workSpace,
+                               RBuff.gemm_write_offset(layer, accumulated_batches) +
+                                   static_cast<size_t>(nLayers) * RBuff.batches_per_layer *
+                                       RBuff.gemm_write_stride(),
+                               RBuff.gemm_write_offset(layer, accumulated_batches),
+                               RBuff.gemm_write_offset(layer, accumulated_batches),
+                               RBuff.gemm_write_offset(layer, accumulated_batches));
+        }
+    };
+
+    auto propagate_dhx = [*this,
+                          seqLen,
+                          &RBuff,
+                          &WeiBuf,
+                          &bi,
+                          &rnn_data_type,
+                          in_n,
+                          &handle,
+                          w,
+                          dhx,
+                          hy_n,
+                          in_h,
+                          workSpace](int layer) {
+        for(int ti = 0; ti < seqLen; ti++)
+        {
+            int use_time  = ti > 0 ? ti - 1 : 0;
+            int use_batch = ti > 0 ? in_n.at(use_time) : 0;
+
+            if(in_n.at(ti) <= use_batch)
+                return;
+
+            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                              false,
+                                                              false,
+                                                              (in_n.at(ti) - use_batch),
+                                                              RBuff.h_vec_size,
+                                                              RBuff.h_vec_size,
+                                                              RBuff.gemm_write_stride(),
+                                                              RBuff.gemm_write_stride(),
+                                                              RBuff.gemm_write_stride(),
+                                                              1, // batch count
+                                                              0, // Stride A
+                                                              0, // Stride B
+                                                              0, // Stride C
+                                                              1, // alpha
+                                                              1, // beta
+                                                              rnn_data_type,
+                                                              false};
+
+            int hx_shift = layer * hy_n * RBuff.h_vec_size + use_batch * RBuff.h_vec_size;
+
+            miopenStatus_t gemm_status = CallGemm(handle,
+                                                  gemm_desc,
+                                                  workSpace,
+                                                  RBuff.gemm_write_offset(layer, 2 * use_batch),
+                                                  w,
+                                                  WeiBuf.hidden_weight_offset(layer),
+                                                  dhx,
+                                                  hx_shift,
+                                                  GemmBackend_t::miopengemm);
+
+            if(gemm_status != miopenStatusSuccess)
+            {
+                if(gemm_status == miopenStatusNotImplemented)
+                {
+                    MIOPEN_LOG_E("GEMM not implemented");
+                }
+                else
+                {
+                    MIOPEN_LOG_E("GEMM failed");
+                }
+            }
+        }
+    };
+
+    for(int li = static_cast<int>(nLayers) - 1; li >= 0; li--)
+    {
+        propagate_input(nLayers, li);
+        propagate_hidden(nLayers, li);
+        propagate_dhx(li);
+    }
+
+    int in_stride = in_h;
+    int hy_stride = hy_h * bi * static_cast<int>(workspaceScale);
+
+    miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                      false,
+                                                      false,
+                                                      total_batches,
+                                                      in_h,
+                                                      RBuff.h_vec_size * bi,
+                                                      hy_stride,
+                                                      in_stride,
+                                                      in_stride,
+                                                      1, // batch count
+                                                      0, // Stride A
+                                                      0, // Stride B
+                                                      0, // Stride C
+                                                      1, // alpha
+                                                      0, // beta
+                                                      rnn_data_type,
+                                                      false};
+    miopenStatus_t gemm_status =
+        CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, GemmBackend_t::miopengemm);
+
+    if(gemm_status != miopenStatusSuccess)
+    {
+        if(gemm_status == miopenStatusNotImplemented)
+        {
+            MIOPEN_LOG_E("GEMM not implemented");
+        }
+        else
+        {
+            MIOPEN_LOG_E("GEMM failed");
+        }
+    }
+
+#else
+    (void)handle;
+    (void)seqLen;
+    (void)dhy;
+    (void)dcy;
+    (void)dyDesc;
+    (void)dy;
+    (void)w;
+    (void)hx;
+    (void)cx;
+    (void)dxDesc;
+    (void)dx;
+    (void)dhxDesc;
+    (void)dhx;
+    (void)dcxDesc;
+    (void)dcx;
+    (void)workSpace;
+    (void)workSpaceSize;
+    (void)reserveSpace;
+    (void)reserveSpaceSize;
+    MIOPEN_THROW("GEMM is not supported");
+#endif
+};
 
 void RNNDescriptor::RNNBackwardDataPackedTensors(
     Handle& handle,
@@ -6171,7 +6675,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          dhx,
                                          hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
                                          GemmBackend_t::miopengemm);
-
+                                         
                             if(gemm_status != miopenStatusSuccess)
                             {
                                 if(gemm_status == miopenStatusNotImplemented)
@@ -6430,7 +6934,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                           reserveSpace,
                                                           reserveSpaceSize);
         }
-
 #if MIOPEN_BACKEND_HIP
     }
     catch(...)
