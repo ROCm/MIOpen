@@ -414,27 +414,30 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
     if(padded_seq_layout)
         MIOPEN_THROW(miopenStatusInternalError, "Only packed SeqTensorDescriptor supported.");
 
+    std::vector<size_t> batches;
     if(all_sequences_equal_to_max)
     {
-        return {lens[1], lens[0]};
+        batches = std::vector<size_t>(lens[1], lens[0]);
     }
-    std::vector<size_t> batches;
-    auto block_begin = sequence_len.rbegin();
-    auto sample_ptr  = sequence_len.rbegin();
-    auto batch_size  = sequence_len.size();
-
-    batches.insert(batches.end(), *block_begin, batch_size);
-
-    while(sample_ptr != sequence_len.rend())
+    else
     {
-        if(*sample_ptr != *block_begin)
+        auto block_begin = sequence_len.rbegin();
+        auto sample_ptr  = sequence_len.rbegin();
+        auto batch_size  = sequence_len.size();
+
+        batches.insert(batches.end(), *block_begin, batch_size);
+
+        while(sample_ptr != sequence_len.rend())
         {
-            batch_size           = batch_size - (sample_ptr - block_begin);
-            const auto seq_count = *sample_ptr - *block_begin;
-            batches.insert(batches.end(), seq_count, batch_size);
-            block_begin = sample_ptr;
+            if(*sample_ptr != *block_begin)
+            {
+                batch_size           = batch_size - (sample_ptr - block_begin);
+                const auto seq_count = *sample_ptr - *block_begin;
+                batches.insert(batches.end(), seq_count, batch_size);
+                block_begin = sample_ptr;
+            }
+            sample_ptr++;
         }
-        sample_ptr++;
     }
     return batches;
 }
