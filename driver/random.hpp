@@ -55,13 +55,13 @@ inline T gen_0_to_B(T B)
     }
     else if constexpr(std::is_integral_v<T>)
     {
-        // can only generate 31bit range, so it may not be suitable
+        // can only generate 27bit range, so it may not be suitable
         // for huge 64 bit ranges, but we do not expect such ranges
-        return static_cast<T>(details::get_prng()() % B);
+        return static_cast<T>((details::get_prng()() >> 4) % B);
     }
     else // half/bfloat/etc
     {
-        return static_cast<T>(gen_canonical<float>() * static_cast<float>(B));
+        return static_cast<T>(gen_0_to_B(static_cast<float>(B)));
     }
 }
 
