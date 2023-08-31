@@ -62,11 +62,10 @@ struct ProblemDescription : conv::ProblemDescription
 {
     ProblemDescription() = default;
 
-    ProblemDescription(conv::ProblemDescription desc)
-    : conv::ProblemDescription(std::move(desc))
+    ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
     {
 #if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
-    conv_problem.p = this;
+        conv_problem.p = this;
 #endif
     }
 
