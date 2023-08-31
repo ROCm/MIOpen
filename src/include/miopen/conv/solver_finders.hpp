@@ -49,16 +49,15 @@ public:
                                                   const AnyInvokeParams& invoke_ctx,
                                                   bool use_winograd_only) const
     {
-        if(!IsEnabled(ctx, problem.conv_problem, use_winograd_only))
+        if(!IsEnabled(ctx, problem, use_winograd_only))
         {
-            MIOPEN_LOG_I2("Skipping " << GetAlgorithmName(problem.conv_problem).ToString());
+            MIOPEN_LOG_I2("Skipping " << GetAlgorithmName(problem).ToString());
             return {};
         }
 
         try
         {
-            MIOPEN_LOG_I2("Starting find for "
-                          << GetAlgorithmName(problem.conv_problem).ToString());
+            MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(problem).ToString());
             return FindImpl(ctx, problem, invoke_ctx, use_winograd_only);
         }
         catch(Exception& ex)

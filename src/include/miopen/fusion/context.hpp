@@ -35,7 +35,7 @@ struct FusionContext : miopen::ExecutionContext
     ConvolutionContext GetConvContext(const miopen::ProblemDescription& conv_problem) const
     {
         auto ctx = ConvolutionContext{*this};
-        conv_problem.conv_problem.SetupFloats(ctx);
+        conv_problem.SetupFloats(ctx);
         return ctx;
     }
 
