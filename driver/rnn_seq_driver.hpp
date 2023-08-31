@@ -381,6 +381,8 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
         return miopenStatusInternalError;
     }
 
+    Tgpu alfa = static_cast<Tgpu>(-1);
+
     miopenSetRNNDataSeqTensorDescriptor(inputSeqTensor,
                                         data_type,
                                         io_layout,
@@ -388,7 +390,7 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
                                         in_lens[0],
                                         in_lens[2],
                                         unsorted_seq_lens.data(),
-                                        nullptr);
+                                        &alfa);
 
     status = CheckDescriptor(inputSeqTensor, io_layout, in_lens, unsorted_seq_lens);
     if(status != miopenStatusSuccess)
@@ -404,7 +406,8 @@ int RNNSeqDriver<Tgpu, Tref>::GetandSetData()
                                         out_lens[0],
                                         out_lens[2],
                                         unsorted_seq_lens.data(),
-                                        nullptr);
+                                        &alfa);
+
     status = CheckDescriptor(outputSeqTensor, io_layout, out_lens, unsorted_seq_lens);
     if(status != miopenStatusSuccess)
     {

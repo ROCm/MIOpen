@@ -83,7 +83,6 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
             is_all_same_strided = false;
             break;
         }
-            
 
     if(is_all_packed && is_all_same_strided)
     {

@@ -51,8 +51,14 @@ miopenSetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
         seqTensorDesc, dataType, layout, maxSequenceLen, batchSize, vectorSize, sequenceLenArray);
 
     return miopen::try_([&] {
-        miopen::deref(seqTensorDesc) = miopen::RNNDescriptor::makeSeqTensorDescriptor(
-            dataType, layout, maxSequenceLen, batchSize, vectorSize, sequenceLenArray);
+        miopen::deref(seqTensorDesc) =
+            miopen::RNNDescriptor::makeSeqTensorDescriptor(dataType,
+                                                           layout,
+                                                           maxSequenceLen,
+                                                           batchSize,
+                                                           vectorSize,
+                                                           sequenceLenArray,
+                                                           paddingMarker);
     });
 }
 
@@ -84,6 +90,13 @@ miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
             const auto seq_lens_begin =
                 miopen::deref(seqTensorDesc).GetSequenceLengthsVector().begin();
             std::copy_n(seq_lens_begin, copy_sz, sequenceLenArray);
+        }
+        auto& padding_marker_ptr = miopen::deref(seqTensorDesc).GetPaddingMarkerHolder();
+        if(paddingMarker != nullptr && !padding_marker_ptr.empty())
+        {
+            std::copy(padding_marker_ptr.begin(),
+                      padding_marker_ptr.end(),
+                      reinterpret_cast<char*>(paddingMarker));
         }
     });
 
@@ -612,7 +625,7 @@ static void LogCmdRNN(const miopenSeqTensorDescriptor_t xDesc,
         std::string rnn_io_layout;
         {
             auto in_layout =
-                miopen::deref(rnnDesc).getBaseLayoutFromDataTensor(miopen::deref(xDesc));
+                miopen::RNNDescriptor::getBaseLayoutFromDataTensor(miopen::deref(xDesc));
             rnn_io_layout =
                 " -I " + std::to_string(in_layout == miopenRNNDataSeqMajorNotPadded  ? 1
                                         : in_layout == miopenRNNDataSeqMajorPadded   ? 2

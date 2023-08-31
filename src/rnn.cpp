@@ -1044,16 +1044,27 @@ SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
                                                            int maxSeqLength,
                                                            int batchSize,
                                                            int vectorSize,
-                                                           const int* lensPerSeq)
+                                                           const int* lensPerSeq,
+                                                           const void* padding_marker_ptr)
 {
     const std::vector<int> lens = {batchSize, maxSeqLength, vectorSize};
 
     const auto [dim_order, padded_sequences] = convertRNNBaseLayout(layout);
 
+    std::vector<char> padding_marker_in;
+    if(padding_marker_ptr != nullptr)
+    {
+        auto t_sz = GetTypeSize(t);
+        padding_marker_in.resize(t_sz);
+        std::copy_n(
+            reinterpret_cast<const char*>(padding_marker_ptr), t_sz, padding_marker_in.data());
+    }
+
     return {t,
             dim_order,
             lens,
             std::vector<int>(lensPerSeq, lensPerSeq + batchSize),
+            padding_marker_in,
             true,
             padded_sequences};
 }

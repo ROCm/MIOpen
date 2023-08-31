@@ -76,12 +76,14 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
                         const std::vector<unsigned int>& layout_in,
                         const std::vector<int>& lens_in,
                         const std::vector<int>& seq_len,
+                        const std::vector<char>& padding_marker_in,
                         bool use_seq_len,
                         bool with_padded_seq_layout);
     SeqTensorDescriptor(miopenDataType_t t,
                         const std::vector<unsigned int>& layout_in,
                         const std::vector<std::size_t>& lens_in,
                         const std::vector<std::size_t>& seq_len,
+                        const std::vector<char>& padding_marker_in,
                         bool use_seq_len,
                         bool with_padded_seq_layout);
 
@@ -96,6 +98,7 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
                         const std::vector<std::size_t>& lens_in,
                         const std::vector<std::size_t>& seq_len,
                         const std::vector<std::size_t>& padding_in,
+                        const std::vector<char>& padding_marker_in,
                         bool use_seq_len,
                         bool with_padded_seq_layout);
 
@@ -103,6 +106,7 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetPadding() const;
     const std::vector<std::size_t>& GetSequenceLengthsVector() const;
+    const std::vector<char>& GetPaddingMarkerHolder() const;
 
     // Get vector of strides only for padded tensor,
     // if IsPaddedSeqLayout()==false function returns an empty vector
@@ -112,6 +116,7 @@ struct SeqTensorDescriptor : miopenSeqTensorDescriptor
     bool IsPaddedSeqLayout() const;
     bool IsSequenceLengthsSorted() const;
     bool IsZeroBytePadding() const;
+    bool IsPaddingMarkerSpecified() const;
 
     miopenDataType_t GetType() const;
 
@@ -166,8 +171,9 @@ private:
     std::vector<std::size_t>
         sequence_len; // sequence length of each sample, sequence_len.size()=lens[0]
 
-    bool all_sequences_equal_to_max = false;
+    std::vector<char> padding_marker;
 
+    bool all_sequences_equal_to_max  = false;
     bool samples_in_descending_order = false;
     bool padded_seq_layout           = false;
 

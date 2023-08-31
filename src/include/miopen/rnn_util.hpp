@@ -268,6 +268,10 @@ private:
                                                 Data_t dst);
 };
 
+void FillSeqTensorByPaddingMarker(const Handle& handle,
+                                  const SeqTensorDescriptor& desc,
+                                  Data_t data);
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_RNN_UTIL_HPP_

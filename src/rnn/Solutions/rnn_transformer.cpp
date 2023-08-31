@@ -183,6 +183,7 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
                                                         layout_dims_order,
                                                         xDesc.GetLengths(),
                                                         sorted_seq,
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
 
@@ -190,6 +191,7 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
                                                         layout_dims_order,
                                                         yDesc.GetLengths(),
                                                         sorted_seq,
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
 
@@ -326,13 +328,14 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
                                                         layout_dims_order,
                                                         xDesc.GetLengths(),
                                                         sorted_seq,
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
         const SeqTensorDescriptor yDesc_packed_SeqMajor(yDesc.GetType(),
                                                         layout_dims_order,
                                                         yDesc.GetLengths(),
                                                         sorted_seq,
-                                                        yDesc.GetPadding(),
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
 
@@ -467,12 +470,14 @@ void RNNDescriptor::RNNTransformerBackwardWeights(Handle& handle,
                                                         layout_dims_order,
                                                         xDesc.GetLengths(),
                                                         sorted_seq,
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
         const SeqTensorDescriptor yDesc_packed_SeqMajor(yDesc.GetType(),
                                                         layout_dims_order,
                                                         yDesc.GetLengths(),
                                                         sorted_seq,
+                                                        {},
                                                         true,
                                                         layout_seq_padding);
 

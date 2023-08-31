@@ -404,7 +404,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                                                       dst_tensor_desc.GetLayoutVector(),
                                                       dst_tensor_desc.GetLengths(),
                                                       src_tensor_desc.GetSequenceLengthsVector(),
-                                                      dst_tensor_desc.GetPadding(),
+                                                      {},
                                                       true,
                                                       true);
         }
@@ -440,6 +440,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                 dst_tensor_desc.GetLengths(),
                 dst_tensor_desc.GetSequenceLengthsVector(),
                 dst_tensor_desc.GetPadding(),
+                {},
                 true,
                 true);
 
@@ -474,9 +475,18 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             src_tensor_desc.GetLayoutVector(),
             src_tensor_desc.GetLengths(),
             dst_tensor_desc.GetSequenceLengthsVector(),
-            src_tensor_desc.GetPadding(),
+            dst_tensor_desc.GetPaddingMarkerHolder(),
             true,
             true);
+
+        const SeqTensorDescriptor padded_tensor_desc(src_tensor_desc.GetType(),
+                                                     src_tensor_desc.GetLayoutVector(),
+                                                     src_tensor_desc.GetLengths(),
+                                                     src_tensor_desc.GetSequenceLengthsVector(),
+                                                     src_tensor_desc.GetPadding(),
+                                                     dst_tensor_desc.GetPaddingMarkerHolder(),
+                                                     true,
+                                                     true);
 
         Data_t reordered_tensor_data =
             (dst_layout != miopenRNNDataSeqMajorPadded) ? workspace : dst;
@@ -488,19 +498,13 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                                             reordered_padded_tensor_desc.GetTensorMaxByteSpace())
                        : workspace);
 
+        FillSeqTensorByPaddingMarker(handle, padded_tensor_desc, padded_data);
+
         ChangeTensorGPUDataPadding(handle, src_tensor_desc, src, padded_data);
 
         if(is_reordering_req)
         {
             auto src_changer_order = GetSamplesDescendingOrder(dst_tensor_desc, reverse);
-
-            const SeqTensorDescriptor padded_tensor_desc(src_tensor_desc.GetType(),
-                                                         src_tensor_desc.GetLayoutVector(),
-                                                         src_tensor_desc.GetLengths(),
-                                                         src_tensor_desc.GetSequenceLengthsVector(),
-                                                         src_tensor_desc.GetPadding(),
-                                                         true,
-                                                         true);
 
             ReorderInputTensorGPUData(handle,
                                       padded_tensor_desc,
@@ -523,6 +527,23 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
     }
     else
         MIOPEN_THROW(miopenStatusInternalError, "Unsupported layout.");
+}
+
+void FillSeqTensorByPaddingMarker(const Handle& handle,
+                                  const SeqTensorDescriptor& desc,
+                                  Data_t data)
+{
+    if(desc.IsPaddingMarkerSpecified())
+    {
+        if(!desc.IsZeroBytePadding())
+            MIOPEN_THROW("Wrong tensor descriptor, tensors with byte padding not supported");
+
+        miopen::SetTensor(handle,
+                          TensorDescriptor(desc.GetType(), desc.GetLengths()),
+                          data,
+                          desc.GetPaddingMarkerHolder().data(),
+                          0);
+    }
 }
 
 } // namespace miopen

@@ -118,7 +118,8 @@ struct RNNDescriptor : miopenRNNDescriptor
                                                        int maxSeqLength,
                                                        int batchSize,
                                                        int vectorSize,
-                                                       const int* lensPerSeq);
+                                                       const int* lensPerSeq,
+                                                       const void* padding_marker_ptr);
 
     static void SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
                                            std::vector<miopen::TensorDescriptor>& td,

@@ -140,6 +140,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
                                          const std::vector<int>& lens_in,
                                          const std::vector<int>& seq_len,
+                                         const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
     : SeqTensorDescriptor(t,
@@ -147,6 +148,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                           ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"),
                           ConvertLengthsOrThrow(seq_len, "SequenceLengths must be >= 0"),
                           {},
+                          padding_marker_in,
                           use_seq_len,
                           with_padded_seq_layout)
 {
@@ -156,9 +158,17 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
                                          const std::vector<std::size_t>& lens_in,
                                          const std::vector<std::size_t>& seq_len,
+                                         const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
-    : SeqTensorDescriptor(t, layout_in, lens_in, seq_len, {}, use_seq_len, with_padded_seq_layout)
+    : SeqTensorDescriptor(t,
+                          layout_in,
+                          lens_in,
+                          seq_len,
+                          {},
+                          padding_marker_in,
+                          use_seq_len,
+                          with_padded_seq_layout)
 {
 }
 
@@ -167,7 +177,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<std::size_t>& lens_in,
                                          const std::vector<std::size_t>& padding_in,
                                          bool with_padded_seq_layout)
-    : SeqTensorDescriptor(t, layout_in, lens_in, {}, padding_in, false, with_padded_seq_layout)
+    : SeqTensorDescriptor(t, layout_in, lens_in, {}, padding_in, {}, false, with_padded_seq_layout)
 {
 }
 
@@ -176,9 +186,13 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<std::size_t>& lens_in,
                                          const std::vector<std::size_t>& seq_len,
                                          const std::vector<std::size_t>& padding_in,
+                                         const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
-    : lens(lens_in), padded_seq_layout(with_padded_seq_layout), type(t)
+    : lens(lens_in),
+      padding_marker(padding_marker_in),
+      padded_seq_layout(with_padded_seq_layout),
+      type(t)
 {
     if(lens_in.size() <= 2)
         MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 2");
@@ -221,6 +235,11 @@ const std::vector<std::size_t>& SeqTensorDescriptor::GetPadding() const { return
 const std::vector<std::size_t>& SeqTensorDescriptor::GetSequenceLengthsVector() const
 {
     return sequence_len;
+}
+
+const std::vector<char>& SeqTensorDescriptor::GetPaddingMarkerHolder() const
+{
+    return padding_marker;
 }
 
 std::vector<std::size_t> SeqTensorDescriptor::GetPaddedStrides() const
@@ -381,6 +400,8 @@ bool SeqTensorDescriptor::IsZeroBytePadding() const
 {
     return std::all_of(padds.cbegin(), padds.cend(), [](size_t x) { return x == 0; });
 }
+
+bool SeqTensorDescriptor::IsPaddingMarkerSpecified() const { return !padding_marker.empty(); }
 
 void SeqTensorDescriptor::UpdatePackedFlag()
 {
