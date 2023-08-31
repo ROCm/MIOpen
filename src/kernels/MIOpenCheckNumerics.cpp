@@ -73,7 +73,7 @@ using conditional_t = typename conditional<predicate, X, Y>::type;
 #include <limits> // std::numeric_limits
 
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 1
-#include "hip_float8.h"
+#include "hip_float8.hpp"
 
 struct Numerics
 {

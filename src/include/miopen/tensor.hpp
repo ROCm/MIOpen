@@ -188,7 +188,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::size_t GetVectorLength() const;
     std::optional<miopenDataType_t> GetCastType() const;
-    void SetCastType(const miopenDataType_t cast_type_);
+    void SetCastType(miopenDataType_t cast_type_);
 
     std::size_t GetElementSize() const;
 

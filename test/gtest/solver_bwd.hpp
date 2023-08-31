@@ -32,7 +32,7 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-#include <miopen/hip_float8.h>
+#include <miopen/hip_float8.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 

@@ -257,7 +257,7 @@ inline uchar float_to_fp8_impl(float _x, const int wm, const int we) // bool sto
 
     if(exponent <= 0)
     {
-        if(x == 0)
+        if(x == 0) // cppcheck-suppress identicalConditionAfterEarlyExit
             return 0;
         else
         {

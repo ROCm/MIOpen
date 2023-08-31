@@ -175,9 +175,9 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
         {"MIOPEN_FP8_IEEE_EXPONENT_BIAS", MIOPEN_FP8_IEEE_EXPONENT_BIAS},
         {"MIOPEN_FP8_CLIPPING", MIOPEN_FP8_CLIPPING},
     };
-    if(use_fp8)
+    if(use_fp8 != 0)
         kbp.Define("MIOPEN_USE_FP8", use_fp8);
-    if(use_bfp8)
+    if(use_bfp8 != 0)
         kbp.Define("MIOPEN_USE_BFP8", use_bfp8);
     if(use_fp64 != 0)
         kbp.Define("MIOPEN_USE_FP64", use_fp64);

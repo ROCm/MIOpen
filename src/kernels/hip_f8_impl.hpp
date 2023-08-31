@@ -98,9 +98,9 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
     const int mfmt = (sizeof(T) == 4) ? 23 : 10;
     uint32_t x;
     if(sizeof(T) == 4)
-        x = *(reinterpret_cast<uint32_t*>(&_x));
+        x = *(reinterpret_cast<uint32_t*>(&_x)); // cppcheck-suppress invalidPointerCast
     else
-        x = *(reinterpret_cast<uint16_t*>(&_x));
+        x = *(reinterpret_cast<uint16_t*>(&_x)); // cppcheck-suppress invalidPointerCast
 
     uint32_t head, mantissa;
     int exponent;
@@ -188,7 +188,7 @@ MIOPEN_HIP_HOST_DEVICE uint8_t cast_to_f8(T _x, bool stoch, uint32_t rng)
 
     if(exponent <= 0)
     {
-        if(x == 0)
+        if(x == 0) // cppcheck-suppress identicalConditionAfterEarlyExit
             return 0;
         else
         {
@@ -245,10 +245,11 @@ MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x)
         const uint32_t ifNegInf = 0xFF800000;
         const uint32_t ifNaN    = 0x7F800001;
         const uint32_t ifNeg0   = 0x80000000;
-        fInf                    = *(reinterpret_cast<const float*>(&ifInf));
-        fNegInf                 = *(reinterpret_cast<const float*>(&ifNegInf));
-        fNaN                    = *(reinterpret_cast<const float*>(&ifNaN));
-        fNeg0                   = *(reinterpret_cast<const float*>(&ifNeg0));
+        fInf = *(reinterpret_cast<const float*>(&ifInf)); // cppcheck-suppress invalidPointerCast
+        fNegInf =
+            *(reinterpret_cast<const float*>(&ifNegInf));   // cppcheck-suppress invalidPointerCast
+        fNaN  = *(reinterpret_cast<const float*>(&ifNaN));  // cppcheck-suppress invalidPointerCast
+        fNeg0 = *(reinterpret_cast<const float*>(&ifNeg0)); // cppcheck-suppress invalidPointerCast
     }
 
     if(x == 0)

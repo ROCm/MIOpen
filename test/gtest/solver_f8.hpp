@@ -32,7 +32,7 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include "conv_common.hpp"
-#include <miopen/hip_float8.h>
+#include <miopen/hip_float8.hpp>
 #include "verify.hpp"
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;

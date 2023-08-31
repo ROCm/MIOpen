@@ -39,7 +39,7 @@
 #include "tensor_holder.hpp"
 #include <miopen/stringutils.hpp>
 #include <miopen/functional.hpp>
-#include <miopen/hip_float8.h>
+#include <miopen/hip_float8.hpp>
 
 template <class T, class... Ts>
 static constexpr auto make_array(T x, Ts... xs)
@@ -278,8 +278,8 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
                     }
                 });
             });
-
-            in(in_n_id, in_c_id, in_spatial_id_pack...) = static_cast<Tout>(acc);
+            // TODO: Why do we need a no-lint here ?
+            in(in_n_id, in_c_id, in_spatial_id_pack...) = static_cast<Tout>(acc); // NOLINT
         });
 }
 

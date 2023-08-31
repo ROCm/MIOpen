@@ -89,7 +89,6 @@ FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp
 #endif
 }
 
-#if MIOPEN_USE_ROCBLAS
 #if USE_ROCBLAS_GEMM_EX3
 static inline rocblas_computetype rocBlasComputeType(const miopen::GemmDescriptor& desc)
 {
@@ -115,7 +114,6 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
         return rocblas_datatype::rocblas_datatype_f32_r;
 }
 #endif
-#endif // MIOPEN_USE_ROCBLAS
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
 {

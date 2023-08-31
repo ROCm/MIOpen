@@ -108,8 +108,15 @@ struct ConvolutionAttribute
 
     struct FP8RoundingMode
     {
+        inline uint32_t InitSeed()
+        {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFF);
+            return distribution(gen);
+        }
         miopenF8RoundingMode_t rounding_mode = miopenF8RoundingModeStochastic;
-        uint32_t seed                        = std::rand();
+        uint32_t seed                        = InitSeed();
         friend struct ConvolutionAttribute;
 
         inline miopenF8RoundingMode_t Get() const
@@ -125,10 +132,7 @@ struct ConvolutionAttribute
             // assert(rounding_mode == miopenF8RoundingModeStochastic);
             if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{}))
                 return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED{});
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<uint32_t> distribution(0, 0xFFFFFFFF);
-            return distribution(gen);
+            return seed;
         }
 
         inline void SetSeed(const uint32_t s) { seed = s; }
