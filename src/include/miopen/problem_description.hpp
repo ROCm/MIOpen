@@ -28,13 +28,8 @@
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
 #include <miopen/conv/problem_description.hpp>
-#include <miopen/names.hpp>
 #include <miopen/tensor.hpp>
-#if MIOPEN_ENABLE_SQLITE
-#include <miopen/sqlite_db.hpp>
-#endif
 
-#include <cassert>
 #include <cstdint>
 #include <string>
 
@@ -62,30 +57,18 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
     return tensor.GetElementSpace();
 }
 
-struct ConvolutionDescriptor;
-
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
 struct ProblemDescription : conv::ProblemDescription
 {
-#if 0
-    struct Direction
-    {
-    public:
-        bool IsForward() const { return v == conv::Direction::Forward; }
-        bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
-        bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
-
-        Direction() = default;
-        Direction(conv::Direction value) : v(value) {}
-
-    private:
-        conv::Direction v = conv::Direction::Forward;
-    } direction;
-#endif
-
     ProblemDescription() = default;
 
-    ProblemDescription(conv::ProblemDescription desc);
+    ProblemDescription(conv::ProblemDescription desc)
+    : conv::ProblemDescription(std::move(desc))
+    {
+#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
+    conv_problem.p = this;
+#endif
+    }
 
 #if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
     struct
@@ -163,6 +146,7 @@ struct ProblemDescriptionCompatTemporary
     public:
         bool IsForward() const { return v == conv::Direction::Forward; }
 
+        Direction() = delete;
         Direction(conv::Direction value) : v(value) {}
 
     private:
