@@ -78,34 +78,19 @@ struct CKArgs
         Di = ProblemInterpreter::GetInputDepthDi(problem);
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
-    std::cout <<"in CKArgs*******"<<std::endl;
-    std::cout << "************************G: " << G << std::endl;
-    std::cout << "************************N: " << N << std::endl;
-    std::cout << "************************K: " << K << std::endl;
-    std::cout << "************************C: " << C << std::endl;
-    std::cout << "***********************Di: " << Di << std::endl;
-    std::cout << "***********************Hi: " << Hi << std::endl;
-    std::cout << "***********************Wi: " << Wi << std::endl;
-    std::cout << "***********************Do: " << Do << std::endl;
-    std::cout << "***********************Ho: " << Ho << std::endl;
-    std::cout << "***********************Wo: " << Wo << std::endl;
-    std::cout << "************************Z: " << Z << std::endl;
-    std::cout << "************************Y: " << Y << std::endl;
-    std::cout << "************************X: " << X << std::endl;
-    std::cout<<std::endl;
 
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
         // strides from NHWGC to GNCHW laout
-         in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-         out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-         wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
-        //in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
-        //out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
-        //wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        // in_strides  = {N * Di * Hi * Wi * C, Di * Hi * Wi * C, 1, Hi * Wi * C, Wi * C, C};
+        // out_strides = {N * Do * Ho * Wo * K, Do * Ho * Wo * K, 1, Ho * Wo * K, Wo * K, K};
+        // wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -119,29 +104,6 @@ struct CKArgs
         rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
-        std::cout<<"~~~~ filter strides: "<<std::endl;
-        for(auto x:strides){
-            std::cout<<x<<" ";
-        }
-        std::cout<<std::endl;
-
-        std::cout<<"~~~~ filter dilation: "<<std::endl;
-        for(auto x:dilation){
-            std::cout<<x<<" ";
-        }
-        std::cout<<std::endl;
-
-        std::cout<<"~~~~ filter lPadding: "<<std::endl;
-        for(auto x:lPadding){
-            std::cout<<x<<" ";
-        }
-        std::cout<<std::endl;
-
-        std::cout<<"~~~~ filter rPadding: "<<std::endl;
-        for(auto x:rPadding){
-            std::cout<<x<<" ";
-        }
-        std::cout<<std::endl;
     }
     int G;
     int N;
@@ -200,7 +162,6 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
             valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
-            std::cout << "****" << conv_ptrs[i]->GetTypeString() << std::endl;
         }
     }
     assert(!valid_kernels.empty());
@@ -275,30 +236,8 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
-
-using InDataType  = ck::half_t;
-using WeiDataType = ck::half_t;
-using OutDataType = ck::half_t;
-
-
-struct SimpleDeviceMem
-{
-    SimpleDeviceMem() = delete;
-
-    SimpleDeviceMem(std::size_t mem_size) : p_mem_{}
-    {
-        (void)hipMalloc(static_cast<void**>(&p_mem_), mem_size);
-    }
-
-    void* GetDeviceBuffer() { return p_mem_; }
-
-    ~SimpleDeviceMem() { (void)hipFree(p_mem_); }
-
-    void* p_mem_;
-};
 
 namespace {
 
@@ -322,66 +261,10 @@ void RunCKSolution(const Handle& handle,
     auto& conv_ptr      = conv_ptrs.at(i);
     auto& data_ctx      = primitive_parameters.CastTo<conv::WrWInvokeParams>();
     const auto& tensors = data_ctx.tensors;
-
-    auto G = args.G;
-    auto N = args.N;
-    auto C = args.C;
-    auto K = args.K;
-    auto Z = args.Z;
-    auto Y = args.Y;
-    auto X = args.X;
-    auto Di = args.Di;
-    auto Hi = args.Hi;
-    auto Wi = args.Wi;
-    auto Do = args.Do;
-    auto Ho = args.Ho;
-    auto Wo = args.Wo;
-
-    SimpleDeviceMem in(sizeof(InDataType) * G * N * Di * Hi * Wi * C);
-    SimpleDeviceMem wei(sizeof(WeiDataType) * G * K * Z * Y * X * C);
-    SimpleDeviceMem out(sizeof(OutDataType) * G * N * Do * Ho * Wo * K);
-
-    std::cout << "************************G: " << args.G << std::endl;
-    std::cout << "************************N: " << args.N << std::endl;
-    std::cout << "************************K: " << args.K << std::endl;
-    std::cout << "************************C: " << args.C << std::endl;
-    std::cout << "***********************Di: " << args.Di << std::endl;
-    std::cout << "***********************Hi: " << args.Hi << std::endl;
-    std::cout << "***********************Wi: " << args.Wi << std::endl;
-    std::cout << "***********************Do: " << args.Do << std::endl;
-    std::cout << "***********************Ho: " << args.Ho << std::endl;
-    std::cout << "***********************Wo: " << args.Wo << std::endl;
-    std::cout << "************************Z: " << args.Z << std::endl;
-    std::cout << "************************Y: " << args.Y << std::endl;
-    std::cout << "************************X: " << args.X << std::endl;
-
-    std::cout << "***input strides: " << std::endl;
-    for(auto x : args.in_strides)
-    {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "***weight strides: " << std::endl;
-    for(auto x : args.wei_strides)
-    {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "****output strides: " << std::endl;
-    for(auto x : args.out_strides)
-    {
-        std::cout << x << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << " *** split_k: " << args.split_k << std::endl;
-
-    auto argument_ptr = conv_ptr->MakeArgumentPointer(
-        //in.GetDeviceBuffer(),
-        //wei.GetDeviceBuffer(),
-        //out.GetDeviceBuffer(),
+    auto argument_ptr   = conv_ptr->MakeArgumentPointer(
+        // in.GetDeviceBuffer(),
+        // wei.GetDeviceBuffer(),
+        // out.GetDeviceBuffer(),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.x)),
         static_cast<void*>(tensors.dw),
@@ -401,9 +284,8 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         args.split_k);
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
+    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-    std::cout << "****after run*****" << std::endl;
 }
 
 } // namespace
@@ -527,7 +409,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(const ConvolutionContext&
     if(!problem.IsLayoutNHWC())
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))
         return false;
     switch(problem.conv_problem.GetInDataType())
     {

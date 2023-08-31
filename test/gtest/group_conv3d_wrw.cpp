@@ -47,7 +47,7 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                const ConvTestCase& conv_config,
                bool& test_skipped)
 {
-    
+
     auto&& handle = get_handle();
 
     Solver solv{};
@@ -70,17 +70,13 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                      << conv_config;
     }
     const auto invoke_params = miopen::conv::WrWInvokeParams{tensors, nullptr, 0, false};
-    std::cout << "~~~111~~~" << std::endl;
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    std::cout << "~~~222~~~" << std::endl;
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
     (invoker)(handle, invoke_params);
-    std::cout << "~~~333~~~" << std::endl;
     handle.Finish();
-    std::cout << "~~~end~~~" << std::endl;
 }
 
 TEST_P(ConvWrwSolverTest3D, CKGroupConvWrw3D)
