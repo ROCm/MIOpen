@@ -206,7 +206,7 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
         top_h_end = min(top_h_end, (int)top_h);
         top_w_end = min(top_w_end, (int)top_w);
 
-        _FLOAT bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {0};
+        _FLOAT_ACCUM bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {0};
 
         for(int h = top_d_start; h < top_d_end; ++h)
         {
@@ -236,8 +236,9 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
 
                     uint top_gbl_off =
                         b_id * top_str_b + c_id * top_str_c + h * top_str_d + j * top_str_h + i;
-                    _FLOAT add_val = b_id < batch ? top_df[top_gbl_off] : 0;
-                    add_val /= (_FLOAT)pool_size;
+                    _FLOAT_ACCUM add_val =
+                        b_id < batch ? CVT_FLOAT2ACCUM(top_df[top_gbl_off]) : CVT_FP32_2ACCUM(0.0f);
+                    add_val /= CVT_INTEGRAL2ACCUM(pool_size);
 
                     for(int m = dstart; m < dend; ++m)
                     {
@@ -273,7 +274,7 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
                     {
                         uint bot_idx = bot_off + m * bot_str_d + k * bot_str_h + l;
 
-                        bot_df[bot_idx] = bot_data[m][k][l];
+                        bot_df[bot_idx] = CVT_ACCUM2FLOAT(bot_data[m][k][l]);
                     }
                 }
             }
