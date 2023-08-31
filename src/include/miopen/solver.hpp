@@ -4549,7 +4549,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 };
 
 struct PerformanceConfigHipImplicitGemmFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4632,7 +4632,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4705,7 +4705,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
     int index;
     std::string kernel_id;
@@ -4780,7 +4780,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
 {
     int index;
     std::string kernel_id;

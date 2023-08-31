@@ -160,7 +160,9 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
                                                               {});
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
-            valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
+            std::string temp = conv_ptrs[i]->GetTypeString();
+            temp.erase(std::remove(temp.begin(), temp.end(), ' '), temp.end());
+            valid_kernels.push_back(temp);
         }
     }
     assert(!valid_kernels.empty());
