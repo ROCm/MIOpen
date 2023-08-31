@@ -199,15 +199,6 @@ StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
     }
 }
 
-struct tensor_elem_gen_one
-{
-    template <class... Ts>
-    double operator()(Ts...) const
-    {
-        return 1;
-    }
-};
-
 struct conv_stats
 {
     std::string solver_name{};
@@ -2238,18 +2229,17 @@ struct conv_driver : test_driver
                     std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
 
                     return gen_float ? prng::gen_canonical<double>()
-                                     : static_cast<double>(
-                                           prng::gen_A_to_B(static_cast<std::size_t>(1), v_max));
+                                     : static_cast<double>(prng::gen_0_to_B(v_max) + 1);
                 };
 
                 auto gen_sign_value = [=](auto... is) {
                     auto data_type    = input.desc.GetType();
                     std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
 
-                    return gen_float ? prng::gen_A_to_B(-1., 1.)
-                                     : static_cast<double>(
-                                           prng::gen_A_to_B(static_cast<std::size_t>(1), v_max) *
-                                           tensor_elem_gen_checkboard_sign{}(is...));
+                    return gen_float
+                               ? prng::gen_A_to_B(-1., 1.)
+                               : static_cast<double>((prng::gen_0_to_B(v_max) + 1) *
+                                                     tensor_elem_gen_checkboard_sign{}(is...));
                 };
 
                 auto ctx = miopen::ExecutionContext{&get_handle()};
