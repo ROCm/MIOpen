@@ -372,7 +372,7 @@ function(add_test_executable TEST_NAME)
     else()
         target_link_libraries(${TEST_NAME} MIOpen)
     endif()
-endfunction(add_test_executable)
+endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
 foreach(SANTIZER address thread)
