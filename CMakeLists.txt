@@ -52,7 +52,7 @@ endif()
 
 project ( MIOpen C CXX )
 
-enable_testing()
+include(CTest)
 
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
@@ -784,8 +784,12 @@ add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
 endif()
-add_subdirectory(test)
-add_subdirectory(speedtests)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+    add_subdirectory(speedtests)
+endif()
+
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
 add_subdirectory(fin)
