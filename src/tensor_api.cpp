@@ -29,12 +29,19 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/seq_tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
+}
+
+extern "C" miopenStatus_t miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::SeqTensorDescriptor(); });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
@@ -241,6 +248,12 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
 }
 
 extern "C" miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
+}
+
+extern "C" miopenStatus_t miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen_destroy_object(tensorDesc); });

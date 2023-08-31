@@ -690,7 +690,6 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     std::vector<Tgpu>& dcy, // current/final cell state
     std::vector<Tref>& dcx_host,
     std::vector<Tgpu>& cx,
-    std::vector<Tgpu>& out,
     std::vector<Tgpu>& dout,
     std::vector<int>& in_n, // input batch size
     int in_h,               // input data length
@@ -713,7 +712,6 @@ void RunLSTMBackwardDataGEMMCPUVerify(
     bool dcy_is_null = false)
 {
     int batch_n = sumvc(in_n);
-    (void)out;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc, baccbi; // accumulation of batch
