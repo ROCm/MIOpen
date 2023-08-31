@@ -136,6 +136,8 @@ set( MIOpen_Source
     reducetensor_api.cpp
     rnn.cpp
     rnn_api.cpp
+    rnn/rnn_util.cpp
+    rnn/Solutions/rnn_transformer.cpp
     softmax_api.cpp
     solution.cpp
     conv/solver_finders.cpp
@@ -235,6 +237,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    seq_tensor.cpp
     )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)

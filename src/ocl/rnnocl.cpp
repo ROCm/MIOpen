@@ -5679,10 +5679,13 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
-    w_size[2]    = dwDesc.GetElementSize();
-    w_stride[0]  = w_size[2];
-    w_stride[1]  = w_size[2];
-    w_desc       = miopen::TensorDescriptor(dwDesc.GetType(), w_size, w_stride);
+
+    const auto dw_tensor_size =
+        GetParamsSize(xDesc[0].GetLengths()[1]) / GetTypeSize(dwDesc.GetType());
+
+    w_desc = miopen::TensorDescriptor(
+        dwDesc.GetType(), {1, 1, dw_tensor_size}, {dw_tensor_size, dw_tensor_size, 1});
+
     SetTensor(handle, w_desc, dw, &beta_t);
     // Update time
     profileRNNkernels(handle, 1, ctime);
