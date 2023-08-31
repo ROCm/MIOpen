@@ -42,10 +42,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
 
 namespace miopen {
 
+#ifdef __linux__
 boost::filesystem::path GetLibPath()
 {
     boost::filesystem::path path = {""};
-#ifdef __linux__
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
@@ -58,16 +58,14 @@ boost::filesystem::path GetLibPath()
         path = path.parent_path();
     }
     return path;
-#else
-    MIOPEN_THROW(miopenStatusNotImplemented);
-#endif
 }
+#endif
 
 std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
-#if MIOPEN_BUILD_DEV
+#if (MIOPEN_BUILD_DEV != 0) || defined(_WIN32)
         return "${MIOPEN_SYSTEM_DB_PATH}";
 #else
     {

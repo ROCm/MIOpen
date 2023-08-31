@@ -131,11 +131,9 @@ bool IsNetworked(unsigned long ft)
 } // namespace
 
 #undef CASE_RET_STRING
-#endif // __linux__
 
 bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
 {
-#ifdef __linux__
     // Non-DEV builds put user databases in ~/.config/miopen by default; the binary cache is placed
     // in ~/.cache/miopen. If these directories do not exist, this is not a problem, because the
     // library creates them as needed.
@@ -172,10 +170,6 @@ bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
     MIOPEN_LOG_NQI("Filesystem type at '" << path.string() << "' is: 0x" << std::hex << stat.f_type
                                           << " '" << Stringize(stat.f_type) << '\'');
     return IsNetworked(stat.f_type);
-#else
-    std::ignore = path_;
-    return false;
-#endif // __linux__
 }
 
 namespace {
@@ -199,5 +193,27 @@ boost::filesystem::path ExpandUser(const std::string& path)
     static const std::string home_dir = GetHomeDir();
     return {ReplaceString(path, "~", home_dir)};
 }
+
+#else
+
+MIOPEN_DECLARE_ENV_VAR(TEMP)
+
+boost::filesystem::path ExpandUser(const std::string& path)
+{
+    const char* home_dir = GetStringEnv(HOME{});
+    if(home_dir == nullptr)
+    {
+        home_dir = GetStringEnv(TEMP{});
+        if(home_dir == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+    return {ReplaceString(path, "$HOME", home_dir)};
+}
+
+bool IsNetworkedFilesystem(const boost::filesystem::path&) { return false; }
+
+#endif
 
 } // namespace miopen
