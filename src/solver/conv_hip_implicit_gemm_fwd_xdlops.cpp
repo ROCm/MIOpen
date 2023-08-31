@@ -90,34 +90,30 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
     {
-
-        return conv_ptr->MakeArgumentPointer(
-            const_cast<Data_t>(in), // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            const_cast<Data_t>(w),  // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            out,
-            this->N,
-            this->K,
-            this->C,
-            this->input,
-            this->filter,
-            this->output,
-            this->strides,
-            this->dilation,
-            this->lPadding,
-            this->rPadding,
-            {},
-            {},
-            {});
+        return conv_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             out,
+                                             this->N,
+                                             this->K,
+                                             this->C,
+                                             this->input,
+                                             this->filter,
+                                             this->output,
+                                             this->strides,
+                                             this->dilation,
+                                             this->lPadding,
+                                             this->rPadding,
+                                             {},
+                                             {},
+                                             {});
     }
 
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
     {
-
         return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out);
     }
 
-    // TODO(Amber): make method const
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
@@ -173,7 +169,7 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{problem};
-    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
+    if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
         return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
@@ -203,20 +199,6 @@ void RunCKSolution(const Handle& handle,
         handle.ResetKernelTime();
         handle.AccumKernelTime(elapsed_time);
     }
-}
-
-template <typename DataType>
-InvokerFactory MakeInvokerFactoryHipImplGemmFwdXdlops(CKArgs ck_args, size_t config_idx)
-{
-    std::shared_ptr sh_conv_ptr{std::move(DeviceOpPtrs<DataType>::GetInstances().at(config_idx))};
-
-    return [ck_args     = std::move(ck_args),
-            sh_conv_ptr = std::move(sh_conv_ptr)](const std::vector<Kernel>&) mutable {
-        return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            RunCKSolution<DataType>(handle, primitive_parameters, ck_args, sh_conv_ptr);
-        };
-    };
 }
 
 } // namespace
@@ -369,24 +351,28 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     std::ignore = config;
     return {};
 #else
-    ConvSolution result;
-    auto ck_args          = CKArgs{problem};
-    const auto config_idx = config.index;
+
+    auto InitInvokerFactory = [&problem, idx = config.index](auto DataTypeVal) {
+        using DataType = decltype(DataTypeVal);
+
+        ConvSolution result;
+        result.invoker_factory = [ck_args     = CKArgs{problem},
+                                  sh_conv_ptr = std::shared_ptr{std::move(
+                                      DeviceOpPtrs<DataType>::GetInstances().at(idx))}](
+                                     const std::vector<Kernel>&) mutable {
+            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                RunCKSolution<DataType>(handle, primitive_parameters, ck_args, sh_conv_ptr);
+            };
+        };
+        return result;
+    };
 
     switch(problem.GetInDataType())
     {
-    case miopenInt8:
-        result.invoker_factory =
-            MakeInvokerFactoryHipImplGemmFwdXdlops<int8_t>(std::move(ck_args), config_idx);
-        return result;
-    case miopenHalf:
-        result.invoker_factory =
-            MakeInvokerFactoryHipImplGemmFwdXdlops<ck::half_t>(std::move(ck_args), config_idx);
-        return result;
-    case miopenFloat:
-        result.invoker_factory =
-            MakeInvokerFactoryHipImplGemmFwdXdlops<float>(std::move(ck_args), config_idx);
-        return result;
+    case miopenInt8: return InitInvokerFactory(int8_t{});
+    case miopenHalf: return InitInvokerFactory(ck::half_t{});
+    case miopenFloat: return InitInvokerFactory(float{});
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -396,7 +382,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
     }
 
-    return result;
+    return {};
 #endif
 }
 
