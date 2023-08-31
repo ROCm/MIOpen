@@ -59,7 +59,7 @@ MIOPEN_HIP_HOST_DEVICE T cast_from_f8(uint8_t x);
 
 } // namespace miopen_hip_f8_impl
 
-#include "hip_f8_impl.h"
+#include "hip_f8_impl.hpp"
 
 namespace miopen_f8 {
 enum class hip_f8_type
@@ -253,18 +253,22 @@ struct hip_f8
         return *this;
     }
 
-    inline MIOPEN_HIP_HOST_DEVICE void operator=(const hip_f8& rhs) { this->data = rhs.data; }
+    inline MIOPEN_HIP_HOST_DEVICE hip_f8& operator=(const hip_f8& rhs)
+    {
+        if(&rhs != this)
+            this->data = rhs.data;
+        return *this;
+    }
 
     inline MIOPEN_HIP_HOST_DEVICE bool operator==(const hip_f8& rhs) const
     {
-        if(rhs.is_zero() && this->is_zero())
+        if((rhs.is_zero() && this->is_zero()) ||
+           (fabs(rhs - *this) < std::numeric_limits<hip_f8<T>>::epsilon()))
             return true;
         else if(rhs.is_nan() || rhs.is_inf() || this->is_nan() || this->is_inf())
             return false;
-        else if(fabs(rhs - *this) < std::numeric_limits<hip_f8<T>>::epsilon())
-            return true;
-        else
-            return false;
+
+        return false;
     }
 
     inline MIOPEN_HIP_HOST_DEVICE bool operator<(const hip_f8& rhs) const
@@ -467,16 +471,8 @@ inline MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<T> fabs(miopen_f8::hip_f8<T> v)
     v.data = v.data & 0x7f;
     return v;
 }
-} // namespace miopen_f8
-
-// define numeric limits for the new data type
-namespace std {
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) { return x.is_inf(); }
-
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) { return x.is_inf(); }
-
 template <class T>
-MIOPEN_HIP_HOST_DEVICE T F8_Max(void)
+MIOPEN_HIP_HOST_DEVICE T F8_Max()
 {
     union
     {
@@ -487,6 +483,19 @@ MIOPEN_HIP_HOST_DEVICE T F8_Max(void)
     x.bits = 0x7F;
     return x.value;
 }
+} // namespace miopen_f8
+
+// define numeric limits for the new data type
+namespace std {
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x)
+{
+    return x.is_inf();
+} // NOLINT
+
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x)
+{
+    return x.is_inf();
+} // NOLINT
 
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
@@ -505,13 +514,13 @@ public:
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> max()
     {
-        return F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+        return miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
 
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>(-1.0f) *
-               F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
+               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>();
     }
 };
 
@@ -533,12 +542,12 @@ public:
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> max()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(
-            F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
+            miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>());
     }
     static MIOPEN_HIP_HOST_DEVICE miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> min()
     {
         return static_cast<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>(-1.0f) *
-               F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
+               miopen_f8::F8_Max<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>();
     }
 };
 
@@ -548,14 +557,14 @@ template <miopen_f8::hip_f8_type T>
 struct hip_f8x4
 {
     // define some convenience types
-    typedef float float32x2 __attribute__((ext_vector_type(2)));
-    typedef float float32x4 __attribute__((ext_vector_type(4)));
+    using float32x2 = float __attribute__((ext_vector_type(2)));
+    using float32x4 = float __attribute__((ext_vector_type(4)));
 
-    typedef _Float16 halfx2 __attribute__((ext_vector_type(2)));
-    typedef _Float16 halfx4 __attribute__((ext_vector_type(4)));
+    using halfx2 = _Float16 __attribute__((ext_vector_type(2)));
+    using halfx4 = _Float16 __attribute__((ext_vector_type(4)));
 
-    typedef uint16_t hip_bfloat16x2 __attribute__((ext_vector_type(2)));
-    typedef uint16_t hip_bfloat16x4 __attribute__((ext_vector_type(4)));
+    using hip_bfloat16x2 = uint16_t __attribute__((ext_vector_type(2)));
+    using hip_bfloat16x4 = uint16_t __attribute__((ext_vector_type(4)));
 
     uint32_t data;
 
@@ -610,7 +619,7 @@ template <miopen_f8::hip_f8_type T>
 struct hip_f8x8
 {
     // define some convenience types
-    typedef hip_f8x4<T> f8x8 __attribute__((ext_vector_type(2)));
+    using f8x8 = hip_f8x4<T> __attribute__((ext_vector_type(2)));
 
     f8x8 data;
 
@@ -627,8 +636,8 @@ template <hip_f8_type T>
 using hip_f8x8 = hip_f8x4<T> __attribute__((ext_vector_type(2)));
 #endif
 
-typedef float hip_float32x4 __attribute__((ext_vector_type(4)));
-typedef float hip_float32x16 __attribute__((ext_vector_type(16)));
+using hip_float32x4  = float __attribute__((ext_vector_type(4)));
+using hip_float32x16 = float __attribute__((ext_vector_type(16)));
 
 // these are device-specific and we don't expect them to exist unless we're compiling with hip-clang
 // for MI300.
