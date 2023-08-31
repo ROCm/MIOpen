@@ -851,9 +851,10 @@ struct reduce_driver : test_driver
 
         // Special data generation for NORM1 and NORM2 using a space of limitless number of values.
         auto gen_value_3 = [&](auto... is) {
-            auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
-            auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
-            double rand_ratio = prng::gen_canonical<double>();
+            auto rand_upper = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+            auto rand_ratio = prng::gen_A_to_B(
+                0.1, 1.); // limit range due to numeric errors, see WORKAROUND_GPU_NUMERIC_ERROR
 
             return rand_upper * sign_value * rand_ratio;
         };
