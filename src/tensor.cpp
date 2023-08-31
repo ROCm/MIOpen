@@ -480,7 +480,6 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
 } // namespace miopen
 
 // TODO(paul): Remove
-MIOPEN_EXPORT
 int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
     return miopen::deref(tensorDesc).GetIndex(indices);
