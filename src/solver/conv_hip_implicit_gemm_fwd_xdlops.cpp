@@ -208,17 +208,10 @@ void RunCKSolution(const Handle& handle,
 template <typename DataType>
 InvokerFactory MakeInvokerFactoryHipImplGemmFwdXdlops(CKArgs ck_args, size_t config_idx)
 {
-    auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto conv_ptr  = std::move(conv_ptrs.at(config_idx));
-
-    using UniqPtr = typename std::remove_reference<decltype(conv_ptr)>::type;
-    using T       = typename UniqPtr::element_type;
-
-    std::shared_ptr<T> sh_conv_ptr{std::move(conv_ptr)};
+    std::shared_ptr sh_conv_ptr{std::move(DeviceOpPtrs<DataType>::GetInstances().at(config_idx))};
 
     return [ck_args     = std::move(ck_args),
-            sh_conv_ptr = std::move(sh_conv_ptr)](const std::vector<Kernel>& kernels) mutable {
-        std::ignore = kernels;
+            sh_conv_ptr = std::move(sh_conv_ptr)](const std::vector<Kernel>&) mutable {
         return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                    const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             RunCKSolution<DataType>(handle, primitive_parameters, ck_args, sh_conv_ptr);
@@ -380,7 +373,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     auto ck_args          = CKArgs{problem};
     const auto config_idx = config.index;
 
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenInt8:
         result.invoker_factory =
