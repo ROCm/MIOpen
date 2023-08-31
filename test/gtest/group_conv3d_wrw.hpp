@@ -179,7 +179,6 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_wei) == miopen::range_distance(weights));
 
         const double tolerance = 80;
-        // double threshold       = std::numeric_limits<double>::epsilon() * tolerance;
         double threshold = 1e-5 * tolerance;
         auto error       = miopen::rms_range(ref_wei, weights);
 

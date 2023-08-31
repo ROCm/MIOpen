@@ -262,9 +262,6 @@ void RunCKSolution(const Handle& handle,
     auto& data_ctx      = primitive_parameters.CastTo<conv::WrWInvokeParams>();
     const auto& tensors = data_ctx.tensors;
     auto argument_ptr   = conv_ptr->MakeArgumentPointer(
-        // in.GetDeviceBuffer(),
-        // wei.GetDeviceBuffer(),
-        // out.GetDeviceBuffer(),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.x)),
         static_cast<void*>(tensors.dw),
