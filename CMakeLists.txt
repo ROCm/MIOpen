@@ -435,92 +435,69 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-# Unpack DB files
+set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/src/kernels)
+set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
+
+find_program(UNZIPPER lbzcat bzcat REQUIRED)
+file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
+
 function(unpack_db db_bzip2_file)
-    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
-    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
-    find_program(UNZIPPER NAMES lbunzip2 bunzip2)
-    if(EXISTS "${db_file}")
-        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
-    endif()
-    if(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
-        execute_process(
-            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
-            WORKING_DIRECTORY ${KERNELS_DIR}
-            RESULT_VARIABLE ret
-            )
-        if(NOT ret EQUAL "0")
-            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
-            execute_process(
-                COMMAND touch ${db_file}
-                WORKING_DIRECTORY ${KERNELS_DIR}
-                )
-        endif()
-    endif()
+    get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
+    add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
+                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+    string(REPLACE "." "_" __tname ${__fname})
+    add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+file(GLOB PERF_DB_BZIP_FILES "${KERNELS_SOURCE_DIR}/*.db.bz2")
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
 endforeach()
 
-file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
+file(GLOB FIND_DB_BZIP_FILES "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
 foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
 endforeach()
 
-# Begin KDB component install 
-function(install_kdb)
-    set(oneValueArgs NAME COMPONENT_NAME)
-    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
+# Begin KDB package creation
 
-    if(PARSE_NAME)
-        set(FILE_NAME ${PARSE_NAME})
-    endif()
-    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
-    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
-    if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
+function(install_kdb FILE_NAME COMPONENT_NAME)
+    file(READ ${FILE_NAME} __contents LIMIT 7)
+    get_filename_component(__fname ${FILE_NAME} NAME_WLE)
+    if(__contents MATCHES "version")
+        message(WARNING "GIT LFS file not pulled down, skipping: ${__fname}")
     else()
-        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
-        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        unpack_db(${FILE_NAME})
         if( NOT ENABLE_ASAN_PACKAGING )
-          rocm_install(FILES
-              src/kernels/${FILE_NAME}.kdb
-          DESTINATION ${DATA_INSTALL_DIR}/db
-          COMPONENT ${PARSE_COMPONENT_NAME})
+            rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+                         DESTINATION ${DATA_INSTALL_DIR}/db
+                         COMPONENT ${COMPONENT_NAME})
         endif()
+        set(CPACK_COMPONENTS_ALL
+            "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
-list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+set(KDB_BZ2_FILES gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+set(COMPONENT_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
-list(LENGTH ARCH_LST FULL_LEN)
-math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
-
-
-foreach(IDX RANGE ${ARCH_LST_LEN})
-    list(GET ARCH_LST ${IDX} ARCH_NAME)
-    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
-    install_kdb(
-        NAME ${ARCH_NAME}
-        COMPONENT_NAME ${ARCH_FILE_NAME}
-    )
-endforeach()
-
-if(LFS_MISSING_FILES)
-    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
-    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
-    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
+    foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
+        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
+    endforeach()
 else()
-    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
+    # TODO: Upgrade minimum CMake to version 3.17+ and use IN ZIP_LISTS instead
+    list(LENGTH KDB_BZ2_FILES __length)
+    math(EXPR __high "${__length} - 1")
+    foreach(__index RANGE ${__high})
+        list(GET COMPONENT_LST ${__index} __component)
+        list(GET KDB_BZ2_FILES ${__index} __file)
+        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
+    endforeach()
 endif()
 
-#end kdb package creation
+# End KDB package creation
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
