@@ -249,7 +249,7 @@ struct verify_backward_pooling
                   bool verify_index) const
     {
         auto dinput = input;
-        std::vector<T> din_vec(input.desc.GetElementSpace(), T(0));
+        std::vector<double> din_vec(input.desc.GetElementSpace(), 0.0);
         CHECK(dout.desc == out.desc);
         std::array<int, SptDim + 2> in_dim{};
         std::copy_n(input.desc.GetLengths().begin(), SptDim + 2, in_dim.begin());
