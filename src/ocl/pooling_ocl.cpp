@@ -49,9 +49,9 @@ static auto PoolingForwardSolvers()
 static auto PoolingBackwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingBackward2d,
-        solver::pooling::PoolingBackwardNd,
-        solver::pooling::TransposedPoolingBwd2d,
-        solver::pooling::TransposedPoolingBwdNd>{};
+                                   solver::pooling::PoolingBackwardNd,
+                                   solver::pooling::TransposedPoolingBwd2d,
+                                   solver::pooling::TransposedPoolingBwdNd>{};
 }
 
 miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
