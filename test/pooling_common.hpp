@@ -489,10 +489,14 @@ struct pooling_driver : test_driver
     {
         add(index_type,
             "index_type",
-            generate_data({"miopenIndexUint8",
-                           "miopenIndexUint16",
-                           "miopenIndexUint32",
-                           "miopenIndexUint64"}));
+            generate_multi_data<const char*>( //
+                {{"miopenIndexUint8",
+                  "miopenIndexUint16",
+                  "miopenIndexUint32",
+                  "miopenIndexUint64"},                     //
+                 {"miopenIndexUint8", "miopenIndexUint32"}, //
+                 {"miopenIndexUint8", "miopenIndexUint32"}} //
+                ));
         add(mode,
             "mode",
             generate_data(
@@ -529,6 +533,7 @@ struct pooling_driver : test_driver
         int spt_dim  = in_shape.size() - 2;
         const bool skip_many_configs_with_non_int8_index =
             (dataset_id == 0) && full_set; // Otherwise the default dataset takes too much time.
+        const bool wide_dataset = (dataset_id == 2) && full_set;
 
         filter = miopen::PoolingDescriptor
         {
@@ -544,11 +549,36 @@ struct pooling_driver : test_driver
         filter.SetIndexType(idx_typ);
         filter.SetWorkspaceIndexMode(miopenPoolingWorkspaceIndexMode_t(wsidx));
 
-        if(wsidx == 0 && spt_dim == 3 && filter.GetMode() == miopenPoolingMax)
+        if(wsidx == 0 && spt_dim == 3 && filter.GetMode() == miopenPoolingMax && full_set)
         {
-            std::cout << "Warning: 3D max pooling doesn't support workspace index mask mode"
+            show_command();
+            std::cout << "Warning: Config skipped. Workspace index mask mode is not implemented "
+                         "yet in 3D max pooling solvers."
                       << std::endl;
-            print(filter);
+            return;
+        }
+
+        if(wsidx == 0 && spt_dim == 2 && filter.GetMode() == miopenPoolingMax && wide_dataset)
+        {
+            show_command();
+            std::cout << "Warning: Config skipped. Workspace index mask mode is not implemented "
+                         "yet in 2D max backward solvers that support wide pooling window."
+                      << std::endl;
+            return;
+        }
+
+        if(wsidx == 0 &&
+           (filter.GetMode() == miopenPoolingAverage ||
+            filter.GetMode() == miopenPoolingAverageInclusive) &&
+           full_set)
+        {
+            show_command();
+            std::cout << "Warning: Config skipped. Workspace index modes are irrelevant for "
+                         "Average pooling. "
+                         "In order to optimize performance of full tests, we "
+                         "skip average pooling configs when (wsidx == 0). "
+                         "Please make sure that dataset includes counterparts with (wsidx == 1)."
+                      << std::endl;
             return;
         }
 
@@ -559,23 +589,27 @@ struct pooling_driver : test_driver
         /// the "full test" is ran. See:
         /// \ref max_pooling_index_max_restriction
         case miopenIndexUint8: {
-            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set)
+            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set &&
+               filter.GetMode() == miopenPoolingMax)
             {
+                show_command();
                 std::cout << "Warning: Config skipped: uint8 index is too small "
-                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
+                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) "
+                             "&& filter.GetMode() == miopenPoolingMax"
                           << std::endl;
-                print(filter);
                 return;
             }
             break;
         }
         case miopenIndexUint16: {
-            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set)
+            if((spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) && full_set &&
+               filter.GetMode() == miopenPoolingMax)
             {
+                show_command();
                 std::cout << "Warning: Config skipped: uint16 index is too small "
-                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1))"
+                             "(spt_dim == 3 || (spt_dim == 2 && wsidx == 1)) "
+                             "&& filter.GetMode() == miopenPoolingMax"
                           << std::endl;
-                print(filter);
                 return;
             }
             if(skip_many_configs_with_non_int8_index)
@@ -583,10 +617,10 @@ struct pooling_driver : test_driver
                 // test_pooling_test --all only test 5 uint16 cases
                 if(num_uint16_case > 5)
                 {
+                    show_command();
                     std::cout << "Warning: Config skipped for the default dataset to speed "
                                  "up testing (num_uint16_case > 5)"
                               << std::endl;
-                    print(filter);
                     return;
                 }
                 ++num_uint16_case;
@@ -602,10 +636,10 @@ struct pooling_driver : test_driver
                 {
                     if(num_uint32_case > 5)
                     {
+                        show_command();
                         std::cout << "Warning: Config skipped for the default dataset to speed up "
                                      "testing (wsidx == 0 && num_uint32_case > 5)"
                                   << std::endl;
-                        print(filter);
                         return;
                     }
                     ++num_uint32_case;
@@ -614,10 +648,10 @@ struct pooling_driver : test_driver
                 {
                     if(num_uint32_case_imgidx > 5)
                     {
+                        show_command();
                         std::cout << "Warning: Config skipped for the default dataset to speed up "
                                      "testing (wsidx != 0 && num_uint32_case_imgidx > 5)"
                                   << std::endl;
-                        print(filter);
                         return;
                     }
                     ++num_uint32_case_imgidx;
@@ -633,10 +667,10 @@ struct pooling_driver : test_driver
                 {
                     if(num_uint64_case > 5)
                     {
+                        show_command();
                         std::cout << "Warning: Config skipped for the default dataset to speed up "
                                      "testing (wsidx == 0) && (num_uint64_case > 5)"
                                   << std::endl;
-                        print(filter);
                         return;
                     }
                     ++num_uint64_case;
@@ -645,11 +679,11 @@ struct pooling_driver : test_driver
                 {
                     if(num_uint64_case_imgidx > 5 && spt_dim == 2)
                     {
+                        show_command();
                         std::cout << "Warning: Config skipped to speed up testing of the "
                                      "default dataset (wsidx != 0) && (num_uint64_case_imgidx > 5 "
                                      "&& spt_dim == 2)"
                                   << std::endl;
-                        print(filter);
                         return;
                     }
                     ++num_uint64_case_imgidx;
@@ -664,33 +698,39 @@ struct pooling_driver : test_driver
 
         if(spt_dim != 2 && spt_dim != 3)
         {
-            std::cout << "Warning: Config skipped (spt_dim != 2 && spt_dim != 3)" << std::endl;
-            print(filter);
+            show_command();
+            std::cout << "Warning: Config skipped becuse it is not supported " //
+                         "(spt_dim != 2 && spt_dim != 3)"
+                      << std::endl;
             return;
         }
 
         for(int i = 0; i < spt_dim; i++)
             if(lens[i] > (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
             {
-                std::cout << "Warning: Config skipped "
+                show_command();
+                std::cout << "Warning: Config skipped becuse it is invalid "
                              "(lens[i] > (input_desc.GetLengths()[i + 2] + 2 * pads[i]))"
                           << std::endl;
-                print(filter);
                 return;
             }
 
-        auto output_desc = filter.GetForwardOutputTensor(input_desc);
-        size_t total_mem = 3 * input_desc.GetNumBytes() + output_desc.GetNumBytes() +
-                           idx_sz * output_desc.GetElementSize(); // estimate based on backward pass
-
-        size_t device_mem = get_handle().GetGlobalMemorySize();
-        if(total_mem >= device_mem)
+        if(full_set)
         {
-            std::cout << "Config requires " << total_mem
-                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
-                      << " Bytes of memory." << std::endl;
-            print(filter);
-            return;
+            auto output_desc = filter.GetForwardOutputTensor(input_desc);
+            size_t total_mem =
+                3 * input_desc.GetNumBytes() + output_desc.GetNumBytes() +
+                idx_sz * output_desc.GetElementSize(); // estimate based on backward pass
+
+            size_t device_mem = get_handle().GetGlobalMemorySize();
+            if(total_mem >= device_mem)
+            {
+                show_command();
+                std::cout << "Config skipped because it requires " << total_mem
+                          << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
+                          << " Bytes of memory." << std::endl;
+                return;
+            }
         }
 
         std::vector<int> in_dim(input_desc.GetLengths().begin() + 2, input_desc.GetLengths().end());
