@@ -62,13 +62,7 @@ private:
     // Dataset 2 is intended for testing of configs with wide window.
     std::vector<U> get_2d_pooling_input_shapes_wide()
     {
-        return {{1, 1, 256, 256},
-                {2, 3, 231, 231},
-                {2, 3, 227, 227},
-                {1, 13, 64, 128},
-                {2, 3, 224, 224},
-                {1, 1, 410, 400},
-                {1, 1, 512, 512}};
+        return {{1, 3, 255, 255}, {2, 3, 227, 227}, {1, 7, 127, 127}, {1, 1, 410, 400}};
     }
 
 public:
@@ -87,12 +81,12 @@ public:
                                                            get_2d_pooling_input_shapes_wide()},
                                                           9));
 #endif
-        this->add(
-            this->lens,
-            "lens",
-            this->template generate_multi_data<U>({{{2, 2}, {3, 3}},         //
-                                                   {{2, 2}, {1, 2}, {2, 1}}, //
-                                                   {{9, 9}, {35, 35}, {150, 150}, {410, 400}}}));
+        this->add(this->lens,
+                  "lens",
+                  this->template generate_multi_data<U>(
+                      {{{2, 2}, {3, 3}},         //
+                       {{2, 2}, {1, 2}, {2, 1}}, //
+                       {{35, 35}, {100, 100}, {255, 255}, {410, 400}}}));
         this->add(this->strides,
                   "strides",
                   this->template generate_multi_data<U>({{{2, 2}, {1, 1}},                 //

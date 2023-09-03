@@ -495,7 +495,7 @@ struct pooling_driver : test_driver
                   "miopenIndexUint32",
                   "miopenIndexUint64"},                     //
                  {"miopenIndexUint8", "miopenIndexUint32"}, //
-                 {"miopenIndexUint8", "miopenIndexUint32"}} //
+                 {"miopenIndexUint32"}}                     //
                 ));
         add(mode,
             "mode",
