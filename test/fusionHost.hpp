@@ -135,22 +135,22 @@ void convHostForward(const tensor<T>& input,
     }
 }
 
-template <class T, class U>
+template <class T, class U, class V = U>
 void batchNormSpatialHostInference(const tensor<T>& input,
                                    tensor<T>& output,
                                    const tensor<U>& scale,
                                    const tensor<U>& bias,
                                    double epsilon,
-                                   const tensor<U>& estimatedMean,
-                                   const tensor<U>& estimatedVariance)
+                                   const tensor<V>& estimatedMean,
+                                   const tensor<V>& estimatedVariance)
 {
 
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
     par_for(channels, 1, [&](int cidx) { // via channel
-        double mean      = estimatedMean(0, cidx, 0, 0);
-        double variance  = estimatedVariance(0, cidx, 0, 0);
-        double invertVar = 1.0 / sqrt(variance + epsilon);
+        V mean      = estimatedMean(0, cidx, 0, 0);
+        V variance  = estimatedVariance(0, cidx, 0, 0);
+        V invertVar = 1.0 / sqrt(variance + epsilon);
         // process the batch per channel
         for(int row = 0; row < height; row++)
         { // via rows
@@ -158,8 +158,8 @@ void batchNormSpatialHostInference(const tensor<T>& input,
             { // via columns
                 for(int bidx = 0; bidx < n_batches; bidx++)
                 { // via mini_batch
-                    double elemStd = static_cast<double>(input(bidx, cidx, row, column)) - mean;
-                    double inhat   = elemStd * invertVar;
+                    V elemStd = static_cast<V>(input(bidx, cidx, row, column)) - mean;
+                    V inhat   = elemStd * invertVar;
                     output(bidx, cidx, row, column) =
                         static_cast<T>(scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
                     // printf("output: %f\n",scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));

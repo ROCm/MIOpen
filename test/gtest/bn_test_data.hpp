@@ -61,6 +61,7 @@ std::vector<BNTestCase> Network1()
     // pyt_mlperf_resnet50v1.5
     return {
         {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -90,7 +91,7 @@ std::vector<BNTestCase> Network1()
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
 }
 
-template <typename T, typename TConfig>
+template <typename XDataType, typename YDataType, typename TConfig>
 struct BNTestData
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
@@ -105,9 +106,9 @@ struct BNTestData
     }
     const miopen::TensorDescriptor& GetInputDesc() const { return input.desc; }
 
-    tensor<T> input;
-    tensor<T> output;
-    tensor<T> ref_out;
+    tensor<XDataType> input;
+    tensor<YDataType> output;
+    tensor<YDataType> ref_out;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr out_dev;
 
@@ -122,8 +123,8 @@ struct BNTestData
 private:
     void CreateTensors()
     {
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, bn_config.GetInput()};
-        output  = tensor<T>{miopen_type<T>{}, tensor_layout, bn_config.GetInput()};
+        input   = tensor<XDataType>{miopen_type<XDataType>{}, tensor_layout, bn_config.GetInput()};
+        output  = tensor<YDataType>{miopen_type<YDataType>{}, tensor_layout, bn_config.GetInput()};
         ref_out = output;
     }
 
@@ -133,7 +134,7 @@ private:
         std::mt19937 gen{rd()};
         std::uniform_int_distribution<> d{0, 100};
         auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+            return 1e-2 * static_cast<XDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
         };
         input.generate(gen_value);
     }
@@ -148,21 +149,22 @@ private:
     }
 };
 
-template <typename T, typename TConfig>
-struct BNInferTestData : public BNTestData<T, TConfig>
+template <typename XDataType, typename YDataType, typename ScaleDataType, 
+          typename BiasDataType, typename MeanVarDataType, typename TConfig>
+struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
     {
-        BNTestData<T, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();
     }
 
-    tensor<T> scale;
-    tensor<T> shift;
-    tensor<T> estMean;
-    tensor<T> estVariance;
+    tensor<ScaleDataType> scale;
+    tensor<BiasDataType> shift;
+    tensor<MeanVarDataType> estMean;
+    tensor<MeanVarDataType> estVariance;
     miopen::Allocator::ManageDataPtr scale_dev;
     miopen::Allocator::ManageDataPtr shift_dev; // bias
     miopen::Allocator::ManageDataPtr estMean_dev;
@@ -179,19 +181,19 @@ private:
     {
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
-                                         BNTestData<T, TConfig>::input.desc,
-                                         BNTestData<T, TConfig>::bn_mode);
-        scale       = tensor<T>{miopen_type<T>{},
-                          BNTestData<T, TConfig>::tensor_layout,
+                                         BNTestData<XDataType, YDataType, TConfig>::input.desc,
+                                         BNTestData<XDataType, YDataType, TConfig>::bn_mode);
+        scale       = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
+                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
-        shift       = tensor<T>{miopen_type<T>{},
-                          BNTestData<T, TConfig>::tensor_layout,
+        shift       = tensor<BiasDataType>{miopen_type<BiasDataType>{},
+                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
-        estMean     = tensor<T>{miopen_type<T>{},
-                            BNTestData<T, TConfig>::tensor_layout,
+        estMean     = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                            BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                             derivedBnDesc.GetLengths()};
-        estVariance = tensor<T>{miopen_type<T>{},
-                                BNTestData<T, TConfig>::tensor_layout,
+        estVariance = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                 derivedBnDesc.GetLengths()};
     }
 
@@ -201,12 +203,13 @@ private:
         std::mt19937 gen{rd()};
         std::uniform_int_distribution<> d{0, 100};
         auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+            return 1e-2 * static_cast<ScaleDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
-        estMean.generate(gen_value);
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
+        
+        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
+        estMean.generate(gen_var);
         estVariance.generate(gen_var);
     }
     void WriteToGPU()

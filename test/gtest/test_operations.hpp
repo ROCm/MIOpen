@@ -39,15 +39,13 @@ void ComputeCPUBNInference(DLModule& dl_module)
 }
 
 template <typename T>
-void BnCmpare(const tensor<T>& output, const tensor<T>& ref_out)
+void CompareTensor(const tensor<T>& output, const tensor<T>& ref_out, const T threshold = std::numeric_limits<T>::epsilon())
 {
     EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
     EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
         << "Non finite number found in the GPU data";
     EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-    const double tolerance = 80;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
     auto error             = miopen::rms_range(ref_out, output);
     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
         << "Non finite number found in the CPU data";

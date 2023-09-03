@@ -31,7 +31,8 @@
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
 
-template <typename T>
+template <typename XDataType, typename YDataType, typename ScaleDataType, 
+          typename BiasDataType, typename MeanVarDataType>
 struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
 protected:
@@ -57,6 +58,8 @@ protected:
         bn_infer_test_data.estMean_dev.get(),
         bn_infer_test_data.estVariance_dev.get(),
         bn_infer_test_data.epsilon);
+
+        std::fill(bn_infer_test_data.output.begin(), bn_infer_test_data.output.end(), std::numeric_limits<YDataType>::quiet_NaN());
     }
 
     void TearDown() override
@@ -65,12 +68,23 @@ protected:
             return;
         auto&& handle = get_handle();
         bn_infer_test_data.output.data =
-            handle.Read<T>(bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
+            handle.Read<YDataType>(bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
-        test::BnCmpare(bn_infer_test_data.output, bn_infer_test_data.ref_out);
+        
+        if constexpr(std::is_same_v<YDataType, double>)
+        {
+            // tolerance for CK solver
+            test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 1e-8);
+        }
+        else{
+            test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out);
+        }
+
     }
+
     BNTestCase bn_config;
     bool test_skipped = false;
-    BNInferTestData<T, BNTestCase> bn_infer_test_data;
+    BNInferTestData<XDataType, YDataType, ScaleDataType, 
+          BiasDataType, MeanVarDataType, BNTestCase> bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };

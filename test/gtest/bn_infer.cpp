@@ -26,17 +26,48 @@
 
 #include "bn.hpp"
 
-struct BNInferTestFloat : BNInferTest<float>
+struct BNInferTestHalf : BNInferTest<half_float::half, half_float::half, half_float::half, 
+    half_float::half, float>
 {
 };
 
-TEST_P(BNInferTestFloat, BnFwdInferCK)
+struct BNInferTestFloat : BNInferTest<float, float, float, 
+    float, float>
+{
+};
+
+struct BNInferTestDouble : BNInferTest<double, double, double, 
+    double, double>
+{
+};
+
+
+TEST_P(BNInferTestHalf, BnFwdInferCKHalf)
 {
     
 }
 
+TEST_P(BNInferTestFloat, BnFwdInferCKFloat)
+{
+    
+}
+
+TEST_P(BNInferTestDouble, BnFwdInferCKDouble)
+{
+    
+}
+
+INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
+                         BNInferTestHalf,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestFloat,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
+
+INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCSuite,
+                         BNInferTestDouble,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));

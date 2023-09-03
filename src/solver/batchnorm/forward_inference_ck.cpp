@@ -47,12 +47,9 @@ using Normalize   = ck::tensor_operation::element_wise::NormalizeInInfer;
 constexpr index_t Rank                  = 4;
 constexpr index_t NumBatchNormReduceDim = 3;
 
-template <typename DataType>
-using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
-    ck::Tuple<DataType, DataType, DataType, DataType, DataType>,
-    ck::Tuple<DataType>,
-    Normalize,
-    Rank>;
+using F16  = ck::half_t;
+using F32  = float;
+using F64  = double;
 
 struct CKArgsBNormFwd
 {
@@ -81,17 +78,26 @@ struct CKArgsBNormFwd
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
 
-    double epsilon = 0.0001;
     std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
 };
 
-template <typename DataType>
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
 int CheckCKApplicability(
     const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormFwd{problem};
+    using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
     const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<DataType>>::GetInstances();
+            DeviceOp>::GetInstances();
     assert(!bn_fwd_ptrs.empty());
     int count = 0;
     for(const auto& it : bn_fwd_ptrs)
@@ -114,17 +120,28 @@ int CheckCKApplicability(
     return -1;
 }
 
-template <typename DataType>
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
 static void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
                    const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
 
+    using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
     const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<DataType>>::GetInstances();
+            DeviceOp>::GetInstances();
 
-    int kernel_index = CheckCKApplicability<DataType>(problem);
+    int kernel_index = CheckCKApplicability<XDataType, YDataType, AccDataType, 
+                                        ScaleDataType, BiasDataType, MeanVarDataType>(problem);
     assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
     auto& bn_ptr           = bn_fwd_ptrs.at(kernel_index);
     const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
@@ -174,13 +191,13 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& ctx,
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf: return (CheckCKApplicability<ck::half_t>(bn_problem) != -1);
-    case miopenInt8:
-    case miopenFloat: return (CheckCKApplicability<float>(bn_problem) != -1);
-    case miopenInt32:
-    case miopenInt8x4:
+    case miopenHalf: return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
+    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
+    case miopenDouble: return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
-    case miopenDouble:
+    case miopenInt32:
+    case miopenInt8:
+    case miopenInt8x4:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -205,16 +222,18 @@ ConvSolution BnCKFwdInference::GetSolution(const ExecutionContext& context,
             switch(bn_problem.GetXDesc().GetType()) // add api GetInDataType in bn_problem
             {
             case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<F16, F16, F32, F16, F16, F32>(handle, primitive_parameters, bn_problem);
                 break;
-            case miopenInt8:
             case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<F32, F32, F32, F32, F32, F32>(handle, primitive_parameters, bn_problem);
                 break;
+            case miopenDouble:
+                RunCKSolution<F64, F64, F64, F64, F64, F64>(handle, primitive_parameters, bn_problem);
+                break;
+            case miopenBFloat16:
+            case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:
-            case miopenBFloat16:
-            case miopenDouble:
             default: MIOPEN_THROW("Unsupported datatype");
             }
         };
