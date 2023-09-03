@@ -25,24 +25,19 @@
  *
  *******************************************************************************/
 
-#include <vector>
-#include <cstdint>
 
-#include <miopen/check_numerics.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/fusion/solvers.hpp>
-#include <miopen/generic_search.hpp>
+#include <miopen/batchnorm/solvers.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
-#include <miopen/solver/ck_utility_common.hpp>
-#include <miopen/solver/problem_description_interpreter.hpp>
+#include <miopen/batch_norm.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_BN_INFER)
 
 namespace miopen {
 namespace solver {
-namespace fusion {
+namespace batchnorm {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
@@ -91,12 +86,14 @@ struct CKArgsBNormFwd
 };
 
 template <typename DataType>
-void PerformanceConfigCKBnFwdInference::Init(const miopen::batchnorm::ProblemDescription& problem)
+int CheckCKApplicability(
+    const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormFwd{problem};
     const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
     assert(!bn_fwd_ptrs.empty());
+    int count = 0;
     for(const auto& it : bn_fwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
@@ -109,103 +106,28 @@ void PerformanceConfigCKBnFwdInference::Init(const miopen::batchnorm::ProblemDes
                                                     {nullptr, nullptr, nullptr, nullptr, nullptr},
                                                     {nullptr},
                                                     Normalize{0.0});
-        if(it->IsSupportedArgument(argument_ptr.get()))
-        {
-            valid_kernels.push_back(it->GetTypeString());
+        if(it->IsSupportedArgument(argument_ptr.get())){
+            return count;
         }
+        count++;
     }
-
-    assert(!valid_kernels.empty());
-    this->index     = 0;
-    this->kernel_id = valid_kernels[0];
+    return -1;
 }
 
 template <typename DataType>
-bool PerformanceConfigCKBnFwdInference::CheckIsSupportCKArgs(
-    const miopen::batchnorm::ProblemDescription& problem) const
-{
-    const auto& args       = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<DataType>>::GetInstances();
-
-    int i = 0;
-    for(; i < bn_fwd_ptrs.size(); i++)
-    {
-        if(bn_fwd_ptrs[i]->GetTypeString() == this->kernel_id)
-        {
-            break;
-        }
-    }
-    if(i == valid_kernels.size())
-    {
-        return false;
-    }
-    auto argument_ptr =
-        bn_fwd_ptrs[i]->MakeArgumentPointer(args.xyLengths,
-                                            {args.xyStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides},
-                                            {args.xyStrides},
-                                            {nullptr, nullptr, nullptr, nullptr, nullptr},
-                                            {nullptr},
-                                            Normalize{0.0});
-    return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
-}
-
-template <typename DataType>
-bool CKBnFwdInference::CheckCKApplicability(
-    const miopen::batchnorm::ProblemDescription& problem) const
-{
-    const auto& args       = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<DataType>>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
-
-    for(const auto& it : bn_fwd_ptrs)
-    {
-        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
-                                                    {args.xyStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides},
-                                                    {args.xyStrides},
-                                                    {nullptr, nullptr, nullptr, nullptr, nullptr},
-                                                    {nullptr},
-                                                    Normalize{0.0});
-        if(it->IsSupportedArgument(argument_ptr.get()))
-            return true;
-    }
-    return false;
-}
-
-template <typename DataType>
-void RunCKSolution(const Handle& handle,
+static void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const miopen::batchnorm::ProblemDescription& problem,
-                   const PerformanceConfigCKBnFwdInference& config)
+                   const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
 
     const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp<DataType>>::GetInstances();
 
-    int index = 0;
-    for(; index < bn_fwd_ptrs.size(); index++)
-    {
-        if(bn_fwd_ptrs[index]->GetTypeString() == config.kernel_id)
-        {
-            break;
-        }
-    }
-    assert(index < bn_fwd_ptrs.size());
-    auto& bn_ptr           = bn_fwd_ptrs.at(index);
-    const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
-    assert(invoke_ctx.op_args.params[0] != nullptr);
-    const auto& params = dynamic_cast<miopen::fusion::BatchNormInferenceOpInvokeParam&>(
-        *invoke_ctx.op_args.params[0]);
+    int kernel_index = CheckCKApplicability<DataType>(problem);
+    assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
+    auto& bn_ptr           = bn_fwd_ptrs.at(kernel_index);
+    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
 
     auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
                                                     {args.xyStrides,
@@ -214,12 +136,12 @@ void RunCKSolution(const Handle& handle,
                                                      args.aligned_scaleBiasMeanVarStrides,
                                                      args.aligned_scaleBiasMeanVarStrides},
                                                     {args.xyStrides},
-                                                    {invoke_ctx.in,
+                                                    {params.x,
                                                      params.estimatedMean,
                                                      params.estimatedVariance,
                                                      params.bnScale,
                                                      params.bnBias},
-                                                    {invoke_ctx.out},
+                                                    {params.y},
                                                     Normalize{params.epsilon});
 
     auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
@@ -235,131 +157,16 @@ void RunCKSolution(const Handle& handle,
 }
 #endif
 
-void PerformanceConfigCKBnFwdInference::HeuristicInit(const FusionDescription& fdesc_problem)
-{
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = fdesc_problem;
-#else
-    const auto& bn_problem =
-        fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
-    switch(bn_problem.GetXDesc().GetType())
-    {
-    case miopenHalf: Init<ck::half_t>(bn_problem); break;
-    case miopenInt8:
-    case miopenFloat: Init<float>(bn_problem); break;
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    default: MIOPEN_THROW("Unsupported datatype");
-    }
-
-#endif
-}
-
-bool PerformanceConfigCKBnFwdInference::SetNextValue(const FusionDescription& fdesc_problem)
-{
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = fdesc_problem;
-    return false;
-#else
-    if(this->valid_kernels.empty())
-    {
-        this->HeuristicInit(fdesc_problem);
-        assert(!valid_kernels.empty());
-        return true;
-    }
-    if((this->index + 1) < valid_kernels.size())
-    {
-        ++this->index;
-        this->kernel_id = this->valid_kernels[index];
-        return true;
-    }
-    else
-        return false;
-#endif
-}
-
-bool PerformanceConfigCKBnFwdInference::IsValidValue() const
-{
-    return this->index >= 0 && this->index < valid_kernels.size();
-}
-
-bool PerformanceConfigCKBnFwdInference::IsValid(const FusionContext&,
-                                                const FusionDescription& fdesc_problem) const
-{
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = fdesc_problem;
-    return false;
-#else
-    // Extract convolution problem from the fusion context.
-    const auto& bn_problem =
-        fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
-    switch(bn_problem.GetDXDesc().GetType())
-    {
-    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(bn_problem);
-    case miopenInt8:
-    case miopenFloat: return CheckIsSupportCKArgs<float>(bn_problem);
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    default: MIOPEN_THROW("Unsupported datatype");
-    }
-    return false;
-#endif
-}
-
-bool PerformanceConfigCKBnFwdInference::operator==(
-    const PerformanceConfigCKBnFwdInference& other) const
-{
-    return this->kernel_id == other.kernel_id;
-}
-PerformanceConfigCKBnFwdInference
-CKBnFwdInference::GetDefaultPerformanceConfig(const FusionContext&,
-                                              const FusionDescription& fdesc_problem) const
-{
-    PerformanceConfigCKBnFwdInference pp;
-    pp.HeuristicInit(fdesc_problem);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
-}
-
-bool CKBnFwdInference::IsValidPerformanceConfig(
-    const FusionContext& ctx,
-    const FusionDescription& fdesc_problem,
-    const PerformanceConfigCKBnFwdInference& config) const
-{
-    return config.IsValid(ctx, fdesc_problem);
-}
-
-PerformanceConfigCKBnFwdInference CKBnFwdInference::Search(const FusionContext& ctx,
-                                                           const FusionDescription& fdesc_problem,
-                                                           const AnyInvokeParams& invoke_ctx) const
-{
-    return GenericSearch(*this, ctx, fdesc_problem, invoke_ctx);
-}
-
-bool CKBnFwdInference::IsApplicable(const FusionContext& ctx,
-                                    const FusionDescription& fdesc_problem) const
+bool BnCKFwdInference::IsApplicable(const ExecutionContext& ctx,
+                                    const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
     std::ignore = fdesc_problem;
     return false;
 #else
-    const auto& desc = *fdesc_problem.fusion_plan_desc;
-    if(desc.op_map.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_INFER{}))
         return false;
-    if(desc.op_map.size() != 1)
-        return false;
-    const auto& bn_op = dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*desc.op_map[0]);
-    if(bn_op.kind() != miopenFusionOpBatchNormInference)
-        return false;
-    const auto& bn_problem =
-        fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
     if(!bn_problem.IsLayoutNHWC())
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
@@ -367,9 +174,9 @@ bool CKBnFwdInference::IsApplicable(const FusionContext& ctx,
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(bn_problem);
+    case miopenHalf: return (CheckCKApplicability<ck::half_t>(bn_problem) != -1);
     case miopenInt8:
-    case miopenFloat: return CheckCKApplicability<float>(bn_problem);
+    case miopenFloat: return (CheckCKApplicability<float>(bn_problem) != -1);
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -380,30 +187,29 @@ bool CKBnFwdInference::IsApplicable(const FusionContext& ctx,
 #endif
 }
 
-ConvSolution CKBnFwdInference::GetSolution(const FusionContext&,
-                                           const FusionDescription& fdesc_problem,
-                                           const PerformanceConfigCKBnFwdInference& config) const
+ConvSolution BnCKFwdInference::GetSolution(const ExecutionContext& context,
+                                           const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = fdesc_problem;
-    std::ignore = config;
+    std::ignore = context;
+    std::ignore = bn_problem;
     return {};
 #else
-    const auto& bn_problem =
-        fdesc_problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
+    std::ignore = context;
 
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            
             switch(bn_problem.GetXDesc().GetType()) // add api GetInDataType in bn_problem
             {
             case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, bn_problem, config);
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, bn_problem);
                 break;
             case miopenInt8:
             case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, bn_problem, config);
+                RunCKSolution<float>(handle, primitive_parameters, bn_problem);
                 break;
             case miopenInt32:
             case miopenInt8x4:
@@ -417,6 +223,6 @@ ConvSolution CKBnFwdInference::GetSolution(const FusionContext&,
 #endif
 }
 
-} // namespace fusion
+} // namespace batchnorm
 } // namespace solver
 } // namespace miopen

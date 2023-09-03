@@ -29,6 +29,7 @@
 
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 #include <serialize.hpp>
 #include <fusionHost.hpp>
 
@@ -90,7 +91,7 @@ std::vector<BNTestCase> Network1()
 }
 
 template <typename T, typename TConfig>
-struct BNSolverTestBase
+struct BNTestData
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
     {
@@ -148,11 +149,11 @@ private:
 };
 
 template <typename T, typename TConfig>
-struct BNInferSolverTest : public BNSolverTestBase<T, TConfig>
+struct BNInferTestData : public BNTestData<T, TConfig>
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
     {
-        BNSolverTestBase<T, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<T, TConfig>::SetUpImpl(config, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();
@@ -167,8 +168,8 @@ struct BNInferSolverTest : public BNSolverTestBase<T, TConfig>
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     double epsilon          = 1.0e-5;
-    const float alpha       = static_cast<float>(1.0f);
-    const float beta        = static_cast<float>(0);
+    float alpha       = static_cast<float>(1.0f);
+    float beta        = static_cast<float>(0);
     const float activ_alpha = static_cast<double>(0.5f);
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
@@ -178,19 +179,19 @@ private:
     {
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
-                                         BNSolverTestBase<T, TConfig>::input.desc,
-                                         BNSolverTestBase<T, TConfig>::bn_mode);
+                                         BNTestData<T, TConfig>::input.desc,
+                                         BNTestData<T, TConfig>::bn_mode);
         scale       = tensor<T>{miopen_type<T>{},
-                          BNSolverTestBase<T, TConfig>::tensor_layout,
+                          BNTestData<T, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
         shift       = tensor<T>{miopen_type<T>{},
-                          BNSolverTestBase<T, TConfig>::tensor_layout,
+                          BNTestData<T, TConfig>::tensor_layout,
                           derivedBnDesc.GetLengths()};
         estMean     = tensor<T>{miopen_type<T>{},
-                            BNSolverTestBase<T, TConfig>::tensor_layout,
+                            BNTestData<T, TConfig>::tensor_layout,
                             derivedBnDesc.GetLengths()};
         estVariance = tensor<T>{miopen_type<T>{},
-                                BNSolverTestBase<T, TConfig>::tensor_layout,
+                                BNTestData<T, TConfig>::tensor_layout,
                                 derivedBnDesc.GetLengths()};
     }
 

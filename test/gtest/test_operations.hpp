@@ -25,7 +25,37 @@
  *******************************************************************************/
 #pragma once
 
-#include "bn_test_base.hpp"
+namespace test{
+template <typename DLModule>
+void ComputeCPUBNInference(DLModule& dl_module)
+{
+    batchNormSpatialHostInference(dl_module.input,
+                                      dl_module.ref_out,
+                                      dl_module.scale,
+                                      dl_module.shift,
+                                      dl_module.epsilon,
+                                      dl_module.estMean,
+                                      dl_module.estVariance);
+}
+
+template <typename T>
+void BnCmpare(const tensor<T>& output, const tensor<T>& ref_out)
+{
+    EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
+    EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
+    EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
+        << "Non finite number found in the GPU data";
+    EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
+    const double tolerance = 80;
+    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
+    auto error             = miopen::rms_range(ref_out, output);
+    EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+        << "Non finite number found in the CPU data";
+    EXPECT_TRUE(error < threshold)
+        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+}
+}
+
 namespace test {
 namespace FusionPlan {
 template <typename DLModule>
@@ -76,48 +106,5 @@ bool Skip(miopen::Handle& handle)
 
     return skip_test;
 }
-
-template <typename DLModule>
-void ComputeRefBN(DLModule& dl_module)
-{
-    if(dl_module.bn_mode == miopenBNPerActivation)
-    {
-        batchNormPerActivHostInference(dl_module.input,
-                                       dl_module.ref_out,
-                                       dl_module.scale,
-                                       dl_module.shift,
-                                       dl_module.epsilon,
-                                       dl_module.estMean,
-                                       dl_module.estVariance);
-    }
-    else
-    {
-        batchNormSpatialHostInference(dl_module.input,
-                                      dl_module.ref_out,
-                                      dl_module.scale,
-                                      dl_module.shift,
-                                      dl_module.epsilon,
-                                      dl_module.estMean,
-                                      dl_module.estVariance);
-    }
-}
-
-template <typename T>
-void BnCmpare(const tensor<T>& output, const tensor<T>& ref_out)
-{
-    EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
-    EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
-    EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
-        << "Non finite number found in the GPU data";
-    EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-    const double tolerance = 80;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-    auto error             = miopen::rms_range(ref_out, output);
-    EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
-        << "Non finite number found in the CPU data";
-    EXPECT_TRUE(error < threshold)
-        << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-}
-
 } // namespace FusionPlan
 } // namespace test

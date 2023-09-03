@@ -25,10 +25,11 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/miopen.h>
 #include <gtest/gtest.h>
 
-#include "bn_test_base.hpp"
-#include "test_fusion_plan_base.hpp"
+#include "bn_test_data.hpp"
+#include "test_operations.hpp"
 
 template <typename T>
 struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
@@ -38,10 +39,24 @@ protected:
     {
         test_skipped                       = false;
         std::tie(bn_config, tensor_layout) = GetParam();
-        bn_infer_data.SetUpImpl(bn_config, tensor_layout);
+        bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
 
-        test::FusionPlan::InitFusionPlan(fusePlanDesc, bn_infer_data);
-        test::FusionPlan::AddBnInfer(fusePlanDesc, params, bn_infer_data);
+        auto&& handle = get_handle();
+        miopenBatchNormalizationForwardInference(
+        &handle,
+        bn_config.mode,
+        &bn_infer_test_data.alpha,
+        &bn_infer_test_data.beta,
+        &bn_infer_test_data.input.desc,
+        bn_infer_test_data.in_dev.get(),
+        &bn_infer_test_data.output.desc,
+        bn_infer_test_data.out_dev.get(),
+        &bn_infer_test_data.scale.desc,
+        bn_infer_test_data.scale_dev.get(),
+        bn_infer_test_data.shift_dev.get(),
+        bn_infer_test_data.estMean_dev.get(),
+        bn_infer_test_data.estVariance_dev.get(),
+        bn_infer_test_data.epsilon);
     }
 
     void TearDown() override
@@ -49,18 +64,13 @@ protected:
         if(test_skipped)
             return;
         auto&& handle = get_handle();
-        bn_infer_data.output.data =
-            handle.Read<T>(bn_infer_data.out_dev, bn_infer_data.output.data.size());
-        test::FusionPlan::ComputeRefBN(bn_infer_data);
-        test::FusionPlan::BnCmpare(bn_infer_data.output, bn_infer_data.ref_out);
+        bn_infer_test_data.output.data =
+            handle.Read<T>(bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
+        test::ComputeCPUBNInference(bn_infer_test_data);
+        test::BnCmpare(bn_infer_test_data.output, bn_infer_test_data.ref_out);
     }
     BNTestCase bn_config;
-
     bool test_skipped = false;
-    miopen::FusionPlanDescriptor fusePlanDesc;
-    miopen::OperatorArgs params;
-
-    BNInferSolverTest<T, BNTestCase> bn_infer_data;
-
+    BNInferTestData<T, BNTestCase> bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };
