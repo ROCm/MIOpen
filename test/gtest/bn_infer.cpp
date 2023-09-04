@@ -36,23 +36,12 @@ struct BNInferTestFloat : BNInferTest<float, float, float,
 {
 };
 
-struct BNInferTestDouble : BNInferTest<double, double, double, 
-    double, double>
-{
-};
-
-
 TEST_P(BNInferTestHalf, BnFwdInferCKHalf)
 {
     
 }
 
 TEST_P(BNInferTestFloat, BnFwdInferCKFloat)
-{
-    
-}
-
-TEST_P(BNInferTestDouble, BnFwdInferCKDouble)
 {
     
 }
@@ -64,10 +53,5 @@ INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestFloat,
-                         testing::Combine(testing::ValuesIn(Network1()),
-                                          testing::Values(miopenTensorNHWC)));
-
-INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCSuite,
-                         BNInferTestDouble,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));

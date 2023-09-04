@@ -73,7 +73,7 @@ protected:
         
         if constexpr(std::is_same_v<YDataType, double>)
         {
-            // tolerance for CK solver
+            // tolerance for CK solver tolerance for
             test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 1e-8);
         }
         else{

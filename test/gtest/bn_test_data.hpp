@@ -207,9 +207,9 @@ private:
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
+        estMean.generate(gen_value);
         
         auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
-        estMean.generate(gen_var);
         estVariance.generate(gen_var);
     }
     void WriteToGPU()
