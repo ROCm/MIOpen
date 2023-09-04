@@ -58,6 +58,7 @@ template <typename DataType>
 using DeviceOpPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
 
+namespace {
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -84,7 +85,6 @@ struct CKArgs
     CKArgs(const CKArgs&) = default;
     CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
-    CKArgs& operator=(CKArgs&&) = default;
     ~CKArgs()                   = default;
 
     template <typename ConvPtr>
@@ -133,7 +133,6 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
-namespace {
 template <typename DataType, typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
                                                 const std::string& kernel_id)
