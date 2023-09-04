@@ -143,12 +143,11 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& p
     for(size_t idx = 0; idx < conv_ptrs.size(); ++idx)
     {
         if(args.IsSupportedBy(conv_ptrs[idx]))
-            valid_kernels.emplace_back(std::move(static_cast<int>(idx)),
-                                       std::move(conv_ptrs[idx]->GetTypeString()));
+            valid_kernels.emplace_back(std::move(conv_ptrs[idx]->GetTypeString()));
     }
     assert(!valid_kernels.empty());
     index     = 0;
-    kernel_id = valid_kernels[0].second;
+    kernel_id = valid_kernels[0];
 }
 
 template <typename DataType>
@@ -237,7 +236,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::SetNextValue(const ProblemDescri
     if((index + 1) < valid_kernels.size())
     {
         ++index;
-        kernel_id = valid_kernels[index].second;
+        kernel_id = valid_kernels[index];
         return true;
     }
     else

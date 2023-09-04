@@ -4584,7 +4584,7 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
 {
     int index             = 0;
     std::string kernel_id = "";
-    std::vector<std::pair<int, std::string>> valid_kernels;
+    std::vector<std::string> valid_kernels;
 
     PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
