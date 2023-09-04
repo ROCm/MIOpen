@@ -57,7 +57,10 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                   (problem.GetXDesc().GetSize() == 4                               //
                    && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
                    && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
-              );
+                  )                                                                //
+           /// \todo This solver does not support workspace index mask mode yet.
+           && !(problem.GetPooling().GetMode() == miopenPoolingMax //
+                && problem.GetPooling().GetWorkspaceIndexMode() == miopenPoolingWorkspaceIndexMask);
 }
 
 ConvSolution

@@ -93,20 +93,16 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     /// "index_max" means ghost, and thus should not be reached.
     if(mode == miopenPoolingMax && save_index)
     {
-        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask &&
-            !(index_max >= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>()))) ||
-           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage &&
-            !(index_max >= std::accumulate(xDesc.GetLengths().begin() + 2,
-                                           xDesc.GetLengths().end(),
-                                           1,
-                                           std::multiplies<int>()))))
+        if((workspaceIndexMode == miopenPoolingWorkspaceIndexMask                                 //
+            && index_max <= std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<int>())) //
+           ||                                                                                     //
+           (workspaceIndexMode == miopenPoolingWorkspaceIndexImage                                //
+            && index_max <= std::accumulate(xDesc.GetLengths().begin() + 2,
+                                            xDesc.GetLengths().end(),
+                                            1,
+                                            std::multiplies<int>())))
         {
             MIOPEN_THROW("Index range not enough for max pooling bwd");
-        }
-
-        if(workspaceIndexMode == miopenPoolingWorkspaceIndexMask && pool_dim == 5)
-        {
-            MIOPEN_THROW("3D max pooling doesn't support workspace index mask mode");
         }
 
         if(workSpace == nullptr)
