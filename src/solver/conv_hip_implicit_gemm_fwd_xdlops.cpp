@@ -93,16 +93,16 @@ struct CKArgs
         return conv_ptr->MakeArgumentPointer(in,
                                              w,
                                              out,
-                                             this->N,
-                                             this->K,
-                                             this->C,
-                                             this->input,
-                                             this->filter,
-                                             this->output,
-                                             this->strides,
-                                             this->dilation,
-                                             this->lPadding,
-                                             this->rPadding,
+                                             N,
+                                             K,
+                                             C,
+                                             input,
+                                             filter,
+                                             output,
+                                             strides,
+                                             dilation,
+                                             lPadding,
+                                             rPadding,
                                              {},
                                              {},
                                              {});
@@ -147,8 +147,8 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& p
                                        std::move(conv_ptrs[idx]->GetTypeString()));
     }
     assert(!valid_kernels.empty());
-    this->index     = 0;
-    this->kernel_id = valid_kernels[0].second;
+    index     = 0;
+    kernel_id = valid_kernels[0].second;
 }
 
 template <typename DataType>
@@ -156,7 +156,15 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    return CKArgs{problem}.IsSupportedBy(conv_ptrs.at(valid_kernels[this->index].first));
+    auto ptr_idx         = std::find_if(
+        conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id = this->kernel_id](const auto& ptr) {
+            return ptr->GetTypeString() == kernel_id;
+        });
+
+    if(ptr_idx == conv_ptrs.end())
+        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+
+    return CKArgs{problem}.IsSupportedBy(*ptr_idx);
 }
 
 template <typename DataType>
@@ -361,7 +369,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
             });
 
         if(ptr_idx == conv_ptrs.end())
-            MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exists");
+            MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
 
         ConvSolution result;
         result.invoker_factory = [ck_args     = CKArgs{problem},
