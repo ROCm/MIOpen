@@ -156,8 +156,8 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
 {
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
     auto ptr_idx         = std::find_if(
-        conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id = this->kernel_id](const auto& ptr) {
-            return ptr->GetTypeString() == kernel_id;
+        conv_ptrs.begin(), conv_ptrs.end(), [&kernl_id = this->kernel_id](const auto& ptr) {
+            return ptr->GetTypeString() == kernl_id;
         });
 
     if(ptr_idx == conv_ptrs.end())
