@@ -252,13 +252,16 @@ elseif(MIOPEN_TEST_BFLOAT16)
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
-  endif()
-  if(${CODECOV_TEST})
-      list(APPEND SKIP_TESTS test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
-      # replaced by smaller tests with suffix _codecov
-  endif()
+endif()
 
-if (MIOPEN_NO_GPU)
+if(${CODECOV_TEST})
+    list(APPEND SKIP_TESTS
+        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
+        test_pooling2d_wide)
+    # replaced by smaller tests with suffix _codecov
+endif()
+
+if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
             test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
             test_pooling3d test_perfdb)
