@@ -149,8 +149,12 @@ private:
     }
 };
 
-template <typename XDataType, typename YDataType, typename ScaleDataType, 
-          typename BiasDataType, typename MeanVarDataType, typename TConfig>
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType,
+          typename TConfig>
 struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
@@ -170,8 +174,8 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     double epsilon          = 1.0e-5;
-    float alpha       = static_cast<float>(1.0f);
-    float beta        = static_cast<float>(0);
+    float alpha             = static_cast<float>(1.0f);
+    float beta              = static_cast<float>(0);
     const float activ_alpha = static_cast<double>(0.5f);
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
@@ -183,18 +187,19 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, YDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, YDataType, TConfig>::bn_mode);
-        scale       = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                          derivedBnDesc.GetLengths()};
-        shift       = tensor<BiasDataType>{miopen_type<BiasDataType>{},
-                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                          derivedBnDesc.GetLengths()};
-        estMean     = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                            BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                            derivedBnDesc.GetLengths()};
-        estVariance = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                derivedBnDesc.GetLengths()};
+        scale   = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
+                                      BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                      derivedBnDesc.GetLengths()};
+        shift   = tensor<BiasDataType>{miopen_type<BiasDataType>{},
+                                     BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                     derivedBnDesc.GetLengths()};
+        estMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                          derivedBnDesc.GetLengths()};
+        estVariance =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
@@ -208,7 +213,7 @@ private:
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
-        
+
         auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
         estVariance.generate(gen_var);
     }

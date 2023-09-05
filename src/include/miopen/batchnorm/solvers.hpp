@@ -145,7 +145,6 @@ struct BnCKFwdInference final : BatchnormSolver
 
 // ----------- end BnCKFwdInference ---------------
 
-
 } // namespace batchnorm
 
 } // namespace solver

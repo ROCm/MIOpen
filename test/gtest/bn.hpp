@@ -31,8 +31,11 @@
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
 
-template <typename XDataType, typename YDataType, typename ScaleDataType, 
-          typename BiasDataType, typename MeanVarDataType>
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
 struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
 protected:
@@ -43,48 +46,50 @@ protected:
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        miopenBatchNormalizationForwardInference(
-        &handle,
-        bn_config.mode,
-        &bn_infer_test_data.alpha,
-        &bn_infer_test_data.beta,
-        &bn_infer_test_data.input.desc,
-        bn_infer_test_data.in_dev.get(),
-        &bn_infer_test_data.output.desc,
-        bn_infer_test_data.out_dev.get(),
-        &bn_infer_test_data.scale.desc,
-        bn_infer_test_data.scale_dev.get(),
-        bn_infer_test_data.shift_dev.get(),
-        bn_infer_test_data.estMean_dev.get(),
-        bn_infer_test_data.estVariance_dev.get(),
-        bn_infer_test_data.epsilon);
+        miopenBatchNormalizationForwardInference(&handle,
+                                                 bn_config.mode,
+                                                 &bn_infer_test_data.alpha,
+                                                 &bn_infer_test_data.beta,
+                                                 &bn_infer_test_data.input.desc,
+                                                 bn_infer_test_data.in_dev.get(),
+                                                 &bn_infer_test_data.output.desc,
+                                                 bn_infer_test_data.out_dev.get(),
+                                                 &bn_infer_test_data.scale.desc,
+                                                 bn_infer_test_data.scale_dev.get(),
+                                                 bn_infer_test_data.shift_dev.get(),
+                                                 bn_infer_test_data.estMean_dev.get(),
+                                                 bn_infer_test_data.estVariance_dev.get(),
+                                                 bn_infer_test_data.epsilon);
 
-        std::fill(bn_infer_test_data.output.begin(), bn_infer_test_data.output.end(), std::numeric_limits<YDataType>::quiet_NaN());
+        std::fill(bn_infer_test_data.output.begin(),
+                  bn_infer_test_data.output.end(),
+                  std::numeric_limits<YDataType>::quiet_NaN());
     }
 
     void TearDown() override
     {
         if(test_skipped)
             return;
-        auto&& handle = get_handle();
-        bn_infer_test_data.output.data =
-            handle.Read<YDataType>(bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
+        auto&& handle                  = get_handle();
+        bn_infer_test_data.output.data = handle.Read<YDataType>(
+            bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
-        
+
         if constexpr(std::is_same_v<YDataType, double>)
         {
             // tolerance for CK solver tolerance for
-            test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 1e-8);
+            test::CompareTensor<YDataType>(
+                bn_infer_test_data.output, bn_infer_test_data.ref_out, 1e-8);
         }
-        else{
+        else
+        {
             test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out);
         }
-
     }
 
     BNTestCase bn_config;
     bool test_skipped = false;
-    BNInferTestData<XDataType, YDataType, ScaleDataType, 
-          BiasDataType, MeanVarDataType, BNTestCase> bn_infer_test_data;
+    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
+        bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };
