@@ -36,6 +36,7 @@
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
+#include "rnn_seq_driver.hpp"
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
@@ -146,6 +147,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "bnormfp16")
     {
         drv = new BatchNormDriver<float16, double, float>();
+    }
+    else if(base_arg == "rnn_seq")
+    {
+        drv = new RNNSeqDriver<float, double>();
+    }
+    else if(base_arg == "rnn_seqfp16")
+    {
+        drv = new RNNSeqDriver<float16, double>();
     }
     else if(base_arg == "rnn")
     {
