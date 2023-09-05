@@ -59,9 +59,7 @@ static int num_uint64_case = 0;
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 static int num_uint64_case_imgidx = 0;
 
-namespace {
-
-void print(const miopen::PoolingDescriptor& filter)
+static inline void print(const miopen::PoolingDescriptor& filter)
 {
     std::cout << "Pooling: ";
     if(filter.GetMode() == miopenPoolingAverage)
@@ -368,7 +366,8 @@ struct verify_backward_pooling
                                 din_idx += in_idx[i] * in_str[i];
                             }
 
-                            din_vec.at(din_idx) += dout(o, w, out_spatial_id_pack...) / pool_size;
+                            din_vec.at(din_idx) +=
+                                static_cast<double>(dout(o, w, out_spatial_id_pack...)) / pool_size;
                         }
                     });
                 });
@@ -446,8 +445,6 @@ struct verify_backward_pooling
         std::cout << "Output tensor: " << out.desc.ToString() << std::endl;
     }
 };
-
-}; // namespace
 
 template <class T>
 struct pooling_driver : test_driver
