@@ -127,7 +127,8 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& p
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
             this->kernel_id = conv_ptrs[i]->GetTypeString();
-            this->kernel_id.erase(std::remove(this->kernel_id.begin(), this->kernel_id.end(), ' '), this->kernel_id.end());
+            this->kernel_id.erase(std::remove(this->kernel_id.begin(), this->kernel_id.end(), ' '),
+                                  this->kernel_id.end());
             break;
         }
         ++this->index;
