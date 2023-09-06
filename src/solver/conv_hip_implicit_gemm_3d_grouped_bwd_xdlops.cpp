@@ -239,6 +239,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
+    std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
 
@@ -419,13 +420,13 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
-        return false;
-    auto g_count = problem.GetGroupCount();
-    auto c_count = problem.GetInChannels();
-    if(g_count > 1 && (g_count != c_count))
-        return false;
+    //const std::string& arch = ctx.GetStream().GetDeviceName();
+    //if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
+    //    return false;
+    //auto g_count = problem.GetGroupCount();
+    //auto c_count = problem.GetInChannels();
+    ///if(g_count > 1 && (g_count != c_count))
+    //    return false;
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
