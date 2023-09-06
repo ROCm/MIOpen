@@ -47,7 +47,6 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
     auto fusion_ctx           = miopen::FusionContext{handle};
-    fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
         test_skipped = true;

@@ -206,7 +206,7 @@ bool IsHipKernelsEnabled()
 #endif
 }
 
-ExecutionContext& ExecutionContext::DetectRocm()
+void ExecutionContext::DetectRocm()
 {
     use_binaries            = false;
     use_asm_kernels         = false;
@@ -220,7 +220,6 @@ ExecutionContext& ExecutionContext::DetectRocm()
         use_binaries = !IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
-    return *this;
 }
 
 } // namespace miopen
