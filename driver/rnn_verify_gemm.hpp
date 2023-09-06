@@ -607,7 +607,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
                                      std::vector<Tgpu>& dhy, // current/final hidden state
                                      std::vector<Tref>& dhx_host,
                                      std::vector<Tgpu>& hx, // initial hidden state
-                                     std::vector<Tgpu>& out,
                                      std::vector<Tgpu>& dout,
                                      std::vector<int>& in_n, // input batch size
                                      int in_h,               // input data length
@@ -652,7 +651,6 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
     int bi_stride  = hy_h * bi;
 
     (void)hx;
-    (void)out;
 
     // initial dout
     std::vector<Tref> dout_state(batch_n * out_h, static_cast<Tref>(0));
