@@ -309,7 +309,7 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
@@ -353,7 +353,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     std::ignore = problem;
     return false;
 #else
-    switch(problem.conv_problem.GetInDataType())
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
@@ -410,9 +410,9 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
-       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
+    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
+       problem.GetWeightsDataType() != problem.GetOutDataType() ||
+       problem.GetInDataType() != problem.GetOutDataType())
         return false;
     if(!problem.direction.IsBackwardData())
         return false;
@@ -420,14 +420,10 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    //const std::string& arch = ctx.GetStream().GetDeviceName();
-    //if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
-    //    return false;
-    //auto g_count = problem.GetGroupCount();
-    //auto c_count = problem.GetInChannels();
-    ///if(g_count > 1 && (g_count != c_count))
-    //    return false;
-    switch(problem.conv_problem.GetInDataType())
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))
+        return false;
+    switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
@@ -456,7 +452,7 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.conv_problem.GetInDataType())
+            switch(problem.GetInDataType())
             {
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
