@@ -144,7 +144,8 @@ static auto GetWindogradSolvers()
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<3, 3>,
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<4, 3>,
                                            miopen::solver::ConvMPBidirectWinograd_xdlops<5, 3>,
-                                           miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3>>{};
+                                           miopen::solver::ConvMPBidirectWinograd_xdlops<6, 3>,
+                                           miopen::solver::ConvWinoFuryRxS<2, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
@@ -200,12 +201,6 @@ static auto GetBwdWrW2DSolvers()
 }
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::fft>{}; }
-
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem)
-{
-    return GetGemmSolvers().IsAnySolverApplicable(ctx, problem);
-}
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,

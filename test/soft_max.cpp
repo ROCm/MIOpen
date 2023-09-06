@@ -418,7 +418,7 @@ struct softmax_driver : test_driver
     {
         miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
         miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
-        unsigned long max_value =
+        uint64_t max_value =
             miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
         /// \todo Apply mix-precision in softmax to improve the stability of fp16
