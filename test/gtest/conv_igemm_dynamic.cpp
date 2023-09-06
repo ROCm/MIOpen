@@ -126,10 +126,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1"};
     std::vector<std::string> env_wrw = {
         "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd"};
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw"};
     std::vector<std::string> env_bwd = {
         "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd"};
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicBwd"};
 
     std::string v           = " --verbose";
     std::string dis_bk_data = " --disable-backward-data";
@@ -148,6 +148,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     TestCase{env, precision + v + " --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env, precision + v + " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei},
     TestCase{env_1x1, precision + v + " --input  16 384  8  8 --weights 64 384 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
+    TestCase{env_wrw, precision + v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
+    TestCase{env_wrw, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},    
+    TestCase{env_bwd, precision + v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
+    TestCase{env_bwd, precision + v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
 #endif
 
 #if MIOPEN_TEST_ALL
