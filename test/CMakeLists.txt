@@ -1993,7 +1993,7 @@ add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp32 GFX90A_DISABLED SKIP_XNACK_ON
       ${TEST_CONV_VERBOSE_W} --input 2 4 3 3 --weights 4 4 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp16 FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+add_custom_test(smoke_solver_ConvAsmBwdWrW3x3_fp16 FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING GFX94X_DISABLED
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmBwdWrW3x3 $<TARGET_FILE:test_conv2d>
@@ -2101,7 +2101,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX94X_DISABLED GFX103X_
 # smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and FP32 tests because of
 # WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16 datatypes in this test,
 # see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.  
-add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX94X_DISABLED GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
@@ -2202,7 +2202,7 @@ add_custom_test(smoke_solver_ConvBinWinograd3x3U GFX90A_DISABLED GFX94X_DISABLED
 )
 
 # F16 is supported for 906 and 906 only, no WrW
-add_custom_test(smoke_solver_ConvBinWinogradRxS_fp16 GFX900_DISABLED GFX90A_DISABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_solver_ConvBinWinogradRxS_fp16 GFX900_DISABLED GFX90A_DISABLED GFX94X_DISABLED FLOAT_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxS $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxS $<TARGET_FILE:test_conv2d>
@@ -2339,7 +2339,7 @@ add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90
 )
 
 # Add here regression tests that should be run on Vega10/20 and GFX908 only with FP16.
-add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED
+add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED GFX94X_DISABLED
 # Issue #894.
 # Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
 COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
@@ -2387,7 +2387,7 @@ set(ARGS_ENABLE_FORWARD_ONLY
     --disable-backward-data
     --disable-backward-weights)
 
-add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
+add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_DISABLED FLOAT_DISABLED HALF_ENABLED
     # Issue-internal #4
     COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
 )
