@@ -67,7 +67,7 @@ template <class... Params>
     do                                                        \
     {                                                         \
         miopen::MIOpenThrow(__FILE__, __LINE__, __VA_ARGS__); \
-    } while(false);
+    } while(false)
 
 #define MIOPEN_THROW_CL_STATUS(...) \
     MIOPEN_THROW(miopenStatusUnknownError, miopen::OpenCLErrorMessage(__VA_ARGS__))
