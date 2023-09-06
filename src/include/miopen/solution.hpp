@@ -53,8 +53,8 @@ struct Solution : miopenSolution
 
     struct SerializationMetadata final
     {
-        unsigned long validation_number;
-        unsigned long version;
+        uint64_t validation_number;
+        uint64_t version;
 
         static constexpr SerializationMetadata Current() { return {0x123456789ABCDEF0, 1}; }
 
