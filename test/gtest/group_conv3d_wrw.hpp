@@ -109,12 +109,11 @@ struct ConvTestCase
 
 std::vector<ConvTestCase> ConvTestConfigs()
 { // g   n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {
-        {1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-        {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-        {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-        {3, 48, 48, 28, 28, 28, 48, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-        {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {3, 48, 48, 28, 28, 28, 48, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
@@ -179,8 +178,8 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_wei) == miopen::range_distance(weights));
 
         const double tolerance = 80;
-        double threshold = 1e-5 * tolerance;
-        auto error       = miopen::rms_range(ref_wei, weights);
+        double threshold       = 1e-5 * tolerance;
+        auto error             = miopen::rms_range(ref_wei, weights);
 
         EXPECT_FALSE(miopen::find_idx(ref_wei, miopen::not_finite) >= 0)
             << "Non finite number found in the CPU data";
