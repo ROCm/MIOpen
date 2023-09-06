@@ -133,6 +133,17 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
+namespace {
+template <typename DataType, typename ConvPtrsType>
+typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
+                                                const std::string& kernel_id)
+{
+    return std::find_if(conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id](const auto& ptr) {
+        return ptr->GetTypeString() == kernel_id;
+    });
+}
+} // namespace
+
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& problem)
 {
@@ -154,16 +165,13 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto ptr_idx         = std::find_if(
-        conv_ptrs.begin(), conv_ptrs.end(), [&kernl_id = this->kernel_id](const auto& ptr) {
-            return ptr->GetTypeString() == kernl_id;
-        });
+    auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    auto ptr_iter  = FindConvPtrByID<DataType>(conv_ptrs, kernel_id);
 
-    if(ptr_idx == conv_ptrs.end())
-        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+    if(ptr_iter == conv_ptrs.end())
+        return false;
 
-    return CKArgs{problem}.IsSupportedBy(*ptr_idx);
+    return CKArgs{problem}.IsSupportedBy(*ptr_iter);
 }
 
 template <typename DataType>
@@ -362,17 +370,14 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
         using DataType = decltype(DataTypeVal);
 
         auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-        auto ptr_idx =
-            std::find_if(conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id](const auto& ptr) {
-                return ptr->GetTypeString() == kernel_id;
-            });
+        auto ptr_iter  = FindConvPtrByID<DataType>(conv_ptrs, kernel_id);
 
-        if(ptr_idx == conv_ptrs.end())
+        if(ptr_iter == conv_ptrs.end())
             MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
 
         ConvSolution result;
         result.invoker_factory = [ck_args     = CKArgs{problem},
-                                  sh_conv_ptr = std::shared_ptr{std::move(*ptr_idx)}](
+                                  sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
