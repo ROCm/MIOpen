@@ -60,7 +60,6 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
     auto ctx = miopen::ConvolutionContext{};
 
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
 
     if(!solv.IsApplicable(ctx, problem))
     {
