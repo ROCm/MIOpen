@@ -36,6 +36,7 @@
 #include <miopen/tensor_ops.hpp>
 
 #include <algorithm>
+#include <optional>
 
 using ExecutionContext   = miopen::ExecutionContext;
 using Direction          = miopen::conv::Direction;
@@ -65,13 +66,8 @@ static inline auto MakeFwdCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = [&] {
-        auto tmp = ExecutionContext{&miopen::deref(handle)};
-        tmp.DetectRocm();
-        problem.SetupFloats(tmp);
-        return tmp;
-    }();
-
+    auto ctx = ExecutionContext{&miopen::deref(handle)};
+    problem.SetupFloats(ctx);
     return std::make_tuple(std::move(ctx), std::move(problem));
 }
 
@@ -96,13 +92,8 @@ static inline auto MakeBwdCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = [&] {
-        auto tmp = ExecutionContext{&miopen::deref(handle)};
-        tmp.DetectRocm();
-        problem.SetupFloats(tmp);
-        return tmp;
-    }();
-
+    auto ctx = ExecutionContext{&miopen::deref(handle)};
+    problem.SetupFloats(ctx);
     return std::make_tuple(std::move(ctx), std::move(problem));
 }
 
@@ -126,13 +117,8 @@ static inline auto MakeWrWCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = [&] {
-        auto tmp = ExecutionContext{&miopen::deref(handle)};
-        tmp.DetectRocm();
-        problem.SetupFloats(tmp);
-        return tmp;
-    }();
-
+    auto ctx = ExecutionContext{&miopen::deref(handle)};
+    problem.SetupFloats(ctx);
     return std::make_tuple(std::move(ctx), std::move(problem));
 }
 
@@ -184,6 +170,13 @@ extern "C" miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDes
                                                                 1,
                                                                 1.0);
     });
+}
+
+extern "C" miopenStatus_t miopenGetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                         int* groupCount)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, groupCount);
+    return miopen::try_([&] { miopen::deref(groupCount) = miopen::deref(convDesc).group_count; });
 }
 
 extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
@@ -403,24 +396,34 @@ enum class ConvDirection
     WrW = 4
 };
 
-static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
-                                           const miopenTensorDescriptor_t& wDesc,
-                                           const miopenConvolutionDescriptor_t& convDesc,
-                                           const miopenTensorDescriptor_t& yDesc,
-                                           const ConvDirection& conv_dir,
-                                           bool is_immediate)
+// Not static because Find 2.0 uses it until a separate driver command is implemented
+// We use API type in the declaration so that usages won't have to convert to commandline values
+static std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
+                                           const miopen::TensorDescriptor& wDesc,
+                                           const miopen::ConvolutionDescriptor& convDesc,
+                                           const miopen::TensorDescriptor& yDesc,
+                                           miopenProblemDirection_t dir,
+                                           std::optional<uint64_t> immediate_mode_solver_id)
 {
+    const auto conv_dir = [&]() {
+        switch(dir)
+        {
+        case miopenProblemDirectionForward: return ConvDirection::Fwd;
+        case miopenProblemDirectionBackward: return ConvDirection::Bwd;
+        case miopenProblemDirectionBackwardWeights: return ConvDirection::WrW;
+        }
+    }();
+
     std::stringstream ss;
-    if(miopen::deref(xDesc).GetType() == miopenHalf)
+    if(xDesc.GetType() == miopenHalf)
     {
         ss << "convfp16";
     }
-    else if(miopen::deref(xDesc).GetType() == miopenBFloat16)
+    else if(xDesc.GetType() == miopenBFloat16)
     {
         ss << "convbfp16";
     }
-    else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
-            miopen::deref(xDesc).GetType() == miopenInt8x4)
+    else if(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4)
     {
         ss << "convint8";
     }
@@ -428,24 +431,24 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
     {
         ss << "conv";
     }
-    if(miopen::deref(convDesc).GetSpatialDimension() == 2)
+    if(convDesc.GetSpatialDimension() == 2)
     {
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " -y " << miopen::deref(wDesc).GetLengths()[2]
-            << " -x " << miopen::deref(wDesc).GetLengths()[3]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[1]; // clang-format on
-        std::string x_layout = miopen::deref(xDesc).GetLayout("NCHW");
-        std::string w_layout = miopen::deref(wDesc).GetLayout("NCHW");
-        std::string y_layout = miopen::deref(yDesc).GetLayout("NCHW");
+        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
+            << " -c " << xDesc.GetLengths()[1]
+            << " -H " << xDesc.GetLengths()[2]
+            << " -W " << xDesc.GetLengths()[3]
+            << " -k " << wDesc.GetLengths()[0]
+            << " -y " << wDesc.GetLengths()[2]
+            << " -x " << wDesc.GetLengths()[3]
+            << " -p " << convDesc.GetConvPads()[0]
+            << " -q " << convDesc.GetConvPads()[1]
+            << " -u " << convDesc.GetConvStrides()[0]
+            << " -v " << convDesc.GetConvStrides()[1]
+            << " -l " << convDesc.GetConvDilations()[0]
+            << " -j " << convDesc.GetConvDilations()[1]; // clang-format on
+        std::string x_layout = xDesc.GetLayout("NCHW");
+        std::string w_layout = wDesc.GetLayout("NCHW");
+        std::string y_layout = yDesc.GetLayout("NCHW");
         if(x_layout != "NCHW")
         {
             ss << " --in_layout " << x_layout;
@@ -459,30 +462,30 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
             ss << " --out_layout " << y_layout;
         }
     }
-    else if(miopen::deref(convDesc).GetSpatialDimension() == 3)
+    else if(convDesc.GetSpatialDimension() == 3)
     {
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-            << " --in_d " << miopen::deref(xDesc).GetLengths()[2]
-            << " -H " << miopen::deref(xDesc).GetLengths()[3]
-            << " -W " << miopen::deref(xDesc).GetLengths()[4]
-            << " -k " << miopen::deref(wDesc).GetLengths()[0]
-            << " --fil_d " << miopen::deref(wDesc).GetLengths()[2]
-            << " -y " << miopen::deref(wDesc).GetLengths()[3]
-            << " -x " << miopen::deref(wDesc).GetLengths()[4]
-            << " --pad_d " << miopen::deref(convDesc).GetConvPads()[0]
-            << " -p " << miopen::deref(convDesc).GetConvPads()[1]
-            << " -q " << miopen::deref(convDesc).GetConvPads()[2]
-            << " --conv_stride_d " << miopen::deref(convDesc).GetConvStrides()[0]
-            << " -u " << miopen::deref(convDesc).GetConvStrides()[1]
-            << " -v " << miopen::deref(convDesc).GetConvStrides()[2]
-            << " --dilation_d " << miopen::deref(convDesc).GetConvDilations()[0]
-            << " -l " << miopen::deref(convDesc).GetConvDilations()[1]
-            << " -j " << miopen::deref(convDesc).GetConvDilations()[2]
+        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
+            << " -c " << xDesc.GetLengths()[1]
+            << " --in_d " << xDesc.GetLengths()[2]
+            << " -H " << xDesc.GetLengths()[3]
+            << " -W " << xDesc.GetLengths()[4]
+            << " -k " << wDesc.GetLengths()[0]
+            << " --fil_d " << wDesc.GetLengths()[2]
+            << " -y " << wDesc.GetLengths()[3]
+            << " -x " << wDesc.GetLengths()[4]
+            << " --pad_d " << convDesc.GetConvPads()[0]
+            << " -p " << convDesc.GetConvPads()[1]
+            << " -q " << convDesc.GetConvPads()[2]
+            << " --conv_stride_d " << convDesc.GetConvStrides()[0]
+            << " -u " << convDesc.GetConvStrides()[1]
+            << " -v " << convDesc.GetConvStrides()[2]
+            << " --dilation_d " << convDesc.GetConvDilations()[0]
+            << " -l " << convDesc.GetConvDilations()[1]
+            << " -j " << convDesc.GetConvDilations()[2]
             << " --spatial_dim 3"; // clang-format on
-        std::string x_layout = miopen::deref(xDesc).GetLayout("NCDHW");
-        std::string w_layout = miopen::deref(wDesc).GetLayout("NCDHW");
-        std::string y_layout = miopen::deref(yDesc).GetLayout("NCDHW");
+        std::string x_layout = xDesc.GetLayout("NCDHW");
+        std::string w_layout = wDesc.GetLayout("NCDHW");
+        std::string y_layout = yDesc.GetLayout("NCDHW");
         if(x_layout != "NCDHW")
         {
             ss << " --in_layout " << x_layout;
@@ -496,15 +499,15 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
             ss << " --out_layout " << y_layout;
         }
     }
-    ss << " -m " << (miopen::deref(convDesc).mode == 1 ? "trans" : "conv") // clang-format off
-        << " -g " << miopen::deref(convDesc).group_count
+    ss << " -m " << (convDesc.mode == 1 ? "trans" : "conv") // clang-format off
+        << " -g " << convDesc.group_count
         << " -F " << std::to_string(static_cast<int>(conv_dir))
         << " -t 1"; // clang-format on
-    if(miopen::deref(xDesc).GetType() == miopenInt8x4)
+    if(xDesc.GetType() == miopenInt8x4)
         ss << " -Z 1";
-    if(is_immediate)
+    if(immediate_mode_solver_id.has_value())
     {
-        ss << " -S 0";
+        ss << " -S " << *immediate_mode_solver_id;
     }
 
     return ss.str();
@@ -513,18 +516,58 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
 namespace miopen {
 namespace debug {
 
+void LogCmdConvolution(const miopen::TensorDescriptor& x,
+                       const miopen::TensorDescriptor& w,
+                       const miopen::ConvolutionDescriptor& conv,
+                       const miopen::TensorDescriptor& y,
+                       miopenProblemDirection_t dir,
+                       std::optional<uint64_t> solver_id)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        const std::string& str = ConvArgsForMIOpenDriver(x, w, conv, y, dir, solver_id);
+        MIOPEN_LOG_DRIVER_CMD(str);
+    }
+}
+
+void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
+                           const miopen::TensorDescriptor& w,
+                           const miopen::ConvolutionDescriptor& conv,
+                           const miopen::TensorDescriptor& y,
+                           miopenProblemDirection_t dir,
+                           std::optional<uint64_t> solver_id)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        const std::string& str = ConvArgsForMIOpenDriver(x, w, conv, y, dir, solver_id);
+        MIOPEN_LOG_DRIVER_CMD(str);
+    }
+}
+
+static miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
+{
+    switch(direction)
+    {
+    case ConvDirection::Fwd: return miopenProblemDirectionForward;
+    case ConvDirection::Bwd: return miopenProblemDirectionBackward;
+    case ConvDirection::WrW: return miopenProblemDirectionBackwardWeights;
+    };
+    MIOPEN_THROW(miopenStatusInternalError);
+}
+
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
                        const miopenTensorDescriptor_t& yDesc,
-                       const ConvDirection& conv_dir,
+                       ConvDirection conv_dir,
                        bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
     {
-        const std::string& str =
-            ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, conv_dir, is_immediate);
-        MIOPEN_LOG_DRIVER_CMD(str);
+        const auto dir              = CmdArgToDirection(conv_dir);
+        const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
+        const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
+        LogCmdConvolution(x, w, conv, y, dir, solver_id);
     }
 }
 
@@ -532,14 +575,15 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
                            const miopenTensorDescriptor_t& yDesc,
-                           const ConvDirection& conv_dir,
+                           ConvDirection conv_dir,
                            bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
     {
-        const std::string& str =
-            ConvArgsForMIOpenDriver(xDesc, wDesc, convDesc, yDesc, conv_dir, is_immediate);
-        MIOPEN_LOG_DRIVER_CMD(str);
+        const auto dir              = CmdArgToDirection(conv_dir);
+        const auto& [x, w, conv, y] = miopen::tie_deref(xDesc, wDesc, convDesc, yDesc);
+        const auto solver_id        = is_immediate ? std::optional(0) : std::nullopt;
+        LogCmdFindConvolution(x, w, conv, y, dir, solver_id);
     }
 }
 
