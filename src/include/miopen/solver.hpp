@@ -4582,16 +4582,17 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 struct PerformanceConfigHipImplicitGemmFwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
-    int total_size;
+    int index             = 0;
+    std::string kernel_id = "";
+    std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id), total_size(-1)
+        : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
-    {
-    }
+
+    PerformanceConfigHipImplicitGemmFwdXdlops() = default;
+
     explicit PerformanceConfigHipImplicitGemmFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
