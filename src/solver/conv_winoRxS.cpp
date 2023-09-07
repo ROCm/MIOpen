@@ -168,12 +168,11 @@ namespace conv {
 
 namespace {
 
-    auto PerfFieldRules()
-    {
-        return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxS::n_groups)
-        );
-    }
+auto PerfFieldRules()
+{
+    return seq::MakeRuleSet(std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{},
+                                            &PerformanceConfigConvBinWinogradRxS::n_groups));
+}
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:

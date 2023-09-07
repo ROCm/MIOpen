@@ -896,14 +896,15 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory =
-            miopen::conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1UUSInvokerFactory(
+            N, C, K, n_groups, H, W, result.workspace_sz);
     }
     else
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory = miopen::conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
+        result.invoker_factory =
+            miopen::conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;

@@ -82,14 +82,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE()                                                      \
-    const auto                                                                       \
-        wino_xform_h =                                                               \
-            ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(),                                          \
-        wino_xform_w =                                                               \
-            ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize();
+#define DEFINE_GETXFORMHWSIZE()                                                             \
+    const auto wino_xform_h =                                                               \
+                   ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(),                                          \
+               wino_xform_w =                                                               \
+                   ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize();
 
 #define DEFINE_SHADER_ALIASES(problem)                              \
     const auto group_cnt = (problem).GetGroupCount();               \
@@ -469,8 +468,9 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
 #if MIOPEN_USE_ROCBLAS
-                const auto& data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                Data_t workSpace     = data_ctx.workSpace;
+                const auto& data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                Data_t workSpace = data_ctx.workSpace;
                 CallGemmStridedBatched(
                     handle,
                     wino_gemm_desc,
@@ -795,7 +795,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 // must be same as invoke_params in Invoker
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 static miopen::conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescription& problem,
-                                                          const AnyInvokeParams& invoke_ctx)
+                                                                  const AnyInvokeParams& invoke_ctx)
 {
 #if MIOPEN_BACKEND_HIP
     const miopenDataType_t transform_data_type =

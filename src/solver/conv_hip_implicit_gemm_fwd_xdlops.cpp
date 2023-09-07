@@ -87,7 +87,7 @@ struct CKArgs
     CKArgs(const CKArgs&) = default;
     CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
-    ~CKArgs()                   = default;
+    ~CKArgs()                        = default;
 
     int N;
     int K;

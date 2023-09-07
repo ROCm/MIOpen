@@ -107,7 +107,8 @@ struct AnySolver
         return ptr_value->GetSolverDbId();
     }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const conv::ProblemDescription& problem) const
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const conv::ProblemDescription& problem) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetWorkspaceSize(ctx, problem);
@@ -127,28 +128,29 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx,
                                   const conv::ProblemDescription& problem) const = 0;
-        virtual bool IsTunable() const                                     = 0;
+        virtual bool IsTunable() const                                           = 0;
         virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
                                        const conv::ProblemDescription& problem,
-                                       const std::string& params) const    = 0;
+                                       const std::string& params) const          = 0;
         virtual std::vector<ConvSolution>
-        GetAllSolutions(const ConvolutionContext& ctx, const conv::ProblemDescription& problem) const = 0;
-        virtual bool IsDynamic() const                                                          = 0;
+        GetAllSolutions(const ConvolutionContext& ctx,
+                        const conv::ProblemDescription& problem) const                 = 0;
+        virtual bool IsDynamic() const                                                 = 0;
         virtual float GetWti(const ConvolutionContext& ctx,
-                             const conv::ProblemDescription& problem) const                           = 0;
-        virtual const std::type_info& Type() const                                              = 0;
-        virtual std::string GetSolverDbId() const                                               = 0;
+                             const conv::ProblemDescription& problem) const            = 0;
+        virtual const std::type_info& Type() const                                     = 0;
+        virtual std::string GetSolverDbId() const                                      = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           const conv::ProblemDescription& problem,
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::string& perf_cfg) const                    = 0;
+                                          const std::string& perf_cfg) const           = 0;
         virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx,
                                              const conv::ProblemDescription& problem,
-                                             PerformanceDb& db) const                           = 0;
+                                             PerformanceDb& db) const                  = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx,
-                                        const conv::ProblemDescription& problem) const                = 0;
-        virtual bool MayNeedWorkspace() const                                                   = 0;
+                                        const conv::ProblemDescription& problem) const = 0;
+        virtual bool MayNeedWorkspace() const                                          = 0;
     };
 
     // templated derived class
@@ -262,8 +264,9 @@ struct AnySolver
             return solutions;
         }
 
-        std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx,
-                                                  const conv::ProblemDescription& problem) const override
+        std::vector<ConvSolution>
+        GetAllSolutions(const ConvolutionContext& ctx,
+                        const conv::ProblemDescription& problem) const override
         {
             return GetAllSolutions(ctx,
                                    problem,

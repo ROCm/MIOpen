@@ -60,14 +60,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(problem)                                                    \
-    const auto                                                                            \
-        wino_xform_h =                                                                    \
-            ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 0),                                     \
-        wino_xform_w =                                                                    \
-            ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 1);
+#define DEFINE_GETXFORMHWSIZE(problem)                                                           \
+    const auto wino_xform_h =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 0),                                     \
+               wino_xform_w =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 1);
 
 #define DEFINE_SHADER_ALIASES(problem)               \
     const int C     = (problem).GetBatchSize_();     \

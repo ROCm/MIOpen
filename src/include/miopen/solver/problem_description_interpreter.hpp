@@ -44,7 +44,10 @@ struct ProblemInterpreter
         return problem.GetGroupCount();
     }
 
-    static int GetBatchN(const conv::ProblemDescription& problem) { return problem.GetBatchSize_(); }
+    static int GetBatchN(const conv::ProblemDescription& problem)
+    {
+        return problem.GetBatchSize_();
+    }
 
     static auto GetOutputLayout(const conv::ProblemDescription& problem)
     {
@@ -192,11 +195,20 @@ struct ProblemInterpreter
         return GetFilterWidthX(problem) > 1 ? problem.GetDilationW() : 1;
     }
 
-    static auto GetInputLeftPadD(const conv::ProblemDescription& problem) { return problem.GetPadD(); }
+    static auto GetInputLeftPadD(const conv::ProblemDescription& problem)
+    {
+        return problem.GetPadD();
+    }
 
-    static auto GetInputLeftPadH(const conv::ProblemDescription& problem) { return problem.GetPadH(); }
+    static auto GetInputLeftPadH(const conv::ProblemDescription& problem)
+    {
+        return problem.GetPadH();
+    }
 
-    static auto GetInputLeftPadW(const conv::ProblemDescription& problem) { return problem.GetPadW(); }
+    static auto GetInputLeftPadW(const conv::ProblemDescription& problem)
+    {
+        return problem.GetPadW();
+    }
 
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const conv::ProblemDescription& problem)

@@ -403,8 +403,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                decltype(auto) invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
-                const auto& tensors          = invoke_params.tensors;
+                decltype(auto) invoke_params =
+                    primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                         << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S

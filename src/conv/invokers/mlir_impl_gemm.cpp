@@ -409,8 +409,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ProblemDescription& problem)
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const ProblemDescription& problem,
-                                         size_t workspace_req)
+InvokerFactory MakeMlirWrWInvokerFactory(const ProblemDescription& problem, size_t workspace_req)
 {
     assert((problem.IsDirectionBackwardWrW()));
 

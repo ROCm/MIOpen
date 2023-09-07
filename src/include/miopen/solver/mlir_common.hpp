@@ -35,7 +35,8 @@ namespace miopen {
 namespace solver {
 namespace mlir {
 
-std::string GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
+std::string
+GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
 
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   const conv::ProblemDescription& problem,

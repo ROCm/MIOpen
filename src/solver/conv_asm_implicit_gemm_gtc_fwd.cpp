@@ -1323,9 +1323,8 @@ GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 }
 
 // This is a helper function for selecting better performing config
-static bool mayHaveBiggerN1bClusterSize(int gemm_m,
-                                 int gemm_n,
-                                 const TunableImplicitGemmGTCDynamic_t& tunable)
+static bool
+mayHaveBiggerN1bClusterSize(int gemm_m, int gemm_n, const TunableImplicitGemmGTCDynamic_t& tunable)
 {
     float n_times_m = static_cast<float>(gemm_n) / static_cast<float>(gemm_m);
 
@@ -1587,8 +1586,8 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory =
-        miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(problem,
-                                                                                        cfg);
+        miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(
+            problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }

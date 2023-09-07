@@ -112,7 +112,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
 {
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
-    ConvSolution result     = conv::ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_problem, config);
+    ConvSolution result = conv::ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_problem, config);
 
     if(result.construction_params.size() != 1)
         MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");

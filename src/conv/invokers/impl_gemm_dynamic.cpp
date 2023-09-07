@@ -86,8 +86,7 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     return elapsed;
 }
 
-InvokerFactory
-MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem)
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem)
 {
     return [problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -113,9 +112,8 @@ MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem)
 }
 
 template <>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ProblemDescription& problem,
-                                                   const int& cfg)
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ProblemDescription& problem,
+                                                                  const int& cfg)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();

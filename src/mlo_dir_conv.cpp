@@ -130,21 +130,22 @@ static auto GetImplicitGemmSolvers()
 
 static auto GetWindogradSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::conv::ConvBinWinograd3x3U,
-                                           miopen::solver::conv::ConvBinWinoRxS<3, 2>,
-                                           miopen::solver::conv::ConvBinWinoRxS<2, 3>,
-                                           miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
-                                           miopen::solver::conv::ConvBinWinogradRxS,
-                                           miopen::solver::conv::ConvMPBidirectWinograd<3, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd<4, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd<5, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd<6, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd_xdlops<2, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd_xdlops<3, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd_xdlops<4, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd_xdlops<5, 3>,
-                                           miopen::solver::conv::ConvMPBidirectWinograd_xdlops<6, 3>,
-                                           miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
+    return miopen::solver::SolverContainer<
+        miopen::solver::conv::ConvBinWinograd3x3U,
+        miopen::solver::conv::ConvBinWinoRxS<3, 2>,
+        miopen::solver::conv::ConvBinWinoRxS<2, 3>,
+        miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
+        miopen::solver::conv::ConvBinWinogradRxS,
+        miopen::solver::conv::ConvMPBidirectWinograd<3, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd<4, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd<5, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd<6, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd_xdlops<2, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd_xdlops<3, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd_xdlops<4, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd_xdlops<5, 3>,
+        miopen::solver::conv::ConvMPBidirectWinograd_xdlops<6, 3>,
+        miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
@@ -163,23 +164,24 @@ static auto GetImplicitGemmWrWSolvers()
 
 static auto GetWindogradWrWSolvers()
 {
-    return miopen::solver::SolverContainer<miopen::solver::conv::ConvBinWinogradRxS,
-                                           miopen::solver::conv::ConvBinWinoRxS<3, 2>,
-                                           miopen::solver::conv::ConvBinWinoRxS<2, 3>,
-                                           miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 2>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 3>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 4>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 5>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 6>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 3>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 3, 1, 1>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2, 1, 1>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 2>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 3>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 3>,
-                                           miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 4>>{};
+    return miopen::solver::SolverContainer<
+        miopen::solver::conv::ConvBinWinogradRxS,
+        miopen::solver::conv::ConvBinWinoRxS<3, 2>,
+        miopen::solver::conv::ConvBinWinoRxS<2, 3>,
+        miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 2>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 3>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 4>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 5>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<3, 6>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 3>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 3, 1, 1>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2, 1, 1>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 2>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 3>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 3>,
+        miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 4>>{};
 }
 
 static auto GetBwdWrW2DSolvers()

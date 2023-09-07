@@ -135,7 +135,7 @@ static inline bool skip_config(miopen::Handle& handle,
 
     const auto problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx           = miopen::ConvolutionContext{};
+    auto ctx = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;

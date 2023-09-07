@@ -844,12 +844,13 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                         (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                float time                 = 0;
-                decltype(auto) conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors        = conv_params.tensors;
-                const auto& x              = tensors.in;
-                const auto& w              = tensors.w;
-                const auto& y              = tensors.out;
+                float time = 0;
+                decltype(auto) conv_params =
+                    primitive_params.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors = conv_params.tensors;
+                const auto& x       = tensors.in;
+                const auto& w       = tensors.w;
+                const auto& y       = tensors.out;
 
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 

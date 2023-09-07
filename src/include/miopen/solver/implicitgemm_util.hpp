@@ -225,8 +225,9 @@ inline static uint32_t GetReadWriteVectorSize(const int v)
 }
 
 ///\todo remove
-inline static uint32_t
-GetEPackLength(const ExecutionContext& ctx, const conv::ProblemDescription& problem, bool isXdlopsInvoked)
+inline static uint32_t GetEPackLength(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      bool isXdlopsInvoked)
 {
     // Based on data type, Es are packed
     int EPACK = 1;

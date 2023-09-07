@@ -204,18 +204,15 @@ MakeImplGemmDynamicForwardInvokerFactory(const ProblemDescription& problem, cons
     };
 }
 
-InvokerFactory
-MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
 
 template <typename T = int>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
-                                              const T& cfg);
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                                             const T& cfg);
 
 template <>
-InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ProblemDescription& problem,
-                                                   const int& cfg);
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ProblemDescription& problem,
+                                                                  const int& cfg);
 
 template <>
 InvokerFactory

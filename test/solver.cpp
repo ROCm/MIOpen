@@ -50,7 +50,8 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const conv::ProblemDescription& problem) const override
+    bool IsApplicable(const ConvolutionContext&,
+                      const conv::ProblemDescription& problem) const override
     {
         return problem.GetInWidth_() == 1;
     }

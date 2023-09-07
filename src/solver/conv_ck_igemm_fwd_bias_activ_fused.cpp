@@ -183,7 +183,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const conv::ProblemDescription& problem) const
+bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(
+    const conv::ProblemDescription& problem) const
 {
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::

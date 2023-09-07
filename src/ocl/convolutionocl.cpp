@@ -113,9 +113,9 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
-    const auto legacy_ctx     = ConvolutionContext{ctx};
-    const auto solver         = solver_id.GetSolver();
-    auto db                   = GetDb(ctx);
+    const auto legacy_ctx = ConvolutionContext{ctx};
+    const auto solver     = solver_id.GetSolver();
+    auto db               = GetDb(ctx);
     auto solution =
         solver.FindSolution(legacy_ctx, problem, db, {}); // auto tune is not expected here
     auto& handle = ctx.GetStream();
@@ -529,7 +529,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx            = ConvolutionContext{exec_ctx};
+    const auto ctx = ConvolutionContext{exec_ctx};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
