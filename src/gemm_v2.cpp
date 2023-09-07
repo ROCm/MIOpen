@@ -136,14 +136,15 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
                                        Data_t C,
                                        int c_offset)
 {
-    rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
+    rocblas_status rb_status =
+        rocblas_status::rocblas_status_internal_error; // cppcheck-suppress redundantInitialization
 #if USE_ROCBLAS_GEMM_EX3
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
-    rb_status =
+    rb_status   = // cppcheck-suppress redundantInitialization
         rocblas_gemm_ex3(handle.rhandle().get(),
                          gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                          gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -483,7 +484,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                    (gemm_desc.a_cast_type == miopenFloat8 ||
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenBFloat8))
+                    gemm_desc.b_cast_type == miopenFloat8))
                     return true;
                 else
                     return false;
@@ -741,7 +742,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                    (gemm_desc.a_cast_type == miopenFloat8 ||
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenBFloat8))
+                    gemm_desc.b_cast_type == miopenFloat8))
                     return true;
                 else
                     return false;
@@ -1014,7 +1015,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                    (gemm_desc.a_cast_type == miopenFloat8 ||
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenBFloat8))
+                    gemm_desc.b_cast_type == miopenFloat8))
                     return true;
                 else
                     return false;

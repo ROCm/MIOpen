@@ -487,15 +487,15 @@ MIOPEN_HIP_HOST_DEVICE T F8_Max()
 
 // define numeric limits for the new data type
 namespace std {
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x)
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8> x) // NOLINT
 {
     return x.is_inf();
-} // NOLINT
+}
 
-inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x)
+inline bool isfinite(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 {
     return x.is_inf();
-} // NOLINT
+}
 
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>

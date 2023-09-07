@@ -131,8 +131,8 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
 
     assert(stride_h > 0);
     assert(stride_w > 0);
-    assert(window_h < (input_h + 2 * pad_h));
-    assert(window_w < (input_w + 2 * pad_w));
+    assert(window_h < (input_h + static_cast<std::size_t>(2) * pad_h));
+    assert(window_w < (input_w + static_cast<std::size_t>(2) * pad_w));
 
     auto output_h = std::max<std::ptrdiff_t>(
         1, ((input_h + 2 * static_cast<std::ptrdiff_t>(pad_h) - window_h) / stride_h + 1));
