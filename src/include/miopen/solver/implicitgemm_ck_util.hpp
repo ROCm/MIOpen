@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 
 namespace miopen {
 namespace solver {
@@ -79,7 +80,7 @@ bool IsCKApplicable(const ProblemDescription& problem)
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
 
-template <typename DeviceOpType, typename CKArgsType>
+template <typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -94,7 +95,7 @@ ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::st
          sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 

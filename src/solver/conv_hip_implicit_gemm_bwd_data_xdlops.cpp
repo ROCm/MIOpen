@@ -302,9 +302,11 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpBwdPtrs<ck::half_t>, CKArgs>(problem, config.kernel_id);
+        return InitInvokerFactory<DeviceOpBwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+            problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpBwdPtrs<float>, CKArgs>(problem, config.kernel_id);
+        return InitInvokerFactory<DeviceOpBwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+            problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
