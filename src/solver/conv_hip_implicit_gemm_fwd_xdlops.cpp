@@ -135,6 +135,17 @@ struct CKArgs
 };
 } // namespace
 
+namespace {
+template <typename DataType, typename ConvPtrsType>
+typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
+                                                const std::string& kernel_id)
+{
+    return std::find_if(conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id](const auto& ptr) {
+        return ptr->GetTypeString() == kernel_id;
+    });
+}
+} // namespace
+
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& problem)
 {
