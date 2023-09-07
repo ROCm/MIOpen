@@ -169,6 +169,9 @@ template <uint32_t Winodata, uint32_t Winofilter>
 bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
+    if(!problem.Is2d())
+        return false;
+
     if(is2x3() && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3{}))
         return false;
 
