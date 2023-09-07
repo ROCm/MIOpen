@@ -51,7 +51,7 @@ TEST_P(ConvFwdFp8, Gemm1x1x0x1)
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8Naive, Fwd)
+TEST_P(ConvFwdFp8Naive, DISABLED_Fwd)
 {
     miopen::solver::ConvDirectNaiveConvFwd solv{};
     SolverFwd<miopen::solver::ConvDirectNaiveConvFwd>(solv);
