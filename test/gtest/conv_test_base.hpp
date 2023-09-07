@@ -165,7 +165,7 @@ protected:
     {
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{output_desc.GetLengths()};
+        ref_out = tensor<T>{miopen_type<T>{}, output.desc.GetLayout_t(), output_desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_forward(conv_desc.GetSpatialDimension(),
