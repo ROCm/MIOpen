@@ -25,20 +25,21 @@ inline glibc_gen& get_prng()
 }
 } // namespace details
 
-// similar to std::generate_canonical, but simpler and faster in cost of quality
-// and generate full [0;1] range instead of [0;1)
+// similar to std::generate_canonical, but simpler and faster
 template <typename T>
 inline T gen_canonical()
 {
     if constexpr(std::is_floating_point_v<T>) // native fp
     {
-        static constexpr T range = static_cast<T>(1) / static_cast<T>(details::glibc_gen::max() -
-                                                                      details::glibc_gen::min());
+        static constexpr T range =
+            static_cast<T>(1) /
+            static_cast<T>(details::glibc_gen::max() - details::glibc_gen::min() + 1);
         return range * static_cast<T>(details::get_prng()() - details::glibc_gen::min());
     }
     else if constexpr(std::is_integral_v<T>)
     {
-        return static_cast<T>((details::get_prng()() >> 4) & 0x1);
+        auto val = details::get_prng()();
+        return static_cast<T>((v >> 4) ^ (val >> 16) & 0x1);
     }
     else
     {
