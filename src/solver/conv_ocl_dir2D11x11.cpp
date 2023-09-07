@@ -35,6 +35,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
                                          const ProblemDescription& problem) const
@@ -340,7 +341,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
                 MIOPEN_THROW("Two kernels were expected by solver");
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& invoke_params = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& invoke_params = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
                 const auto& tensors       = invoke_params.tensors;
 
                 const auto first_pass_kernel  = handle.Run(kernels[0]);
@@ -371,9 +372,11 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
     }
     else
     {
-        result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+        result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     }
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

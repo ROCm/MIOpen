@@ -72,7 +72,7 @@ static inline int FloorDiv(const int x, const int y)
 }
 
 static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
-                                         const miopen::ProblemDescription& problem,
+                                         const miopen::conv::ProblemDescription& problem,
                                          const int R,
                                          const int S,
                                          const int R_stride,
@@ -214,6 +214,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                       const ProblemDescription& problem) const
@@ -402,7 +403,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                decltype(auto) invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors          = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -471,7 +472,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
                                     << " out_H=" << out_H << " out_W=" << out_W);
 
                 decltype(auto) k       = handle.Run(kernels[0]);
-                decltype(auto) fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+                decltype(auto) fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                 const auto& tensors    = fwd_ctx.tensors;
 
                 k(N,
@@ -499,5 +500,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -42,20 +42,21 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver final : public solver::ConvSolver
+
+class TrivialTestSolver final : public solver::conv::ConvSolver
 {
 public:
     static const char* FileName() { return "TrivialTestSolver"; }
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
+    bool IsApplicable(const ConvolutionContext&, const conv::ProblemDescription& problem) const override
     {
         return problem.GetInWidth_() == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const ProblemDescription&) const override
+                                     const conv::ProblemDescription&) const override
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -79,7 +80,7 @@ struct TestConfig : solver::PerfConfigBase<TestConfig>
     }
 };
 
-class SearchableTestSolver final : public solver::ConvTunableSolver<TestConfig>
+class SearchableTestSolver final : public solver::conv::ConvTunableSolver<TestConfig>
 {
 public:
     static int searches_done() { return _serches_done; }
@@ -88,13 +89,13 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override
+    bool IsApplicable(const ConvolutionContext&, const conv::ProblemDescription&) const override
     {
         return true;
     }
 
     TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                           const ProblemDescription&) const override
+                                           const conv::ProblemDescription&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
@@ -102,14 +103,14 @@ public:
     }
 
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const ProblemDescription&,
+                                  const conv::ProblemDescription&,
                                   const TestConfig&) const override
     {
         return true;
     }
 
     TestConfig Search(const ConvolutionContext&,
-                      const ProblemDescription&,
+                      const conv::ProblemDescription&,
                       const AnyInvokeParams&) const override
     {
         TestConfig config;
@@ -119,7 +120,7 @@ public:
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const ProblemDescription&,
+                                     const conv::ProblemDescription&,
                                      const TestConfig& config) const override
     {
 
@@ -141,7 +142,7 @@ private:
 int SearchableTestSolver::_serches_done = 0;
 
 static solver::ConvSolution FindSolution(const ConvolutionContext& ctx,
-                                         const ProblemDescription& problem,
+                                         const conv::ProblemDescription& problem,
                                          const std::string& db_path)
 {
     PlainTextDb db(db_path);
@@ -225,6 +226,7 @@ private:
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };
+
 } // namespace tests
 } // namespace miopen
 

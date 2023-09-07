@@ -39,6 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -57,6 +58,8 @@ using DeviceOp =
 template <typename DataType>
 using DeviceOpPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
+
+namespace {
 
 struct CKArgs
 {
@@ -84,7 +87,6 @@ struct CKArgs
     CKArgs(const CKArgs&) = default;
     CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
-    CKArgs& operator=(CKArgs&&) = default;
     ~CKArgs()                   = default;
 
     int N;
@@ -98,6 +100,8 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
+
+} // namespace
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ProblemDescription& problem)
@@ -200,7 +204,7 @@ void RunCKSolution(const Handle& handle,
 {
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
     auto& conv_ptr       = conv_ptrs.at(config_idx);
-    const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+    const auto& data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
     const auto& tensors  = data_ctx.tensors;
     auto argument_ptr    = conv_ptr->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
@@ -426,5 +430,6 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

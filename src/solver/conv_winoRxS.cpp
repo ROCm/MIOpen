@@ -164,16 +164,16 @@ static inline int GetBestNGroupParam(const int R,
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 namespace {
-// clang-format off
+
     auto PerfFieldRules()
     {
         return seq::MakeRuleSet(
             std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxS::n_groups)
         );
     }
-// clang-format on
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
@@ -955,14 +955,14 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
             const auto k = handle.Run(kernels[0]);
             const auto data_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.x;
             const auto filter_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dy;
             const auto out_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dw;
 
             // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -1096,5 +1096,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx
 template struct ConvBinWinoRxS<2, 3>;
 template struct ConvBinWinoRxS<3, 2>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

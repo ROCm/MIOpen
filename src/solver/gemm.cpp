@@ -50,6 +50,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -82,7 +83,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+    if(conv::gemm::IsWorkaroundIssue1315(ctx))
         return false;
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
@@ -312,7 +313,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;
-            const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workSpace    = conv_params.workSpace;
             const auto workSpaceSize = conv_params.workSpaceSize;
             const auto x             = conv_params.tensors.in;
@@ -584,7 +585,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                     (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workSpace    = conv_params.workSpace;
             const auto workSpaceSize = conv_params.workSpaceSize;
             const auto x             = conv_params.tensors.in;
@@ -750,7 +751,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 float time_gemm         = 0;
-                const auto& conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+                const auto& conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                 const auto x            = conv_params.tensors.in;
                 const auto w            = conv_params.tensors.w;
                 const auto y            = conv_params.tensors.out;
@@ -844,7 +845,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 float time                 = 0;
-                decltype(auto) conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+                decltype(auto) conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                 const auto& tensors        = conv_params.tensors;
                 const auto& x              = tensors.in;
                 const auto& w              = tensors.w;
@@ -1066,7 +1067,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             float time_gemm          = 0;
-            const auto& conv_params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workSpace    = conv_params.workSpace;
             const auto workSpaceSize = conv_params.workSpaceSize;
             const auto x             = conv_params.tensors.in;
@@ -1206,5 +1207,6 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

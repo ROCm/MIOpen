@@ -133,9 +133,8 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    const auto conv_problem = miopen::conv::ProblemDescription{
+    const auto problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    const auto problem = miopen::ProblemDescription{conv_problem};
     auto ctx           = miopen::ConvolutionContext{};
 
     ctx.do_search               = false;

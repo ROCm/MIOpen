@@ -90,12 +90,12 @@ struct FusionDescription
     static void Visit(Self&& self, F f)
     {
         auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
-        ProblemDescription::Visit(conv_prob, f);
+        conv::ProblemDescription::Visit(conv_prob, f);
     }
 #endif
 
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
+    conv::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);

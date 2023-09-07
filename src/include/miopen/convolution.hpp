@@ -64,7 +64,6 @@ struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
-struct ProblemDescription;
 struct ConvFwdTensors;
 struct ConvWrwTensors;
 
@@ -171,7 +170,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             miopenDataType_t yType = miopenFloat) const;
 
     bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
-                                       const ProblemDescription& problem) const;
+                                       const conv::ProblemDescription& problem) const;
 
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
@@ -189,31 +188,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               Data_t workSpace,
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx,
-                          const ProblemDescription& problem,
-                          const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindDataGemmSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindDataImplicitGemmSolutions(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& wDesc,
-                                  const TensorDescriptor& yDesc,
-                                  bool exhaustiveSearch,
-                                  bool isForward,
-                                  const AnyInvokeParams& invoke_ctx) const;
-
-    std::vector<miopen::solver::ConvSolution>
-    FindFftSolutions(const ConvolutionContext& ctx,
-                     const ProblemDescription& problem,
-                     const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

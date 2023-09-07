@@ -35,6 +35,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 namespace {
 constexpr size_t max_cu_limit = 512;
@@ -355,14 +356,14 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k = handle.Run(kernels[0]);
             const auto data_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.x;
             const auto filter_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dy;
             const auto out_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dw;
 
             float alpha_beta_reserved = 0.0f;
             uint64_t offset_reserved  = 0;
@@ -453,5 +454,6 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx
 template struct ConvWinoFuryRxS<2, 3>;
 // template struct ConvWinoFuryRxS<3, 2>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

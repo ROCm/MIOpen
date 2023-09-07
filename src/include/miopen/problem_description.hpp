@@ -57,19 +57,16 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
     return tensor.GetElementSpace();
 }
 
-// Todo: change all uses in convolution to conv::ProblemDescription and remove this
+#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
 struct ProblemDescription : conv::ProblemDescription
 {
     ProblemDescription() = default;
 
     ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
     {
-#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
         conv_problem.p = this;
-#endif
     }
 
-#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
     struct
     {
         void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
@@ -78,8 +75,8 @@ struct ProblemDescription : conv::ProblemDescription
         const conv::ProblemDescription* p = nullptr;
         friend struct ProblemDescription;
     } conv_problem;
-#endif
 };
+#endif
 
 // For mlo_construct_base
 // TODO remove this
@@ -288,7 +285,7 @@ struct UnifiedDescriptionConv2d
     // strd := U/V             -u/v convolution stride (output stride) kernel_stride
     // idil := input dilation  (n/a except transposed convolutions)    ?
 
-    UnifiedDescriptionConv2d(const ProblemDescription& problem)
+    UnifiedDescriptionConv2d(const conv::ProblemDescription& problem)
     {
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");

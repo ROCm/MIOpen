@@ -36,6 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
@@ -124,8 +125,10 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";
 
     result.construction_params.push_back(constr_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

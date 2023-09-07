@@ -38,6 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -456,7 +457,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                     const auto ss_kernel      = handle.Run(kernels[0]);
                     const auto main_kernel    = handle.Run(kernels[1]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                    const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
 
                     if(invoke_params.workSpaceSize < ws_sz)
                         MIOPEN_THROW("Not enough workspace for ConvOclBwdWrW1x1");
@@ -486,7 +487,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                     const auto k              = handle.Run(kernels[0]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                    const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                     const auto& tensors       = invoke_params.tensors;
                     const auto padding_val    = 0.f;
 
@@ -499,5 +500,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     }
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

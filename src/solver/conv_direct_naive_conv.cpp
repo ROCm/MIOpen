@@ -42,7 +42,7 @@ bool AlwaysEnableConvDirectNaive = false;
 namespace solver {
 
 bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
-                                         const ProblemDescription& problem)
+                                         const conv::ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
@@ -50,7 +50,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 }
 
 // Check tensor data type respectively
-bool IsInputFp32(const ProblemDescription& problem)
+bool IsInputFp32(const conv::ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenFloat &&
             problem.GetWeightsDataType() == miopenFloat) ||
@@ -58,13 +58,15 @@ bool IsInputFp32(const ProblemDescription& problem)
             problem.GetWeightsDataType() == miopenFloat) ||
            (problem.GetInDataType() == miopenFloat && problem.GetOutDataType() == miopenFloat);
 }
-bool IsInputFp16(const ProblemDescription& problem)
+
+bool IsInputFp16(const conv::ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
            (problem.GetOutDataType() == miopenHalf && problem.GetWeightsDataType() == miopenHalf) ||
            (problem.GetInDataType() == miopenHalf && problem.GetOutDataType() == miopenHalf);
 }
-bool IsInputBfp16(const ProblemDescription& problem)
+
+bool IsInputBfp16(const conv::ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenBFloat16 &&
             problem.GetWeightsDataType() == miopenBFloat16) ||
@@ -73,37 +75,45 @@ bool IsInputBfp16(const ProblemDescription& problem)
            (problem.GetInDataType() == miopenBFloat16 &&
             problem.GetOutDataType() == miopenBFloat16);
 }
-bool IsInputInt8(const ProblemDescription& problem)
+
+bool IsInputInt8(const conv::ProblemDescription& problem)
 {
     return (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
            (problem.GetOutDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8) ||
            (problem.GetInDataType() == miopenInt8 && problem.GetOutDataType() == miopenInt8);
 }
-bool IsAccFp64(const ProblemDescription& problem)
+
+bool IsAccFp64(const conv::ProblemDescription& problem)
 {
     return IsInputFp32(problem) || IsInputFp16(problem) || IsInputBfp16(problem);
 }
-bool IsAccInt32(const ProblemDescription& problem) { return IsInputInt8(problem); }
-bool IsOutputFp32(const ProblemDescription& problem)
+
+bool IsAccInt32(const conv::ProblemDescription& problem) { return IsInputInt8(problem); }
+
+bool IsOutputFp32(const conv::ProblemDescription& problem)
 {
     return problem.IsFp32() ||
            (problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
             problem.GetOutDataType() == miopenFloat);
 }
-bool IsOutputFp16(const ProblemDescription& problem) { return problem.IsFp16(); }
-bool IsOutputBfp16(const ProblemDescription& problem) { return problem.IsBfp16(); }
-bool IsOutputInt8(const ProblemDescription& problem)
+
+bool IsOutputFp16(const conv::ProblemDescription& problem) { return problem.IsFp16(); }
+
+bool IsOutputBfp16(const conv::ProblemDescription& problem) { return problem.IsBfp16(); }
+
+bool IsOutputInt8(const conv::ProblemDescription& problem)
 {
     return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
            problem.GetOutDataType() == miopenInt8;
 }
-bool IsOutputInt32(const ProblemDescription& problem)
+
+bool IsOutputInt32(const conv::ProblemDescription& problem)
 {
     return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
            problem.GetOutDataType() == miopenInt32;
 }
 
-std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
+std::string ConvDirectNaiveConvKernelName(const conv::ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
@@ -182,7 +192,7 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 }
 
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
-                                                 const ProblemDescription& problem)
+                                                 const conv::ProblemDescription& problem)
 {
     if(ConvDirectNaiveConvIsAssemblyKernel(ctx, problem))
     {

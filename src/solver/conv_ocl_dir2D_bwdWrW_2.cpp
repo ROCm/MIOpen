@@ -41,6 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 inline static bool Is_1_to_8(const int& v)
 {
@@ -737,7 +738,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
-    result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
+    result.invoker_factory = miopen::conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;
 }
@@ -766,5 +767,6 @@ template struct ConvOclBwdWrW2<4>;
 template struct ConvOclBwdWrW2<8>;
 template struct ConvOclBwdWrW2<16>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

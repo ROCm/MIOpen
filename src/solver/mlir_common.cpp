@@ -73,7 +73,7 @@ static std::string GetIsaName(const miopen::TargetProperties& target)
 #endif
 }
 
-std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int kernel_id)
+std::string GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id)
 {
     std::string version;
     std::string direction;
@@ -101,7 +101,7 @@ std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int
     return kernel_name + std::to_string(kernel_id);
 }
 
-static std::string GetOperation(const ProblemDescription& problem)
+static std::string GetOperation(const conv::ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
     {
@@ -120,7 +120,7 @@ static std::string GetOperation(const ProblemDescription& problem)
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
-                                  const ProblemDescription& problem,
+                                  const conv::ProblemDescription& problem,
                                   bool is_xdlops,
                                   int kernel_id)
 {

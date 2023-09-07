@@ -50,7 +50,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
-
 namespace fusion {
 
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx,
@@ -106,7 +105,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
 {
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
-    ConvAsm1x1U base_sol{};
+    conv::ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(conv_ctx, conv_problem, config);
 
@@ -239,7 +238,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
             return false;
     }
 
-    ConvAsm1x1U sol{};
+    conv::ConvAsm1x1U sol{};
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 

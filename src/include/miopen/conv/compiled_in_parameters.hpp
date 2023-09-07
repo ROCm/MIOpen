@@ -37,7 +37,7 @@ namespace miopen {
  * arguments.
  */
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -55,7 +55,7 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -72,7 +72,7 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,

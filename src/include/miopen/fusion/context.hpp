@@ -26,13 +26,15 @@
 
 #pragma once
 
+#include <miopen/conv/context.hpp>
+
 namespace miopen {
 
 struct FusionContext : miopen::ExecutionContext
 {
     explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
 
-    ConvolutionContext GetConvContext(const miopen::ProblemDescription& conv_problem) const
+    ConvolutionContext GetConvContext(const conv::ProblemDescription& conv_problem) const
     {
         auto ctx = ConvolutionContext{*this};
         conv_problem.SetupFloats(ctx);

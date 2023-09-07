@@ -114,11 +114,10 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     ctx.do_search = false;
 
     const auto legacy_ctx     = ConvolutionContext{ctx};
-    const auto legacy_problem = ProblemDescription{problem};
     const auto solver         = solver_id.GetSolver();
     auto db                   = GetDb(ctx);
     auto solution =
-        solver.FindSolution(legacy_ctx, legacy_problem, db, {}); // auto tune is not expected here
+        solver.FindSolution(legacy_ctx, problem, db, {}); // auto tune is not expected here
     auto& handle = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
@@ -200,13 +199,12 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
             auto conv_ctx                       = ConvolutionContext{ctx};
             conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-            auto legacy_problem                 = ProblemDescription(problem);
 
             ConvFindCore(invoke_ctx,
                          record,
                          conv_ctx,
-                         legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
+                         problem,
+                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, problem),
                          GetConvSolverFinders());
         });
     }
@@ -532,7 +530,6 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
     const auto ctx            = ConvolutionContext{exec_ctx};
-    const auto legacy_problem = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -548,7 +545,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
         const static std::string arch = exec_ctx.GetStream().GetDeviceName();
-        auto solvers                  = ai::immed_mode::PredictSolver(legacy_problem, ctx, arch);
+        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");

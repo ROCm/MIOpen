@@ -63,10 +63,13 @@ void add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(
 namespace miopen {
 namespace solver {
 namespace fusion {
+
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+namespace {
+
 struct CKArgs
 {
-    CKArgs(const ProblemDescription& problem)
+    CKArgs(const conv::ProblemDescription& problem)
     {
         N        = ProblemInterpreter::GetBatchN(problem);
         K        = ProblemInterpreter::GetOutputChannelK(problem);
@@ -98,8 +101,10 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
+} // namespace
+
 template <typename DataType>
-void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const ProblemDescription& problem)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const conv::ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -138,7 +143,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const ProblemDescriptio
 
 template <typename DataType>
 bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
-    const ProblemDescription& problem) const
+    const conv::ProblemDescription& problem) const
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -178,7 +183,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const ProblemDescription& problem) const
+bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const conv::ProblemDescription& problem) const
 {
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
@@ -210,10 +215,12 @@ bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const ProblemDescription& problem,
+                   const conv::ProblemDescription& problem,
                    const PerformanceConfigConvCKIgemmFwdBiasActivFused& config)
 {
     const auto& args = CKArgs{problem};
@@ -270,6 +277,8 @@ void RunCKSolution(const Handle& handle,
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(

@@ -38,6 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1(int BlockSize_,
                                                                        int GemmMPerBlock_,
@@ -864,10 +865,11 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
             std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

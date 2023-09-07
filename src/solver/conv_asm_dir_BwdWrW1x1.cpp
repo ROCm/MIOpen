@@ -43,6 +43,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
@@ -310,7 +311,6 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
-
     if(!IsValidValue())
         return false;
     if(!((chunk_size * c_per_gpr) >= 16 && ((chunk_size == 1 || c_per_gpr * chunk_size <= 16))))
@@ -802,7 +802,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto ss_kernel      = handle.Run(kernels[0]);
                 const auto main_kernel    = handle.Run(kernels[1]);
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& x             = invoke_params.tensors.x;
                 const auto& dy            = invoke_params.tensors.dy;
                 const auto& dw            = invoke_params.tensors.dw;
@@ -834,7 +834,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto main_kernel    = handle.Run(kernels[0]);
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& x             = invoke_params.tensors.x;
                 const auto& dy            = invoke_params.tensors.dy;
                 const auto& dw            = invoke_params.tensors.dw;
@@ -855,5 +855,6 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

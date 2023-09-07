@@ -37,6 +37,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
@@ -424,7 +425,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
         const int padding = FFTConvParams::TransposePadding;
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
@@ -484,5 +485,6 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     return sol;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

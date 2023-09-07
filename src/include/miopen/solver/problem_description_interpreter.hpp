@@ -27,10 +27,7 @@
 #ifndef PROBLEM_DESCRIPTION_INTERPRETER_HPP_
 #define PROBLEM_DESCRIPTION_INTERPRETER_HPP_
 
-#include <miopen/env.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/rocm_features.hpp>
-#include <algorithm>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 namespace solver {
@@ -42,14 +39,14 @@ namespace solver {
 // 4. adjust dilation to 1 if filter size is 1
 struct ProblemInterpreter
 {
-    static auto GetGroupCountG(const ProblemDescription& problem)
+    static auto GetGroupCountG(const conv::ProblemDescription& problem)
     {
         return problem.GetGroupCount();
     }
 
-    static int GetBatchN(const ProblemDescription& problem) { return problem.GetBatchSize_(); }
+    static int GetBatchN(const conv::ProblemDescription& problem) { return problem.GetBatchSize_(); }
 
-    static auto GetOutputLayout(const ProblemDescription& problem)
+    static auto GetOutputLayout(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetOutLayout();
@@ -57,7 +54,7 @@ struct ProblemInterpreter
             return problem.GetInLayout();
     }
 
-    static int GetOutputChannelK(const ProblemDescription& problem)
+    static int GetOutputChannelK(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetOutChannels_();
@@ -65,7 +62,7 @@ struct ProblemInterpreter
             return problem.GetInChannels_();
     }
 
-    static auto GetInputLayout(const ProblemDescription& problem)
+    static auto GetInputLayout(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetInLayout();
@@ -73,7 +70,7 @@ struct ProblemInterpreter
             return problem.GetOutLayout();
     }
 
-    static int GetInputChannelC(const ProblemDescription& problem)
+    static int GetInputChannelC(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetInChannels_();
@@ -81,7 +78,7 @@ struct ProblemInterpreter
             return problem.GetOutChannels_();
     }
 
-    static int GetInputDepthDi(const ProblemDescription& problem)
+    static int GetInputDepthDi(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetInDepth_();
@@ -89,7 +86,7 @@ struct ProblemInterpreter
             return problem.GetOutDepth_();
     }
 
-    static int GetInputHeightHi(const ProblemDescription& problem)
+    static int GetInputHeightHi(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetInHeight_();
@@ -97,7 +94,7 @@ struct ProblemInterpreter
             return problem.GetOutHeight_();
     }
 
-    static int GetInputWidthWi(const ProblemDescription& problem)
+    static int GetInputWidthWi(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetInWidth_();
@@ -105,7 +102,7 @@ struct ProblemInterpreter
             return problem.GetOutWidth_();
     }
 
-    static int GetOutputDepthDo(const ProblemDescription& problem)
+    static int GetOutputDepthDo(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetOutDepth_();
@@ -113,7 +110,7 @@ struct ProblemInterpreter
             return problem.GetInDepth_();
     }
 
-    static int GetOutputHeightHo(const ProblemDescription& problem)
+    static int GetOutputHeightHo(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetOutHeight_();
@@ -121,7 +118,7 @@ struct ProblemInterpreter
             return problem.GetInHeight_();
     }
 
-    static int GetOutputWidthWo(const ProblemDescription& problem)
+    static int GetOutputWidthWo(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
             return problem.GetOutWidth_();
@@ -129,80 +126,80 @@ struct ProblemInterpreter
             return problem.GetInWidth_();
     }
 
-    static auto GetOutputDataType(const ProblemDescription& problem)
+    static auto GetOutputDataType(const conv::ProblemDescription& problem)
     {
         return problem.IsDirectionForward() ? problem.GetOutDataType() : problem.GetInDataType();
     }
 
-    static auto GetInputDataType(const ProblemDescription& problem)
+    static auto GetInputDataType(const conv::ProblemDescription& problem)
     {
         return problem.IsDirectionForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
-    static int GetFilterDepthZ(const ProblemDescription& problem)
+    static int GetFilterDepthZ(const conv::ProblemDescription& problem)
     {
         return problem.GetWeightsDepth_();
     }
 
-    static auto GetFilterLayout(const ProblemDescription& problem)
+    static auto GetFilterLayout(const conv::ProblemDescription& problem)
     {
         return problem.GetWeightsLayout();
     }
 
-    static int GetFilterHeightY(const ProblemDescription& problem)
+    static int GetFilterHeightY(const conv::ProblemDescription& problem)
     {
         return problem.GetWeightsHeight_();
     }
 
-    static int GetFilterWidthX(const ProblemDescription& problem)
+    static int GetFilterWidthX(const conv::ProblemDescription& problem)
     {
         return problem.GetWeightsWidth_();
     }
 
     // adjust conv_stride_d to 1 if Do is 1
-    static auto GetAdjustedConvolutionStrideD(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideD(const conv::ProblemDescription& problem)
     {
         return GetOutputDepthDo(problem) > 1 ? problem.GetKernelStrideD() : 1;
     }
 
     // adjust conv_stride_h to 1 if Ho is 1
-    static auto GetAdjustedConvolutionStrideH(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideH(const conv::ProblemDescription& problem)
     {
         return GetOutputHeightHo(problem) > 1 ? problem.GetKernelStrideH() : 1;
     }
 
     // adjust conv_stride_w to 1 if Wo is 1
-    static auto GetAdjustedConvolutionStrideW(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionStrideW(const conv::ProblemDescription& problem)
     {
         return GetOutputWidthWo(problem) > 1 ? problem.GetKernelStrideW() : 1;
     }
 
     // adjust conv_dilation_d to 1 if Z is 1
-    static auto GetAdjustedConvolutionDilationD(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationD(const conv::ProblemDescription& problem)
     {
         return GetFilterDepthZ(problem) > 1 ? problem.GetDilationD() : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
-    static auto GetAdjustedConvolutionDilationH(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationH(const conv::ProblemDescription& problem)
     {
         return GetFilterHeightY(problem) > 1 ? problem.GetDilationH() : 1;
     }
 
     // adjust conv_dilation_w to 1 if X is 1
-    static auto GetAdjustedConvolutionDilationW(const ProblemDescription& problem)
+    static auto GetAdjustedConvolutionDilationW(const conv::ProblemDescription& problem)
     {
         return GetFilterWidthX(problem) > 1 ? problem.GetDilationW() : 1;
     }
 
-    static auto GetInputLeftPadD(const ProblemDescription& problem) { return problem.GetPadD(); }
+    static auto GetInputLeftPadD(const conv::ProblemDescription& problem) { return problem.GetPadD(); }
 
-    static auto GetInputLeftPadH(const ProblemDescription& problem) { return problem.GetPadH(); }
+    static auto GetInputLeftPadH(const conv::ProblemDescription& problem) { return problem.GetPadH(); }
 
-    static auto GetInputLeftPadW(const ProblemDescription& problem) { return problem.GetPadW(); }
+    static auto GetInputLeftPadW(const conv::ProblemDescription& problem) { return problem.GetPadW(); }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadD(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadD(const conv::ProblemDescription& problem)
     {
         const int di              = GetInputDepthDi(problem);
         const int dout            = GetOutputDepthDo(problem);
@@ -220,7 +217,7 @@ struct ProblemInterpreter
     }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadH(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadH(const conv::ProblemDescription& problem)
     {
         const int hi              = GetInputHeightHi(problem);
         const int ho              = GetOutputHeightHo(problem);
@@ -238,7 +235,7 @@ struct ProblemInterpreter
     }
 
     // adjust right padding size so that filter will not move out-of-bound
-    static auto GetAdjustedInputRightPadW(const ProblemDescription& problem)
+    static auto GetAdjustedInputRightPadW(const conv::ProblemDescription& problem)
     {
         const int wi              = GetInputWidthWi(problem);
         const int wo              = GetOutputWidthWo(problem);

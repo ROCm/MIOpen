@@ -288,7 +288,7 @@ void SetMlirConvArgsPtr(
 #endif // MIOPEN_BACKEND_HIP
 } // Anonymous namespace
 
-InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeMlirFwdInvokerFactory(const ProblemDescription& problem)
 {
     assert((problem.IsDirectionForward()));
 
@@ -354,7 +354,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
     };
 }
 
-InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeMlirBwdInvokerFactory(const ProblemDescription& problem)
 {
     assert(problem.IsDirectionBackwardData());
 
@@ -409,7 +409,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& probl
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
+InvokerFactory MakeMlirWrWInvokerFactory(const ProblemDescription& problem,
                                          size_t workspace_req)
 {
     assert((problem.IsDirectionBackwardWrW()));

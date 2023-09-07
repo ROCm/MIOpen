@@ -38,6 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
@@ -930,7 +931,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(kernels[0]);
                 float elapsed       = 0;
@@ -963,7 +964,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors       = wrw_invoke_params.tensors;
                 const auto k              = handle.Run(kernels[0]);
                 const auto& workSpace     = wrw_invoke_params.workSpace;
@@ -1013,7 +1014,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto k        = handle.Run(kernels[0]);
 
@@ -1029,5 +1030,6 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

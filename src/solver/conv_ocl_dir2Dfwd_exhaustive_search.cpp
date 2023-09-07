@@ -49,6 +49,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 /*
  * select default configuration if a known configuration has not been found.
@@ -297,7 +298,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     auto bias_ocl_ptr = bias_ocl_buf.get();
 #else
     auto& profile_h           = ctx.GetStream();
-    const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto& invoke_params = invoke_ctx.CastTo<miopen::conv::DataInvokeParams>();
     const auto bot_ocl_ptr    = invoke_params.tensors.in;
     const auto top_ocl_ptr    = invoke_params.tensors.out;
     const auto wei_ocl_ptr    = invoke_params.tensors.w;
@@ -712,5 +713,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

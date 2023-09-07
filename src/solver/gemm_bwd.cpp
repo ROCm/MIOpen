@@ -52,6 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -98,7 +99,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+    if(conv::gemm::IsWorkaroundIssue1315(ctx))
         return false;
     const auto& dyDesc = problem.GetIn();
     const auto& wDesc  = problem.GetWeights();
@@ -270,7 +271,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workspace      = conv_params.workSpace;
             const auto& workspace_size = conv_params.workSpaceSize;
             const auto& dy             = conv_params.tensors.in;
@@ -458,7 +459,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& dy          = conv_params.tensors.in;
             const auto& w           = conv_params.tensors.w;
             const auto& dx          = conv_params.tensors.out;
@@ -696,7 +697,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workspace      = conv_params.workSpace;
             const auto& workspace_size = conv_params.workSpaceSize;
             const auto& dy             = conv_params.tensors.in;
@@ -838,5 +839,6 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

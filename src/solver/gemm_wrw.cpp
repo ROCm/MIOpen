@@ -19,6 +19,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -65,7 +66,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+    if(conv::gemm::IsWorkaroundIssue1315(ctx))
         return false;
     const auto& dyDesc = problem.GetIn();
     const auto& dwDesc = problem.GetWeights();
@@ -201,7 +202,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy          = conv_params.tensors.dy;
             const auto& dw          = conv_params.tensors.dw;
             const auto& dwDesc_     = conv_params.tensors.dwDesc;
@@ -414,7 +415,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy             = conv_params.tensors.dy;
             const auto& dyDesc_        = conv_params.tensors.dyDesc;
             const auto& dwDesc_        = conv_params.tensors.dwDesc;
@@ -560,5 +561,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

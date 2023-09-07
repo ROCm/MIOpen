@@ -35,6 +35,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 static inline const std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicBwdTunablesList(const ProblemDescription& problem)
@@ -1049,10 +1050,11 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, cfg);
+    result.invoker_factory = miopen::conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -53,6 +53,7 @@ MIOPEN_DECLARE_ENV_VAR(
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm()
@@ -1027,7 +1028,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -1129,5 +1130,6 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContex
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -68,7 +68,7 @@ protected:
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     std::size_t expected_solver;
 };
 
@@ -84,7 +84,7 @@ struct TunaNetTestBF16 : TunaNetTest<bfloat16>
 {
 };
 
-void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t expected_solver)
+void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem, std::size_t expected_solver)
 {
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     auto&& handle      = get_handle();

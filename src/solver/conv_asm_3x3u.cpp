@@ -45,6 +45,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 namespace {
 // clang-format off
@@ -310,7 +311,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
@@ -322,5 +323,6 @@ PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

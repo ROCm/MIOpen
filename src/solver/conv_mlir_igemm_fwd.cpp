@@ -36,6 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 void PerformanceConvMlirIgemm::SetMlirHeuristicInitRequest()
 {
@@ -211,7 +212,7 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeMlirFwdInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
@@ -222,5 +223,6 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

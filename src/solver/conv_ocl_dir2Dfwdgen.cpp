@@ -33,6 +33,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const
@@ -308,8 +309,10 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
 
     ConvSolution result;
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

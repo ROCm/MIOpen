@@ -37,6 +37,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -114,7 +115,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, 0);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, 0);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
@@ -125,5 +126,6 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

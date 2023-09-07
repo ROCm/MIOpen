@@ -45,7 +45,7 @@ public:
     virtual AlgorithmName GetAlgorithmName(const conv::ProblemDescription& ptroblem) const = 0;
 
     inline std::vector<solver::ConvSolution> Find(const ConvolutionContext& ctx,
-                                                  const ProblemDescription& problem,
+                                                  const conv::ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx,
                                                   bool use_winograd_only) const
     {
@@ -72,7 +72,7 @@ protected:
                            const conv::ProblemDescription& problem,
                            bool use_winograd_only) const                             = 0;
     virtual std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                                       const ProblemDescription& problem,
+                                                       const conv::ProblemDescription& problem,
                                                        const AnyInvokeParams& invoke_ctx,
                                                        bool use_winograd_only) const = 0;
 };
@@ -82,7 +82,7 @@ const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
                   const ConvolutionContext& ctx,
-                  const ProblemDescription& problem,
+                  const conv::ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders);
 

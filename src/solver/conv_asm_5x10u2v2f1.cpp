@@ -36,6 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
@@ -149,9 +150,11 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
     construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -59,6 +59,8 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)
@@ -80,13 +82,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE()                                                              \
-    const auto                                                                               \
-        wino_xform_h =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(),                                                  \
-        wino_xform_w =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+#define DEFINE_GETXFORMHWSIZE()                                                      \
+    const auto                                                                       \
+        wino_xform_h =                                                               \
+            ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                GetSolverWinoXformHWSize(),                                          \
+        wino_xform_w =                                                               \
+            ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize();
 
 #define DEFINE_SHADER_ALIASES(problem)                              \
@@ -467,7 +469,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
 #if MIOPEN_USE_ROCBLAS
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
                 Data_t workSpace     = data_ctx.workSpace;
                 CallGemmStridedBatched(
                     handle,
@@ -498,7 +500,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         auto gemm_conv_invoker = gemm_conv_factory(conv_kernels);
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
             const auto tensors   = data_ctx.tensors;
             Data_t workSpace     = data_ctx.workSpace;
             auto workSpaceSize   = data_ctx.workSpaceSize;
@@ -519,7 +521,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                     // xdlops_conv use tensors.in, tensors.w, tensors.out
                     ConvDataTensors xdlops_tensor = ConvDataTensors(ConvFwdTensors{
                         zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-                    const auto invoke_params      = conv::DataInvokeParams{
+                    const auto invoke_params      = miopen::conv::DataInvokeParams{
                         xdlops_tensor, workSpace, workSpaceSize, data_ctx.gfx90aFp16alt};
 
                     gemm_conv_invoker(handle, invoke_params);
@@ -792,7 +794,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 
 // must be same as invoke_params in Invoker
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescription& problem,
+static miopen::conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescription& problem,
                                                           const AnyInvokeParams& invoke_ctx)
 {
 #if MIOPEN_BACKEND_HIP
@@ -811,7 +813,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
 
-    const auto& data_ctx = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto& data_ctx = invoke_ctx.CastTo<miopen::conv::DataInvokeParams>();
 
     auto workSpace = data_ctx.workSpace;
 
@@ -832,7 +834,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
     const auto zeroDesc           = TensorDescriptor();
     ConvDataTensors xdlops_tensor = ConvDataTensors(
         ConvFwdTensors{zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-    return conv::DataInvokeParams{
+    return miopen::conv::DataInvokeParams{
         xdlops_tensor, gemm_workSpace, gemm_workSpaceSize, data_ctx.gfx90aFp16alt};
 #else
     std::ignore = problem;
@@ -935,5 +937,6 @@ template struct ConvMPBidirectWinograd_xdlops<4, 3>;
 template struct ConvMPBidirectWinograd_xdlops<5, 3>;
 template struct ConvMPBidirectWinograd_xdlops<6, 3>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

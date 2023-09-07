@@ -41,6 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 std::tuple<int, bool>
 PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGridSize(const ProblemDescription& problem) const
@@ -1060,9 +1061,10 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
         }
     }
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

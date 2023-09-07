@@ -33,6 +33,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
@@ -551,5 +552,6 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
 {
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

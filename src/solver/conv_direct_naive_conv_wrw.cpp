@@ -33,6 +33,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
                                           const ProblemDescription& problem) const
@@ -109,7 +110,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
@@ -146,7 +147,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
@@ -189,5 +190,6 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

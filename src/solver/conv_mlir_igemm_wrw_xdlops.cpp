@@ -38,6 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
                                           const ProblemDescription& problem) const
@@ -117,7 +118,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
     }
 
     size_t workspace_req   = GetWorkspaceSize(ctx, problem);
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, workspace_req);
     result.workspace_sz    = workspace_req;
     return result;
 #else
@@ -141,5 +142,6 @@ std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& c
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

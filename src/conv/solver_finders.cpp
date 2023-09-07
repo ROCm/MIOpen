@@ -59,7 +59,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
+                                               const conv::ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
@@ -87,7 +87,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
+                                               const conv::ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
@@ -116,7 +116,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
+                                               const conv::ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
@@ -142,7 +142,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
+                                               const conv::ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
@@ -168,7 +168,7 @@ protected:
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                               const ProblemDescription& problem,
+                                               const conv::ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool use_winograd_only) const override
     {
@@ -278,7 +278,7 @@ static void EvaluateInvokers(Handle& handle,
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
                   const ConvolutionContext& ctx,
-                  const ProblemDescription& problem,
+                  const conv::ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders)
 {

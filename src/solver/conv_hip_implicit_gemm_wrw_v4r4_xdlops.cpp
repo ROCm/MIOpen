@@ -39,6 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
@@ -985,7 +986,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             auto kernel               = handle.Run(kernels[0]);
             float elapsed             = 0;
@@ -1121,5 +1122,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext&,
         return miopen::GetTypeSize(miopenFloat) * k * c * y * x;
     }
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

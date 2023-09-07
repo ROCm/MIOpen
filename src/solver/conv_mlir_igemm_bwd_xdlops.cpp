@@ -37,6 +37,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
                                           const ProblemDescription& problem) const
@@ -115,7 +116,7 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
         result.construction_params.push_back(construction_parameters);
     }
 
-    result.invoker_factory = conv::MakeMlirBwdInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeMlirBwdInvokerFactory(problem);
     return result;
 #else
     std::ignore = ctx;
@@ -125,5 +126,6 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

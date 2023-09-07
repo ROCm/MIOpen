@@ -39,6 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
@@ -163,7 +164,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
-            const auto& fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,
@@ -183,5 +184,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

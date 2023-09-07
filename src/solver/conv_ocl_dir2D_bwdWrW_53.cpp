@@ -34,6 +34,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 // Once the compiler fix (SWDEV-168168) is available, that version of compiler needs to be
 // checked to skip workarounds. Till then, true is returned in all cases so as to skip
@@ -644,9 +645,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
 
     const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
-    result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
+    result.invoker_factory = miopen::conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

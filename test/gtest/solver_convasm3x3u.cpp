@@ -73,7 +73,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 {
-    SolverFwd<miopen::solver::ConvAsm3x3U>(input.desc,
+    SolverFwd<miopen::solver::conv::ConvAsm3x3U>(input.desc,
                                            in_dev.get(),
                                            weights.desc,
                                            wei_dev.get(),

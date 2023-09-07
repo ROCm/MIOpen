@@ -43,6 +43,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 /// \todo Rework, factor out to separate header and use in other solvers.
 /// \todo Clarify functions semantics.
@@ -742,7 +743,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;
@@ -755,5 +756,6 @@ PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ConvolutionContext& c
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

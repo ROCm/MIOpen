@@ -10,7 +10,7 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeImplGemmDataInvokerFactory(const ProblemDescription& problem)
 {
     if(problem.IsDirectionForward())
     {

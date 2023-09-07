@@ -82,7 +82,7 @@ struct SolverBase
     /// overriden to keep the name to avoid DB corruption.
     virtual const std::string& SolverDbId() const = 0;
 
-    /// In some instances ( particularly fusions) the fused solver might like to
+    /// In some instances (particularly fusions) the fused solver might like to
     /// fallback to the non-fused variant for performance parameters, this information
     /// is returned via AltSolverDbId
     virtual const std::string& AltSolverDbId() const
@@ -179,6 +179,11 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
 };
+
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
+using Direction = miopen::conv::Direction;
 
 /// Typedef for convolution solvers
 using ConvSolver = NonTunableSolverBase<ConvolutionContext, ProblemDescription>;
@@ -4885,6 +4890,8 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
+
+} // namespace conv
 
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic

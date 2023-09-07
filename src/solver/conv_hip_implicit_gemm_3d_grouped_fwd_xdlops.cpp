@@ -38,6 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -129,6 +130,7 @@ struct CKArgs
     std::array<ck::index_t, 3> lPadding;
     std::array<ck::index_t, 3> rPadding;
 };
+
 } // namespace
 
 template <typename DataType>
@@ -261,7 +263,7 @@ void RunCKSolution(const Handle& handle,
     }
     assert(i != conv_ptrs.size());
     auto& conv_ptr      = conv_ptrs.at(i);
-    auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
+    auto& data_ctx      = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
     const auto& tensors = data_ctx.tensors;
 
     auto argument_ptr = conv_ptr->MakeArgumentPointer(
@@ -290,10 +292,8 @@ void RunCKSolution(const Handle& handle,
     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream()});
 }
 
-namespace conv {
-
 InvokerFactory
-MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
+MakeCK3DGroupFwdInvokerFactory(const ProblemDescription& problem,
                                const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
 {
     auto args                  = CKArgs{problem};
@@ -323,8 +323,6 @@ MakeCK3DGroupFwdInvokerFactory(const miopen::ProblemDescription& problem,
         };
     };
 }
-
-} // namespace conv
 
 } // namespace
 #endif
@@ -475,10 +473,11 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    result.invoker_factory = conv::MakeCK3DGroupFwdInvokerFactory(problem, config);
+    result.invoker_factory = MakeCK3DGroupFwdInvokerFactory(problem, config);
     return result;
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

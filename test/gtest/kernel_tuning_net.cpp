@@ -71,7 +71,7 @@ protected:
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     bool expected_valid;
     std::string expected;
 };
@@ -85,7 +85,7 @@ struct KernelTuningNetTestHalf : KernelTuningNetTest<half_float::half>
 };
 
 template <typename T>
-void TestParameterPredictionModel(miopen::ProblemDescription problem,
+void TestParameterPredictionModel(miopen::conv::ProblemDescription problem,
                                   bool expected_valid,
                                   std::string expected)
 {
@@ -118,13 +118,13 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
 
 TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 
 TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 

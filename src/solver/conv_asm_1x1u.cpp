@@ -48,6 +48,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
@@ -888,7 +889,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     {
         int N, C, H, W, K, n_groups, out_H, out_W;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-        result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1USSInvokerFactory(
             N, C, K, n_groups, out_H, out_W, result.workspace_sz);
     }
     else if(UseUpsample(problem))
@@ -896,13 +897,13 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory =
-            conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
+            miopen::conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
     }
     else
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
-        result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
+        result.invoker_factory = miopen::conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
     return result;
@@ -915,5 +916,6 @@ PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
