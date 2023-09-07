@@ -27,6 +27,7 @@
 #include "miopen/common.hpp"
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
+#include <miopen/env.hpp>
 #include <miopen/binary_cache.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/errors.hpp>
