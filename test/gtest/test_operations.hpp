@@ -38,6 +38,20 @@ void ComputeCPUBNInference(DLModule& dl_module)
                                       dl_module.estVariance);
 }
 
+template <typename DLModule>
+void ComputeCPUBNBwd(DLModule& dl_module)
+{
+    batchNormSpatialHostBwdTrain(dl_module.input,
+                                 dl_module.dy,
+                                 dl_module.ref_out,
+                                 dl_module.bnScale,
+                                 dl_module.dScale_ref,
+                                 dl_module.dBias_ref,
+                                 dl_module.savedMean,
+                                 dl_module.savedInvVar);
+}
+
+
 template <typename T>
 void CompareTensor(const tensor<T>& output, const tensor<T>& ref_out, const T threshold = std::numeric_limits<T>::epsilon())
 {

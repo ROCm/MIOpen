@@ -145,6 +145,18 @@ struct BnCKFwdInference final : BatchnormSolver
 
 // ----------- end BnCKFwdInference ---------------
 
+// ----------- start BnCKBwdBackward ---------------
+struct BnCKBwdBackward final : BatchnormSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<BnCKBwdBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
+};
+
+// ----------- end BnCKBwdBackward ---------------
 
 } // namespace batchnorm
 

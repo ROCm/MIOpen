@@ -50,6 +50,7 @@ constexpr index_t NumBatchNormReduceDim = 3;
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;
+using BF16 = ck::bhalf_t;
 
 struct CKArgsBNormFwd
 {
