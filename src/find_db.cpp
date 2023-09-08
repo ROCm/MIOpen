@@ -54,14 +54,14 @@ boost::optional<std::string>& testing_find_db_path_override()
 
 #if MIOPEN_EMBED_DB
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle)
+std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix)
 {
     static const auto embed_path = [&] {
         namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
         const auto root_path  = fs::path(GetSystemDbPath());
         const auto base_name  = handle.GetDbBasename();
-        const auto suffix     = GetSystemFindDbSuffix();
+        const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto filename   = base_name + "." + suffix + ext;
         const auto file_path  = root_path / filename;
         if(miopen_data().find(filename + ".o") != miopen_data().end())
@@ -77,7 +77,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle)
             {
                 const auto& fname    = kinder.first.substr(0, kinder.first.size() - 2);
                 const auto& filepath = root_path / fname;
-                if(EndsWith(fname, ".fdb.txt"))
+                if(EndsWith(fname, path_suffix + ".fdb.txt"))
                     all_files.push_back(filepath);
             }
 
@@ -121,14 +121,14 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle)
 #else
 
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
+std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::string& path_suffix)
 {
     static const auto installed_path = [&] {
         namespace fs          = boost::filesystem;
         const std::string ext = ".fdb.txt";
         const auto root_path  = fs::path(GetSystemDbPath());
         const auto base_name  = handle.GetDbBasename();
-        const auto suffix     = GetSystemFindDbSuffix();
+        const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto file_path  = root_path / (base_name + "." + suffix + ext);
         if(boost::filesystem::exists(file_path))
         {
@@ -149,7 +149,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
                 for(auto const& filepath : contents)
                 {
                     const auto& fname = filepath.string();
-                    if(fs::is_regular_file(filepath) && EndsWith(fname, ".fdb.txt"))
+                    if(fs::is_regular_file(filepath) && EndsWith(fname, path_suffix + ".fdb.txt"))
                         all_files.push_back(filepath);
                 }
 
@@ -197,28 +197,30 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle)
 }
 #endif
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle)
+std::string FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_SYSDB
 #if MIOPEN_EMBED_DB
-    return GetInstalledPathEmbed(handle);
+    return GetInstalledPathEmbed(handle, path_suffix);
 #else
-    return GetInstalledPathFile(handle);
+    return GetInstalledPathFile(handle, path_suffix);
 #endif
 #else
-    (void)(handle);
+    std::ignore = handle;
+    std::ignore = path_suffix;
     return "";
 #endif
 }
 
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle)
+std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_USERDB
     return GetUserDbPath().string() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() +
-           ".ufdb.txt";
+           path_suffix + ".ufdb.txt";
 #else
-    (void)(handle);
+    std::ignore = handle;
+    std::ignore = path_suffix;
     return "";
 #endif
 }

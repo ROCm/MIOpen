@@ -438,7 +438,7 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
 }
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
@@ -731,7 +731,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 }
 
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {

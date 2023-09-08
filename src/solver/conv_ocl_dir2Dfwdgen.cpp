@@ -34,7 +34,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
@@ -94,7 +94,7 @@ bool ConvOclDirectFwdGen::IsApplicable(const ConvolutionContext& ctx,
                 && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))); // clang-format on
 }
 
-ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
     int n_in_stacks = 0;

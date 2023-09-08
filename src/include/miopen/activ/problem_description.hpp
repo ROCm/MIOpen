@@ -88,7 +88,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return yDesc;
     }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;

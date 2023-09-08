@@ -367,12 +367,12 @@ struct ProblemDescription : ProblemDescriptionBase
 
     void HeuristicUpdateLayouts();
 
-    void BuildConfKey(std::string& conf_key) const;
+    void MakeNetworkConfig(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
+    NetworkConfig MakeNetworkConfig() const override
     {
         std::string ret;
-        BuildConfKey(ret);
+        MakeNetworkConfig(ret);
         return NetworkConfig{ret};
     }
 

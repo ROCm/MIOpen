@@ -113,7 +113,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
-    const auto legacy_ctx     = ConvolutionContext{ctx};
+    const auto legacy_ctx     = ExecutionContext{ctx};
     const auto legacy_problem = ProblemDescription{problem};
     const auto solver         = solver_id.GetSolver();
     auto db                   = GetDb(ctx);
@@ -132,7 +132,7 @@ Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
                              solver::Id solver_id)
 {
     const auto& handle = ctx.GetStream();
-    const auto config  = problem.BuildConfKey();
+    const auto config  = problem.MakeNetworkConfig();
     auto invoker       = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -198,16 +198,13 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-            auto conv_ctx                       = ConvolutionContext{ctx};
+            auto conv_ctx                       = ExecutionContext{ctx};
             conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             auto legacy_problem                 = ProblemDescription(problem);
+            const auto params =
+                ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem)};
 
-            ConvFindCore(invoke_ctx,
-                         record,
-                         conv_ctx,
-                         legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
-                         GetConvSolverFinders());
+            FindCore(invoke_ctx, record, conv_ctx, legacy_problem, params, GetConvSolverFinders());
         });
     }
 
@@ -440,7 +437,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         const auto problem =
             conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        const auto network_config = problem.BuildConfKey();
+        const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -531,7 +528,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx            = ConvolutionContext{exec_ctx};
+    const auto ctx            = ExecutionContext{exec_ctx};
     const auto legacy_problem = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
@@ -646,7 +643,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     // ROCm version, specific features of GPU (like xnack) etc.
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
-    auto ctx = ConvolutionContext{exec_ctx};
+    auto ctx = ExecutionContext{exec_ctx};
 
     for(const auto& pair : fdb_record)
     {
@@ -719,7 +716,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
         return 0;
     const auto problem =
         conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
@@ -901,7 +898,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         const auto problem =
             conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
-        const auto network_config = problem.BuildConfKey();
+        const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -928,7 +925,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         return 0;
     const auto problem =
         conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
@@ -1099,7 +1096,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
         decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
-        decltype(auto) network_config = problem.BuildConfKey();
+        decltype(auto) network_config = problem.MakeNetworkConfig();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
         if(!invoker)
@@ -1126,7 +1123,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         return 0;
     const auto problem =
         conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);

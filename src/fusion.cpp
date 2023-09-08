@@ -33,7 +33,9 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/find_db.hpp>
 #include <miopen/find_solution.hpp>
+#include <miopen/conv/solver_finders.hpp>
 #include <miopen/driver_arguments.hpp>
 
 #include <ostream>
@@ -554,20 +556,6 @@ static auto GetFusedSolvers()
                                    solver::fusion::ConvCKIgemmFwdBiasActivFused>{};
 }
 
-static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
-                                   const FusionDescription& problem)
-{
-    std::ostringstream ss;
-    const auto& input_desc  = problem.fusion_plan_desc->input_desc;
-    const auto& output_desc = problem.fusion_plan_desc->output_desc;
-    ss << input_desc.ToString() << ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    ss << output_desc.ToString() << ((output_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    std::stringstream op_config;
-    problem.GetNetworkConfig(op_config, fusion_ctx.GetStream());
-    ss << op_config.str();
-    return NetworkConfig{ss.str()};
-}
-
 static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
                                    const FusionDescription& fusion_problem,
                                    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
@@ -604,6 +592,57 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
     }
 }
 
+struct FusionFindParameters : PrimitiveFindParameters
+{
+};
+
+class FusionSolverFinder : public SolversFinderMixin<FusionDescription, FusionFindParameters>
+{
+protected:
+    AlgorithmName GetAlgorithmName(const FusionDescription&) const override
+    {
+        return AlgorithmName{"fusion"};
+    }
+
+    bool IsEnabled(const ExecutionContext&,
+                   const FusionDescription&,
+                   const FusionFindParameters&) const override
+    {
+        return true;
+    }
+
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
+                                               const FusionDescription& problem,
+                                               const AnyInvokeParams& invoke_ctx,
+                                               const FusionFindParameters&) const override
+    {
+        // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
+        // These ConvSolutions stores instructions on how to build. It also stores invoker.
+        const auto sols = GetFusedSolvers().SearchForAllSolutions(
+            static_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
+        // std::vector<miopen::solver::ConvSolution> sols;
+        // Filter for Solvers
+        //        if(conv_fwd_algo)
+        //        {
+        //            for(const auto& sol : tmp_sols)
+        //            {
+        //                const auto id      = miopen::solver::Id{sol.solver_id};
+        //                const auto strAlgo = id.GetAlgo(miopen::conv::Direction::Forward);
+        //                MIOPEN_LOG_I2(id.ToString());
+        //                MIOPEN_LOG_I2(strAlgo);
+        //                const auto algo = miopen::StringToConvolutionFwdAlgo(strAlgo);
+        //                MIOPEN_LOG_I2(algo);
+        //                if(algo == *conv_fwd_algo)
+        //                    sols.push_back(sol);
+        //            }
+        //        }
+        //        else
+        //            sols = tmp_sols;
+
+        return sols;
+    }
+};
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
@@ -625,6 +664,22 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I("No supported fusion solvers found during Search Mode.");
         return miopenStatusUnsupportedOp;
     }
+
+    auto results = UserFindDbRecord::TryLoad(
+        handle,
+        fusion_problem,
+        [&](DbRecord& record) {
+            // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
+
+            FindCore(invoke_params,
+                     record,
+                     fusion_ctx,
+                     fusion_problem,
+                     FusionFindParameters{},
+                     GetConvSolverFinders());
+        },
+        "fusion");
+
     // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
     // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
@@ -654,7 +709,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
     {
-        network_config = GetPlanConfig(fusion_ctx, fusion_problem);
+        network_config = fusion_problem.MakeNetworkConfig();
         for(const auto& sol : sols)
         {
             if(!sol.invoker_factory)

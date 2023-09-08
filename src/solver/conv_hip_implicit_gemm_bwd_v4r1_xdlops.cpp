@@ -414,7 +414,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(
 }
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(use_spare_set)
         return true;
@@ -511,7 +511,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
 
@@ -604,7 +604,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ProblemDescrip
     return true;
 }
 
-void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                              const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
@@ -807,7 +807,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ProblemDescription
     return std::make_tuple(g, gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
 #if WORKAROUND_ISSUE_1206
@@ -866,13 +866,13 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
@@ -881,7 +881,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
@@ -889,7 +889,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {

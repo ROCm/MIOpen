@@ -26,10 +26,19 @@
 
 #pragma once
 
+#include <miopen/names.hpp>
+
+#include <string>
+
 namespace miopen {
 
 struct ProblemDescriptionBase
 {
+    ProblemDescriptionBase() = default;
+    ProblemDescriptionBase(const ProblemDescriptionBase&) = default;
+    virtual ~ProblemDescriptionBase() = default;
+
+    [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
 };
 
 } // namespace miopen

@@ -52,7 +52,7 @@ void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
     GemmBThreadCopyMoreGemmKPack = false;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -123,7 +123,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConvMlirIgemmXdlops::IsValid(const ExecutionContext& ctx,
                                              const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -187,14 +187,14 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -203,14 +203,14 @@ bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmFwdXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
