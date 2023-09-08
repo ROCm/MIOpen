@@ -589,8 +589,11 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
-    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE = 2,
-    MIOPEN_CONVOLUTION_ATTRIB_COMPUTE_TYPE      = 3,
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
+        2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
+              rounding modes are supported miopenF8RoundingModeStandard and
+              miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
+              enum.>*/
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -710,9 +713,9 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
 
 /*! @brief Set the tensor cast type
  *
- *  For tensors where the cast_type attribute is set, the tensor elements would be cast to the
+ *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
  * target type before the target operation is applied. Currently, only supported for convolution
- * operations targeting the FP8 dataype
+ * operations targeting the FP8 datatype
  *
  *  @param tensorDesc Tensor descriptor type (input)
  *  @param cast_type  MIOpen datatype (input)

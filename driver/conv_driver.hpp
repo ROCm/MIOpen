@@ -154,7 +154,7 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
     }
 }
 
-miopenDataType_t DataTypeFromShortString(const std::string& type)
+static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 {
     static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
         {"fp32", miopenFloat},
@@ -170,8 +170,7 @@ miopenDataType_t DataTypeFromShortString(const std::string& type)
     }
     else
     {
-        printf("Invalid compute/cast type short hand supplied\n");
-        exit(-1);
+        MIOPEN_THROW("Invalid compute/cast type short hand supplied");
     }
 }
 
@@ -409,7 +408,7 @@ private:
         constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
         constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
         if(is_bfp8 || is_fp8 || TensorsCasted())
-            tolerance = 0.3f;
+            tolerance *= 37.0;
         return tolerance;
     }
 
@@ -583,6 +582,34 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     if(solution_value >= 0)
         immediate_solution = solution_value;
 
+    const std::set<std::string> valid_cast_types = {"fp32", "fp16", "bf16", "fp8", "bf8"};
+    if(inflags.GetValueStr("in_cast_type") != "-1")
+    {
+        const auto in_cast_type = inflags.GetValueStr("in_cast_type");
+        if(valid_cast_types.find(in_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for in_cast_type argument:" << in_cast_type << std::endl;
+            return 1;
+        }
+    }
+    if(inflags.GetValueStr("wei_cast_type") != "-1")
+    {
+        const auto wei_cast_type = inflags.GetValueStr("wei_cast_type");
+        if(valid_cast_types.find(wei_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for wei_cast_type argument:" << wei_cast_type << std::endl;
+            return 1;
+        }
+    }
+    if(inflags.GetValueStr("out_cast_type") != "-1")
+    {
+        const auto out_cast_type = inflags.GetValueStr("out_cast_type");
+        if(valid_cast_types.find(out_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for out_cast_type argument:" << out_cast_type << std::endl;
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -871,8 +898,6 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n<invalid name> Use Find() API",
                          "string");
     inflags.AddInputFlag(
-        "compute_type", 'M', "-1", "Compute type for convolution, default to not set", "string");
-    inflags.AddInputFlag(
         "in_cast_type", 'U', "-1", "Cast type for input tensor, default to not set", "string");
     inflags.AddInputFlag(
         "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
@@ -1106,15 +1131,6 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         convDesc, spatial_dim, pads.data(), conv_strides.data(), conv_dilations.data(), mode);
 
     miopenSetConvolutionGroupCount(convDesc, group_count);
-    if(inflags.GetValueStr("compute_type") != "-1")
-    {
-        miopenDataType_t compute_type =
-            DataTypeFromShortString(inflags.GetValueStr("compute_type"));
-        // miopenSetConvolutionComputeType(convDesc, compute_type);
-        miopenSetConvolutionAttribute(
-            convDesc, MIOPEN_CONVOLUTION_ATTRIB_COMPUTE_TYPE, static_cast<int>(compute_type));
-    }
-
     if(mode == miopenTranspose)
     {
         miopenSetTransposeConvNdOutputPadding(convDesc, spatial_dim, trans_output_pads.data());

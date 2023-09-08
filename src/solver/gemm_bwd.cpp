@@ -292,6 +292,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
             if(wDesc.GetCastType())
                 tmp.b_cast_type = *dyDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
     std::size_t in_n, in_c;
@@ -529,6 +530,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                     if(wDesc.GetCastType())
                         tmp.b_cast_type = *dyDesc.GetCastType();
                 }
+                tmp.conv_attributes = problem.GetConv().attribute;
                 return tmp;
             }();
 
@@ -727,6 +729,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
             if(wDesc.GetCastType())
                 tmp.b_cast_type = *dyDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
     const auto spatial_dims = conv.GetSpatialDimension();

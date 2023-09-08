@@ -394,7 +394,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     float lowp_quant; // quantization factor for low precision
     FindMode findMode;
     ConvolutionAttribute attribute;
-    std::optional<miopenDataType_t> compute_type; // TODO: convert to attribute
 
     std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& exec_ctx,
                                                            const conv::ProblemDescription& problem,

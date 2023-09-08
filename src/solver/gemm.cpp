@@ -323,6 +323,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             if(wDesc.GetCastType())
                 tmp.b_cast_type = *xDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
 
@@ -620,6 +621,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             if(wDesc.GetCastType())
                 tmp.b_cast_type = *wDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
     const auto x_type     = xDesc.GetType();
@@ -795,6 +797,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 if(wDesc.GetCastType())
                     tmp.b_cast_type = *xDesc.GetCastType();
             }
+            tmp.conv_attributes = problem.GetConv().attribute;
             return tmp;
         }();
 
@@ -897,9 +900,20 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     else
     {
         // tensors.y = tensors.w * tensors.x
-        GemmDescriptor tmp_gemm_desc =
-            CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
-        tmp_gemm_desc.deterministic = problem.GetConv().attribute.deterministic;
+        const GemmDescriptor tmp_gemm_desc = [&]() {
+            auto tmp          = CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+            tmp.deterministic = problem.GetConv().attribute.deterministic;
+            if(problem.IsTensorsCasted())
+            {
+                // IsApplicable ensures that both are casted
+                if(xDesc.GetCastType())
+                    tmp.a_cast_type = *wDesc.GetCastType();
+                if(wDesc.GetCastType())
+                    tmp.b_cast_type = *xDesc.GetCastType();
+            }
+            tmp.conv_attributes = problem.GetConv().attribute;
+            return tmp;
+        }();
 
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
@@ -1112,6 +1126,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 if(wDesc.GetCastType())
                     tmp.b_cast_type = *xDesc.GetCastType();
             }
+            tmp.conv_attributes = problem.GetConv().attribute;
             return tmp;
         }();
 

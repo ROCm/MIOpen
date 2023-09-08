@@ -220,6 +220,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
             if(xDesc.GetCastType())
                 tmp.b_cast_type = *xDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
 
@@ -425,6 +426,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
             if(xDesc.GetCastType())
                 tmp.b_cast_type = *xDesc.GetCastType();
         }
+        tmp.conv_attributes = problem.GetConv().attribute;
         return tmp;
     }();
 

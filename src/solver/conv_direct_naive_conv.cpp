@@ -223,10 +223,6 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
             ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
         ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
         ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
-        const auto compute_type = problem.GetConv().compute_type;
-        if(compute_type)
-            ss << " -DACCUMULATOR_TYPE=" << miopen::GetDataType(*compute_type);
-        // else
         //     Let the kernel choose its accumulator (double for naive kernels )
     }
     return ss.str();

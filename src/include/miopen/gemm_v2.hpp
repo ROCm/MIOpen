@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 
 namespace miopen {
@@ -75,6 +76,7 @@ struct GemmDescriptor
     bool gfx90a_alt_impl;
     miopenDataType_t a_cast_type;
     miopenDataType_t b_cast_type;
+    ConvolutionAttribute conv_attributes;
     GemmDescriptor() {}
     GemmDescriptor(bool isColMajor_,
                    bool transA_,

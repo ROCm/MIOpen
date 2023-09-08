@@ -144,7 +144,11 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
-    rb_status   = // cppcheck-suppress redundantInitialization
+    auto flags  = FlagsForRocblasFp32Fp16Call(gemm_desc);
+    if(gemm_desc.conv_attributes.fp8rounding_mode.Get() == miopenF8RoundingModeStochastic)
+        flags = flags | rocblas_gemm_flags::rocblas_gemm_flags_stochastic_rounding;
+
+    rb_status = // cppcheck-suppress redundantInitialization
         rocblas_gemm_ex3(handle.rhandle().get(),
                          gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
                          gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -168,7 +172,7 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
                          rocBlasComputeType_ex3(gemm_desc),
                          rocblas_gemm_algo::rocblas_gemm_algo_standard,
                          0,
-                         FlagsForRocblasFp32Fp16Call(gemm_desc)); // gfx90a_alt_impl));
+                         flags); // gfx90a_alt_impl));
 #pragma clang diagnostic pop
 #endif
     MIOPEN_THROW(miopenStatusBadParm, "An appropriate version of rocBLAS is required for this op");
