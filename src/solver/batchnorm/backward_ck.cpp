@@ -48,7 +48,7 @@ constexpr index_t NumBatchNormReduceDim = 3;
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;
-using BF16 = bfloat16;
+using BF16 = ushort;
 
 struct CKArgsBNormFwd
 {
@@ -63,9 +63,9 @@ struct CKArgsBNormFwd
                   xyStrides.begin());
         arrScaleBiasMeanVarLengths[0] = xyLengths[1]; // get channel
         arrScaleBiasMeanVarStrides[0] = 1;
-        
+
         // prep for CK
-        std::sort(xyStrides.begin(), xyStrides.end(),  std::greater<>());
+        std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
         std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
     }
 
@@ -87,11 +87,10 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-int CheckCKApplicability(
-    const miopen::batchnorm::ProblemDescription& problem)
+int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormFwd{problem};
-    using DeviceOp = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
+    using DeviceOp         = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
                                                                       DxDataType,
                                                                       DyDataType,
                                                                       AccDataType,
@@ -102,7 +101,7 @@ int CheckCKApplicability(
                                                                       Rank,
                                                                       NumBatchNormReduceDim>;
     const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-            DeviceOp>::GetInstances();
+        DeviceOp>::GetInstances();
     assert(!bn_bwd_ptrs.empty());
     int count = 0;
     for(const auto& it : bn_bwd_ptrs)
@@ -126,7 +125,8 @@ int CheckCKApplicability(
                                                     nullptr,
                                                     nullptr,
                                                     nullptr);
-        if(it->IsSupportedArgument(argument_ptr.get())){
+        if(it->IsSupportedArgument(argument_ptr.get()))
+        {
             return count;
         }
         count++;
@@ -142,12 +142,12 @@ template <typename XDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
 static void RunCKSolution(const Handle& handle,
-                   const AnyInvokeParams& primitive_parameters,
-                   const miopen::batchnorm::ProblemDescription& problem)
+                          const AnyInvokeParams& primitive_parameters,
+                          const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
 
-    using DeviceOp = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
+    using DeviceOp         = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
                                                                       DxDataType,
                                                                       DyDataType,
                                                                       AccDataType,
@@ -158,7 +158,7 @@ static void RunCKSolution(const Handle& handle,
                                                                       Rank,
                                                                       NumBatchNormReduceDim>;
     const auto bn_bwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-            DeviceOp>::GetInstances();
+        DeviceOp>::GetInstances();
 
     int kernel_index = CheckCKApplicability<XDataType,
                                             DxDataType,
@@ -168,9 +168,9 @@ static void RunCKSolution(const Handle& handle,
                                             DscaleDbiasDataType,
                                             MeanVarDataType>(problem);
     assert(kernel_index >= 0 && kernel_index < bn_bwd_ptrs.size());
-    auto& bn_ptr           = bn_bwd_ptrs.at(kernel_index);
-    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::BwdInvokeParams>();
-    auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
+    auto& bn_ptr                = bn_bwd_ptrs.at(kernel_index);
+    const auto& params          = primitive_parameters.CastTo<miopen::batchnorm::BwdInvokeParams>();
+    auto argument_ptr           = bn_ptr->MakeArgumentPointer(args.xyLengths,
                                                     args.xyStrides,
                                                     args.xyStrides,
                                                     args.xyStrides,
@@ -203,7 +203,7 @@ static void RunCKSolution(const Handle& handle,
 #endif
 
 bool BnCKBwdBackward::IsApplicable(const ExecutionContext& ctx,
-                                    const miopen::batchnorm::ProblemDescription& bn_problem) const
+                                   const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -219,10 +219,14 @@ bool BnCKBwdBackward::IsApplicable(const ExecutionContext& ctx,
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
-    case miopenDouble: return (CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
-    case miopenHalf: return (CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem) != -1);
-    case miopenBFloat16: return (CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem) != -1);
+    case miopenFloat:
+        return (CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
+    case miopenDouble:
+        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
+    case miopenHalf:
+        return (CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem) != -1);
+    case miopenBFloat16:
+        return (CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem) != -1);
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
@@ -232,8 +236,9 @@ bool BnCKBwdBackward::IsApplicable(const ExecutionContext& ctx,
 #endif
 }
 
-ConvSolution BnCKBwdBackward::GetSolution(const ExecutionContext& context,
-                                           const miopen::batchnorm::ProblemDescription& bn_problem) const
+ConvSolution
+BnCKBwdBackward::GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = context;
@@ -246,20 +251,23 @@ ConvSolution BnCKBwdBackward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-
             switch(bn_problem.GetXDesc().GetType()) // add api GetInDataType in bn_problem
             {
             case miopenFloat:
-                RunCKSolution<F32, F32, F32, F32, F32, F32, F32>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<F32, F32, F32, F32, F32, F32, F32>(
+                    handle, primitive_parameters, bn_problem);
                 break;
             case miopenDouble:
-                RunCKSolution<F64, F64, F64, F64, F64, F64, F64>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<F64, F64, F64, F64, F64, F64, F64>(
+                    handle, primitive_parameters, bn_problem);
                 break;
             case miopenHalf:
-                RunCKSolution<F16, F32, F32, F32, F16, F32, F32>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<F16, F32, F32, F32, F16, F32, F32>(
+                    handle, primitive_parameters, bn_problem);
                 break;
             case miopenBFloat16:
-                RunCKSolution<BF16, F32, F32, F32, BF16, F32, F32>(handle, primitive_parameters, bn_problem);
+                RunCKSolution<BF16, F32, F32, F32, BF16, F32, F32>(
+                    handle, primitive_parameters, bn_problem);
                 break;
             case miopenInt8:
             case miopenInt32:

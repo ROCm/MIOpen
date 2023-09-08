@@ -25,17 +25,17 @@
  *******************************************************************************/
 #pragma once
 
-namespace test{
+namespace test {
 template <typename DLModule>
 void ComputeCPUBNInference(DLModule& dl_module)
 {
     batchNormSpatialHostInference(dl_module.input,
-                                      dl_module.ref_out,
-                                      dl_module.scale,
-                                      dl_module.shift,
-                                      dl_module.epsilon,
-                                      dl_module.estMean,
-                                      dl_module.estVariance);
+                                  dl_module.ref_out,
+                                  dl_module.scale,
+                                  dl_module.shift,
+                                  dl_module.epsilon,
+                                  dl_module.estMean,
+                                  dl_module.estVariance);
 }
 
 template <typename DLModule>
@@ -51,22 +51,23 @@ void ComputeCPUBNBwd(DLModule& dl_module)
                                  dl_module.savedInvVar);
 }
 
-
 template <typename T>
-void CompareTensor(const tensor<T>& output, const tensor<T>& ref_out, const T threshold = std::numeric_limits<T>::epsilon())
+void CompareTensor(const tensor<T>& output,
+                   const tensor<T>& ref_out,
+                   const T threshold = std::numeric_limits<T>::epsilon())
 {
     EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
     EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
         << "Non finite number found in the GPU data";
     EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-    auto error             = miopen::rms_range(ref_out, output);
+    auto error = miopen::rms_range(ref_out, output);
     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
         << "Non finite number found in the CPU data";
     EXPECT_TRUE(error < threshold)
         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
 }
-}
+} // namespace test
 
 namespace test {
 namespace FusionPlan {

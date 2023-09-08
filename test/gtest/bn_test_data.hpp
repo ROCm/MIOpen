@@ -60,34 +60,34 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
-        // {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        // {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        // {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        // {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        {1, 1, 4, 4, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
 }
 
 template <typename XDataType, typename YDataType, typename TConfig>
@@ -135,7 +135,7 @@ private:
         auto gen_value = [&](auto...) {
             return 1e-2 * static_cast<XDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
         };
-        input.generate(gen_value);    
+        input.generate(gen_value);
     }
 
     void SetDirection() { direction = bn_config.Direction; }
@@ -148,8 +148,12 @@ private:
     }
 };
 
-template <typename XDataType, typename YDataType, typename ScaleDataType, 
-          typename BiasDataType, typename MeanVarDataType, typename TConfig>
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType,
+          typename TConfig>
 struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
@@ -169,8 +173,8 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     double epsilon          = 1.0e-5;
-    float alpha       = static_cast<float>(1.0f);
-    float beta        = static_cast<float>(0);
+    float alpha             = static_cast<float>(1.0f);
+    float beta              = static_cast<float>(0);
     const float activ_alpha = static_cast<double>(0.5f);
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
@@ -182,18 +186,19 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, YDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, YDataType, TConfig>::bn_mode);
-        scale       = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                          derivedBnDesc.GetLengths()};
-        shift       = tensor<BiasDataType>{miopen_type<BiasDataType>{},
-                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                          derivedBnDesc.GetLengths()};
-        estMean     = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                            BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                            derivedBnDesc.GetLengths()};
-        estVariance = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                derivedBnDesc.GetLengths()};
+        scale   = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
+                                      BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                      derivedBnDesc.GetLengths()};
+        shift   = tensor<BiasDataType>{miopen_type<BiasDataType>{},
+                                     BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                     derivedBnDesc.GetLengths()};
+        estMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                          derivedBnDesc.GetLengths()};
+        estVariance =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
@@ -207,7 +212,7 @@ private:
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
-        
+
         auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
         estVariance.generate(gen_var);
     }
@@ -220,8 +225,6 @@ private:
         estVariance_dev = handle.Write(estVariance.data);
     }
 };
-
-
 
 template <typename XDataType,
           typename DxDataType,
@@ -243,15 +246,14 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
 
     tensor<ScaleDataType> bnScale;
 
-    tensor<MeanVarDataType> savedMean;        
-    tensor<MeanVarDataType> savedInvVar; 
+    tensor<MeanVarDataType> savedMean;
+    tensor<MeanVarDataType> savedInvVar;
 
-    
-    tensor<DxDataType> dy;               
-    tensor<DscaleDbiasDataType> dScale;  
-    tensor<DscaleDbiasDataType> dBias; 
-    tensor<DscaleDbiasDataType> dScale_ref;  
-    tensor<DscaleDbiasDataType> dBias_ref; 
+    tensor<DyDataType> dy;
+    tensor<DscaleDbiasDataType> dScale;
+    tensor<DscaleDbiasDataType> dBias;
+    tensor<DscaleDbiasDataType> dScale_ref;
+    tensor<DscaleDbiasDataType> dBias_ref;
 
     miopen::Allocator::ManageDataPtr bnScale_dev;
     miopen::Allocator::ManageDataPtr savedMean_dev;
@@ -262,7 +264,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
     miopen::Allocator::ManageDataPtr dBias_dev;
     miopen::Allocator::ManageDataPtr dScale_ref_dev;
     miopen::Allocator::ManageDataPtr dBias_ref_dev;
-    double epsilon          = std::numeric_limits<float>::epsilon();
+    double epsilon = std::numeric_limits<float>::epsilon();
 
     float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
@@ -270,29 +272,33 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
 private:
     void CreateTensors()
     {
-        dy   = tensor<XDataType>{miopen_type<XDataType>{}, 
-                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, 
+        dy = tensor<DyDataType>{miopen_type<DyDataType>{},
+                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
                                 BNTestData<XDataType, DyDataType, TConfig>::bn_config.GetInput()};
 
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, DyDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, DyDataType, TConfig>::bn_mode);
-        bnScale       = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                          BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                          derivedBnDesc.GetLengths()};
-        savedMean     = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                            derivedBnDesc.GetLengths()};
-        savedInvVar    = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                derivedBnDesc.GetLengths()};
-        dScale          = tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
-                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                derivedBnDesc.GetLengths()};
-        dBias           = tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
-                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                derivedBnDesc.GetLengths()};
+        bnScale = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
+                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+                                        derivedBnDesc.GetLengths()};
+        savedMean =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
+        savedInvVar =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
+        dScale =
+            tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
+                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+                                        derivedBnDesc.GetLengths()};
+        dBias =
+            tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
+                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+                                        derivedBnDesc.GetLengths()};
         dScale_ref = dScale;
         dBias_ref  = dBias;
     }
@@ -311,26 +317,26 @@ private:
 
         auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
         savedInvVar.generate(gen_var);
-        
+
         std::fill(dScale.begin(), dScale.end(), 0.);
         std::fill(dBias.begin(), dBias.end(), 0.);
-        
+
         std::fill(dScale_ref.begin(), dScale_ref.end(), 0.);
         std::fill(dBias_ref.begin(), dBias_ref.end(), 0.);
     }
     void WriteToGPU()
     {
-        auto&& handle   = get_handle();
+        auto&& handle = get_handle();
 
-        bnScale_dev          = handle.Write(bnScale.data);
-        savedMean_dev        = handle.Write(savedMean.data);
+        bnScale_dev     = handle.Write(bnScale.data);
+        savedMean_dev   = handle.Write(savedMean.data);
         savedInvVar_dev = handle.Write(savedInvVar.data);
         dy_dev          = handle.Write(dy.data);
-        
-        dScale_dev   = handle.Write(dScale.data);
-        dBias_dev    = handle.Write(dBias.data);
 
-        dScale_ref_dev   = handle.Write(dScale.data);
-        dBias_ref_dev    = handle.Write(dBias.data);
+        dScale_dev = handle.Write(dScale.data);
+        dBias_dev  = handle.Write(dBias.data);
+
+        dScale_ref_dev = handle.Write(dScale.data);
+        dBias_ref_dev  = handle.Write(dBias.data);
     }
 };

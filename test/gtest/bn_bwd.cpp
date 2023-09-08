@@ -26,6 +26,10 @@
 
 #include "bn.hpp"
 
+struct BNBwdTestTestHalf
+    : BNBwdTest<half_float::half, float, float, float, half_float::half, float, float>
+{
+};
 
 // struct BNBwdTestBFloat16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
 // {
@@ -39,15 +43,24 @@ struct BNBwdTestFloat : BNBwdTest<float, float, float, float, float, float, floa
 // {
 // };
 
-TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat)
-{
-    
-}
+// TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat)
+// {
+
+// }
 
 // TEST_P(BNBwdTestBFloat16, BnFwdBwdCKBFloat16)
 // {
-    
+
 // }
+
+TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat) {}
+
+TEST_P(BNBwdTestTestHalf, BnFwdBwdCKHalf) {}
+
+INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
+                         BNBwdTestTestHalf,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatNHWCSuite,
                          BNBwdTestFloat,

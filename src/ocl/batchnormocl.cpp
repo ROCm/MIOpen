@@ -223,7 +223,7 @@ void BatchNormForwardInference(Handle& handle,
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
         const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
-        solver::batchnorm::BnCKFwdInference>{};
+                                                     solver::batchnorm::BnCKFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -300,7 +300,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType())
+    if(dxDesc.GetType() != dyDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -345,7 +345,7 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKBwdBackward, 
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKBwdBackward,
                                                  solver::batchnorm::BnBwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};
