@@ -10,9 +10,9 @@ namespace prng {
 namespace details {
 using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 12345, 2147483648>;
 
-inline glibc_gen& get_prng()
+inline std::random_device::result_type get_default_seed()
 {
-    static thread_local glibc_gen gen{[] {
+    static std::random_device::result_type seed{[] {
         auto external_seed = miopen::Value(MIOPEN_DEBUG_DRIVER_PRNG_SEED{}, 100500);
 
         auto seed = external_seed == 0
@@ -21,9 +21,20 @@ inline glibc_gen& get_prng()
         std::cout << "PRNG seed: " << seed << "\n";
         return seed;
     }()};
+    return seed;
+}
+
+inline glibc_gen& get_prng()
+{
+    static thread_local glibc_gen gen{get_default_seed()};
     return gen;
 }
 } // namespace details
+
+inline void reset_seed(std::random_device::result_type seed = 0)
+{
+    details::get_prng().seed(seed ^ details::get_default_seed());
+}
 
 // similar to std::generate_canonical, but simpler and faster
 template <typename T>
@@ -39,7 +50,7 @@ inline T gen_canonical()
     else if constexpr(std::is_integral_v<T>)
     {
         auto val = details::get_prng()();
-        return static_cast<T>((v >> 4) ^ (val >> 16) & 0x1);
+        return static_cast<T>(((val >> 4) ^ (val >> 16)) & 0x1);
     }
     else
     {

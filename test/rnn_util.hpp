@@ -155,7 +155,7 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
     {
         if(i > 0)
         {
-            int nvalue = currentval - prng::gen_0_to_B(modval - 1);
+            int nvalue = currentval - prng::gen_0_to_B(modval);
             currentval = (nvalue < 1) ? 1 : nvalue;
             // printf("current value: %d\n", currentval);
         }

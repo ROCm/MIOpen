@@ -65,7 +65,6 @@ struct verify_forward_train_bn_spatial
     const tensor<T> input;
     const tensor<U> scale;
     const tensor<U> shift;
-    const int fixed_seed = prng::details::get_prng()();
 
     std::tuple<tensor<T>, tensor<U>, tensor<U>, tensor<U>, tensor<U>> cpu() const
     {
@@ -98,7 +97,7 @@ struct verify_forward_train_bn_spatial
         }
         else
         {
-            prng::details::get_prng().seed(fixed_seed);
+            prng::reset_seed();
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
 
@@ -267,7 +266,7 @@ struct verify_forward_train_bn_spatial
         }
         else
         {
-            prng::details::get_prng().seed(fixed_seed);
+            prng::reset_seed();
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
 

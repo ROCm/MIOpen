@@ -217,8 +217,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        seed ^= static_cast<size_t>(prng::details::get_prng()());
-        prng::details::get_prng().seed(static_cast<uint32_t>(seed ^ (seed >> 32)));
+        prng::reset_seed(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -240,8 +239,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        seed ^= static_cast<size_t>(prng::details::get_prng()());
-        prng::details::get_prng().seed(static_cast<uint32_t>(seed ^ (seed >> 32)));
+        prng::reset_seed(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {

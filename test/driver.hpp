@@ -916,7 +916,9 @@ struct test_driver
             }
             else
             {
+                prng::reset_seed();
                 static_cast<Derived*>(this)->run();
+                prng::reset_seed();
             }
         }
         this->iteration++;
@@ -1090,8 +1092,10 @@ build_configs(Driver& d,
     std::vector<typename Driver::argument*> data_args = get_data_args<Driver>(d, arg_map);
 
     run_data(data_args.begin(), data_args.end(), [&] {
+        prng::reset_seed();
         std::vector<std::string> config = d.get_config();
         configs.push_back(config);
+        prng::reset_seed();
     });
     std::cout << " done." << std::endl;
     return configs;
@@ -1143,11 +1147,14 @@ void run_config(std::vector<std::string>& config,
     {
         config_driver.disabled_cache = true;
     }
-    const auto fixed_seed = prng::details::get_prng()();
+
     for(int j = 0; j < test_repeat_count; j++)
     {
-        prng::details::get_prng().seed(fixed_seed);
-        run_data(config_data_args.begin(), config_data_args.end(), [&] { config_driver.run(); });
+        run_data(config_data_args.begin(), config_data_args.end(), [&] {
+            prng::reset_seed();
+            config_driver.run();
+            prng::reset_seed();
+        });
     }
 }
 
@@ -1289,10 +1296,9 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
         }
     }
 
-    const auto fixed_seed = prng::details::get_prng()();
+    prng::reset_seed();
     for(int i = 0; i < d.repeat; i++)
     {
-        prng::details::get_prng().seed(fixed_seed);
         d.iteration = 0;
         run_data(data_args.begin(), data_args.end(), [&] { d.template base_run<Driver>(); });
     }
