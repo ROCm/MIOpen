@@ -41,7 +41,7 @@ void ComputeCPUBNInference(DLModule& dl_module)
 template <typename T>
 void CompareTensor(const tensor<T>& output,
                    const tensor<T>& ref_out,
-                   const T threshold = std::numeric_limits<T>::epsilon())
+                   const double threshold = std::numeric_limits<T>::epsilon())
 {
     EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";

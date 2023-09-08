@@ -74,17 +74,8 @@ protected:
         bn_infer_test_data.output.data = handle.Read<YDataType>(
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
-
-        if constexpr(std::is_same_v<YDataType, double>)
-        {
-            // tolerance for CK solver tolerance for
-            test::CompareTensor<YDataType>(
-                bn_infer_test_data.output, bn_infer_test_data.ref_out, 1e-8);
-        }
-        else
-        {
-            test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out);
-        }
+        // 4e-3 is tolerance used by CK kernel.
+        test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3);
     }
 
     BNTestCase bn_config;
