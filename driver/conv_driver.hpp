@@ -100,10 +100,10 @@ struct AutoMiopenWarmupMode
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
     }
-    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&)            = delete;
-    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)                 = delete;
+    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
+    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
     AutoMiopenWarmupMode& operator=(const AutoMiopenWarmupMode&) = delete;
-    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&)      = delete;
+    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&) = delete;
     ~AutoMiopenWarmupMode()
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
@@ -124,10 +124,10 @@ struct AutoPrepareForGpuReference
         miopen::debug::AlwaysEnableConvDirectNaive = true;
         miopen::debug::LoggingQuiet                = true;
     }
-    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&)            = delete;
-    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)                 = delete;
+    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&) = delete;
+    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)      = delete;
     AutoPrepareForGpuReference& operator=(const AutoPrepareForGpuReference&) = delete;
-    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&)      = delete;
+    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&) = delete;
     ~AutoPrepareForGpuReference()
     {
         miopen::debug::LoggingQuiet                = quiet_prev;
