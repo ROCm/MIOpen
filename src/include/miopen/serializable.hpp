@@ -45,7 +45,14 @@ struct Parse
     {
         std::stringstream ss;
         ss.str(s);
-        ss >> result;
+        if constexpr(std::is_same_v<T, std::string>)
+        {
+            std::getline(ss, result);
+        }
+        else
+        {
+            ss >> result;
+        }
         return true;
     }
 };
