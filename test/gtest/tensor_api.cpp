@@ -285,7 +285,7 @@ void RunWrongTestConfigs(const TestConfig& valid_config,
 {
 #if USE_OUT_OF_RANGE_ENUM
     const auto wrong_datatypes = {static_cast<miopenDataType_t>(miopenHalf - 1),
-                                  static_cast<miopenDataType_t>(miopenDouble + 1)};
+                                  static_cast<miopenDataType_t>(miopenBFloat8 + 1)};
     const auto wrong_layouts   = {static_cast<miopenTensorLayout_t>(miopenTensorNCHW - 1),
                                 static_cast<miopenTensorLayout_t>(miopenTensorNDHWC + 1)};
 #endif
