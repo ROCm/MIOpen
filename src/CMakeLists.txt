@@ -106,6 +106,7 @@ set( MIOpen_Source
     ctc_api.cpp
     db.cpp
     db_record.cpp
+    driver_arguments.cpp
     dropout.cpp
     dropout_api.cpp
     execution_context.cpp
