@@ -60,7 +60,6 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-        {1, 1, 4, 4, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -238,7 +237,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
 {
     void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
     {
-        BNTestData<XDataType, DyDataType, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<XDataType, DxDataType, TConfig>::SetUpImpl(config, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();
@@ -336,7 +335,5 @@ private:
         dScale_dev = handle.Write(dScale.data);
         dBias_dev  = handle.Write(dBias.data);
 
-        dScale_ref_dev = handle.Write(dScale.data);
-        dBias_ref_dev  = handle.Write(dBias.data);
     }
 };

@@ -280,14 +280,14 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
 }
 
 template <class T, class U>
-void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
+void batchNormSpatialHostBwdTrain(const tensor<U>& x_input,
                                   const tensor<T>& dy_input,
                                   tensor<T>& dx_out,
-                                  const tensor<U>& scale,
-                                  tensor<U>& dscale,
-                                  tensor<U>& dbias,
-                                  const tensor<U>& savedMean,
-                                  const tensor<U>& savedInvVar)
+                                  const tensor<U>& scale, 
+                                  tensor<T>& dscale,
+                                  tensor<T>& dbias,
+                                  const tensor<T>& savedMean,
+                                  const tensor<T>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
