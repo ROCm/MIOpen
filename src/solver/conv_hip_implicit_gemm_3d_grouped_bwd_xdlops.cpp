@@ -239,7 +239,6 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
-    std::cout << "~~~~~~ No instances found!~~~~~~" << std::endl;
     return false;
 }
 
