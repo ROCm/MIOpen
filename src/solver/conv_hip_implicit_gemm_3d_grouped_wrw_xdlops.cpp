@@ -404,6 +404,8 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(const ConvolutionContext&
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))
         return false;
+    if(arch == "gfx906")
+        return false;
     switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
