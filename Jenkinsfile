@@ -147,9 +147,9 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_fin_build_cmd(prefixpath){
-    def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
+    def flags = "-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release"
     def compiler = 'clang++'
-    def config_targets = "all"
+    def config_targets = "install"
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
     def configargs = ""
     if (prefixpath != "")
@@ -375,14 +375,17 @@ def RunPerfTest(Map conf=[:]){
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
-        archiveArtifacts "pdb_valid_err.json"
-        sh "grep clear pdb_valid_err.json"
-        def has_error = sh (
-            script: "echo \$?",
-            returnStdout: true
-        ).trim()
-        assert has_error.toInteger() == 0
+        dir(path: "$WORKSPACE"){
+            sh "ls install/bin/"
+            sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
+            archiveArtifacts "pdb_valid_err.json"
+            sh "grep clear pdb_valid_err.json"
+            def has_error = sh (
+                script: "echo \$?",
+                returnStdout: true
+            ).trim()
+            assert has_error.toInteger() == 0
+        }
     }
 }
 
@@ -589,13 +592,11 @@ pipeline {
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
+                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
-                        //temporarily disabled
-                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
-                        echo "skip perf db valid check"
+                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
