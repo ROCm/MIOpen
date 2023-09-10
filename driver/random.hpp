@@ -33,7 +33,7 @@ inline glibc_gen& get_prng()
 
 inline void reset_seed(std::random_device::result_type seed = 0)
 {
-    details::get_prng().seed(seed ^ details::get_default_seed());
+    details::get_prng().seed(seed + details::get_default_seed());
 }
 
 // similar to std::generate_canonical, but simpler and faster
