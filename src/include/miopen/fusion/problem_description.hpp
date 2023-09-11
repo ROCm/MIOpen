@@ -46,7 +46,7 @@ struct FusionDescription
             if(op->kind() == miopenFusionOpConvForward)
             {
                 const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
-                net_config << prob.conv_problem.BuildConfKey().ToString();
+                net_config << prob.BuildConfKey().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormInference)
             {
@@ -95,7 +95,7 @@ struct FusionDescription
 #endif
 
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
+    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -103,17 +103,17 @@ struct FusionDescription
         {
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
-            return miopen::ProblemDescription{conv_op.input_desc,
-                                              conv_op.filter_desc,
-                                              out_desc,
-                                              conv_op.base_desc /* conv desc */,
-                                              dir};
+            return miopen::conv::ProblemDescription{conv_op.input_desc,
+                                                    conv_op.filter_desc,
+                                                    out_desc,
+                                                    conv_op.base_desc /* conv desc */,
+                                                    dir,
+                                                    bias};
         }
         else
         {
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
-        return {};
     }
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,

@@ -36,7 +36,11 @@
 
 #include "serialize.hpp"
 
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <iomanip>
 #include <fstream>
 
@@ -516,7 +520,7 @@ void generate_unary_one(F f, std::vector<int> input, G g)
 
 struct tensor_elem_gen_integer
 {
-    unsigned long max_value = 17;
+    uint64_t max_value = 17;
 
     template <class... Ts>
     double operator()(Ts... Xs) const
@@ -524,9 +528,10 @@ struct tensor_elem_gen_integer
         static_assert(sizeof...(Ts) < 6,
                       "Dimensions in tensor_elem_gen_integer must be less than 6.");
         assert(max_value > 0);
-        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
-        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
-        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
+        std::array<uint64_t, sizeof...(Ts)> left = {{Xs...}};
+        std::array<uint64_t, 5> right            = {{613, 547, 701, 877, 1049}};
+        uint64_t dot =
+            std::inner_product(left.begin(), left.end(), right.begin(), static_cast<uint64_t>(173));
         return static_cast<double>(dot % max_value);
     }
 };

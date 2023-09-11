@@ -64,11 +64,11 @@ struct EmbedSQLite : test_driver
     void run()
     {
         // create a context/problem decriptor
-        const auto problem = miopen::ProblemDescription{
+        const auto conv_problem = miopen::conv::ProblemDescription{
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
+        const auto problem = miopen::ProblemDescription{conv_problem};
         miopen::ConvolutionContext ctx{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         // Check PerfDb
         {
             // Get filename for the sys db

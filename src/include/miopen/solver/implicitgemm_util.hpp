@@ -52,6 +52,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SY
 // corresponding llvm intrinsic functions
 // so we disable using those llvm intrinsic functions on gfx1030
 #define WORKAROUND_MIOPEN_ISSUE_557 1
+#define WORKAROUND_SWDEV_413051 1
 
 namespace miopen {
 
@@ -94,61 +95,61 @@ static inline std::size_t KernelFilterDilationW(const ProblemDescription& proble
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInChannels();
+        return problem.GetInChannels_();
     else
-        return problem.GetOutChannels();
+        return problem.GetOutChannels_();
 }
 
 static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetBatchSize();
+        return problem.GetBatchSize_();
     else
-        return problem.GetInChannels() / problem.GetGroupCount();
+        return problem.GetInChannels_() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetOutChannels() / problem.GetGroupCount();
+        return problem.GetOutChannels_() / problem.GetGroupCount();
     else
-        return problem.GetBatchSize();
+        return problem.GetBatchSize_();
 }
 
 static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutHeight();
+        return problem.GetOutHeight_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsHeight();
+        return problem.GetWeightsHeight_();
     else
-        return problem.GetInHeight();
+        return problem.GetInHeight_();
 }
 
 static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutWidth();
+        return problem.GetOutWidth_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsWidth();
+        return problem.GetWeightsWidth_();
     else
-        return problem.GetInWidth();
+        return problem.GetInWidth_();
 }
 
 static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInWidth();
+        return problem.GetInWidth_();
     else
-        return problem.GetWeightsWidth();
+        return problem.GetWeightsWidth_();
 }
 
 static inline std::size_t KernelFilterHeightY(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInHeight();
+        return problem.GetInHeight_();
     else
-        return problem.GetWeightsHeight();
+        return problem.GetWeightsHeight_();
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -498,7 +499,7 @@ static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name
 template <typename T>
 int amd_buffer_load_max_length()
 {
-    if(std::is_same<float, T>())
+    if(std::is_same<float, T>() || WORKAROUND_SWDEV_413051)
     {
         return 4;
     }

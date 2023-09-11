@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_DATATYPE_HPP
 #define GUARD_MIOPEN_DATATYPE_HPP
 
+#include <miopen/errors.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/visit_float.hpp>
 

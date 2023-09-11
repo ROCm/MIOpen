@@ -34,16 +34,22 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/find_solution.hpp>
+#include <miopen/driver_arguments.hpp>
 
 #include <ostream>
 #include <ios>
 #include <algorithm>
 #include <string>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
         return x;
+
 namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
@@ -107,6 +113,145 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     MIOPEN_CHECK(fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs));
     return miopenStatusSuccess;
 }
+
+static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+    const FusionContext& context,
+    const FusionDescription& problem,
+    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+    miopen::OperatorArgs& params)
+{
+    const int bias          = 1;
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward, bias);
+    const auto conv_ctx     = context.GetConvContext(conv_problem);
+
+    auto& handle = conv_ctx.GetStream();
+
+    invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetInSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
+    invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
+
+    MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get() << " , size: " << conv_problem.GetBiasSize()
+                               << " , in addr: " << invoke_bufs[1].get()
+                               << " , size: " << conv_problem.GetInSize()
+                               << " , weigth addr: " << invoke_bufs[2].get()
+                               << " , size: " << conv_problem.GetWeightsSize() << " , out addr: "
+                               << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
+
+    const auto gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+
+    auto conv_data =
+        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
+    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get());
+
+    const float activ_alpha = 0.5f;
+    const float activ_beta  = 0.5f;
+    const float activ_gamma = 0.5f;
+    auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+        activ_alpha, activ_beta, activ_gamma);
+
+    params.SetArg(0, std::move(conv_data));
+    params.SetArg(1, std::move(bias_data));
+    params.SetArg(2, std::move(activ_data));
+
+    return miopen::fusion::FusionInvokeParams(params,
+                                              conv_problem.GetIn(),
+                                              invoke_bufs[1].get(),
+                                              conv_problem.GetOut(),
+                                              invoke_bufs[3].get(),
+                                              gfx90aaltimpl);
+}
+
+namespace debug {
+
+std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                    int fusion_mode)
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
+
+    const miopenTensorDescriptor_t& xDesc         = &deref(fusePlanDesc).input_desc;
+    const miopenTensorDescriptor_t& wDesc         = &conv_op->filter_desc;
+    const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
+    const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
+    std::string str;
+
+    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    {
+        str = "CBAInferfp16";
+    }
+    else
+    {
+        str = "CBAInfer";
+    }
+
+    str += " -F " + std::to_string(fusion_mode);
+    str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
+                                   miopen::deref(wDesc),
+                                   miopen::deref(convDesc),
+                                   miopen::deref(yDesc),
+                                   miopenProblemDirection_t::miopenProblemDirectionForward,
+                                   false,
+                                   false);
+
+    return str;
+}
+
+std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, int fusion_mode)
+{
+    assert(deref(fusePlanDesc).op_map.size() >= 1);
+
+    std::string str;
+    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    {
+        str = "CBAInferfp16";
+    }
+    else
+    {
+        str = "CBAInfer";
+    }
+    str += " -F " + std::to_string(fusion_mode);
+
+    const auto& bn_op =
+        dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
+
+    if(bn_op != nullptr)
+    {
+        str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        bn_op->mode,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        false);
+    }
+    else
+    {
+        MIOPEN_LOG_E("Dereferencing nullptr when logging batch norm");
+    }
+    return str;
+}
+
+void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        int fusion_mode = GetFusionMode(fusePlanDesc);
+        switch(fusion_mode)
+        {
+        case 0:
+        case 1:
+        case 3:
+        case 4:
+        case 5:
+        case 6: MIOPEN_LOG_DRIVER_CMD(LogCmdConvolutionFusion(fusePlanDesc, fusion_mode)); break;
+        case 2: MIOPEN_LOG_DRIVER_CMD(LogCmdBnormFusion(fusePlanDesc, fusion_mode)); break;
+        default: MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
+        }
+    }
+}
+} // namespace debug
 
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
@@ -423,15 +568,67 @@ static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
     return NetworkConfig{ss.str()};
 }
 
+static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
+                                   const FusionDescription& fusion_problem,
+                                   std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+                                   miopen::OperatorArgs& params)
+{
+    if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
+       (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
+       (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
+    {
+        // Workaround: Fused API does not pass user-allocated buffers,
+        // but we need these buffers during SearchForAllSolutions.
+        // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
+        MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
+        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+            fusion_ctx, fusion_problem, invoke_bufs, params);
+    }
+    else
+    {
+        // handle the rest of the fusion operators cases
+        // eg: Convolution + Bias + BatchNorm + Activation,
+        //     Convolution + BatchNorm + Activation
+        //     Convolution + BatchNorm
+        //     Convolution + Activation
+        //     GEMM + Activation
+        //
+        MIOPEN_LOG_W("Allocating buffers for given fusion operators is not supported yet.");
+        return miopen::fusion::FusionInvokeParams(OperatorArgs(),
+                                                  miopen::TensorDescriptor(),
+                                                  nullptr,
+                                                  miopen::TensorDescriptor(),
+                                                  nullptr,
+                                                  false);
+    }
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{handle};
     auto fusion_problem   = FusionDescription{this};
-    fusion_ctx.DetectRocm();
+    AnyInvokeParams invoke_params;
+    miopen::OperatorArgs params;
+    std::vector<Allocator::ManageDataPtr> invoke_bufs;
+    const FindEnforce enforce;
+    // If we are tuning, then we need to allocate buffers.
+    if(enforce.IsSearch(fusion_ctx))
+        invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
+    // During search mode, miopen invokes kernel to find the best config.
+    // If memory allocation of the invoke params for the given fusion plan
+    // is not supported we return early.
+    if(enforce.IsSearch(fusion_ctx) && invoke_bufs.empty())
+    {
+        MIOPEN_LOG_I("No supported fusion solvers found during Search Mode.");
+        return miopenStatusUnsupportedOp;
+    }
+    // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
+    // These ConvSolutions stores instructions on how to build. It also stores invoker.
     const auto tmp_sols = solvers.SearchForAllSolutions(
-        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
+        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), invoke_params);
     std::vector<miopen::solver::ConvSolution> sols;
     // Filter for Solvers
     if(conv_fwd_algo)
@@ -485,6 +682,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
+    miopen::debug::LogCmdFusion(this);
+
     if(output_desc != outputDesc)
     {
         MIOPEN_THROW(miopenStatusBadParm, "The output descriptors dont match.");

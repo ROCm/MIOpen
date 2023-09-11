@@ -106,12 +106,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 
-using mlo_kernel_info = std::tuple<const std::string,
-                                   const std::string,
-                                   const std::string,
-                                   const std::vector<size_t>,
-                                   const std::vector<size_t>>;
-
 inline int mloLg2(int v)
 {
     auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -183,34 +177,6 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
     x.setupFloats();
     x.mloConstruct();
 }
-
-template <class T>
-auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindSolution();
-}
-
-template <class T, class U>
-auto FindFirstSolution(T& x, U& solvers, const miopen::AnyInvokeParams& invoke_ctx)
-    -> decltype(x.FindSolution(solvers, invoke_ctx))
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindSolution(solvers, invoke_ctx);
-}
-
-template <class T>
-auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
-{
-    x.detectRocm();
-    x.setupFloats();
-    return x.FindAllSolutions();
-}
-
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
@@ -286,39 +252,13 @@ FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
 
 struct mlo_construct_base
 {
-    mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _problem(dir)
+    mlo_construct_base(miopen::conv::Direction dir) : _problem(dir)
     {
-        _problem.bias              = (do_bias) ? 1 : 0;
-        _problem.pad_w             = 1;
-        _problem.pad_h             = 1;
-        _problem.kernel_size_d     = 3;
-        _problem.kernel_size_w     = 3;
-        _problem.kernel_size_h     = 3;
-        _problem.kernel_stride_w   = 1;
-        _problem.kernel_stride_h   = 1;
-        _problem.kernel_dilation_w = 1;
-        _problem.kernel_dilation_h = 1;
-        _problem.bot_sz            = 0; // bytes
-        _problem.top_sz            = 0; // bytes
-        _problem.weights_sz        = 0; // bytes
-        _problem.bias_sz           = 0; // bytes
-        _problem.group_counts      = 1;
+        _problem.bias    = 0;
+        _problem.bot_sz  = 0; // bytes
+        _problem.top_sz  = 0; // bytes
+        _problem.bias_sz = 0; // bytes
     }
-
-    mlo_construct_base(const miopen::TensorDescriptor& in,
-                       const miopen::TensorDescriptor& weights,
-                       const miopen::TensorDescriptor& out,
-                       const miopen::ConvolutionDescriptor& conv,
-                       miopen::conv::Direction dir,
-                       bool do_bias = false)
-        : _problem(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
-    {
-    }
-
-    void detectRocm() { _ctx.DetectRocm(); }
-    void setupFloats() { _problem.conv_problem.SetupFloats(_ctx); }
-
-    miopen::PerformanceDb GetDb() const;
 
     /*
      * get common compiler options
@@ -329,33 +269,13 @@ struct mlo_construct_base
     }
 
     /*
-     * return direction: true - forward, false - backward
-     */
-    inline bool isForwardDirection() const
-    {
-        if(!_problem.direction.IsKnown())
-            MIOPEN_THROW("!_problem.direction.IsKnown()");
-        return _problem.direction.IsForward(); // convolutions: backward data OR wrw otherwise
-    }
-
-    /*
      * set library stream
      */
     inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
 
-    // MD: Hack to get the key outside of mlo_internal
-    int mloBuildConf_Key(std::string& conf_key) const
-    {
-        return _problem.mloBuildConf_Key(conf_key);
-    }
-
-    std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
-
 protected:
-    miopen::ProblemDescription _problem;
+    miopen::ProblemDescriptionCompatTemporary _problem;
     miopen::ConvolutionContext _ctx;
-
-    const char* _db_path = nullptr;
 };
 
 #define MLO_POOLING_OP_AVE 0
