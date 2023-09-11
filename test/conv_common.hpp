@@ -2226,18 +2226,17 @@ struct conv_driver : test_driver
 
                 auto gen_positive_value = [=](auto...) {
                     auto data_type = input.desc.GetType();
-                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
                     return gen_float ? prng::gen_canonical<double>()
                                      : static_cast<double>(prng::gen_A_to_B(1, v_max));
                 };
 
                 auto gen_sign_value = [=](auto... is) {
                     auto data_type = input.desc.GetType();
-                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
-                    return gen_float
-                               ? prng::gen_A_to_B(-1., 1.)
-                               : static_cast<double>(prng::gen_A_to_B(1, v_max) *
-                                                     tensor_elem_gen_checkboard_sign{}(is...));
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
+                    return gen_float ? prng::gen_A_to_B(-1.0, 1.0)
+                                     : static_cast<double>(prng::gen_A_to_B(1, v_max)) *
+                                           tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
                 auto ctx = miopen::ExecutionContext{&get_handle()};
