@@ -87,7 +87,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormBwd{problem};
     using DeviceOp         = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
@@ -251,7 +251,7 @@ BnCKBwdBackward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(bn_problem.GetXDesc().GetType()) // add api GetInDataType in bn_problem
+            switch(bn_problem.GetXDesc().GetType())
             {
             case miopenFloat:
                 RunCKSolution<F32, F32, F32, F32, F32, F32, F32>(

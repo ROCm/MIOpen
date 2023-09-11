@@ -102,31 +102,30 @@ protected:
         bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        miopenBatchNormalizationBackward(
-            &handle,
-            bn_config.mode,
-            &bn_bwd_test_data.alphaDataDiff,
-            &bn_bwd_test_data.betaDataDiff,
-            &bn_bwd_test_data.alphaParamDiff,
-            &bn_bwd_test_data.betaParamDiff,
-            &bn_bwd_test_data.input.desc,  // const xDesc
-            bn_bwd_test_data.in_dev.get(), // const x
-            &bn_bwd_test_data.dy.desc,     // const dyDesc
-            bn_bwd_test_data.dy_dev.get(), // const dy
+        miopenBatchNormalizationBackward(&handle,
+                                         bn_config.mode,
+                                         &bn_bwd_test_data.alphaDataDiff,
+                                         &bn_bwd_test_data.betaDataDiff,
+                                         &bn_bwd_test_data.alphaParamDiff,
+                                         &bn_bwd_test_data.betaParamDiff,
+                                         &bn_bwd_test_data.input.desc,
+                                         bn_bwd_test_data.in_dev.get(),
+                                         &bn_bwd_test_data.dy.desc,
+                                         bn_bwd_test_data.dy_dev.get(),
 
-            &bn_bwd_test_data.output.desc,  // const dxDesc
-            bn_bwd_test_data.out_dev.get(), // dx (not -const)
+                                         &bn_bwd_test_data.output.desc,
+                                         bn_bwd_test_data.out_dev.get(),
 
-            &bn_bwd_test_data.bnScale.desc,     // const bnScale
-            bn_bwd_test_data.bnScale_dev.get(), // const bnScale
+                                         &bn_bwd_test_data.bnScale.desc,
+                                         bn_bwd_test_data.bnScale_dev.get(),
 
-            bn_bwd_test_data.dScale_dev.get(), // resultBnScaleDiff (not const)
-            bn_bwd_test_data.dBias_dev.get(),  // resultBnBiasDiff (not const)
+                                         bn_bwd_test_data.dScale_dev.get(),
+                                         bn_bwd_test_data.dBias_dev.get(),
 
-            bn_bwd_test_data.epsilon,
+                                         bn_bwd_test_data.epsilon,
 
-            bn_bwd_test_data.savedMean_dev.get(),    // const savedMean
-            bn_bwd_test_data.savedInvVar_dev.get()); // const savedInvVariance
+                                         bn_bwd_test_data.savedMean_dev.get(),
+                                         bn_bwd_test_data.savedInvVar_dev.get());
 
         std::fill(bn_bwd_test_data.output.begin(),
                   bn_bwd_test_data.output.end(),
