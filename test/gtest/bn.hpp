@@ -80,7 +80,7 @@ protected:
 
     BNTestCase bn_config;
     bool test_skipped = false;
-   BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
+    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };

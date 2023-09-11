@@ -283,7 +283,7 @@ template <class T, class U>
 void batchNormSpatialHostBwdTrain(const tensor<U>& x_input,
                                   const tensor<T>& dy_input,
                                   tensor<T>& dx_out,
-                                  const tensor<U>& scale, 
+                                  const tensor<U>& scale,
                                   tensor<T>& dscale,
                                   tensor<T>& dbias,
                                   const tensor<T>& savedMean,

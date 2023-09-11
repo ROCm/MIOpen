@@ -334,6 +334,5 @@ private:
 
         dScale_dev = handle.Write(dScale.data);
         dBias_dev  = handle.Write(dBias.data);
-
     }
 };

@@ -52,7 +52,6 @@ TEST_P(BNInferTestFloat, BnFwdInferCKFloat) {}
 TEST_P(BNInferTestDouble, DISABLED_BnFwdInferCKDouble) {}
 TEST_P(BNInferTestBFloat16, DISABLED_BnFwdInferCKBFloat16) {}
 
-
 INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
                          BNInferTestHalf,
                          testing::Combine(testing::ValuesIn(Network1()),

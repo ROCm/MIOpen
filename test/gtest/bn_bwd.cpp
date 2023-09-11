@@ -45,14 +45,12 @@ struct BNBwdTestDouble : BNBwdTest<double, double, double, double, double, doubl
 
 TEST_P(BNBwdTestTestHalf, BnFwdBwdCKHalf) {}
 
-TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat){}
+TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat) {}
 
 // Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
 // only supports half and float
-TEST_P(BNBwdTestBFloat16, DISABLED_BnFwdBwdCKBFloat16){}
-TEST_P(BNBwdTestDouble, DISABLED_BnFwdBwdCKDouble){}
-
-
+TEST_P(BNBwdTestBFloat16, DISABLED_BnFwdBwdCKBFloat16) {}
+TEST_P(BNBwdTestDouble, DISABLED_BnFwdBwdCKDouble) {}
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
                          BNBwdTestTestHalf,
