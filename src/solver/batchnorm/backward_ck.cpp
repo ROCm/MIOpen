@@ -50,9 +50,9 @@ using F32  = float;
 using F64  = double;
 using BF16 = ushort;
 
-struct CKArgsBNormFwd
+struct CKArgsBNormBwd
 {
-    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
+    CKArgsBNormBwd(const miopen::batchnorm::ProblemDescription& problem)
     {
         std::copy(problem.GetXDesc().GetLengths().begin(),
                   problem.GetXDesc().GetLengths().end(),
@@ -89,7 +89,7 @@ template <typename XDataType,
           typename MeanVarDataType>
 int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args       = CKArgsBNormFwd{problem};
+    const auto& args       = CKArgsBNormBwd{problem};
     using DeviceOp         = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
                                                                       DxDataType,
                                                                       DyDataType,
@@ -145,7 +145,7 @@ static void RunCKSolution(const Handle& handle,
                           const AnyInvokeParams& primitive_parameters,
                           const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args = CKArgsBNormFwd{problem};
+    const auto& args = CKArgsBNormBwd{problem};
 
     using DeviceOp         = ck::tensor_operation::device::DeviceBatchNormBwd<XDataType,
                                                                       DxDataType,

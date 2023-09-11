@@ -26,28 +26,49 @@
 
 #include "bn.hpp"
 
-// struct BNInferTestHalf : BNInferTest<half_float::half, half_float::half, half_float::half,
-//     half_float::half, float>
-// {
-// };
+struct BNInferTestHalf
+    : BNInferTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
+{
+};
 
 struct BNInferTestFloat : BNInferTest<float, float, float, float, float>
 {
 };
 
-// TEST_P(BNInferTestHalf, BnFwdInferCKHalf)
-// {
+struct BNInferTestDouble : BNInferTest<double, double, double, double, double>
+{
+};
 
-// }
+struct BNInferTestBFloat16 : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16, double>
+{
+};
+
+TEST_P(BNInferTestHalf, BnFwdInferCKHalf) {}
 
 TEST_P(BNInferTestFloat, BnFwdInferCKFloat) {}
 
-// INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
-//                          BNInferTestHalf,
-//                          testing::Combine(testing::ValuesIn(Network1()),
-//                                           testing::Values(miopenTensorNHWC)));
+// Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
+// only supports half and float
+TEST_P(BNInferTestDouble, DISABLED_BnFwdInferCKDouble) {}
+TEST_P(BNInferTestBFloat16, DISABLED_BnFwdInferCKBFloat16) {}
+
+
+INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
+                         BNInferTestHalf,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
                          BNInferTestFloat,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
+
+INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
+                         BNInferTestDouble,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
+
+INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
+                         BNInferTestBFloat16,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));

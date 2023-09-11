@@ -49,7 +49,7 @@ constexpr index_t NumBatchNormReduceDim = 3;
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;
-using BF16 = ck::bhalf_t;
+using BF16 = ushort;
 
 struct CKArgsBNormFwd
 {
@@ -197,6 +197,7 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& ctx,
     case miopenDouble:
         return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
+        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
@@ -221,7 +222,7 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(bn_problem.GetXDesc().GetType()) // add api GetInDataType in bn_problem
+            switch(bn_problem.GetXDesc().GetType())
             {
             case miopenHalf:
                 RunCKSolution<F16, F16, F32, F16, F16, F32>(
@@ -236,6 +237,9 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
                     handle, primitive_parameters, bn_problem);
                 break;
             case miopenBFloat16:
+                RunCKSolution<BF16, BF16, F32, BF16, BF16, F32>(
+                    handle, primitive_parameters, bn_problem);
+                break;
             case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:

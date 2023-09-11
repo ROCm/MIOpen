@@ -31,31 +31,28 @@ struct BNBwdTestTestHalf
 {
 };
 
-// struct BNBwdTestBFloat16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
-// {
-// };
-
 struct BNBwdTestFloat : BNBwdTest<float, float, float, float, float, float, float>
 {
 };
 
-// struct BNBwdTestDouble : BNBwdTest<double, double, double, double, double, double, double>
-// {
-// };
+struct BNBwdTestBFloat16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
+{
+};
 
-// TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat)
-// {
-
-// }
-
-// TEST_P(BNBwdTestBFloat16, BnFwdBwdCKBFloat16)
-// {
-
-// }
-
-TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat) {}
+struct BNBwdTestDouble : BNBwdTest<double, double, double, double, double, double, double>
+{
+};
 
 TEST_P(BNBwdTestTestHalf, BnFwdBwdCKHalf) {}
+
+TEST_P(BNBwdTestFloat, BnFwdBwdCKFloat){}
+
+// Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
+// only supports half and float
+TEST_P(BNBwdTestBFloat16, DISABLED_BnFwdBwdCKBFloat16){}
+TEST_P(BNBwdTestDouble, DISABLED_BnFwdBwdCKDouble){}
+
+
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
                          BNBwdTestTestHalf,
@@ -67,12 +64,12 @@ INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatNHWCSuite,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));
 
-// INSTANTIATE_TEST_SUITE_P(BNBwdTestBFloat16NHWCSuite,
-//                          BNBwdTestBFloat16,
-//                          testing::Combine(testing::ValuesIn(Network1()),
-//                                           testing::Values(miopenTensorNHWC)));
+INSTANTIATE_TEST_SUITE_P(BNBwdTestBFloat16NHWCSuite,
+                         BNBwdTestBFloat16,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
 
-// INSTANTIATE_TEST_SUITE_P(BNBwdTestDoubleNHWCSuite,
-//                          BNBwdTestDouble,
-//                          testing::Combine(testing::ValuesIn(Network1()),
-//                                           testing::Values(miopenTensorNHWC)));
+INSTANTIATE_TEST_SUITE_P(BNBwdTestDoubleNHWCSuite,
+                         BNBwdTestDouble,
+                         testing::Combine(testing::ValuesIn(Network1()),
+                                          testing::Values(miopenTensorNHWC)));
