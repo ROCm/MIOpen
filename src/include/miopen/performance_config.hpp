@@ -73,12 +73,18 @@ struct PerfConfigBaseCK : PerfConfig
 {
     void Serialize(std::ostream& stream) const final
     {
-        serialize::SerDes<'\0'>::Serialize(static_cast<const Derived&>(*this), stream);
+        const Derived& self = static_cast<const Derived&>(*this);
+        stream.write(self.kernel_id.c_str(), self.kernel_id.length());
     }
 
     bool Deserialize(const std::string& s) final
     {
-        return serialize::SerDes<'\0'>::Deserialize(static_cast<Derived&>(*this), s);
+        Derived& self = static_cast<Derived&>(*this);
+        std::stringstream ss;
+        ss.str(s);
+        if(!std::getline(ss, self.kernel_id))
+            return false;
+        return true;
     }
 };
 

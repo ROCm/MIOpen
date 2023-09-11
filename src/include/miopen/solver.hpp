@@ -4573,11 +4573,6 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
 
 private:
@@ -4656,11 +4651,6 @@ struct PerformanceConfigHipImplicitGemmBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmBwdXdlops& other) const;
 
 private:
@@ -4730,11 +4720,6 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
 
 private:
@@ -4805,11 +4790,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const;
 
 private:
