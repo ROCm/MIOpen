@@ -175,7 +175,7 @@ static void RunCKSolution(const Handle& handle,
 }
 #endif
 
-bool BnCKFwdInference::IsApplicable(const ExecutionContext& context
+bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
                                     const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -187,7 +187,7 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
