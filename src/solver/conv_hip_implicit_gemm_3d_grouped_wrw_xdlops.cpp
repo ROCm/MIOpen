@@ -277,8 +277,16 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         args.split_k);
-    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
-    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
+    const auto enable_profiling = handle.IsProfilingEnabled();
+
+    float elapsed_time =
+        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    if(enable_profiling)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(elapsed_time);
+    }
 }
 
 } // namespace
