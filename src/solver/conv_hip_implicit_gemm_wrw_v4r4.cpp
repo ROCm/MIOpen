@@ -582,7 +582,7 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
