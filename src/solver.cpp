@@ -565,7 +565,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemm3DGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvWinoFuryRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
-
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
