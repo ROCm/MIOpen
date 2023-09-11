@@ -131,7 +131,8 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdTraining,
+                                                 solver::batchnorm::BnFwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
 
