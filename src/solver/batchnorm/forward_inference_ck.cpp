@@ -175,11 +175,11 @@ static void RunCKSolution(const Handle& handle,
 }
 #endif
 
-bool BnCKFwdInference::IsApplicable(const ExecutionContext& ctx,
+bool BnCKFwdInference::IsApplicable(const ExecutionContext& context
                                     const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = context;
     std::ignore = fdesc_problem;
     return false;
 #else
