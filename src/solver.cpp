@@ -561,10 +561,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNaive{}.SolverDbId());
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemm3DGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvWinoFuryRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

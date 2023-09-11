@@ -87,7 +87,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
     using DeviceOp   = ck::tensor_operation::device::DeviceElementwise<
