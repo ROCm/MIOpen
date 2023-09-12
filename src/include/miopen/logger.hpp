@@ -323,7 +323,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const std::vector<T>&
             std::ostringstream miopen_log_func_ss;                                      \
             miopen_log_func_ss << "s_api = "<< __FUNCTION__ << " | ";                   \
             MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__)            \
-            logtx.logRange(miopen_log_func_ss.str().c_str());                           \
+            logtx.logRange(miopen_log_func_ss.str());                                   \
         }                                                                               \
     } while(false)
 #else
@@ -411,8 +411,8 @@ private:
 class LogScopeRoctx
 {
 public:
-    LogScopeRoctx() {};
-    LogScopeRoctx(const std::string &name)
+    LogScopeRoctx() = default;
+    explicit LogScopeRoctx(const std::string &name)
     {
         logRange(name);
     }
