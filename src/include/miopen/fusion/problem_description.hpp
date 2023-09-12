@@ -46,7 +46,7 @@ struct FusionDescription
             if(op->kind() == miopenFusionOpConvForward)
             {
                 const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
-                net_config << prob.conv_problem.BuildConfKey().ToString();
+                net_config << prob.BuildConfKey().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormInference)
             {

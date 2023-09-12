@@ -131,7 +131,8 @@ void OpTensor3d(const Handle& handle,
                 Data_t CTensor,
                 const size_t Aoffset,
                 const size_t Boffset,
-                const size_t Coffset)
+                const size_t Coffset,
+                const bool nonStandardSquash)
 {
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
@@ -185,8 +186,18 @@ void OpTensor3d(const Handle& handle,
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
-    grp_sz            = std::min(size_t(max_num_wg), grp_sz);
-    size_t glb_sz     = local_threads * grp_sz;
+
+    // opencl kernels are no longer supported, fallback to generic case
+    bool lite_applicable = grp_sz <= size_t(max_num_wg);
+
+    bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+                   (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
+
+    bool is_squashed = nonStandardSquash && !is_lite &&
+                       (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
+
+    grp_sz        = std::min(size_t(max_num_wg), grp_sz);
+    size_t glb_sz = local_threads * grp_sz;
 
     size_t local_threads2 = 64;
     size_t total_work2    = clens[1];
@@ -199,8 +210,7 @@ void OpTensor3d(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(lite_applicable && is_lite)
         {
 
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
@@ -233,7 +243,7 @@ void OpTensor3d(const Handle& handle,
                 return;
             }
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(is_squashed)
         {
             network_config += std::to_string(RD_BLCK) + "x" + std::to_string(local_threads) + "x" +
                               std::to_string(grp_sz);
@@ -318,8 +328,7 @@ void OpTensor3d(const Handle& handle,
 
         const std::vector<size_t> vld{local_threads, 1, 1};
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
+        if(lite_applicable && is_lite)
         {
             parms += " -DUSE_2D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -345,7 +354,7 @@ void OpTensor3d(const Handle& handle,
                 static_cast<int>(!float_equal(miopen_beta, 0.0)),
                 static_cast<int>(blens[1] == 1));
         }
-        else if(blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2])
+        else if(is_squashed)
         {
             parms += " -DUSE_2D_TENSOR_SQUASH";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -1243,7 +1252,8 @@ void OpTensor(const Handle& handle,
               Data_t CTensor,
               const size_t Aoffset,
               const size_t Boffset,
-              const size_t Coffset)
+              const size_t Coffset,
+              bool nonStandardSquash)
 {
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
@@ -1283,9 +1293,7 @@ void OpTensor(const Handle& handle,
                      std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
-    bool is_squash = clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && clens[1] == 1 &&
-                     blens[1] != clens[1] && blens[2] == clens[2];
-    if(!is_squash)
+    if(!nonStandardSquash)
     {
         for(std::size_t i = 0; i < clens.size(); i++)
         {
@@ -1294,6 +1302,15 @@ void OpTensor(const Handle& handle,
                 MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
                              std::to_string(i));
             }
+        }
+    }
+    else
+    {
+        // non standard behavior because blens[1] can be not equalt to clens[1]
+        if(!(clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && blens[2] == clens[2]))
+        {
+            MIOPEN_THROW("Non standard squashed operation supported only for 3d tensors and for "
+                         "the specific configuration");
         }
     }
 
@@ -1313,7 +1330,8 @@ void OpTensor(const Handle& handle,
                    CTensor,
                    Aoffset,
                    Boffset,
-                   Coffset);
+                   Coffset,
+                   nonStandardSquash);
     }
     else if(bsize == 4)
     {
@@ -1414,9 +1432,9 @@ void SetTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "real descritor: " << yDesc << std::endl
-                              << "flat descritor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1568,9 +1586,9 @@ void ScaleTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "real descritor: " << yDesc << std::endl
-                              << "flat descritor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1744,11 +1762,11 @@ void CopyTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "src real descriptor: " << srcDesc << std::endl
-                              << "src flat descriptor: " << srcDesc_flat << std::endl
-                              << "dst real descriptor: " << dstDesc << std::endl
-                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -1956,11 +1974,11 @@ void CastTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "src real descriptor: " << srcDesc << std::endl
-                              << "src flat descriptor: " << srcDesc_flat << std::endl
-                              << "dst real descriptor: " << dstDesc << std::endl
-                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -2252,16 +2270,16 @@ void TransformTensor(const Handle& handle,
 #ifndef NDEBUG
         if(xDesc.GetSize() != xDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << xDesc << std::endl
-                                  << "flat descritor: " << xDesc_flat << std::endl);
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << xDesc << std::endl
+                                   << "flat descriptor: " << xDesc_flat << std::endl);
         }
 
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << yDesc << std::endl
-                                  << "flat descritor: " << yDesc_flat << std::endl);
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << yDesc << std::endl
+                                   << "flat descriptor: " << yDesc_flat << std::endl);
         }
 #endif
 
