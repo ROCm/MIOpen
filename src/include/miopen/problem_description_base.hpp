@@ -38,6 +38,8 @@ struct ProblemDescriptionBase
     ProblemDescriptionBase(const ProblemDescriptionBase&) = default;
     virtual ~ProblemDescriptionBase() = default;
 
+    ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
+
     [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
 };
 
