@@ -116,7 +116,7 @@ size_t RNNDescriptor::RNNTransformerWorkspaceSize(const SeqTensorDescriptor& xDe
                                            hsize * (dirMode == miopenRNNunidirection ? 1 : 2),
                                            hsize,
                                            hsize,
-                                           nLayers) *
+                                           nLayers * (dirMode == miopenRNNunidirection ? 1 : 2)) *
            typeSize;
 }
 

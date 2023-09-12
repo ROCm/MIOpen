@@ -4582,16 +4582,17 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 struct PerformanceConfigHipImplicitGemmFwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
-    int total_size;
+    int index             = 0;
+    std::string kernel_id = "";
+    std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id), total_size(-1)
+        : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
-    {
-    }
+
+    PerformanceConfigHipImplicitGemmFwdXdlops() = default;
+
     explicit PerformanceConfigHipImplicitGemmFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
@@ -4665,17 +4666,18 @@ private:
 struct PerformanceConfigHipImplicitGemmBwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
-    int index;
-    std::string kernel_id;
+    int index             = 0;
+    std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmBwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmBwdXdlops() : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemmBwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemmBwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemmBwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
     {
     }
@@ -4738,18 +4740,18 @@ private:
 struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
+    int index             = 0;
+    std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmGroupFwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops()
-        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
@@ -4813,18 +4815,18 @@ private:
 struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
+    int index             = 0;
+    std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops()
-        : PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(0, "")
     {
     }
@@ -4875,6 +4877,82 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     GetSolution(const ConvolutionContext&,
                 const ProblemDescription&,
                 const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
+struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops()
+        : PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DGroupBwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DGroupBwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops&) const override;
     /// \ref igemm_get_wti_magic_number
     float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
     {
