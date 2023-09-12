@@ -56,7 +56,7 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
 
     const auto problem = miopen::conv::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::BackwardData};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
 

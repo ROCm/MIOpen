@@ -374,7 +374,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
 ConvHipImplicitGemm3DGroupBwdXdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupBwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -382,7 +382,7 @@ ConvHipImplicitGemm3DGroupBwdXdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemm3DGroupBwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& config) const
 {
@@ -390,14 +390,14 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
-ConvHipImplicitGemm3DGroupBwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemm3DGroupBwdXdlops::Search(const ExecutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -437,7 +437,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(const ConvolutionContext&
 }
 
 ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& config) const
 {

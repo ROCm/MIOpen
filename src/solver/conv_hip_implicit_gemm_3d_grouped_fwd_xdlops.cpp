@@ -327,7 +327,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
