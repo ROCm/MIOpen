@@ -2,15 +2,11 @@
 #define GUARD_RANDOM_GEN_
 
 #include <random>
-#include <cstdlib>
-#include <cassert>
-#include <cstdint>
 #if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
 #include <half/half.hpp>
 #else
 #include <half.hpp>
 #endif
-using float16 = half_float::half;
 
 std::minstd_rand& get_minstd_gen()
 {
@@ -59,14 +55,14 @@ inline T RAN_SUBNORM(int fraction_msb_bit = 0, int fraction_lsb_bit = 0)
         assert((lsb) <= (msb));                                         \
     } while(0)
 
-#define SUBNORM_RANDOM_FRACTION(result, msb, lsb)        \
-    do                                                   \
-    {                                                    \
-        int _bits = (msb) - (lsb);                       \
-        if(_bits == 0)                                   \
-            (result) = 0;                                \
-        else                                             \
-            (result) = (rand() % (1 << _bits)) << (lsb); \
+#define SUBNORM_RANDOM_FRACTION(result, msb, lsb)            \
+    do                                                       \
+    {                                                        \
+        int _bits = (msb) - (lsb);                           \
+        if(_bits == 0)                                       \
+            (result) = 0;                                    \
+        else                                                 \
+            (result) = (GET_RAND() % (1 << _bits)) << (lsb); \
     } while(0)
 
 template <>
@@ -79,12 +75,12 @@ inline float RAN_SUBNORM(int fraction_msb_bit, int fraction_lsb_bit)
 }
 
 template <>
-inline float16 RAN_SUBNORM(int fraction_msb_bit, int fraction_lsb_bit)
+inline half_float::half RAN_SUBNORM(int fraction_msb_bit, int fraction_lsb_bit)
 {
     uint16_t float16_value;
     SUBNORM_INITIALIZE_FRACTION(fraction_msb_bit, fraction_lsb_bit, 9, 0);
     SUBNORM_RANDOM_FRACTION(float16_value, fraction_msb_bit, fraction_lsb_bit);
-    return *(reinterpret_cast<float16*>(&float16_value));
+    return *(reinterpret_cast<half_float::half*>(&float16_value));
 }
 
 #endif // GUARD_RANDOM_GEN_
