@@ -77,8 +77,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     bool fp_contains_bn;
     miopenDataType_t data_type;
     std::vector<Exec_arg_t> arg_list;
-    std::vector<solver::ConvSolution> solutions;
-    NetworkConfig network_config;
+    std::vector<Invoker> invokers;
     std::optional<miopenConvFwdAlgorithm_t> conv_fwd_algo;
 };
 

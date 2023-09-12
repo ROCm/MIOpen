@@ -616,44 +616,30 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                const FusionFindParameters&) const override
     {
-        // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
-        // These ConvSolutions stores instructions on how to build. It also stores invoker.
-        const auto sols = GetFusedSolvers().SearchForAllSolutions(
+        return GetFusedSolvers().SearchForAllSolutions(
             static_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
-        // std::vector<miopen::solver::ConvSolution> sols;
-        // Filter for Solvers
-        //        if(conv_fwd_algo)
-        //        {
-        //            for(const auto& sol : tmp_sols)
-        //            {
-        //                const auto id      = miopen::solver::Id{sol.solver_id};
-        //                const auto strAlgo = id.GetAlgo(miopen::conv::Direction::Forward);
-        //                MIOPEN_LOG_I2(id.ToString());
-        //                MIOPEN_LOG_I2(strAlgo);
-        //                const auto algo = miopen::StringToConvolutionFwdAlgo(strAlgo);
-        //                MIOPEN_LOG_I2(algo);
-        //                if(algo == *conv_fwd_algo)
-        //                    sols.push_back(sol);
-        //            }
-        //        }
-        //        else
-        //            sols = tmp_sols;
-
-        return sols;
     }
 };
 
+static const std::vector<std::unique_ptr<ISolversFinder>>& GetFusionSolverFinders()
+{
+    static const std::vector<std::unique_ptr<ISolversFinder>> finders = [] {
+        auto tmp = std::vector<std::unique_ptr<ISolversFinder>>{};
+        tmp.push_back(std::make_unique<FusionSolverFinder>());
+        return tmp;
+    }();
+    return finders;
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
-    miopenStatus_t status = miopenStatusUnknownError;
-    const auto solvers    = GetFusedSolvers();
-    auto fusion_ctx       = FusionContext{handle};
-    auto fusion_problem   = FusionDescription{this};
-    AnyInvokeParams invoke_params;
+    auto fusion_ctx     = FusionContext{handle};
+    auto fusion_problem = FusionDescription{this};
     miopen::OperatorArgs params;
     std::vector<Allocator::ManageDataPtr> invoke_bufs;
     const FindEnforce enforce;
     // If we are tuning, then we need to allocate buffers.
+    AnyInvokeParams invoke_params;
     if(enforce.IsSearch(fusion_ctx))
         invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
     // During search mode, miopen invokes kernel to find the best config.
@@ -665,7 +651,12 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         return miopenStatusUnsupportedOp;
     }
 
-    auto results = UserFindDbRecord::TryLoad(
+    // tmp_sols is a collection of ConvSolutions that have been return from Find for the
+    // fusion_problem. These ConvSolutions store instructions on how to build kernels and an invoker
+    // factory.
+    std::vector<miopen::solver::ConvSolution> sols;
+
+    auto find_results = UserFindDbRecord::TryLoad(
         handle,
         fusion_problem,
         [&](DbRecord& record) {
@@ -676,58 +667,37 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                      fusion_ctx,
                      fusion_problem,
                      FusionFindParameters{},
-                     GetConvSolverFinders());
+                     GetFusionSolverFinders());
         },
         "fusion");
 
-    // tmp_sols is a collection of ConvSolutions that isApplicable for the fusion_problem.
-    // These ConvSolutions stores instructions on how to build. It also stores invoker.
-    const auto tmp_sols = solvers.SearchForAllSolutions(
-        fusion_ctx, fusion_problem, miopen::GetDb(fusion_ctx), invoke_params);
-    std::vector<miopen::solver::ConvSolution> sols;
-    // Filter for Solvers
-    if(conv_fwd_algo)
+    const auto network_config = fusion_problem.MakeNetworkConfig();
+
+    for(const auto& result : find_results)
     {
-        for(const auto& sol : tmp_sols)
+        if(conv_fwd_algo && miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
+            continue;
+        auto id = solver::Id{result.solver_id};
+
+        auto invoker = handle.GetInvoker(network_config, id);
+
+        if(!invoker)
         {
-            const auto id      = miopen::solver::Id{sol.solver_id};
-            const auto strAlgo = id.GetAlgo(miopen::conv::Direction::Forward);
-            MIOPEN_LOG_I2(id.ToString());
-            MIOPEN_LOG_I2(strAlgo);
-            const auto algo = miopen::StringToConvolutionFwdAlgo(strAlgo);
-            MIOPEN_LOG_I2(algo);
-            if(algo == *conv_fwd_algo)
-                sols.push_back(sol);
+            MIOPEN_LOG_E("Find-db has not produced an invoker");
+            continue;
         }
+
+        invokers.push_back(*invoker);
+        MIOPEN_LOG_I2(result.algorithm);
     }
-    else
-        sols = tmp_sols;
-    if(sols.empty())
+
+    if(invokers.empty())
     {
         MIOPEN_LOG_I("No supported fusion solvers found");
         return miopenStatusUnsupportedOp;
     }
-    else
-    {
-        network_config = fusion_problem.MakeNetworkConfig();
-        for(const auto& sol : sols)
-        {
-            if(!sol.invoker_factory)
-                MIOPEN_THROW(miopenStatusInternalError,
-                             "Invoker missing from solver " + sol.solver_id);
-            const auto invoker =
-                handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-            handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
-            solutions.push_back(sol);
-        }
-        std::sort(solutions.begin(),
-                  solutions.end(),
-                  [](const solver::ConvSolution& a, const solver::ConvSolution& b) -> bool {
-                      return a.weight > b.weight;
-                  });
-        status = miopenStatusSuccess;
-    }
-    return status;
+
+    return miopenStatusSuccess;
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
@@ -747,20 +717,14 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "The input descriptors dont match.");
     }
-    if(solutions.empty())
+    if(invokers.empty())
     {
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled successfully");
     }
-    const auto& solution = solutions[0];
-    if(!solution.Succeeded())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");
-    }
 
-    const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
     const auto plan_params =
         fusion::FusionInvokeParams{op_args, inputDesc, input, outputDesc, output, false};
-    (*invoker)(handle, plan_params);
+    invokers[0](handle, plan_params);
 
     return miopenStatusSuccess;
 }
