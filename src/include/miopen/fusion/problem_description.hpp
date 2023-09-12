@@ -155,7 +155,7 @@ private:
             if(op->kind() == miopenFusionOpConvForward)
             {
                 const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
-                net_config << prob.conv_problem.MakeNetworkConfig().ToString();
+                net_config << prob.MakeNetworkConfig().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormInference)
             {

@@ -2272,11 +2272,11 @@ struct ConvWinoFuryRxS final : ConvSolver
         return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
     }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
 
     static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
     static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
@@ -2857,7 +2857,7 @@ struct GemmFwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -2880,7 +2880,7 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2888,13 +2888,13 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -2915,7 +2915,7 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2923,13 +2923,13 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -2950,7 +2950,7 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2958,13 +2958,13 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -2985,7 +2985,7 @@ struct GemmFwdRest final : GemmFwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2993,13 +2993,13 @@ struct GemmFwdRest final : GemmFwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3017,7 +3017,7 @@ struct GemmBwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3040,7 +3040,7 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3048,13 +3048,13 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3075,7 +3075,7 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3083,13 +3083,13 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3112,7 +3112,7 @@ struct GemmBwdRest final : GemmBwdBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3120,13 +3120,13 @@ struct GemmBwdRest final : GemmBwdBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3144,7 +3144,7 @@ struct GemmWrwBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3165,13 +3165,13 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
@@ -3191,7 +3191,7 @@ struct GemmWrwUniversal final : GemmWrwBase
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3199,13 +3199,13 @@ struct GemmWrwUniversal final : GemmWrwBase
     bool IsApplicable(const ExecutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
+        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
+        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
 
 private:
