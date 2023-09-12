@@ -79,11 +79,8 @@ struct PerfConfigBaseCK : PerfConfig
 
     bool Deserialize(const std::string& s) final
     {
-        Derived& self = static_cast<Derived&>(*this);
-        std::stringstream ss;
-        ss.str(s);
-        if(!std::getline(ss, self.kernel_id))
-            return false;
+        Derived& self  = static_cast<Derived&>(*this);
+        self.kernel_id = s;
         return true;
     }
 };
