@@ -4580,7 +4580,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 };
 
 struct PerformanceConfigHipImplicitGemmFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
     int index             = 0;
     std::string kernel_id = "";
@@ -4605,11 +4605,6 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
 
 private:
@@ -4664,7 +4659,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
     int index             = 0;
     std::string kernel_id = "";
@@ -4689,11 +4684,6 @@ struct PerformanceConfigHipImplicitGemmBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmBwdXdlops& other) const;
 
 private:
@@ -4738,7 +4728,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
     int index             = 0;
     std::string kernel_id = "";
@@ -4763,11 +4753,6 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
 
 private:
@@ -4813,7 +4798,7 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
 {
     int index             = 0;
     std::string kernel_id = "";
@@ -4838,11 +4823,6 @@ struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const;
 
 private:
