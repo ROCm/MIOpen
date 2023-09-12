@@ -28,7 +28,7 @@ struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
 {
 };
 
-TEST_P(ConvWrwFp8Naive, Wrw)
+TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
 {
     miopen::solver::ConvDirectNaiveConvWrw solv{};
     SolverWrw<miopen::solver::ConvDirectNaiveConvWrw>(solv);

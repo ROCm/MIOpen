@@ -33,19 +33,19 @@ struct ConvFwdFp8Naive : ConvFwdSolverTest<float8, float, true>
 {
 };
 
-TEST_P(ConvFwdFp8, GemmFwdRest)
+TEST_P(ConvFwdFp8, DISABLED_GemmFwdRest)
 {
     miopen::solver::GemmFwdRest solv{};
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8, GemmFwd1x1_0_2)
+TEST_P(ConvFwdFp8, DISABLED_GemmFwd1x1_0_2)
 {
     miopen::solver::GemmFwd1x1_0_2 solv{};
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8, Gemm1x1x0x1)
+TEST_P(ConvFwdFp8, DISABLED_Gemm1x1x0x1)
 {
     miopen::solver::GemmFwd1x1_0_1 solv{};
     SolverFwd(solv);

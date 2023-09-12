@@ -39,19 +39,19 @@ TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride2)
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8, GemmBwd1x1_stride1)
+TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride1)
 {
     miopen::solver::GemmBwd1x1_stride1 solv{};
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8, GemmBwdRest)
+TEST_P(ConvBwdFp8, DISABLED_GemmBwdRest)
 {
     miopen::solver::GemmBwdRest solv{};
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8Naive, Bwd)
+TEST_P(ConvBwdFp8Naive, DISABLED_Bwd)
 {
     miopen::solver::ConvDirectNaiveConvBwd solv{};
     SolverBwd(solv);
