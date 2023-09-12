@@ -26,7 +26,7 @@
 #include <miopen/miopen.h>
 
 #if MIOPEN_BACKEND_HIP
-#include "log_test_helper.hpp"
+#include "log.hpp"
 
 TEST(LOG_TEST, AssertLogCmdOutput)
 {
@@ -37,4 +37,15 @@ TEST(LOG_TEST, AssertLogFindCmdOutput)
 {
     TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, true);
 }
+
+TEST(LOG_TEST_FUSION, AssertTestLogCmdCBAFusionOutput)
+{
+    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, envConv, logFusionConvBiasActiv, true);
+}
+
+TEST(LOG_TEST_FUSION, AssertTestLogCmdBNormFusionOutput)
+{
+    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, envConv, logBnormActiv, true);
+}
+
 #endif
