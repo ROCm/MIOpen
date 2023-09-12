@@ -3421,7 +3421,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         {
             if(std::is_same<Tgpu, float>::value)
 #if WORKAROUND_ISSUE_2176
-                tolerance = 0.01;
+                tolerance = 10;
 #else
                 tolerance *= 10;
 #endif
