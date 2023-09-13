@@ -244,32 +244,32 @@ inline void ExpandTensorDim(std::vector<T> x_len,
                             std::vector<T>& out_len,
                             std::vector<T>& out_str)
 {
-    auto itr_xl = x_len.end() - 1;
-    auto itr_yl = y_len.end() - 1;
-    auto itr_xs = x_str.end() - 1;
-    auto itr_ys = y_str.end() - 1;
-    auto itr_il = in_len.end() - 1;
-    auto itr_ol = out_len.end() - 1;
-    auto itr_is = in_str.end() - 1;
-    auto itr_os = out_str.end() - 1;
+    int xl_idx = x_len.size() - 1;
+    int yl_idx = y_len.size() - 1;
+    int xs_idx = x_str.size() - 1;
+    int ys_idx = y_str.size() - 1;
+    int il_idx = in_len.size() - 1;
+    int ol_idx = out_len.size() - 1;
+    int is_idx = in_str.size() - 1;
+    int os_idx = out_str.size() - 1;
 
-    while(itr_xl >= x_len.begin() && itr_il >= in_len.begin())
-        *(itr_il--) = *(itr_xl--);
+    while(xl_idx >= 0 && il_idx >= 0)
+        in_len[il_idx--] = x_len[xl_idx--];
 
-    while(itr_yl >= y_len.begin() && itr_ol >= out_len.begin())
-        *(itr_ol--) = *(itr_yl--);
+    while(yl_idx >= 0 && ol_idx >= 0)
+        out_len[ol_idx--] = y_len[yl_idx--];
 
-    while(itr_xs >= x_str.begin() && itr_is >= in_str.begin())
-        *(itr_is--) = *(itr_xs--);
+    while(xs_idx >= 0 && is_idx >= 0)
+        in_str[is_idx--] = x_str[xs_idx--];
 
-    while(itr_ys >= y_str.begin() && itr_os >= out_str.begin())
-        *(itr_os--) = *(itr_ys--);
+    while(ys_idx >= 0 && os_idx >= 0)
+        out_str[os_idx--] = y_str[ys_idx--];
 
-    while(itr_is >= in_str.begin())
-        *(itr_is--) = *(itr_is + 1) * *(itr_is + 1 - in_str.begin() + in_len.begin());
+    while(is_idx >= 0)
+        in_str[is_idx--] = in_str[is_idx + 1] * in_len[is_idx + 1];
 
-    while(itr_os >= out_str.begin())
-        *(itr_os--) = *(itr_os + 1) * *(itr_os + 1 - out_str.begin() + out_len.begin());
+    while(os_idx >= 0)
+        out_str[os_idx--] = out_str[os_idx + 1] * out_len[os_idx + 1];
 }
 
 template <typename T>
