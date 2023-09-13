@@ -134,7 +134,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     std::string v           = " --verbose";
     std::string dis_bk_data = " --disable-backward-data";
     std::string dis_bk_wei  = " --disable-backward-weights";
-    std::string dis_fwd     = " -disable-forward";
+    std::string dis_fwd     = " --disable-forward";
     std::string dis_vali    = " --disable-validation";
 
     const std::vector<TestCase> test_cases = {
