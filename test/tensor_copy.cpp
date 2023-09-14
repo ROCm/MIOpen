@@ -154,9 +154,9 @@ struct tensor_copy_driver : test_driver
 
     void run()
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
-                                  : miopen_type<T>{} == miopenInt8 ? 127
-                                                                   : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
 
         srcSuper = tensor<T>{srcSuperLens}.generate(tensor_elem_gen_integer{max_value});
         dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer{max_value});

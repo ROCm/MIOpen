@@ -811,7 +811,7 @@ struct reduce_driver : test_driver
             outLengths[toReduceDim] = static_cast<std::size_t>(1);
         }
 
-        unsigned long max_value;
+        uint64_t max_value;
 
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             max_value = miopen_type<T>{} == miopenHalf   ? 41

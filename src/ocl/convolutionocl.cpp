@@ -110,7 +110,6 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
                               const NetworkConfig& config,
                               solver::Id solver_id)
 {
-    ctx.DetectRocm();
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
@@ -255,7 +254,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         conv::ProblemDescription(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
     const auto ctx = [&] {
         auto tmp = ExecutionContext{&handle};
-        tmp.DetectRocm();
         problem.SetupFloats(tmp);
         tmp.do_search = exhaustiveSearch;
         return tmp;
@@ -649,7 +647,6 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
     auto ctx = ConvolutionContext{exec_ctx};
-    ctx.DetectRocm();
 
     for(const auto& pair : fdb_record)
     {
@@ -724,7 +721,6 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
         conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
     MIOPEN_THROW(miopenStatusBadParm,
@@ -804,7 +800,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     const auto ctx = [&] {
         auto tmp = ExecutionContext{&handle};
-        tmp.DetectRocm();
         problem.SetupFloats(tmp);
         tmp.do_search = exhaustiveSearch;
         return tmp;
@@ -935,7 +930,6 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
     auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
     else
@@ -1013,7 +1007,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
     const auto ctx = [&] {
         auto tmp = ExecutionContext{&handle};
-        tmp.DetectRocm();
         problem.SetupFloats(tmp);
         tmp.do_search = exhaustiveSearch;
         return tmp;
@@ -1135,7 +1128,6 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
     auto ctx = ConvolutionContext{};
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
     else
@@ -1245,24 +1237,24 @@ void ConvolutionBackwardBias(const Handle& handle,
     {
         kernels.front()(dy,
                         db,
-                        uint(out_k),
-                        uint(stride_k),
-                        uint(stride_n),
-                        uint(map_size_aligned),
-                        uint(off_pix),
-                        uint(total_work));
+                        static_cast<unsigned>(out_k),
+                        static_cast<unsigned>(stride_k),
+                        static_cast<unsigned>(stride_n),
+                        static_cast<unsigned>(map_size_aligned),
+                        static_cast<unsigned>(off_pix),
+                        static_cast<unsigned>(total_work));
     }
     else
     {
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, params)(
             dy,
             db,
-            uint(out_k),
-            uint(stride_k),
-            uint(stride_n),
-            uint(map_size_aligned),
-            uint(off_pix),
-            uint(total_work));
+            static_cast<unsigned>(out_k),
+            static_cast<unsigned>(stride_k),
+            static_cast<unsigned>(stride_n),
+            static_cast<unsigned>(map_size_aligned),
+            static_cast<unsigned>(off_pix),
+            static_cast<unsigned>(total_work));
     }
 
     if(miopen::CheckNumericsEnabled())

@@ -199,9 +199,9 @@ struct UniversalTransposeSolver : TransposePseudoSolver
             const auto kernel = kernels.front();
             return [kernel](const Handle& handle, const AnyInvokeParams& any_params) {
                 const auto& params      = any_params.CastTo<TransposeInvokeParams>();
-                const auto& lens        = GetNCDHW<unsigned long>(params.in_desc.GetLengths());
-                const auto& in_strides  = GetNCDHW<unsigned long>(params.in_desc.GetStrides());
-                const auto& out_strides = GetNCDHW<unsigned long>(params.out_desc.GetStrides());
+                const auto& lens        = GetNCDHW<uint64_t>(params.in_desc.GetLengths());
+                const auto& in_strides  = GetNCDHW<uint64_t>(params.in_desc.GetStrides());
+                const auto& out_strides = GetNCDHW<uint64_t>(params.out_desc.GetStrides());
 
                 // clang-format off
                 handle.Run(kernel)(

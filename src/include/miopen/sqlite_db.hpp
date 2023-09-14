@@ -256,7 +256,9 @@ public:
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
             else
             {
                 const auto log_level =

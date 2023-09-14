@@ -197,7 +197,8 @@ struct verify_tensor_ops
                          c_dev.get(),
                          Aoffset,
                          Boffset,
-                         Coffset);
+                         Coffset,
+                         false); // it does not verify non-standard behaviour
 
         if(not no_validate)
         {
@@ -294,7 +295,7 @@ struct tensor_ops_driver : test_driver
                              int offset,
                              bool isPacked)
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         if(!isPacked)
         {
