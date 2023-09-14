@@ -34,53 +34,25 @@ inline T RAN_GEN(T A, T B)
     return r;
 }
 
-template <typename T>
-inline T RAN_SUBNORM(int fraction_msb_bit = 0, int fraction_lsb_bit = 0)
+template <typename T, bool Signed = false>
+inline T RAN_SUBNORM()
 {
-    (void)fraction_msb_bit;
-    (void)fraction_lsb_bit;
-    return static_cast<T>(0);
+    T denorm_val = static_cast<T>(0);
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, half_float::half>)
+    {
+        using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
+        static_assert(sizeof(T) == sizeof(BitType));
+
+        // -1 because ::digits counts the first implicit digit
+        static constexpr auto mantissa_bits = std::numeric_limits<T>::digits - 1;
+        static constexpr auto mantissa_mask = (1 << mantissa_bits) - 1;
+
+        BitType denorm_bits = GET_RAND() & mantissa_mask;
+        denorm_bits |= Signed ? ((GET_RAND() % 2) << (sizeof(T) * 8 - 1)) : 0;
+
+        // the proper way to do a type punning
+        std::memcpy(&denorm_val, &denorm_bits, sizeof(T));
+    }
+    return denorm_val;
 }
-
-#define SUBNORM_INITIALIZE_FRACTION(msb, lsb, msb_default, lsb_default) \
-    do                                                                  \
-    {                                                                   \
-        if((msb) == 0 && (lsb) == 0)                                    \
-        {                                                               \
-            (msb) = (msb_default);                                      \
-            (lsb) = (lsb_default);                                      \
-        }                                                               \
-        assert((msb) <= (msb_default) && (msb) >= (lsb_default));       \
-        assert((lsb) <= (msb_default) && (lsb) >= (lsb_default));       \
-        assert((lsb) <= (msb));                                         \
-    } while(0)
-
-#define SUBNORM_RANDOM_FRACTION(result, msb, lsb)            \
-    do                                                       \
-    {                                                        \
-        int _bits = (msb) - (lsb);                           \
-        if(_bits == 0)                                       \
-            (result) = 0;                                    \
-        else                                                 \
-            (result) = (GET_RAND() % (1 << _bits)) << (lsb); \
-    } while(0)
-
-template <>
-inline float RAN_SUBNORM(int fraction_msb_bit, int fraction_lsb_bit)
-{
-    uint32_t float32_value;
-    SUBNORM_INITIALIZE_FRACTION(fraction_msb_bit, fraction_lsb_bit, 22, 0);
-    SUBNORM_RANDOM_FRACTION(float32_value, fraction_msb_bit, fraction_lsb_bit);
-    return *(reinterpret_cast<float*>(&float32_value));
-}
-
-template <>
-inline half_float::half RAN_SUBNORM(int fraction_msb_bit, int fraction_lsb_bit)
-{
-    uint16_t float16_value;
-    SUBNORM_INITIALIZE_FRACTION(fraction_msb_bit, fraction_lsb_bit, 9, 0);
-    SUBNORM_RANDOM_FRACTION(float16_value, fraction_msb_bit, fraction_lsb_bit);
-    return *(reinterpret_cast<half_float::half*>(&float16_value));
-}
-
 #endif // GUARD_RANDOM_GEN_
