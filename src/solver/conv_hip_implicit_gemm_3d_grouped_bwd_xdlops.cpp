@@ -214,8 +214,6 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
-    case miopenFloat8:
-    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
