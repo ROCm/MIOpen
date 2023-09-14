@@ -41,6 +41,7 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
+#include <optional>
 
 namespace miopen {
 
