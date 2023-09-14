@@ -4868,6 +4868,82 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
+struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops()
+        : PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DGroupWrwXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DGroupWrwXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
 struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
 {
