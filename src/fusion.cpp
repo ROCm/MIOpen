@@ -677,9 +677,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         if(conv_fwd_algo && miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
             continue;
-        auto id = solver::Id{result.solver_id};
+        const auto id = solver::Id{result.solver_id};
 
-        auto invoker = handle.GetInvoker(network_config, id);
+        const auto invoker = handle.GetInvoker(network_config, id);
 
         if(!invoker)
         {
