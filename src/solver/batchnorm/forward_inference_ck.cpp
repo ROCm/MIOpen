@@ -201,6 +201,8 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
