@@ -306,6 +306,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -350,6 +352,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -422,6 +426,8 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(const ConvolutionContext&
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
     return false;
@@ -457,6 +463,8 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenDouble: break;
             }
         };
