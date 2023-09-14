@@ -34,9 +34,9 @@ namespace miopen {
 
 struct ProblemDescriptionBase
 {
-    ProblemDescriptionBase() = default;
+    ProblemDescriptionBase()                              = default;
     ProblemDescriptionBase(const ProblemDescriptionBase&) = default;
-    virtual ~ProblemDescriptionBase() = default;
+    virtual ~ProblemDescriptionBase()                     = default;
 
     ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
 

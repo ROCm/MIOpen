@@ -168,13 +168,8 @@ BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::ostringstream& networ
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz());
     unsigned int ldsgcn                       = 0;
     unsigned int ldsnogcn                     = 0;
-    calcBNParams(input_desc.GetLengths(),
-                 variant,
-                 in_cstride,
-                 in_nstride,
-                 in_nchw,
-                 ldsgcn,
-                 ldsnogcn);
+    calcBNParams(
+        input_desc.GetLengths(), variant, in_cstride, in_nstride, in_nchw, ldsgcn, ldsnogcn);
 
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
@@ -189,8 +184,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::ostringstream& networ
     return miopenStatusSuccess;
 }
 
-std::vector<size_t>
-BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz()
+std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz()
 {
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
@@ -257,7 +251,6 @@ std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz()
 
 /// BATCH NORMALIZATION training forward start ================
 
-
 void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(std::vector<size_t> in_lens,
                                                        int& variant,
                                                        size_t& in_cstride,
@@ -306,13 +299,8 @@ BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::ostringstream& networ
     size_t zgridsize, ygridsize, xgridsize;
     std::tie(xgridsize, ygridsize, zgridsize) = tien<3>(GetGlobalWGSz());
     unsigned int ldsgcn, ldsnogcn;
-    calcBNParams(input_desc.GetLengths(),
-                 variant,
-                 in_cstride,
-                 in_nstride,
-                 in_nchw,
-                 ldsgcn,
-                 ldsnogcn);
+    calcBNParams(
+        input_desc.GetLengths(), variant, in_cstride, in_nstride, in_nchw, ldsgcn, ldsnogcn);
 
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");

@@ -214,8 +214,7 @@ FindAllGemmSolutions(const miopen::ExecutionContext& ctx,
 }
 
 std::vector<std::pair<std::string, size_t>>
-AllGemmWorkspaceSize(const miopen::ExecutionContext& ctx,
-                     const miopen::ProblemDescription& problem)
+AllGemmWorkspaceSize(const miopen::ExecutionContext& ctx, const miopen::ProblemDescription& problem)
 {
     return GetGemmSolvers().GetWorkspaceSizes(ctx, problem);
 }

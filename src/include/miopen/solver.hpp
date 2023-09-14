@@ -236,7 +236,7 @@ struct ConvTunableSolver : ConvTunableSolverBase
     Search(const ExecutionContext&, const ProblemDescription&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution GetSolution(const ExecutionContext&,
                                      const ProblemDescription&,
-                                     const PerformanceConfig&) const                           = 0;
+                                     const PerformanceConfig&) const                         = 0;
 
     boost::any GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
@@ -304,8 +304,7 @@ struct ConvAsm3x3U final : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceConfigConvAsm3x3U
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm3x3U&) const override;
@@ -399,8 +398,7 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     PerformanceConfigConvAsm1x1U
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1U&) const override;
@@ -483,8 +481,7 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1UV2>(); }
 
     PerformanceConfigConvAsm1x1UV2
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1UV2&) const override;
@@ -947,8 +944,7 @@ struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitG
     }
 
     PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
@@ -970,8 +966,7 @@ struct ConvHipImplicitGemmV4R4Fwd final : ConvTunableSolver<PerformanceImplicitG
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceImplicitGemmV4R4Fwd
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4Fwd&) const override;
@@ -1118,8 +1113,7 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1140,8 +1134,7 @@ struct ConvHipImplicitGemmV4R4WrW final : ConvTunableSolver<PerformanceImplicitG
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceImplicitGemmV4R4WrW
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4WrW&) const override;
@@ -1185,8 +1178,7 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1420,8 +1412,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
@@ -1449,8 +1440,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,
@@ -1481,8 +1471,7 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R5Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R5Xdlops&) const override;
@@ -1504,8 +1493,7 @@ struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitG
     }
 
     PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
@@ -1527,8 +1515,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceImplicitGemmBwdDataV1R1
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV1R1&) const override;
@@ -1575,8 +1562,7 @@ struct ConvMlirIgemmBwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1597,8 +1583,7 @@ struct ConvHipImplicitGemmBwdDataV4R1 final : ConvTunableSolver<PerformanceImpli
 
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     PerformanceImplicitGemmBwdDataV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1&) const override;
@@ -1625,8 +1610,7 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1Xdlops&) const override;
@@ -1655,8 +1639,7 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdV1R1Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdV1R1Xdlops&) const override;
@@ -1911,8 +1894,7 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
     }
 
     PerformanceConfigConvBinWinogradRxS
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvBinWinogradRxS&) const override;
@@ -2079,9 +2061,8 @@ struct ConvMPBidirectWinograd_xdlops final
                              const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
 
 private:
-    ExecutionContext
-    GetTransformedConvContext(const ExecutionContext& ctx,
-                              const ProblemDescription& transformed_problem) const;
+    ExecutionContext GetTransformedConvContext(const ExecutionContext& ctx,
+                                               const ProblemDescription& transformed_problem) const;
     ProblemDescription GetTransformedProblem(const ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification
@@ -2250,8 +2231,7 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
     PerformanceConfigAsmDirect3x3WrW
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const override;
@@ -2390,8 +2370,7 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
     PerformanceConfigConvAsmBwdWrW1x1
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const override;
@@ -2475,8 +2454,7 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     }
 
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const ProblemDescription&,
@@ -2636,8 +2614,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(const ExecutionContext&,
@@ -2721,8 +2698,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(
@@ -2781,8 +2757,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     bool MayNeedWorkspace() const override { return true; }
     bool IsDynamic() const override { return false; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
@@ -2885,8 +2860,7 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -2920,8 +2894,7 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -2955,8 +2928,7 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -2990,8 +2962,7 @@ struct GemmFwdRest final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3045,8 +3016,7 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3080,8 +3050,7 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3117,8 +3086,7 @@ struct GemmBwdRest final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3162,8 +3130,7 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3196,8 +3163,7 @@ struct GemmWrwUniversal final : GemmWrwBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
     {
         return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
     }
@@ -3405,8 +3371,8 @@ struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsm
 
     // Chilrden must provide support for ComputedContainer.
     void HeuristicInit(const ExecutionContext&)                            = delete;
-    bool SetNextValue(const ProblemDescription&)                             = delete;
-    bool IsValidValue() const                                                = delete;
+    bool SetNextValue(const ProblemDescription&)                           = delete;
+    bool IsValidValue() const                                              = delete;
     bool IsValid(const ExecutionContext&, const ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
@@ -3599,8 +3565,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,
@@ -3800,8 +3765,7 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,
@@ -4006,8 +3970,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,
@@ -4190,8 +4153,8 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
 
     // Chilrden must provide support for ComputedContainer.
     void HeuristicInit(const ExecutionContext&)                            = delete;
-    bool SetNextValue(const ProblemDescription&)                             = delete;
-    bool IsValidValue() const                                                = delete;
+    bool SetNextValue(const ProblemDescription&)                           = delete;
+    bool IsValidValue() const                                              = delete;
     bool IsValid(const ExecutionContext&, const ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
@@ -4355,8 +4318,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>();
     }
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,
@@ -4417,8 +4379,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
@@ -4496,8 +4457,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmBwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmBwdXdlops&) const override;
@@ -4565,8 +4525,7 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const ProblemDescription&,
@@ -4635,8 +4594,7 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const ProblemDescription&,

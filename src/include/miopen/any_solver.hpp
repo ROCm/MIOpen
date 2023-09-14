@@ -133,22 +133,22 @@ struct AnySolver
                                        const std::string& params) const    = 0;
         virtual std::vector<ConvSolution>
         GetAllSolutions(const ExecutionContext& ctx, const ProblemDescription& problem) const = 0;
-        virtual bool IsDynamic() const                                                          = 0;
+        virtual bool IsDynamic() const                                                        = 0;
         virtual float GetWti(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const                           = 0;
-        virtual const std::type_info& Type() const                                              = 0;
-        virtual std::string GetSolverDbId() const                                               = 0;
+                             const ProblemDescription& problem) const                         = 0;
+        virtual const std::type_info& Type() const                                            = 0;
+        virtual std::string GetSolverDbId() const                                             = 0;
         virtual ConvSolution FindSolution(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::string& perf_cfg) const                    = 0;
+                                          const std::string& perf_cfg) const                  = 0;
         virtual std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
-                                             PerformanceDb& db) const                           = 0;
+                                             PerformanceDb& db) const                         = 0;
         virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                                        const ProblemDescription& problem) const                = 0;
-        virtual bool MayNeedWorkspace() const                                                   = 0;
+                                        const ProblemDescription& problem) const              = 0;
+        virtual bool MayNeedWorkspace() const                                                 = 0;
     };
 
     // templated derived class
@@ -280,8 +280,7 @@ struct AnySolver
         }
         bool IsTunable() const override { return TunableSolver::Is; }
         bool IsDynamic() const override { return value.IsDynamic(); }
-        float GetWti(const ExecutionContext& ctx,
-                     const ProblemDescription& problem) const override
+        float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
         {
             return value.GetWti(ctx, problem);
         }

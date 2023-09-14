@@ -54,7 +54,8 @@ boost::optional<std::string>& testing_find_db_path_override()
 
 #if MIOPEN_EMBED_DB
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix)
+std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
+                                                       const std::string& path_suffix)
 {
     static const auto embed_path = [&] {
         namespace fs          = boost::filesystem;
@@ -121,7 +122,8 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std
 #else
 
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::string& path_suffix)
+std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
+                                                      const std::string& path_suffix)
 {
     static const auto installed_path = [&] {
         namespace fs          = boost::filesystem;

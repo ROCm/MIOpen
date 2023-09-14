@@ -517,8 +517,7 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
         return false;

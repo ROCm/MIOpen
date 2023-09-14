@@ -166,8 +166,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ExecutionContext&,
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;

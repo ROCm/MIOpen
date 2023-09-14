@@ -90,7 +90,7 @@ struct ExecutionContext
     // performance config.
     bool disable_perfdb_access      = false;
     bool use_dynamic_solutions_only = false;
-    bool is_for_generic_search = false;
+    bool is_for_generic_search      = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }

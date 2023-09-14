@@ -34,7 +34,8 @@ namespace miopen {
 
 struct FusionDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
-    , SQLiteSerializable<FusionDescription>
+    ,
+                           SQLiteSerializable<FusionDescription>
 #endif
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
