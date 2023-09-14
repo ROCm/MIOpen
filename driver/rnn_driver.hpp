@@ -1470,7 +1470,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
         (inflags.GetValueInt("use_padding") == 1) ? miopenRNNIOWithPadding : miopenRNNIONotPadded;
 
     std::vector<Tref> converted_din;
-    std::vector<Tgpu> converted_out;
     std::vector<Tgpu> converted_dout;
 
     if(paddingMode == miopenRNNIOWithPadding)
@@ -1479,16 +1478,13 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
         std::tie(packedXInSize, packedYOutSize) = GetTempPackedBuffersSize(in_n, in_h, out_h);
 
         converted_din.resize(packedXInSize);
-        converted_out.resize(packedYOutSize);
         converted_dout.resize(packedYOutSize);
 
-        ChangeDataPadding(out, converted_out, in_n, in_n[0], out_h, false);
         ChangeDataPadding(dout, converted_dout, in_n, in_n[0], out_h, false);
     }
 
     std::vector<Tref>* din_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_din : &din_host;
-    std::vector<Tgpu>* out_packed = paddingMode == miopenRNNIOWithPadding ? &converted_out : &out;
     std::vector<Tgpu>* dout_packed =
         paddingMode == miopenRNNIOWithPadding ? &converted_dout : &dout;
 
@@ -1501,7 +1497,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        *out_packed,
                                         *dout_packed,
                                         in_n,
                                         in_h,
@@ -1531,7 +1526,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                          dcy,
                                          dcx_host,
                                          cx,
-                                         *out_packed,
                                          *dout_packed,
                                          in_n,
                                          in_h,
@@ -1557,7 +1551,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardDataCPU()
                                         dhy,
                                         dhx_host,
                                         hx,
-                                        *out_packed,
                                         *dout_packed,
                                         in_n,
                                         in_h,

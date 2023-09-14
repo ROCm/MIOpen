@@ -271,7 +271,7 @@ struct dropout_driver : test_driver
     void run()
     {
         miopen::DropoutDescriptor DropoutDesc;
-        unsigned long max_value  = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value       = miopen_type<T>{} == miopenHalf ? 5 : 17;
         auto&& handle            = get_handle();
         auto in                  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         miopenRNGType_t rng_mode = miopenRNGType_t(rng_mode_cmd);

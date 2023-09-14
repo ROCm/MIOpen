@@ -44,21 +44,21 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& pr
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
     // refer to ProblemInterpreter, in bwd most dimension is reversed
-    int hi          = problem.GetOutHeight();
-    int wi          = problem.GetOutWidth();
-    int n           = problem.GetBatchSize();
-    int k           = problem.GetInChannels();
-    int c           = problem.GetOutChannels();
-    int ho          = problem.GetInHeight();
-    int wo          = problem.GetInWidth();
-    int stride_h    = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w    = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h  = problem.GetWeightsHeight() > 1? problem.GetDilationH() : 1;
-    int dilation_w  = problem.GetWeightsWidth() > 1? problem.GetDilationW() : 1;
+    int hi          = problem.GetOutHeight_();
+    int wi          = problem.GetOutWidth_();
+    int n           = problem.GetBatchSize_();
+    int k           = problem.GetInChannels_();
+    int c           = problem.GetOutChannels_();
+    int ho          = problem.GetInHeight_();
+    int wo          = problem.GetInWidth_();
+    int stride_h    = problem.GetInHeight_() > 1 ? problem.GetKernelStrideH() : 1;
+    int stride_w    = problem.GetInWidth_() > 1 ? problem.GetKernelStrideW() : 1;
+    int dilation_h  = problem.GetWeightsHeight_() > 1? problem.GetDilationH() : 1;
+    int dilation_w  = problem.GetWeightsWidth_() > 1? problem.GetDilationW() : 1;
     int pad_h       = problem.GetPadH();
     int pad_w       = problem.GetPadW();
-    int y           = problem.GetWeightsHeight();
-    int x           = problem.GetWeightsWidth();
+    int y           = problem.GetWeightsHeight_();
+    int x           = problem.GetWeightsWidth_();
 
     int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = gcd(stride_w, dilation_w);

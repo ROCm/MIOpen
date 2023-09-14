@@ -2450,6 +2450,37 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
                              const PerformanceConfigAsmDirect3x3WrW& config) const override;
 };
 
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoFuryRxS final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
+    }
+
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
+
+    ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const override;
+
+    static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
+    static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
+};
+
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
+extern template struct ConvWinoFuryRxS<2, 3>;
+// extern template struct ConvWinoFuryRxS<3, 2>;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
@@ -2954,7 +2985,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsDynamic() const override { return true; }
+    bool IsDynamic() const override { return false; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
     GetDefaultPerformanceConfig(const ConvolutionContext&,
                                 const ProblemDescription&) const override;
@@ -3032,7 +3063,7 @@ struct GemmFwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3055,7 +3086,7 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3063,13 +3094,13 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3090,7 +3121,7 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3098,13 +3129,13 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3125,7 +3156,7 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3133,13 +3164,13 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3160,7 +3191,7 @@ struct GemmFwdRest final : GemmFwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3168,13 +3199,13 @@ struct GemmFwdRest final : GemmFwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3192,7 +3223,7 @@ struct GemmBwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3215,7 +3246,7 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3223,13 +3254,13 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3250,7 +3281,7 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3258,13 +3289,13 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3287,7 +3318,7 @@ struct GemmBwdRest final : GemmBwdBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3295,13 +3326,13 @@ struct GemmBwdRest final : GemmBwdBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3319,7 +3350,7 @@ struct GemmWrwBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3340,13 +3371,13 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -3366,7 +3397,7 @@ struct GemmWrwUniversal final : GemmWrwBase
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription& problem) const override
     {
-        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -3374,13 +3405,13 @@ struct GemmWrwUniversal final : GemmWrwBase
     bool IsApplicable(const ConvolutionContext& ctx,
                       const ProblemDescription& problem) const override
     {
-        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const ProblemDescription& problem) const override
     {
-        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
+        return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
 
 private:
@@ -4549,19 +4580,20 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 };
 
 struct PerformanceConfigHipImplicitGemmFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
-    int total_size;
+    int index             = 0;
+    std::string kernel_id = "";
+    std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id), total_size(-1)
+        : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemmFwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemmFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
@@ -4573,11 +4605,6 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
 
 private:
@@ -4610,6 +4637,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
+    /// \anchor igemm_get_wti_magic_number
     // Magic Number Alert:
     // Naive convolutions have GetWti() that return very small value (0.01f).
     // This allows MIOpen to use Naive Solvers if no other applicable Solvers
@@ -4631,19 +4659,20 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
-    int index;
-    std::string kernel_id;
+    int index             = 0;
+    std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmBwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmBwdXdlops() : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemmBwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemmBwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemmBwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
     {
     }
@@ -4655,11 +4684,6 @@ struct PerformanceConfigHipImplicitGemmBwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmBwdXdlops& other) const;
 
 private:
@@ -4692,16 +4716,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConfigHipImplicitGemmBwdXdlops&) const override;
-    // Magic Number Alert:
-    // Naive convolutions have GetWti() that return very small value (0.01f).
-    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
-    // have known WTIs. Right now this means that in case of find-db miss,
-    // the library will try to use Winograd or GEMM (whatever is faster according
-    // to their GetWti's), but if both are not applicable, the library will
-    // use Naive Solver
-    // Since we would like to us CK before naive, and use it instead (because
-    // we do expect that CK is faster than Naive), therefore we use a
-    // value bigger than 0.01f, e.g. 0.02f.
+    /// \ref igemm_get_wti_magic_number
     float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
     {
         return 0.02f;
@@ -4713,20 +4728,20 @@ private:
 };
 
 struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
-    int index;
-    std::string kernel_id;
+    int index             = 0;
+    std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
+
     PerformanceConfigHipImplicitGemmGroupFwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops()
-        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
-    {
-    }
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
+
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
         : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
@@ -4738,11 +4753,6 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         return IsValid(problem);
     }
     bool IsValid(const ProblemDescription&) const;
-    template <typename Self, typename F>
-    static void Visit(Self&& s, F f)
-    {
-        f(s.kernel_id, "kernel_id");
-    }
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
 
 private:
@@ -4776,16 +4786,7 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
-    // Magic Number Alert:
-    // Naive convolutions have GetWti() that return very small value (0.01f).
-    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
-    // have known WTIs. Right now this means that in case of find-db miss,
-    // the library will try to use Winograd or GEMM (whatever is faster according
-    // to their GetWti's), but if both are not applicable, the library will
-    // use Naive Solver
-    // Since we would like to us CK before naive, and use it instead (because
-    // we do expect that CK is faster than Naive), therefore we use a
-    // value bigger than 0.01f, e.g. 0.02f.
+    /// \ref igemm_get_wti_magic_number
     float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
     {
         return 0.02f;
@@ -4796,7 +4797,228 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
-struct AnySolver;
+struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
+{
+    int index             = 0;
+    std::string kernel_id = "";
+    std::vector<std::string> valid_kernels;
+
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    bool operator==(const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DGroupFwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DGroupFwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
+struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops()
+        : PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DGroupWrwXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DGroupWrwXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DGroupWrwXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
+struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops()
+        : PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DGroupBwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DGroupBwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DGroupBwdXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
 
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic
