@@ -347,7 +347,7 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     case miopenDouble:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "ConvHipImplicitGemmWrwXdlops operation not implemented for this data type");
     }
 #endif
     return {};
