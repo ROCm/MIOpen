@@ -15,37 +15,22 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget
 
 #Add gpg keys
-#ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
-#RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
-#
-#RUN wget https://repo.radeon.com/amdgpu-install/5.6/ubuntu/focal/amdgpu-install_5.6.50600-1_all.deb  --no-check-certificate
-#RUN apt-get update && \
-#DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-#    ./amdgpu-install_5.6.50600-1_all.deb
-#
-## Add rocm repository
-#RUN export ROCM_APT_VER=5.6;\
-#echo $ROCM_APT_VER &&\
-#sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
-#sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
-#RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
-#
-#RUN amdgpu-install -y --usecase=rocm --no-dkms
+ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
+RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-#install rocm
-ARG ROCMVERSION='5.7 23'
+RUN wget https://repo.radeon.com/amdgpu-install/.5.7/ubuntu/focal/amdgpu-install_5.7.50700-1_all.deb --no-check-certificate
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    ./amdgpu-install_5.7.50700-1_all.deb
+
 # Add rocm repository
-RUN wget -qO - http://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
-RUN echo "Using Release VERSION: $ROCMVERSION";\
-    sh -c "echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-osdb-20.04-deb/ compute-rocm-rel-${ROCMVERSION} > /etc/apt/sources.list.d/rocm.list" ;\
-    cat  /etc/apt/sources.list.d/rocm.list;
+RUN export ROCM_APT_VER=5.7;\
+echo $ROCM_APT_VER &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/.$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/.apt_$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -f -y --allow-unauthenticated \
-    rocm-dev \
-    rocm-device-libs \
-    rocm-opencl \
-    rocm-opencl-dev \
-    rocm-cmake
+RUN amdgpu-install -y --usecase=rocm --no-dkms
 
 # Install dependencies
 RUN apt-get update && \
