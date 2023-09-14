@@ -445,6 +445,30 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     return rout;
 }
 
+template <typename T, typename Twei, typename Tout>
+tensor<Twei> ref_conv_wrw(const tensor<T>& input,
+                          const tensor<Twei>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rwei = weights;
+    std::fill(rwei.begin(), rwei.end(), 0);
+    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter);
+    if(!gpu_ref_used)
+    {
+        MIOPEN_LOG_W("GPU reference skipped");
+        cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                        input,
+                                        rwei,
+                                        out,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+    }
+    return rwei;
+}
+
 template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
                           const tensor<T>& weights,
