@@ -4,11 +4,6 @@
 #include <miopen/env.hpp>
 #include <iostream>
 #include <random>
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
-#include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED)
 namespace prng {
@@ -34,6 +29,17 @@ inline glibc_gen& get_prng()
     static thread_local glibc_gen gen{get_default_seed()};
     return gen;
 }
+
+template <class, class = void>
+struct has_digits : std::false_type
+{
+};
+
+template <class T>
+struct has_digits<T, std::void_t<decltype(std::numeric_limits<T>::digits)>> : std::true_type
+{
+};
+
 } // namespace details
 
 inline void reset_seed(std::random_device::result_type seed = 0)
@@ -99,7 +105,8 @@ template <typename T, bool Signed = false>
 inline T gen_subnorm()
 {
     T denorm_val = static_cast<T>(0);
-    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, half_float::half>)
+    if constexpr(!std::is_integral_v<T> && !std::is_same_v<T, double> &&
+                 details::has_digits<T>::value)
     {
         using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
         static_assert(sizeof(T) == sizeof(BitType));
