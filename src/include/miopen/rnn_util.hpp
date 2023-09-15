@@ -34,6 +34,12 @@
 
 namespace miopen {
 
+enum rnn_direction
+{
+    Forward  = 0,
+    Backward = 1
+};
+
 #if MIOPEN_BACKEND_HIP
 inline void RNNProfilingBegin(const miopen::Handle& handle,
                               miopen::HipEventPtr& start,
@@ -233,12 +239,9 @@ private:
                              int layers_cnt,
                              int bidirect_mode) const
     {
-        if(bidirect_mode == 0)
-            return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz) +
-                   static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
-                       hidden_vec_sz * static_cast<size_t>(layers_cnt - 1);
-
-        MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz) +
+               static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
+                   hidden_vec_sz * static_cast<size_t>(layers_cnt - 1);
     }
 
 public:
@@ -253,7 +256,8 @@ public:
           x_in_vec_sz(hidden_xinput_size(hidden_vec_sz, 0)),
           bias_cnt(bias_mode),
           matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz)),
-          bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, 0)),
+          bias_start_off(
+              bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, bidirectional)),
           bidirectional(bidirectional),
           wei_stride(wei_stride)
     {
@@ -294,13 +298,14 @@ public:
 
     size_t input_weight_offset(int layer_id) const
     {
-        return hidden_weight_offset(layer_id) + h_vec_sz * wei_stride;
+        return hidden_weight_offset(layer_id, 0) + h_vec_sz * wei_stride;
     }
 
-    size_t hidden_weight_offset(int layer_id) const
+    size_t hidden_weight_offset(int layer_id, int reverse) const
     {
         return in_vec_sz * wei_stride +
-               layer_id * (bidirectional * h_vec_sz + h_vec_sz) * wei_stride;
+               layer_id * (bidirectional * h_vec_sz + h_vec_sz) * wei_stride +
+               reverse * h_vec_sz * h_vec_sz;
     }
 
     size_t input_offset(int layer_id) const
@@ -342,27 +347,29 @@ private:
                                 int layers,
                                 int bidirect_mode = 0) const
     {
-        const auto element_st    = 1;
+        const auto element_st    = bidirect_mode ? 2 : 1;
         const auto save_point_st = element_st * save_point_sz;
         const auto batch_st      = save_point_st;
         const auto layer_st      = static_cast<size_t>(batch_st) * batches_per_layer;
         const auto table_st      = layers * layer_st;
 
-        if(bidirect_mode == 0)
-            return RBuffHelper{element_st, save_point_st, batch_st, layer_st, table_st};
-        MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        return RBuffHelper{element_st, save_point_st, batch_st, layer_st, table_st};
     }
 
 public:
     ReluReserveBufferOffsets(int hidden_vec_sz,
                              int save_point_sz,
                              int layers_cnt,
-                             int batches_per_layer)
+                             int batches_per_layer,
+                             int max_batch,
+                             bool bidirect_mode = 0)
         : h_vec_size(hidden_vec_sz),
           save_point_size(save_point_sz),
           layers(layers_cnt),
           batches_per_layer(batches_per_layer),
-          strides(Reserve_Buffer_strides(save_point_sz, batches_per_layer, layers_cnt, 0))
+          max_batch(max_batch),
+          strides(
+              Reserve_Buffer_strides(save_point_sz, batches_per_layer, layers_cnt, bidirect_mode))
     {
     }
 
@@ -372,6 +379,7 @@ public:
     const int layers;
     const int batches_per_layer;
     const RBuffHelper strides;
+    const int max_batch;
 
     size_t layer_offset(int layer_id) const
     {
@@ -380,7 +388,7 @@ public:
 
     auto layer_stride() const { return strides.layer; }
 
-    auto gemm_write_size() const { return h_vec_size; }
+    auto gemm_write_size() const { return strides.save_point; }
 
     auto gemm_write_stride() const { return strides.batch; }
 
@@ -389,14 +397,16 @@ public:
         return static_cast<size_t>(gemm_write_stride()) * batch_id;
     }
 
-    size_t gemm_write_offset(int layer_id, int batch_id) const
+    size_t gemm_write_offset(int layer_id, int batch_id, int reverse = 0) const
     {
-        return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id;
+        return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id +
+               reverse * h_vec_size;
     }
 
-    size_t ht_offset(int layer_id, int batch_id) const
+    size_t ht_offset(int layer_id, int batch_id, int reverse = 0) const
     {
-        return strides.table + layer_offset(layer_id) + gemm_write_relative_offset(batch_id);
+        return strides.table + layer_offset(layer_id) + gemm_write_relative_offset(batch_id) +
+               reverse * h_vec_size;
     }
 
     size_t ht_offset(int layer_id) const { return strides.table + layer_offset(layer_id); }
@@ -472,7 +482,7 @@ public:
         return static_cast<size_t>(gemm_write_stride()) * batch_id;
     }
 
-    size_t gemm_write_offset(int layer, int batch_id) const
+    size_t gemm_write_offset(int layer, int batch_id, int reverse = 0) const
     {
         return layer_offset(layer) + static_cast<size_t>(gemm_write_stride()) * batch_id;
     }
