@@ -1103,7 +1103,7 @@ void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
     size_t size_need_subnorm = static_cast<size_t>(static_cast<float>(size) * perc);
     std::vector<bool> need_subnorm(size, false);
     std::fill_n(need_subnorm.begin(), std::min(size_need_subnorm, size), true);
-    std::random_shuffle(need_subnorm.begin(), need_subnorm.end(), prng::details::get_prng());
+    std::shuffle(need_subnorm.begin(), need_subnorm.end(), prng::details::get_prng());
     std::transform(need_subnorm.begin(), need_subnorm.end(), buf, buf, [](bool need, auto val) {
         return need ? prng::gen_subnorm<T>() : val;
     });
