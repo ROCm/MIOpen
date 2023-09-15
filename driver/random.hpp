@@ -2,6 +2,11 @@
 #define GUARD_RANDOM_GEN_
 
 #include <random>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 std::minstd_rand& get_minstd_gen()
 {
@@ -29,4 +34,25 @@ inline T RAN_GEN(T A, T B)
     return r;
 }
 
+template <typename T, bool Signed = false>
+inline T RAN_SUBNORM()
+{
+    T denorm_val = static_cast<T>(0);
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, half_float::half>)
+    {
+        using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
+        static_assert(sizeof(T) == sizeof(BitType));
+
+        // -1 because ::digits counts the first implicit digit
+        static constexpr auto mantissa_bits = std::numeric_limits<T>::digits - 1;
+        static constexpr auto mantissa_mask = (1 << mantissa_bits) - 1;
+
+        BitType denorm_bits = GET_RAND() & mantissa_mask;
+        denorm_bits |= Signed ? ((GET_RAND() % 2) << (sizeof(T) * 8 - 1)) : 0;
+
+        // the proper way to do a type punning
+        std::memcpy(&denorm_val, &denorm_bits, sizeof(T));
+    }
+    return denorm_val;
+}
 #endif // GUARD_RANDOM_GEN_

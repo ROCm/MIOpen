@@ -81,6 +81,7 @@ extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDe
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
@@ -1086,6 +1087,24 @@ float16 RanGenWeights()
     return RAN_GEN<float16>(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
 }
 
+template <typename T>
+void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
+{
+    if(percentage == 0)
+        return;
+    float perc               = static_cast<float>(percentage) / 100;
+    size_t size_need_subnorm = static_cast<size_t>(static_cast<float>(size) * perc);
+    std::vector<bool> need_subnorm(size, false);
+    for(size_t i = 0; (i < size_need_subnorm && i < size); i++)
+        need_subnorm[i] = true;
+    std::random_shuffle(need_subnorm.begin(), need_subnorm.end());
+    for(size_t i = 0; i < size; i++)
+    {
+        if(need_subnorm[i])
+            buf[i] = RAN_SUBNORM<T>();
+    }
+}
+
 } // namespace detail
 
 template <typename Tgpu, typename Tref>
@@ -1112,11 +1131,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-    bool is_transform = IsInputTensorTransform();
-    bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
-    size_t in_sz      = GetTensorSize(inputTensor);
-    size_t wei_sz     = GetTensorSize(weightTensor);
-    size_t out_sz     = GetTensorSize(outputTensor);
+    bool is_transform       = IsInputTensorTransform();
+    bool is_int8            = data_type == miopenInt8 || data_type == miopenInt8x4;
+    size_t in_sz            = GetTensorSize(inputTensor);
+    size_t wei_sz           = GetTensorSize(weightTensor);
+    size_t out_sz           = GetTensorSize(outputTensor);
+    auto subnorm_percentage = miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{});
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -1389,6 +1409,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             }
         }
 
+        if(is_wrw)
+            detail::RanGenSubnormBuffer<Tgpu>(dout.data.data(), out_sz, subnorm_percentage);
+
         if(!doutRead)
         {
             for(int i = 0; i < out_sz; i++)
@@ -1431,6 +1454,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     wei.data[i] = Data_scale * detail::RanGenWeights<Tgpu>();
                 else /// \ref move_rand
                     GET_RAND();
+            if(is_fwd || is_bwd)
+                detail::RanGenSubnormBuffer<Tgpu>(wei.data.data(), wei_sz, subnorm_percentage);
         }
     }
 
@@ -3347,7 +3372,9 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     std::cout << "Forward Convolution Verifies OK on " << (UseGPUReference() ? "GPU" : "CPU")
+              << " reference (" << miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{}) << ", "
               << " reference (" << error << ')' << std::endl;
+
     return 0;
 }
 
