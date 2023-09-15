@@ -350,6 +350,8 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
