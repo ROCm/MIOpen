@@ -60,6 +60,8 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
            StartsWith(handle.GetDeviceName(), "gfx1100") ||
            StartsWith(handle.GetDeviceName(), "gfx1101") ||
+           StartsWith(handle.GetDeviceName(), "gfx1200") ||
+           StartsWith(handle.GetDeviceName(), "gfx1201") ||
            StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
@@ -104,6 +106,10 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX1101";
     else if(StartsWith(device_name, "gfx1102"))
         compiler_flag << " -DCK_AMD_GPU_GFX1102";
+    else if(StartsWith(device_name, "gfx1200"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1200";
+    else if(StartsWith(device_name, "gfx1201"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1201";
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
