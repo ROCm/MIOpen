@@ -1366,21 +1366,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             if(!doutFileName.empty())
                 doutRead = readBufferFromFile<Tgpu>(dout.data.data(), out_sz, doutFileName.c_str());
 
-        if(!dataRead)
-        {
-            for(int i = 0; i < in_sz; i++)
-            {
-                if(is_fwd || is_wrw)
-                    in.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                else /// \ref move_rand
-                    GET_RAND();
-            }
-        }
-
-        if(is_wrw)
-            detail::RanGenSubnormBuffer<Tgpu>(dout.data.data(), out_sz, subnorm_percentage);
-
         if(!doutRead)
         {
             for(int i = 0; i < out_sz; i++)
@@ -1395,6 +1380,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     dout.data[i] = val;
             }
         }
+
+        if(is_wrw)
+            detail::RanGenSubnormBuffer<Tgpu>(dout.data.data(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1440,9 +1428,10 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             if(is_fwd || is_bwd)
                 wei.data[i] = w;
         }
-        if(is_fwd || is_bwd)
-            detail::RanGenSubnormBuffer<Tgpu>(wei.data.data(), wei_sz, subnorm_percentage);
     }
+
+    if(is_fwd || is_bwd)
+        detail::RanGenSubnormBuffer<Tgpu>(wei.data.data(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {
