@@ -359,7 +359,7 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
     }
 #endif
     return {};
