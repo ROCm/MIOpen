@@ -134,15 +134,15 @@ public:
     {
     }
 
-    int r_offset() const { return save_point::R * hidden_size; }
+    int r_offset() const { return save_point::R * gemm_write_size(); }
 
-    int z_offset() const { return save_point::Z * hidden_size; }
+    int z_offset() const { return save_point::Z * gemm_write_size(); }
 
-    int c_offset() const { return save_point::С * hidden_size; }
+    int c_offset() const { return save_point::С * gemm_write_size(); }
 
-    int hidden_offset() const { return save_point::Ht * hidden_size; }
+    int hidden_offset() const { return save_point::Ht * gemm_write_size(); }
 
-    size_t batch_offset(int layer_id, int batch_num) const
+    size_t gemm_write_offset(int layer_id, int batch_num) const
     {
         return layer_offset(layer_id) + batch_num * gemm_write_stride();
     }
@@ -151,7 +151,7 @@ public:
 
     int gemm_write_size() const { return hidden_size; }
 
-    int gemm_write_stride() const { return save_point::Count * hidden_size; }
+    int gemm_write_stride() const { return save_point::Count * gemm_write_size(); }
 
     int layer_offset(int layer) const { return layer * layer_stride(); }
 
@@ -392,11 +392,6 @@ public:
 
     auto gemm_write_stride() const { return strides.batch; }
 
-    size_t gemm_write_relative_offset(int batch_id) const
-    {
-        return static_cast<size_t>(gemm_write_stride()) * batch_id;
-    }
-
     size_t gemm_write_offset(int layer_id, int batch_id, int reverse = 0) const
     {
         return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id +
@@ -405,11 +400,11 @@ public:
 
     size_t ht_offset(int layer_id, int batch_id, int reverse = 0) const
     {
-        return strides.table + layer_offset(layer_id) + gemm_write_relative_offset(batch_id) +
+        return strides.table + gemm_write_offset(layer_id, batch_id) +
                reverse * h_vec_size;
     }
 
-    size_t ht_offset(int layer_id) const { return strides.table + layer_offset(layer_id); }
+    size_t ht_offset(int layer_id) const { return strides.table + layer_offset(layer_id);}
 };
 
 struct LSTMReserveBufferHelper
