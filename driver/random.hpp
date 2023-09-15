@@ -4,6 +4,11 @@
 #include <miopen/env.hpp>
 #include <iostream>
 #include <random>
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED)
 namespace prng {
@@ -88,6 +93,27 @@ inline T gen_off_range(T offset, T range)
 {
     static_assert(std::is_integral_v<T>);
     return prng::gen_0_to_B(range) + offset;
+}
+
+template <typename T, bool Signed = false>
+inline T gen_subnorm()
+{
+    T denorm_val = static_cast<T>(0);
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, half_float::half>)
+    {
+        using BitType = std::conditional_t<sizeof(T) == 2, uint16_t, uint32_t>;
+        static_assert(sizeof(T) == sizeof(BitType));
+
+        // -1 because ::digits counts the first implicit digit
+        static constexpr auto mantissa_bits = std::numeric_limits<T>::digits - 1;
+
+        BitType denorm_bits = static_cast<BitType>(gen_0_to_B(1 << mantissa_bits));
+        denorm_bits |= Signed ? (gen_canonical<BitType>() << (sizeof(T) * 8 - 1)) : 0;
+
+        // the proper way to do a type punning
+        std::memcpy(&denorm_val, &denorm_bits, sizeof(T));
+    }
+    return denorm_val;
 }
 } // namespace prng
 #endif // GUARD_RANDOM_GEN_
