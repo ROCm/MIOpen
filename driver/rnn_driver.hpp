@@ -660,8 +660,6 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::string inFileName  = inflags.GetValueStr("in_data");
         std::string weiFileName = inflags.GetValueStr("weights");*/
 
-    // Unless seed is persistent between runs validation using cache stored in file is impossible.
-    srand(0);
     double scale = 0.01;
 
     /*    bool dataRead = false;
@@ -677,19 +675,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
+        in[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
     }
 
     for(int i = 0; i < hy_sz; i++)
     {
-        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+        hx[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
     {
         for(int i = 0; i < hy_sz; i++)
         {
-            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            cx[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
     }
 
@@ -697,22 +695,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] =
-                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            dout[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
 
         for(int i = 0; i < hy_sz; i++)
         {
-            dhy[i] =
-                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+            dhy[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
         }
 
         if((inflags.GetValueStr("mode")) == "lstm")
         {
             for(int i = 0; i < hy_sz; i++)
             {
-                dcy[i] =
-                    static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
+                dcy[i] = static_cast<Tgpu>(prng::gen_0_to_B(scale));
             }
         }
     }
@@ -729,8 +724,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < wei_sz; i++)
     {
-        wei[i] =
-            static_cast<Tgpu>((scale * static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5)));
+        wei[i] = static_cast<Tgpu>(scale * prng::gen_A_to_B(-0.5, 0.5));
     }
 
     if(inflags.GetValueInt("dump_output"))

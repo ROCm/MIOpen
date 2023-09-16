@@ -329,7 +329,7 @@ namespace detail {
 template <typename T>
 T RanGenInput()
 {
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 }
 
 #define FP16IN_NORMAL 1
@@ -342,19 +342,19 @@ float16 RanGenInput()
 {
     using T = float16;
 #if FP16IN_NORMAL
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 #endif
 #if FP16IN_CONST_SMALLEST_NORMALIZED
-    return static_cast<T>(+1.0p-eh) // (6.103515625E-05);
+    return static_cast<T>(+1.0p - eh) // (6.103515625E-05);
 #endif
 #if FP16IN_5VALUES_0_TO_1
-           const int r = GET_RAND() % 5; // values from 0 to 4
-    return static_cast<T>(r * 0.25);     // { 0.0, 0.25, 0.5, 0.75, 1.0 }
+           const int r = prng::gen_0_to_B(4); // values from 0 to 4
+    return static_cast<T>(r * 0.25);          // { 0.0, 0.25, 0.5, 0.75, 1.0 }
 #endif
 #if FP16IN_SPARSE_X
-    if(GET_RAND() % (FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
+    if(prng::gen_0_to_B(FP16IN_SPARSE_X) != 0) // produce 9 zeros in ~ each 10 values
         return static_cast<T>(0.0);
-    return RAN_GEN<T>(static_cast<T>(0.0), static_cast<T>(1.0));
+    return prng::gen_canonical<T>();
 #endif
 }
 } // namespace detail
@@ -412,7 +412,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         Tgpu Data_scale = static_cast<Tgpu>(0.001);
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+            dout[i] =
+                Data_scale * prng::gen_A_to_B(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
         }
 
         if(!dump_root.empty())
