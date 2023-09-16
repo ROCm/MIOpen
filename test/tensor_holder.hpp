@@ -33,6 +33,7 @@
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
+#include "../driver/random.hpp"
 
 #include "serialize.hpp"
 
@@ -216,7 +217,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -238,7 +239,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {
