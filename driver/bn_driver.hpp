@@ -433,10 +433,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                saveMean_host[i] = saveMean[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-                saveInvVariance_host[i] = saveInvVariance[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+                saveMean[i]             = prng::gen_canonical<Tmix>();
+                saveMean_host[i]        = static_cast<Tref>(saveMean[i]);
+                saveInvVariance[i]      = prng::gen_canonical<Tmix>();
+                saveInvVariance_host[i] = static_cast<Tref>(saveInvVariance[i]);
             }
         }
         else
@@ -498,9 +498,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                runningMean[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
-                runningMean_host[i] = static_cast<Tref>(runningMean[i]);
-                runningVariance[i]  = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+                runningMean[i]          = prng::gen_canonical<Tmix>();
+                runningMean_host[i]     = static_cast<Tref>(runningMean[i]);
+                runningVariance[i]      = prng::gen_canonical<Tmix>();
                 runningVariance_host[i] = static_cast<Tref>(runningVariance[i]);
             }
         }
@@ -571,16 +571,16 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
         // Data initialization
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
+            in[i] = prng::gen_canonical<Tgpu>();
         }
         status |= in_dev->ToGPU(q, in.data());
 
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            scale[i]      = prng::gen_canonical<Tmix>();
             scale_host[i] = static_cast<Tref>(scale[i]);
-            bias[i]       = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            bias[i]       = prng::gen_canonical<Tmix>();
             bias_host[i]  = static_cast<Tref>(bias[i]);
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -627,7 +627,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
         // Populate
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
+            scale[i] = prng::gen_canonical<Tmix>();
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= dscale_dev->ToGPU(q, dscale.data());
@@ -635,8 +635,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 
         for(int i = 0; i < in_sz; i++)
         {
-            dyin[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            in[i]   = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            dyin[i] = prng::gen_canonical<Tgpu>();
+            in[i]   = prng::gen_canonical<Tgpu>();
         }
         status |= dyin_dev->ToGPU(q, dyin.data());
         status |= in_dev->ToGPU(q, in.data());

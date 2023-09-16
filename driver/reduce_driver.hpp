@@ -352,7 +352,7 @@ int ReduceDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_nelem; i++)
         {
-            in[i] = RAN_GEN<Tgpu>(convert_type<Tgpu>(0.0f), convert_type<Tgpu>(1.0f));
+            in[i] = prng::gen_canonical<Tgpu>();
         };
     };
 

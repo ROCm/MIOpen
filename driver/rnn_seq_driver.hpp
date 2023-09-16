@@ -952,7 +952,7 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
         for(size_t it = 0; it < dst_sz; it++)
-            dst[it] = RAN_GEN<Tgpu>(static_cast<Tgpu>(range_l), static_cast<Tgpu>(range_r));
+            dst[it] = prng::gen_A_to_B(static_cast<Tgpu>(range_l), static_cast<Tgpu>(range_r));
     };
 
     const double scale = 0.01;
