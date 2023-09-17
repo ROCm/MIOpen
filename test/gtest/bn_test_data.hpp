@@ -168,7 +168,7 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
     tensor<MeanVarDataType> estMean;
     tensor<MeanVarDataType> estVariance;
     miopen::Allocator::ManageDataPtr scale_dev;
-    miopen::Allocator::ManageDataPtr shift_dev; // bias
+    miopen::Allocator::ManageDataPtr shift_dev;
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     double epsilon          = 1.0e-5;

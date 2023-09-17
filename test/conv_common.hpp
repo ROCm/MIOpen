@@ -445,6 +445,30 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     return rout;
 }
 
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_bwd(const tensor<T>& input,
+                          const tensor<T>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rin = input;
+    std::fill(rin.begin(), rin.end(), 0);
+    bool gpu_ref_used = gpu_ref_convolution_bwd(rin, weights, out, filter);
+    if(!gpu_ref_used)
+    {
+        MIOPEN_LOG_W("GPU reference skipped");
+        cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                      rin,
+                                      weights,
+                                      out,
+                                      filter.GetConvPads(),
+                                      filter.GetConvStrides(),
+                                      filter.GetConvDilations(),
+                                      filter.GetGroupCount());
+    }
+    return rin;
+}
+
 // Mainline convolution tests
 //========================================
 template <ConvApi api, class T, class Tout = T>
