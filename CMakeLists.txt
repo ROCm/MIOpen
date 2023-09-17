@@ -682,6 +682,7 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-capture-default-when-capturing-this
         -cppcoreguidelines-rvalue-reference-param-not-moved
         -readability-avoid-unconditional-preprocessor-if
+        -bugprone-lambda-function-name
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER

@@ -26,8 +26,8 @@
 #pragma once
 
 #include <miopen/miopen.h>
-#include <miopen/bfloat16.hpp>
 #include <gtest/gtest.h>
+
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
 
@@ -112,18 +112,13 @@ protected:
                                          bn_bwd_test_data.in_dev.get(),
                                          &bn_bwd_test_data.dy.desc,
                                          bn_bwd_test_data.dy_dev.get(),
-
                                          &bn_bwd_test_data.output.desc,
                                          bn_bwd_test_data.out_dev.get(),
-
                                          &bn_bwd_test_data.bnScale.desc,
                                          bn_bwd_test_data.bnScale_dev.get(),
-
                                          bn_bwd_test_data.dScale_dev.get(),
                                          bn_bwd_test_data.dBias_dev.get(),
-
                                          bn_bwd_test_data.epsilon,
-
                                          bn_bwd_test_data.savedMean_dev.get(),
                                          bn_bwd_test_data.savedInvVar_dev.get());
 
