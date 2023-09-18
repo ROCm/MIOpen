@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include <functional>
+#include <numeric>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
@@ -310,6 +312,26 @@ static std::string miopen_type_to_string(miopenDataType_t type)
     return "n/a";
 }
 
+// input: a vector of lengths of dims in a tensor
+// multiply each element with a random constant integer
+void pad_tensor_strides(std::vector<int>& strides) {
+  auto pvec = [] (const char* name, const auto& vec) {
+    std::cout << name << ": [";
+    for (const auto& v: vec) {
+      std::cout << v << ", ";
+    }
+    std::cout << "]\n";
+  };
+
+  pvec("orig strides", strides);
+  auto c = prng::gen_A_to_B(1, 3);
+  // int c = 2;
+  for (auto& v: strides) {
+    v = v * c; 
+  }
+  pvec("new strides", strides);
+}
+
 template <miopen::conv::Direction direction,
           typename TRef,
           typename Tout,
@@ -341,11 +363,11 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             int ho          = conv_out_size(hi, py, dy, fy, sy);
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int c_per_group = c / g;
-            int k_per_group = k / g;
+            // int k_per_group = k / g;
 
-            int in_sz  = g * n * c_per_group * hi * wi;
-            int wei_sz = g * k_per_group * c_per_group * fy * fx;
-            int out_sz = g * n * k_per_group * ho * wo;
+            // int in_sz  = g * n * c_per_group * hi * wi;
+            // int wei_sz = g * k_per_group * c_per_group * fy * fx;
+            // int out_sz = g * n * k_per_group * ho * wo;
 
             std::vector<int> in_len({n, c, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fy, fx});
@@ -362,9 +384,18 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
             miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
+            pad_tensor_strides(in_strides);
+            pad_tensor_strides(wei_strides);
+            pad_tensor_strides(out_strides);
+
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
+
+            auto in_sz = in.data.size();
+            auto wei_sz = wei.data.size();
+            auto out_sz = out.data.size();
+
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -447,6 +478,13 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(out_dev,
+                                 out.data.data(),
+                                 sizeof(Tout) * out_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
@@ -518,9 +556,16 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(in_dev,
+                                 in.data.data(),
+                                 sizeof(TRef) * in_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
@@ -600,9 +645,16 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(wei_dev,
+                                 wei.data.data(),
+                                 sizeof(TRef) * wei_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
@@ -719,11 +771,11 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int do_         = conv_out_size(di, pz, dz, fz, sz);
             int c_per_group = c / g;
-            int k_per_group = k / g;
+            // int k_per_group = k / g;
 
-            int in_sz  = g * n * c_per_group * di * hi * wi;
-            int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
-            int out_sz = g * n * k_per_group * do_ * ho * wo;
+            // int in_sz  = g * n * c_per_group * di * hi * wi;
+            // int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
+            // int out_sz = g * n * k_per_group * do_ * ho * wo;
 
             std::vector<int> in_len({n, c, di, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fz, fy, fx});
@@ -740,9 +792,18 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
             miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
+            pad_tensor_strides(in_strides);
+            pad_tensor_strides(wei_strides);
+            pad_tensor_strides(out_strides);
+
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
+
+            auto in_sz = in.data.size();
+            auto wei_sz = wei.data.size();
+            auto out_sz = out.data.size();
+
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -821,6 +882,13 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(out_dev,
+                                 out.data.data(),
+                                 sizeof(Tout) * out_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
@@ -898,9 +966,15 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(
+                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
+                       hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
@@ -980,9 +1054,16 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                // TODO(Amber): copy output before computation because output may
+                // be not be packed, and convolution may update only a subset of
+                // indices
+                EXPECT(hipMemcpy(wei_dev,
+                                 wei.data.data(),
+                                 sizeof(TRef) * wei_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
