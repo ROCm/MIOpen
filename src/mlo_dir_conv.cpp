@@ -124,6 +124,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::conv::ConvHipImplicitGemmBwdXdlops,
         miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
         miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops,
+        miopen::solver::ConvHipImplicitGemm3DGroupBwdXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
@@ -159,7 +160,10 @@ static auto GetImplicitGemmWrWSolvers()
         miopen::solver::conv::ConvMlirIgemmWrWXdlops,
         miopen::solver::conv::ConvMlirIgemmWrW,
         miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlops,
-        miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC>{};
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+        miopen::solver::ConvHipImplicitGemm3DGroupWrwXdlops,
+#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC>{};
 }
 
 static auto GetWindogradWrWSolvers()
