@@ -224,13 +224,13 @@ int TensorOpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < sz; ++i)
     {
-        a[i]       = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+        a[i]       = prng::gen_A_to_B(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
         a_verif[i] = a[i];
         if(!is_set && !is_scale)
         {
-            b[i]       = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            b[i]       = prng::gen_A_to_B(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
             b_verif[i] = b[i];
-            c[i]       = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            c[i]       = prng::gen_A_to_B(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
             c_verif[i] = c[i];
         }
     }
