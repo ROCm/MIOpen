@@ -4873,8 +4873,6 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
-} // namespace conv
-
 struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
     : PerfConfigBase<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
 {
@@ -5026,6 +5024,8 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
+
+} // namespace conv
 
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic

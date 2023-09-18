@@ -31,6 +31,7 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
@@ -112,5 +113,6 @@ ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::st
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -39,6 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -303,7 +304,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is3d())
         return false;
@@ -335,13 +336,13 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return InitInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+        return InitInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return InitInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
     case miopenInt8x4:
@@ -355,5 +356,6 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     return {};
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -80,7 +80,7 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvBwdSolverTest3D, CKGroupConvBwd3D)
 {
-    SolverBwd<miopen::solver::ConvHipImplicitGemm3DGroupBwdXdlops>(input.desc,
+    SolverBwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(input.desc,
                                                                    in_dev.get(),
                                                                    weights.desc,
                                                                    wei_dev.get(),
