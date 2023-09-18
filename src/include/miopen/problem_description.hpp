@@ -38,6 +38,8 @@
 #include <cstdint>
 #include <string>
 
+#define FIN_OLD_PROBLEM_DESCRIPTION_COMPAT 1
+
 namespace miopen {
 
 // Tensor Helper APIs
@@ -63,73 +65,8 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 struct ConvolutionDescriptor;
 
 // Todo: change all uses in convolution to conv::ProblemDescription and remove this
-struct ProblemDescription
-#if MIOPEN_ENABLE_SQLITE
-    : SQLiteSerializable<ProblemDescription>
-#endif
+struct ProblemDescription : conv::ProblemDescription
 {
-    conv::ProblemDescription conv_problem;
-
-    int GetSpatialDims() const { return conv_problem.GetSpatialDims(); }
-    int GetInChannels() const { return conv_problem.GetInChannels(); }
-    int GetInHeight() const { return conv_problem.GetInHeight(); }
-    int GetInWidth() const { return conv_problem.GetInWidth(); }
-    int GetInDepth() const { return conv_problem.GetInDepth(); }
-    int GetVectorLength() const { return conv_problem.GetVectorLength(); }
-    int GetWeightsHeight() const { return conv_problem.GetWeightsHeight(); }
-    int GetWeightsWidth() const { return conv_problem.GetWeightsWidth(); }
-    int GetWeightsDepth() const { return conv_problem.GetWeightsDepth(); }
-    int GetOutChannels() const { return conv_problem.GetOutChannels(); }
-    int GetOutHeight() const { return conv_problem.GetOutHeight(); }
-    int GetOutWidth() const { return conv_problem.GetOutWidth(); }
-    int GetOutDepth() const { return conv_problem.GetOutDepth(); }
-    int GetBatchSize() const { return conv_problem.GetBatchSize(); }
-    int GetPadH() const { return conv_problem.GetPadH(); }
-    int GetPadW() const { return conv_problem.GetPadW(); }
-    int GetPadD() const { return conv_problem.GetPadD(); }
-    int GetKernelStrideH() const { return conv_problem.GetKernelStrideH(); }
-    int GetKernelStrideW() const { return conv_problem.GetKernelStrideW(); }
-    int GetKernelStrideD() const { return conv_problem.GetKernelStrideD(); }
-    int GetDilationH() const { return conv_problem.GetDilationH(); }
-    int GetDilationW() const { return conv_problem.GetDilationW(); }
-    int GetDilationD() const { return conv_problem.GetDilationD(); }
-    int GetBias() const { return conv_problem.GetBias(); }
-    std::string GetInLayout() const { return conv_problem.GetInLayout(); }
-    std::string GetWeightsLayout() const { return conv_problem.GetWeightsLayout(); }
-    std::string GetOutLayout() const { return conv_problem.GetOutLayout(); }
-    miopenDataType_t GetInDataType() const { return conv_problem.GetInDataType(); }
-    miopenDataType_t GetWeightsDataType() const { return conv_problem.GetWeightsDataType(); }
-    miopenDataType_t GetOutDataType() const { return conv_problem.GetOutDataType(); }
-    size_t GetInSize() const { return conv_problem.GetInSize(); }
-    size_t GetOutSize() const { return conv_problem.GetOutSize(); }
-    size_t GetWeightsSize() const { return conv_problem.GetWeightsSize(); }
-    size_t GetBiasSize() const { return conv_problem.GetBiasSize(); }
-    int GetInStride() const { return conv_problem.GetInStrideH(); }
-    int GetOutStride() const { return conv_problem.GetOutStrideH(); }
-    int GetInChannelStride() const { return conv_problem.GetInChannelStride(); }
-    int GetInBatchStride() const { return conv_problem.GetInBatchStride(); }
-    int GetOutChannelStride() const { return conv_problem.GetOutChannelStride(); }
-    int GetOutBatchStride() const { return conv_problem.GetOutBatchStride(); }
-    int GetGroupCount() const { return conv_problem.GetGroupCount(); }
-
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return conv::ProblemDescription::table_name(); }
-#endif
-
-    bool IsLayoutDefault() const;
-
-    bool IsLayoutNHWC() const;
-
-    bool IsLayoutNCHWc() const;
-
-#if MIOPEN_ENABLE_SQLITE
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        conv::ProblemDescription::Visit(self, f);
-    }
-#endif
-
     struct Direction
     {
     public:
@@ -146,43 +83,20 @@ struct ProblemDescription
         conv::Direction v = conv::Direction::Forward;
     } direction;
 
-    std::string GetDirectionStr() const { return direction.GetStr(); }
-
-    int GetBackwardPadW() const { return conv_problem.GetBackwardPadW(); }
-    int GetBackwardPadH() const { return conv_problem.GetBackwardPadH(); }
-
-    bool IsAsymmetricPadH() const { return conv_problem.IsAsymmetricPadH(); }
-    bool IsAsymmetricPadW() const { return conv_problem.IsAsymmetricPadW(); }
-
-    bool Is2d() const { return conv_problem.Is2d(); }
-    bool Is3d() const { return conv_problem.Is3d(); }
-
-    bool IsFp32() const { return conv_problem.IsFp32(); }
-    bool IsFp16() const { return conv_problem.IsFp16(); }
-    bool IsBfp16() const { return conv_problem.IsBfp16(); }
-    bool IsInt8() const { return conv_problem.IsInt8(); }
-
-    bool IsNCHWc_NCHWc() const { return conv_problem.IsNCHWc_NCHWc(); }
-
-    bool IsNCHWc_CHWNc() const { return conv_problem.IsNCHWc_CHWNc(); }
-
     ProblemDescription() = default;
 
     ProblemDescription(conv::ProblemDescription desc);
 
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
+    struct
     {
-        obj.Serialize(os);
-        return os;
-    }
+        void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
 
-    void BuildConfKey(std::string& conf_key) const;
-
-    NetworkConfig BuildConfKey() const { return conv_problem.BuildConfKey(); }
-
-    void SetupFloats(ExecutionContext& ctx) const { conv_problem.SetupFloats(ctx); };
+    private:
+        const conv::ProblemDescription* p = nullptr;
+        friend struct ProblemDescription;
+    } conv_problem;
+#endif
 };
 
 // For mlo_construct_base
@@ -387,19 +301,19 @@ struct UnifiedDescriptionConv2d
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
 
-        const auto n_inputs_per_group  = problem.GetInChannels() / problem.GetGroupCount();
-        const auto n_outputs_per_group = problem.GetOutChannels() / problem.GetGroupCount();
+        const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount();
+        const auto n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
         if(!problem.direction.IsBackwardWrW())
         {
-            R     = problem.GetWeightsHeight();
-            S     = problem.GetWeightsWidth();
+            R     = problem.GetWeightsHeight_();
+            S     = problem.GetWeightsWidth_();
             U     = problem.direction.IsForward() ? problem.GetKernelStrideH() : 1;
             V     = problem.direction.IsForward() ? problem.GetKernelStrideW() : 1;
-            C     = n_inputs_per_group;     // Bwd: C and K is reversed in ProblemDescription.
-            K     = n_outputs_per_group;    // Ditto.
-            out_h = problem.GetOutHeight(); // Bwd: height/width is reversed in ProblemDescription.
-            out_w = problem.GetOutWidth();  // Ditto.
-            N     = problem.GetBatchSize();
+            C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
+            K     = n_outputs_per_group;     // Ditto.
+            out_h = problem.GetOutHeight_(); // Bwd: height/width is reversed in ProblemDescription.
+            out_w = problem.GetOutWidth_();  // Ditto.
+            N     = problem.GetBatchSize_();
             pad_h = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
             pad_w = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
             input_stride_h  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideH();
@@ -409,14 +323,14 @@ struct UnifiedDescriptionConv2d
         }
         else
         { // WrW
-            R               = problem.GetInHeight();
-            S               = problem.GetInWidth();
+            R               = problem.GetInHeight_();
+            S               = problem.GetInWidth_();
             U               = problem.GetDilationH();
             V               = problem.GetDilationW();
-            C               = problem.GetBatchSize();
+            C               = problem.GetBatchSize_();
             K               = n_inputs_per_group;
-            out_h           = problem.GetWeightsHeight();
-            out_w           = problem.GetWeightsWidth();
+            out_h           = problem.GetWeightsHeight_();
+            out_w           = problem.GetWeightsWidth_();
             N               = n_outputs_per_group;
             pad_h           = problem.GetPadH();
             pad_w           = problem.GetPadW();

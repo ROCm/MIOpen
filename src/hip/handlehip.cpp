@@ -61,6 +61,10 @@
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
     (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
 
+/// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
+/// Brute-force W/A: return fixed values.
+#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
@@ -72,10 +76,26 @@ void toCallHipInit() __attribute__((constructor(1000)));
 void toCallHipInit() { hipInit(0); }
 #endif
 
+hipError_t hip_mem_get_info_wrapper(std::size_t* const free, std::size_t* const total)
+{
+#if WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X
+    const auto status = hipMemGetInfo(free, total);
+    if(status == hipSuccess)
+        return status;
+    MIOPEN_LOG_W("hipMemGetInfo error, status: " << status);
+    assert(free != nullptr && total != nullptr);
+    *free  = 16ULL * 1024 * 1024 * 1024; // 16 GiB
+    *total = *free;
+    return hipSuccess;
+#else
+    return hipMemGetInfo(free, total);
+#endif
+}
+
 std::size_t GetAvailableMemory()
 {
     size_t free, total;
-    auto status = hipMemGetInfo(&free, &total);
+    auto status = hip_mem_get_info_wrapper(&free, &total);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
     return free;
@@ -289,7 +309,7 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     this->impl->device      = set_default_device();
     this->impl->root_stream = impl->create_stream();
 #else
-    this->impl->device = get_device_id();
+    this->impl->device      = get_device_id();
     this->impl->root_stream = HandleImpl::reference_stream(nullptr);
 #endif
     auto root_stream = this->impl->root_stream.get();
@@ -484,17 +504,35 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
+    std::string arch_name = this->GetTargetProperties().Name();
+
+    std::string orig_params = params; // make a copy for target ID fallback
 
     if(!miopen::EndsWith(program_name, ".mlir"))
-    {
-        params += " -mcpu=" + this->GetTargetProperties().Name();
-    }
+        params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,
                                     params,
                                     is_kernel_str);
+    if(hsaco.empty())
+    {
+        const auto arch_target_id = miopen::SplitDelim(arch_name, ':');
+        if(arch_target_id.size() > 1)
+        {
+            // The target name has target ID in there, fall back on the generic code object
+            const auto base_arch = arch_target_id.at(0);
+            hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
+                                       this->GetMaxComputeUnits(),
+                                       program_name,
+                                       orig_params + " -mcpu=" + base_arch,
+                                       is_kernel_str);
+        }
+    }
+
+    // Still unable to find the object, build it with the available compiler possibly a target ID
+    // specific code object
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -640,7 +678,7 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     if(m_MaxMemoryAllocSizeCached == 0)
     {
         size_t free, total;
-        auto status = hipMemGetInfo(&free, &total);
+        auto status = hip_mem_get_info_wrapper(&free, &total);
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
         m_MaxMemoryAllocSizeCached = floor(total * 0.85);

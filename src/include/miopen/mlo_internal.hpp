@@ -178,9 +178,6 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
     x.mloConstruct();
 }
 
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
-                     const miopen::ProblemDescription& problem);
-
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
                      const miopen::ProblemDescription& problem,

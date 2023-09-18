@@ -124,7 +124,7 @@ def cmake_build(Map conf=[:]){
         def fin_build_cmd = cmake_fin_build_cmd(miopen_install_path)
         cmd += """
             export RETDIR=\$PWD
-            cd ${env.WORKSPACE}/fin 
+            cd ${env.WORKSPACE}/fin
             ${fin_build_cmd}
             cd \$RETDIR
         """
@@ -147,9 +147,9 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_fin_build_cmd(prefixpath){
-    def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
+    def flags = "-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release"
     def compiler = 'clang++'
-    def config_targets = "all"
+    def config_targets = "install"
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
     def configargs = ""
     if (prefixpath != "")
@@ -191,7 +191,7 @@ def getDockerImage(Map conf=[:])
 {
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101;gfx1102" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def gpu_arch = "gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
@@ -203,7 +203,7 @@ def getDockerImage(Map conf=[:])
         {
             echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
         }
-        else 
+        else
         {
             echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
         }
@@ -230,7 +230,7 @@ def getDockerImage(Map conf=[:])
         dockerImage = docker.build("${image}", "${dockerArgs} .")
         withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
             dockerImage.push()
-        }        
+        }
     }
     return [dockerImage, image]
 }
@@ -375,14 +375,17 @@ def RunPerfTest(Map conf=[:]){
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
-        archiveArtifacts "pdb_valid_err.json"
-        sh "grep clear pdb_valid_err.json"
-        def has_error = sh (
-            script: "echo \$?",
-            returnStdout: true
-        ).trim()
-        assert has_error.toInteger() == 0
+        dir(path: "$WORKSPACE"){
+            sh "ls install/bin/"
+            sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
+            archiveArtifacts "pdb_valid_err.json"
+            sh "grep clear pdb_valid_err.json"
+            def has_error = sh (
+                script: "echo \$?",
+                returnStdout: true
+            ).trim()
+            assert has_error.toInteger() == 0
+        }
     }
 }
 
@@ -589,13 +592,11 @@ pipeline {
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
+                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
-                        //temporarily disabled
-                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
-                        echo "skip perf db valid check"
+                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
@@ -622,7 +623,7 @@ pipeline {
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -635,7 +636,7 @@ pipeline {
                 stage('Fp32 Hip Debug AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -681,7 +682,7 @@ pipeline {
                 stage('Fp32 Hip Debug NOCOMGR AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -714,7 +715,7 @@ pipeline {
                 stage('Fp32 Hip Static AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -727,7 +728,7 @@ pipeline {
                 stage('Fp32 Hip Normal-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -744,7 +745,7 @@ pipeline {
                 stage('Fp32 Hip Fast-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -761,7 +762,7 @@ pipeline {
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
                     }
                     options {
                         retry(2)
@@ -917,7 +918,7 @@ pipeline {
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
                     }
                 }
                 stage('Fp32 Hip All gfx908') {

@@ -285,7 +285,7 @@ private:
 };
 
 template <class TElement>
-constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
+constexpr auto GetNCDHW(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     if(spatial_dims == 3)
         return miopen::tien<5>(data, 1);
