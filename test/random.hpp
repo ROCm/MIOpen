@@ -26,24 +26,19 @@
 #ifndef GUARD_MIOPEN_TEST_RANDOM_HPP
 #define GUARD_MIOPEN_TEST_RANDOM_HPP
 
-#include <cstdlib>
+#include "../driver/random.hpp"
 
-// template <typename T>
-// static T FRAND(void)
-//{
-//    double d = static_cast<double>(rand() / (static_cast<double>(RAND_MAX)));
-//    return static_cast<T>(d);
-//}
-
-/// Basically, this is a copy of driver/random.hpp. Why:
-/// We want to have the same functionality as implemented in driver/random.hpp,
-/// But we want this functionality to be independent, so changes in tests won't affect the driver
-/// and vice versa. This independency could be important, because, for example, the driver
-/// implements its own cache of verification data and change or GET_RAND() would break it.
-
-static int GET_RAND()
+namespace prng {
+template <typename T>
+inline T gen_descreet_uniform_sign(T scale, int32_t range)
 {
-    return rand(); // NOLINT (concurrency-mt-unsafe)
+    return (gen_canonical<int>() ? -scale : scale) * static_cast<T>(gen_0_to_B(range));
 }
 
-#endif
+template <typename T>
+inline T gen_descreet_unsigned(T scale, int32_t range)
+{
+    return scale * static_cast<T>(gen_0_to_B(range));
+}
+} // namespace prng
+#endif // GUARD_MIOPEN_TEST_RANDOM_HPP
