@@ -8,7 +8,7 @@ find_package(rocblas)
 
 set(SOURCES)
 list(APPEND SOURCES
-    log_test_helper.cpp
+    log.cpp
     platform.cpp
     )
 
