@@ -45,14 +45,14 @@ inline HipEventPtr make_hip_event()
     return HipEventPtr{result};
 }
 
-#if 1
+#if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
-#if 1
+#if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 template <class T, class U>
 struct KernelArgsPair
 {
     static const int alignment    = sizeof(U);
-    static const int padding      = (alignment - (sizeof(T) % alignment)) % alignment;
+    static const int padding      = (alignment - sizeof(T) % alignment) % alignment;
     static const int second_index = sizeof(T) + padding;
 
     KernelArgsPair(T x, U y)

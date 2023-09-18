@@ -393,7 +393,10 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
             MIOPEN_LOG_I(filename + " database invalid");
         return;
     }
-    ProblemDescriptionCompatTemporary prob_desc{};
+
+    const TensorDescriptor td = {miopenFloat, {1, 1, 1, 1}};
+    const conv::ProblemDescription prob_desc{td, td, td, {}, conv::Direction::Forward};
+
     if(!is_system)
     {
         SQLite::result_type res;

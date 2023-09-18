@@ -50,9 +50,9 @@ __device__ T miopenMin(T a, T b)
 
 #ifdef USE_1D_TENSOR_GENERIC
 // N
-extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* __restrict__ a,
-                                             const MIOPEN_TYPE* __restrict__ b,
-                                             MIOPEN_TYPE* __restrict__ c,
+extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* a,
+                                             const MIOPEN_TYPE* b,
+                                             MIOPEN_TYPE* c,
                                              const uint64_t Aoffset,
                                              const uint64_t Boffset,
                                              const uint64_t Coffset,
@@ -65,9 +65,9 @@ extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* __restrict__ a,
                                              const uint32_t total_work,
                                              const bool use_beta)
 {
-    const MIOPEN_TYPE* __restrict__ a_off = a + Aoffset;
-    const MIOPEN_TYPE* __restrict__ b_off = b + Boffset;
-    MIOPEN_TYPE* __restrict__ c_off       = c + Coffset;
+    const MIOPEN_TYPE* a_off = a + Aoffset;
+    const MIOPEN_TYPE* b_off = b + Boffset;
+    MIOPEN_TYPE* c_off       = c + Coffset;
 
     const auto gid = blockIdx.x * blockDim.x + threadIdx.x;
     auto a_ptr     = a_off + gid * a_nstride;

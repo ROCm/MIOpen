@@ -74,7 +74,7 @@ struct MlirConvArgs
 #endif
 
 #if MIIR_BARE_POINTER_ABI
-void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
+void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,
@@ -83,7 +83,7 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
                             std::vector<size_t>& out_strides)
 {
     // The bare pointer ABI doesn't require this info, so this is a noop.
-    (void)conv_problem;
+    (void)problem;
     (void)in_dims;
     (void)in_strides;
     (void)weights_dims;
@@ -156,7 +156,7 @@ void InsertGToDimsStrides(const std::string& layout,
     strides.insert(strides.begin() + index, strides[index] * dims[index + 1]);
 }
 
-void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
+void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,
@@ -164,13 +164,13 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
                             std::vector<size_t>& out_dims,
                             std::vector<size_t>& out_strides)
 {
-    auto group_count = conv_problem.GetGroupCount();
+    auto group_count = problem.GetGroupCount();
 
     TensorDescriptor in;
-    if(conv_problem.GetDirection() == conv::Direction::Forward)
-        in = conv_problem.GetIn();
+    if(problem.GetDirection() == conv::Direction::Forward)
+        in = problem.GetIn();
     else
-        in = conv_problem.GetOut();
+        in = problem.GetOut();
 
     in_dims    = in.GetLengths();
     in_strides = in.GetStrides();
@@ -179,7 +179,7 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
     InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
 
     // Add a virtual group dimension before output channel.
-    const TensorDescriptor& weights = conv_problem.GetWeights();
+    const TensorDescriptor& weights = problem.GetWeights();
     weights_dims                    = weights.GetLengths();
     weights_strides                 = weights.GetStrides();
     PermuteDimsStrides(weights_dims, weights_strides);
@@ -187,10 +187,10 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
         weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
 
     TensorDescriptor out;
-    if(conv_problem.GetDirection() == conv::Direction::Forward)
-        out = conv_problem.GetOut();
+    if(problem.GetDirection() == conv::Direction::Forward)
+        out = problem.GetOut();
     else
-        out = conv_problem.GetIn();
+        out = problem.GetIn();
 
     out_dims    = out.GetLengths();
     out_strides = out.GetStrides();
@@ -295,28 +295,22 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem.conv_problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
 
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
-    const auto& conv             = problem.conv_problem.GetConv();
+    const auto& conv             = problem.GetConv();
     const auto& lowp_quant       = conv.lowp_quant;
-    const auto& outDesc          = problem.conv_problem.GetOut();
+    const auto& outDesc          = problem.GetOut();
     TensorDescriptor outConvDesc = outDesc;
     // outConvDesc is only functional when this is a int8 convolution. It allows the output type to
     // be cast to a different than int32_t. This gives the solver a wider applicable range and
     // mimics the behavior of the gemm solver.
     bool needs_output_cast = false;
-    if(problem.conv_problem.GetIn().GetType() == miopenInt8 &&
-       problem.conv_problem.GetWeights().GetType() == miopenInt8 &&
-       problem.conv_problem.GetOut().GetType() != miopenInt32)
+    if(problem.GetIn().GetType() == miopenInt8 && problem.GetWeights().GetType() == miopenInt8 &&
+       problem.GetOut().GetType() != miopenInt32)
     {
         needs_output_cast = true;
         outConvDesc = TensorDescriptor(miopenInt32, outDesc.GetLengths(), outDesc.GetStrides());
@@ -367,13 +361,8 @@ InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem.conv_problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
@@ -428,13 +417,8 @@ InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& probl
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(problem.conv_problem,
-                           in_dims,
-                           in_strides,
-                           weights_dims,
-                           weights_strides,
-                           out_dims,
-                           out_strides);
+    ComputeMlirDimsStrides(
+        problem, in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, workspace_req);
 

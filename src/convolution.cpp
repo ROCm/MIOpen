@@ -80,8 +80,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) ||
-       miopen::any_of(problem.conv_problem.GetConv().GetConvDilations(),
-                      [](auto v) { return v > 1; }))
+       miopen::any_of(problem.GetConv().GetConvDilations(), [](auto v) { return v > 1; }))
         return 0;
 
     return GetMaxWorkSpaceSize(AllGemmWorkspaceSize(ctx, problem));
@@ -395,7 +394,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::Convolut
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(problem.GetOutChannels() >= 16 && problem.GetOutChannels() % 2 == 0))
+    if(!(problem.GetOutChannels_() >= 16 && problem.GetOutChannels_() % 2 == 0))
         return false;
 
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);

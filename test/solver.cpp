@@ -51,7 +51,7 @@ public:
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
     {
-        return problem.GetInWidth() == 1;
+        return problem.GetInWidth_() == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,

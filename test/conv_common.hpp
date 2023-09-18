@@ -143,14 +143,14 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
-    problem.conv_problem.SetupFloats(ctx);
+    problem.SetupFloats(ctx);
 
     return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
            problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.GetGroupCount() == 1 &&
-           problem.GetBatchSize() == 1 && problem.GetInChannels() == 192 &&
-           problem.GetInHeight() == 28 && problem.GetInWidth() == 28 &&
-           problem.GetOutChannels() == 1 && problem.GetWeightsHeight() == 3 &&
-           problem.GetWeightsWidth() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
+           problem.GetBatchSize_() == 1 && problem.GetInChannels_() == 192 &&
+           problem.GetInHeight_() == 28 && problem.GetInWidth_() == 28 &&
+           problem.GetOutChannels_() == 1 && problem.GetWeightsHeight_() == 3 &&
+           problem.GetWeightsWidth_() == 3 && problem.GetPadW() == 1 && problem.GetPadH() == 1 &&
            problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1 &&
            problem.GetDilationW() == 1 && problem.GetDilationH() == 1;
 }
@@ -198,36 +198,6 @@ StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
         return default_layout;
     }
 }
-struct scalar_gen_random_float
-{
-    double min_val = 0;
-    double max_val = 1;
-
-    double operator()() const
-    {
-        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
-    }
-};
-
-struct scalar_gen_random_integer
-{
-    uint64_t min_val = 1;
-    uint64_t max_val = 16;
-
-    double operator()() const
-    {
-        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
-    }
-};
-
-struct tensor_elem_gen_one
-{
-    template <class... Ts>
-    double operator()(Ts...) const
-    {
-        return 1;
-    }
-};
 
 struct conv_stats
 {
@@ -443,6 +413,54 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
         }
     }
     return rout;
+}
+
+template <typename T, typename Twei, typename Tout>
+tensor<Twei> ref_conv_wrw(const tensor<T>& input,
+                          const tensor<Twei>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rwei = weights;
+    std::fill(rwei.begin(), rwei.end(), 0);
+    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter);
+    if(!gpu_ref_used)
+    {
+        MIOPEN_LOG_W("GPU reference skipped");
+        cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                        input,
+                                        rwei,
+                                        out,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+    }
+    return rwei;
+}
+
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_bwd(const tensor<T>& input,
+                          const tensor<T>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rin = input;
+    std::fill(rin.begin(), rin.end(), 0);
+    bool gpu_ref_used = gpu_ref_convolution_bwd(rin, weights, out, filter);
+    if(!gpu_ref_used)
+    {
+        MIOPEN_LOG_W("GPU reference skipped");
+        cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                      rin,
+                                      weights,
+                                      out,
+                                      filter.GetConvPads(),
+                                      filter.GetConvStrides(),
+                                      filter.GetConvDilations(),
+                                      filter.GetGroupCount());
+    }
+    return rin;
 }
 
 // Mainline convolution tests
@@ -2255,19 +2273,17 @@ struct conv_driver : test_driver
                 auto output = get_output_tensor<T, Tout>(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
-
-                    return gen_float ? scalar_gen_random_float{0, 1}()
-                                     : scalar_gen_random_integer{1, v_max}();
+                    auto data_type = input.desc.GetType();
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
+                    return gen_float ? prng::gen_canonical<double>()
+                                     : static_cast<double>(prng::gen_A_to_B(1, v_max));
                 };
 
                 auto gen_sign_value = [=](auto... is) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
-
-                    return gen_float ? scalar_gen_random_float{-1, 1}()
-                                     : scalar_gen_random_integer{1, v_max}() *
+                    auto data_type = input.desc.GetType();
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
+                    return gen_float ? prng::gen_A_to_B(-1.0, 1.0)
+                                     : static_cast<double>(prng::gen_A_to_B(1, v_max)) *
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
