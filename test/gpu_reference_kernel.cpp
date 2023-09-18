@@ -314,22 +314,25 @@ static std::string miopen_type_to_string(miopenDataType_t type)
 
 // input: a vector of lengths of dims in a tensor
 // multiply each element with a random constant integer
-void pad_tensor_strides(std::vector<int>& strides) {
-  auto pvec = [] (const char* name, const auto& vec) {
-    std::cout << name << ": [";
-    for (const auto& v: vec) {
-      std::cout << v << ", ";
-    }
-    std::cout << "]\n";
-  };
+void pad_tensor_strides(std::vector<int>& strides)
+{
+    auto pvec = [](const char* name, const auto& vec) {
+        std::cout << name << ": [";
+        for(const auto& v : vec)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << "]\n";
+    };
 
-  pvec("orig strides", strides);
-  auto c = prng::gen_A_to_B(1, 3);
-  // int c = 2;
-  for (auto& v: strides) {
-    v = v * c; 
-  }
-  pvec("new strides", strides);
+    pvec("orig strides", strides);
+    auto c = prng::gen_A_to_B(1, 3);
+    // int c = 2;
+    for(auto& v : strides)
+    {
+        v = v * c;
+    }
+    pvec("new strides", strides);
 }
 
 template <miopen::conv::Direction direction,
@@ -392,7 +395,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
 
-            auto in_sz = in.data.size();
+            auto in_sz  = in.data.size();
             auto wei_sz = wei.data.size();
             auto out_sz = out.data.size();
 
@@ -559,10 +562,9 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 // TODO(Amber): copy output before computation because output may
                 // be not be packed, and convolution may update only a subset of
                 // indices
-                EXPECT(hipMemcpy(in_dev,
-                                 in.data.data(),
-                                 sizeof(TRef) * in_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                EXPECT(hipMemcpy(
+                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
+                       hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
@@ -800,7 +802,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
 
-            auto in_sz = in.data.size();
+            auto in_sz  = in.data.size();
             auto wei_sz = wei.data.size();
             auto out_sz = out.data.size();
 
