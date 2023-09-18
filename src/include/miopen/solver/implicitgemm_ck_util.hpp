@@ -132,7 +132,7 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
-        return ConvSolution(miopenStatusInvalidValue);
+        return {miopenStatusInvalidValue};
 
     ConvSolution result;
     result.invoker_factory =
