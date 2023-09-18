@@ -83,8 +83,8 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
         kernel.kernel_name += "AveBwd";
     }
 
-    const auto bot = problem.GetXDesc();
-    const auto top = problem.GetYDesc();
+    const auto& bot = problem.GetXDesc();
+    const auto& top = problem.GetYDesc();
 
     std::size_t batch_sz, n_inputs, in_height, in_width;
     std::tie(batch_sz, n_inputs, in_height, in_width) = miopen::tien<4>(bot.GetLengths(), 1);
@@ -178,16 +178,22 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
     const auto top_h = *(top.GetLengths().rbegin() + 1);
     const auto top_w = *(top.GetLengths().rbegin());
 
-    const auto bot_strides  = bot.GetStrides();
-    const auto bot_n_stride = bot_strides[0];
-    const auto bot_c_stride = bot_strides[1];
-    const auto bot_d_stride = bot_strides[2]; // Same as bot_h_stride in 3D converted from 2D.
-    const auto bot_h_stride = is2d ? bot_strides[2] : bot_strides[3];
-    const auto top_strides  = top.GetStrides();
-    const auto top_n_stride = top_strides[0];
-    const auto top_c_stride = top_strides[1];
-    const auto top_d_stride = top_strides[2]; // Same as top_h_stride in 3D converted from 2D.
-    const auto top_h_stride = is2d ? top_strides[2] : top_strides[3];
+    auto unpackStrides = [is2d](const auto& strides) {
+        return std::make_tuple(strides[0], // N stride
+                               strides[1], // C stride
+                               strides[2], // D stride. Same as H_stride in 3D converted from 2D.
+                               is2d        //
+                                   ? strides[2] // 2D H stride
+                                   : strides[3] // 3D H stride
+        );
+    };
+
+    std::size_t bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride;
+    std::size_t top_n_stride, top_c_stride, top_d_stride, top_h_stride;
+    std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride) =
+        unpackStrides(bot.GetStrides());
+    std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride) =
+        unpackStrides(top.GetStrides());
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
