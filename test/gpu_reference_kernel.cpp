@@ -34,7 +34,6 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <tuple> // std::ignore
 #include <type_traits>
 #if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
@@ -69,16 +68,6 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
     else
         MIOPEN_THROW("Unsupported tensor layout");
     return layout_string;
-}
-
-static int gen_rand_integer()
-{
-    static const bool once = []() {
-        std::srand(std::time(nullptr));
-        return true;
-    }();
-    std::ignore = once;
-    return GET_RAND();
 }
 
 struct gpu_reference_kernel_base
@@ -143,13 +132,17 @@ struct gpu_reference_kernel_base
                             {
                                 for(int px : get_pad_size())
                                 {
-                                    int n  = get_batch_size()[gen_rand_integer() % 2];
-                                    int g  = get_group_size()[gen_rand_integer() % 2];
-                                    int k  = get_channel_size()[gen_rand_integer() % 2];
-                                    int sy = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int sx = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int dy = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int dx = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int n = get_batch_size()[prng::gen_canonical<size_t>()];
+                                    int g = get_group_size()[prng::gen_canonical<size_t>()];
+                                    int k = get_channel_size()[prng::gen_canonical<size_t>()];
+                                    int sy =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int sx =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int dy =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int dx =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
                                     int ho = conv_out_size(hi, py, dy, fy, sy);
                                     int wo = conv_out_size(wi, px, dx, fx, sx);
 
@@ -181,19 +174,19 @@ struct gpu_reference_kernel_base
                     {
                         for(int px : get_pad_size())
                         {
-                            int n   = get_batch_size()[gen_rand_integer() % 2];
-                            int g   = get_group_size()[gen_rand_integer() % 2];
-                            int k   = get_channel_size()[gen_rand_integer() % 2];
-                            int di  = get_image_depth()[gen_rand_integer() % 2];
-                            int hi  = get_image_size()[gen_rand_integer() % 2];
-                            int wi  = get_image_size()[gen_rand_integer() % 2];
-                            int fz  = get_filter_depth()[gen_rand_integer() % 2];
-                            int pz  = get_pad_depth()[gen_rand_integer() % 2];
-                            int sx  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int sy  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int sz  = get_stride_depth()[gen_rand_integer() % 2];
-                            int dx  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int dy  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int n   = get_batch_size()[prng::gen_canonical<size_t>()];
+                            int g   = get_group_size()[prng::gen_canonical<size_t>()];
+                            int k   = get_channel_size()[prng::gen_canonical<size_t>()];
+                            int di  = get_image_depth()[prng::gen_canonical<size_t>()];
+                            int hi  = get_image_size()[prng::gen_canonical<size_t>()];
+                            int wi  = get_image_size()[prng::gen_canonical<size_t>()];
+                            int fz  = get_filter_depth()[prng::gen_canonical<size_t>()];
+                            int pz  = get_pad_depth()[prng::gen_canonical<size_t>()];
+                            int sx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int sy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int sz  = get_stride_depth()[prng::gen_canonical<size_t>()];
+                            int dx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int dy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
                             int dz  = get_dilation_depth()[0];
                             int ho  = conv_out_size(hi, py, dy, fy, sy);
                             int wo  = conv_out_size(wi, px, dx, fx, sx);
@@ -231,9 +224,9 @@ struct gpu_reference_kernel_base
     }
 };
 
-#define RAND_INTEGER_MAX 5
-#define RAND_INTEGER_MIN (-4)
-#define MAX_INTEGER_INTERVAL 4.0
+static constexpr int RAND_INTEGER_MAX       = 5;
+static constexpr int RAND_INTEGER_MIN       = -4;
+static constexpr float MAX_INTEGER_INTERVAL = 4.f;
 
 /*
  * for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
@@ -247,8 +240,8 @@ template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
-    for(int i = 0; i < t.data.size(); i++)
-        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+    for(size_t i = 0; i < t.data.size(); i++)
+        t[i] = static_cast<T>(prng::gen_A_to_B(min, max));
 }
 
 template <typename T>

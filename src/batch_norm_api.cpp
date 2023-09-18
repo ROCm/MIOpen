@@ -29,16 +29,10 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/driver_arguments.hpp>
 
 #include <array>
 #include <initializer_list>
-
-enum BatchNormDirection_t
-{
-    ForwardInference,
-    ForwardTraining,
-    Backward
-};
 
 extern "C" miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_t derivedBnDesc,
                                                          const miopenTensorDescriptor_t xDesc,
@@ -51,60 +45,33 @@ extern "C" miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_
             miopen::deref(derivedBnDesc), miopen::deref(xDesc), bn_mode);
     });
 }
-static void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
-                        miopenBatchNormMode_t bn_mode,
-                        const void* resultRunningMean,
-                        const void* resultRunningVariance,
-                        const void* resultSaveMean,
-                        const void* resultSaveInvVariance,
-                        const BatchNormDirection_t dir)
+
+namespace miopen {
+namespace debug {
+
+void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
+                 miopenBatchNormMode_t bn_mode,
+                 const void* resultRunningMean,
+                 const void* resultRunningVariance,
+                 const void* resultSaveMean,
+                 const void* resultSaveInvVariance,
+                 const BatchNormDirection_t dir)
 {
     if(miopen::IsLoggingCmd())
     {
-        int size = {0};
-        miopenGetTensorDescriptorSize(xDesc, &size);
-        std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
-        {
-            ss << "bnormfp16";
-        }
-        else
-        {
-            ss << "bnorm";
-        }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
-            << " -c " << miopen::deref(xDesc).GetLengths()[1];
-        if(size == 5)
-        {
-            ss << " -D " << miopen::deref(xDesc).GetLengths()[2]
-            << " -H " << miopen::deref(xDesc).GetLengths()[3]
-            << " -W " << miopen::deref(xDesc).GetLengths()[4];
-        }
-        else
-        {
-            ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
-            << " -W " << miopen::deref(xDesc).GetLengths()[3];
-        }
-            ss << " -m " << bn_mode; // clang-format on
-        if(dir != Backward)
-        {
-            ss << " --forw " << (dir == ForwardInference ? "2" : "1") << " -b 0";
-        }
-        else
-        {
-            ss << " --forw 0 -b 1";
-        }
-        if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
-        {
-            ss << " -s 1";
-        }
-        if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
-        {
-            ss << " -r 1";
-        }
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
+        const std::string& str = BnormArgsForMIOpenDriver(xDesc,
+                                                          bn_mode,
+                                                          resultRunningMean,
+                                                          resultRunningVariance,
+                                                          resultSaveMean,
+                                                          resultSaveInvVariance,
+                                                          dir);
+        MIOPEN_LOG_DRIVER_CMD(str);
     }
 }
+
+} // namespace debug
+} // namespace miopen
 
 extern "C" miopenStatus_t
 miopenBatchNormalizationForwardInference(miopenHandle_t handle,
@@ -142,8 +109,13 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
         return miopenStatusNotImplemented;
     }
 
-    LogCmdBNorm(
-        xDesc, bn_mode, estimatedMean, estimatedVariance, nullptr, nullptr, ForwardInference);
+    miopen::debug::LogCmdBNorm(xDesc,
+                               bn_mode,
+                               estimatedMean,
+                               estimatedVariance,
+                               nullptr,
+                               nullptr,
+                               miopen::debug::BatchNormDirection_t::ForwardInference);
     // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -214,13 +186,13 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
         return miopenStatusNotImplemented;
     }
 
-    LogCmdBNorm(xDesc,
-                bn_mode,
-                resultRunningMean,
-                resultRunningVariance,
-                resultSaveMean,
-                resultSaveInvVariance,
-                ForwardTraining);
+    miopen::debug::LogCmdBNorm(xDesc,
+                               bn_mode,
+                               resultRunningMean,
+                               resultRunningVariance,
+                               resultSaveMean,
+                               resultSaveInvVariance,
+                               miopen::debug::BatchNormDirection_t::ForwardTraining);
     // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -294,7 +266,13 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         epsilon,
                         savedMean,
                         savedInvVariance);
-    LogCmdBNorm(xDesc, bn_mode, nullptr, nullptr, savedMean, savedInvVariance, Backward);
+    miopen::debug::LogCmdBNorm(xDesc,
+                               bn_mode,
+                               nullptr,
+                               nullptr,
+                               savedMean,
+                               savedInvVariance,
+                               miopen::debug::BatchNormDirection_t::Backward);
     // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
