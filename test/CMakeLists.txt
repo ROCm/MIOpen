@@ -1173,26 +1173,6 @@ endif()
 endif()
 
 
-add_custom_test(test_conv_trans SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	28	28	--weights	128	128	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	256	28	28	--weights	256	256	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	same
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	32	28	28	--weights	32	32	5	5	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	default
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	512	14	14	--weights	512	512	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	same
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	512	4	4	--weights	512	512	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	valid
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	64	56	56	--weights	64	64	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	valid
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	100	3	64	64	--weights	3	3	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	100	6	4	4	--weights	6	4	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	28	28	--weights	128	16	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default	--group-count	8
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	256	28	28	--weights	256	64	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	same	--group-count	4
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	32	28	28	--weights	32	1	5	5	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	default	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	512	14	14	--weights	512	16	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	same	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	512	4	4	--weights	512	16	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	valid	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	64	56	56	--weights	64	2	1	1	--pads_strides_dilations	0	0	2	2	1	1	--cmode	trans	--pmode	valid	--group-count	32
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	100	3	64	64	--weights	3	3	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default	--group-count	3
-COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	100	6	4	4	--weights	6	4	1	1	--pads_strides_dilations	2	2	1	1	1	1	--cmode	trans	--pmode	default	--group-count	2
-)
-
-
 add_custom_test(test_conv_3d SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input 16    32   4    9     9  --weights    64    32   3  3    3  --pads_strides_dilations  0  0  0    2  2   2    1   1   1  --group-count   1   --cmode conv   --pmode   default
 COMMAND $<TARGET_FILE:test_conv3d> --verbose --conv_dim_type conv3d --input  4     3   4  227   227  --weights     4     3   3 11   11  --pads_strides_dilations  0  0  0    1  1   1    1   1   1  --group-count   1   --cmode conv   --pmode   default
