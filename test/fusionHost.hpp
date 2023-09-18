@@ -279,15 +279,15 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
-void batchNormSpatialHostBwdTrain(const tensor<U>& x_input,
-                                  const tensor<T>& dy_input,
-                                  tensor<T>& dx_out,
-                                  const tensor<U>& scale,
-                                  tensor<T>& dscale,
-                                  tensor<T>& dbias,
-                                  const tensor<T>& savedMean,
-                                  const tensor<T>& savedInvVar)
+template <class DataType, class XAndScaleDataType>
+void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
+                                  const tensor<DataType>& dy_input,
+                                  tensor<DataType>& dx_out,
+                                  const tensor<XAndScaleDataType>& scale,
+                                  tensor<DataType>& dscale,
+                                  tensor<DataType>& dbias,
+                                  const tensor<DataType>& savedMean,
+                                  const tensor<DataType>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -335,7 +335,7 @@ void batchNormSpatialHostBwdTrain(const tensor<U>& x_input,
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
                     double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
+                    dx_out(bidx, cidx, row, column) = static_cast<DataType>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
