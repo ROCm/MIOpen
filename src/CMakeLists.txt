@@ -106,6 +106,7 @@ set( MIOpen_Source
     ctc_api.cpp
     db.cpp
     db_record.cpp
+    driver_arguments.cpp
     dropout.cpp
     dropout_api.cpp
     execution_context.cpp
@@ -136,6 +137,8 @@ set( MIOpen_Source
     reducetensor_api.cpp
     rnn.cpp
     rnn_api.cpp
+    rnn/rnn_util.cpp
+    rnn/Solutions/rnn_transformer.cpp
     softmax_api.cpp
     solution.cpp
     conv/solver_finders.cpp
@@ -149,6 +152,7 @@ set( MIOpen_Source
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/forward_inference.cpp
+    solver/batchnorm/forward_inference_ck.cpp
     solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/forward_per_activation_fused.cpp
@@ -196,6 +200,8 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
+    solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -235,6 +241,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    seq_tensor.cpp
     )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -665,6 +672,11 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
+find_package(zstd)
+if(zstd_FOUND)
+    target_link_libraries(MIOpen PRIVATE zstd::libzstd_static)
+endif()
+
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
     set(PASS_ARGS debug optimized)
@@ -819,6 +831,8 @@ if(NOT WIN32 AND NOT APPLE)
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
+############################################################
+target_link_libraries(MIOpen PRIVATE "-lroctx64")
 
 ############################################################
 # Installation

@@ -81,6 +81,7 @@ miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int f
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
@@ -1075,7 +1076,7 @@ namespace detail {
 template <typename T>
 T RanGenWeights()
 {
-    return RAN_GEN<T>(static_cast<T>(-0.5), static_cast<T>(0.5));
+    return prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
 }
 
 // Shift FP16 distribution towards positive numbers,
@@ -1083,7 +1084,29 @@ T RanGenWeights()
 template <>
 float16 RanGenWeights()
 {
-    return RAN_GEN<float16>(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
+    return prng::gen_A_to_B(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
+}
+
+// int8 has it's own range
+template <>
+int8_t RanGenWeights()
+{
+    return prng::gen_A_to_B(static_cast<int8_t>(-1), static_cast<int8_t>(1));
+}
+
+template <typename T>
+void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
+{
+    if(percentage == 0)
+        return;
+    float perc               = static_cast<float>(percentage) / 100;
+    size_t size_need_subnorm = static_cast<size_t>(static_cast<float>(size) * perc);
+    std::vector<bool> need_subnorm(size, false);
+    std::fill_n(need_subnorm.begin(), std::min(size_need_subnorm, size), true);
+    std::shuffle(need_subnorm.begin(), need_subnorm.end(), prng::details::get_prng());
+    std::transform(need_subnorm.begin(), need_subnorm.end(), buf, buf, [](bool need, auto val) {
+        return need ? prng::gen_subnorm<T>() : val;
+    });
 }
 
 } // namespace detail
@@ -1112,11 +1135,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-    bool is_transform = IsInputTensorTransform();
-    bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
-    size_t in_sz      = GetTensorSize(inputTensor);
-    size_t wei_sz     = GetTensorSize(weightTensor);
-    size_t out_sz     = GetTensorSize(outputTensor);
+    bool is_transform       = IsInputTensorTransform();
+    bool is_int8            = data_type == miopenInt8 || data_type == miopenInt8x4;
+    size_t in_sz            = GetTensorSize(inputTensor);
+    size_t wei_sz           = GetTensorSize(weightTensor);
+    size_t out_sz           = GetTensorSize(outputTensor);
+    auto subnorm_percentage = miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{});
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -1304,10 +1328,6 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     std::string biasFileName = inflags.GetValueStr("in_bias");
     std::string doutFileName = inflags.GetValueStr("dout_data");
 
-    /* Unless seed is persistent between runs validation using cache stored in file is impossible.
-     */
-    srand(0);
-
     bool dataRead = false;
     if(is_fwd || is_wrw)
         if(!inFileName.empty())
@@ -1318,36 +1338,17 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(!weiFileName.empty())
             weiRead = readBufferFromFile<Tgpu>(wei.data.data(), wei_sz, weiFileName.c_str());
 
+    const Tgpu Data_scale = is_int8 ? static_cast<Tgpu>(127) : static_cast<Tgpu>(0.01);
     if(is_int8)
     {
-        float Data_scale = 127.0;
-
-        if(!dataRead)
-        {
-            for(int i = 0; i < in_sz; i++)
-            {
-                if(is_fwd || is_wrw)
-                    in.data[i] =
-                        static_cast<Tgpu>(Data_scale * RAN_GEN<float>(static_cast<float>(0.0),
-                                                                      static_cast<float>(1.0)));
-                else /// \anchor move_rand
-                    /// Move rand() forward, even if buffer is unused. This provides the same
-                    /// initialization of input buffers regardless of which kinds of
-                    /// convolutions are currently selectedfor testing (see the "-F" option).
-                    /// Verification cache would be broken otherwise.
-                    GET_RAND();
-            }
-        }
-
         if(inflags.GetValueInt("bias") != 0)
         {
             size_t b_sz = GetTensorSize(biasTensor);
             b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(float)));
-            b_int8      = std::vector<float>(b_sz, static_cast<float>(0));
+            b_int8      = std::vector<float>(b_sz, 0.f);
             for(int i = 0; i < b_sz; i++)
             {
-                b_int8[i] = static_cast<float>(i % 8) +
-                            RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0));
+                b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
             }
 
             if(!biasFileName.empty())
@@ -1357,47 +1358,31 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
             b_dev->ToGPU(q, b_int8.data());
         }
-
-        if(!weiRead)
-        {
-            for(int i = 0; i < wei_sz; i++)
-                if(is_fwd || is_bwd)
-                    wei.data[i] =
-                        static_cast<Tgpu>(Data_scale * 2 * detail::RanGenWeights<float>());
-                else /// \ref move_rand
-                    GET_RAND();
-        }
     }
     else
     {
-        Tgpu Data_scale = static_cast<Tgpu>(0.01);
-
         bool doutRead = false;
         if(is_bwd || is_wrw)
             if(!doutFileName.empty())
                 doutRead = readBufferFromFile<Tgpu>(dout.data.data(), out_sz, doutFileName.c_str());
 
-        if(!dataRead)
-        {
-            for(int i = 0; i < in_sz; i++)
-            {
-                if(is_fwd || is_wrw)
-                    in.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                else /// \ref move_rand
-                    GET_RAND();
-            }
-        }
-
         if(!doutRead)
         {
             for(int i = 0; i < out_sz; i++)
+            {
+                /// \anchor move_rand
+                /// Generate random value, even if buffer is unused. This provides the same
+                /// initialization of input buffers regardless of which kinds of
+                /// convolutions are currently selectedfor testing (see the "-F" option).
+                /// Verification cache would be broken otherwise.
+                auto val = prng::gen_0_to_B(Data_scale);
                 if(is_bwd || is_wrw)
-                    dout.data[i] =
-                        Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                else /// \ref move_rand
-                    GET_RAND();
+                    dout.data[i] = val;
+            }
         }
+
+        if(is_wrw)
+            detail::RanGenSubnormBuffer<Tgpu>(dout.data.data(), out_sz, subnorm_percentage);
 
         if(inflags.GetValueInt("bias") != 0)
         {
@@ -1409,10 +1394,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             db_host     = tensor<Tref>(miopen::deref(biasTensor));
             for(int i = 0; i < b_sz; i++)
             {
-                b.data[i] = static_cast<Tgpu>(i % 8) +
-                            RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-                db[i] = static_cast<Tgpu>(i % 8) +
-                        RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                b.data[i] = static_cast<Tgpu>(i % 8) + prng::gen_canonical<Tgpu>();
+                db[i]     = static_cast<Tgpu>(i % 8) + prng::gen_canonical<Tgpu>();
             }
 
             if(!biasFileName.empty())
@@ -1423,16 +1406,32 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             b_dev->ToGPU(q, b.data.data());
             db_dev->ToGPU(q, db.data());
         }
+    }
 
-        if(!weiRead)
+    if(!dataRead)
+    {
+        for(int i = 0; i < in_sz; i++)
         {
-            for(int i = 0; i < wei_sz; i++)
-                if(is_fwd || is_bwd)
-                    wei.data[i] = Data_scale * detail::RanGenWeights<Tgpu>();
-                else /// \ref move_rand
-                    GET_RAND();
+            /// \ref move_rand
+            auto val = prng::gen_0_to_B(Data_scale);
+            if(is_fwd || is_wrw)
+                in.data[i] = val;
         }
     }
+
+    if(!weiRead)
+    {
+        for(int i = 0; i < wei_sz; i++)
+        {
+            /// \ref move_rand
+            auto w = Data_scale * detail::RanGenWeights<Tgpu>();
+            if(is_fwd || is_bwd)
+                wei.data[i] = w;
+        }
+    }
+
+    if(is_fwd || is_bwd)
+        detail::RanGenSubnormBuffer<Tgpu>(wei.data.data(), wei_sz, subnorm_percentage);
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -3347,7 +3346,9 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     std::cout << "Forward Convolution Verifies OK on " << (UseGPUReference() ? "GPU" : "CPU")
+              << " reference (" << miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{}) << ", "
               << " reference (" << error << ')' << std::endl;
+
     return 0;
 }
 
