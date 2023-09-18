@@ -1981,7 +1981,7 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops GFX900_DISABLED
       ${TEST_CONV_VERBOSE_F} --input 64 512 7 7 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED 
+add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 GFX900_DISABLED GFX906_DISABLED GFX94X_ENABLED
     HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
@@ -1997,7 +1997,7 @@ add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16 G
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_ENABLED 
+add_custom_test(smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_bf16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_ENABLED
     FLOAT_DISABLED BF16_ENABLED SKIP_XNACK_ON TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d>
