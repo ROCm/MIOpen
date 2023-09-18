@@ -594,14 +594,15 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        conv::ConvHipImplicitGemm3DGroupFwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
-        registry, ++id, conv::ConvHipImplicitGemmGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvHipImplicitGemm3DGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(registry, ++id, conv::ConvWinoFuryRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvHipImplicitGemm3DGroupWrwXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvHipImplicitGemm3DGroupBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+        registry, ++id, conv::ConvWinoFuryRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(registry,
+                       ++id,
+                       conv::ConvHipImplicitGemm3DGroupWrwXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(registry,
+                       ++id,
+                       conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!

@@ -339,8 +339,9 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
         return InitInvokerFactory<DeviceOpGBwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return InitInvokerFactory<DeviceOpGBwdPtrs<ck::half_t>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
     case miopenFloat:
         return InitInvokerFactory<DeviceOpGBwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
