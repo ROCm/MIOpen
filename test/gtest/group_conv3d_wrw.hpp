@@ -25,8 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
-
 #include "get_handle.hpp"
 #include <miopen/conv/wrw_invoke_params.hpp>
 
@@ -145,10 +143,10 @@ protected:
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
         input.generate(gen_value);
 
         std::fill(weights.begin(), weights.end(), 0);

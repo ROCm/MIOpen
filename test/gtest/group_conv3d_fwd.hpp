@@ -25,8 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
-
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
 
@@ -151,10 +149,9 @@ protected:
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
         input.generate(gen_value);
         weights.generate(gen_value);
         conv_desc = conv_config.GetConv();

@@ -25,8 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
-
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
@@ -35,6 +33,7 @@
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
+#include "random.hpp"
 
 struct BNTestCase
 {
@@ -130,13 +129,9 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<XDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
-        };
-        input.generate(gen_value);
+        input.generate([](auto...) {
+            return prng::gen_descreet_uniform_sign(static_cast<XDataType>(1e-2), 100);
+        });
     }
 
     void SetDirection() { direction = bn_config.Direction; }
@@ -204,17 +199,17 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<ScaleDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
 
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
+        auto gen_var = [](auto...) {
+            return static_cast<MeanVarDataType>(1e-2) *
+                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+        };
         estVariance.generate(gen_var);
     }
     void WriteToGPU()
