@@ -60,8 +60,6 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 #if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
 struct ProblemDescription : conv::ProblemDescription
 {
-    ProblemDescription() = default;
-
     ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
     {
         conv_problem.p = this;
@@ -135,19 +133,9 @@ struct ProblemDescriptionCompatTemporary
     int GetOutChannelStride() const { return out_channel_stride; }
     int GetOutBatchStride() const { return out_batch_stride; }
 
-    ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
+    ProblemDescriptionCompatTemporary(conv::Direction dir) : direction(dir) {}
 
-    struct Direction
-    {
-    public:
-        bool IsForward() const { return v == conv::Direction::Forward; }
-
-        Direction() = delete;
-        Direction(conv::Direction value) : v(value) {}
-
-    private:
-        conv::Direction v;
-    } direction;
+    bool IsDirectionForward() const { return direction == conv::Direction::Forward; }
 
     /*
      * set top tensor
@@ -257,6 +245,9 @@ struct ProblemDescriptionCompatTemporary
         batch_sz = batch;
         n_inputs = channels;
     }
+
+private:
+    conv::Direction direction;
 };
 
 struct UnifiedDescriptionConv2d
