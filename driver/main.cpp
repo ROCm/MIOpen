@@ -81,6 +81,14 @@ int main(int argc, char* argv[])
     {
         drv = new ConvDriver<int8_t, int32_t>();
     }
+    else if(base_arg == "convfp8")
+    {
+        drv = new ConvDriver<float8, float>();
+    }
+    else if(base_arg == "convbfp8")
+    {
+        drv = new ConvDriver<bfloat8, float>();
+    }
     else if(base_arg == "CBAInfer")
     {
         drv = new CBAInferFusionDriver<float, double>();

@@ -56,6 +56,8 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
         MIOPEN_THROW(miopenStatusBadParm,
                      "miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, miopenDouble data "
                      "type not supported by "
