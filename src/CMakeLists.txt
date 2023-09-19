@@ -672,6 +672,11 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
+find_package(zstd)
+if(zstd_FOUND)
+    target_link_libraries(MIOpen PRIVATE zstd::libzstd_static)
+endif()
+
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
     set(PASS_ARGS debug optimized)
@@ -835,6 +840,8 @@ if(NOT WIN32 AND NOT APPLE)
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
+############################################################
+target_link_libraries(MIOpen PRIVATE "-lroctx64")
 
 ############################################################
 # Installation
