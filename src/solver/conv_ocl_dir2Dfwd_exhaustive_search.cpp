@@ -39,6 +39,8 @@
 #include <half.hpp>
 #endif
 
+#include <random>
+
 #ifdef max
 #undef max
 #endif
@@ -253,14 +255,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
 
 #if MIOPEN_ALLOC_BUFFERS
     miopen::Handle profile_h;
+    std::minstd_rand prng(1234567);
 
     // allocate input/output buffers
     size_t bot_sz = problem.GetInSize() / sizeof(Tgpu);
     std::vector<Tgpu> bot_sys_buf(bot_sz);
     for(size_t i = 0; i < bot_sz; i++)
     {
-        bot_sys_buf[i] =
-            static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
+        bot_sys_buf[i] = static_cast<Tgpu>(std::generate_canonical<double, 11>(prng));
     }
     auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
     auto bot_ocl_ptr = bot_ocl_buf.get();
@@ -274,8 +276,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     std::vector<Tgpu> wei_sys_buf(weights_sz);
     for(size_t i = 0; i < weights_sz; i++)
     {
-        wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) *
-                                           0.001); // NOLINT (concurrency-mt-unsafe)
+        wei_sys_buf[i] =
+            static_cast<Tgpu>((std::generate_canonical<double, 11>(prng) - 0.5) * 0.001);
     }
     auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
     auto wei_ocl_ptr = wei_ocl_buf.get();
@@ -288,8 +290,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
         bias_sys_buf   = std::vector<Tgpu>(bias_sz);
         for(size_t i = 0; i < bias_sz; i++)
         {
-            bias_sys_buf[i] =
-                static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
+            bias_sys_buf[i] = static_cast<Tgpu>(std::generate_canonical<double, 11>(prng));
         }
 
         bias_ocl_buf = profile_h.Write(bias_sys_buf);
