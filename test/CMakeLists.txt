@@ -252,13 +252,16 @@ elseif(MIOPEN_TEST_BFLOAT16)
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
-  endif()
-  if(${CODECOV_TEST})
-      list(APPEND SKIP_TESTS test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
-      # replaced by smaller tests with suffix _codecov
-  endif()
+endif()
 
-if (MIOPEN_NO_GPU)
+if(${CODECOV_TEST})
+    list(APPEND SKIP_TESTS
+        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
+        test_pooling2d_wide)
+    # replaced by smaller tests with suffix _codecov
+endif()
+
+if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
             test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
             test_pooling3d test_perfdb)
@@ -714,25 +717,12 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
         COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
-        # WORKAROUND_ISSUE_2110_2: tests for 2109, 2110 and 2160 shall be added to "test_pooling2d/3d --all" but this is
-        # impossible until backward pooling limitation (issue #2110 (2)) is fixed.
-        # Regression tests for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
-        # Regression tests for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2160
+        # WORKAROUND_ISSUE_2110_2: tests for 2110 and 2160 shall be added to "test_pooling3d --all" but this is
+        # impossible until backward pooling limitation (issue #2110 (2)) is fully fixed.
+        # Partial (3D only) regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2160.
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x70 -y 41 -x 40 -Z 70 -m avg -F 1 -t 1 -i 1
-        # Regression tests for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2110 (1)
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x410x400 -y 410 -x 400 -m avg -F 1 -t 1 -i 1
+        # Partial (3D only) regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2110 (1).
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x100 -y 4 -x 4 -Z 100 -m max -F 1 -t 1 -i 1
-    )
-
-    add_custom_test(test_miopendriver_regression_float SKIP_UNLESS_ALL GFX103X_ENABLED GFX110X_ENABLED
-        # WORKAROUND_ISSUE_2110_2: tests for 2109 shall be added to "test_pooling2d/3d --all" but this is
-        # impossible until backward pooling limitation (issue #2110 (2)) is fixed.
-        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2109
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x255x255,195075x65025x255x1 -y 255 -x 255 -p 0 -q 0 -v 1 -u 1 -m avg -F 1 -t 1 -i 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x227,154587x51529x227x1 -y 100 -x 100 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x3x227x63,42903x14301x63x1 -y 30 -x 30 -p 0 -q 0 -v 1 -u 1 -m avg -F 0 -t 1 -i 1
     )
 
     add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
@@ -786,6 +776,10 @@ set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --d
 
 add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(test_pooling2d_wide SKIP_UNLESS_ALL HALF_ENABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 2 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwdXdlops)
