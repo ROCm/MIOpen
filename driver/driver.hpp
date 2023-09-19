@@ -150,7 +150,11 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     printf("Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-           "tensorop[fp16], reduce[fp16,fp64]\n");
+           "tensorop[fp16], reduce[fp16,fp64]"
+#ifdef MIOPEN_BETA_API
+           ", layernorm[bf16, fp16, fp32]"
+#endif
+           "\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -171,7 +175,11 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
        arg != "rnn_seqfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
+#ifdef MIOPEN_BETA_API
+       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" &&
+#endif
+       arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();
