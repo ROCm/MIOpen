@@ -329,6 +329,9 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
         return false;
     }
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(problem))
         return false;
 

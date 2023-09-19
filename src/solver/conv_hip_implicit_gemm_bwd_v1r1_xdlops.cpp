@@ -784,6 +784,9 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
     if(!problem.Is2d())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 

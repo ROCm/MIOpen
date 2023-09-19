@@ -177,6 +177,9 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
         return false;
     // clang-format on
 
+    if(conv_problem.IsTensorsCasted())
+        return false;
+
     const auto group_count = conv_problem.GetGroupCount();
     if(group_count != 1)
         return false;

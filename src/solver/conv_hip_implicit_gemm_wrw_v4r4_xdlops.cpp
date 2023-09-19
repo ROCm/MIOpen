@@ -1072,6 +1072,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(!IsIndexRangeLargeEnough(problem))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!problem.IsLayoutDefault())
     {
         return false;

@@ -83,11 +83,12 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat16:
     case miopenInt8x4:
     case miopenInt32:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble:
         MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenBFloat16, miopenInt8x4, miopenInt32, miopenDouble data "
-                     "type not supported by "
-                     "conv_igemm_mlir test");
+                     "miopenBFloat16, miopenInt8x4, miopenInt32, miopenFloat8, miopenBFloat8, "
+                     "miopenDouble data type not supported by conv_igemm_mlir test");
 
     default: params = ConfigWithFloat::GetParam();
     }
