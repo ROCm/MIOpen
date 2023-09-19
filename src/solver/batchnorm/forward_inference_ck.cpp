@@ -180,7 +180,7 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = context;
-    std::ignore = fdesc_problem;
+    std::ignore = bn_problem;
     return false;
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_INFER{}))
