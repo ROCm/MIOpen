@@ -53,30 +53,41 @@ struct CheckNumericsResult
     int hasInf  = 0;
 };
 
+std::string GetKernelName(miopenDataType_t data_type)
+{
+    switch(data_type)
+    {
+    case miopenFloat: return {"check_numerics_fp32"};
+    case miopenHalf: return {"check_numerics_fp16"};
+    case miopenBFloat16: return {"check_numerics_bf16"};
+    case miopenFloat8: return {"check_numerics_fp8"};
+    case miopenBFloat8: return {"check_numerics_bf8"};
+    case miopenInt32:
+    case miopenInt8:
+    case miopenInt8x4:
+    case miopenDouble:
+    default: return {""};
+    }
+}
+
 bool checkNumericsImpl(
     const Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput)
 {
     int numElements = dDesc.GetElementSize();
-
-    // TODO - some constants we should get from the device:
-    const int blockSize             = 256;
-    const auto numBlocks            = handle.GetMaxComputeUnits() * 6;
-    const size_t numGlobalWorkItems = blockSize * numBlocks;
-
-    const int computeStats = (mode & CheckNumerics::ComputeStats);
-
     CheckNumericsResult abnormal_h;
-
     auto abnormal_d =
         handle.Create(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
     handle.WriteTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
-
-    std::string params            = GetDataTypeKernelParams(dDesc.GetType());
-    std::string program_name      = "MIOpenCheckNumerics.cl";
-    std::string kernel_name       = "MIOpenCheckNumerics";
-    const std::vector<size_t> vld = {size_t{blockSize}, size_t{1}, size_t{1}};
-    const std::vector<size_t> vgd = {numGlobalWorkItems, size_t{1}, size_t{1}};
-    handle.AddKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, params)(
+    const size_t threadsPerBlock = 256;
+    const size_t numBlocks       = handle.GetMaxComputeUnits() * 6;
+    const int computeStats       = (mode & CheckNumerics::ComputeStats);
+    // TODO - some constants we should get from the device:
+    std::string program_name      = "MIOpenCheckNumerics.cpp";
+    std::string kernel_name       = GetKernelName(dDesc.GetType());
+    const std::vector<size_t> vld = {size_t{threadsPerBlock}, size_t{1}, size_t{1}};
+    const std::vector<size_t> vgd = {numBlocks, size_t{1}, size_t{1}};
+    handle.AddKernel(
+        "MIOpenCheckNumerics", "MIOpenCheckNumerics", program_name, kernel_name, vld, vgd, "")(
         data, numElements, abnormal_d.get(), computeStats);
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));

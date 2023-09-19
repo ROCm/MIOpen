@@ -199,6 +199,37 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
+extern "C" miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc, cast_type);
+    }
+
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetCastType(cast_type); });
+}
+
+extern "C" miopenStatus_t miopenGetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t& cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc);
+    }
+    return miopen::try_([&] {
+        const auto c_type = miopen::deref(tensorDesc).GetCastType();
+        if(c_type)
+        {
+            cast_type = *c_type;
+        }
+        else
+        {
+            cast_type = miopen::deref(tensorDesc).GetType();
+        }
+    });
+}
+
 extern "C" miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                   size_t* numBytes)
 {

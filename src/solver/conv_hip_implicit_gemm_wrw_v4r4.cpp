@@ -596,6 +596,9 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsFp32())
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(problem.GetGroupCount() != 1)
         return false;
     if(!IsIndexRangeLargeEnough(problem))

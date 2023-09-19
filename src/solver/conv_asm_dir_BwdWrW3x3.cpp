@@ -378,6 +378,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(problem.IsTensorsCasted())
+        return false;
 #if WORKAROUND_ISSUE_532
     if(StartsWith(name, "gfx9") &&
        (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))

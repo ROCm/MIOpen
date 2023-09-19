@@ -188,6 +188,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     if(target.Xnack() && *target.Xnack())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const std::string name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90")))
         return false;
@@ -195,6 +198,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
 
     constexpr auto GIB                         = static_cast<int64_t>(1024) * 1024 * 1024;
     constexpr auto TIB                         = GIB * 1024;

@@ -48,7 +48,15 @@
 #define MIOPEN_USE_INT32 0
 #endif
 
-#if MIOPEN_USE_INT8
+#ifndef MIOPEN_USE_FP8
+#define MIOPEN_USE_FP8 0
+#endif
+
+#ifndef MIOPEN_USE_BFP8
+#define MIOPEN_USE_BFP8 0
+#endif
+
+#if MIOPEN_USE_INT8 || MIOPEN_USE_FP8 || MIOPEN_USE_BFP8
 typedef char data_t;
 #elif MIOPEN_USE_INT8x4
 typedef uint data_t;
