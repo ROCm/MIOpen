@@ -392,7 +392,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
     maskhost = std::vector<size_t>(out_sz, static_cast<size_t>(0));
     outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(1.0));
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
@@ -456,25 +456,27 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 
     Timer t;
     START_TIME
+    int rc = 0;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPoolingForward(GetHandle(),
-                             poolDesc,
-                             &alpha,
-                             inputTensor,
-                             in_dev->GetMem(),
-                             &beta,
-                             outputTensor,
-                             out_dev->GetMem(),
-                             do_backward,
-                             mask_dev->GetMem(),
-                             0);
+        rc |= miopenPoolingForward(GetHandle(),
+                                   poolDesc,
+                                   &alpha,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   &beta,
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   do_backward,
+                                   mask_dev->GetMem(),
+                                   0);
     }
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
+        if(rc == 0)
+            miopenGetKernelTime(GetHandle(), &time);
 
         STOP_TIME
         if(WALL_CLOCK)
@@ -494,7 +496,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
         dumpBufferToFile<Index>((dump_root + "/dump_mask.bin").c_str(), mask.data(), out_sz);
     }
 
-    return miopenStatusSuccess;
+    return rc;
 }
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -524,27 +526,29 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
 
     Timer t;
     START_TIME
+    int rc = 0;
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPoolingBackward(GetHandle(),
-                              poolDesc,
-                              &alpha,
-                              outputTensor,
-                              out_dev->GetMem(),
-                              dOutputTensor,
-                              dout_dev->GetMem(),
-                              inputTensor,
-                              in_dev->GetMem(),
-                              &beta,
-                              dInputTensor,
-                              din_dev->GetMem(),
-                              mask_dev->GetMem());
+        rc |= miopenPoolingBackward(GetHandle(),
+                                    poolDesc,
+                                    &alpha,
+                                    outputTensor,
+                                    out_dev->GetMem(),
+                                    dOutputTensor,
+                                    dout_dev->GetMem(),
+                                    inputTensor,
+                                    in_dev->GetMem(),
+                                    &beta,
+                                    dInputTensor,
+                                    din_dev->GetMem(),
+                                    mask_dev->GetMem());
     }
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
+        if(rc == 0)
+            miopenGetKernelTime(GetHandle(), &time);
 
         STOP_TIME
         if(WALL_CLOCK)
@@ -561,7 +565,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
         dumpBufferToFile<Tgpu>((dump_root + "/dump_din.bin").c_str(), din.data(), in_sz);
     }
 
-    return miopenStatusSuccess;
+    return rc;
 }
 
 template <typename Tgpu, typename Tref, typename Index>

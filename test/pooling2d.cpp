@@ -59,6 +59,12 @@ private:
     // Dataset 1 is intended for testing of asymmetric configs.
     std::vector<U> get_2d_pooling_input_shapes_minimal() { return {{1, 4, 4, 4}}; }
 
+    // Dataset 2 is intended for testing of configs with wide window.
+    std::vector<U> get_2d_pooling_input_shapes_wide()
+    {
+        return {{1, 3, 255, 255}, {2, 3, 227, 227}, {1, 7, 127, 127}, {1, 1, 410, 400}};
+    }
+
 public:
     pooling2d_driver() : pooling_driver<T>()
     {
@@ -67,33 +73,35 @@ public:
         std::vector<U> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
         this->add(this->in_shape, "input", this->generate_data(in_dim_vec, {16, 32, 8, 8}));
 #else
-        this->add(this->in_shape,
-                  "input",
-                  this->template generate_multi_data_limited<U>(
-                      {get_2d_pooling_input_shapes(), get_2d_pooling_input_shapes_minimal()}, 9));
-#endif
         this->add(
-            this->lens,
-            "lens",
-            this->template generate_multi_data<U>({{{2, 2}, {3, 3}}, {{2, 2}, {1, 2}, {2, 1}}}));
+            this->in_shape,
+            "input",
+            this->template generate_multi_data_limited<U>({get_2d_pooling_input_shapes(),
+                                                           get_2d_pooling_input_shapes_minimal(),
+                                                           get_2d_pooling_input_shapes_wide()},
+                                                          9));
+#endif
+        this->add(this->lens,
+                  "lens",
+                  this->template generate_multi_data<U>(
+                      {{{2, 2}, {3, 3}},         //
+                       {{2, 2}, {1, 2}, {2, 1}}, //
+                       {{35, 35}, {100, 100}, {255, 255}, {410, 400}}}));
         this->add(this->strides,
                   "strides",
-                  this->template generate_multi_data<U>(
-                      {{{2, 2}, {1, 1}}, {{1, 1}, {2, 1}, {1, 2}, {2, 2}}}));
+                  this->template generate_multi_data<U>({{{2, 2}, {1, 1}},                 //
+                                                         {{1, 1}, {2, 1}, {1, 2}, {2, 2}}, //
+                                                         {{1, 1}}}));
+        // clang-format off
         this->add(this->pads, "pads", this->template generate_multi_data<U>({
-            {{0, 0}, {1, 1}},
+            {{0, 0}, {1, 1}}, //
 #if WORKAROUND_ISSUE_1670
-            {
-                {
-                    0, 0
-                }
-            }
+            {{0, 0}}, //
 #else
-            {
-                {0, 0}, {0, 1}, {1, 0}, { 1, 1 }
-            }
+            {{0, 0}, {0, 1}, {1, 0}, {1, 1}}, //
 #endif
-        }));
+            {{0, 0}}}));
+        // clang-format on
         this->add(this->wsidx, "wsidx", this->generate_data({0, 1}));
     }
 };
