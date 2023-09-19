@@ -34,8 +34,6 @@
 
 #include "random.hpp"
 
-using float16 = half_float::half;
-
 #include "InputFlags.hpp"
 #include <algorithm>
 #include <cstdio>
@@ -44,6 +42,12 @@ using float16 = half_float::half;
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/bfloat16.hpp>
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <miopen/hip_float8.hpp>
+using float16 = half_float::half;
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 #include <numeric>
 #include <vector>
 
@@ -143,7 +147,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[gnu::noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], "
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
            "tensorop[fp16], reduce[fp16,fp64]"
@@ -165,13 +169,13 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
-       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
-       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
-       arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" && arg != "rnn_seqfp16" &&
-       arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" && arg != "dropout" &&
-       arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" && arg != "reduce" &&
-       arg != "reducefp16" && arg != "reducefp64" &&
+       arg != "convfp8" && arg != "convbfp8" && arg != "CBAInfer" && arg != "CBAInferfp16" &&
+       arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
+       arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
+       arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
+       arg != "rnn_seqfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
+       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
 #ifdef MIOPEN_BETA_API
        arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" &&
 #endif
@@ -256,6 +260,16 @@ template <>
 inline void Driver::InitDataType<bfloat16>()
 {
     data_type = miopenBFloat16;
+}
+template <>
+inline void Driver::InitDataType<float8>()
+{
+    data_type = miopenFloat8;
+}
+template <>
+inline void Driver::InitDataType<bfloat8>()
+{
+    data_type = miopenBFloat8;
 }
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.

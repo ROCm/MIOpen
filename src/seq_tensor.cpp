@@ -208,10 +208,8 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
     else
     {
         if(padding_in.size() != dims)
-        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Lengths and padding number dimensions must be equal");
-        }
         else
             padds = padding_in;
     }
