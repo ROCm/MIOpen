@@ -47,7 +47,7 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
                               const FusionDescription& problem,
                               const AnyInvokeParams& invoke_params) const
 {
-    const auto conv_problem          = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem          = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx              = context.GetConvContext(conv_problem);
     const auto legacy                = conv::ConvOclDirectFwd{};
     const auto& fusion_invoke_params = invoke_params.CastTo<miopen::fusion::FusionInvokeParams>();
@@ -97,7 +97,7 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
         if(!(prim == miopenFusionOpActivForward))
             return false;
     }
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(!conv_problem.IsFp32())
         return false;
     const auto base     = conv::ConvOclDirectFwd{};
@@ -110,7 +110,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const FusionDescription& problem,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
     ConvSolution result = conv::ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_problem, config);
 
@@ -234,7 +234,7 @@ ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context,
 {
     const auto base = conv::ConvOclDirectFwd{};
     MIOPEN_LOG_I("Using Unfused class to initialize performance config");
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
     return base.GetDefaultPerformanceConfig(conv_ctx, conv_problem);
 }
@@ -245,7 +245,7 @@ bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
     const PerformanceConfigConvOclDirectFwdFused& c) const
 {
     const auto base         = conv::ConvOclDirectFwd{};
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
     return base.IsValidPerformanceConfig(conv_ctx, conv_problem, c);
 }

@@ -95,7 +95,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
            yDesc.GetType() != miopenInt8x4)
             return false;
     }
-    return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
+    return problem.IsDirectionForward() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else

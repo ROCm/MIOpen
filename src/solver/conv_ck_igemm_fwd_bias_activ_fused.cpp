@@ -288,7 +288,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = fdesc_problem;
 #else
-    const auto conv_problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_problem); break;
@@ -341,7 +341,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     return false;
 #else
     // Extract convolution problem from the fusion context.
-    const auto conv_problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
@@ -415,7 +415,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
     if(activ_op.activMode != miopenActivationRELU)
         return false;
-    const auto conv_problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(conv_problem.GetConv().attribute.deterministic)
         return false;
     if(conv_problem.GetInDataType() != conv_problem.GetWeightsDataType() ||
@@ -454,7 +454,7 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
     std::ignore = config;
     return {};
 #else
-    const auto conv_problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;

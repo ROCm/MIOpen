@@ -71,7 +71,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
     const auto& dyDesc = problem.GetIn();
     const auto& dwDesc = problem.GetWeights();
     const auto& xDesc  = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::BackwardWeights &&
+    return problem.IsDirectionBackwardWrW() &&
            problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);

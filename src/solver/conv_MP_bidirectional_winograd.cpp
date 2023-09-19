@@ -785,7 +785,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     // trans_output_pads = {0, 0},  group_count = gem_batch_count
     ConvolutionDescriptor conv_desc({0, 0}, {1, 1}, {1, 1}, {0, 0}, batch_count);
 
-    auto dir = conv::Direction::Forward;
+    auto dir = miopen::conv::Direction::Forward;
 
     conv::ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
 

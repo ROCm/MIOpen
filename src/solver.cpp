@@ -175,7 +175,7 @@ AnySolver Id::GetSolver() const
     return it != IdRegistry().value_to_entry.end() ? it->second.solver : AnySolver{};
 }
 
-std::string Id::GetAlgo(conv::Direction dir) const
+std::string Id::GetAlgo(miopen::conv::Direction dir) const
 {
     return ConvolutionAlgoToDirectionalString(GetAlgo(), dir);
 }

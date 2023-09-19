@@ -55,7 +55,7 @@ namespace fusion {
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx,
                                                           const FusionDescription& problem)
 {
-    auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     auto conv_ctx     = ctx.GetConvContext(conv_problem);
     PerformanceConfigConvAsm1x1U::HeuristicInit(conv_ctx, conv_problem);
 }
@@ -63,13 +63,13 @@ void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& c
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription& problem)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionDescription& problem) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -103,7 +103,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
     conv::ConvAsm1x1U base_sol{};
 
@@ -239,7 +239,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     }
 
     conv::ConvAsm1x1U sol{};
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     if(conv_problem.GetPadH() != conv_problem.GetPadW())

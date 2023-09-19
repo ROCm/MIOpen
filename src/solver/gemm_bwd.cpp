@@ -104,7 +104,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& dyDesc = problem.GetIn();
     const auto& wDesc  = problem.GetWeights();
     const auto& dxDesc = problem.GetOut();
-    return problem.GetDirection() == conv::Direction::BackwardData && problem.IsLayoutDefault() &&
+    return problem.IsDirectionBackwardData() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
 #else

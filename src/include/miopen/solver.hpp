@@ -183,7 +183,6 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
 namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
-using Direction          = miopen::conv::Direction;
 
 /// Typedef for convolution solvers
 using ConvSolver = NonTunableSolverBase<ConvolutionContext, ProblemDescription>;
