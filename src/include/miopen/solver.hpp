@@ -5020,6 +5020,77 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
+struct PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops>
+{
+    int index             = 0;
+    std::string kernel_id = "";
+    std::vector<std::string> valid_kernels;
+
+    PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+
+    PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops() = default;
+
+    explicit PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops(bool)
+        : PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    bool operator==(const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemm3DFwdNonPackXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemm3DFwdNonPackXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops&) const override;
+    PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic
 {
