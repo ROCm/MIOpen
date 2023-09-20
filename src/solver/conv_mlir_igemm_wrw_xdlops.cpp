@@ -52,6 +52,8 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.IsDirectionBackwardWrW())
         return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 

@@ -841,6 +841,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!IsApplicableXdlops(ctx, problem))
         return false;
     if(!IsIndexRangeLargeEnough(problem))

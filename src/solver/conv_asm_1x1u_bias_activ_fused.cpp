@@ -93,9 +93,9 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const FusionContext& context,
                              const FusionDescription& problem,
-                             const AnyInvokeParams& invoke_ctx) const
+                             const AnyInvokeParams& invoke_params) const
 {
-    return GenericSearch(*this, context, problem, invoke_ctx);
+    return GenericSearch(*this, context, problem, invoke_params);
 }
 
 ConvSolution
@@ -253,6 +253,9 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
     if(conv_problem.GetDilationH() != 1)
+        return false;
+
+    if(conv_problem.IsTensorsCasted())
         return false;
 
     // Check if the conovlution part is applicable

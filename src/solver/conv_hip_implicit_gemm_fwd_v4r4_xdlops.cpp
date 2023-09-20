@@ -991,6 +991,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!problem.IsDirectionForward())
         return false;
 

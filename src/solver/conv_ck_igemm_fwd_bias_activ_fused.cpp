@@ -292,6 +292,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -345,6 +347,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -416,6 +420,9 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     if(activ_op.activMode != miopenActivationRELU)
         return false;
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    if(conv_problem.IsTensorsCasted())
+        return false;
     if(conv_problem.GetConv().attribute.deterministic)
         return false;
     if(conv_problem.GetInDataType() != conv_problem.GetWeightsDataType() ||
@@ -424,7 +431,8 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     if(!conv_problem.Is2d())
         return false;
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx940" && arch != "gfx941" &&
+       arch != "gfx942")
         return false;
     if(!conv_problem.IsLayoutNHWC())
         return false;
@@ -432,6 +440,8 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -464,6 +474,8 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, conv_problem, config);
                 break;
+            case miopenFloat8:
+            case miopenBFloat8:
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:

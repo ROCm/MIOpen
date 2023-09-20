@@ -1133,6 +1133,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!problem.Is2d())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 

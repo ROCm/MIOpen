@@ -213,6 +213,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -254,6 +256,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -321,6 +325,8 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -350,6 +356,8 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");

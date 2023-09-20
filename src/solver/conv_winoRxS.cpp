@@ -623,6 +623,9 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!ctx.use_asm_kernels)
         return false;
     if(!ctx.rmv.IsV3())

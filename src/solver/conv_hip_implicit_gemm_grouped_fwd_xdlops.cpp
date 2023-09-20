@@ -202,6 +202,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -242,6 +244,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -286,6 +290,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
+    if(problem.IsTensorsCasted())
+        return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(problem.GetInDataType() != problem.GetWeightsDataType() ||
@@ -309,6 +315,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -337,6 +345,8 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");

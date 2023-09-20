@@ -379,7 +379,7 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     auto rout = out;
     if(filter.mode == miopenTranspose)
     {
-        std::fill(rout.begin(), rout.end(), 0);
+        std::fill(rout.begin(), rout.end(), static_cast<Tout>(0));
         bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
         if(!gpu_ref_used)
         {
@@ -439,27 +439,92 @@ tensor<Twei> ref_conv_wrw(const tensor<T>& input,
 }
 
 template <typename T, typename Tout = T>
-tensor<Tout> ref_conv_bwd(const tensor<T>& input,
+tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
                           const tensor<T>& weights,
-                          const tensor<Tout>& out,
+                          const tensor<T>& out,
                           const miopen::ConvolutionDescriptor& filter)
 {
-    auto rin = input;
-    std::fill(rin.begin(), rin.end(), 0);
-    bool gpu_ref_used = gpu_ref_convolution_bwd(rin, weights, out, filter);
-    if(!gpu_ref_used)
+    auto rinput = input;
+
+    std::fill(rinput.begin(), rinput.end(), 0);
+
+    if(filter.mode == miopenTranspose)
     {
-        MIOPEN_LOG_W("GPU reference skipped");
-        cpu_convolution_backward_data(filter.GetSpatialDimension(),
-                                      rin,
-                                      weights,
-                                      out,
-                                      filter.GetConvPads(),
-                                      filter.GetConvStrides(),
-                                      filter.GetConvDilations(),
-                                      filter.GetGroupCount());
+        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    out,
+                                    weights,
+                                    rinput,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+        }
     }
-    return rin;
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rinput,
+                                          weights,
+                                          out,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
+        }
+    }
+    return rinput;
+}
+
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_wrw(const tensor<T>& input,
+                          const tensor<Tout>& weights,
+                          const tensor<T>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rweights = weights;
+    std::fill(rweights.begin(), rweights.end(), 0);
+
+    if(filter.mode == miopenTranspose)
+    {
+        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            out,
+                                            rweights,
+                                            input,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
+    }
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            input,
+                                            rweights,
+                                            out,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
+    }
+    return rweights;
 }
 
 // Mainline convolution tests

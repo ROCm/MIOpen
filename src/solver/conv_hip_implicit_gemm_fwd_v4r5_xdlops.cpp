@@ -1021,6 +1021,9 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto y = ProblemInterpreter::GetFilterHeightY(problem);
     const auto x = ProblemInterpreter::GetFilterWidthX(problem);
 

@@ -837,6 +837,9 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
     if(!problem.IsFp32() && !problem.IsFp16())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!ctx.rmv.IsV3())
         return false;
 

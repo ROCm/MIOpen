@@ -571,6 +571,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
        !(problem.IsFp16() && problem.GetVectorLength() == 8))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!ctx.rmv.IsV3())
         return false;
 

@@ -62,6 +62,9 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.IsLayoutDefault())
     {
         return false;

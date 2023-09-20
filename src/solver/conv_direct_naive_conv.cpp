@@ -29,6 +29,8 @@
 #include <miopen/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/datatype.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -143,7 +145,14 @@ std::string ConvDirectNaiveConvKernelName(const conv::ProblemDescription& proble
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(IsInputFp32(problem))
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
+    {
+        kernel_name << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        kernel_name << "_" << miopen::GetDataType(problem.GetWeightsDataType());
+        kernel_name << "_" << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
+        return kernel_name.str();
+    }
+    else if(IsInputFp32(problem))
         kernel_name << "float_";
     else if(IsInputFp16(problem))
         kernel_name << "half_";
@@ -177,18 +186,56 @@ std::string ConvDirectNaiveConvKernelName(const conv::ProblemDescription& proble
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
-
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+                                          const conv::ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile();
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    // The above function, ConvDirectNaiveConvKernelName is not in sync for the asm kernel,
+    // resulting in empty code objects. This happens for systems with COv3 as the default type.
+    // if(device_name == "gfx906" || device_name == "gfx908")
+    // {
+    //     if(ctx.rmv.IsV3() && problem.IsLayoutDefault() && !problem.IsFp8() &&
+    //        !problem.IsTensorsCasted() && !problem.IsBfp8())
+    //         return "naive_conv_gcn.s";
+    // }
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
+        return "fp8_naive_conv.cpp";
+    return "naive_conv.cpp";
+}
+
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+                                             const conv::ProblemDescription& problem)
+{
+    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
         return options.str();
     }
-    return ctx.general_compile_options;
+    std::ostringstream ss;
+    ss << ctx.general_compile_options;
+    if(problem.IsFp8() || problem.IsTensorsCasted() || problem.IsBfp8())
+    {
+        ss << " -DINPUT_TYPE="
+           << miopen::GetDataType(ProblemInterpreter::GetInputDataType(problem));
+        ss << " -DWEIGHTS_TYPE=" << miopen::GetDataType(problem.GetWeightsDataType());
+        ss << " -DOUTPUT_TYPE="
+           << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
+        const auto in_cast_type = problem.GetInCastType();
+        if(in_cast_type)
+            ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
+        const auto wei_cast_type = problem.GetWeightsCastType();
+        if(wei_cast_type)
+            ss << " -DWEIGHTS_CAST_TYPE=" << miopen::GetDataType(*(wei_cast_type));
+        const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
+        if(out_cast_type)
+            ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
+        ss << " -DMIOPEN_FP8_CLIPPING=" << MIOPEN_FP8_CLIPPING;
+        ss << " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" << MIOPEN_FP8_IEEE_EXPONENT_BIAS;
+        //     Let the kernel choose its accumulator (double for naive kernels )
+    }
+    return ss.str();
 }
 
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,

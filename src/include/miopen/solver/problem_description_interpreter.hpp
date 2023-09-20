@@ -105,6 +105,14 @@ struct ProblemInterpreter
             return problem.GetOutWidth_();
     }
 
+    static auto GetInputCastType(const conv::ProblemDescription& problem)
+    {
+        if(problem.IsDirectionForward())
+            return problem.GetInCastType();
+        else
+            return problem.GetOutCastType();
+    }
+
     static int GetOutputDepthDo(const conv::ProblemDescription& problem)
     {
         if(problem.IsDirectionForward())
@@ -127,6 +135,14 @@ struct ProblemInterpreter
             return problem.GetOutWidth_();
         else
             return problem.GetInWidth_();
+    }
+
+    static auto GetOutputCastType(const conv::ProblemDescription& problem)
+    {
+        if(problem.IsDirectionForward())
+            return problem.GetOutCastType();
+        else
+            return problem.GetInCastType();
     }
 
     static auto GetOutputDataType(const conv::ProblemDescription& problem)

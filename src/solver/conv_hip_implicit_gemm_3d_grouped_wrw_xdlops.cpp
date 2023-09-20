@@ -209,6 +209,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -250,6 +252,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -319,6 +323,8 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -346,6 +352,8 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble:
     default:
         MIOPEN_THROW(miopenStatusInternalError,

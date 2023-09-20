@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,39 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#include <miopen/miopen.h>
+#ifdef MIOPEN_BETA_API
+#ifndef MIOPEN_LAYERNORM_HPP_
+#define MIOPEN_LAYERNORM_HPP_
 
-#include <gtest/gtest.h>
-#include "cpu_conv.hpp"
-#include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/common.hpp>
 
-#include "conv_test_base.hpp"
+namespace miopen {
 
-template <typename T = float>
-struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T>
-{
-public:
-    void SetUp() override
-    {
-        test_skipped                               = false;
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
-        ConvFwdSolverTestBase<T>::SetUpImpl(conv_config, tensor_layout);
-    }
-    void TearDown() override
-    {
-        if(test_skipped)
-            return;
-        ConvFwdSolverTestBase<T>::TearDownConv();
-        ConvFwdSolverTestBase<T>::ThresholdChecks();
-    }
-    ConvTestCase conv_config;
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
-    miopenTensorLayout_t tensor_layout;
-};
+struct Handle;
+struct TensorDescriptor;
+
+miopenStatus_t LayerNormForward(const Handle& handle,
+                                const TensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const TensorDescriptor& weightDesc,
+                                ConstData_t weight,
+                                const TensorDescriptor& biasDesc,
+                                ConstData_t bias,
+                                const TensorDescriptor& yDesc,
+                                Data_t y,
+                                const TensorDescriptor& meanDesc,
+                                Data_t mean,
+                                const TensorDescriptor& rstdDesc,
+                                Data_t rstd,
+                                miopenLayerNormMode_t mode,
+                                const float epsilon,
+                                const int32_t normalized_dim);
+
+} // namespace miopen
+#endif // _MIOPEN_LAYERNORM_HPP_
+#endif

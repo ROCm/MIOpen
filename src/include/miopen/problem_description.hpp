@@ -177,6 +177,7 @@ struct ProblemDescriptionCompatTemporary
     /*
      *  set bot tensor
      */
+
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,

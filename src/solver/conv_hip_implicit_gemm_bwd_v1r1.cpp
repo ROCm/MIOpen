@@ -650,6 +650,9 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
 
     if(!(problem.IsFp32() || problem.IsBfp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(problem.GetGroupCount() != 1)
         return false;
     if(!IsIndexRangeLargeEnough(problem))

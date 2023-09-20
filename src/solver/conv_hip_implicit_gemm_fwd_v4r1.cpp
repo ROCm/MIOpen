@@ -67,6 +67,9 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     std::size_t n         = problem.GetBatchSize_();
     std::size_t k         = problem.GetOutChannels_() / problem.GetGroupCount();
     std::size_t c         = problem.GetInChannels_() / problem.GetGroupCount();
@@ -89,6 +92,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
         return false;
+    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.IsDirectionBackwardWrW())
@@ -104,6 +109,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault())
         return false;
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
 
     // retrieve dimension from ProblemDescription

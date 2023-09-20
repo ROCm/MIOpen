@@ -538,6 +538,9 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
@@ -551,6 +554,9 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;

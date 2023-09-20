@@ -296,6 +296,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!problem.IsFp32())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!ctx.rmv.IsV3())
         return false;
 

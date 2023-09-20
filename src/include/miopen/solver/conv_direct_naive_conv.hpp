@@ -34,8 +34,10 @@ namespace solver {
 
 bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const conv::ProblemDescription&);
 std::string ConvDirectNaiveConvKernelName(const conv::ProblemDescription&);
-std::string ConvDirectNaiveConvKernelFile();
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
+std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+                                          const conv::ProblemDescription& problem);
+std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+                                             const conv::ProblemDescription& problem);
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
                                                  const conv::ProblemDescription&);
 

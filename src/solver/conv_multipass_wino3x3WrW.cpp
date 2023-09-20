@@ -439,6 +439,9 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.IsLayoutDefault())
     {
         return false;

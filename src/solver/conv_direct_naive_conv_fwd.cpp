@@ -48,12 +48,30 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8() ||
+         problem.IsFp8() || problem.IsBfp8()))
         return false;
 
     if(!problem.IsDirectionForward())
         return false;
 
+    if(problem.IsTensorsCasted())
+    {
+        auto test_cast = [&](const TensorDescriptor& desc) {
+            if(desc.GetCastType())
+            {
+                const auto cast_type = *desc.GetCastType();
+                if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
+                    return false;
+            }
+            // all tested tensors must have cast type set
+            return true;
+        };
+        if(test_cast(problem.GetIn()))
+            return false;
+        if(test_cast(problem.GetWeights()))
+            return false;
+    }
     return true;
 }
 
@@ -105,7 +123,13 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    const auto is_f8   = [&]() {
+        if(kernel.kernel_file == "fp8_naive_conv.cpp")
+            return true;
+        else
+            return false;
+    }();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -117,36 +141,62 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx =
-                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors = data_ctx.tensors;
-                float elapsed       = 0;
-
-                handle.Run(kern)(tensors.in,
-                                 tensors.w,
-                                 tensors.out,
-                                 hi,
-                                 wi,
-                                 n,
-                                 k_per_group,
-                                 c_per_group,
-                                 ho,
-                                 wo,
-                                 sy,
-                                 sx,
-                                 dy,
-                                 dx,
-                                 py,
-                                 px,
-                                 fy,
-                                 fx,
-                                 group);
+                decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                float elapsed           = 0;
+                if(is_f8)
+                {
+                    handle.Run(kern)(tensors.in,
+                                     tensors.w,
+                                     tensors.out,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group,
+                                     problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                         miopenF8RoundingModeStochastic,
+                                     problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
+                else
+                {
+                    handle.Run(kern)(tensors.in,
+                                     tensors.w,
+                                     tensors.out,
+                                     hi,
+                                     wi,
+                                     n,
+                                     k_per_group,
+                                     c_per_group,
+                                     ho,
+                                     wo,
+                                     sy,
+                                     sx,
+                                     dy,
+                                     dx,
+                                     py,
+                                     px,
+                                     fy,
+                                     fx,
+                                     group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 

@@ -213,6 +213,8 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -254,6 +256,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -304,6 +308,8 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
         return false;
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is3d())
@@ -321,6 +327,8 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenDouble: break;
     }
 #endif
@@ -349,6 +357,8 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");

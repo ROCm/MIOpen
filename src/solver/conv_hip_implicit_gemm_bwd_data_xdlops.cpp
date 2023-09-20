@@ -169,6 +169,8 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
@@ -209,6 +211,8 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
@@ -263,6 +267,9 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is2d())
@@ -284,6 +291,8 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
@@ -314,6 +323,8 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
