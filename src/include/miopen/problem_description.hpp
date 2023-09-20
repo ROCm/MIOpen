@@ -60,6 +60,8 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
 #if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
 struct ProblemDescription : conv::ProblemDescription
 {
+    ProblemDescription() = default;
+
     ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
     {
         conv_problem.p = this;
