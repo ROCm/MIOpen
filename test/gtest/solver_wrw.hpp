@@ -53,7 +53,8 @@ struct ConvWrwSolverTest
 
         const auto tensors = miopen::ConvWrwTensors{
             output.desc, out_dev.get(), input.desc, in_dev.get(), weights.desc, wei_dev.get()};
-        const auto problem = miopen::conv::ProblemDescription(output.desc,
+        const auto problem =
+            miopen::conv::ProblemDescription(output.desc,
                                              weights.desc,
                                              input.desc,
                                              conv_desc,

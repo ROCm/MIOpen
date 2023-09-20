@@ -107,8 +107,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
         MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
         return false;
     }
-    return problem.IsDirectionBackwardWrW() &&
-           problem.IsLayoutDefault() &&
+    return problem.IsDirectionBackwardWrW() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else

@@ -147,9 +147,10 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
-                const auto& tensors     = data_ctx.tensors;
-                float elapsed           = 0;
+                decltype(auto) data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors = data_ctx.tensors;
+                float elapsed       = 0;
                 if(is_f8)
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
