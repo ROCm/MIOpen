@@ -330,6 +330,7 @@ void pad_tensor_strides(std::vector<int>& strides)
     // int c = 2;
     for(auto& v : strides)
     {
+        // cppcheck-suppress useStlAlgorithm
         v = v * c;
     }
     pvec("new strides", strides);
