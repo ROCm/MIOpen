@@ -128,7 +128,7 @@ auto rocBlasDataType(miopenDataType_t data_type)
         return rocblas_datatype::rocblas_datatype_bf8_r;
     else
 #endif
-    if(data_type == miopenHalf)
+        if(data_type == miopenHalf)
         return rocblas_datatype::rocblas_datatype_f16_r;
     MIOPEN_THROW(miopenStatusInternalError, "Invalid data type passed");
 }
