@@ -236,7 +236,7 @@ struct ConvTunableSolver : ConvTunableSolverBase
     Search(const ExecutionContext&, const ProblemDescription&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution GetSolution(const ExecutionContext&,
                                      const ProblemDescription&,
-                                     const PerformanceConfig&) const                           = 0;
+                                     const PerformanceConfig&) const                         = 0;
 
     boost::any GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
@@ -3421,10 +3421,10 @@ struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsm
     }
 
     // Chilrden must provide support for ComputedContainer.
-    void HeuristicInit(const ExecutionContext&)                              = delete;
-    bool SetNextValue(const ProblemDescription&)                             = delete;
-    bool IsValidValue() const                                                = delete;
-    bool IsValid(const ExecutionContext&, const ProblemDescription&) const   = delete;
+    void HeuristicInit(const ExecutionContext&)                            = delete;
+    bool SetNextValue(const ProblemDescription&)                           = delete;
+    bool IsValidValue() const                                              = delete;
+    bool IsValid(const ExecutionContext&, const ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
@@ -4203,10 +4203,10 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     }
 
     // Chilrden must provide support for ComputedContainer.
-    void HeuristicInit(const ExecutionContext&)                              = delete;
-    bool SetNextValue(const ProblemDescription&)                             = delete;
-    bool IsValidValue() const                                                = delete;
-    bool IsValid(const ExecutionContext&, const ProblemDescription&) const   = delete;
+    void HeuristicInit(const ExecutionContext&)                            = delete;
+    bool SetNextValue(const ProblemDescription&)                           = delete;
+    bool IsValidValue() const                                              = delete;
+    bool IsValid(const ExecutionContext&, const ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTCvector& other) const;

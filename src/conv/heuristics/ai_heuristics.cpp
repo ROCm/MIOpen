@@ -119,9 +119,9 @@ public:
           offset(metadata.num_outputs - metadata.num_solvers)
     {
     }
-    virtual ~Model()                                                     = default;
+    virtual ~Model()                                                   = default;
     virtual bool IsProblemSupported(const ProblemDescription& problem,
-                                    const ExecutionContext& ctx) const   = 0;
+                                    const ExecutionContext& ctx) const = 0;
     std::vector<float> Forward(const ProblemDescription& problem) const
     {
         std::vector<float> features       = ToFeatures(problem);
