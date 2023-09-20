@@ -242,6 +242,25 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
     return false;
 }
 
+#if MIOPEN_BACKEND_HIP
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    start = make_hip_event();
+    stop  = make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0.0f;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
+}
+#endif
+
 namespace {
 
 template <typename DataType>
@@ -287,16 +306,20 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         {});
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    if(enable_profiling)
+    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    if(handle.IsProfilingEnabled())
     {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
+        ProfilingRecordStart(handle, start, stop);
     }
+#endif
+    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+#if MIOPEN_BACKEND_HIP
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStop(handle, start, stop);
+#endif
 }
 
 } // namespace

@@ -31,6 +31,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
+#include <miopen/tensor_ops.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
@@ -235,6 +236,25 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     return false;
 }
 
+#if MIOPEN_BACKEND_HIP
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    start = make_hip_event();
+    stop  = make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0.0f;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
+}
+#endif
+
 namespace {
 
 template <typename DataType>
@@ -277,16 +297,22 @@ void RunCKSolution(const Handle& handle,
         {},
         {},
         args.split_k);
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    if(enable_profiling)
+    auto invoker_ptr = conv_ptr->MakeInvokerPointer();
+    auto zero        = 0.0f;
+#if MIOPEN_BACKEND_HIP
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+    if(handle.IsProfilingEnabled())
     {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
+        ProfilingRecordStart(handle, start, stop);
     }
+#endif
+    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+#if MIOPEN_BACKEND_HIP
+    if(handle.IsProfilingEnabled())
+        ProfilingRecordStop(handle, start, stop);
+#endif
 }
 
 } // namespace
