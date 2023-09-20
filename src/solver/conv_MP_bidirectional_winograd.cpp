@@ -177,7 +177,7 @@ static bool IsApplicableGEMM(const ProblemDescription& problem)
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
 #if MIOPEN_BACKEND_HIP
     if(!ctx.use_asm_kernels)
@@ -319,7 +319,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
@@ -356,7 +356,7 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -375,7 +375,7 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
+static InvokerFactory MakeWinogradInvokerFactory(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  InvokerFactory xdlops_factory = InvokerFactory(),
                                                  bool isXdlops                 = false)
@@ -637,7 +637,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
     result.workspace_sz = GetWorkspaceSize(ctx, problem);
@@ -721,14 +721,14 @@ template struct ConvMPBidirectWinograd<4, 3>;
 template struct ConvMPBidirectWinograd<5, 3>;
 template struct ConvMPBidirectWinograd<6, 3>;
 
-// ConvolutionContext and ProblemDescription transformation
+// ExecutionContext and ProblemDescription transformation
 // for winograd buffers calculation using xdlops_convolution
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
-    GetTransformedConvContext(const ConvolutionContext& ctx,
+ExecutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+    GetTransformedConvContext(const ExecutionContext& ctx,
                               const ProblemDescription& transformed_problem) const
 {
-    auto transformed_ctx = ConvolutionContext{static_cast<const ExecutionContext&>(ctx)};
+    auto transformed_ctx = ExecutionContext{static_cast<const ExecutionContext&>(ctx)};
     transformed_problem.SetupFloats(transformed_ctx);
 
     return transformed_ctx;
@@ -843,7 +843,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
@@ -875,7 +875,7 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
@@ -915,7 +915,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const AnyInvokeParams& invoke_ctx) const
 {

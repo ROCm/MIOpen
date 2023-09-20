@@ -61,7 +61,7 @@ struct ConvSolution;
 
 struct AnyInvokeParams;
 struct ExecutionContext;
-struct ConvolutionContext;
+struct ExecutionContext;
 struct Handle;
 struct TensorDescriptor;
 struct ProblemDescription;
@@ -170,7 +170,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
-    bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
+    bool IsWinograd3x3SupportedAndFast(const miopen::ExecutionContext& ctx,
                                        const ProblemDescription& problem) const;
 
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
@@ -191,15 +191,15 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               bool exhaustiveSearch) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx,
+    FindWinogradSolutions(const ExecutionContext& ctx,
                           const ProblemDescription& problem,
                           const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+    FindWinogradSolutions(const ExecutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindDataGemmSolutions(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
+    FindDataGemmSolutions(const ExecutionContext& ctx, const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -211,7 +211,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindFftSolutions(const ConvolutionContext& ctx,
+    FindFftSolutions(const ExecutionContext& ctx,
                      const ProblemDescription& problem,
                      const AnyInvokeParams& invoke_ctx) const;
 

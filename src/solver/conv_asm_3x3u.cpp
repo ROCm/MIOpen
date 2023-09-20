@@ -150,7 +150,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
 }
 
 PerformanceConfigConvAsm3x3U
-ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvAsm3x3U::GetDefaultPerformanceConfig(const ExecutionContext&,
                                          const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm3x3U pp;
@@ -159,15 +159,14 @@ ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext&,
     return pp;
 }
 
-bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext&,
+bool ConvAsm3x3U::IsValidPerformanceConfig(const ExecutionContext&,
                                            const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm3x3U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;
@@ -236,7 +235,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     // clang-format on
 }
 
-ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
                                       const ProblemDescription& problem,
                                       const PerformanceConfigConvAsm3x3U& config) const
 {
@@ -315,7 +314,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& ctx,
+PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const AnyInvokeParams& invoke_ctx) const
 {

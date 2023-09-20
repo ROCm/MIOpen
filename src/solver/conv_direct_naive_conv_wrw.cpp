@@ -34,7 +34,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
 namespace miopen {
 namespace solver {
 
-bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
+bool ConvDirectNaiveConvWrw::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
@@ -56,7 +56,7 @@ bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
     return true;
 }
 
-ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     ConvSolution result;

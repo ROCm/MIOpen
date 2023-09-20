@@ -169,7 +169,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
 std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
 
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx)
 {
     std::string filename = ConvDirectNaiveConvKernelFile();
     if(miopen::EndsWith(filename, ".s"))

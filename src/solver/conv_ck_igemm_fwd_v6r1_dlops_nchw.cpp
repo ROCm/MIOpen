@@ -82,7 +82,7 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& p
         ck_utility::get_ck_convolution_problem_descriptor(problem), compile_param);
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_411729
@@ -118,7 +118,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
@@ -135,7 +135,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContex
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
@@ -143,7 +143,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
 }
 
 ConvSolution
-ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
                                          const ProblemDescription& problem,
                                          const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
@@ -249,7 +249,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&,
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
@@ -257,7 +257,7 @@ std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionConte
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::Search(const ConvolutionContext& ctx,
+ConvCkIgemmFwdV6r1DlopsNchw::Search(const ExecutionContext& ctx,
                                     const ProblemDescription& problem,
                                     const AnyInvokeParams& invoke_ctx) const
 {
