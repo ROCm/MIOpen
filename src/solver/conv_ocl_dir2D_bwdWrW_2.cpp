@@ -468,6 +468,9 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx
         return false;
     }
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     return problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
 #if 0
            // There is a stronger restriction than this one, which make this one unnecessary.
