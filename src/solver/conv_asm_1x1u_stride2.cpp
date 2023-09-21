@@ -496,6 +496,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
@@ -509,6 +512,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
     // clang-format off
