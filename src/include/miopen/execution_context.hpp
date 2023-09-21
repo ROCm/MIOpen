@@ -65,10 +65,6 @@ public:
 
 namespace miopen {
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
-
 struct ExecutionContext
 {
     // Solution-specific

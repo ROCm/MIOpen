@@ -45,6 +45,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
     return problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1;

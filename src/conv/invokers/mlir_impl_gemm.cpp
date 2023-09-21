@@ -74,7 +74,7 @@ struct MlirConvArgs
 #endif
 
 #if MIIR_BARE_POINTER_ABI
-void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
+void ComputeMlirDimsStrides(const ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,
@@ -156,7 +156,7 @@ void InsertGToDimsStrides(const std::string& layout,
     strides.insert(strides.begin() + index, strides[index] * dims[index + 1]);
 }
 
-void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
+void ComputeMlirDimsStrides(const ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,

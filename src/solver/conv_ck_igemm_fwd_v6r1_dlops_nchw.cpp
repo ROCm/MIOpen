@@ -53,6 +53,8 @@ static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
 
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ProblemDescription&)
 {
     if(ck_tunable_list_id <

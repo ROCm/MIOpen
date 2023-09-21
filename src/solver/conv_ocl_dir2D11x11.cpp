@@ -37,6 +37,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 bool ConvOclDirectFwd11x11::IsApplicable(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {

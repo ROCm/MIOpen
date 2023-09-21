@@ -37,6 +37,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 PerformanceImplicitGemmV4R4Fwd::PerformanceImplicitGemmV4R4Fwd(int BlockSize_,
                                                                int GemmMPerBlock_,
                                                                int GemmNPerBlock_,

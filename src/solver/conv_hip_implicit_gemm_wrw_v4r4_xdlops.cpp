@@ -41,6 +41,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
           4, 4, 1, 4, 4, 1, false, false, false)

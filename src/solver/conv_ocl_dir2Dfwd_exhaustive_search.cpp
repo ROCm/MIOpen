@@ -51,6 +51,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 /*
  * select default configuration if a known configuration has not been found.
  */

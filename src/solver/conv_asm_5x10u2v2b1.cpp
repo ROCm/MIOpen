@@ -37,6 +37,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {

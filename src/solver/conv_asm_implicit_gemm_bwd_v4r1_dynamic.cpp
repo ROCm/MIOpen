@@ -37,6 +37,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& problem,
                                                     std::string& kernel_name,
                                                     int& block_size,

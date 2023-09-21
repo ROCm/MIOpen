@@ -43,6 +43,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 inline static bool Is_1_to_8(const int& v)
 {
     // full: {1,2,4,8}, optimized: {1,3,8}

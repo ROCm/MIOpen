@@ -44,6 +44,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static inline std::size_t GetTypeSize(const std::string& s)
 {
     if(s == "fp32")
@@ -911,7 +913,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 }
 
 static std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& problem,
+ComputeDynamicIGemmWrwKernelArgsNHWC(const ProblemDescription& problem,
                                      const int gemm_k_global_splits,
                                      const int gemm_k_per_wg,
                                      const int splits_4G)

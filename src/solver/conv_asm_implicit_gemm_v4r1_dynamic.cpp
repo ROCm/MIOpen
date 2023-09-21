@@ -37,6 +37,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 struct TunableImplicitGemmV4R1Dynamic
 {
     int BPerBlock;

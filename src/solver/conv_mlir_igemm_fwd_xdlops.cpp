@@ -39,6 +39,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
 {
     // These values are equivalent to when tuning config is heuristically initialized.

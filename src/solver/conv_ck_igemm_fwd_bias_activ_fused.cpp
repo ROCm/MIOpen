@@ -69,7 +69,7 @@ namespace {
 
 struct CKArgs
 {
-    CKArgs(const conv::ProblemDescription& problem)
+    CKArgs(const miopen::conv::ProblemDescription& problem)
     {
         N        = ProblemInterpreter::GetBatchN(problem);
         K        = ProblemInterpreter::GetOutputChannelK(problem);
@@ -104,7 +104,7 @@ struct CKArgs
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const conv::ProblemDescription& problem)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const miopen::conv::ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -143,7 +143,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const conv::ProblemDesc
 
 template <typename DataType>
 bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
-    const conv::ProblemDescription& problem) const
+    const miopen::conv::ProblemDescription& problem) const
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
@@ -184,7 +184,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::CheckIsSupportCKArgs(
 
 template <typename DataType>
 bool ConvCKIgemmFwdBiasActivFused::CheckCKApplicability(
-    const conv::ProblemDescription& problem) const
+    const miopen::conv::ProblemDescription& problem) const
 {
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
@@ -221,7 +221,7 @@ namespace {
 template <typename DataType>
 void RunCKSolution(const Handle& handle,
                    const AnyInvokeParams& primitive_parameters,
-                   const conv::ProblemDescription& problem,
+                   const miopen::conv::ProblemDescription& problem,
                    const PerformanceConfigConvCKIgemmFwdBiasActivFused& config)
 {
     const auto& args = CKArgs{problem};

@@ -30,29 +30,30 @@
 #include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
-
 namespace solver {
+namespace conv {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const conv::ProblemDescription&);
-std::string ConvDirectNaiveConvKernelName(const conv::ProblemDescription&);
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const miopen::conv::ProblemDescription&);
+std::string ConvDirectNaiveConvKernelName(const miopen::conv::ProblemDescription&);
 std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
-                                          const conv::ProblemDescription& problem);
+                                          const miopen::conv::ProblemDescription& problem);
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
-                                             const conv::ProblemDescription& problem);
+                                             const miopen::conv::ProblemDescription& problem);
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
-                                                 const conv::ProblemDescription&);
+                                                 const miopen::conv::ProblemDescription&);
 
-bool IsInputFp32(const conv::ProblemDescription&);
-bool IsInputFp16(const conv::ProblemDescription&);
-bool IsInputBfp16(const conv::ProblemDescription&);
-bool IsInputInt8(const conv::ProblemDescription&);
-bool IsAccFp64(const conv::ProblemDescription&);
-bool IsAccInt32(const conv::ProblemDescription&);
-bool IsOutputFp32(const conv::ProblemDescription&);
-bool IsOutputFp16(const conv::ProblemDescription&);
-bool IsOutputBfp16(const conv::ProblemDescription&);
-bool IsOutputInt8(const conv::ProblemDescription&);
-bool IsOutputInt32(const conv::ProblemDescription&);
+bool IsInputFp32(const miopen::conv::ProblemDescription&);
+bool IsInputFp16(const miopen::conv::ProblemDescription&);
+bool IsInputBfp16(const miopen::conv::ProblemDescription&);
+bool IsInputInt8(const miopen::conv::ProblemDescription&);
+bool IsAccFp64(const miopen::conv::ProblemDescription&);
+bool IsAccInt32(const miopen::conv::ProblemDescription&);
+bool IsOutputFp32(const miopen::conv::ProblemDescription&);
+bool IsOutputFp16(const miopen::conv::ProblemDescription&);
+bool IsOutputBfp16(const miopen::conv::ProblemDescription&);
+bool IsOutputInt8(const miopen::conv::ProblemDescription&);
+bool IsOutputInt32(const miopen::conv::ProblemDescription&);
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

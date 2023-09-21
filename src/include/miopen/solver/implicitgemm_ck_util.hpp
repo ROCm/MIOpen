@@ -43,7 +43,7 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
 }
 
 template <typename DeviceOpType, typename CKArgsType>
-std::vector<std::string> FillValidKernelsIDs(const ProblemDescription& problem)
+std::vector<std::string> FillValidKernelsIDs(const miopen::conv::ProblemDescription& problem)
 {
     const auto args      = CKArgsType{problem};
     const auto conv_ptrs = DeviceOpType::GetInstances();
@@ -61,7 +61,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescription& problem)
 }
 
 template <typename DeviceOpType, typename CKArgsType>
-bool IsCKArgsSupported(const ProblemDescription& problem, const std::string& kernel_id)
+bool IsCKArgsSupported(const miopen::conv::ProblemDescription& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
@@ -70,7 +70,7 @@ bool IsCKArgsSupported(const ProblemDescription& problem, const std::string& ker
 }
 
 template <typename DeviceOpType, typename CKArgsType>
-bool IsCKApplicable(const ProblemDescription& problem)
+bool IsCKApplicable(const miopen::conv::ProblemDescription& problem)
 {
     const auto args = CKArgsType{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
@@ -82,7 +82,7 @@ bool IsCKApplicable(const ProblemDescription& problem)
 }
 
 template <typename DeviceOpType, typename CKArgsType, typename CastType>
-ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::string& kernel_id)
+ConvSolution InitInvokerFactory(const miopen::conv::ProblemDescription& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);

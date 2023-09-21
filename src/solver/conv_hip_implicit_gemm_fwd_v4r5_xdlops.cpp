@@ -45,6 +45,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static std::tuple<int, int, int, int> CalculateGemmSize(const ProblemDescription& problem)
 {
     const std::size_t g  = ProblemInterpreter::GetGroupCountG(problem);

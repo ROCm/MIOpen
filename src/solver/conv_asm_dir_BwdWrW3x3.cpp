@@ -49,6 +49,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 inline static bool Inc_1_2_4_8(int& v)
 {
     assert(v == 1 || v == 2 || v == 4 || v == 8);

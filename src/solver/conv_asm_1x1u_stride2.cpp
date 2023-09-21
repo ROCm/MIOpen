@@ -45,6 +45,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 /// \todo Rework, factor out to separate header and use in other solvers.
 /// \todo Clarify functions semantics.
 template <int first, int... others>

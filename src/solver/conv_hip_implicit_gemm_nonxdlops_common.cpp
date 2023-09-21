@@ -35,6 +35,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
     // clang-format off

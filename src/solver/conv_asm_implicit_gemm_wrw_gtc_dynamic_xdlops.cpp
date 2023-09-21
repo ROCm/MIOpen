@@ -40,6 +40,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmWrwGTCDynamicXdlopsKernelList()
 {
@@ -445,7 +447,7 @@ static inline int if_gemm_k_global_split(const ProblemDescription& problem,
 }
 
 inline std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& problem,
+ComputeDynamicIGemmWrwKernelArgs(const ProblemDescription& problem,
                                  const int log2_gemm_k_global_splits,
                                  const int nxb,
                                  const int gemm_k_per_block)

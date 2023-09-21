@@ -21,6 +21,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
 // Keep the value unknown in cppcheck since this can differ between opencl and hip
@@ -63,7 +65,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
 #endif
 
 bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
-                               const conv::ProblemDescription& problem) const
+                               const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(conv::gemm::IsWorkaroundIssue1315(ctx))
@@ -117,7 +119,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
 #endif
 }
 
-float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
+float GemmWrwBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dwDesc = problem.GetWeights();
@@ -165,7 +167,7 @@ float GemmWrwBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 }
 
 bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -188,7 +190,7 @@ bool GemmWrw1x1_stride1::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
-                                             const conv::ProblemDescription& problem) const
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();
@@ -351,7 +353,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 }
 
 size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
-                                          const conv::ProblemDescription& problem) const
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     auto& handle       = context.GetStream();
@@ -387,7 +389,7 @@ size_t GemmWrwUniversal::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
-                                    const conv::ProblemDescription& problem) const
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmWrwBase::IsApplicable(context, problem))
@@ -403,7 +405,7 @@ bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
-                                           const conv::ProblemDescription& problem) const
+                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc     = problem.GetIn();

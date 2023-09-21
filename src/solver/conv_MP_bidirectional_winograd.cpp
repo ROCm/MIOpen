@@ -61,6 +61,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)
@@ -790,7 +792,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
 
     auto dir = miopen::conv::Direction::Forward;
 
-    conv::ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
+    ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
 
     return transformed_problem;
 }

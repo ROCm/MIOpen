@@ -39,6 +39,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {

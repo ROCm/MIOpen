@@ -39,6 +39,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 {

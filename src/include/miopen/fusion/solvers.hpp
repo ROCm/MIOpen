@@ -216,9 +216,9 @@ struct PerformanceConfigConvCKIgemmFwdBiasActivFused
 
 private:
     template <typename DataType>
-    void Init(const conv::ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>
-    bool CheckIsSupportCKArgs(const conv::ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvCKIgemmFwdBiasActivFused final
@@ -249,7 +249,7 @@ struct ConvCKIgemmFwdBiasActivFused final
 
 private:
     template <typename DataType>
-    bool CheckCKApplicability(const conv::ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvBinWinogradRxSFused final : FusionSolverBase

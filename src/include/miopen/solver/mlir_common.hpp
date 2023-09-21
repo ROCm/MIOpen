@@ -37,16 +37,16 @@ namespace solver {
 namespace mlir {
 
 std::string
-GetKernelName(const conv::ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
+GetKernelName(const miopen::conv::ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
 
 std::string ConstructBuildOptions(const ExecutionContext& ctx,
-                                  const conv::ProblemDescription& problem,
+                                  const miopen::conv::ProblemDescription& problem,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
 template <typename T>
 std::string ConstructBuildOptions(const ExecutionContext& ctx,
-                                  const conv::ProblemDescription& problem,
+                                  const miopen::conv::ProblemDescription& problem,
                                   const T& perf_config,
                                   bool is_xdlops,
                                   int kernel_id = 0)

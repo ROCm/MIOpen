@@ -36,6 +36,8 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 // Once the compiler fix (SWDEV-168168) is available, that version of compiler needs to be
 // checked to skip workarounds. Till then, true is returned in all cases so as to skip
 // problematic configs.
