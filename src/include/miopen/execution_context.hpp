@@ -284,7 +284,9 @@ private:
     void DetectRocm();
 };
 
-struct [[deprecated]] ConvolutionContext : ExecutionContext {};
+struct [[deprecated]] ConvolutionContext : ExecutionContext
+{
+};
 
 bool IsHipKernelsEnabled();
 

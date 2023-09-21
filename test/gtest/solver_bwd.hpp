@@ -59,7 +59,7 @@ struct ConvBwdSolverTest
                                              output.desc,
                                              conv_desc,
                                              miopen::conv::Direction::BackwardData);
-        const auto problem                   = miopen::ProblemDescription{conv_problem};
+        const auto problem                 = miopen::ProblemDescription{conv_problem};
         const miopen::ExecutionContext ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.conv_problem.SetupFloats(tmp);
