@@ -154,7 +154,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
     PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext& context,
                                                  const FusionDescription& problem,
-                                                 const AnyInvokeParams& invoke_ctx) const override;
+           const AnyInvokeParams& invoke_params) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
