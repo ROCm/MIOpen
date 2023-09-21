@@ -639,12 +639,6 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(20); // Heuristic for speed.
 
-    // Individual Solvers can be enabled/disabled by environment settings.
-    // Applicability is also affected by presence of external tools (e.g. assembler)
-    // ROCm version, specific features of GPU (like xnack) etc.
-    // All the above can be found by calling IsApplicable().
-    // We need fully initialized context for this, see below.
-
     for(const auto& pair : fdb_record)
     {
         const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
