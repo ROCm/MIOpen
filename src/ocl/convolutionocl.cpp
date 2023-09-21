@@ -117,12 +117,11 @@ static Invoker PrepareInvoker(const ExecutionContext& ctx,
         return tmp;
     }();
 
-    const auto solver     = solver_id.GetSolver();
-    auto db               = GetDb(new_ctx);
-    auto solution =
-        solver.FindSolution(new_ctx, problem, db, {}); // auto tune is not expected here
-    auto& handle = ctx.GetStream();
-    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    const auto solver = solver_id.GetSolver();
+    auto db           = GetDb(new_ctx);
+    auto solution = solver.FindSolution(new_ctx, problem, db, {}); // auto tune is not expected here
+    auto& handle  = ctx.GetStream();
+    auto invoker  = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
 
     handle.RegisterInvoker(invoker, config, solver_id.ToString(), algo);

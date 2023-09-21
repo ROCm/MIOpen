@@ -2855,7 +2855,8 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2872,7 +2873,8 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2889,7 +2891,8 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2906,7 +2909,8 @@ struct GemmFwdRest final : GemmFwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2934,7 +2938,8 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2951,14 +2956,14 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicableBeforeWorkaround(const ExecutionContext&,
-                                      const ProblemDescription&) const;
+    bool IsApplicableBeforeWorkaround(const ExecutionContext&, const ProblemDescription&) const;
 
     friend struct GemmBwdRest;
 };
@@ -2972,7 +2977,8 @@ struct GemmBwdRest final : GemmBwdBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -2994,7 +3000,8 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
@@ -3011,7 +3018,8 @@ struct GemmWrwUniversal final : GemmWrwBase
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
                              const ProblemDescription& problem) const override;
