@@ -38,7 +38,9 @@
 #include <miopen/object.hpp>
 #include <miopen/config.h>
 
+#ifndef _WIN32
 #include <roctracer/roctx.h>
+#endif
 
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
@@ -410,6 +412,7 @@ private:
 #define MIOPEN_LOG_SCOPE_TIME
 #endif
 
+#ifndef _WIN32
 class LogScopeRoctx
 {
 public:
@@ -434,6 +437,7 @@ public:
 private:
     bool m_active{false};
 };
+#endif
 
 } // namespace miopen
 
