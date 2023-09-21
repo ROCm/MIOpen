@@ -131,7 +131,7 @@ struct CKArgsBNormBwd
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
-    double epsilon = 0.0001;
+    double epsilon = 1e-5;
     std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
 };
 
