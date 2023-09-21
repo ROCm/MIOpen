@@ -433,31 +433,30 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         return solutions.front().workspace_size;
     }
 
-    auto conv_ctx = ExecutionContext{ctx};
     size_t workspace_size;
 
     if(problem.GetDirection() != conv::Direction::BackwardWeights)
     {
-        if(IsWinograd3x3SupportedAndFast(conv_ctx, problem))
+        if(IsWinograd3x3SupportedAndFast(ctx, problem))
         {
-            conv_ctx.use_dynamic_solutions_only = true;
-            workspace_size                      = GetWorkSpaceSizeWinograd(conv_ctx, problem);
+            ctx.use_dynamic_solutions_only = true;
+            workspace_size                 = GetWorkSpaceSizeWinograd(ctx, problem);
         }
         else
         {
-            workspace_size = std::max({GetWorkSpaceSizeFFT(conv_ctx, problem),
-                                       GetWorkSpaceSizeGEMM(conv_ctx, problem),
-                                       GetWorkSpaceSizeDirect(conv_ctx, problem),
-                                       GetWorkSpaceSizeImplicitGemm(conv_ctx, problem),
-                                       GetWorkSpaceSizeWinograd(conv_ctx, problem)});
+            workspace_size = std::max({GetWorkSpaceSizeFFT(ctx, problem),
+                                       GetWorkSpaceSizeGEMM(ctx, problem),
+                                       GetWorkSpaceSizeDirect(ctx, problem),
+                                       GetWorkSpaceSizeImplicitGemm(ctx, problem),
+                                       GetWorkSpaceSizeWinograd(ctx, problem)});
         }
     }
     else
     {
-        workspace_size = std::max({GetWorkSpaceSizeGEMM(conv_ctx, problem),
-                                   GetWorkSpaceSizeDirectWrW(conv_ctx, problem),
-                                   GetWorkSpaceSizeImplicitGemmWrW(conv_ctx, problem),
-                                   GetWorkSpaceSizeWinogradWrW(conv_ctx, problem)});
+        workspace_size = std::max({GetWorkSpaceSizeGEMM(ctx, problem),
+                                   GetWorkSpaceSizeDirectWrW(ctx, problem),
+                                   GetWorkSpaceSizeImplicitGemmWrW(ctx, problem),
+                                   GetWorkSpaceSizeWinogradWrW(ctx, problem)});
     }
 
     MIOPEN_LOG_I(workspace_size);

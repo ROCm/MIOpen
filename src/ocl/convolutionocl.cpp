@@ -105,23 +105,20 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
-static Invoker PrepareInvoker(const ExecutionContext& ctx,
+static Invoker PrepareInvoker(ExecutionContext ctx,
                               const conv::ProblemDescription& problem,
                               const NetworkConfig& config,
                               solver::Id solver_id)
 {
-    const auto new_ctx = [&] {
-        auto tmp = miopen::ExecutionContext{ctx};
-        problem.SetupFloats(tmp);
-        tmp.do_search = false;
-        return tmp;
-    }();
+    problem.SetupFloats(ctx);
+    ctx.do_search = false;
 
-    const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(new_ctx);
-    auto solution = solver.FindSolution(new_ctx, problem, db, {}); // auto tune is not expected here
-    auto& handle  = ctx.GetStream();
-    auto invoker  = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    const auto solver         = solver_id.GetSolver();
+    auto db                   = GetDb(ctx);
+    auto solution =
+        solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+    auto& handle = ctx.GetStream();
+    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
 
     handle.RegisterInvoker(invoker, config, solver_id.ToString(), algo);
@@ -199,14 +196,14 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-            auto conv_ctx                       = ExecutionContext{ctx};
-            conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+            auto ctx_copy                       = ctx;
+            ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             ConvFindCore(invoke_ctx,
                          record,
-                         conv_ctx,
+                         ctx_copy,
                          problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, problem),
+                         conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem),
                          GetConvSolverFinders());
         });
     }
