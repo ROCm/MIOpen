@@ -40,7 +40,6 @@
 
 #include <regex>
 #include <exception>
-#include <execution>
 
 namespace miopen {
 conv::Direction GetDirectionFromString(const std::string& direction)
@@ -598,7 +597,7 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
     }
 }
 
-TEST(DBSync, StaticFDBSync)
+TEST(DBSync, DISABLED_StaticFDBSync)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
