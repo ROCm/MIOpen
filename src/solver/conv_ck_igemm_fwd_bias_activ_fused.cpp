@@ -104,7 +104,8 @@ struct CKArgs
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(const miopen::conv::ProblemDescription& problem)
+void PerformanceConfigConvCKIgemmFwdBiasActivFused::Init(
+    const miopen::conv::ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;

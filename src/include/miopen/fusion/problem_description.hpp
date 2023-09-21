@@ -104,11 +104,11 @@ struct FusionDescription
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
             return conv::ProblemDescription{conv_op.input_desc,
-                                                    conv_op.filter_desc,
-                                                    out_desc,
-                                                    conv_op.base_desc /* conv desc */,
-                                                    dir,
-                                                    bias};
+                                            conv_op.filter_desc,
+                                            out_desc,
+                                            conv_op.base_desc /* conv desc */,
+                                            dir,
+                                            bias};
         }
         else
         {

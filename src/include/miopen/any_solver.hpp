@@ -46,7 +46,8 @@ struct AnySolver
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
-    bool IsApplicable(const ExecutionContext& ctx, const miopen::conv::ProblemDescription& problem) const
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const miopen::conv::ProblemDescription& problem) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->IsApplicable(ctx, problem);
@@ -128,29 +129,29 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem) const = 0;
-        virtual bool IsTunable() const                                           = 0;
+        virtual bool IsTunable() const                                                   = 0;
         virtual bool TestPerfCfgParams(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
-                                       const std::string& params) const          = 0;
+                                       const std::string& params) const                  = 0;
         virtual std::vector<ConvSolution>
         GetAllSolutions(const ExecutionContext& ctx,
                         const miopen::conv::ProblemDescription& problem) const                 = 0;
-        virtual bool IsDynamic() const                                                 = 0;
+        virtual bool IsDynamic() const                                                         = 0;
         virtual float GetWti(const ExecutionContext& ctx,
                              const miopen::conv::ProblemDescription& problem) const            = 0;
-        virtual const std::type_info& Type() const                                     = 0;
-        virtual std::string GetSolverDbId() const                                      = 0;
+        virtual const std::type_info& Type() const                                             = 0;
+        virtual std::string GetSolverDbId() const                                              = 0;
         virtual ConvSolution FindSolution(const ExecutionContext& ctx,
                                           const miopen::conv::ProblemDescription& problem,
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::string& perf_cfg) const           = 0;
+                                          const std::string& perf_cfg) const                   = 0;
         virtual std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem,
-                                             PerformanceDb& db) const                  = 0;
+                                             PerformanceDb& db) const                          = 0;
         virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
                                         const miopen::conv::ProblemDescription& problem) const = 0;
-        virtual bool MayNeedWorkspace() const                                          = 0;
+        virtual bool MayNeedWorkspace() const                                                  = 0;
     };
 
     // templated derived class
@@ -175,11 +176,11 @@ struct AnySolver
         struct LegacySolver
         {
             template <typename U>
-            static constexpr auto Test(U*) ->
-                typename std::is_same<LegacyPerformanceConfig,
-                                      decltype(std::declval<U>().GetDefaultPerformanceConfig(
-                                          std::declval<const ExecutionContext&>(),
-                                          std::declval<const miopen::conv::ProblemDescription&>()))>::type;
+            static constexpr auto Test(U*) -> typename std::is_same<
+                LegacyPerformanceConfig,
+                decltype(std::declval<U>().GetDefaultPerformanceConfig(
+                    std::declval<const ExecutionContext&>(),
+                    std::declval<const miopen::conv::ProblemDescription&>()))>::type;
 
             template <typename U>
             static constexpr std::false_type Test(...);

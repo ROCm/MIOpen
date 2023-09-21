@@ -81,8 +81,7 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
 }
 #endif
 
-bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(conv::gemm::IsWorkaroundIssue1315(ctx))
@@ -733,8 +732,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 #endif
 }
 
-size_t GemmFwd1x1_0_1::GetWorkspaceSize(const ExecutionContext&,
-                                        const ProblemDescription&) const
+size_t GemmFwd1x1_0_1::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const
 {
     return 0;
 }

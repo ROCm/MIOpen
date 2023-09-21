@@ -121,7 +121,8 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     return compiler_flag.str();
 }
 
-static inline auto get_ck_convolution_problem_descriptor(const miopen::conv::ProblemDescription& problem)
+static inline auto
+get_ck_convolution_problem_descriptor(const miopen::conv::ProblemDescription& problem)
 {
     ck::DataTypeEnum_t ck_datatype;
 

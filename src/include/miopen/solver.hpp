@@ -229,16 +229,18 @@ struct ConvTunableSolver : ConvTunableSolverBase
     static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{},
                   "PerformanceConfig must be derived of PerfConfig");
 
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const ExecutionContext&,
-                                                          const miopen::conv::ProblemDescription&) const = 0;
+    virtual PerformanceConfig
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const = 0;
     virtual bool IsValidPerformanceConfig(const ExecutionContext&,
                                           const miopen::conv::ProblemDescription&,
-                                          const PerformanceConfig&) const                  = 0;
-    virtual PerformanceConfig
-    Search(const ExecutionContext&, const miopen::conv::ProblemDescription&, const AnyInvokeParams&) const = 0;
+                                          const PerformanceConfig&) const      = 0;
+    virtual PerformanceConfig Search(const ExecutionContext&,
+                                     const miopen::conv::ProblemDescription&,
+                                     const AnyInvokeParams&) const             = 0;
     virtual ConvSolution GetSolution(const ExecutionContext&,
                                      const miopen::conv::ProblemDescription&,
-                                     const PerformanceConfig&) const                         = 0;
+                                     const PerformanceConfig&) const           = 0;
 
     boost::any GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                            const miopen::conv::ProblemDescription& problem,
@@ -304,9 +306,11 @@ struct ConvAsm3x3U final : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm3x3U>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceConfigConvAsm3x3U
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigConvAsm3x3U&) const override;
@@ -367,8 +371,9 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     void StaticHeuristic(const miopen::conv::ProblemDescription& problem);
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    void
-    RunParmeterPredictionModel(const ExecutionContext&, const miopen::conv::ProblemDescription&, bool& valid);
+    void RunParmeterPredictionModel(const ExecutionContext&,
+                                    const miopen::conv::ProblemDescription&,
+                                    bool& valid);
     bool ModelApplyToken(int index, int value, const miopen::conv::ProblemDescription&);
 #endif
     bool IsValidValue() const { return IsValidValueImpl(8); }
@@ -377,12 +382,16 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     {
         return IsValid(problem);
     }
-    bool IsValid(const miopen::conv::ProblemDescription& problem) const { return IsValidImpl(problem, 8); }
+    bool IsValid(const miopen::conv::ProblemDescription& problem) const
+    {
+        return IsValidImpl(problem, 8);
+    }
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
 
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    bool IsPartiallyValid(const miopen::conv::ProblemDescription& problem, int sequence_length) const
+    bool IsPartiallyValid(const miopen::conv::ProblemDescription& problem,
+                          int sequence_length) const
     {
         return IsValidImpl(problem, sequence_length);
     }
@@ -400,15 +409,18 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     PerformanceConfigConvAsm1x1U
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1U&) const override;
     PerformanceConfigConvAsm1x1U Search(const ExecutionContext&,
                                         const miopen::conv::ProblemDescription&,
                                         const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -483,14 +495,16 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1UV2>(); }
 
     PerformanceConfigConvAsm1x1UV2
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1UV2&) const override;
     PerformanceConfigConvAsm1x1UV2 Search(const ExecutionContext&,
                                           const miopen::conv::ProblemDescription&,
                                           const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConfigConvAsm1x1UV2&) const override;
@@ -536,16 +550,20 @@ struct ConvOclDirectFwd11x11 final : ConvSolver
         return GetSolverDbId<ConvOclDirectFwd11x11>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclDirectFwdGen final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwdGen>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceImplicitGemm : PerfConfigBase<PerformanceImplicitGemm>
@@ -693,7 +711,8 @@ struct PerformanceImplicitGemmV4R4Fwd : PerfConfigBase<PerformanceImplicitGemmV4
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool>
     CalculateGemmCThreadCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
@@ -750,7 +769,8 @@ struct PerformanceImplicitGemmV4R4WrW : PerfConfigBase<PerformanceImplicitGemmV4
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool>
     CalculateGemmCThreadCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
@@ -812,8 +832,9 @@ struct PerformanceImplicitGemmBwdDataV1R1 : PerfConfigBase<PerformanceImplicitGe
                                                  const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool>
     CalculateGemmCThreadCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ExecutionContext&,
-                                                           const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const;
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
@@ -868,7 +889,8 @@ struct PerformanceImplicitGemmBwdDataV4R1 : PerfConfigBase<PerformanceImplicitGe
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool>
     CalculateGemmCThreadCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
@@ -922,7 +944,8 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     }
 
     std::tuple<int, bool> CalculateGridSize(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
@@ -930,7 +953,8 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
     bool SetNextValue(const miopen::conv::ProblemDescription&);
 };
@@ -943,11 +967,13 @@ struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitG
     }
 
     PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmV4R1&) const override;
@@ -963,9 +989,11 @@ struct ConvHipImplicitGemmV4R4Fwd final : ConvTunableSolver<PerformanceImplicitG
         return GetSolverDbId<ConvHipImplicitGemmV4R4Fwd>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceImplicitGemmV4R4Fwd
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4Fwd&) const override;
@@ -1035,9 +1063,11 @@ struct ConvMlirIgemmFwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmFwd>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ExecutionContext&,
-                                                         const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1110,9 +1140,11 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
         return GetSolverDbId<ConvMlirIgemmFwdXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1131,9 +1163,11 @@ struct ConvHipImplicitGemmV4R4WrW final : ConvTunableSolver<PerformanceImplicitG
         return GetSolverDbId<ConvHipImplicitGemmV4R4WrW>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceImplicitGemmV4R4WrW
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4WrW&) const override;
@@ -1154,9 +1188,11 @@ struct ConvMlirIgemmWrW final : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmWrW>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ExecutionContext&,
-                                                         const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1175,16 +1211,19 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
         return GetSolverDbId<ConvMlirIgemmWrWXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
     PerformanceConvMlirIgemmXdlops Search(const ExecutionContext&,
                                           const miopen::conv::ProblemDescription&,
                                           const AnyInvokeParams& invoke_ctx) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -1229,7 +1268,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const miopen::conv::ProblemDescription&) const;
@@ -1237,7 +1277,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct PerformanceImplicitGemmForwardV4R5Xdlops
@@ -1286,7 +1327,8 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const miopen::conv::ProblemDescription&) const;
@@ -1294,7 +1336,8 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
@@ -1345,7 +1388,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const miopen::conv::ProblemDescription&) const;
@@ -1353,7 +1397,8 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>
@@ -1391,7 +1436,8 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicit
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const miopen::conv::ProblemDescription&) const;
@@ -1399,7 +1445,8 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicit
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmForwardV4R4Xdlops final
@@ -1411,11 +1458,13 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
@@ -1425,7 +1474,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
            const AnyInvokeParams& invoke_ctx) const override;
 
 private:
-    static std::tuple<int, int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&);
+    static std::tuple<int, int, int, int>
+    CalculateGemmSize(const miopen::conv::ProblemDescription&);
 
     friend struct PerformanceImplicitGemmForwardV4R4Xdlops;
 };
@@ -1439,12 +1489,14 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
         const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
@@ -1455,8 +1507,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm final
            const AnyInvokeParams& invoke_ctx) const override;
 
 private:
-    static std::tuple<int, int, int, int, int, int, int>
-    CalculateGemmSize(const miopen::conv::ProblemDescription&, int GemmMFactor, int GemmNFactor, int GemmKFactor);
+    static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
+        const miopen::conv::ProblemDescription&, int GemmMFactor, int GemmNFactor, int GemmKFactor);
 
     friend struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm;
 };
@@ -1470,11 +1522,13 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R5Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R5Xdlops&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmForwardV4R5Xdlops&) const override;
@@ -1492,11 +1546,13 @@ struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitG
     }
 
     PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmV4R1&) const override;
@@ -1512,9 +1568,11 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
         return GetSolverDbId<ConvHipImplicitGemmBwdDataV1R1>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceImplicitGemmBwdDataV1R1
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV1R1&) const override;
@@ -1524,7 +1582,8 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmBwdDataV1R1&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -1538,9 +1597,11 @@ struct ConvMlirIgemmBwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmBwd>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ExecutionContext&,
-                                                         const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1559,9 +1620,11 @@ struct ConvMlirIgemmBwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
         return GetSolverDbId<ConvMlirIgemmBwdXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1580,9 +1643,11 @@ struct ConvHipImplicitGemmBwdDataV4R1 final : ConvTunableSolver<PerformanceImpli
         return GetSolverDbId<ConvHipImplicitGemmBwdDataV4R1>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     PerformanceImplicitGemmBwdDataV4R1
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1&) const override;
@@ -1595,7 +1660,8 @@ struct ConvHipImplicitGemmBwdDataV4R1 final : ConvTunableSolver<PerformanceImpli
 
 private:
     static int CalculateNumberOfGemm(const miopen::conv::ProblemDescription&);
-    static std::tuple<int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&, int gemm_id);
+    static std::tuple<int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&,
+                                                       int gemm_id);
 
     friend struct PerformanceImplicitGemmBwdDataV4R1;
 };
@@ -1609,11 +1675,13 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1Xdlops&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmBwdDataV4R1Xdlops&) const override;
@@ -1624,7 +1692,8 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops final
 
 private:
     static int CalculateNumberOfGemm(const miopen::conv::ProblemDescription&);
-    static std::tuple<int, int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&, int gemm_id);
+    static std::tuple<int, int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&,
+                                                            int gemm_id);
 
     friend struct PerformanceImplicitGemmBwdDataV4R1Xdlops;
 };
@@ -1638,12 +1707,15 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdV1R1Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmBwdV1R1Xdlops&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     PerformanceImplicitGemmBwdV1R1Xdlops Search(const ExecutionContext&,
                                                 const miopen::conv::ProblemDescription&,
@@ -1653,7 +1725,8 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
                              const PerformanceImplicitGemmBwdV1R1Xdlops&) const override;
 
 private:
-    static std::tuple<int, int, int, int> CalculateGemmSize(const miopen::conv::ProblemDescription&);
+    static std::tuple<int, int, int, int>
+    CalculateGemmSize(const miopen::conv::ProblemDescription&);
 
     friend struct PerformanceImplicitGemmBwdV1R1Xdlops;
 };
@@ -1784,8 +1857,9 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerformanceConfig>
 {
-    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ExecutionContext&,
-                                                        const miopen::conv::ProblemDescription&) const override;
+    LegacyPerformanceConfig
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     LegacyPerformanceConfig Search(const ExecutionContext&,
                                    const miopen::conv::ProblemDescription&,
                                    const AnyInvokeParams& invoke_ctx) const override;
@@ -1804,7 +1878,8 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
                                         const LegacyPerformanceConfig& config);
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const LegacyPerformanceConfig&) const override;
@@ -1817,7 +1892,8 @@ struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const LegacyPerformanceConfig&) const override;
@@ -1897,14 +1973,16 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
     }
 
     PerformanceConfigConvBinWinogradRxS
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigConvBinWinogradRxS&) const override;
     PerformanceConfigConvBinWinogradRxS Search(const ExecutionContext&,
                                                const miopen::conv::ProblemDescription&,
                                                const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -1938,10 +2016,12 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
@@ -1953,11 +2033,14 @@ struct ConvMPBidirectWinograd final : ConvSolver
             ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
@@ -2009,7 +2092,8 @@ struct ConvMPBidirectWinograd_xdlops final
             ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override
     {
@@ -2064,9 +2148,11 @@ struct ConvMPBidirectWinograd_xdlops final
                              const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
 
 private:
-    ExecutionContext GetTransformedConvContext(const ExecutionContext& ctx,
-                                               const miopen::conv::ProblemDescription& transformed_problem) const;
-    miopen::conv::ProblemDescription GetTransformedProblem(const miopen::conv::ProblemDescription& problem) const;
+    ExecutionContext
+    GetTransformedConvContext(const ExecutionContext& ctx,
+                              const miopen::conv::ProblemDescription& transformed_problem) const;
+    miopen::conv::ProblemDescription
+    GetTransformedProblem(const miopen::conv::ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
@@ -2236,14 +2322,16 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
     PerformanceConfigAsmDirect3x3WrW
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const override;
     PerformanceConfigAsmDirect3x3WrW Search(const ExecutionContext&,
                                             const miopen::conv::ProblemDescription&,
                                             const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConfigAsmDirect3x3WrW& config) const override;
@@ -2257,11 +2345,13 @@ struct ConvWinoFuryRxS final : ConvSolver
         return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     static constexpr bool is2x3() { return Winodata == 2 && Winofilter == 3; }
     static constexpr bool is3x2() { return Winodata == 3 && Winofilter == 2; }
@@ -2375,15 +2465,18 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
     PerformanceConfigConvAsmBwdWrW1x1
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const override;
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ExecutionContext&,
                                              const miopen::conv::ProblemDescription&,
                                              const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -2459,7 +2552,8 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     }
 
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -2468,8 +2562,10 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -2512,8 +2608,10 @@ struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
         return GetSolverDbId<ConvOclBwdWrW2NonTunable>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const;
 
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
@@ -2526,20 +2624,26 @@ struct ConvOclBwdWrW53 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW53>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclBwdWrW1x1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW1x1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct fft final : ConvSolver
@@ -2598,10 +2702,12 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicit
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, int, int, int, int, bool>
-    CalculateGemmSizeAndGemmKBlock(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    CalculateGemmSizeAndGemmKBlock(const ExecutionContext&,
+                                   const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ExecutionContext&,
                                             const miopen::conv::ProblemDescription&) const;
@@ -2609,7 +2715,8 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicit
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmWrwV4R4Xdlops final
@@ -2621,13 +2728,16 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceImplicitGemmWrwV4R4Xdlops&) const override;
@@ -2682,10 +2792,12 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     bool IsReallyValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
-    bool IsFastToBeUsedForTuning(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsFastToBeUsedForTuning(const ExecutionContext&,
+                                 const miopen::conv::ProblemDescription&) const;
 
     std::tuple<int, int, int, int, int, int, int, int, bool>
-    CalculateGemmSizeAndGemmKBlock(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    CalculateGemmSizeAndGemmKBlock(const ExecutionContext&,
+                                   const miopen::conv::ProblemDescription&) const;
     std::tuple<int, bool> CalculateBlockSize() const;
     std::tuple<int, bool> CalculateGridSize(const ExecutionContext&,
                                             const miopen::conv::ProblemDescription&) const;
@@ -2693,7 +2805,8 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     CalculateGemmABlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
     std::tuple<int, int, int, int, int, bool>
     CalculateGemmBBlockCopyPerformanceParameters(const miopen::conv::ProblemDescription&) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
+    std::tuple<std::size_t, bool>
+    CalculateLdsNumberOfByte(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
@@ -2705,14 +2818,17 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
         const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm&) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
@@ -2759,12 +2875,15 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
         return GetSolverDbId<ConvCkIgemmFwdV6r1DlopsNchw>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
     bool IsDynamic() const override { return false; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
@@ -2783,7 +2902,8 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvFwd>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
@@ -2791,7 +2911,8 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvDirectNaiveConvBwd final : ConvSolver
@@ -2801,7 +2922,8 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvBwd>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
@@ -2809,7 +2931,8 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvDirectNaiveConvWrw final : ConvSolver
@@ -2819,7 +2942,8 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvWrw>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
@@ -2827,16 +2951,19 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmFwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext& ctx,
+                 const miopen::conv::ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwd1x1_0_2;
     friend struct GemmFwd1x1_0_1_int8;
@@ -2917,10 +3044,12 @@ struct GemmFwdRest final : GemmFwdBase
 struct GemmBwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext& ctx,
+                 const miopen::conv::ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmBwd1x1_stride2;
     friend struct GemmBwd1x1_stride1;
@@ -2961,7 +3090,8 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
                              const miopen::conv::ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicableBeforeWorkaround(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsApplicableBeforeWorkaround(const ExecutionContext&,
+                                      const miopen::conv::ProblemDescription&) const;
 
     friend struct GemmBwdRest;
 };
@@ -2985,10 +3115,12 @@ struct GemmBwdRest final : GemmBwdBase
 struct GemmWrwBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext& ctx,
+                 const miopen::conv::ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmWrw1x1_stride1;
     friend struct GemmWrwUniversal;
@@ -3213,9 +3345,9 @@ struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsm
     }
 
     // Chilrden must provide support for ComputedContainer.
-    void HeuristicInit(const ExecutionContext&)                            = delete;
+    void HeuristicInit(const ExecutionContext&)                                          = delete;
     bool SetNextValue(const miopen::conv::ProblemDescription&)                           = delete;
-    bool IsValidValue() const                                              = delete;
+    bool IsValidValue() const                                                            = delete;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
@@ -3408,7 +3540,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -3417,9 +3550,11 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -3608,7 +3743,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -3617,9 +3753,11 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -3801,7 +3939,8 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     size_t ComputeKernelOccupancy() const;
 
 private:
-    void SetParamsForKSplit(const miopen::conv::ProblemDescription& problem, const size_t& occupancy);
+    void SetParamsForKSplit(const miopen::conv::ProblemDescription& problem,
+                            const size_t& occupancy);
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
@@ -3813,7 +3952,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -3822,9 +3962,11 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -3995,9 +4137,9 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     }
 
     // Chilrden must provide support for ComputedContainer.
-    void HeuristicInit(const ExecutionContext&)                            = delete;
+    void HeuristicInit(const ExecutionContext&)                                          = delete;
     bool SetNextValue(const miopen::conv::ProblemDescription&)                           = delete;
-    bool IsValidValue() const                                              = delete;
+    bool IsValidValue() const                                                            = delete;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const = delete;
 
     bool IsDefaultConstructed() const;
@@ -4161,7 +4303,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>();
     }
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -4170,7 +4313,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -4222,7 +4366,8 @@ struct ConvHipImplicitGemmFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
@@ -4230,7 +4375,8 @@ struct ConvHipImplicitGemmFwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4300,7 +4446,8 @@ struct ConvHipImplicitGemmBwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmBwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmBwdXdlops&) const override;
@@ -4308,7 +4455,8 @@ struct ConvHipImplicitGemmBwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4368,7 +4516,8 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4377,7 +4526,8 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4437,7 +4587,8 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -4446,7 +4597,8 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -4512,7 +4664,8 @@ struct ConvHipImplicitGemm3DGroupWrwXdlops final
     }
 
     PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -4521,7 +4674,8 @@ struct ConvHipImplicitGemm3DGroupWrwXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
@@ -4587,7 +4741,8 @@ struct ConvHipImplicitGemm3DGroupBwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
         const miopen::conv::ProblemDescription&,
@@ -4596,7 +4751,8 @@ struct ConvHipImplicitGemm3DGroupBwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,

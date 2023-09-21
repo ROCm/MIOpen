@@ -64,8 +64,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
 }
 #endif
 
-bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(conv::gemm::IsWorkaroundIssue1315(ctx))
