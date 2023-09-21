@@ -113,12 +113,11 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
-    const auto legacy_ctx     = ExecutionContext{ctx};
     const auto legacy_problem = ProblemDescription{problem};
     const auto solver         = solver_id.GetSolver();
     auto db                   = GetDb(ctx);
     auto solution =
-        solver.FindSolution(legacy_ctx, legacy_problem, db, {}); // auto tune is not expected here
+        solver.FindSolution(ctx, legacy_problem, db, {}); // auto tune is not expected here
     auto& handle = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
@@ -198,15 +197,15 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-            auto conv_ctx                       = ExecutionContext{ctx};
-            conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+            auto ctx_copy                       = ctx;
+            ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             auto legacy_problem                 = ProblemDescription(problem);
 
             ConvFindCore(invoke_ctx,
                          record,
-                         conv_ctx,
+                         ctx_copy,
                          legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(conv_ctx, legacy_problem),
+                         conv.IsWinograd3x3SupportedAndFast(ctx_copy, legacy_problem),
                          GetConvSolverFinders());
         });
     }
@@ -519,7 +518,7 @@ struct SolutionTimeComparator
 };
 
 std::vector<miopenConvSolution_t>
-ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
+ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount) const
 {
@@ -531,7 +530,6 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx            = ExecutionContext{exec_ctx};
     const auto legacy_problem = ProblemDescription{problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
@@ -547,7 +545,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
-        const static std::string arch = exec_ctx.GetStream().GetDeviceName();
+        const static std::string arch = ctx.GetStream().GetDeviceName();
         auto solvers                  = ai::immed_mode::PredictSolver(legacy_problem, ctx, arch);
         if(!solvers.empty())
         {
@@ -618,7 +616,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     return interim;
 }
 
-std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
+std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
                                                const size_t maxSolutionCount)
 {
@@ -633,7 +631,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
         break;
     }
 
-    const FindDbRecord fdb_record{exec_ctx.GetStream(), problem};
+    const FindDbRecord fdb_record{ctx.GetStream(), problem};
 
     if(fdb_record.empty())
         return {};
@@ -646,7 +644,6 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     // ROCm version, specific features of GPU (like xnack) etc.
     // All the above can be found by calling IsApplicable().
     // We need fully initialized context for this, see below.
-    auto ctx = ExecutionContext{exec_ctx};
 
     for(const auto& pair : fdb_record)
     {
