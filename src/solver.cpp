@@ -608,7 +608,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
-bool ThisSolverIsDeprecatedStatic::IsDisabled(const ConvolutionContext& ctx)
+bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
         if(miopen::IsEnabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS{}))

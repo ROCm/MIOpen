@@ -40,7 +40,7 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmWrWXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -66,14 +66,14 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmWrWXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -82,14 +82,14 @@ bool ConvMlirIgemmWrWXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmWrWXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -131,7 +131,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
-std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx,
+std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR

@@ -87,7 +87,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::operator==(
 }
 
 std::tuple<int, bool>
-PerformanceImplicitGemmBwdDataV1R1::CalculateGridSize(const ConvolutionContext& ctx,
+PerformanceImplicitGemmBwdDataV1R1::CalculateGridSize(const ExecutionContext& ctx,
                                                       const ProblemDescription& problem) const
 {
     int GridSize = 0;
@@ -181,7 +181,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateBlockGemmPerformanceParameters() co
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     int ClusterLengths_GemmK      = 0;
     int ClusterLengths_GemmM      = 0;
@@ -246,7 +246,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
 
 std::tuple<int, int, int, int, bool>
 PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     int ClusterLengths_GemmK      = 0;
     int ClusterLengths_GemmN      = 0;
@@ -393,7 +393,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmCThreadCopyPerformanceParameter
 }
 
 std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNumberOfByte(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     std::size_t lds_size = 0;
 
@@ -451,7 +451,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValidValue() const
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     if(!IsValidValue())
@@ -507,7 +507,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx,
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdDataV1R1 config;
@@ -588,7 +588,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ProblemDescription&)
 }
 
 std::tuple<int, int, int>
-ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem)
 {
     const auto n  = ProblemInterpreter::GetBatchN(problem);
@@ -608,7 +608,7 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ExecutionContext&,
                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
@@ -628,7 +628,7 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
@@ -677,14 +677,14 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                             const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV1R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
@@ -693,7 +693,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::Search(const ExecutionContext& ctx,
                                        const ProblemDescription& problem,
                                        const AnyInvokeParams& invoke_ctx) const
 {
@@ -701,7 +701,7 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const PerformanceImplicitGemmBwdDataV1R1& config) const
 {

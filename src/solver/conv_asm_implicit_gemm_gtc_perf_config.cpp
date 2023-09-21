@@ -258,7 +258,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
     return ss.str();
 }
 
-std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
+std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -491,7 +491,7 @@ std::string PerformanceConfigAsmImplicitGemmGTCvector::ToString() const
 }
 
 std::string
-PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext& ctx) const
+PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ExecutionContext& ctx) const
 {
     std::ostringstream kernel_name;
     const auto device_name    = ctx.GetStream().GetDeviceName();

@@ -66,7 +66,7 @@ struct EmbedSQLite : test_driver
         // create a context/problem decriptor
         const auto problem = miopen::conv::ProblemDescription{
             x.desc, w.desc, y.desc, filter, miopen::conv::Direction::Forward};
-        miopen::ConvolutionContext ctx{};
+        miopen::ExecutionContext ctx{};
         ctx.SetStream(&handle);
         // Check PerfDb
         {

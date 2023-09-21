@@ -402,7 +402,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 
     std::unordered_map<KDBKey, bool> checked_kdbs;
     auto& handle = get_handle();
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
 
     for(const auto& kinder : find_db.GetCacheMap())
@@ -458,7 +458,7 @@ TEST(DbSync, DISABLED_StaticFDBSync)
     std::unordered_map<KDBKey, bool> checked_kdbs;
 
     auto& handle = get_handle();
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
     size_t cnt_finddb_entry = 0;
     for(const auto& kinder : find_db.GetCacheMap())

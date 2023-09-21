@@ -144,7 +144,7 @@ static bool IsReverseInOutAllowed(const ProblemDescription& problem)
 
 static int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
 
-bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
 {
     if(!IsValidValue())
@@ -251,7 +251,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
     return true;
 }
 
-void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem)
 {
     limit_wave_cnt = 0;
@@ -333,7 +333,7 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
 }
 
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
@@ -343,14 +343,14 @@ ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
 }
 
 bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
-bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
+bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
@@ -446,7 +446,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConfigAsmDirect3x3WrW& config) const
 {
@@ -563,7 +563,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& ctx,
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ExecutionContext& ctx,
                                                           const ProblemDescription& problem,
                                                           const AnyInvokeParams& invoke_ctx) const
 {

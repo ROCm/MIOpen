@@ -301,7 +301,7 @@ PerformanceConfigConvBinWinogradRxS::PerformanceConfigConvBinWinogradRxS(int n_g
 }
 
 template <int Winodata, int Winofilter>
-void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem)
 {
     const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
@@ -364,7 +364,7 @@ bool PerformanceConfigConvBinWinogradRxS::IsValidValue() const
     return PerfFieldRules().IsIn(*this);
 }
 
-bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConfigConvBinWinogradRxS::IsValid(const ExecutionContext& ctx) const
 {
     if(ctx.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
@@ -383,7 +383,7 @@ bool PerformanceConfigConvBinWinogradRxS::operator==(
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
 ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigConvBinWinogradRxS pp;
     pp.HeuristicInit<Winodata, Winofilter>(ctx, problem);
@@ -393,7 +393,7 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription&,
     const PerformanceConfigConvBinWinogradRxS& config) const
 {
@@ -402,7 +402,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
-ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& ctx,
+ConvBinWinoRxS<Winodata, Winofilter>::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
@@ -435,7 +435,7 @@ class ShaderModel : public UnifiedDescriptionConv2d
     bool out_of_model_scope; // Shader model produces unreliable results.
 
 public:
-    ShaderModel(const ConvolutionContext& ctx,
+    ShaderModel(const ExecutionContext& ctx,
                 const ProblemDescription& problem,
                 size_t Winodata,
                 size_t Winofilter)
@@ -609,7 +609,7 @@ public:
 };
 
 template <int Winodata, int Winofilter>
-static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static float GetWtiBase(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     constexpr auto WTI_UNKNOWN = -2.0;
     const auto rv              = ShaderModel(ctx, problem, Winodata, Winofilter).ComputeWti();
@@ -617,7 +617,7 @@ static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription&
 }
 
 template <int Winodata, int Winofilter>
-static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     if(!problem.Is2d())
         return false;
@@ -693,7 +693,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
 }
 
 template <int Winodata, int Winofilter>
-bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     if(IS2X3)
@@ -715,7 +715,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
 
 template <int Winodata, int Winofilter>
 static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
-GetPerfConfFromEnv(const ConvolutionContext& ctx)
+GetPerfConfFromEnv(const ExecutionContext& ctx)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
     std::string s;
@@ -751,7 +751,7 @@ GetPerfConfFromEnv(const ConvolutionContext& ctx)
 
 template <int Winodata, int Winofilter>
 ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvBinWinogradRxS& config) const
 {
@@ -1074,7 +1074,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     return result;
 }
 
-bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
@@ -1082,13 +1082,13 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
     return IsApplicableBase<2, 3>(ctx, problem) && problem.GetGroupCount() == 1;
 }
 
-float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx,
+float ConvBinWinogradRxSf2x3g1::GetWti(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
     return GetWtiBase<2, 3>(ctx, problem);
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     const auto tunable = ConvBinWinoRxS<2, 3>{};

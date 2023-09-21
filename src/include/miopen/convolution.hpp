@@ -64,7 +64,7 @@ struct ConvSolution;
 
 struct AnyInvokeParams;
 struct ExecutionContext;
-struct ConvolutionContext;
+struct ExecutionContext;
 struct Handle;
 struct TensorDescriptor;
 struct ConvFwdTensors;
@@ -207,7 +207,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             const TensorDescriptor& wDesc,
                                             miopenDataType_t yType = miopenFloat) const;
 
-    bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
+    bool IsWinograd3x3SupportedAndFast(const miopen::ExecutionContext& ctx,
                                        const conv::ProblemDescription& problem) const;
 
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
@@ -240,10 +240,10 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t workSpace,
                             std::size_t workSpaceSize) const;
 
-    std::size_t GetSolutionCount(const ExecutionContext& exec_ctx,
+    std::size_t GetSolutionCount(const ExecutionContext& ctx,
                                  const conv::ProblemDescription& problem) const;
 
-    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
+    std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                    const conv::ProblemDescription& problem,
                                                    size_t maxSolutionCount,
                                                    bool* fallbackPathTaken) const;
@@ -369,11 +369,11 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     FindMode findMode;
     ConvolutionAttribute attribute;
 
-    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& exec_ctx,
+    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& ctx,
                                                            const conv::ProblemDescription& problem,
                                                            size_t maxSolutionCount) const;
 
-    std::size_t GetSolutionCountFallback(const ExecutionContext& exec_ctx,
+    std::size_t GetSolutionCountFallback(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem) const;
 
     friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);

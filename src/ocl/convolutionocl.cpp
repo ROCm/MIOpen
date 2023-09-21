@@ -105,19 +105,22 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
-static Invoker PrepareInvoker(ExecutionContext ctx,
+static Invoker PrepareInvoker(const ExecutionContext& ctx,
                               const conv::ProblemDescription& problem,
                               const NetworkConfig& config,
                               solver::Id solver_id)
 {
-    problem.SetupFloats(ctx);
-    ctx.do_search = false;
+    const auto new_ctx = [&] {
+        auto tmp = miopen::ExecutionContext{ctx};
+        problem.SetupFloats(tmp);
+        tmp.do_search = false;
+        return tmp;
+    }();
 
-    const auto legacy_ctx = ConvolutionContext{ctx};
     const auto solver     = solver_id.GetSolver();
-    auto db               = GetDb(ctx);
+    auto db               = GetDb(new_ctx);
     auto solution =
-        solver.FindSolution(legacy_ctx, problem, db, {}); // auto tune is not expected here
+        solver.FindSolution(new_ctx, problem, db, {}); // auto tune is not expected here
     auto& handle = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
@@ -197,7 +200,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-            auto conv_ctx                       = ConvolutionContext{ctx};
+            auto conv_ctx                       = ExecutionContext{ctx};
             conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             ConvFindCore(invoke_ctx,
@@ -465,12 +468,12 @@ static const char immFallbackFailed[] =
     "Requested convolution is not supported or Immediate mode Fallback unsuccessful.";
 
 std::size_t
-ConvolutionDescriptor::GetSolutionCountFallback(const ExecutionContext& exec_ctx,
+ConvolutionDescriptor::GetSolutionCountFallback(const ExecutionContext& ctx,
                                                 const conv::ProblemDescription& problem) const
 {
     const auto maxSolutionCount = solver::GetSolversByPrimitive(solver::Primitive::Convolution)
                                       .size(); // Simple and guarantees to provide enough space.
-    const auto n = GetSolutionsFallback(exec_ctx, problem, maxSolutionCount).size();
+    const auto n = GetSolutionsFallback(ctx, problem, maxSolutionCount).size();
     if(n > 0)
         return n;
     MIOPEN_LOG_I(immFallbackFailed);
@@ -488,14 +491,14 @@ ConvolutionDescriptor::GetSolutionCountFallback(const ExecutionContext& exec_ctx
     MIOPEN_THROW(miopenStatusNotImplemented, immFallbackFailed);
 }
 
-std::size_t ConvolutionDescriptor::GetSolutionCount(const ExecutionContext& exec_ctx,
+std::size_t ConvolutionDescriptor::GetSolutionCount(const ExecutionContext& ctx,
                                                     const conv::ProblemDescription& problem) const
 {
     MIOPEN_LOG_I("");
-    const auto n = miopen::GetSolutionCount(exec_ctx.GetStream(), problem);
+    const auto n = miopen::GetSolutionCount(ctx.GetStream(), problem);
     if(n > 0)
         return n;
-    return GetSolutionCountFallback(exec_ctx, problem);
+    return GetSolutionCountFallback(ctx, problem);
 }
 
 struct SolutionTimeComparator
@@ -517,7 +520,7 @@ struct SolutionTimeComparator
 };
 
 std::vector<miopenConvSolution_t>
-ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
+ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount) const
 {
@@ -527,9 +530,6 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
         return {};
     }
 
-    /// \todo This is terrible. Should do away when we converge to
-    /// single conv::ProblemDescription type.
-    const auto ctx = ConvolutionContext{exec_ctx};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -544,7 +544,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     if(!miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK{}))
     {
-        const static std::string arch = exec_ctx.GetStream().GetDeviceName();
+        const static std::string arch = ctx.GetStream().GetDeviceName();
         auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
         if(!solvers.empty())
         {
@@ -615,7 +615,9 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     return interim;
 }
 
-std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
+namespace {
+
+std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
                                                const size_t maxSolutionCount)
 {
@@ -630,20 +632,13 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
         break;
     }
 
-    const FindDbRecord fdb_record{exec_ctx.GetStream(), problem};
+    const FindDbRecord fdb_record{ctx.GetStream(), problem};
 
     if(fdb_record.empty())
         return {};
 
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(20); // Heuristic for speed.
-
-    // Individual Solvers can be enabled/disabled by environment settings.
-    // Applicability is also affected by presence of external tools (e.g. assembler)
-    // ROCm version, specific features of GPU (like xnack) etc.
-    // All the above can be found by calling IsApplicable().
-    // We need fully initialized context for this, see below.
-    auto ctx = ConvolutionContext{exec_ctx};
 
     for(const auto& pair : fdb_record)
     {
@@ -681,18 +676,20 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
     return interim;
 }
 
+} // namespace
+
 /// \todo Extend miopenConvSolution_t with an attribute indicating
 /// how the solution was obtained (benchmarked on the current system,
 /// taken from the System find-db, heuristically estimated, produced by
 /// MLP classifier...) and then remove the fallbackPathTaken out param.
 std::vector<miopenConvSolution_t>
-ConvolutionDescriptor::GetSolutions(const ExecutionContext& exec_ctx,
+ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
                                     const conv::ProblemDescription& problem,
                                     size_t maxSolutionCount,
                                     bool* fallbackPathTaken) const
 {
     MIOPEN_LOG_I("");
-    auto solutions = miopen::GetSolutions(exec_ctx, problem, maxSolutionCount);
+    auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = solutions.empty();
@@ -700,8 +697,9 @@ ConvolutionDescriptor::GetSolutions(const ExecutionContext& exec_ctx,
     if(!solutions.empty())
         return solutions;
 
-    return GetSolutionsFallback(exec_ctx, problem, maxSolutionCount);
+    return GetSolutionsFallback(ctx, problem, maxSolutionCount);
 }
+
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
                                                                    const TensorDescriptor& xDesc,
@@ -716,7 +714,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
         return 0;
     const auto problem =
         conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
@@ -828,6 +826,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     MIOPEN_LOG_I("BWD Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
                                           << ", " << results[0].time);
 }
+
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
                                  const void* beta,
@@ -925,7 +924,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         return 0;
     const auto problem =
         conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);
@@ -1123,7 +1122,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         return 0;
     const auto problem =
         conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{};
+    auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
         return sol.GetWorkspaceSize(ctx, problem);

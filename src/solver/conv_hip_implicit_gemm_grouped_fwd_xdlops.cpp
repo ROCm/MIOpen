@@ -260,7 +260,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -268,7 +268,7 @@ ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
@@ -276,7 +276,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmGroupFwdXdlops::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
                                           const AnyInvokeParams& invoke_ctx) const
 {
@@ -284,7 +284,7 @@ ConvHipImplicitGemmGroupFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -324,7 +324,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {

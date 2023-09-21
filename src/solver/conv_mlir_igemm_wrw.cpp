@@ -39,7 +39,7 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -72,13 +72,13 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ExecutionContext&,
                                               const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
@@ -86,14 +86,14 @@ bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
     return config.IsValid(ctx, problem);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
+PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmWrW::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {

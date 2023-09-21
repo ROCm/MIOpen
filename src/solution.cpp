@@ -176,7 +176,7 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    auto conv_ctx = ConvolutionContext{{&handle}};
+    auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);

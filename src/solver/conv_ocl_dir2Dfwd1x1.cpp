@@ -39,7 +39,7 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_271887
@@ -77,7 +77,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
            problem.GetPadW() == 0 && problem.GetPadH() == 0;
 }
 
-ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                                               const ProblemDescription& problem,
                                               const LegacyPerformanceConfig& config) const
 {

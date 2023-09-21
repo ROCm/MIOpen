@@ -93,7 +93,7 @@ void TestParameterPredictionModel(miopen::conv::ProblemDescription problem,
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
     T perf_config;
     bool valid = false;

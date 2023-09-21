@@ -35,7 +35,7 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
@@ -75,7 +75,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx,
     return true;
 }
 
-ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     ConvSolution result;

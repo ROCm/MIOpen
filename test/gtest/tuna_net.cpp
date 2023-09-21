@@ -92,7 +92,7 @@ void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
     std::string device = handle.GetDeviceName();
     if(device != "gfx908")
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
     std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =

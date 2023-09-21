@@ -86,7 +86,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
             (dir == miopen::conv::Direction::Forward)
                 ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir}
                 : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
-        auto ctx                    = miopen::ConvolutionContext{};
+        auto ctx                    = miopen::ExecutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
@@ -110,7 +110,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 
     const auto problem = miopen::conv::ProblemDescription{
         yDesc, wDesc, xDesc, convDesc, miopen::conv::Direction::BackwardWeights};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -135,7 +135,7 @@ static inline bool skip_config(miopen::Handle& handle,
 
     const auto problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
