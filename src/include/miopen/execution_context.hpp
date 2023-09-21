@@ -284,6 +284,8 @@ private:
     void DetectRocm();
 };
 
+struct [[deprecated]] ConvolutionContext : ExecutionContext {};
+
 bool IsHipKernelsEnabled();
 
 } // namespace miopen
