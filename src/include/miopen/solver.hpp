@@ -500,9 +500,6 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
 
 struct ConvAsm5x10u2v2f1 final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
     bool IsApplicable(const ExecutionContext& ctx,
@@ -513,9 +510,6 @@ struct ConvAsm5x10u2v2f1 final : ConvSolver
 
 struct ConvAsm5x10u2v2b1 final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
     bool IsApplicable(const ExecutionContext& ctx,
@@ -526,9 +520,6 @@ struct ConvAsm5x10u2v2b1 final : ConvSolver
 
 struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsm7x7c3h224w224k64u2v2p3q3f1>();
@@ -1671,9 +1662,6 @@ private:
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd>();
@@ -1690,9 +1678,6 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd final : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd_1x1>();
@@ -1709,10 +1694,6 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWorkspaceSize;
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicWrw>();
@@ -1734,10 +1715,6 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWorkspaceSize;
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicWrwXdlops>();
@@ -1759,9 +1736,6 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicBwd>();
@@ -1778,9 +1752,6 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
 
 struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdXdlops>();
@@ -1797,9 +1768,6 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
 
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicBwdXdlops>();
@@ -1866,9 +1834,6 @@ struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 
 struct ConvBinWinograd3x3U final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinograd3x3U>(); }
 
     bool IsApplicable(const ExecutionContext& ctx,
@@ -1882,9 +1847,6 @@ struct ConvBinWinograd3x3U final : ConvSolver
 
 struct ConvBinWinogradRxS final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinogradRxS>(); }
 
     bool IsApplicable(const ExecutionContext& ctx,
@@ -2149,10 +2111,6 @@ extern template struct ConvMPBidirectWinograd_xdlops<6, 3>;
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWorkspaceSize;
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<
@@ -2588,10 +2546,6 @@ struct ConvOclBwdWrW1x1 final : ConvSolver
 
 struct fft final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWorkspaceSize;
-    using ConvSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<fft>(); }
 
     bool IsApplicable(const ExecutionContext& ctx,
@@ -2880,19 +2834,11 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
 
 struct GemmFwdBase : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWti;
-    using ConvSolver::IsApplicable;
-
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    float GetWti(const ExecutionContext& ctx, const conv::ProblemDescription& problem) const;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
 
     friend struct GemmFwd1x1_0_2;
     friend struct GemmFwd1x1_0_1_int8;
@@ -2902,153 +2848,77 @@ private:
 
 struct GemmFwd1x1_0_2 final : GemmFwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmFwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 
     friend struct GemmFwdRest;
 };
 
 struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmFwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 
     friend struct GemmFwdRest;
 };
 
 struct GemmFwd1x1_0_1 final : GemmFwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmFwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 
     friend struct GemmFwdRest;
 };
 
 struct GemmFwdRest final : GemmFwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmFwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 };
 
 struct GemmBwdBase : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWti;
-    using ConvSolver::IsApplicable;
-
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
 
     friend struct GemmBwd1x1_stride2;
     friend struct GemmBwd1x1_stride1;
@@ -3057,122 +2927,64 @@ private:
 
 struct GemmBwd1x1_stride2 final : GemmBwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmBwdBase::GetWorkspaceSize;
-    using GemmBwdBase::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 
     friend struct GemmBwdRest;
 };
 
 struct GemmBwd1x1_stride1 final : GemmBwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmBwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                             const ProblemDescription& problem) const override;
 
 private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsApplicableBeforeWorkaround(const ExecutionContext&,
-                                      const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                                      const ProblemDescription&) const;
 
     friend struct GemmBwdRest;
 };
 
 struct GemmBwdRest final : GemmBwdBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmBwdBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 };
 
 struct GemmWrwBase : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWti;
-    using ConvSolver::IsApplicable;
-
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return GetWti(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    float GetWti(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
 private:
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
 
     friend struct GemmWrw1x1_stride1;
     friend struct GemmWrwUniversal;
@@ -3180,59 +2992,29 @@ private:
 
 struct GemmWrw1x1_stride1 final : GemmWrwBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmWrwBase::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 
     friend struct GemmWrwUniversal;
 };
 
 struct GemmWrwUniversal final : GemmWrwBase
 {
-    // To suppress -Woverloaded-virtual
-    using GemmWrwBase::GetWorkspaceSize;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
     size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const ProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override
-    {
-        return IsApplicable(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
+    bool IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const ProblemDescription& problem) const override
-    {
-        return GetSolution(ctx, static_cast<const conv::ProblemDescription&>(problem));
-    }
-
-private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
+                             const ProblemDescription& problem) const override;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsmImplicitGemmGTC>
