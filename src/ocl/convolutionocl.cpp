@@ -113,11 +113,10 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     problem.SetupFloats(ctx);
     ctx.do_search = false;
 
-    const auto solver         = solver_id.GetSolver();
-    auto db                   = GetDb(ctx);
-    auto solution =
-        solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-    auto& handle = ctx.GetStream();
+    const auto solver = solver_id.GetSolver();
+    auto db           = GetDb(ctx);
+    auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+    auto& handle      = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
 
