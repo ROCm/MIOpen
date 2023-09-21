@@ -27,7 +27,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
-#include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
 #include <miopen/bfloat16.hpp>

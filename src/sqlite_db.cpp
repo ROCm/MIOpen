@@ -29,7 +29,7 @@
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/exp_backoff.hpp>
 
 #if MIOPEN_EMBED_DB

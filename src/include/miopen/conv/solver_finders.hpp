@@ -29,7 +29,6 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/problem_description.hpp>
 
 #include <memory>
 #include <vector>

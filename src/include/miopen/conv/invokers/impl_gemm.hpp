@@ -28,7 +28,7 @@
 
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #include <vector>
 

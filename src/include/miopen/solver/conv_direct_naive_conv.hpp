@@ -27,7 +27,7 @@
 
 #include <string>
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 

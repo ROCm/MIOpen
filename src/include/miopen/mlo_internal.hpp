@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/ramdb.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
