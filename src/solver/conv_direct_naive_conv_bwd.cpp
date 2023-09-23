@@ -152,7 +152,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
-                auto in_strides = MakeStrideArray<5>(
+                auto in_strides         = MakeStrideArray<5>(
                     SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
                 // For weights, we split K to (G, K_per_group), which is always index 0
                 auto wei_strides = MakeStrideArray<5>(
@@ -163,14 +163,11 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 // out pointers in ConvTensors for backward pass, so now I have to
                 // pass out in place of in, out_strides in place of in_strides and
                 // vice-versa
-                if(is_f8) 
+                if(is_f8)
                 {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
-                                     out_strides,
-                                     wei_strides,
-                                     in_strides,
                                      hi,
                                      wi,
                                      n,
