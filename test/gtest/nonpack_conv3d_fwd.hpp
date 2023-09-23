@@ -92,7 +92,7 @@ struct ConvTestCase
     }
 
     std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, z, y, x}; }
+    std::vector<size_t> GetWeights() { return {k, C/G, z, y, x}; }
     std::vector<size_t> GetInputStrides() { return {s0,s1,s2,s3,s4}; }
 
     miopen::ConvolutionDescriptor GetConv()

@@ -28,6 +28,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/env.hpp>
+#include <miopen/common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
 
@@ -142,6 +143,8 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
@@ -149,11 +152,38 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
+
+                auto in_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<5>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+
+                // printTensorStrides(tensors.inDesc, tensors.wDesc, tensors.outDesc);
+                // printStrideArrays(in_strides, wei_strides, out_strides);
+
+                /*
+                printf("sizeof(Strides5D) = %lu, alignof(Strides5D)=%lu\n",
+                    sizeof(Strides5D), alignof(Strides5D));
+
+                printf("%p, %p, %p\n", tensors.in, tensors.w, tensors.out);
+                handle.Run(kern)(tensors.in,
+                                 tensors.w,
+                                 tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides);
+                */                
                 if(is_f8)
                 {
                     handle.Run(kern)(tensors.in,
                                      tensors.w,
                                      tensors.out,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
@@ -179,6 +209,9 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                     handle.Run(kern)(tensors.in,
                                      tensors.w,
                                      tensors.out,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
@@ -214,9 +247,19 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
+                auto in_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<6>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
                 handle.Run(kern)(tensors.in,
                                  tensors.w,
                                  tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
                                  di,
                                  hi,
                                  wi,

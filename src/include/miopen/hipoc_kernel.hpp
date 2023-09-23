@@ -47,7 +47,7 @@ inline HipEventPtr make_hip_event()
 
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
-#if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
+#if 0 // Keep around other storage techinques -- @pfultz2 27.03.2017
 template <class T, class U>
 struct KernelArgsPair
 {
@@ -65,9 +65,16 @@ struct KernelArgsPair
 template <class T, class U>
 struct KernelArgsPair
 {
-    KernelArgsPair(T x, U y) : first(x), second(y) {}
-    T first;
-    U second;
+    static const int alignment = alignof(U);
+    static const int padding   = (alignment - (sizeof(T) % alignment)) % alignment;
+    static_assert(padding >= 0, "padding cannot be negative");
+    static const int second_index = sizeof(T) + padding;
+    KernelArgsPair(T x, U y)
+    {
+        new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
+        new(buffer + second_index) U(y);
+    }
+    alignas(U) char buffer[second_index + sizeof(U)] = {};
 };
 #endif
 

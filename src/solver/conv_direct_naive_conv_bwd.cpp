@@ -142,6 +142,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
     }();
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
@@ -149,10 +151,25 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
+
+                auto in_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<5>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+                // TODO(Amber): Someone made the silly decision of swapping in and
+                // out pointers in ConvTensors for backward pass, so now I have to
+                // pass out in place of in, out_strides in place of in_strides and
+                // vice-versa
                 if(is_f8)
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
                                      hi,
                                      wi,
                                      n,
@@ -176,6 +193,9 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
                                      hi,
                                      wi,
                                      n,
@@ -210,9 +230,27 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
+                auto in_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<6>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+
+                // printTensorStrides(tensors.inDesc, tensors.wDesc, tensors.outDesc);
+                // printStrideArrays(in_strides, wei_strides, out_strides);
+
+                // TODO(Amber): Someone made the silly decision of swapping in and
+                // out pointers in ConvTensors for backward pass, so now I have to
+                // pass out in place of in, out_strides in place of in_strides and
+                // vice-versa
                 handle.Run(kern)(tensors.out,
                                  tensors.w,
                                  tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
                                  di,
                                  hi,
                                  wi,

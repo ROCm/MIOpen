@@ -129,6 +129,8 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
             return false;
     }();
 
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
@@ -136,10 +138,22 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
+
+                auto in_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<5>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<5>(
+                    SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
                 if(is_f8)
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
@@ -163,6 +177,9 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
@@ -197,9 +214,20 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
+                auto in_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = MakeStrideArray<6>(
+                    SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides = MakeStrideArray<6>(
+                    SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
                 handle.Run(kern)(tensors.x,
                                  tensors.dw,
                                  tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
                                  di,
                                  hi,
                                  wi,
