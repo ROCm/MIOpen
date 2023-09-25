@@ -35,7 +35,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
@@ -118,7 +118,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
 /// and some logic from the corresponding opencl kernel source.
 /// The cases which lead to errors can be later omitted from the search.
 /// \todo Get rid the duplication of code where possible.
-bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
+bool ConvOclDirectFwd::IsValidPerformanceConfig(const ExecutionContext&,
                                                 const ProblemDescription& problem,
                                                 const LegacyPerformanceConfig& config) const
 {
@@ -276,7 +276,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ConvolutionContext&,
     return true;
 }
 
-ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const LegacyPerformanceConfig& config)
 {
@@ -485,7 +485,7 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwd::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const LegacyPerformanceConfig& config) const
 {
