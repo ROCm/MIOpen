@@ -146,6 +146,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
     int G_stride_idx = GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -161,21 +162,6 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 auto out_strides = MakeStrideArray<5>(
                     SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
 
-                // printTensorStrides(tensors.inDesc, tensors.wDesc, tensors.outDesc);
-                // printStrideArrays(in_strides, wei_strides, out_strides);
-
-                /*
-                printf("sizeof(Strides5D) = %lu, alignof(Strides5D)=%lu\n",
-                    sizeof(Strides5D), alignof(Strides5D));
-
-                printf("%p, %p, %p\n", tensors.in, tensors.w, tensors.out);
-                handle.Run(kern)(tensors.in,
-                                 tensors.w,
-                                 tensors.out,
-                                 in_strides,
-                                 wei_strides,
-                                 out_strides);
-                */                
                 if(is_f8)
                 {
                     handle.Run(kern)(tensors.in,
@@ -239,7 +225,9 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -292,6 +280,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

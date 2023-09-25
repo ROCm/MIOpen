@@ -132,6 +132,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     int G_stride_idx = GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -148,6 +149,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                     SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
 
                 if(is_f8)
+                {
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
@@ -173,7 +175,9 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                                      problem.GetConv().attribute.fp8rounding_mode.Get() ==
                                          miopenF8RoundingModeStochastic,
                                      problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
                 else
+                {
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
@@ -196,6 +200,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                                      fy,
                                      fx,
                                      group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
@@ -206,7 +211,9 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -260,6 +267,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

@@ -145,14 +145,14 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
     int G_stride_idx = GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
-
-                auto in_strides = MakeStrideArray<5>(
+                auto in_strides         = MakeStrideArray<5>(
                     SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
                 // For weights, we split K to (G, K_per_group), which is always index 0
                 auto wei_strides = MakeStrideArray<5>(
@@ -164,6 +164,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 // pass out in place of in, out_strides in place of in_strides and
                 // vice-versa
                 if(is_f8)
+                {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
@@ -189,7 +190,9 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                                      problem.GetConv().attribute.fp8rounding_mode.Get() ==
                                          miopenF8RoundingModeStochastic,
                                      problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
                 else
+                {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
@@ -212,6 +215,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                                      fy,
                                      fx,
                                      group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
@@ -222,7 +226,9 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -283,6 +289,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }
