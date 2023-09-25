@@ -92,7 +92,7 @@ public:
     __host__ __device__ ~MyArray()                             = default;
 };
 
-using StrideIndexType = int;
+using StrideIndexType = size_t;
 using Strides5D       = MyArray<StrideIndexType, 5u>;
 using Strides6D       = MyArray<StrideIndexType, 6u>;
 
