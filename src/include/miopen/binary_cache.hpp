@@ -49,11 +49,11 @@ boost::filesystem::path LoadBinary(const TargetProperties& target,
                                    const std::string& name,
                                    const std::string& args,
                                    bool is_kernel_str = false);
-void SaveBinary(const boost::filesystem::path& binary_path,
-                const TargetProperties& target,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str = false);
+boost::filesystem::path SaveBinary(const boost::filesystem::path& binary_path,
+                                   const TargetProperties& target,
+                                   const std::string& name,
+                                   const std::string& args,
+                                   bool is_kernel_str = false);
 #else
 std::string LoadBinary(const TargetProperties& target,
                        std::size_t num_cu,

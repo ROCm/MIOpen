@@ -168,6 +168,14 @@ struct ConvolutionAttribute
     friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
 
+struct Solution;
+
+std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      const AnyInvokeParams& invoke_ctx,
+                                      std::size_t max_solutions,
+                                      bool force_attach_binary);
+
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
     ConvolutionDescriptor(std::size_t spatial_dim,

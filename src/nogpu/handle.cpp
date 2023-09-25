@@ -129,12 +129,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
     std::vector<Kernel> built;
-    for(auto& k : kernels)
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
+    for(auto i = 0; i < kernels.size(); ++i)
     {
+        auto& k              = kernels[i];
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -143,7 +152,10 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        false,
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
@@ -169,8 +181,11 @@ KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             bool is_kernel_str,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
+    std::ignore = force_attach_binary;
+
     if(!miopen::EndsWith(program_name, ".mlir"))
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();

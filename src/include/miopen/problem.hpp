@@ -36,7 +36,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include <boost/variant.hpp>
+#include <variant>
 
 #include <cstring>
 #include <unordered_map>
@@ -51,7 +51,7 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
+using OperatorDescriptor = std::variant<ConvolutionDescriptor>;
 
 struct Problem : miopenProblem
 {
@@ -112,6 +112,15 @@ private:
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
+
+    AnyInvokeParams MakeConvInvokeParams(const TensorDescriptor& x_desc,
+                                         Data_t x,
+                                         const TensorDescriptor& w_desc,
+                                         Data_t w,
+                                         const TensorDescriptor& y_desc,
+                                         Data_t y,
+                                         Data_t workspace,
+                                         size_t workspace_size) const;
 };
 
 } // namespace miopen

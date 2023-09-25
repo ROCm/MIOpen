@@ -94,6 +94,13 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, problem, db, invoke_ctx, perf_cfg);
     };
+    InvokerFactory GetInvokeFactory(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem,
+                                    const std::string& perf_cfg = "") const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetInvokeFactory(ctx, problem, perf_cfg);
+    };
     std::string GetPerfCfgParams(const ConvolutionContext& ctx,
                                  const ProblemDescription& problem,
                                  PerformanceDb& db) const
@@ -143,6 +150,9 @@ struct AnySolver
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
                                           const std::string& perf_cfg) const                    = 0;
+        virtual InvokerFactory GetInvokeFactory(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem,
+                                                const std::string& perf_cfg) const              = 0;
         virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx,
                                              const ProblemDescription& problem,
                                              PerformanceDb& db) const                           = 0;
@@ -294,6 +304,13 @@ struct AnySolver
         {
             return miopen::solver::FindSolution(value, ctx, problem, db, invoke_ctx, perf_cfg);
         };
+
+        InvokerFactory GetInvokeFactory(const ConvolutionContext& ctx,
+                                        const ProblemDescription& problem,
+                                        const std::string& perf_cfg) const override
+        {
+            return miopen::solver::GetInvokeFactory(value, ctx, problem, perf_cfg);
+        }
 
         std::string GetPerfCfgParams(const ConvolutionContext& ctx,
                                      const ProblemDescription& problem,

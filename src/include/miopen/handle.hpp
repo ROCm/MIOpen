@@ -137,7 +137,8 @@ struct Handle : miopenHandle
     Program LoadProgram(const std::string& program_name,
                         std::string params,
                         bool is_kernel_str,
-                        const std::string& kernel_src) const;
+                        const std::string& kernel_src,
+                        bool force_attach_binary = false) const;
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
@@ -230,7 +231,8 @@ public:
 #endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels) const;
+                           const std::vector<solver::KernelInfo>& kernels,
+                           std::vector<Program>* programs_out = nullptr) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,

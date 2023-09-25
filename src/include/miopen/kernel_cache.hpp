@@ -74,7 +74,8 @@ public:
                      std::string params            = "",
                      std::size_t cache_index       = 0,
                      bool is_kernel_miopengemm_str = false,
-                     const std::string& kernel_src = "");
+                     const std::string& kernel_src = "",
+                     Program* program_out          = nullptr);
 
     void AddKernel(Key key, Kernel k, std::size_t cache_index);
 

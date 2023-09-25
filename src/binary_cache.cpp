@@ -236,21 +236,23 @@ boost::filesystem::path LoadBinary(const TargetProperties& target,
     }
 }
 
-void SaveBinary(const boost::filesystem::path& binary_path,
-                const TargetProperties& target,
-                const std::string& name,
-                const std::string& args,
-                bool is_kernel_str)
+boost::filesystem::path SaveBinary(const boost::filesystem::path& binary_path,
+                                   const TargetProperties& target,
+                                   const std::string& name,
+                                   const std::string& args,
+                                   bool is_kernel_str)
 {
     if(miopen::IsCacheDisabled())
     {
         boost::filesystem::remove(binary_path);
+        return {};
     }
     else
     {
         auto p = GetCacheFile(target.DbId(), name, args, is_kernel_str);
         boost::filesystem::create_directories(p.parent_path());
         boost::filesystem::rename(binary_path, p);
+        return p;
     }
 }
 #endif
