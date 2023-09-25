@@ -81,14 +81,14 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 TEST_P(ConvFwdSolverTest3D, CKNonPackConvFwd3D)
 {
     SolverFwd<miopen::solver::ConvHipImplicitGemm3DFwdNonPackXdlops>(input.desc,
-                                                                   in_dev.get(),
-                                                                   weights.desc,
-                                                                   wei_dev.get(),
-                                                                   output.desc,
-                                                                   out_dev.get(),
-                                                                   conv_desc,
-                                                                   conv_config,
-                                                                   test_skipped);
+                                                                     in_dev.get(),
+                                                                     weights.desc,
+                                                                     wei_dev.get(),
+                                                                     output.desc,
+                                                                     out_dev.get(),
+                                                                     conv_desc,
+                                                                     conv_config,
+                                                                     test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,

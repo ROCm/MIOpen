@@ -34,13 +34,23 @@ struct NonPackTestCase : Conv3DTestCase
     size_t s2;
     size_t s3;
     size_t s4;
-    std::vector<size_t> GetInputStrides() { return {s0,s1,s2,s3,s4}; }
+    std::vector<size_t> GetInputStrides() { return {s0, s1, s2, s3, s4}; }
 };
 
 std::vector<NonPackTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}, 10240, 1, 2560, 160, 16},
-            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}, 65536, 1, 24000, 2048, 64}};
+    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             10240,
+             1,
+             2560,
+             160,
+             16},
+            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             65536,
+             1,
+             24000,
+             2048,
+             64}};
 }
 
 template <typename T = float>
@@ -54,10 +64,8 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input   = tensor<T>{miopen_type<T>{},
-                            tensor_layout,
-                            conv_config.GetInput(),
-                            conv_config.GetInputStrides()};
+        input                                      = tensor<T>{
+            miopen_type<T>{}, tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};

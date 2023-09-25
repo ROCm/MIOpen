@@ -85,22 +85,15 @@ struct CKArgs
         input  = {G, N, C, Di, Hi, Wi};
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
-        
-        std::cout<<"non pack tensor solver called!"<<std::endl;
 
         // miopen strides to CK strides
         auto miopen_in_strides  = problem.GetIn().GetStrides();
         auto miopen_out_strides = problem.GetOut().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        for(auto& x:miopen_in_strides){
-            std::cout<<x<<" ";
-        }
-        std::cout<<"\n";
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
         miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
         std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        //in_strides  = {C, 10240, 1, 2560, 160, 16};
         std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
         std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
