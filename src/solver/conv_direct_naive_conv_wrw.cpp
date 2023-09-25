@@ -121,15 +121,9 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
-    const auto is_f8    = [&]() {
-        if(kernel.kernel_file == "fp8_naive_conv.cpp")
-            return true;
-        else
-            return false;
-    }();
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
 
-    int G_stride_idx = GetGroupStrideIndex(problem);
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
     int G_stride_idx = GetGroupStrideIndex(problem);
 
