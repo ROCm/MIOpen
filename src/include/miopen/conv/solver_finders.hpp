@@ -27,8 +27,9 @@
 #pragma once
 
 #include <miopen/conv_solution.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <memory>
 #include <vector>
@@ -44,7 +45,7 @@ public:
 
     virtual AlgorithmName GetAlgorithmName(const conv::ProblemDescription& ptroblem) const = 0;
 
-    inline std::vector<solver::ConvSolution> Find(const ConvolutionContext& ctx,
+    inline std::vector<solver::ConvSolution> Find(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx,
                                                   bool use_winograd_only) const
@@ -68,10 +69,10 @@ public:
     }
 
 protected:
-    virtual bool IsEnabled(const ConvolutionContext& ctx,
+    virtual bool IsEnabled(const ExecutionContext& ctx,
                            const conv::ProblemDescription& problem,
                            bool use_winograd_only) const                             = 0;
-    virtual std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    virtual std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem,
                                                        const AnyInvokeParams& invoke_ctx,
                                                        bool use_winograd_only) const = 0;
@@ -81,7 +82,7 @@ const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();
 
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
-                  const ConvolutionContext& ctx,
+                  const ExecutionContext& ctx,
                   const ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders);

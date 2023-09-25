@@ -229,7 +229,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmBwdXdlops pp;
@@ -238,7 +238,7 @@ ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionConte
 }
 
 bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
@@ -246,7 +246,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,
                                      const AnyInvokeParams& invoke_ctx) const
 {
@@ -254,7 +254,7 @@ ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -303,7 +303,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {

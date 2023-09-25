@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,25 +24,9 @@
  *
  *******************************************************************************/
 
+// Todo: this is a temporary header for fin compatibility
+// It would be removed in a separate PR after changes to fin would be merged
+
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
-
-#include <string>
-
-namespace miopen {
-/// A leftover of the legacy design, houses
-/// environmental context (e.g. HW/SW platform) and solver-specific state.
-///
-/// TODO: These two entities should be made separate.
-struct ConvolutionContext : ExecutionContext
-{
-    ConvolutionContext() = default;
-    explicit ConvolutionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
-
-public:
-    bool is_for_generic_search = false;
-};
-
-} // namespace miopen

@@ -37,7 +37,6 @@
 #include <queue>
 #include <fstream>
 #include <miopen/miopen.h>
-#include <miopen/conv/context.hpp>
 #include <miopen/solver.hpp>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
@@ -72,7 +71,7 @@ public:
 };
 class Model;
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
-                                    const ConvolutionContext& ctx,
+                                    const ExecutionContext& ctx,
                                     const std::string& device);
 } // namespace immed_mode
 

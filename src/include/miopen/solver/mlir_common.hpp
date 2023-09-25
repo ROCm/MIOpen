@@ -27,7 +27,8 @@
 #ifndef GUARD_MLIR_COMMON_HPP_
 #define GUARD_MLIR_COMMON_HPP_
 
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <string>
 
@@ -37,13 +38,13 @@ namespace mlir {
 
 std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
 
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+std::string ConstructBuildOptions(const ExecutionContext& ctx,
                                   const ProblemDescription& problem,
                                   bool is_xdlops,
                                   int kernel_id = 0);
 
 template <typename T>
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+std::string ConstructBuildOptions(const ExecutionContext& ctx,
                                   const ProblemDescription& problem,
                                   const T& perf_config,
                                   bool is_xdlops,

@@ -139,7 +139,7 @@ static bool IsTunable(const ProblemDescription& problem)
               (problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1)));
 }
 
-bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2NonTunable::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
@@ -148,7 +148,7 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
     return ConvOclBwdWrW2<1>::IsApplicableBase(ctx, problem) && !IsTunable(problem);
 }
 
-ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     // Invoking base class GetSolution with default values for params obtained
@@ -230,7 +230,7 @@ static size_t GetNBatchBlks(const ProblemDescription& problem)
 
 template <int N_BATCH_LOOPS>
 bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(!IsValidValue())
     {
@@ -438,7 +438,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
 
 template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
@@ -446,7 +446,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2{}))
@@ -506,7 +506,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     return IsApplicableBase(ctx, problem) && IsTunable(problem);
@@ -514,7 +514,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                            const ProblemDescription& problem) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
@@ -523,7 +523,7 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionCont
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ExecutionContext&,
                                                        const ProblemDescription& problem) const
 {
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
@@ -543,7 +543,7 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
 
 template <int N_BATCH_LOOPS>
 ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
@@ -747,7 +747,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& ctx,
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ExecutionContext& ctx,
                                       const ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx) const
 {

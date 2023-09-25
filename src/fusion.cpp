@@ -199,7 +199,7 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
 
 std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, int fusion_mode)
 {
-    assert(deref(fusePlanDesc).op_map.size() >= 1);
+    assert(!deref(fusePlanDesc).op_map.empty());
 
     std::string str;
     if(deref(fusePlanDesc).data_type == miopenBFloat16)
