@@ -54,7 +54,7 @@ namespace solver {
  * select default configuration if a known configuration has not been found.
  */
 LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     //
     LegacyPerformanceConfig result{};
@@ -142,7 +142,7 @@ static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t wei_ocl_buf,
                              ConstData_t bias_ocl_buf,
                              double& processing_time,
-                             const ConvolutionContext& ctx,
+                             const ExecutionContext& ctx,
                              const ProblemDescription& problem,
                              const LegacyPerformanceConfig& config)
 {
@@ -213,7 +213,7 @@ static int MeasurePerfConfig(const Handle& handle,
 }
 
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& ctx,
+ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx) const
 {
@@ -231,7 +231,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& ctx,
 
 template <typename Tgpu>
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx,
+ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {

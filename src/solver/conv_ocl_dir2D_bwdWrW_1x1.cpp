@@ -39,7 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_266868
@@ -96,7 +96,7 @@ static inline int GetNPasses(const ProblemDescription& problem)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ExecutionContext&,
                                           const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
@@ -112,7 +112,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem) const
 {
     ConvSolution result;

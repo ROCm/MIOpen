@@ -471,7 +471,7 @@ bool PerformanceImplicitGemmV4R4Fwd::IsValid(const ProblemDescription& problem) 
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmV4R4Fwd::HeuristicInit(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem)
 {
     std::ignore = ctx;
@@ -572,7 +572,7 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ProblemDescription& problem)
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4{}))
@@ -610,14 +610,14 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4Fwd>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmV4R4Fwd& config) const
 {
@@ -626,7 +626,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::Search(const ExecutionContext& ctx,
                                    const ProblemDescription& problem,
                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -634,7 +634,7 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmV4R4Fwd::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceImplicitGemmV4R4Fwd& config) const
 {

@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclDirectFwd11x11::IsApplicable(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
@@ -65,7 +65,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
            problem.GetKernelStrideH() == 4 && problem.GetKernelStrideW() == 4;
 }
 
-ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
     ConvSolution result;

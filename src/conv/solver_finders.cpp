@@ -51,14 +51,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+    bool IsEnabled(const ExecutionContext& /*ctx*/,
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
@@ -79,14 +79,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+    bool IsEnabled(const ExecutionContext& /*ctx*/,
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
@@ -107,7 +107,7 @@ public:
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+    bool IsEnabled(const ExecutionContext& /*ctx*/,
                    const conv::ProblemDescription& problem,
                    bool use_winograd_only) const override
     {
@@ -115,7 +115,7 @@ protected:
                !IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
@@ -134,14 +134,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+    bool IsEnabled(const ExecutionContext& /*ctx*/,
                    const conv::ProblemDescription& /*problem*/,
                    bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
@@ -160,14 +160,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(const ConvolutionContext& /*ctx*/,
+    bool IsEnabled(const ExecutionContext& /*ctx*/,
                    const conv::ProblemDescription& /*problem*/,
                    bool /*use_winograd_only*/) const override
     {
         return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
+    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
                                                bool use_winograd_only) const override
@@ -277,7 +277,7 @@ static void EvaluateInvokers(Handle& handle,
 
 void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   DbRecord& record,
-                  const ConvolutionContext& ctx,
+                  const ExecutionContext& ctx,
                   const ProblemDescription& problem,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders)

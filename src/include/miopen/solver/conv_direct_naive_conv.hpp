@@ -26,7 +26,8 @@
 #pragma once
 
 #include <string>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/problem_description.hpp>
 
 namespace miopen {
 
@@ -34,9 +35,9 @@ namespace solver {
 
 bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const ProblemDescription&);
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription&);
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
                                           const ProblemDescription& problem);
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem);
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
                                                  const ProblemDescription&);

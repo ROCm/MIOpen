@@ -89,7 +89,7 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
             input.desc, in_dev.get(), weights.desc, wei_dev.get(), rout.desc, out_dev.get()};
         const auto problem = miopen::conv::ProblemDescription{
             input.desc, weights.desc, rout.desc, filter, miopen::conv::Direction::Forward};
-        auto ctx = miopen::ConvolutionContext{};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
         if(naive_solver.IsApplicable(ctx, problem))
         {
@@ -125,7 +125,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
             output.desc, out_dev.get(), weights.desc, wei_dev.get(), input.desc, in_dev.get()};
         const auto problem = miopen::conv::ProblemDescription{
             output.desc, weights.desc, input.desc, filter, miopen::conv::Direction::BackwardData};
-        auto ctx = miopen::ConvolutionContext{};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
         if(naive_solver.IsApplicable(ctx, problem))
         {
@@ -165,7 +165,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                                              input.desc,
                                              filter,
                                              miopen::conv::Direction::BackwardWeights};
-        auto ctx = miopen::ConvolutionContext{};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
         if(naive_solver.IsApplicable(ctx, problem))
         {
