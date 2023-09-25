@@ -129,30 +129,11 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        //input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        size_t C = conv_config.C;
-        size_t D = conv_config.D;
-        size_t H = conv_config.H;
-        size_t W = conv_config.W;
-        size_t s0 = conv_config.s0;
-        size_t s1 = conv_config.s1;
-        size_t s2 = conv_config.s2;
-        size_t s3 = conv_config.s3;
-        size_t s4 = conv_config.s4;
         input   = tensor<T>{miopen_type<T>{},
                             tensor_layout,
                             conv_config.GetInput(),
-                            //{D * H * W *C, 1, H * W * C, W * C, C}};
                             conv_config.GetInputStrides()};
-        //weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        size_t K = conv_config.k;
-        size_t Z = conv_config.z;
-        size_t Y = conv_config.y;
-        size_t X = conv_config.x;
-        weights = tensor<T>{miopen_type<T>{},
-                            tensor_layout,
-                            conv_config.GetWeights(),
-                            {Z * Y * X * C, 1, Y * X * C, X * C, C}};
+        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
