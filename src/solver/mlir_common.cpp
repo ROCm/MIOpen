@@ -121,7 +121,7 @@ static std::string GetOperation(const ProblemDescription& problem)
 
 /* Construct the options string passed to MLIR to cause it
 to generate a given convolution.*/
-std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+std::string ConstructBuildOptions(const ExecutionContext& ctx,
                                   const ProblemDescription& problem,
                                   bool is_xdlops,
                                   int kernel_id)

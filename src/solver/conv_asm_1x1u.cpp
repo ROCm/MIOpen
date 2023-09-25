@@ -386,7 +386,7 @@ bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
     return this->IsPartiallyValid(problem, index + 1);
 }
 
-static bool IsModelApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
@@ -415,7 +415,7 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     return features;
 }
 
-void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ConvolutionContext& ctx,
+void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionContext& ctx,
                                                               const ProblemDescription& problem,
                                                               bool& valid)
 {
@@ -479,7 +479,7 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
     }
 }
 
-void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
     if(problem.GetInDataType() == miopenDouble)
@@ -501,7 +501,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& ctx,
 }
 
 PerformanceConfigConvAsm1x1U
-ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvAsm1x1U::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1U pp;
@@ -510,15 +510,14 @@ ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
     return pp;
 }
 
-bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext&,
+bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
                                            const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm1x1U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
         return false;
@@ -620,7 +619,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvAsm1x1U::GetWorkspaceSize(const ExecutionContext&,
                                      const ProblemDescription& problem) const
 {
     if(UseSubsample(problem) || UseUpsample(problem))
@@ -641,7 +640,7 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
                                       const ProblemDescription& problem,
                                       const PerformanceConfigConvAsm1x1U& config) const
 {
@@ -914,7 +913,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& ctx,
+PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const AnyInvokeParams& invoke_ctx) const
 {
