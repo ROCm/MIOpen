@@ -25,13 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/conv/context.hpp>
-
 #include <string>
-#include <array>
-#include <algorithm>
-#include <vector>
-#include <cassert>
+#include <miopen/execution_context.hpp>
+#include <miopen/problem_description.hpp>
 
 namespace miopen {
 
