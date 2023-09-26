@@ -98,7 +98,7 @@ void Run2dDriver(miopenDataType_t prec)
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
-    if(devName == "gfx900" || devName == "gfx906")
+    if(devName == "gfx908" || miopen::StartsWith(devName, "gfx94"))
         return true;
     else
         return false;
@@ -154,3 +154,5 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dHalf, testing::Values(GetTestCases("--half")));
