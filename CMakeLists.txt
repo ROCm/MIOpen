@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required( VERSION 3.15 )
 
 if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
@@ -37,16 +37,24 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
+get_property(_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
-    set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
+if(_GENERATOR_IS_MULTI_CONFIG)
+    if (NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING
+            "Available build types (configurations) on multi-config generators")
+    endif()
+else()
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Release CACHE STRING
+            "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel.")
+    endif()
 endif()
 
 # Default installation path
-if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
-else()
+if(NOT WIN32)
     set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
@@ -56,8 +64,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-enable_testing()
+include(CTest)
 
+find_package(Threads REQUIRED)
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
@@ -73,13 +82,25 @@ set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
-if(MIOPEN_ENABLE_SQLITE)
-    # MIOpen now depends on SQLite as well
-    find_package(PkgConfig)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
+# By default build shared libraries
+option(BUILD_SHARED_LIBS "Create shared libraries" ON)
+option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
+
+if(WIN32)
+    add_subdirectory(extern)
+else()
+    if(MIOPEN_ENABLE_SQLITE)
+        # MIOpen now depends on SQLite as well
+        find_package(PkgConfig)
+        pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+    endif()
+    find_package(BZip2)
+    find_package(nlohmann_json 3.9.1 REQUIRED)
+    add_definitions(-DBOOST_ALL_NO_LIB=1)
+    find_package(Boost 1.74 REQUIRED COMPONENTS filesystem system)
 endif()
-find_package(BZip2)
-find_package(nlohmann_json 3.9.1 REQUIRED)
+
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
@@ -118,12 +139,6 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
-if(WIN32 AND CMAKE_CROSSCOMPILING)
-    set(WINE_CMD "wine")
-else()
-    set(WINE_CMD)
-endif()
-
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
@@ -144,11 +159,10 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
-    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
-    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
@@ -238,25 +252,28 @@ message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
-# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
-# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
-# Actually 5 digits should be Ok everywhere.
-math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
+set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.${MIOPEN_hip_VERSION_PATCH})
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
-# WORKAROUND_SWDEV_413293
-if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+# WORKAROUND_SWDEV_413293 - do not include on Windows, error message unknown command line option
+if(NOT WIN32 AND MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
+    # No assumption that HIP kernels are launched with uniform block size for backward compatibility
+    # SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
+    add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:WORKAROUND_SWDEV_413293>)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
+endif()
+
+if(WIN32)
+    string(REPLACE "\\" "/" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
 endif()
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}">)
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -304,7 +321,7 @@ endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
 # look for and register clang-offload-bundler
-if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+$")
+if(MIOPEN_HIP_COMPILER MATCHES ".*clang\\+\\+.*")
     find_program(MIOPEN_OFFLOADBUNDLER_BIN clang-offload-bundler
         PATH_SUFFIXES bin
         PATHS
@@ -322,14 +339,18 @@ endif()
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
-set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-    # Try to find package rocMLIR
-    # REQUIRED is omitted since we do not want cmake to abort if the package is not found
-    find_package(rocMLIR 1.0.0 CONFIG)
+    if(WIN32)
+        # Windows does not support earlier ROCm versions hence no fallback to MLIRMIOpen.
+        find_package(rocMLIR 1.0.0 CONFIG REQUIRED)
+    else()
+        # Try to find package rocMLIR
+        # REQUIRED is omitted since we do not want cmake to abort if the package is not found
+        find_package(rocMLIR 1.0.0 CONFIG)
+    endif()
     if(NOT rocMLIR_FOUND)
         message(STATUS "Falling back to find library libMLIRMIOpen")
         # Backward compatibility with ROCm 5.3
@@ -340,14 +361,11 @@ if(MIOPEN_USE_MLIR)
             Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
-            set(rocMLIR_VERSION_MAJOR 0)
-            set(rocMLIR_VERSION_MINOR 0)
-            set(rocMLIR_VERSION_PATCH 1)
+            set(rocMLIR_VERSION 0.0.1)
         endif()
     else()
         message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
-    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -375,17 +393,16 @@ endif()
 if(MIOPEN_USE_HIPRTC)
     if(NOT MIOPEN_USE_COMGR)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
-    else()
-        message(STATUS "Build with HIPRTC")
     endif()
+    if(WIN32)
+        find_package(hiprtc REQUIRED)
+    endif()
+    message(STATUS "Build with HIPRTC")
 endif()
 
-option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
-set(BOOST_COMPONENTS filesystem)
-add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
-
-find_path(HALF_INCLUDE_DIR half/half.hpp)
+if(NOT WIN32)
+    find_path(HALF_INCLUDE_DIR half/half.hpp)
+endif()
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
@@ -405,8 +422,14 @@ if(BUILD_DEV)
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
-    set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
-    set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
+    if(WIN32)
+        set(MIOPEN_USER_DB_PATH "$HOME\\\\.miopen\\\\db\\\\" CACHE STRING "Default path to user db files")
+        set(MIOPEN_CACHE_DIR "$HOME\\\\.miopen\\\\cache\\\\" CACHE STRING "")
+	set(MIOPEN_SYSTEM_DB_PATH "C:\\\\ProgramData\\\\MIOpen\\\\" CACHE PATH "Default path to system db files")
+    else()
+        set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
+        set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
+    endif()
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
@@ -434,92 +457,69 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-# Unpack DB files
+set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/src/kernels)
+set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
+
+find_program(UNZIPPER lbzcat bzcat REQUIRED)
+file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
+
 function(unpack_db db_bzip2_file)
-    set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
-    STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
-    find_program(UNZIPPER NAMES lbunzip2 bunzip2)
-    if(EXISTS "${db_file}")
-        message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
-    endif()
-    if(EXISTS "${db_bzip2_file}")
-        message(STATUS "${UNZIPPER} -k -f ${db_bzip2_file}")
-        execute_process(
-            COMMAND ${UNZIPPER} -k -f ${db_bzip2_file}
-            WORKING_DIRECTORY ${KERNELS_DIR}
-            RESULT_VARIABLE ret
-            )
-        if(NOT ret EQUAL "0")
-            message(FATAL_ERROR "${db_file} could not be extracted, file is empty!")
-            execute_process(
-                COMMAND touch ${db_file}
-                WORKING_DIRECTORY ${KERNELS_DIR}
-                )
-        endif()
-    endif()
+    get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
+    add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
+                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+    string(REPLACE "." "_" __tname ${__fname})
+    add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.db.bz2")
+file(GLOB PERF_DB_BZIP_FILES "${KERNELS_SOURCE_DIR}/*.db.bz2")
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
 endforeach()
 
-file(GLOB FIND_DB_BZIP_FILES "${CMAKE_SOURCE_DIR}/src/kernels/*.fdb.txt.bz2")
+file(GLOB FIND_DB_BZIP_FILES "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
 foreach(DB_BZIP_FILE ${FIND_DB_BZIP_FILES})
     unpack_db(${DB_BZIP_FILE})
 endforeach()
 
-# Begin KDB component install 
-function(install_kdb)
-    set(oneValueArgs NAME COMPONENT_NAME)
-    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
+# Begin KDB package creation
 
-    if(PARSE_NAME)
-        set(FILE_NAME ${PARSE_NAME})
-    endif()
-    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2" FILE_CONTENTS LIMIT 7)
-    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
-    if(FILE_CONTENTS STREQUAL "version")
-        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb.bz2 PARENT_SCOPE)
+function(install_kdb FILE_NAME COMPONENT_NAME)
+    file(READ ${FILE_NAME} __contents LIMIT 7)
+    get_filename_component(__fname ${FILE_NAME} NAME_WLE)
+    if(__contents MATCHES "version")
+        message(WARNING "GIT LFS file not pulled down, skipping: ${__fname}")
     else()
-        unpack_db("${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb.bz2")
-        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        unpack_db(${FILE_NAME})
         if( NOT ENABLE_ASAN_PACKAGING )
-          rocm_install(FILES
-              src/kernels/${FILE_NAME}.kdb
-          DESTINATION ${DATA_INSTALL_DIR}/db
-          COMPONENT ${PARSE_COMPONENT_NAME})
+            rocm_install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+                         DESTINATION ${DATA_INSTALL_DIR}/db
+                         COMPONENT ${COMPONENT_NAME})
         endif()
+        set(CPACK_COMPONENTS_ALL
+            "${CPACK_COMPONENTS_ALL};${__component}" PARENT_SCOPE)
     endif()
 endfunction()
 
 # Both the lists below should be in sync always
-list(APPEND ARCH_LST gfx90a gfx1030 gfx908 gfx906 gfx900)
-list(APPEND ARCH_FILE_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+set(KDB_BZ2_FILES gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+set(COMPONENT_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
-list(LENGTH ARCH_LST FULL_LEN)
-math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
-
-
-foreach(IDX RANGE ${ARCH_LST_LEN})
-    list(GET ARCH_LST ${IDX} ARCH_NAME)
-    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
-    install_kdb(
-        NAME ${ARCH_NAME}
-        COMPONENT_NAME ${ARCH_FILE_NAME}
-    )
-endforeach()
-
-if(LFS_MISSING_FILES)
-    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
-    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
-    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
+    foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
+        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
+    endforeach()
 else()
-    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
+    # TODO: Upgrade minimum CMake to version 3.17+ and use IN ZIP_LISTS instead
+    list(LENGTH KDB_BZ2_FILES __length)
+    math(EXPR __high "${__length} - 1")
+    foreach(__index RANGE ${__high})
+        list(GET COMPONENT_LST ${__index} __component)
+        list(GET KDB_BZ2_FILES ${__index} __file)
+        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
+    endforeach()
 endif()
 
-#end kdb package creation
+# End KDB package creation
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
@@ -536,7 +536,6 @@ if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
-
 endif()
 
 include(ClangTidy)
@@ -689,7 +688,6 @@ enable_clang_tidy(
         "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
-
 )
 include(CppCheck)
 enable_cppcheck(
@@ -784,9 +782,13 @@ add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
 endif()
-add_subdirectory(test)
-add_subdirectory(speedtests)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+    add_subdirectory(speedtests)
+endif()
+
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
-add_subdirectory(fin)
+    add_subdirectory(fin)
 endif()

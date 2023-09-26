@@ -37,7 +37,11 @@
 #include <miopen/hip_build_utils.hpp>
 
 #include <chrono>
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <cstdlib>
+#endif
 #include <functional>
 
 namespace miopen {
@@ -232,8 +236,14 @@ private:
 
 int main(int argc, const char* argv[])
 {
+#ifdef _WIN32
+    SetEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    SetEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
+    SetEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
+#else
     setenv("MIOPEN_LOG_LEVEL", "6", 1);                   // NOLINT (concurrency-mt-unsafe)
     setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1);      // NOLINT (concurrency-mt-unsafe)
     setenv("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1", 1); // NOLINT (concurrency-mt-unsafe)
+#endif
     test_drive<miopen::FindDbTest>(argc, argv);
 }

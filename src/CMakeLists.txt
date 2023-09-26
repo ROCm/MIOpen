@@ -26,7 +26,7 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-include (GenerateExportHeader)
+include(ExportHeader)
 if(MIOPEN_ENABLE_SQLITE)
     add_subdirectory(sqlite)
 endif()
@@ -52,28 +52,24 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
-
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 #Copy header to Build Dir for generating backward compatibility
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+if(NOT _GENERATOR_IS_MULTI_CONFIG)
+    message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+endif()
 
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
-
 
 function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
-        if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
-        else()
-            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
-        endif()
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
@@ -88,10 +84,7 @@ endfunction()
 
 set( MIOpen_Source
     activ/problem_description.cpp
-    activ_api.cpp
-    api/find2_0_commons.cpp
     batch_norm.cpp
-    batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
     check_numerics.cpp
@@ -105,46 +98,35 @@ set( MIOpen_Source
     conv/problem_description.cpp
     conv_algo_name.cpp
     convolution.cpp
-    convolution_api.cpp
     ctc.cpp
-    ctc_api.cpp
     db.cpp
     db_record.cpp
     driver_arguments.cpp
     dropout.cpp
-    dropout_api.cpp
     execution_context.cpp
     expanduser.cpp
     find_controls.cpp
     find_db.cpp
-    fused_api.cpp
     fusion.cpp
     generic_search.cpp
-    handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
-    layernorm_api.cpp
-    lrn_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
     pooling/problem_description.cpp
-    pooling_api.cpp
     problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
-    reducetensor_api.cpp
     rnn.cpp
-    rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
-    softmax_api.cpp
     solution.cpp
     conv/solver_finders.cpp
     solver.cpp
@@ -245,7 +227,6 @@ set( MIOpen_Source
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
-    tensor_api.cpp
     seq_tensor.cpp
     )
 
@@ -623,7 +604,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                    COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -666,16 +647,46 @@ if(MIOPEN_USE_MLIR)
         )
 endif()
 
+add_library(MIOpenCore STATIC ${MIOpen_Source})
+
+if(WIN32)
+    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+    target_compile_options(MIOpenCore PUBLIC $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
+
+target_link_libraries(MIOpenCore PUBLIC nlohmann_json::nlohmann_json Boost::filesystem)
+target_include_directories(MIOpenCore SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
+target_include_directories(MIOpenCore SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+target_include_directories(MIOpenCore PUBLIC ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/include ${CMAKE_BINARY_DIR}/include)
+
+if(WIN32)
+    target_link_libraries(MIOpenCore PUBLIC Boost::any Boost::container Boost::date_time Boost::hof
+            Boost::interprocess Boost::range Boost::thread Boost::variant)
+endif()
+
+set_target_properties(MIOpenCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # build library
+add_library(MIOpen
+        activ_api.cpp
+        api/find2_0_commons.cpp
+        batch_norm_api.cpp
+        convolution_api.cpp
+        ctc_api.cpp
+        dropout_api.cpp
+        fused_api.cpp
+        handle_api.cpp
+        layernorm_api.cpp
+        lrn_api.cpp
+        pooling_api.cpp
+        reducetensor_api.cpp
+        rnn_api.cpp
+        softmax_api.cpp
+        tensor_api.cpp
+        $<TARGET_OBJECTS:MIOpenCore>)
+
 if(MIOPEN_ENABLE_SQLITE)
-    add_library( MIOpen
-        ${MIOpen_Source}
-        $<TARGET_OBJECTS:sqlite_memvfs>
-        )
-else()
-    add_library( MIOpen
-        ${MIOpen_Source}
-        )
+    target_sources(MIOpen PRIVATE $<TARGET_OBJECTS:sqlite_memvfs>)
 endif()
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
@@ -689,35 +700,30 @@ endif()
 
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
-    set(PASS_ARGS debug optimized)
-    set(DEPS)
-    foreach(DEP ${ARGN})
-        if(DEP IN_LIST PASS_ARGS)
-            list(APPEND DEPS ${DEP})
-        else()
-            list(APPEND DEPS $<BUILD_INTERFACE:${DEP}>)
-        endif()
-    endforeach()
-    target_link_libraries(${TARGET} INTERFACE ${DEPS})
+    target_link_libraries(${TARGET} INTERFACE $<BUILD_INTERFACE:${ARGN}>)
 endfunction()
+
+if(WIN32)
+    target_internal_library(MIOpen Boost::any Boost::container Boost::date_time Boost::hof
+	    Boost::interprocess Boost::range Boost::thread Boost::variant)
+endif()
 
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
-set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
-generate_export_header(MIOpen
-    EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
-)
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+
+miopen_generate_export_header(MIOpen)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
         find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
@@ -740,8 +746,8 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
             endif()
         endif()
 
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
-        target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+        target_include_directories(MIOpenCore SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
+        target_include_directories(MIOpenCore SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
         if(NOT BUILD_DEV)
             file(GLOB MODEL_FILES kernels/*.model)
             if( NOT ENABLE_ASAN_PACKAGING )
@@ -760,15 +766,19 @@ set(PACKAGE_STATIC_DEPENDS)
 # MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
-    target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
-    target_link_libraries( MIOpen PUBLIC ${OPENCL_LIBRARIES} )
+    target_include_directories(MIOpenCore SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS})
+    target_link_libraries(MIOpenCore PUBLIC ${OPENCL_LIBRARIES})
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    target_link_libraries( MIOpen PRIVATE hip::device )
+    if(MIOPEN_USE_HIPRTC AND WIN32)
+        target_link_libraries( MIOpenCore PUBLIC hiprtc::hiprtc )
+        target_link_libraries( MIOpen PRIVATE hiprtc::hiprtc )
+    endif()
     target_link_libraries( MIOpen INTERFACE hip::host )
+    target_link_libraries( MIOpenCore PUBLIC hip::device hip::host )
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly
-        target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
+        target_compile_definitions( MIOpenCore PRIVATE -D__HIP_PLATFORM_HCC__=1 )
     endif()
     # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hip::device> )
@@ -778,33 +788,32 @@ endif()
 if(MIOPEN_USE_COMGR)
     list(APPEND PACKAGE_DEPENDS PACKAGE amd_comgr)
     target_internal_library(MIOpen amd_comgr)
+    target_link_libraries(MIOpenCore PRIVATE amd_comgr)
 endif()
 
 if(rocblas_FOUND)
+    target_link_libraries( MIOpenCore PRIVATE roc::rocblas )
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
-# For backward compatibility with ROCm 5.3
-# Build with library libMLIRMIOpen
-if(LIBMLIRMIOPEN)
-    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+if(NOT WIN32)
+    # For backward compatibility with ROCm 5.3
+    # Build with library libMLIRMIOpen
+    if(LIBMLIRMIOPEN)
+        target_link_libraries(MIOpenCore PRIVATE ${LIBMLIRMIOPEN})
+        target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+    endif()
 endif()
 
 # Build with package rocMLIR
 if(rocMLIR_FOUND)
+    target_link_libraries(MIOpenCore PRIVATE rocMLIR::rockCompiler)
     target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
-
-if(WIN32 AND NOT MSVC)
-    if(BUILD_DEV)
-        target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
-    endif()
-    target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
-endif()
 
 target_internal_library(MIOpen
     Boost::filesystem
@@ -834,6 +843,9 @@ endif()
 #######################################
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
+    target_include_directories(MIOpenCore SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
+    target_compile_options(MIOpenCore PRIVATE ${SQLITE3_STATIC_CFLAGS})
+    target_link_libraries(MIOpenCore PRIVATE ${SQLITE3_STATIC_LDFLAGS})
     target_include_directories(MIOpen SYSTEM PRIVATE ${SQLITE3_STATIC_INCLUDE_DIRS})
     target_include_directories(MIOpen SYSTEM INTERFACE $<BUILD_INTERFACE:${SQLITE3_STATIC_INCLUDE_DIRS}>)
     target_compile_options(MIOpen PRIVATE ${SQLITE3_STATIC_CFLAGS})
@@ -846,7 +858,7 @@ endif()
 if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
     if(LIBRT)
-        MESSAGE(STATUS "Librt: " ${LIBRT})
+        message(STATUS "Librt: " ${LIBRT})
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()

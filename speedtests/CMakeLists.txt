@@ -17,7 +17,7 @@ function(add_speedtest_executable TEST_NAME)
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
     target_link_libraries(${TEST_NAME} MIOpen)
     target_include_directories(${TEST_NAME} PRIVATE ../test)
-endfunction(add_speedtest_executable)
+endfunction()
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)

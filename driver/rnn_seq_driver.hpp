@@ -565,11 +565,12 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetSeqLengthsFromCmdLine()
     if(seq_it != data_seq_lens.end())
     {
         auto padding_val = (seq_it != data_seq_lens.begin()) ? *(seq_it - 1) : seq_len_max;
-        printf("sampl_lens size == %lu is shmaller than time batch_size == %d, padding the rest "
-               "of data with %d\n",
-               static_cast<size_t>(std::distance(data_seq_lens.begin(), seq_it)),
-               batch_size,
-               padding_val);
+        std::cout << "sampl_lens size == "
+                  << std::distance(data_seq_lens.begin(), seq_it)
+                  << " is shmaller than time batch_size == "
+                  << batch_size
+                  <<", padding the rest of data with "
+                  << padding_val << "\n";
 
         for(; seq_it != data_seq_lens.end(); seq_it++)
             *seq_it = padding_val;

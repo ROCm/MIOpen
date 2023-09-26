@@ -30,9 +30,6 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
-#ifdef _MSC_VER
-#include <iso646.h>
-#endif
 
 namespace miopen {
 
@@ -44,7 +41,11 @@ struct float_equal_fn
     template <class T>
     static bool apply(T x, T y)
     {
-        return std::isfinite(x) and std::isfinite(y) and
+        // WIN32: The Standard Library from MSVC does implement std::isfinite()
+        // for floating-point types only - no additional overloads for integer
+        // types, which should be treated as doubles according to the specification.
+        // https://en.cppreference.com/w/cpp/numeric/math/isfinite
+        return std::isfinite(static_cast<double>(x)) and std::isfinite(static_cast<double>(y)) and
                std::nextafter(x, std::numeric_limits<T>::lowest()) <= y and
                std::nextafter(x, std::numeric_limits<T>::max()) >= y;
     }

@@ -1,0 +1,56 @@
+# Legacy unpacked SQlite3 files
+src/kernels/*.db
+src/kernels/*.kdb
+
+# Backup files created by text editors
+*~
+
+# Merge files created by git
+*.orig
+*.BACKUP
+*.REMOTE
+*.BASE
+*.LOCAL
+
+# Vim/NVim swap files
+.*.sw?
+.sw?
+
+# Sublime Text settings
+*.sublime-workspace
+*.sublime-project
+
+# Eclipse project settings
+*.*project
+.settings
+
+# Nested build directory
+build*/
+
+# VS2022 and VSCode settings
+.vs/
+.vscode/
+
+# JetBrains project files
+.idea/
+cmake-build*/
+
+# Various tags
+/tags
+/TAGS
+/GPATH
+/GRTAGS
+/GSYMS
+/GTAGS
+/ID
+/.gitusers
+/CMakeSettings.json
+/_toc.yml
+
+# Documentation artifacts
+docs/.doxygen/DoxygenWarningLog.txt
+docs/html
+/_readthedocs
+
+# Python virtual environment
+.venv/

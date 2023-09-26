@@ -42,7 +42,7 @@
 
 namespace bf = boost::filesystem;
 
-static int Child(const std::string& path, std::string cmd)
+static int Child(const std::string& path, const std::string& cmd)
 {
 #ifdef __linux__
     std::ignore = path;
@@ -54,12 +54,32 @@ static int Child(const std::string& path, std::string cmd)
     auto status = pclose(pipe);
     return WEXITSTATUS(status);
 #else
-    STARTUPINFOA info{sizeof(info)};
-    PROCESS_INFORMATION processInfo{};
+    STARTUPINFO info;
+    PROCESS_INFORMATION processInfo;
 
-    if(!CreateProcessA(
-           path, &cmd[0], nullptr, nullptr, false, 0, nullptr, nullptr, &info, &processInfo))
-        MIOPEN_THROW("CreateProcess error: " << GetLastError());
+    ZeroMemory(&info, sizeof(info));
+    info.cb = sizeof(info);
+    ZeroMemory(&processInfo, sizeof(processInfo));
+
+    LPSTR lpCmdLn{};
+
+#if !defined(UNICODE)
+    lpCmdLn = const_cast<LPSTR>(cmd.c_str());
+#else
+    std::wstring cmdln{};
+    auto length{
+        MultiByteToWideChar(CP_ACP, 0, cmd.c_str(), static_cast<int>(cmd.length()), nullptr, 0)};
+    if(length > 0)
+    {
+        cmdln.resize(length);
+        MultiByteToWideChar(
+            CP_ACP, 0, cmd.c_str(), static_cast<int>(cmd.length()), &cmdln[0], length);
+    }
+    lpCmdLn = reinterpret_cast<LPSTR>(const_cast<LPWSTR>(cmdln.c_str()));
+#endif
+    if(!CreateProcess(
+           nullptr, lpCmdLn, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &info, &processInfo))
+        MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
 
     WaitForSingleObject(processInfo.hProcess, INFINITE);
 
@@ -70,9 +90,9 @@ static int Child(const std::string& path, std::string cmd)
     CloseHandle(processInfo.hThread);
 
     if(!getExitCodeStatus)
-        MIOPEN_THROW("GetExitCodeProcess error: " << GetLastError());
+        MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
-    return status;
+    return static_cast<int>(status);
 #endif // __linux__
 }
 
@@ -93,9 +113,9 @@ public:
         const auto header_src      = test_srcs.path / header_filename;
 
         // clang-format-off
-        std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">" << std::endl
-                                         << "#include \"" << header_filename << "\"" << std::endl
-                                         << "//inliner-include-optional" << std::endl
+        std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">\n"
+                                         << "#include \"" << header_filename << "\"\n"
+                                         << "//inliner-include-optional\n"
                                          << "#include <missing_header.h>" << std::endl;
         // clang-format-on
 

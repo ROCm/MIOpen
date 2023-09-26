@@ -540,8 +540,11 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
     {
         for(int h = 0; h < out_h; h++)
         {
-            assert(!std::isnan(rsvspace.at(prelayer_shift + bs * hy_stride + h)));
-            assert(!std::isinf(rsvspace.at(prelayer_shift + bs * hy_stride + h)));
+            assert(
+                !std::isnan(static_cast<double>(rsvspace.at(prelayer_shift + bs * hy_stride + h))));
+            assert(
+                !std::isinf(static_cast<double>(rsvspace.at(prelayer_shift + bs * hy_stride + h))));
+
             out_host.at(bs * out_stride + h) = rsvspace.at(prelayer_shift + bs * hy_stride + h);
             //  printf("out_host[%d]: %f\n", bs * out_stride + h, out_host.at(bs * out_stride + h));
         }

@@ -49,6 +49,10 @@
 #include <thread>
 #include <vector>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
@@ -824,7 +828,13 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+
+#ifdef _WIN32
+        using PROCESS_HANDLE = PROCESS_INFORMATION;
+#else
+        using PROCESS_HANDLE = FILE*;
+#endif
+        std::vector<PROCESS_HANDLE> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -848,16 +858,55 @@ public:
 
                 if(full_set())
                     command += " --all";
+#ifdef _WIN32
+                STARTUPINFO info;
+                PROCESS_INFORMATION processInfo;
 
+                ZeroMemory(&info, sizeof(info));
+                info.cb = sizeof(info);
+                ZeroMemory(&processInfo, sizeof(processInfo));
+
+                LPSTR lpCmdLn{const_cast<LPSTR>(command.c_str())};
+
+                if(!CreateProcess(nullptr,
+                                  lpCmdLn,
+                                  nullptr,
+                                  nullptr,
+                                  FALSE,
+                                  0,
+                                  nullptr,
+                                  nullptr,
+                                  &info,
+                                  &processInfo))
+                    MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
+
+                child = processInfo;
+#else
                 child = popen(command.c_str(), "w");
+#endif
             }
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
         for(auto child : children)
         {
+#ifdef _WIN32
+            WaitForSingleObject(child.hProcess, INFINITE);
+
+            DWORD status{};
+            auto exitCode{GetExitCodeProcess(child.hProcess, &status)};
+
+            CloseHandle(child.hProcess);
+            CloseHandle(child.hThread);
+
+            if(exitCode != 0)
+                MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
+
+            auto exit_code = static_cast<int>(status);
+#else
             auto status          = pclose(child);
             const auto exit_code = WEXITSTATUS(status);
+#endif
 
             EXPECT_EQUAL(exit_code, 0);
         }
@@ -898,7 +947,12 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+#ifdef _WIN32
+        using PROCESS_HANDLE = PROCESS_INFORMATION;
+#else
+        using PROCESS_HANDLE = FILE*;
+#endif
+        std::vector<PROCESS_HANDLE> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -927,15 +981,55 @@ public:
                     command += " --all";
 
                 std::cout << command << std::endl;
+#ifdef _WIN32
+                STARTUPINFO info;
+                PROCESS_INFORMATION processInfo;
+
+                ZeroMemory(&info, sizeof(info));
+                info.cb = sizeof(info);
+                ZeroMemory(&processInfo, sizeof(processInfo));
+
+                LPSTR lpCmdLn{const_cast<LPSTR>(command.c_str())};
+
+                if(!CreateProcess(nullptr,
+                                  lpCmdLn,
+                                  nullptr,
+                                  nullptr,
+                                  FALSE,
+                                  0,
+                                  nullptr,
+                                  nullptr,
+                                  &info,
+                                  &processInfo))
+                    MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
+
+                child = processInfo;
+#else
                 child = popen(command.c_str(), "w");
+#endif
             }
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
         for(auto child : children)
         {
+#ifdef _WIN32
+            WaitForSingleObject(child.hProcess, INFINITE);
+
+            DWORD status{};
+            auto exitCode{GetExitCodeProcess(child.hProcess, &status)};
+
+            CloseHandle(child.hProcess);
+            CloseHandle(child.hThread);
+
+            if(exitCode != 0)
+                MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
+
+            auto exit_code = static_cast<int>(status);
+#else
             auto status          = pclose(child);
             const auto exit_code = WEXITSTATUS(status);
+#endif
 
             EXPECT_EQUAL(exit_code, 0);
         }

@@ -1,4 +1,4 @@
-include_directories(BEFORE
+set(__driver_offline_include_dirs
     include
     ${PROJECT_SOURCE_DIR}/host/host_tensor/include
     ${PROJECT_SOURCE_DIR}/host/solver/include
@@ -11,11 +11,9 @@ include_directories(BEFORE
     ${PROJECT_SOURCE_DIR}/external/rocm/include
 )
 
-set(CONV_FWD_DRIVER_OFFLINE_SOURCE src/conv_fwd_driver_offline.cpp)
-set(CONV_BWD_DRIVER_OFFLINE_SOURCE src/conv_bwd_driver_offline.cpp)
-
-add_executable(conv_fwd_driver_offline ${CONV_FWD_DRIVER_OFFLINE_SOURCE})
-add_executable(conv_bwd_driver_offline ${CONV_BWD_DRIVER_OFFLINE_SOURCE})
-
+add_executable(conv_fwd_driver_offline src/conv_fwd_driver_offline.cpp)
 target_link_libraries(conv_fwd_driver_offline PRIVATE host_tensor)
+target_include_directories(conv_fwd_driver_offline PRIVATE ${__driver_offline_include_dirs})
+add_executable(conv_bwd_driver_offline src/conv_bwd_driver_offline.cpp)
 target_link_libraries(conv_bwd_driver_offline PRIVATE host_tensor)
+target_include_directories(conv_bwd_driver_offline PRIVATE ${__driver_offline_include_dirs})

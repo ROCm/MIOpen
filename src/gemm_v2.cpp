@@ -35,11 +35,15 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
+#if defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT < 5007000000ULL)
+#define ROCBLAS_BETA_FEATURES_API 0
+#else
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#endif
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -117,11 +121,14 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 
 auto rocBlasDataType(miopenDataType_t data_type)
 {
+#if !defined(_WIN32) || (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
     else if(data_type == miopenBFloat8)
         return rocblas_datatype::rocblas_datatype_bf8_r;
-    else if(data_type == miopenHalf)
+    else
+#endif
+    if(data_type == miopenHalf)
         return rocblas_datatype::rocblas_datatype_f16_r;
     MIOPEN_THROW(miopenStatusInternalError, "Invalid data type passed");
 }

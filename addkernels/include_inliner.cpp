@@ -34,7 +34,7 @@
 #ifdef __linux__
 #include <linux/limits.h>
 #include <cstdlib>
-#endif // !WIN32
+#endif // !_WIN32
 
 #include "include_inliner.hpp"
 
