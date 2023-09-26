@@ -367,11 +367,6 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             int ho          = conv_out_size(hi, py, dy, fy, sy);
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int c_per_group = c / g;
-            // int k_per_group = k / g;
-
-            // int in_sz  = g * n * c_per_group * hi * wi;
-            // int wei_sz = g * k_per_group * c_per_group * fy * fx;
-            // int out_sz = g * n * k_per_group * ho * wo;
 
             std::vector<int> in_len({n, c, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fy, fx});
@@ -482,9 +477,10 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \anchor copy_non_packed_output_before_convolution
+                /// \note copy output before computation because output may
+                /// be not be packed, and convolution may update only a subset of
+                /// indices
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
@@ -560,9 +556,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \ref copy_non_packed_output_before_convolution
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -648,9 +642,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \ref copy_non_packed_output_before_convolution
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
@@ -774,11 +766,6 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int do_         = conv_out_size(di, pz, dz, fz, sz);
             int c_per_group = c / g;
-            // int k_per_group = k / g;
-
-            // int in_sz  = g * n * c_per_group * di * hi * wi;
-            // int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
-            // int out_sz = g * n * k_per_group * do_ * ho * wo;
 
             std::vector<int> in_len({n, c, di, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fz, fy, fx});
@@ -885,9 +872,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \ref copy_non_packed_output_before_convolution
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
@@ -969,9 +954,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \ref copy_non_packed_output_before_convolution
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
@@ -1057,9 +1040,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
-                // TODO(Amber): copy output before computation because output may
-                // be not be packed, and convolution may update only a subset of
-                // indices
+                /// \ref copy_non_packed_output_before_convolution
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,

@@ -416,12 +416,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                size_t workSpaceSize) const
 {
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
-#if 0
-    if(!(xDesc.IsPacked() && wDesc.IsPacked() && yDesc.IsPacked()))
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only fully packed tensors are supported");
-    }
-#endif
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateConvTensors(tensors);
