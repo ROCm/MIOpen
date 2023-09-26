@@ -4842,7 +4842,7 @@ struct PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
     void HeuristicInit(const ProblemDescription&);
     bool SetNextValue(const ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext&, const ProblemDescription& problem) const
+    bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
@@ -4865,24 +4865,23 @@ struct ConvHipImplicitGemm3DFwdNonPackXdlops final
     }
 
     PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
-        const ConvolutionContext&,
+        const ExecutionContext&,
         const ProblemDescription&,
         const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops&) const override;
     PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
-    Search(const ConvolutionContext&,
+    Search(const ExecutionContext&,
            const ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
-    GetSolution(const ConvolutionContext&,
+    GetSolution(const ExecutionContext&,
                 const ProblemDescription&,
                 const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops&) const override;
     /// \ref igemm_get_wti_magic_number
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    float GetWti(const ExecutionContext&, const ProblemDescription&) const override
     {
         return 0.02f;
     };

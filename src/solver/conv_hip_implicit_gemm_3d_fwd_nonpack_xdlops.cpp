@@ -277,7 +277,7 @@ bool PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
 ConvHipImplicitGemm3DFwdNonPackXdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops pp;
     pp.HeuristicInit(problem);
@@ -285,7 +285,7 @@ ConvHipImplicitGemm3DFwdNonPackXdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemm3DFwdNonPackXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops& config) const
 {
@@ -293,7 +293,7 @@ bool ConvHipImplicitGemm3DFwdNonPackXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops
-ConvHipImplicitGemm3DFwdNonPackXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemm3DFwdNonPackXdlops::Search(const ExecutionContext& ctx,
                                               const ProblemDescription& problem,
                                               const AnyInvokeParams& invoke_ctx) const
 {
@@ -301,7 +301,7 @@ ConvHipImplicitGemm3DFwdNonPackXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemm3DFwdNonPackXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -339,7 +339,7 @@ bool ConvHipImplicitGemm3DFwdNonPackXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemm3DFwdNonPackXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DFwdNonPackXdlops& config) const
 {
