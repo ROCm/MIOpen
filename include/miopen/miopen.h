@@ -53,6 +53,7 @@
  * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
+ * @defgroup layernorm
  * @defgroup LRN
  * @defgroup batchnorm
  * @defgroup activation
@@ -110,6 +111,12 @@ typedef enum
     miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
+
+typedef enum
+{
+    miopenF8RoundingModeStandard   = 0,
+    miopenF8RoundingModeStochastic = 1,
+} miopenF8RoundingMode_t;
 
 /*! @brief Get character string for an error code.
  *
@@ -347,7 +354,9 @@ typedef enum
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
-    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+    miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
+    miopenFloat8  = 7,
+    miopenBFloat8 = 8
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -447,7 +456,18 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
-
+#ifdef MIOPEN_BETA_API
+/*! @ingroup layernorm
+ * @enum miopenLayerNormAlgorithm_t
+ * LayerNorm implementation algorithms
+ */
+typedef enum
+{
+    MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
+    MIOPEN_WEIGHT_BIAS =
+        1, /*!< learnable weights and biases of the module of shape normalized_shape */
+} miopenLayerNormMode_t;
+#endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
@@ -581,6 +601,11 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
+        2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
+              rounding modes are supported miopenF8RoundingModeStandard and
+              miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
+              enum.>*/
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -698,7 +723,19 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
-/*! @brief Get size of N-dimensional tensor
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 datatype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+
+/*! @brief Set shape of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
@@ -2427,6 +2464,55 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a layernorm forward layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+                                                    miopenLayerNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const float epsilon,
+                                                    const int32_t normalized_dim,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm

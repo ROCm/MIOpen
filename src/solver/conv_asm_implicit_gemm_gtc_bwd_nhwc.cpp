@@ -942,6 +942,9 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
        !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(!ctx.rmv.IsV3())
         return false;
 

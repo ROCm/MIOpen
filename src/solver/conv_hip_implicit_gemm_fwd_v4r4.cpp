@@ -598,6 +598,9 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
     if(!IsIndexRangeLargeEnough(problem))
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     int gemm_m = 0;
     int gemm_n = 0;
     int gemm_k = 0;
