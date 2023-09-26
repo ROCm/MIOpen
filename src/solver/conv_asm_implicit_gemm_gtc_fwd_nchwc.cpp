@@ -257,7 +257,7 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // grid_size
                   size_t>      // splits_4G
 GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
@@ -518,7 +518,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
 
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC pp;
     pp.HeuristicInit(problem);
@@ -527,14 +527,14 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx,
+ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -542,7 +542,7 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
@@ -591,7 +591,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
