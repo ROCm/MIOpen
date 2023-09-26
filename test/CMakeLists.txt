@@ -29,9 +29,9 @@ cmake_policy(SET CMP0057 NEW)
 set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
 
 if( NOT ENABLE_ASAN_PACKAGING )
-  install(FILES  test_perf.py
-      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-      DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES  test_perf.py
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 set(MODEL_FILES)
@@ -41,9 +41,9 @@ foreach (src ${model_src})
 endforeach()
 
 if( NOT ENABLE_ASAN_PACKAGING )
-  install(FILES
-      ${MODEL_FILES}
-   DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+install(FILES
+    ${MODEL_FILES}
+ DESTINATION ${DATA_INSTALL_DIR}/perf_models)
 endif()
  foreach(MODEL_FILE ${MODEL_FILES})
     get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
@@ -252,14 +252,14 @@ elseif(MIOPEN_TEST_BFLOAT16)
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
-endif()
+  endif()
 
-if(${CODECOV_TEST})
+  if(${CODECOV_TEST})
     list(APPEND SKIP_TESTS
         test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
         test_pooling2d_wide)
-    # replaced by smaller tests with suffix _codecov
-endif()
+      # replaced by smaller tests with suffix _codecov
+  endif()
 
 if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
@@ -652,8 +652,8 @@ function(add_custom_test NAME)
     # For example, MIOPEN_DEBUG_FIND_ONLY_SOLVER results in non-optimal records in user-find-db.
     # Another example is tuning tests. These use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time,
     # but the side effect of such savings is sub-optimal tuning values in user-perf-db.
-    #
-    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in
+    # 
+    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in 
     # the non-default directory. This preserves the state of the actual user databases
     # and prevents performance degradation after the tests complete.
     #
@@ -1261,24 +1261,6 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 )
 
 # gfx90a is disabled due to WORKAROUND_ISSUE_1187
-add_custom_test(test_conv_igemm_dynamic_xdlops_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
-)
-
-# gfx90a is disabled due to WORKAROUND_ISSUE_1187
 # TODO: disabled for WORKAROUND_ISSUE_1979
 #add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 #COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
@@ -1292,51 +1274,9 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIO
 )
 
 # gfx90a is disabled due to WORKAROUND_ISSUE_1187
-# Be careful to add testings for (x=1, y=1, c % 8 != 0) due to WORKAROUND_SWDEV_306318
-add_custom_test(test_conv_igemm_dynamic_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 2048 7 7 --weights 2048 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 128 17 17 --weights 128 128 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 128 17 17 --weights 128 128 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 192 17 17 --weights 320 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 256 35 35 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 48 35 35 --weights 64 48 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 512 7 7 --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2 256 100 104 --weights 12 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 1 256 28 28 --weights 80 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-## ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-backward-data --disable-backward-weights
-)
-
-# gfx90a is disabled due to WORKAROUND_ISSUE_1187
 add_custom_test(test_conv_igemm_dynamic_xdlops_fwd_half SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-)
-
-# gfx90a is disabled due to WORKAROUND_ISSUE_1187
-add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-#regression test for issue 540
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
-
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-# Regression test for SWDEV-295434 (FP16 only).
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  120  256 3 3 --weights 340  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-data
 )
 
 # gfx90a is disabled due to WORKAROUND_ISSUE_1187
@@ -2050,7 +1990,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1WrW GFX103X_ENABLED HALF_ENA
 # which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the solver is not broken.
 # smoke_solver_ConvHipImplicitGemmV4R1Fwd is split to BF16+FP16 and FP32 tests because of
 # WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16 datatypes in this test,
-# see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.
+# see https://github.com/ROCmSoftwarePlatform/MIOpen/pull/2043#issuecomment-1482657160.  
 add_custom_test(smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp16_bf16 GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1
