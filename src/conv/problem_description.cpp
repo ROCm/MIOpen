@@ -44,15 +44,15 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
     return GetDataTypeName(in) + GetDataTypeName(weights) + GetDataTypeName(out);
 }
 
-std::string EncodeDataTypesForKey(
-                std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in,
-                std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights,
-                std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out)
+std::string
+EncodeDataTypesForKey(std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in,
+                      std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights,
+                      std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out)
 {
     miopenDataType_t cin, cweights, cout;
-    cin = std::get<1>(in) ? std::get<1>(in).value() : std::get<0>(in);
+    cin      = std::get<1>(in) ? std::get<1>(in).value() : std::get<0>(in);
     cweights = std::get<1>(weights) ? std::get<1>(weights).value() : std::get<0>(weights);
-    cout = std::get<1>(out) ? std::get<1>(out).value() : std::get<0>(out);
+    cout     = std::get<1>(out) ? std::get<1>(out).value() : std::get<0>(out);
     return EncodeDataTypesForKey(cin, cweights, cout);
 }
 
@@ -141,9 +141,12 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
     if(GetInCastType() || GetWeightsCastType() || GetOutCastType())
     {
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast = std::make_tuple(GetInDataType(), GetInCastType());
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast = std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast = std::make_tuple(GetOutDataType(), GetOutCastType());
+        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast =
+            std::make_tuple(GetInDataType(), GetInCastType());
+        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast =
+            std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
+        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast =
+            std::make_tuple(GetOutDataType(), GetOutCastType());
         ss << 'x' << EncodeDataTypesForKey(in_cast, weights_cast, out_cast);
     }
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
@@ -198,9 +201,12 @@ void ProblemDescription::Serialize(std::ostream& stream) const
 
         if(GetInCastType() || GetWeightsCastType() || GetOutCastType())
         {
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast = std::make_tuple(GetInDataType(), GetInCastType());
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast = std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast = std::make_tuple(GetOutDataType(), GetOutCastType());
+            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast =
+                std::make_tuple(GetInDataType(), GetInCastType());
+            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast =
+                std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
+            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast =
+                std::make_tuple(GetOutDataType(), GetOutCastType());
             optional << "c" << EncodeDataTypesForKey(in_cast, weights_cast, out_cast);
         }
     }
