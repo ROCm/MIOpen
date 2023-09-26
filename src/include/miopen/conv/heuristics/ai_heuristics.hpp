@@ -37,7 +37,6 @@
 #include <queue>
 #include <fstream>
 #include <miopen/miopen.h>
-#include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>

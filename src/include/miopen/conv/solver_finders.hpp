@@ -30,6 +30,7 @@
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <memory>
 #include <type_traits>

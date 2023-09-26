@@ -29,9 +29,9 @@
 
 #include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/execution_context.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>

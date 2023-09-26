@@ -28,6 +28,7 @@
 #define GUARD_MLIR_COMMON_HPP_
 
 #include <miopen/execution_context.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <string>
 

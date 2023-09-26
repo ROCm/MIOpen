@@ -27,7 +27,6 @@
 #pragma once
 
 #include <miopen/invoker.hpp>
-#include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
 
 namespace miopen {

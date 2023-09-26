@@ -30,7 +30,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/execution_context.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/solver.hpp>

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,25 +24,9 @@
  *
  *******************************************************************************/
 
+// Todo: this is a temporary header for fin compatibility
+// It would be removed in a separate PR after changes to fin would be merged
+
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
-
-namespace miopen {
-
-struct Handle;
-
-struct FusionContext : ExecutionContext
-{
-    explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
-
-    ExecutionContext GetConvContext(const ProblemDescription& conv_problem) const
-    {
-        auto ctx = ExecutionContext{*this};
-        conv_problem.SetupFloats(ctx);
-        return ctx;
-    }
-};
-
-} // namespace miopen

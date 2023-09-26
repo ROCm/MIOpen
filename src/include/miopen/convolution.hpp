@@ -395,7 +395,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     FindMode findMode;
     ConvolutionAttribute attribute;
 
-    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& exec_ctx,
+    std::vector<miopenConvSolution_t> GetSolutionsFallback(const ExecutionContext& ctx,
                                                            const conv::ProblemDescription& problem,
                                                            size_t maxSolutionCount) const;
 

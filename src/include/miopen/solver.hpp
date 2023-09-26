@@ -501,8 +501,10 @@ struct ConvAsm5x10u2v2f1 final : ConvSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsm5x10u2v2b1 final : ConvSolver
@@ -512,8 +514,10 @@ struct ConvAsm5x10u2v2b1 final : ConvSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
@@ -526,8 +530,10 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
         return GetSolverDbId<ConvAsm7x7c3h224w224k64u2v2p3q3f1>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvOclDirectFwd11x11 final : ConvSolver
@@ -1669,10 +1675,13 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
@@ -1685,10 +1694,13 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd_1x1>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
@@ -1702,13 +1714,18 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicWrw>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
+
+    size_t GetWorkspaceSize(const ExecutionContext& ctx,
+                            const ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
@@ -1722,12 +1739,18 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicWrwXdlops>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
+
+    size_t GetWorkspaceSize(const ExecutionContext& ctx,
+                            const ProblemDescription& problem) const override;
+
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
@@ -1740,10 +1763,13 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicBwd>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
@@ -1756,10 +1782,13 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdXdlops>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
@@ -1772,10 +1801,13 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicBwdXdlops>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 /// Holds common member functions for the Solvers which share the same
@@ -1834,10 +1866,14 @@ struct ConvBinWinograd3x3U final : ConvSolver
     using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinograd3x3U>(); }
+
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct ConvBinWinogradRxS final : ConvSolver
@@ -1847,10 +1883,13 @@ struct ConvBinWinogradRxS final : ConvSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinogradRxS>(); }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigConvBinWinogradRxS>
@@ -2116,9 +2155,18 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
             ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
     bool IsDynamic() const override { return true; }
 
+    size_t GetWorkspaceSize(const ExecutionContext& ctx,
+                            const ProblemDescription& problem) const override;
+
     bool MayNeedWorkspace() const override { return true; }
+
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
@@ -2151,10 +2199,7 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
                    (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : problem.GetKernelStrideW());
     }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
-
+private:
     InvokerFactory PrepareInvokerFactory(const ExecutionContext&,
                                          const ProblemDescription&,
                                          std::size_t ws_sz) const;
@@ -2544,11 +2589,17 @@ struct fft final : ConvSolver
     using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<fft>(); }
+
+    bool IsApplicable(const ExecutionContext& ctx,
+                      const ProblemDescription& problem) const override;
+
+    size_t GetWorkspaceSize(const ExecutionContext& ctx,
+                            const ProblemDescription& problem) const override;
+
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext& ctx,
+                             const ProblemDescription& problem) const override;
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops>
@@ -2837,7 +2888,7 @@ struct GemmFwdBase : ConvSolver
 
 private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
-    float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
+    float GetWti(const ExecutionContext& ctx, const conv::ProblemDescription& problem) const;
 
     friend struct GemmFwd1x1_0_2;
     friend struct GemmFwd1x1_0_1_int8;

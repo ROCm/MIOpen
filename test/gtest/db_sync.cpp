@@ -29,7 +29,7 @@
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
 #include <miopen/readonlyramdb.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
 
 #include <miopen/find_db.hpp>
 #include <miopen/tensor.hpp>
