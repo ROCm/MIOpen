@@ -176,7 +176,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
                                           const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
