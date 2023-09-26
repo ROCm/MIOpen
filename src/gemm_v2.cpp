@@ -262,8 +262,7 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "beta " << gemm_desc.beta << ", "
                   << "dataType " << GetDataType(gemm_desc.dataType) << ", "
                   << "a_cast_type " << GetDataType(gemm_desc.a_cast_type) << ", "
-                  << "b_cast_type " << GetDataType(gemm_desc.b_cast_type)
-                  << "} ";
+                  << "b_cast_type " << GetDataType(gemm_desc.b_cast_type) << "} ";
 }
 
 #if MIOPEN_USE_ROCBLAS
