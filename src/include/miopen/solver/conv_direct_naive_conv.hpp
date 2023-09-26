@@ -27,12 +27,13 @@
 
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
+#include "miopen/../../kernels/stride_array.hpp"
 
 #include <array>
 #include <algorithm>
+#include <cassert>
 #include <string>
 #include <vector>
-#include <cassert>
 
 namespace miopen {
 
@@ -64,54 +65,6 @@ int GetGroupStrideIndex(const ProblemDescription& problem);
 void printTensorStrides(const TensorDescriptor& inDesc,
                         const TensorDescriptor& wDesc,
                         const TensorDescriptor& outDesc);
-
-// TODO(Amber): Uncomment when hip RTC accepts std::array
-// using StrideIndexType = int;
-// using Strides3D       = std::array<StrideIndexType, 3>;
-// using Strides4D       = std::array<StrideIndexType, 4>;
-// using Strides5D       = std::array<StrideIndexType, 5>;
-// using Strides6D       = std::array<StrideIndexType, 6>;
-#if 1
-template <typename T, unsigned N>
-class MyArray
-{
-    T data_[N] = {};
-
-public:
-    constexpr static const unsigned SIZE = N;
-    __host__ __device__ constexpr unsigned size() const { return N; }
-
-    __host__ __device__ const T& operator[](unsigned i) const { return data_[i]; }
-
-    __host__ T& operator[](unsigned i) { return data_[i]; }
-
-    __host__ __device__ MyArray()                   = default;
-    __host__ __device__ MyArray(const MyArray&)     = default;
-    __host__ __device__ MyArray(MyArray&&) noexcept = default;
-    __host__ __device__ MyArray& operator=(const MyArray&) = default;
-    __host__ __device__ MyArray& operator=(MyArray&&) noexcept = default;
-    __host__ __device__ ~MyArray()                             = default;
-};
-
-using StrideIndexType = size_t;
-using Strides5D       = MyArray<StrideIndexType, 5u>;
-using Strides6D       = MyArray<StrideIndexType, 6u>;
-
-#else
-
-extern "C" typedef int StrideIndexType;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[5];
-} Strides5D;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[6];
-} Strides6D;
-
-#endif
 
 namespace internal {
 template <unsigned N>
@@ -187,28 +140,6 @@ V SplitWeiStrideKtoGK(int k_per_group, const V& wei_strides)
     V ret{wei_strides};
     ret.insert(ret.begin(), wei_strides[0] * k_per_group);
     return ret;
-}
-
-template <typename StrideArray>
-void printStrideArray(const char* name, const StrideArray& sarr)
-{
-    printf("%s = [", name);
-    for(unsigned i = 0; i < StrideArray::SIZE; ++i)
-    {
-        printf("%d,", sarr[i]);
-    }
-    printf("]\n");
-}
-
-template <typename StrideArray>
-void printStrideArrays(const StrideArray& in_strides,
-                       const StrideArray& wei_strides,
-                       const StrideArray& out_strides)
-{
-
-    printStrideArray("in_strides", in_strides);
-    printStrideArray("wei_strides", wei_strides);
-    printStrideArray("out_strides", out_strides);
 }
 
 } // namespace solver

@@ -27,8 +27,6 @@
 #include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/env.hpp>
-#include <miopen/common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
 
