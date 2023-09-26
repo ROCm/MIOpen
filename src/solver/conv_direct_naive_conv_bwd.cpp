@@ -155,10 +155,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                     SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
                 auto out_strides = MakeStrideArray<5>(
                     SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
-                // TODO(Amber): Someone made the silly decision of swapping in and
-                // out pointers in ConvTensors for backward pass, so now I have to
-                // pass out in place of in, out_strides in place of in_strides and
-                // vice-versa
+                /// \ref backward_tensors_reversed_why
                 if(is_f8)
                 {
                     handle.Run(kern)(tensors.out,
@@ -237,13 +234,11 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 auto out_strides = MakeStrideArray<6>(
                     SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
 
-                // printTensorStrides(tensors.inDesc, tensors.wDesc, tensors.outDesc);
-                // printStrideArrays(in_strides, wei_strides, out_strides);
-
-                // TODO(Amber): Someone made the silly decision of swapping in and
-                // out pointers in ConvTensors for backward pass, so now I have to
-                // pass out in place of in, out_strides in place of in_strides and
-                // vice-versa
+                /// \anchor backward_tensors_reversed_why
+                /// \todo Someone made the silly decision of swapping in and
+                /// out pointers in ConvTensors for backward pass, so now I have to
+                /// pass out in place of in, out_strides in place of in_strides and
+                /// vice-versa --amberhassaan
                 handle.Run(kern)(tensors.out,
                                  tensors.w,
                                  tensors.in,

@@ -26,14 +26,15 @@
 #ifndef GUARD_MIOPEN_HIPOC_KERNEL_HPP
 #define GUARD_MIOPEN_HIPOC_KERNEL_HPP
 
-#include <array>
-#include <cassert>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_program.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/op_kernel_args.hpp>
+
+#include <array>
+#include <cassert>
+#include <cstring>
 #include <vector>
-#include <memory.h>
 
 namespace miopen {
 
@@ -47,36 +48,20 @@ inline HipEventPtr make_hip_event()
 
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
-#if 0 // Keep around other storage techinques -- @pfultz2 27.03.2017
 template <class T, class U>
 struct KernelArgsPair
 {
-    static const int alignment    = sizeof(U);
-    static const int padding      = (alignment - sizeof(T) % alignment) % alignment;
-    static const int second_index = sizeof(T) + padding;
+    constexpr static const auto alignU       = alignof(U);
+    constexpr static const auto padding      = (alignU - (sizeof(T) % alignU)) % alignU;
+    constexpr static const auto second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
+
     alignas(U) char buffer[second_index + sizeof(U)] = {};
 };
-#else
-template <class T, class U>
-struct KernelArgsPair
-{
-    static const int alignment = alignof(U);
-    static const int padding   = (alignment - (sizeof(T) % alignment)) % alignment;
-    static_assert(padding >= 0, "padding cannot be negative");
-    static const int second_index = sizeof(T) + padding;
-    KernelArgsPair(T x, U y)
-    {
-        new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
-        new(buffer + second_index) U(y);
-    }
-    alignas(U) char buffer[second_index + sizeof(U)] = {};
-};
-#endif
 
 template <class... Ts>
 struct KernelArgsPack;

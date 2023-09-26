@@ -33,7 +33,6 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/datatype.hpp>
 #include <ostream>
-#include <filesystem>
 
 namespace miopen {
 
@@ -107,10 +106,12 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.GetOutDataType() == miopenInt32;
 }
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
-    if(miopen::IsEnvvarValueEnabled("MIOPEN_USE_PACKED_CONV_REF_KERNEL"))
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
     {
         kernel_name << "naive_conv_packed_";
     }
@@ -183,8 +184,6 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     else
         MIOPEN_THROW("unsupported data type:");
 
-    // TODO(Amber): Left for debugging. Will remove in the future.
-    // std::cout << "############ kernel_name = " << kernel_name.str() << std::endl;
     return kernel_name.str();
 }
 
@@ -256,10 +255,10 @@ bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
     return true;
 }
 
-// figure out the index of C (channel) stride so we can expand it into
-// (G, C_per_group). Return value G_stride_idx is the position of G stride
-// in the stride vector, such that the (G_stride_idx - 1) is the index that
-// contains C's stride as a multiplying factor
+/// Figure out the index of C (channel) stride so we can expand it into
+/// (G, C_per_group). Return value G_stride_idx is the position of G stride
+/// in the stride vector, such that the (G_stride_idx - 1) is the index that
+/// contains C's stride as a multiplying factor
 int GetGroupStrideIndex(const ProblemDescription& problem)
 {
     int G_stride_idx = -1;
@@ -287,12 +286,12 @@ void printTensorStrides(const TensorDescriptor& inDesc,
 {
 
     auto printOneStrideVec = [](const char* name, const auto& vec) {
-        printf("%s = [", name);
+        MIOPEN_LOG_I(name << " = [");
         for(const size_t v : vec)
         {
-            printf("%zu,", v);
+            MIOPEN_LOG_I(v << ",");
         }
-        printf("]\n");
+        MIOPEN_LOG_I("]\n");
     };
 
     printOneStrideVec("inDesc = ", inDesc.GetStrides());
