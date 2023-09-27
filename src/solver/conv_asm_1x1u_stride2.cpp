@@ -460,7 +460,7 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ProblemDescription& pro
 }
 
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ExecutionContext&,
                                            const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
@@ -469,14 +469,14 @@ ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext&,
     return pp;
 }
 
-bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext&,
+bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ExecutionContext&,
                                              const ProblemDescription& problem,
                                              const PerformanceConfigConvAsm1x1UV2& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
+bool ConvAsm1x1UV2::IsApplicable(const ExecutionContext& ctx,
                                  const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
@@ -496,6 +496,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
@@ -509,6 +512,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
+
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.GetInDataType());
     // clang-format off
@@ -588,7 +594,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsm1x1UV2::GetSolution(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         const PerformanceConfigConvAsm1x1UV2& config) const
 {
@@ -748,7 +754,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ConvolutionContext& ctx,
+PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem,
                                                      const AnyInvokeParams& invoke_ctx) const
 {
