@@ -145,6 +145,47 @@ protected:
     virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
 };
 
+class Gfx90aModel : public Model
+{
+public:
+    Gfx90aModel() : Model("gfx90a") {}
+    bool IsProblemSupported(const ProblemDescription& problem,
+                            const ConvolutionContext& ctx) const override
+    {
+        return true;
+    }
+
+protected:
+    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
+    {
+        const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
+        std::vector<float> features = {
+            static_cast<float>(isFwd ? problem.GetInChannels_() : problem.GetOutChannels_()),
+            static_cast<float>(isFwd ? problem.GetInHeight_() : problem.GetOutHeight_()),
+            static_cast<float>(isFwd ? problem.GetInWidth_() : problem.GetOutWidth_()),
+            static_cast<float>(isFwd ? problem.GetOutChannels_() : problem.GetInChannels_()),
+            static_cast<float>(isFwd ? problem.GetOutHeight_() : problem.GetInHeight_()),
+            static_cast<float>(isFwd ? problem.GetOutWidth_() : problem.GetInWidth_()),
+            static_cast<float>(problem.GetWeightsHeight_()),
+            static_cast<float>(problem.GetWeightsWidth_()),
+            static_cast<float>(problem.GetPadH()),
+            static_cast<float>(problem.GetPadW()),
+            static_cast<float>(problem.GetKernelStrideH()),
+            static_cast<float>(problem.GetKernelStrideW()),
+            static_cast<float>(problem.GetDilationH()),
+            static_cast<float>(problem.GetDilationW()),
+            static_cast<float>(problem.GetOutBatchSize_()),
+            static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
+            static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
+            static_cast<float>(problem.GetGroupCount())};
+
+        // normalize
+        for(size_t i = 0; i < features.size(); ++i)
+            features[i] = (features[i] - metadata.features_mean[i]) / metadata.features_std[i];
+
+        return features;
+    }
+};
 class Gfx908Model : public Model
 {
 public:
@@ -255,7 +296,12 @@ protected:
     }
 };
 
-std::unique_ptr<Model> GetModel(const std::string&) { return std::make_unique<Gfx908Model>(); }
+std::unique_ptr<Model> GetModel(const std::string& device) {
+    if (device == "gfx90a")
+        return std::make_unique<Gfx90aModel>();
+    else
+        return std::make_unique<Gfx908Model>();
+}
 
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
                                     const ConvolutionContext& ctx,
