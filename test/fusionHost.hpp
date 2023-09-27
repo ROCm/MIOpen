@@ -360,15 +360,7 @@ template <typename XDataType,
           typename DLModule>
 void batchNormSpatialHostBwdTrainCK(DLModule& dl_module)
 {
-    // batchNormSpatialHostBwdTrain(dl_module.input,
-    //                              dl_module.x_input,
-    //                              dl_module.ref_out,
-    //                              dl_module.bnScale,
-    //                              dl_module.resBnScaleDiff,
-    //                              dl_module.resBnBiasDiff,
-    //                              dl_module.savedMean,
-    //                              dl_module.savedInvVariance);
-    
+
     using PassThroughOp = ck::tensor_operation::element_wise::PassThrough;
 
     constexpr ck::index_t Rank         = 4;
