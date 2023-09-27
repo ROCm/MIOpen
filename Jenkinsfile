@@ -309,6 +309,7 @@ def reboot(){
 def buildHipClangJobAndReboot(Map conf=[:]){
     try{
         buildHipClangJob(conf)
+        cleanWs()
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -316,7 +317,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
         throw e
     }
     finally{
-        if (conf.get("needs_gpu", true)) {
+        if (conf.get("needs_reboot", false)) {
             reboot()
         }
     }
@@ -362,6 +363,7 @@ def RunPerfTest(Map conf=[:]){
             catch (Exception err){
                 currentBuild.result = 'SUCCESS'
             }
+            cleanWs()
         }
         }
     }
@@ -453,11 +455,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_VEGA10",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_VEGA20",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
@@ -469,7 +471,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_NAVI21",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "DATATYPE_NA",
