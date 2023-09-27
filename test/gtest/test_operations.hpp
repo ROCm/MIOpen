@@ -44,18 +44,18 @@ template <typename XDataType,
           typename AccDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
-          typename MeanVarDataType, 
+          typename MeanVarDataType,
           typename DLModule>
 void ComputeCPUBNBwd(DLModule& dl_module)
 {
-    batchNormSpatialHostBwdTrainCK<XDataType,
-                  DxDataType,
-                  DyDataType,
-                  AccDataType,
-                  ScaleDataType,
-                  DscaleDbiasDataType,
-                  MeanVarDataType,
-                  DLModule>(dl_module);
+    batchNormSpatialHostBwdTrain(dl_module.input,
+                                 dl_module.dy,
+                                 dl_module.ref_out,
+                                 dl_module.bnScale,
+                                 dl_module.dScale_ref,
+                                 dl_module.dBias_ref,
+                                 dl_module.savedMean,
+                                 dl_module.savedInvVar);
 }
 
 template <typename T>

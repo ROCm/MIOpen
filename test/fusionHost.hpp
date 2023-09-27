@@ -36,19 +36,10 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-// #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <miopen/fusion_plan.hpp>
-
-// add ck guard
-#include "ck/tensor_operation/gpu/element/unary_element_wise_operation.hpp"
-
-#include "ck/library/reference_tensor_operation/cpu/reference_batchnorm_backward.hpp"
-
-
-
 
 template <class T>
 void convHostForward(const tensor<T>& input,
@@ -348,95 +339,6 @@ void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
             }     // for (column)
         }         // for (row)
     });           // for (channel)
-}
-
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType,
-          typename DLModule>
-void batchNormSpatialHostBwdTrainCK(DLModule& dl_module)
-{
-
-    using PassThroughOp = ck::tensor_operation::element_wise::PassThrough;
-
-    constexpr ck::index_t Rank         = 4;
-    constexpr ck::index_t NumReduceDim = 3;
-
-    using ReferenceBatchNormBwdInstance =
-            ck::tensor_operation::host::ReferenceBatchNormBwd<XDataType,
-                  DxDataType,
-                  DyDataType,
-                  AccDataType,
-                  ScaleDataType,
-                  DscaleDbiasDataType,
-                  MeanVarDataType,
-                                                              PassThroughOp,
-                                                              Rank,
-                                                              NumReduceDim>;
-
-        auto batchNormBwd_ref = ReferenceBatchNormBwdInstance{};
-        std::array<int, NumReduceDim> arrReduceDims{0, 1, 2};
-        
-        std::array<ck::index_t, Rank - NumReduceDim> arrScaleBiasMeanVarLengths;
-        std::array<ck::index_t, Rank - NumReduceDim> arrScaleBiasMeanVarStrides;
-
-        arrScaleBiasMeanVarLengths[0] = dl_module.input.desc.GetLengths()[1]; // get channel
-        arrScaleBiasMeanVarStrides[0] = 1;
-
-        auto derivedBnDesc = miopen::TensorDescriptor{};
-        miopen::DeriveBNTensorDescriptor(derivedBnDesc,
-                                         dl_module.input.desc,
-                                         dl_module.bn_mode);
-        
-        std::array<ck::index_t, Rank> xyLengths; // inOutLengths
-        std::array<ck::index_t, Rank> xyStrides;
-
-        std::copy(dl_module.input.desc.GetLengths().begin(),
-                  dl_module.input.desc.GetLengths().end(),
-                  xyLengths.begin());
-
-        std::copy(dl_module.input.desc.GetStrides().begin(),
-                  dl_module.input.desc.GetStrides().end(),
-                  xyStrides.begin());
-
-        std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
-        
-        auto argument_ptr_ref = batchNormBwd_ref.MakeArgumentPointer(
-            xyLengths,
-            xyStrides,
-            xyStrides,
-            xyStrides,
-            arrReduceDims,
-            arrScaleBiasMeanVarLengths,
-            arrScaleBiasMeanVarStrides,
-            arrScaleBiasMeanVarStrides,
-            arrScaleBiasMeanVarStrides,
-            dl_module.input.data.data(),
-            dl_module.dy.data.data(),
-            dl_module.bnScale.data.data(),
-            dl_module.savedMean.data.data(),
-            dl_module.savedInvVar.data.data(),
-            dl_module.epsilon,
-            PassThroughOp{},
-            dl_module.ref_out.data.data(),
-            dl_module.dScale_ref.data.data(),
-            dl_module.dBias_ref.data.data());
-
-        if(!batchNormBwd_ref.IsSupportedArgument(argument_ptr_ref.get()))
-        {
-            std::cerr << "The runtime parameters not supported by the reference instance, exiting!"
-                      << std::endl;
-            exit(1);
-        };
-
-        auto invoker_ptr_ref = batchNormBwd_ref.MakeInvokerPointer();
-
-        (void)invoker_ptr_ref->Run(argument_ptr_ref.get());
 }
 
 template <class T, class U>

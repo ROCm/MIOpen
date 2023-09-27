@@ -183,6 +183,8 @@ bool BnCKBwdBackward::IsApplicable(const ExecutionContext& ctx,
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
+    case miopenBFloat8:
+    case miopenFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -235,6 +237,8 @@ ConvSolution BnCKBwdBackward::GetSolution(
     case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
+    case miopenBFloat8:
+    case miopenFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward operation not for this data type");
     }
