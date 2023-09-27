@@ -140,13 +140,13 @@ protected:
             handle.Read<DxDataType>(bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
         test::ComputeCPUBNBwd<XDataType,
-                  DxDataType,
-                  DyDataType,
-                  AccDataType,
-                  ScaleDataType,
-                  DscaleDbiasDataType,
-                  MeanVarDataType>(bn_bwd_test_data);
-        
+                              DxDataType,
+                              DyDataType,
+                              AccDataType,
+                              ScaleDataType,
+                              DscaleDbiasDataType,
+                              MeanVarDataType>(bn_bwd_test_data);
+
         // using tolerance = 1e-4 since this the tolerance CK uses
         test::CompareTensor<DxDataType>(bn_bwd_test_data.output, bn_bwd_test_data.ref_out, 1e-4);
         test::CompareTensor<DxDataType>(bn_bwd_test_data.dScale, bn_bwd_test_data.dScale_ref, 1e-4);

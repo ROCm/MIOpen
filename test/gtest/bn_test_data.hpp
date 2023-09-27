@@ -314,7 +314,8 @@ private:
         savedMean.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) * static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2) *
+                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
         };
         savedInvVar.generate(gen_var);
 
