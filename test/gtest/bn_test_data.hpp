@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 #pragma once
-
-#include <random>
+#include "random.hpp"
 
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -60,7 +59,7 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {192, 1, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
         {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
@@ -307,17 +306,16 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<ScaleDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
         };
         dy.generate(gen_value);
         bnScale.generate(gen_value);
         savedMean.generate(gen_value);
 
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
+        auto gen_var = [](auto...) {
+            return static_cast<MeanVarDataType>(1e-2) * static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+        };
         savedInvVar.generate(gen_var);
 
         std::fill(dScale.begin(), dScale.end(), 0.);
