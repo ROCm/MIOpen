@@ -126,13 +126,216 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
                                    std::size_t dhidden_offset,
                                    std::size_t f_offset_pre);
 
-struct GRUOffsets
+struct RNNWeightOffsets
 {
+
 public:
-    GRUOffsets(int num_layers, int hidden_size, int total_batch_size)
-        : num_layers(num_layers), hidden_size(hidden_size), batches_per_layer(total_batch_size)
+    int input_offset(int layer) const;
+    int hidden_offset(int layer) const;
+    int bias_off();
+    int bias_off(int layer) const;
+
+private:
+    int first_layer_offset() const;
+};
+
+struct GruWeightOffsets : public RNNWeightOffsets
+{
+    GruWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_count)
+        : weight_stride(matrixes::Count * hidden_vec_sz),
+          in_vec_sz(input_vector_sz),
+          h_vec_sz(hidden_vec_sz),
+          num_layers(layers_cnt),
+          bias_count(bias_count)
     {
     }
+
+    int input_offset(int layer)
+    {
+        return layer == 0 ? 0 : first_layer_offset() + h_vec_sz * 2 * weight_stride * (layer - 1);
+    }
+
+    int hidden_offset(int layer)
+    {
+        return layer == 0 ? input_offset(layer) + in_vec_sz * weight_stride
+                          : input_offset(layer) + h_vec_sz * weight_stride;
+    }
+
+    size_t bias_stride() { return matrixes::Count * h_vec_sz; }
+    int bias_off()
+    {
+        return (in_vec_sz + h_vec_sz + bias_count * h_vec_sz * (num_layers - 1)) * weight_stride;
+    }
+    int bias_off(int layer_id) { return bias_off() + layer_id * bias_count * weight_stride; }
+    int weight_stride;
+
+private:
+    const int in_vec_sz, h_vec_sz;
+    const int num_layers;
+    const int bi_scale   = 0;
+    const int bias_count = 0;
+    enum matrixes
+    {
+        Z     = 0,
+        R     = 1,
+        C     = 2,
+        Count = 3
+    };
+    int first_layer_offset() { return (in_vec_sz + h_vec_sz) * weight_stride; }
+};
+
+struct ReluWeightOffsets : public RNNWeightOffsets
+{
+public:
+    ReluWeightOffsets(int input_vector_sz,
+                      int hidden_vec_sz,
+                      int layers_cnt,
+                      int bias_mode,
+                      int bi_scale,
+                      int wei_stride)
+        : weight_stride(wei_stride),
+          in_vec_sz(input_vector_sz),
+          h_vec_sz(hidden_vec_sz),
+          num_layers(layers_cnt),
+          bi_scale(bi_scale),
+          bias_count(bias_mode)
+    {
+    }
+
+    int input_weight_offset(int layer) const
+    {
+        return layer == 0 ? 0
+                          : first_layer_offset() +
+                                (h_vec_sz + h_vec_sz * bi_scale) * weight_stride * (layer - 1);
+    }
+
+    int hidden_weight_offset(int layer, int reverse = 0) const
+    {
+        return layer == 0 ? input_weight_offset(layer) + in_vec_sz * weight_stride +
+                                reverse * h_vec_sz * h_vec_sz
+                          : input_weight_offset(layer) + bi_scale * h_vec_sz * weight_stride +
+                                reverse * h_vec_sz * h_vec_sz;
+    }
+
+    size_t bias_stride() { return h_vec_sz; }
+
+    int bias_off()
+    {
+        return first_layer_offset() +
+               (h_vec_sz * bi_scale + h_vec_sz) * (num_layers - 1) * weight_stride;
+    }
+
+    int bias_off(int layer_id) { return bias_off() + bias_count * layer_id * weight_stride; }
+    int weight_stride;
+
+private:
+    const int in_vec_sz, h_vec_sz;
+    const int num_layers;
+    const int bi_scale   = 1;
+    const int bias_count = 0;
+
+    int first_layer_offset() const { return (in_vec_sz + h_vec_sz) * weight_stride; }
+};
+
+struct LSTMWeightsBufferHelper : public RNNWeightOffsets
+{
+public:
+    const int first_layer_offset() const { return (in_vec_sz + h_vec_sz) * weight_stride; }
+
+public:
+    LSTMWeightsBufferHelper(
+        int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode, int bi_scale)
+        : weight_stride(hidden_vec_sz * gates_cnt),
+          in_vec_sz(input_vector_sz),
+          h_vec_sz(hidden_vec_sz),
+          num_layers(layers_cnt),
+          bi_scale(bi_scale),
+          bias_cnt(bias_mode)
+    {
+    }
+
+    int input_weight_offset(int layer) const
+    {
+        return layer == 0 ? 0
+                          : first_layer_offset() +
+                                (h_vec_sz + h_vec_sz * bi_scale) * weight_stride * (layer - 1);
+    }
+
+    int hidden_weight_offset(int layer, int reverse = 0) const
+    {
+        return layer == 0 ? input_weight_offset(layer) + in_vec_sz * weight_stride +
+                                reverse * h_vec_sz * h_vec_sz
+                          : input_weight_offset(layer) + bi_scale * h_vec_sz * weight_stride +
+                                reverse * h_vec_sz * h_vec_sz;
+    }
+
+    size_t bias_stride() { return bias_vector_mul_gate(); }
+
+    int bias_off()
+    {
+        return first_layer_offset() +
+               (h_vec_sz * bi_scale + h_vec_sz) * (num_layers - 1) * weight_stride;
+    }
+
+    int bias_off(int layer_id) { return bias_off() + layer_id * bias_cnt * weight_stride; }
+
+    size_t bias_vector_mul_gate() const { return h_vec_sz * gates_cnt; }
+
+    const int weight_stride;
+
+private:
+    static const int gates_cnt = 4;
+    const int in_vec_sz;
+    const int h_vec_sz;
+    const int num_layers;
+    const int bi_scale = 1;
+    const int bias_cnt = 0;
+};
+
+struct RNNOffsets
+{
+    size_t layer_offset(int layer_id) const;
+
+    size_t layer_stride() const;
+
+    int gemm_write_size() const;
+
+    size_t gemm_write_stride() const;
+
+    size_t gemm_write_offset(int layer_id, int batch_id = 0, int reverse = 0) const;
+
+    size_t hidden_offset(int layer_id, int batch_id = 0, int reverse = 0) const;
+};
+
+struct GRUOffsets : public RNNOffsets
+{
+public:
+    GRUOffsets(int in_vec_size, int hidden_size, int num_layers, int total_batch_size)
+        : hidden_size(hidden_size),
+          batches_per_layer(total_batch_size),
+          in_vec_size(in_vec_size),
+          num_layers(num_layers)
+    {
+    }
+
+    size_t layer_offset(int layer_id) const { return layer_id * layer_stride(); }
+
+    size_t layer_stride() const { return gemm_write_stride() * batches_per_layer; }
+
+    int gemm_write_size() const { return hidden_size; }
+
+    size_t gemm_write_stride() const { return save_point::Count * gemm_write_size(); }
+
+    size_t gemm_write_offset(int layer_id, int batch_num, int reverse = 0) const
+    {
+        return layer_offset(layer_id) + batch_num * gemm_write_stride();
+    }
+
+    size_t hidden_offset() const { return save_point::Ht * gemm_write_size(); }
+
+    const int hidden_size;
+    const int batches_per_layer;
+    const int in_vec_size;
 
     int r_offset() const { return save_point::R * gemm_write_size(); }
 
@@ -140,30 +343,12 @@ public:
 
     int c_offset() const { return save_point::С * gemm_write_size(); }
 
-    int hidden_offset() const { return save_point::Ht * gemm_write_size(); }
-
-    size_t gemm_write_offset(int layer_id, int batch_num) const
-    {
-        return layer_offset(layer_id) + batch_num * gemm_write_stride();
-    }
-
     int activated_offset() const { return layer_stride() * num_layers; }
-
-    int gemm_write_size() const { return hidden_size; }
-
-    int gemm_write_stride() const { return save_point::Count * gemm_write_size(); }
-
-    int layer_offset(int layer) const { return layer * layer_stride(); }
-
-    int batches_per_layer;
-
-    size_t layer_stride() const { return gemm_write_stride() * batches_per_layer; }
 
     size_t network_stride() { return layer_stride() * num_layers; }
 
 private:
     int num_layers;
-    int hidden_size;
 
     enum save_point
     {
@@ -175,165 +360,7 @@ private:
     };
 };
 
-struct GruWeightOffsets
-{
-    GruWeightOffsets(int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode)
-        : weight_stride(matrixes::Count * hidden_vec_sz),
-          in_vec_sz(input_vector_sz),
-          h_vec_sz(hidden_vec_sz),
-          num_layers(layers_cnt)
-    {
-    }
-
-    int weight_stride;
-    const int in_vec_sz, h_vec_sz;
-    const int num_layers;
-
-    enum matrixes
-    {
-        Z     = 0,
-        R     = 1,
-        C     = 2,
-        Count = 3
-    };
-
-public:
-    int input_offset(int layer)
-    {
-        return layer == 0 ? 0
-                          : (in_vec_sz + h_vec_sz) * weight_stride +
-                                2 * h_vec_sz * weight_stride * (layer - 1);
-    }
-
-    int hidden_offset(int layer)
-    {
-        return layer == 0 ? input_offset(layer) + in_vec_sz * weight_stride
-                          : input_offset(layer) + h_vec_sz * weight_stride;
-    }
-
-    int bias_stride() { return matrixes::Count * h_vec_sz; }
-    int bias_off()
-    {
-        return (in_vec_sz + h_vec_sz + 2 * h_vec_sz * (num_layers - 1)) * weight_stride;
-    }
-    int bias_off(int layer_id) { return bias_off() + layer_id * weight_stride; }
-};
-
-struct ReluWeightOffsets
-{
-private:
-    auto hidden_xinput_size(int hidden_sz, int bidirect_mode) const
-    {
-        if(bidirect_mode == 0)
-            return hidden_sz;
-        MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
-    }
-
-    auto matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz) const
-    {
-        return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz;
-    }
-
-    size_t bias_start_offset(int input_vector_sz,
-                             int hidden_vec_sz,
-                             int layers_cnt,
-                             int bidirect_mode) const
-    {
-        return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz) +
-               static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
-                   hidden_vec_sz * static_cast<size_t>(layers_cnt - 1);
-    }
-
-public:
-    ReluWeightOffsets(int input_vector_sz,
-                      int hidden_vec_sz,
-                      int layers_cnt,
-                      int bias_mode,
-                      int bidirectional,
-                      int wei_stride = 0)
-        : in_vec_sz(input_vector_sz),
-          h_vec_sz(hidden_vec_sz),
-          x_in_vec_sz(hidden_xinput_size(hidden_vec_sz, 0)),
-          bias_cnt(bias_mode),
-          matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz)),
-          bias_start_off(
-              bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, bidirectional)),
-          bidirectional(bidirectional),
-          wei_stride(wei_stride)
-    {
-    }
-
-private:
-    const int in_vec_sz;
-    const int bidirectional;
-    const int x_in_vec_sz; // for bidirect TODO
-
-    const int bias_cnt; // 0 - no bias; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
-
-    const size_t matrix_normal_start_off;
-    const size_t bias_start_off;
-
-    auto get_input_matrix_size(int layer_id) const
-    {
-        return (layer_id > 0 ? x_in_vec_sz : in_vec_sz) * h_vec_sz;
-    }
-
-    auto get_hidden_matrix_size() const { return h_vec_sz * h_vec_sz; }
-
-    auto get_matrix_layer_size(int layer_id) const
-    {
-        return get_input_matrix_size(layer_id) + get_hidden_matrix_size();
-    }
-
-    int bias_vector_size() const { return h_vec_sz; }
-
-    size_t bias_relative_off(int layer_id, int bias_id) const
-    {
-        return static_cast<size_t>(layer_id * bias_cnt + bias_id) * h_vec_sz;
-    }
-
-public:
-    const int h_vec_sz;
-    const int wei_stride;
-
-    size_t input_weight_offset(int layer_id) const
-    {
-        return hidden_weight_offset(layer_id, 0) + h_vec_sz * wei_stride;
-    }
-
-    size_t hidden_weight_offset(int layer_id, int reverse) const
-    {
-        return in_vec_sz * wei_stride +
-               layer_id * (bidirectional * h_vec_sz + h_vec_sz) * wei_stride +
-               reverse * h_vec_sz * h_vec_sz;
-    }
-
-    size_t input_offset(int layer_id) const
-    {
-        if(layer_id > 0)
-            return matrix_normal_start_off +
-                   static_cast<size_t>(layer_id - 1) * get_matrix_layer_size(layer_id);
-        else
-            return 0;
-    };
-
-    size_t hidden_offset(int layer_id) const
-    {
-        if(layer_id > 0)
-            return input_offset(layer_id) + static_cast<size_t>(h_vec_sz * x_in_vec_sz);
-        else
-            return input_offset(layer_id) + static_cast<size_t>(h_vec_sz * in_vec_sz);
-    };
-
-    int bias_stride() const { return bias_vector_size(); }
-
-    size_t bias_off(int layer_id, int bias_id) const
-    {
-        return bias_start_off + bias_relative_off(layer_id, bias_id);
-    }
-};
-
-struct ReluReserveBufferOffsets
+struct ReluReserveBufferOffsets : public RNNOffsets
 {
     struct RBuffHelper
     {
@@ -347,7 +374,7 @@ private:
                                 int layers,
                                 int bidirect_mode = 0) const
     {
-        const auto element_st    = bidirect_mode ? 2 : 1;
+        const auto element_st    = 1;
         const auto save_point_st = element_st * save_point_sz;
         const auto batch_st      = save_point_st;
         const auto layer_st      = static_cast<size_t>(batch_st) * batches_per_layer;
@@ -357,239 +384,165 @@ private:
     }
 
 public:
-    ReluReserveBufferOffsets(int hidden_vec_sz,
-                             int save_point_sz,
+    ReluReserveBufferOffsets(int in_vec_size,
+                             int hidden_vec_size,
                              int layers_cnt,
                              int batches_per_layer,
                              int max_batch,
                              bool bidirect_mode = 0)
-        : h_vec_size(hidden_vec_sz),
-          save_point_size(save_point_sz),
-          layers(layers_cnt),
+        : hidden_size(hidden_vec_size),
           batches_per_layer(batches_per_layer),
+          in_vec_size(in_vec_size),
+          save_point_size(bidirect_mode ? hidden_vec_size * 2 : hidden_vec_size),
+          layers(layers_cnt),
           max_batch(max_batch),
           strides(
-              Reserve_Buffer_strides(save_point_sz, batches_per_layer, layers_cnt, bidirect_mode))
+              Reserve_Buffer_strides(save_point_size, batches_per_layer, layers_cnt, bidirect_mode))
     {
     }
-
-    const int h_vec_size;
-    const int save_point_size;
-
-    const int layers;
-    const int batches_per_layer;
-    const RBuffHelper strides;
-    const int max_batch;
 
     size_t layer_offset(int layer_id) const
     {
         return static_cast<size_t>(layer_id) * strides.layer;
     }
 
-    auto layer_stride() const { return strides.layer; }
+    size_t layer_stride() const { return strides.layer; }
 
-    auto gemm_write_size() const { return strides.save_point; }
+    int gemm_write_size() const { return strides.save_point; }
 
-    auto gemm_write_stride() const { return strides.batch; }
+    size_t gemm_write_stride() const { return strides.batch; }
 
     size_t gemm_write_offset(int layer_id, int batch_id, int reverse = 0) const
     {
         return layer_offset(layer_id) + static_cast<size_t>(gemm_write_stride()) * batch_id +
-               reverse * h_vec_size;
+               reverse * hidden_size;
     }
 
-    size_t ht_offset(int layer_id, int batch_id, int reverse = 0) const
+    size_t hidden_offset(int layer_id, int batch_id = 0, int reverse = 0) const
     {
-        return strides.table + gemm_write_offset(layer_id, batch_id) +
-               reverse * h_vec_size;
+        return strides.table + gemm_write_offset(layer_id, batch_id) + reverse * hidden_size;
     }
 
-    size_t ht_offset(int layer_id) const { return strides.table + layer_offset(layer_id);}
+    const int hidden_size;
+    const int batches_per_layer;
+    const int in_vec_size;
+
+    const int save_point_size;
+    const int layers;
+    const int max_batch;
+    const RBuffHelper strides;
 };
 
-struct LSTMReserveBufferHelper
+struct LSTMReserveBufferHelper : public RNNOffsets
 {
     struct RBuffHelper
     {
         int element, save_point, batch;
-        size_t layer;
+        size_t layer, table;
     };
 
 private:
+    static const int gates_cnt = 4;
     auto Reserve_Buffer_strides(int save_point_sz,
                                 int batches_per_layer,
                                 int save_points,
+                                int layers_cnt,
                                 int bidirect_mode = 0) const
     {
-        const auto element_st    = 1;
+        const auto element_st = bidirect_mode ? 2 : 1;
+
         const auto save_point_st = element_st * save_point_sz;
         const auto batch_st      = save_point_st * save_points;
         const auto layer_st      = static_cast<size_t>(batch_st) * batches_per_layer;
+        const auto table_st      = layer_st * layers_cnt;
+
         if(bidirect_mode == 0)
-            return RBuffHelper{element_st, save_point_st, batch_st, layer_st};
+            return RBuffHelper{element_st, save_point_st, batch_st, layer_st, table_st};
+
         MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
     }
 
 public:
     enum save_point
     {
-        F  = 1,
-        I  = 0,
-        G  = 2,
-        O  = 3,
-        St = 4,
-        Ht = 5
+        F     = 1,
+        I     = 0,
+        G     = 2,
+        O     = 3,
+        St    = 4,
+        Ht    = 5,
+        Count = 6
     };
 
-    LSTMReserveBufferHelper(int hidden_vec_sz,
-                            int save_point_sz,
+    LSTMReserveBufferHelper(int hidden_vec_size,
                             int layers_cnt,
                             int batches_per_layer,
-                            int save_points,
-                            int gates_cnt)
-        : h_vec(hidden_vec_sz),
-          save_point_size(save_point_sz),
+                            int in_vec_size,
+                            int bidirect_mode = 0)
+        : hidden_size(hidden_vec_size),
+          batches_per_layer(batches_per_layer),
+          in_vec_size(in_vec_size),
+          save_point_size(bidirect_mode ? hidden_vec_size * 2 : hidden_vec_size),
           layers(layers_cnt),
-          batches(batches_per_layer),
-          save_points_cnt(save_points),
-          gates(gates_cnt),
-          strides(Reserve_Buffer_strides(save_point_sz, batches, save_points, 0))
+          strides(Reserve_Buffer_strides(
+              save_point_size, batches_per_layer, save_point::Count, layers_cnt, 0))
     {
     }
-
-    const int h_vec;
-    const int save_point_size; // for bidirect TODO
-
-    const int layers;
-    const int batches;
-    const int save_points_cnt;
-    const int gates;
-    const RBuffHelper strides;
 
     size_t layer_offset(int layer) const { return static_cast<size_t>(layer) * strides.layer; }
-    auto layer_stride() const { return strides.layer; }
+    size_t layer_stride() const { return strides.layer; }
 
-    auto gemm_write_size() const { return h_vec * gates; }
-    auto gemm_write_stride() const { return strides.batch; } // save_point_size * save_points_cnt
+    int gemm_write_size() const { return save_point_size * gates_cnt; }
+    size_t gemm_write_stride() const { return strides.batch; }
 
-    size_t gemm_write_relative_offset(int batch_id) const
+    size_t gemm_write_offset(int layer, int batch, int reverse = 0) const
     {
-        return static_cast<size_t>(gemm_write_stride()) * batch_id;
+        return layer_offset(layer) + static_cast<size_t>(gemm_write_stride()) * batch;
     }
 
-    size_t gemm_write_offset(int layer, int batch_id, int reverse = 0) const
+    size_t hidden_offset(int layer, int batch, int reverse = 0) const
     {
-        return layer_offset(layer) + static_cast<size_t>(gemm_write_stride()) * batch_id;
+        return gemm_write_offset(layer, batch) + save_point::Ht * save_point_size;
     }
 
-    auto ht_relative_offset() const { return save_point::Ht * save_point_size; }
+    const int hidden_size;
+    const int batches_per_layer;
+    const int in_vec_size;
 
-    auto ct_relative_offset() const { return save_point::St * save_point_size; }
-
-    auto get_gate_relative_offset(int gate_id) const { return gate_id * save_point_size; }
-
-    size_t ht_offset(int layer_id, int batch_id) const
+    auto f_offset(int layer, int batch_num) const
     {
-        return layer_offset(layer_id) + gemm_write_relative_offset(batch_id) + ht_relative_offset();
+        return gemm_write_offset(layer, batch_num) + save_point::F * save_point_size;
     }
 
-    size_t extra_save_point_offset(int layer_id, int batch_id) const
+    auto i_offset(int layer, int batch_num) const
     {
-        return (static_cast<size_t>(batches) * layers * gemm_write_stride()) // all data offset
-               + (static_cast<size_t>(batches) * layer_id) * h_vec +
-               static_cast<size_t>(batch_id * h_vec);
-    }
-};
-
-struct LSTMWeightsBufferHelper
-{
-private:
-    auto hidden_xinput_size(int hidden_sz, int bidirect_mode) const
-    {
-        if(bidirect_mode == 0)
-            return hidden_sz;
-        MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        return gemm_write_offset(layer, batch_num) + save_point::I * save_point_size;
     }
 
-    auto matrix_lin_layer_size(int input_vector_sz, int hidden_vec_sz, int gates) const
+    auto g_offset(int layer, int batch_num) const
     {
-        return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz * gates;
-    }
-    size_t bias_start_offset(
-        int input_vector_sz, int hidden_vec_sz, int layers_cnt, int gates, int bidirect_mode) const
-    {
-        if(bidirect_mode == 0)
-            return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates) +
-                   static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
-                       hidden_vec_sz * static_cast<size_t>(layers_cnt - 1) * gates;
-
-        MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
+        return gemm_write_offset(layer, batch_num) + save_point::G * save_point_size;
     }
 
-public:
-    LSTMWeightsBufferHelper(
-        int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode, int gates)
-        : in_vec(input_vector_sz),
-          h_vec(hidden_vec_sz),
-          x_in_vec(hidden_xinput_size(hidden_vec_sz, 0)),
-          layers(layers_cnt),
-          gates_cnt(gates),
-          bias_cnt(bias_mode),
-          matrix_normal_start_off(matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates)),
-          bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, gates, 0))
+    auto o_offset(int layer, int batch_num) const
     {
+        return gemm_write_offset(layer, batch_num) + save_point::O * save_point_size;
     }
 
-    const int in_vec, h_vec;
-    const int x_in_vec; // for bidirect TODO
-
+    const int save_point_size; // for bidirect TODO
     const int layers;
-    const int gates_cnt;
-    const int bias_cnt; // 0 - no bisa; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
-private:
-    const size_t matrix_normal_start_off;
-    const size_t bias_start_off;
+    const RBuffHelper strides;
 
-public:
-    auto get_matrix_x_size(int layer_id) const
+    auto st_offset(int layer, int batch_num, int reverse = 0)
     {
-        return (layer_id > 0 ? x_in_vec : in_vec) * h_vec;
-    }
-    auto get_matrix_h_size() const { return h_vec * h_vec; }
-    auto get_matrix_layer_size(int layer_id) const
-    {
-        return get_matrix_x_size(layer_id) * gates_cnt + get_matrix_h_size() * gates_cnt;
+        return gemm_write_offset(layer, batch_num) + save_point::St * save_point_size;
     }
 
-    size_t get_matrix_x_off(int layer_id) const
+    size_t extra_save_point_offset(int layer, int batch_num) const
     {
-        if(layer_id > 0)
-            return matrix_normal_start_off +
-                   static_cast<size_t>(layer_id - 1) * get_matrix_layer_size(layer_id);
-        else
-            return 0;
-    };
-
-    size_t get_matrix_h_off(int layer_id) const
-    {
-        if(layer_id > 0)
-            return get_matrix_x_off(layer_id) + static_cast<size_t>(h_vec * x_in_vec * gates_cnt);
-        else
-            return get_matrix_x_off(layer_id) + static_cast<size_t>(h_vec * in_vec) * gates_cnt;
-    };
-
-    int bias_vector_size() const { return h_vec; }
-    int bias_vector_mul_gate() const { return bias_vector_size() * gates_cnt; }
-    int bias_stride() const { return bias_vector_mul_gate(); }
-
-    size_t bias_relative_off(int layer_id, int bias_id) const
-    {
-        return static_cast<size_t>(layer_id * bias_cnt + bias_id) * gates_cnt * h_vec;
-    }
-
-    size_t get_bias_off(int layer_id, int bias_id) const
-    {
-        return bias_start_off + bias_relative_off(layer_id, bias_id);
+        return strides.table // all data offset
+               + static_cast<size_t>(batches_per_layer) * layer * hidden_size +
+               static_cast<size_t>(batch_num * hidden_size);
     }
 };
 
