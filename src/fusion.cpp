@@ -617,7 +617,7 @@ protected:
                                                const FusionFindParameters&) const override
     {
         return GetFusedSolvers().SearchForAllSolutions(
-            static_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
+            dynamic_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
     }
 };
 
