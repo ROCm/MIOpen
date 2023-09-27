@@ -1715,6 +1715,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * Runs the forward convolution layer based on the selected algorithm. The function
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1751,6 +1753,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
+ *  The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ *  alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2018,6 +2022,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
 /*! @brief Calculates the gradient with respect to the bias.
  *
  * Compute the convolution backwards gradient with respect to the bias tensor.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)

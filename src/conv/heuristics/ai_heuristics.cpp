@@ -119,9 +119,9 @@ public:
           offset(metadata.num_outputs - metadata.num_solvers)
     {
     }
-    virtual ~Model()                                                     = default;
+    virtual ~Model()                                                   = default;
     virtual bool IsProblemSupported(const ProblemDescription& problem,
-                                    const ConvolutionContext& ctx) const = 0;
+                                    const ExecutionContext& ctx) const = 0;
     std::vector<float> Forward(const ProblemDescription& problem) const
     {
         std::vector<float> features       = ToFeatures(problem);
@@ -191,7 +191,7 @@ class Gfx908Model : public Model
 public:
     Gfx908Model() : Model("gfx908") {}
     bool IsProblemSupported(const ProblemDescription& problem,
-                            const ConvolutionContext& ctx) const override
+                            const ExecutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
         if(!problem.Is2d())
@@ -304,7 +304,7 @@ std::unique_ptr<Model> GetModel(const std::string& device) {
 }
 
 std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
-                                    const ConvolutionContext& ctx,
+                                    const ExecutionContext& ctx,
                                     const std::string& device)
 {
     const static std::unique_ptr<Model> model = GetModel(device);
