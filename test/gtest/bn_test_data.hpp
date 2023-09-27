@@ -412,32 +412,29 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<ScaleDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
 
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
-        runMean.generate(gen_var);
-        runVariance.generate(gen_var);
+        auto gen_var = [](auto...) {
+            return static_cast<T>(1e-2) * static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            runMean.generate(gen_var);
+            runVariance.generate(gen_var);
 
-        saveMean_ref     = saveMean;
-        saveVariance_ref = saveVariance;
-        runMean_ref      = runMean;
-        runVariance_ref  = runVariance;
-    }
-    void WriteToGPU()
-    {
-        auto&& handle    = get_handle();
-        scale_dev        = handle.Write(scale.data);
-        shift_dev        = handle.Write(shift.data);
-        saveMean_dev     = handle.Write(saveMean.data);
-        saveVariance_dev = handle.Write(saveVariance.data);
-        runMean_dev      = handle.Write(runMean.data);
-        runVariance_dev  = handle.Write(runVariance.data);
-    }
-};
+            saveMean_ref     = saveMean;
+            saveVariance_ref = saveVariance;
+            runMean_ref      = runMean;
+            runVariance_ref  = runVariance;
+        } void WriteToGPU()
+        {
+            auto&& handle    = get_handle();
+            scale_dev        = handle.Write(scale.data);
+            shift_dev        = handle.Write(shift.data);
+            saveMean_dev     = handle.Write(saveMean.data);
+            saveVariance_dev = handle.Write(saveVariance.data);
+            runMean_dev      = handle.Write(runMean.data);
+            runVariance_dev  = handle.Write(runVariance.data);
+        }
+    };
