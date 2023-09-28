@@ -544,16 +544,28 @@ std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
                  "GetAlgorithmName was called, but Algorithm has not been set");
 }
 
-static auto GetFusedSolvers()
+static auto GetFusedNonConvSolvers()
+{
+    return solver::SolverContainer<solver::fusion::BnFwdInferActivationFused,
+                                   solver::fusion::BnFwdTrgActivationFused,
+                                   solver::fusion::BnBwdTrgActivationFused>{};
+}
+
+static auto GetFusedDirectSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
-                                   solver::fusion::ConvOclDirectFwdFused,
-                                   solver::fusion::ConvBinWinogradRxSFused,
-                                   solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                   solver::fusion::BnFwdInferActivationFused,
-                                   solver::fusion::BnFwdTrgActivationFused,
-                                   solver::fusion::BnBwdTrgActivationFused,
-                                   solver::fusion::ConvCKIgemmFwdBiasActivFused>{};
+                                   solver::fusion::ConvOclDirectFwdFused>{};
+}
+
+static auto GetFusedIGemmSolvers()
+{
+    return solver::SolverContainer<solver::fusion::ConvCKIgemmFwdBiasActivFused>{};
+}
+
+static auto GetFusedWinogradSolvers()
+{
+    return solver::SolverContainer<solver::fusion::ConvBinWinogradRxSFused,
+                                   solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
 }
 
 static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
@@ -596,13 +608,17 @@ struct FusionFindParameters : PrimitiveFindParameters
 {
 };
 
+template <class SolverContainer>
 class FusionSolverFinder : public SolversFinderMixin<FusionDescription, FusionFindParameters>
 {
-protected:
-    AlgorithmName GetAlgorithmName(const FusionDescription&) const override
+public:
+    explicit FusionSolverFinder(SolverContainer solvers_, const std::string& algo_name)
+        : solvers(solvers_), algo(algo_name)
     {
-        return AlgorithmName{"fusion"};
     }
+
+protected:
+    AlgorithmName GetAlgorithmName(const FusionDescription&) const override { return algo; }
 
     bool IsEnabled(const ExecutionContext&,
                    const FusionDescription&,
@@ -616,16 +632,27 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                const FusionFindParameters&) const override
     {
-        return GetFusedSolvers().SearchForAllSolutions(
+        return solvers.SearchForAllSolutions(
             dynamic_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
     }
+
+private:
+    SolverContainer solvers;
+    AlgorithmName algo;
 };
 
 static const std::vector<std::unique_ptr<ISolversFinder>>& GetFusionSolverFinders()
 {
     static const std::vector<std::unique_ptr<ISolversFinder>> finders = [] {
+        constexpr const auto add = [](auto& to, auto solvers, const std::string& algo) {
+            to.emplace_back(std::make_unique<FusionSolverFinder<decltype(solvers)>>(solvers, algo));
+        };
+
         auto tmp = std::vector<std::unique_ptr<ISolversFinder>>{};
-        tmp.push_back(std::make_unique<FusionSolverFinder>());
+        add(tmp, GetFusedNonConvSolvers(), "fusion");
+        add(tmp, GetFusedDirectSolvers(), "miopenConvolutionFwdAlgoDirect");
+        add(tmp, GetFusedIGemmSolvers(), "miopenConvolutionFwdAlgoImplicitGEMM");
+        add(tmp, GetFusedWinogradSolvers(), "miopenConvolutionFwdAlgoWinograd");
         return tmp;
     }();
     return finders;
@@ -638,10 +665,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     miopen::OperatorArgs params;
     std::vector<Allocator::ManageDataPtr> invoke_bufs;
     const FindEnforce enforce;
-    // If we are tuning, then we need to allocate buffers.
-    AnyInvokeParams invoke_params;
-    if(enforce.IsSearch(fusion_ctx))
-        invoke_params = MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
     // During search mode, miopen invokes kernel to find the best config.
     // If memory allocation of the invoke params for the given fusion plan
     // is not supported we return early.
@@ -662,6 +685,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         [&](DbRecord& record) {
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
+            // We need buffers for find, thus we allocate them.
+            const auto invoke_params =
+                MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
+
             FindCore(invoke_params,
                      record,
                      fusion_ctx,
@@ -675,7 +702,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
     for(const auto& result : find_results)
     {
-        if(conv_fwd_algo && miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
+        if(conv_fwd_algo && result.algorithm != "fusion" && miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
             continue;
         const auto id = solver::Id{result.solver_id};
 
