@@ -139,7 +139,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
                                                     YDataType,
