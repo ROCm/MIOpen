@@ -51,9 +51,9 @@ inline HipEventPtr make_hip_event()
 template <class T, class U>
 struct KernelArgsPair
 {
-    constexpr static const auto alignU       = alignof(U);
-    constexpr static const auto padding      = (alignU - (sizeof(T) % alignU)) % alignU;
-    constexpr static const auto second_index = sizeof(T) + padding;
+    constexpr static auto alignU       = alignof(U);
+    constexpr static auto padding      = (alignU - (sizeof(T) % alignU)) % alignU;
+    constexpr static auto second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
         new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)

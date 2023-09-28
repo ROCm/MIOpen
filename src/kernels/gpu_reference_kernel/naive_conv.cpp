@@ -116,35 +116,6 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
     return static_cast<int8_t>(val & 0xff);
 }
 
-#if 0
-// TODO(Amber): this file is compiled via HIP RTC and includes don't work easily
-template <typename T, unsigned N>
-class MyArray
-{
-    T data_[N] = {};
-
-public:
-    constexpr static const unsigned SIZE = N;
-
-    __host__ __device__ constexpr unsigned size() const { return N; }
-
-    __host__ __device__ const T& operator[](unsigned i) const { return data_[i]; }
-
-    __host__ __device__ T& operator[](unsigned i) { return data_[i]; }
-
-    __host__ __device__ MyArray()                   = default;
-    __host__ __device__ MyArray(const MyArray&)     = default;
-    __host__ __device__ MyArray(MyArray&&) noexcept = default;
-    __host__ __device__ MyArray& operator=(const MyArray&) = default;
-    __host__ __device__ MyArray& operator=(MyArray&&) noexcept = default;
-    __host__ __device__ ~MyArray()                             = default;
-};
-
-using StrideIndexType = size_t;
-using Strides5D       = MyArray<StrideIndexType, 5u>;
-using Strides6D       = MyArray<StrideIndexType, 6u>;
-#endif
-
 /// \todo remove template parameter 'bool ASSUME_PACKED' in a follow up PR
 /// --amberhassaan
 /// Notes (Amber):

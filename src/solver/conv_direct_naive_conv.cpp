@@ -259,7 +259,7 @@ bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
 /// (G, C_per_group). Return value G_stride_idx is the position of G stride
 /// in the stride vector, such that the (G_stride_idx - 1) is the index that
 /// contains C's stride as a multiplying factor
-int GetGroupStrideIndex(const ProblemDescription& problem)
+int conv_internal::GetGroupStrideIndex(const ProblemDescription& problem)
 {
     int G_stride_idx = -1;
     if(problem.IsLayoutDefault())
@@ -280,9 +280,9 @@ int GetGroupStrideIndex(const ProblemDescription& problem)
     return G_stride_idx;
 }
 
-void printTensorStrides(const TensorDescriptor& inDesc,
-                        const TensorDescriptor& wDesc,
-                        const TensorDescriptor& outDesc)
+void conv_internal::DebugPrintTensorStrides(const TensorDescriptor& inDesc,
+                                            const TensorDescriptor& wDesc,
+                                            const TensorDescriptor& outDesc)
 {
 
     auto printOneStrideVec = [](const char* name, const auto& vec) {
