@@ -141,7 +141,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
-    int G_stride_idx = GetGroupStrideIndex(problem);
+    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
 
     if(problem.Is2d())
     {
@@ -152,13 +152,14 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
-                auto in_strides = MakeStrideArray<5>(
-                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.inDesc.GetStrides(), G_stride_idx));
                 // For weights, we split K to (G, K_per_group), which is always index 0
-                auto wei_strides = MakeStrideArray<5>(
-                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-                auto out_strides = MakeStrideArray<5>(
-                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+                auto wei_strides = conv_internal::MakeStrideArray<5>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.outDesc.GetStrides(), G_stride_idx));
 
                 if(is_f8)
                 {
@@ -230,13 +231,14 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
-                auto in_strides = MakeStrideArray<6>(
-                    SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+                auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.inDesc.GetStrides(), G_stride_idx));
                 // For weights, we split K to (G, K_per_group), which is always index 0
-                auto wei_strides = MakeStrideArray<6>(
-                    SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-                auto out_strides = MakeStrideArray<6>(
-                    SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+                auto wei_strides = conv_internal::MakeStrideArray<6>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.outDesc.GetStrides(), G_stride_idx));
                 handle.Run(kern)(tensors.in,
                                  tensors.w,
                                  tensors.out,
