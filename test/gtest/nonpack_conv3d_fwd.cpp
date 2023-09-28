@@ -64,7 +64,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId()
-                     << "ConvHipImplicitGemm3DFwdNonPackXdlops Not Applicable for this problem"
+                     << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
     const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
@@ -80,15 +80,15 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvFwdSolverTest3D, CKNonPackConvFwd3D)
 {
-    SolverFwd<miopen::solver::ConvHipImplicitGemm3DFwdNonPackXdlops>(input.desc,
-                                                                     in_dev.get(),
-                                                                     weights.desc,
-                                                                     wei_dev.get(),
-                                                                     output.desc,
-                                                                     out_dev.get(),
-                                                                     conv_desc,
-                                                                     conv_config,
-                                                                     test_skipped);
+    SolverFwd<miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
+                                                                   in_dev.get(),
+                                                                   weights.desc,
+                                                                   wei_dev.get(),
+                                                                   output.desc,
+                                                                   out_dev.get(),
+                                                                   conv_desc,
+                                                                   conv_config,
+                                                                   test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,

@@ -29,12 +29,24 @@
 
 struct NonPackTestCase : Conv3DTestCase
 {
-    size_t s0;
-    size_t s1;
-    size_t s2;
-    size_t s3;
-    size_t s4;
-    std::vector<size_t> GetInputStrides() { return {s0, s1, s2, s3, s4}; }
+    size_t i0;
+    size_t i1;
+    size_t i2;
+    size_t i3;
+    size_t i4;
+    size_t w0;
+    size_t w1;
+    size_t w2;
+    size_t w3;
+    size_t w4;
+    size_t o0;
+    size_t o1;
+    size_t o2;
+    size_t o3;
+    size_t o4;
+    std::vector<size_t> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
+    std::vector<size_t> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
+    std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
 };
 
 std::vector<NonPackTestCase> ConvTestConfigs()
@@ -44,13 +56,33 @@ std::vector<NonPackTestCase> ConvTestConfigs()
              1,
              2560,
              160,
+             16,
+             432,
+             1,
+             144,
+             48,
+             16,
+             9216,
+             1,
+             2304,
+             256,
              16},
             {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
              65536,
              1,
              24000,
              2048,
-             64}};
+             64,
+             1728,
+             1,
+             576,
+             192,
+             64,
+             98304,
+             1,
+             32768,
+             2048,
+             128}};
 }
 
 template <typename T = float>
