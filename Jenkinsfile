@@ -619,7 +619,11 @@ pipeline {
         }
         stage("Smoke Fp32") {
             when {
-                expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
+                allof{
+                    expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
+                    expression { params.IS_NIGHTLY_RUN == true}
+
+                }
             }
             parallel{
                 stage('Fp32 Hip AnyGPU') {
@@ -678,7 +682,10 @@ pipeline {
         }
         stage("Smoke Aux 1") {
             when {
+                allof{
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
+                expression { params.IS_NIGHTLY_RUN == true }
+                }
             }
             parallel{
                 stage('Fp32 Hip Debug NOCOMGR AnyGPU') {
@@ -778,7 +785,10 @@ pipeline {
         }
         stage("Smoke Fp16/Bf16/Int8") {
             when {
+                allof{
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
+                expression { params.IS_NIGHTLY_RUN == true}
+                }
             }
             parallel{
                 stage('Fp16 Hip Vega20') {
