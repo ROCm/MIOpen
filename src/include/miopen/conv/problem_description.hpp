@@ -395,6 +395,9 @@ struct ProblemDescription : ProblemDescriptionBase
         return NetworkConfig{ret};
     }
 
+    // Todo: remove after fixing fin
+    [[deprecated]] NetworkConfig BuildConfKey() const { return MakeNetworkConfig(); }
+
     void Serialize(std::ostream& stream) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
