@@ -130,8 +130,9 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle,
         const std::string ext = ".fdb.txt";
         const auto root_path  = fs::path(GetSystemDbPath());
         const auto base_name  = handle.GetDbBasename();
-        const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
-        const auto file_path  = root_path / (base_name + "." + suffix + ext);
+        const auto suffix =
+            GetSystemFindDbSuffix() + (path_suffix.empty() ? "" : ('.' + path_suffix));
+        const auto file_path = root_path / (base_name + "." + suffix + ext);
         if(boost::filesystem::exists(file_path))
         {
             MIOPEN_LOG_I2("Found exact find database file: " + file_path.string());
@@ -218,8 +219,14 @@ template <class TDb>
 std::string FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_USERDB
-    return GetUserDbPath().string() + "/" + handle.GetDbBasename() + "." + GetUserDbSuffix() +
-           path_suffix + ".ufdb.txt";
+    std::ostringstream ss;
+    ss << GetUserDbPath().string() << '/';
+    ss << handle.GetDbBasename();
+    ss << '.' << GetUserDbSuffix();
+    if(!path_suffix.empty())
+        ss << '.' << path_suffix;
+    ss << ".ufdb.txt";
+    return ss.str();
 #else
     std::ignore = handle;
     std::ignore = path_suffix;
