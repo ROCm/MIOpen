@@ -419,22 +419,25 @@ private:
         shift.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<T>(1e-2) * static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
-            runMean.generate(gen_var);
-            runVariance.generate(gen_var);
+            return static_cast<MeanVarDataType>(1e-2) *
+                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+        };
+        runMean.generate(gen_var);
+        runVariance.generate(gen_var);
 
-            saveMean_ref     = saveMean;
-            saveVariance_ref = saveVariance;
-            runMean_ref      = runMean;
-            runVariance_ref  = runVariance;
-        } void WriteToGPU()
-        {
-            auto&& handle    = get_handle();
-            scale_dev        = handle.Write(scale.data);
-            shift_dev        = handle.Write(shift.data);
-            saveMean_dev     = handle.Write(saveMean.data);
-            saveVariance_dev = handle.Write(saveVariance.data);
-            runMean_dev      = handle.Write(runMean.data);
-            runVariance_dev  = handle.Write(runVariance.data);
-        }
-    };
+        saveMean_ref     = saveMean;
+        saveVariance_ref = saveVariance;
+        runMean_ref      = runMean;
+        runVariance_ref  = runVariance;
+    }
+    void WriteToGPU()
+    {
+        auto&& handle    = get_handle();
+        scale_dev        = handle.Write(scale.data);
+        shift_dev        = handle.Write(shift.data);
+        saveMean_dev     = handle.Write(saveMean.data);
+        saveVariance_dev = handle.Write(saveVariance.data);
+        runMean_dev      = handle.Write(runMean.data);
+        runVariance_dev  = handle.Write(runVariance.data);
+    }
+};
