@@ -199,16 +199,12 @@ void ProblemDescription::Serialize(std::ostream& stream) const
         if(GetGroupCount() != 1)
             optional << 'g' << GetGroupCount();
 
-        if(GetInCastType() || GetWeightsCastType() || GetOutCastType())
-        {
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast =
-                std::make_tuple(GetInDataType(), GetInCastType());
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast =
-                std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
-            std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast =
-                std::make_tuple(GetOutDataType(), GetOutCastType());
-            optional << "c" << EncodeDataTypesForKey(in_cast, weights_cast, out_cast);
-        }
+        if(const auto ct = GetInCastType())
+            optional << "_ci" << GetDataTypeName(*ct);
+        if(const auto ct = GetWeightsCastType())
+            optional << "_cw" << GetDataTypeName(*ct);
+        if(const auto ct = GetOutCastType())
+            optional << "_co" << GetDataTypeName(*ct);
     }
     if(!optional.str().empty())
     {
