@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <array>
 #include <cassert>
 #include <miopen/fusion.hpp>
 #include <miopen/fusion_plan.hpp>
@@ -120,31 +121,34 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     const FusionContext& context,
     const FusionDescription& problem,
     std::vector<Allocator::ManageDataPtr>& invoke_bufs,
-    miopen::OperatorArgs& params)
+    miopen::OperatorArgs& params,
+    bool bias)
 {
-    const int bias          = 1;
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward, bias);
+    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward, bias ? 1 : 0);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     auto& handle = conv_ctx.GetStream();
 
-    invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
+    if(bias)
+        invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
     invoke_bufs.push_back(handle.Create(conv_problem.GetInSize()));
     invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
     invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
 
-    MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get() << " , size: " << conv_problem.GetBiasSize()
-                               << " , in addr: " << invoke_bufs[1].get()
-                               << " , size: " << conv_problem.GetInSize()
-                               << " , weigth addr: " << invoke_bufs[2].get()
-                               << " , size: " << conv_problem.GetWeightsSize() << " , out addr: "
-                               << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
+    if(bias)
+        MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get()
+                                   << " , size: " << conv_problem.GetBiasSize());
+    MIOPEN_LOG_I("in addr: " << invoke_bufs[1].get() << " , size: " << conv_problem.GetInSize());
+    MIOPEN_LOG_I("weight addr: " << invoke_bufs[2].get()
+                                 << " , size: " << conv_problem.GetWeightsSize());
+    MIOPEN_LOG_I("out addr: " << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
 
     const auto gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
     auto conv_data =
         std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
-    auto bias_data = std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get());
+    auto bias_data =
+        bias ? std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get()) : nullptr;
 
     const float activ_alpha = 0.5f;
     const float activ_beta  = 0.5f;
@@ -152,15 +156,18 @@ static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
     auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
         activ_alpha, activ_beta, activ_gamma);
 
-    params.SetArg(0, std::move(conv_data));
-    params.SetArg(1, std::move(bias_data));
-    params.SetArg(2, std::move(activ_data));
+    int args = 0;
+    params.SetArg(args++, std::move(conv_data));
+    if(bias)
+        params.SetArg(args++, std::move(bias_data));
+    params.SetArg(args++, std::move(activ_data));
 
+    const auto id_offset = bias ? 1 : 0;
     return miopen::fusion::FusionInvokeParams(params,
                                               conv_problem.GetIn(),
-                                              invoke_bufs[1].get(),
+                                              invoke_bufs[id_offset].get(),
                                               conv_problem.GetOut(),
-                                              invoke_bufs[3].get(),
+                                              invoke_bufs[2 + id_offset].get(),
                                               gfx90aaltimpl);
 }
 
@@ -568,22 +575,38 @@ static auto GetFusedWinogradSolvers()
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
 }
 
+static constexpr auto ValidateOps(const std::vector<std::shared_ptr<FusionOpDescriptor>>& ops,
+                                  const std::initializer_list<miopenFusionOp_t>& expected)
+{
+    return ops.size() == expected.size() &&
+           std::equal(ops.begin(), ops.end(), expected.begin(), [](auto& l, auto r) {
+               return l->kind() == r;
+           });
+};
+
 static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
                                    const FusionDescription& fusion_problem,
                                    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
                                    miopen::OperatorArgs& params)
 {
-    if(fusion_problem.fusion_plan_desc->op_map.size() == 3 &&
-       (fusion_problem.fusion_plan_desc->op_map[0]->kind() == miopenFusionOpConvForward) &&
-       (fusion_problem.fusion_plan_desc->op_map[1]->kind() == miopenFusionOpBiasForward) &&
-       (fusion_problem.fusion_plan_desc->op_map[2]->kind() == miopenFusionOpActivForward))
+    // Workaround: Fused API does not pass user-allocated buffers,
+    // but we need these buffers during find.
+    // Since, find invokes kernel launch and kernel launch needs these buffers.
+
+    if(ValidateOps(
+           fusion_problem.fusion_plan_desc->op_map,
+           {miopenFusionOpConvForward, miopenFusionOpBiasForward, miopenFusionOpActivForward}))
     {
-        // Workaround: Fused API does not pass user-allocated buffers,
-        // but we need these buffers during SearchForAllSolutions.
-        // Since, SearchForAllSolutions invokes kernel launch and kernel launch needs these buffers.
         MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
         return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
-            fusion_ctx, fusion_problem, invoke_bufs, params);
+            fusion_ctx, fusion_problem, invoke_bufs, params, true);
+    }
+    else if(ValidateOps(fusion_problem.fusion_plan_desc->op_map,
+                        {miopenFusionOpConvForward, miopenFusionOpActivForward}))
+    {
+        MIOPEN_LOG_I2("Allocating buffers for conv+activ fusion");
+        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
+            fusion_ctx, fusion_problem, invoke_bufs, params, false);
     }
     else
     {
@@ -591,7 +614,6 @@ static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
         // eg: Convolution + Bias + BatchNorm + Activation,
         //     Convolution + BatchNorm + Activation
         //     Convolution + BatchNorm
-        //     Convolution + Activation
         //     GEMM + Activation
         //
         MIOPEN_LOG_W("Allocating buffers for given fusion operators is not supported yet.");
