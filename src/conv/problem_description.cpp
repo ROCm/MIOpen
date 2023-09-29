@@ -44,18 +44,6 @@ EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataT
     return GetDataTypeName(in) + GetDataTypeName(weights) + GetDataTypeName(out);
 }
 
-std::string
-EncodeDataTypesForKey(std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in,
-                      std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights,
-                      std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out)
-{
-    miopenDataType_t cin, cweights, cout;
-    cin      = std::get<1>(in) ? std::get<1>(in).value() : std::get<0>(in);
-    cweights = std::get<1>(weights) ? std::get<1>(weights).value() : std::get<0>(weights);
-    cout     = std::get<1>(out) ? std::get<1>(out).value() : std::get<0>(out);
-    return EncodeDataTypesForKey(cin, cweights, cout);
-}
-
 namespace conv {
 namespace {
 
@@ -139,16 +127,19 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
         ss << 'x' << GetOutLayout();
     }
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
-    if(GetInCastType() || GetWeightsCastType() || GetOutCastType())
+
+    std::ostringstream optional;
+    if(const auto ct = GetInCastType())
+        optional << "ci" << GetDataTypeName(*ct);
+    if(const auto ct = GetWeightsCastType())
+        optional << "cw" << GetDataTypeName(*ct);
+    if(const auto ct = GetOutCastType())
+        optional << "co" << GetDataTypeName(*ct);
+    if(!optional.str().empty())
     {
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> in_cast =
-            std::make_tuple(GetInDataType(), GetInCastType());
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> weights_cast =
-            std::make_tuple(GetWeightsDataType(), GetWeightsCastType());
-        std::tuple<miopenDataType_t, std::optional<miopenDataType_t>> out_cast =
-            std::make_tuple(GetOutDataType(), GetOutCastType());
-        ss << 'x' << EncodeDataTypesForKey(in_cast, weights_cast, out_cast);
+        ss << 'x' << optional.str();
     }
+
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
        << PrintDHW(
@@ -197,7 +188,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     {
         // Group count > 1 identifies Group/Depthwise modes.
         if(GetGroupCount() != 1)
-            optional << 'g' << GetGroupCount();
+            optional << "_g" << GetGroupCount();
 
         if(const auto ct = GetInCastType())
             optional << "_ci" << GetDataTypeName(*ct);
@@ -208,7 +199,7 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     }
     if(!optional.str().empty())
     {
-        stream << '_' << optional.str();
+        stream << optional.str();
     }
 }
 
