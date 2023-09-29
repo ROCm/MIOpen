@@ -312,28 +312,19 @@ static std::string miopen_type_to_string(miopenDataType_t type)
     return "n/a";
 }
 
-// input: a vector of lengths of dims in a tensor
-// multiply each element with a random constant integer
+/// input: a vector of lengths of dims in a tensor
+/// multiply each element with a random constant integer
 void pad_tensor_strides(std::vector<int>& strides)
 {
-    auto pvec = [](const char* name, const auto& vec) {
-        std::cout << name << ": [";
-        for(const auto& v : vec)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << "]\n";
-    };
+    constexpr int min_stride_multiplier = 1;
+    constexpr int max_stride_multiplier = 5;
 
-    pvec("orig strides", strides);
-    auto c = prng::gen_A_to_B(1, 3);
-    // int c = 2;
+    auto c = prng::gen_A_to_B(min_stride_multiplier, max_stride_multiplier);
     for(auto& v : strides)
     {
         // cppcheck-suppress useStlAlgorithm
         v = v * c;
     }
-    pvec("new strides", strides);
 }
 
 template <miopen::conv::Direction direction,
@@ -449,6 +440,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(out);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               in_dev,
@@ -478,9 +471,13 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
                 /// \anchor copy_non_packed_output_before_convolution
-                /// \note copy output before computation because output may
-                /// be not be packed, and convolution may update only a subset of
-                /// indices
+                /// \note Output is a non-packed tensor, which means there are
+                /// elements that convolution will not update. In order to verify
+                /// the convolution result, the GPU buffer should have the same
+                /// data as the CPU in both update and not-updated elements.
+                /// Therefore, we copy the output to the GPU buffer after
+                /// initializing it with random values.
+                ///
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
@@ -535,6 +532,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(in);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               out_dev,
@@ -618,6 +617,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in);
                 rand_tensor_integer(out);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(wei);
 #if MIOPEN_BACKEND_OPENCL
                 status |= clEnqueueWriteBuffer(q,
                                                in_dev,
@@ -848,6 +849,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(out);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               in_dev,
@@ -933,6 +936,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(in);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               out_dev,
@@ -1016,6 +1021,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in, 3, -2);
                 rand_tensor_integer(out, 3, -2);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(wei);
 #if MIOPEN_BACKEND_OPENCL
                 status |= clEnqueueWriteBuffer(q,
                                                in_dev,
