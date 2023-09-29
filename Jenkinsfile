@@ -619,7 +619,7 @@ pipeline {
         }
         stage("Smoke Fp32") {
             when {
-                allof{
+                allOf{
                     expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
                     expression { params.IS_NIGHTLY_RUN == true}
 
@@ -682,7 +682,7 @@ pipeline {
         }
         stage("Smoke Aux 1") {
             when {
-                allof{
+                allOf{
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
                 expression { params.IS_NIGHTLY_RUN == true }
                 }
@@ -785,7 +785,7 @@ pipeline {
         }
         stage("Smoke Fp16/Bf16/Int8") {
             when {
-                allof{
+                allOf{
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
                 expression { params.IS_NIGHTLY_RUN == true}
                 }
