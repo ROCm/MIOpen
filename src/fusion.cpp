@@ -702,7 +702,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
     for(const auto& result : find_results)
     {
-        if(conv_fwd_algo && result.algorithm != "fusion" && miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
+        if(conv_fwd_algo && result.algorithm != "fusion" &&
+           miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
             continue;
         const auto id = solver::Id{result.solver_id};
 
