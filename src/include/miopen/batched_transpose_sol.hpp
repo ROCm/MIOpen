@@ -66,6 +66,61 @@ struct BatchedTransposeSolution
     BatchedTransposeParam kernel_param_heuristic;
 };
 
+struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
+{
+    TransposeSolutionDefault2Nhwc(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t h_,
+                                  uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
+    {
+    }
+};
+
+struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
+{
+    TransposeSolutionNhwc2Default(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t h_,
+                                  uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
+    {
+    }
+};
+
+struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution
+{
+    TransposeSolutionDefault2Ndhwc(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t d_,
+                                  uint32_t h_,
+                                  uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, d_ * h_ * w_)
+    {
+    }
+};
+
+struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution
+{
+    TransposeSolutionNdhwc2Default(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t d_,
+                                  uint32_t h_,
+                                  uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, d_ * h_ * w_, c_)
+    {
+    }
+};
+
+
 } // namespace miopen
 
 #endif

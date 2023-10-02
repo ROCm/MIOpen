@@ -112,5 +112,75 @@ ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::st
     return result;
 }
 
+template <typename DeviceOpType, typename CKArgsType, typename CastType>
+ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDescription& problem, const std::string& kernel_id)
+{
+
+    assert(problem.IsLayoutDefault());
+
+    ConvSolution result;
+    auto ck_args = CKArgsType{problem};
+
+    TransposeSolutionDefault2Ndhwc trans_input(
+        ctx,
+        problem.GetInDataType(),
+        ck_args.N,
+        ck_args.C1,
+        ck_args.Di,
+        ck_args.Hi,
+        ck_args.Wi);
+
+    TransposeSolutionDefault2Ndhwc trans_weight(
+        ctx,
+        problem.GetWeightsDataType(),
+        ck_args.K1,
+        ck_args.C,
+        ck_args.Z,
+        ck_args.Y,
+        ck_args.X);
+
+    TransposeSolutionNdhwc2Default trans_output(
+        ctx,
+        problem.GetOutDataType(),
+        ck_args.N,
+        ck_args.K1,
+        ck_args.Do,
+        ck_args.Ho,
+        ck_args.Wo);
+
+    result.construction_params.insert(
+        result.construction_params.end(),
+        {trans_input.GetKernelInfo(), 
+         trans_weight.GetKernelInfo(),
+         trans_output.GetKernelInfo()});
+
+    auto conv_ptrs = DeviceOpType::GetInstances();
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+
+    if(ptr_iter == conv_ptrs.end())
+        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+
+    result.invoker_factory =
+        [ck_args     = CKArgsType{problem},
+         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
+            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+
+                const auto enable_profiling = handle.IsProfilingEnabled();
+                float elapsed_time =
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                if(enable_profiling)
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed_time);
+                }
+            };
+        };
+    return result;
+}
+
 } // namespace solver
 } // namespace miopen

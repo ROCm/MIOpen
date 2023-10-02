@@ -311,7 +311,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.Is3d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(!(arch == "gfx908" || arch == "gfx90a"))
@@ -332,11 +332,22 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     return false;
 }
 
+ConvSolution GetNCDHWSolution(  
+    [[maybe_unused]] const ExecutionContext& ctx,
+    [[maybe_unused]] const ProblemDescription& problem,
+    [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
+{
+}
+
 ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
+  if (problem.IsLayoutDefault()) {
+    return GetNCDHWSolution(ctx, problem, config);
+  }
+
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
