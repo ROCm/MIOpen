@@ -33,6 +33,7 @@
 #include <miopen/type_name.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
+#include "../driver/random.hpp"
 
 #include "serialize.hpp"
 
@@ -41,6 +42,12 @@
 #else
 #include <half.hpp>
 #endif
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <miopen/hip_float8.hpp>
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
 #include <iomanip>
 #include <fstream>
 
@@ -106,6 +113,16 @@ struct miopen_type<int8_t> : std::integral_constant<miopenDataType_t, miopenInt8
 
 template <>
 struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
+{
+};
+
+template <>
+struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
+{
+};
+
+template <>
+struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
 {
 };
 
@@ -216,7 +233,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
             *iterator = x;
@@ -238,7 +255,7 @@ struct tensor
                                     });
         seed ^= data.size();
         seed ^= desc.GetLengths().size();
-        std::srand(seed);
+        prng::reset_seed(seed);
         auto iterator     = data.begin();
         auto vectorLength = desc.GetVectorLength();
         auto assign       = [&](T x) {
@@ -401,6 +418,14 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
     // TODO: Compute float
     return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
+
+// This is needed since there is no TensorDescriptor(miopenDataType_t t, const size_t* plens, int
+// size) constructor
+template <class T>
+tensor<T> make_tensor(const std::vector<std::size_t>& dims)
+{
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
+};
 
 template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)

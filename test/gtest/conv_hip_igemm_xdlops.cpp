@@ -60,6 +60,8 @@ void Run2dDriver(miopenDataType_t prec)
     switch(prec)
     {
     case miopenInt8: params = ConfigWithInt8::GetParam(); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenHalf:
     case miopenBFloat16:
     case miopenFloat:

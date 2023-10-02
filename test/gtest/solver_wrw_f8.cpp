@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,39 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
-
-#include <gtest/gtest.h>
-#include "cpu_conv.hpp"
-#include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
-
-#include "conv_test_base.hpp"
-
-template <typename T = float>
-struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T>
+#include "solver_wrw.hpp"
+struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
 {
-public:
-    void SetUp() override
-    {
-        test_skipped                               = false;
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
-        ConvFwdSolverTestBase<T>::SetUpImpl(conv_config, tensor_layout);
-    }
-    void TearDown() override
-    {
-        if(test_skipped)
-            return;
-        ConvFwdSolverTestBase<T>::TearDownConv();
-        ConvFwdSolverTestBase<T>::ThresholdChecks();
-    }
-    ConvTestCase conv_config;
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
-    miopenTensorLayout_t tensor_layout;
 };
+
+TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
+{
+    miopen::solver::ConvDirectNaiveConvWrw solv{};
+    SolverWrw<miopen::solver::ConvDirectNaiveConvWrw>(solv);
+}
+// Since NaiveConv is verified against the CPU, we are conservative in the number and type
+// of test cases we instantiate
+INSTANTIATE_TEST_SUITE_P(ConvWrwTest,
+                         ConvWrwFp8Naive,
+                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(ConvTestConfigs())));
