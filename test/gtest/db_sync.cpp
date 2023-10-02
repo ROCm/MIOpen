@@ -42,6 +42,28 @@
 #include <exception>
 #include <unordered_set>
 
+struct KDBKey
+{
+    std::string program_file;
+    std::string program_args;
+    bool operator==(const KDBKey& other) const
+    {
+        return (program_file == other.program_file) && (program_args == other.program_args);
+    }
+};
+
+template <>
+struct std::hash<KDBKey>
+{
+    std::size_t operator()(const KDBKey& k) const
+    {
+        using std::hash;
+        using std::string;
+
+        return ((hash<string>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
+    }
+};
+
 namespace miopen {
 conv::Direction GetDirectionFromString(const std::string& direction)
 {
@@ -263,7 +285,7 @@ void GetPerfDbVals(const boost::filesystem::path& filename,
 
 auto LoadKDBObjects(const boost::filesystem::path& filename)
 {
-    std::unordered_set<std::pair<std::string, std::string>> kdb_cache;
+    std::unordered_set<KDBKey> kdb_cache;
     auto select_query = "SELECT kernel_name, kernel_args from kern_db";
     auto sql          = SQLite{filename.string(), true};
     auto stmt         = SQLite::Statement{sql, select_query};
@@ -277,7 +299,7 @@ auto LoadKDBObjects(const boost::filesystem::path& filename)
             ++count;
             const auto kernel_name = stmt.ColumnText(0);
             const auto kernel_args = stmt.ColumnText(1);
-            kdb_cache.emplace(std::make_pair(kernel_name, kernel_args), true);
+            kdb_cache.emplace(KDBKey{kernel_name, kernel_args});
         }
         else if(rc == SQLITE_DONE)
             break;
@@ -296,7 +318,7 @@ bool CheckKDBObjects(const boost::filesystem::path& filename,
                      const std::string& kernel_args)
 {
     static const auto kdb_cache = LoadKDBObjects(filename);
-    return kdb_cache.find(std::make_pair(kernel_name, kernel_args)) != kdb_cache.end();
+    return kdb_cache.find(KDBKey{kernel_name, kernel_args}) != kdb_cache.end();
 }
 
 bool CheckKDBForTargetID(const boost::filesystem::path& filename)
@@ -321,29 +343,6 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 }
 } // namespace miopen
 
-struct KDBKey
-{
-    std::string program_file;
-    std::string program_args;
-    bool operator==(const KDBKey& other) const
-    {
-        return (program_file == other.program_file) && (program_args == other.program_args);
-    }
-
-};
-
-template<>
-struct std::hash<KDBKey>
-{
-    std::size_t operator()(const KDBKey& k) const
-    {
-        using std::hash;
-        using std::string;
-
-        return ((hash<string>()(k.program_file))
-                ^ (hash<string>()(k.program_args) << 1) >> 1);
-    }
-};
 
 void SetupPaths(boost::filesystem::path& fdb_file_path, boost::filesystem::path& pdb_file_path, boost::filesystem::path& kdb_file_path, const miopen::Handle& handle)
 {
@@ -399,7 +398,7 @@ void BuildKernel(const std::string& program_file, const std::string& program_arg
 
 using FDBLine = std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>;
 
-void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLine>& find_data, miopen::ConvolutionContext& _ctx, std::atomic<size_t>& counter)
+void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::vector<FDBLine>& find_data, const miopen::ConvolutionContext& _ctx, std::atomic<size_t>& counter)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = _ctx.GetStream();
@@ -463,8 +462,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
-    bool ignored = false;
-    miopen::CheckKDBObjects(kdb_file_path, "", "", ignored);
+    miopen::CheckKDBObjects(kdb_file_path, "", "");
 
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
@@ -476,15 +474,14 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
      // Convert the map to a vector
     std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
 
-    for(const auto& kinder : find_db.GetCacheMap())
-        fdb_data.emplace_back(kinder);
+    std::copy(find_db.GetCacheMap().begin(), find_db.GetCacheMap().end(), fdb_data.begin());
     std::atomic<size_t> counter = 0;
     const int total_threads = std::min(static_cast<int>(std::thread::hardware_concurrency()), 32);
     std::vector<std::thread> agents;
     agents.reserve(total_threads);
     for(auto idx = 0; idx < total_threads; ++idx)
     {
-        agents.emplace_back(CheckDynamicFDBEntry, idx, total_threads, std::ref(fdb_data), std::ref(_ctx), std::ref(counter));
+        agents.emplace_back(CheckDynamicFDBEntry, idx, total_threads, std::cref(fdb_data), std::cref(_ctx), std::ref(counter));
     }
 
     for(auto idx = 0; idx < total_threads; ++idx)
@@ -575,7 +572,7 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
                             checked_kdbs.emplace(KDBKey{program_file, compile_options});
                         }
                         else
-                            found = checked_kdbs.at(KDBKey{program_file, compile_options});
+                            found = checked_kdbs.count(KDBKey{program_file, compile_options}) > 0;
                         if(!found)
                             EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
                         if(!reported_already)
@@ -601,8 +598,7 @@ TEST(DBSync, DISABLED_StaticFDBSync)
     auto& handle = get_handle();
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     // Warmup the kdb cache
-    bool ignored = false;
-    miopen::CheckKDBObjects(kdb_file_path, "", "", ignored);
+    miopen::CheckKDBObjects(kdb_file_path, "", "");
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";    
@@ -612,10 +608,9 @@ TEST(DBSync, DISABLED_StaticFDBSync)
     // Convert the map to a vector
     std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
 
-    for(const auto& kinder : find_db.GetCacheMap())
-        fdb_data.emplace_back(kinder);
+    std::copy(find_db.GetCacheMap().begin(), find_db.GetCacheMap().end(), fdb_data.begin());
     std::atomic<size_t> counter = 0;
-    const int total_threads = std::min(std::thread::hardware_concurrency(), 32);
+    const int total_threads = std::min(std::thread::hardware_concurrency(), static_cast<unsigned int>(32));
     std::vector<std::thread> agents;
     agents.reserve(total_threads);
     for(auto idx = 0; idx < total_threads; ++idx)
