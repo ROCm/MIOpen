@@ -61,8 +61,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "m" + std::to_string(pooling_method);
     ss << "_dt" << xDesc.GetType();
-    if(xDesc.GetCastType())
-        ss << "_dct" << xDesc.GetCastType().value();
+    if(const auto ct = xDesc.GetCastType())
+        ss << "_dct" << GetDataTypeName(*ct);
     ss << "_ker" << get_vect_config(pooling.lens);
     ss << "_str" << get_vect_config(pooling.strides);
     ss << "_pad" << get_vect_config(pooling.pads);
