@@ -15,7 +15,7 @@ function(add_speedtest_executable TEST_NAME)
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS NATIVE_COMMAND ${MIOPEN_TEST_FLAGS})
-    target_link_libraries(${TEST_NAME} MIOpen)
+    target_link_libraries(${TEST_NAME} MIOpen nlohmann_json::nlohmann_json)
     target_include_directories(${TEST_NAME} PRIVATE ../test ../src/kernels)
 endfunction()
 
