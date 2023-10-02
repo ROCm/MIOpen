@@ -56,12 +56,16 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
     if(problem.IsTensorsCasted())
     {
         auto test_cast = [&](const TensorDescriptor& desc) {
+#ifdef MIOPEN_BETA_API
             if(desc.GetCastType())
             {
                 const auto cast_type = *desc.GetCastType();
                 if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
                     return false;
             }
+#else
+	    (void)(desc);
+#endif
             // all tested tensors must have cast type set
             return true;
         };
@@ -135,10 +139,14 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
     kernel.l_wk.push_back(1);
 
     const auto is_f8 = [&]() {
+#ifdef MIOPEN_BETA_API
         if(kernel.kernel_file == "fp8_naive_conv.cpp")
             return true;
         else
             return false;
+#else
+	return false;
+#endif
     }();
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
@@ -150,6 +158,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
                 if(is_f8)
+		{
+#ifdef MIOPEN_BETA_API
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
@@ -172,6 +182,8 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                                      problem.GetConv().attribute.fp8rounding_mode.Get() ==
                                          miopenF8RoundingModeStochastic,
                                      problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+#endif
+		}
                 else
                     handle.Run(kern)(tensors.out,
                                      tensors.w,

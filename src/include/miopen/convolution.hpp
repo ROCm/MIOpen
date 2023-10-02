@@ -106,6 +106,7 @@ struct ConvolutionAttribute
         friend void from_json(const nlohmann::json& json, Gfx90aFp16alt& attribute);
     } gfx90aFp16alt;
 
+#ifdef MIOPEN_BETA_API
     struct FP8RoundingMode
     {
         inline uint32_t InitSeed()
@@ -137,6 +138,7 @@ struct ConvolutionAttribute
 
         inline void SetSeed(const uint32_t s) { seed = s; }
     } fp8rounding_mode;
+#endif
 
     class Deterministic
     {

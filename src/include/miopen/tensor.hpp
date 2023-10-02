@@ -101,10 +101,12 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenFloat: return 4;
     case miopenHalf:
     case miopenBFloat16: return 2;
-    case miopenInt8x4:
-    case miopenInt8:
+#ifdef MIOPEN_BETA_API
     case miopenFloat8:
-    case miopenBFloat8: return 1;
+    case miopenBFloat8:
+#endif
+    case miopenInt8x4:
+    case miopenInt8: return 1;
     case miopenDouble: return 8;
     }
     MIOPEN_THROW("Unknown data type");

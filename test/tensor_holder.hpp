@@ -116,6 +116,7 @@ struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 {
 };
 
+#ifdef MIOPEN_BETA_API
 template <>
 struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
 {
@@ -125,6 +126,7 @@ template <>
 struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
 {
 };
+#endif
 
 template <class T>
 struct tensor

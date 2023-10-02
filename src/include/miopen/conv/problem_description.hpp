@@ -55,8 +55,10 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenInt32: return "INT32";
     case miopenBFloat16: return "BF16";
     case miopenDouble: return "FP64";
+#ifdef MIOPEN_BETA_API
     case miopenFloat8: return "FP8";
     case miopenBFloat8: return "BFP8";
+#endif
     }
 
     return "Unknown(" + std::to_string(data_type) + ")";
@@ -350,13 +352,21 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     bool IsFp8() const
     {
+#ifdef MIOPEN_BETA_API
         return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
                GetOutDataType() == miopenFloat8;
+#else
+	return false;
+#endif
     }
     bool IsBfp8() const
     {
+#ifdef MIOPEN_BETA_API
         return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
                GetOutDataType() == miopenBFloat8;
+#else
+	return false;
+#endif
     }
     bool IsTensorsCasted() const
     {

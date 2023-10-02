@@ -201,8 +201,10 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
+#ifdef MIOPEN_BETA_API
     case miopenFloat8:
     case miopenBFloat8:
+#endif
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -245,8 +247,10 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
             case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:
+#ifdef MIOPEN_BETA_API
             case miopenFloat8:
             case miopenBFloat8:
+#endif
             default: MIOPEN_THROW("Unsupported datatype");
             }
         };

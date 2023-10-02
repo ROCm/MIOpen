@@ -518,6 +518,7 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                              std::to_string(value));
         deterministic.value = value;
     }
+#ifdef MIOPEN_BETA_API
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
     {
         const auto rounding_mode = static_cast<miopenF8RoundingMode_t>(value);
@@ -529,6 +530,7 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                              std::to_string(value));
         fp8rounding_mode.rounding_mode = rounding_mode;
     }
+#endif
     else
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -541,8 +543,10 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
         return gfx90aFp16alt.value;
+#ifdef MIOPEN_BETA_API
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
         return static_cast<int>(fp8rounding_mode.rounding_mode);
+#endif
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
         return deterministic.value;
     MIOPEN_THROW(miopenStatusBadParm,

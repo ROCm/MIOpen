@@ -160,9 +160,11 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
     static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
         {"fp32", miopenFloat},
         {"fp16", miopenHalf},
-        {"bf16", miopenBFloat16},
-        {"fp8", miopenFloat8},
-        {"bf8", miopenBFloat8}};
+        {"bf16", miopenBFloat16}};
+#ifdef MIOPEN_BETA_API
+    conv_map.insert({"fp8", miopenFloat8});
+    conv_map.insert({"bf8", miopenBFloat8});
+#endif
 
     const auto res = conv_map.find(type);
     if(res != conv_map.end())
@@ -688,17 +690,21 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
+#ifdef MIOPEN_BETA_API
     if(inflags.GetValueStr("in_cast_type") != "-1")
     {
         const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("in_cast_type"));
         miopenSetTensorCastType(inputTensor, in_cast_type);
     }
+#endif
     SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
+#ifdef MIOPEN_BETA_API
     if(inflags.GetValueStr("wei_cast_type") != "-1")
     {
         const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("wei_cast_type"));
         miopenSetTensorCastType(weightTensor, in_cast_type);
     }
+#endif
 
     if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
     {
@@ -730,11 +736,13 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     miopenDataType_t y_type =
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
+#ifdef MIOPEN_BETA_API
     if(inflags.GetValueStr("out_cast_type") != "-1")
     {
         const auto out_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
         miopenSetTensorCastType(outputTensor, out_cast_type);
     }
+#endif
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -1247,7 +1255,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
     // Data generated for very low precision types follows the same constraints whether its fp8,
     // bfp8 or even if the interim tensors are being casted
+#ifdef MIOPEN_BETA_API
     bool is_fp8   = data_type == miopenFloat8 || data_type == miopenBFloat8 || TensorsCasted();
+#else
+    bool is_fp8   = false;
+#endif
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
@@ -1619,9 +1631,12 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
     if(!miopen::IsDisabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
-            (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8 ||
-             miopen_type<Tgpu>{} == miopenBFloat8)) ||
+           (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
+            miopen_type<Tgpu>{} == miopenBFloat16
+#ifdef MIOPEN_BETA_API
+            || miopen_type<Tgpu>{} == miopenFloat8 || miopen_type<Tgpu>{} == miopenBFloat8
+#endif
+            )) || 
            (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else

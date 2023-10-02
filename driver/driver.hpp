@@ -261,6 +261,7 @@ inline void Driver::InitDataType<bfloat16>()
 {
     data_type = miopenBFloat16;
 }
+#ifdef MIOPEN_BETA_API
 template <>
 inline void Driver::InitDataType<float8>()
 {
@@ -271,6 +272,7 @@ inline void Driver::InitDataType<bfloat8>()
 {
     data_type = miopenBFloat8;
 }
+#endif
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.
 template <typename Tgpu>
