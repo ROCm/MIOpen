@@ -359,7 +359,10 @@ typedef enum
     miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
 #ifdef MIOPEN_BETA_API
     miopenFloat8  = 7,
-    miopenBFloat8 = 8
+    miopenBFloat8 = 8,
+#else
+    miopenReserved1 = 7,
+    miopenReserved2 = 8,
 #endif
 } miopenDataType_t;
 
@@ -611,6 +614,8 @@ typedef enum
               rounding modes are supported miopenF8RoundingModeStandard and
               miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
               enum.>*/
+#else
+    miopenReserved = 2,
 #endif
 } miopenConvolutionAttrib_t;
 
