@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include <miopen/miopen.h>
+
 namespace miopen {
 
 inline std::string GetDataTypeName(miopenDataType_t data_type)
