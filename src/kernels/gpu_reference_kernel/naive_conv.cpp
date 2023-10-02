@@ -46,6 +46,8 @@ typedef float float_t;
 #endif
 #endif // __HIPCC_RTC__
 
+#include "stride_array.hpp"
+
 // hcc seems need __device__ __host__ together to compile, and no extern "C"
 typedef union value_bf16_fp32_t
 {
@@ -114,113 +116,20 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
     return static_cast<int8_t>(val & 0xff);
 }
 
-// TODO(Amber): this file is compiled via HIP RTC and includes don't work easily
-// so currently duplicating content from miopen/common.hpp
-// #include "miopen/common.hpp"
-// #include <array>
-// TODO(Amber): HIP RTC redefines stuff from std library (I don't know why)
-// #include <hip/amd_detail/amd_hip_vector_types.h>
-#if 1
-template <typename T, unsigned N>
-class MyArray
-{
-    T data_[N] = {};
+/// \todo remove template parameter 'bool ASSUME_PACKED' in a follow up PR
+/// --amberhassaan
+/// Notes (Amber):
+/// - The following code used to assume that group (G) is an implicit
+/// dimension, i.e. c= c_per_group * group and k = k_per_group * group. This is not
+/// true for non-packed case because group (G) dimension needs to have its stride
+/// explicitly specified for address math to make sense. This is also how
+/// composable_kernel (CK) treats G dimension. Which is why nchw should be ngchw,
+/// and nhwc should be nhwgc. Same follows for the 3D case.
+///
+/// - strides here are in the little-endian order, i.e., for NHWC, stride for N is
+/// at index 3 while stride for C is at index 0. This is reverse of how strides are
+/// stored in tensor descriptors, which are big-endian.
 
-public:
-    constexpr static const unsigned SIZE = N;
-
-    __host__ __device__ constexpr unsigned size() const { return N; }
-
-    __host__ __device__ const T& operator[](unsigned i) const { return data_[i]; }
-
-    __host__ __device__ T& operator[](unsigned i) { return data_[i]; }
-
-    __host__ __device__ MyArray()                   = default;
-    __host__ __device__ MyArray(const MyArray&)     = default;
-    __host__ __device__ MyArray(MyArray&&) noexcept = default;
-    __host__ __device__ MyArray& operator=(const MyArray&) = default;
-    __host__ __device__ MyArray& operator=(MyArray&&) noexcept = default;
-    __host__ __device__ ~MyArray()                             = default;
-};
-
-using StrideIndexType = int;
-using Strides5D       = MyArray<StrideIndexType, 5u>;
-using Strides6D       = MyArray<StrideIndexType, 6u>;
-#else
-
-extern "C" typedef int StrideIndexType;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[5];
-} Strides5D;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[6];
-} Strides6D;
-
-extern "C" __global__ void testKernel(void* ptr_a,
-                                      void* ptr_b,
-                                      void* ptr_c,
-                                      Strides5D in_strides,
-                                      Strides5D wei_strides,
-                                      Strides5D out_strides)
-{
-
-    if(blockIdx.x == 0 && threadIdx.x == 0)
-    {
-        printf("sizeof(Strides5D) = %lu\n", sizeof(Strides5D));
-        printf("%p, %p, %p, %p\n", &ptr_a, &ptr_b, &ptr_c, &in_strides);
-        printf("in_strides = [");
-        for(int i = 0; i < 5; ++i)
-        {
-            // printf("%d,", in_strides.v[i]);
-            printf("%d,", in_strides[i]);
-        }
-        printf("]\n");
-        printf("wei_strides = [");
-        for(int i = 0; i < 5; ++i)
-        {
-            // printf("%d,", wei_strides.v[i]);
-            printf("%d,", wei_strides[i]);
-        }
-        printf("]\n");
-        printf("out_strides = [");
-        for(int i = 0; i < 5; ++i)
-        {
-            // printf("%d,", out_strides.v[i]);
-            printf("%d,", out_strides[i]);
-        }
-        printf("]\n");
-    }
-}
-#endif
-
-template <typename StrideArray>
-__device__ void printStrideArray(const char* name, const StrideArray& sarr)
-{
-    printf("%s = [", name);
-    for(int i = 0; i < StrideArray::SIZE; ++i)
-    {
-        printf("%d,", sarr[i]);
-    }
-    printf("]\n");
-}
-
-// TODO(Amber): remove template parameter 'bool ASSUME_PACKED' in a follow up PR
-// Notes (Amber):
-// * The following code used to assume that group (G) is an implicit
-// dimension, i.e. c= c_per_group * group and k = k_per_group * group. This is not
-// true for non-packed case because group (G) dimension needs to have its stride
-// explicitly specified for address math to make sense. This is also how
-// composable_kernel (CK) treats G dimension. Which is why nchw should be ngchw,
-// and nhwc should be nhwgc. Same follows for the 3D case.
-// * strides here are in the little-endian order, i.e., for NHWC, stride for N is
-// at index 3 while stride for C is at index 0. This is reverse of how strides are
-// stored in tensor descriptors, which are big-endian.
-
-// TODO(Amber): Rename nchw to ngchw
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
                                            const src_data_t* __restrict__ p_wei,
@@ -245,43 +154,6 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
                                            int fx,
                                            int group)
 {
-
-    // TODO(Amber): Remove this code
-    /*
-    if (blockIdx.x == 0 && threadIdx.x == 0) {
-      printStrideArray("in_strides", in_strides);
-      printStrideArray("wei_strides", wei_strides);
-      printStrideArray("out_strides", out_strides);
-
-      printf("modified strides\n");
-      Strides5D in_strd;
-      Strides5D wei_strd;
-      Strides5D out_strd;
-
-      in_strd[0] = 1;
-      in_strd[1] = wi;
-      in_strd[2] = hi * wi;
-      in_strd[3] = c_per_group * hi * wi;
-      in_strd[4] = group * c_per_group * hi * wi;
-
-      wei_strd[0] = 1;
-      wei_strd[1] = fx;
-      wei_strd[2] = fy * fx;
-      wei_strd[3] = c_per_group * fy * fx;
-      wei_strd[4] = k_per_group * c_per_group * fy * fx;
-
-      out_strd[0] = 1;
-      out_strd[1] = wo;
-      out_strd[2] = ho * wo;
-      out_strd[3] = k_per_group * ho * wo;
-      out_strd[4] = group * k_per_group * ho * wo;
-
-      printStrideArray("in_strd", in_strd);
-      printStrideArray("wei_strd", wei_strd);
-      printStrideArray("out_strd", out_strd);
-    }
-    */
-
     /*
      *  need to compute total output pixel: `group * n * k_per_group * ho * wo`.
      *  to distribute this workload, let one workgroup compute `ho * wo` pixel,
@@ -324,7 +196,6 @@ inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
         int iho = tid / wo;
         int iwo = tid % wo;
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int ic = 0; ic < c_per_group; ic++)
@@ -454,7 +325,6 @@ inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
         int ihi = tid / wi;
         int iwi = tid % wi;
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int ik = 0; ik < k_per_group; ik++)
@@ -591,7 +461,6 @@ inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
         int iy = (tid / fx) % fy;
         int ic = tid / (fx * fy);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int in = 0; in < n; in++)
@@ -737,7 +606,6 @@ inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
         int iho = (tid / wo) % ho;
         int ido = tid / (ho * wo);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int ic = 0; ic < c_per_group; ic++)
@@ -892,7 +760,6 @@ inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
         int ihi = (tid / wi) % hi;
         int idi = tid / (hi * wi);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int ik = 0; ik < k_per_group; ik++)
@@ -1053,7 +920,6 @@ inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
         int iz = (tid / (fx * fy)) % fz;
         int ic = tid / (fx * fy * fz);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int in = 0; in < n; in++)
@@ -1202,7 +1068,6 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
         int iwo = tid / k_per_group;
         int ik  = tid % k_per_group;
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int iy = 0; iy < fy; iy++)
@@ -1295,41 +1160,6 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
                                            int group)
 {
     /*
-      if (blockIdx.x == 0 && threadIdx.x == 0) {
-        printStrideArray("in_strides", in_strides);
-        printStrideArray("wei_strides", wei_strides);
-        printStrideArray("out_strides", out_strides);
-
-        printf("modified strides\n");
-        Strides5D in_strd;
-        Strides5D wei_strd;
-        Strides5D out_strd;
-
-        in_strd[0] = 1;
-        in_strd[1] = k_per_group;
-        in_strd[2] = group * k_per_group;
-        in_strd[3] = group * k_per_group * wo;
-        in_strd[4] = group * k_per_group * wo * ho;
-
-        wei_strd[0] = 1;
-        wei_strd[1] = c_per_group;
-        wei_strd[2] = c_per_group * fx;
-        wei_strd[3] = c_per_group * fx * fy;
-        wei_strd[4] = c_per_group * fx * fy * k_per_group;
-
-        out_strd[0] = 1;
-        out_strd[1] = c_per_group;
-        out_strd[2] = group * c_per_group;
-        out_strd[3] = group * c_per_group * wi;
-        out_strd[4] = group * c_per_group * wi * hi;
-
-        printStrideArray("in_strd", in_strd);
-        printStrideArray("wei_strd", wei_strd);
-        printStrideArray("out_strd", out_strd);
-      }
-      */
-
-    /*
      *  need to compute total input pixel: `group * n * hi * wi * c_per_group`.
      *  to distribute this workload, let one workgroup compute `wi *
      * c_per_group` pixel,
@@ -1368,7 +1198,6 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
         int iwi = tid / c_per_group;
         int ic  = tid % c_per_group;
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int iy = 0; iy < fy; iy++)
@@ -1506,7 +1335,6 @@ inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
         int ix = (tid / c_per_group) % fx;
         int iy = tid / (c_per_group * fx);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int in = 0; in < n; in++)
@@ -1652,7 +1480,6 @@ inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
         int iwo = (tid / k_per_group) % wo;
         int iho = tid / (k_per_group * wo);
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int iz = 0; iz < fz; iz++)
@@ -1763,43 +1590,6 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
                                             int fx,
                                             int group)
 {
-    /*
-      if (blockIdx.x == 0 && threadIdx.x == 0) {
-        printStrideArray("in_strides", in_strides);
-        printStrideArray("wei_strides", wei_strides);
-        printStrideArray("out_strides", out_strides);
-
-        printf("modified strides\n");
-        Strides6D in_strd;
-        Strides6D wei_strd;
-        Strides6D out_strd;
-
-        in_strd[0] = 1;
-        in_strd[1] = k_per_group;
-        in_strd[2] = group * k_per_group;
-        in_strd[3] = group * k_per_group * wo;
-        in_strd[4] = group * k_per_group * wo * ho;
-        in_strd[5] = group * k_per_group * wo * ho * do_;
-
-        wei_strd[0] = 1;
-        wei_strd[1] = c_per_group;
-        wei_strd[2] = c_per_group * fx;
-        wei_strd[3] = c_per_group * fx * fy;
-        wei_strd[4] = c_per_group * fx * fy * fz;
-        wei_strd[5] = k_per_group * c_per_group * fx * fy * fz;
-
-        out_strd[0] = 1;
-        out_strd[1] = c_per_group;
-        out_strd[2] = group * c_per_group;
-        out_strd[3] = group * c_per_group * wi;
-        out_strd[4] = group * c_per_group * wi * hi;
-        out_strd[5] = group * c_per_group * wi * hi * di;
-
-        printStrideArray("in_strd", in_strd);
-        printStrideArray("wei_strd", wei_strd);
-        printStrideArray("out_strd", out_strd);
-      }
-      */
 
     /*
      *  need to compute total input pixel: `group * n * di * hi * wi *
@@ -1843,7 +1633,6 @@ inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
         int iwi = (tid / c_per_group) % wi;
         int ihi = (tid / (c_per_group * wi));
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int iz = 0; iz < fz; iz++)
@@ -2004,7 +1793,6 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
         int iy = (tid / (c_per_group * fx)) % fy;
         int iz = (tid / (c_per_group * fx * fy));
 
-        // double value = .0f;
         acc_data_t value = 0;
 
         for(int in = 0; in < n; in++)
@@ -2363,3 +2151,7 @@ DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ncdhw, ushort, double, ushort)
 DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, float, double, float)
 DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, half, double, half)
 DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, ushort, double, ushort)
+
+/// \todo discuss whether we should split the kernels into separate files, or
+/// figure out a mechanism to compile each kernel separately to reduce hipRTC
+/// compilation times.  --amberhassaan

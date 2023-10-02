@@ -25,9 +25,15 @@
  *******************************************************************************/
 #pragma once
 
-#include <string>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
+#include "miopen/../../kernels/stride_array.hpp"
+
+#include <array>
+#include <algorithm>
+#include <cassert>
+#include <string>
+#include <vector>
 
 namespace miopen {
 
@@ -54,97 +60,18 @@ bool IsOutputBfp16(const ProblemDescription&);
 bool IsOutputInt8(const ProblemDescription&);
 bool IsOutputInt32(const ProblemDescription&);
 
+namespace conv_internal {
+
+void DebugPrintTensorStrides(const TensorDescriptor& inDesc,
+                             const TensorDescriptor& wDesc,
+                             const TensorDescriptor& outDesc);
+
+/**
+ * Get the index where group (G) stride should go. For NCHW, we want to convert
+ * its strides to NGCHW, and for NHWC, we want to convert its strides to NHWGC.
+ * Same applies for the 3D case.
+ */
 int GetGroupStrideIndex(const ProblemDescription& problem);
-
-void printTensorStrides(const TensorDescriptor& inDesc,
-                        const TensorDescriptor& wDesc,
-                        const TensorDescriptor& outDesc);
-
-// TODO(Amber): Uncomment when hip RTC accepts std::array
-// using StrideIndexType = int;
-// using Strides3D       = std::array<StrideIndexType, 3>;
-// using Strides4D       = std::array<StrideIndexType, 4>;
-// using Strides5D       = std::array<StrideIndexType, 5>;
-// using Strides6D       = std::array<StrideIndexType, 6>;
-#if 1
-template <typename T, unsigned N>
-class MyArray
-{
-    T data_[N] = {};
-
-public:
-    constexpr static const unsigned SIZE = N;
-    __host__ __device__ constexpr unsigned size() const { return N; }
-
-    __host__ __device__ const T& operator[](unsigned i) const { return data_[i]; }
-
-    __host__ T& operator[](unsigned i) { return data_[i]; }
-
-    __host__ __device__ MyArray()                   = default;
-    __host__ __device__ MyArray(const MyArray&)     = default;
-    __host__ __device__ MyArray(MyArray&&) noexcept = default;
-    __host__ __device__ MyArray& operator=(const MyArray&) = default;
-    __host__ __device__ MyArray& operator=(MyArray&&) noexcept = default;
-    __host__ __device__ ~MyArray()                             = default;
-};
-
-using StrideIndexType = int;
-using Strides5D       = MyArray<StrideIndexType, 5u>;
-using Strides6D       = MyArray<StrideIndexType, 6u>;
-
-#else
-
-extern "C" typedef int StrideIndexType;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[5];
-} Strides5D;
-
-extern "C" typedef struct
-{
-    StrideIndexType v[6];
-} Strides6D;
-
-#endif
-
-namespace internal {
-template <unsigned N>
-struct ChooseStride
-{
-};
-
-template <>
-struct ChooseStride<5u>
-{
-    using type = Strides5D;
-};
-
-template <>
-struct ChooseStride<6u>
-{
-    using type = Strides6D;
-};
-
-} // end namespace internal
-
-template <unsigned N, typename V>
-auto MakeStrideArray(V vec)
-{
-    typename internal::ChooseStride<N>::type ret;
-    assert(vec.size() == N);
-
-    // MIOpen stores strides for NHWC in NCHW order, i.e. C stride in 2nd from left.
-    // We sort the input stride vector so that smallest stride is at index 0. This
-    // (little-endian) order is what naive convolution kernel expects for strides
-    std::sort(vec.begin(), vec.end());
-
-    for(unsigned i = 0; i < N; ++i)
-    {
-        ret[i] = static_cast<StrideIndexType>(vec[i]);
-    }
-    return ret;
-}
 
 /**
  * split the strides for C dimension in a tensor descriptor into (G, C_per_group).
@@ -184,27 +111,41 @@ V SplitWeiStrideKtoGK(int k_per_group, const V& wei_strides)
     return ret;
 }
 
-template <typename StrideArray>
-void printStrideArray(const char* name, const StrideArray& sarr)
+template <unsigned N>
+struct ChooseStride
 {
-    printf("%s = [", name);
-    for(unsigned i = 0; i < StrideArray::SIZE; ++i)
+};
+
+template <>
+struct ChooseStride<5u>
+{
+    using type = Strides5D;
+};
+
+template <>
+struct ChooseStride<6u>
+{
+    using type = Strides6D;
+};
+
+template <unsigned N, typename V>
+auto MakeStrideArray(V vec)
+{
+    typename ChooseStride<N>::type ret;
+    assert(vec.size() == N);
+
+    // MIOpen stores strides for NHWC in NCHW order, i.e. C stride in 2nd from left.
+    // We sort the input stride vector so that smallest stride is at index 0. This
+    // (little-endian) order is what naive convolution kernel expects for strides
+    std::sort(vec.begin(), vec.end());
+
+    for(unsigned i = 0; i < N; ++i)
     {
-        printf("%d,", sarr[i]);
+        ret[i] = static_cast<StrideIndexType>(vec[i]);
     }
-    printf("]\n");
+    return ret;
 }
-
-template <typename StrideArray>
-void printStrideArrays(const StrideArray& in_strides,
-                       const StrideArray& wei_strides,
-                       const StrideArray& out_strides)
-{
-
-    printStrideArray("in_strides", in_strides);
-    printStrideArray("wei_strides", wei_strides);
-    printStrideArray("out_strides", out_strides);
-}
+} // end namespace conv_internal
 
 } // namespace solver
 } // namespace miopen
