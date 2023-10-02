@@ -471,7 +471,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_NAVI21",
