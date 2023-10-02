@@ -105,8 +105,9 @@ RUN ccache -s
 # Install doc requirements
 ADD docs/.sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
-# Composable Kernel requires upgraded cmake
-RUN pip3 install --upgrade cmake
+
+# Composable Kernel requires this version cmake
+RUN pip3 install --upgrade cmake==3.27.5
 
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature
