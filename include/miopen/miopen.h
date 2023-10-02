@@ -112,11 +112,13 @@ typedef enum
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
 
+#ifdef MIOPEN_BETA_API
 typedef enum
 {
     miopenF8RoundingModeStandard   = 0,
     miopenF8RoundingModeStochastic = 1,
 } miopenF8RoundingMode_t;
+#endif
 
 /*! @brief Get character string for an error code.
  *
@@ -355,8 +357,10 @@ typedef enum
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
+#ifdef MIOPEN_BETA_API
     miopenFloat8  = 7,
     miopenBFloat8 = 8
+#endif
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -601,11 +605,13 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+#ifdef MIOPEN_BETA_API
     MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
         2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
               rounding modes are supported miopenF8RoundingModeStandard and
               miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
               enum.>*/
+#endif
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -723,6 +729,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
+#ifdef MIOPEN_BETA_API
 /*! @brief Set the tensor cast type
  *
  *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
@@ -734,6 +741,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
                                                      miopenDataType_t cast_type);
+#endif
 
 /*! @brief Set shape of N-dimensional tensor
  *
