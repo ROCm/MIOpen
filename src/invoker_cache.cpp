@@ -104,8 +104,11 @@ void InvokerCache::Register(const Key& key, const Invoker& invoker)
     auto it = invokers.find(key.first);
     if(it != invokers.end())
         it->second.invokers.insert({key.second, invoker});
-    auto& item = invokers.insert({key.first, Item{}}).first->second;
-    item.invokers.insert({key.second, invoker});
+    else
+    {
+        auto& item = invokers.insert({key.first, Item{}}).first->second;
+        item.invokers.insert({key.second, invoker});
+    }
     MIOPEN_LOG_I2("Invoker registered for algorithm " << key.first << " and solver " << key.second);
 }
 

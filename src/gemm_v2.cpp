@@ -29,6 +29,7 @@
 #include <miopen/env.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/datatype.hpp>
 
 #if MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
@@ -173,6 +174,7 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
                          rocblas_gemm_algo::rocblas_gemm_algo_standard,
                          0,
                          flags); // gfx90a_alt_impl));
+    return rb_status;
 #pragma clang diagnostic pop
 #endif
     MIOPEN_THROW(miopenStatusBadParm, "An appropriate version of rocBLAS is required for this op");
@@ -258,10 +260,9 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "strideC " << gemm_desc.strideC << ", "
                   << "alpha " << gemm_desc.alpha << ", "
                   << "beta " << gemm_desc.beta << ", "
-                  << "dataType " << gemm_desc.dataType << "a_cast_type" << gemm_desc.a_cast_type
-                  << ", "
-                  << "b_cast_type" << gemm_desc.b_cast_type << ", "
-                  << "} ";
+                  << "dataType " << GetDataType(gemm_desc.dataType) << ", "
+                  << "a_cast_type " << GetDataType(gemm_desc.a_cast_type) << ", "
+                  << "b_cast_type " << GetDataType(gemm_desc.b_cast_type) << "} ";
 }
 
 #if MIOPEN_USE_ROCBLAS
