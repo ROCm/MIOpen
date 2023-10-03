@@ -135,7 +135,7 @@ sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
 typing-extensions==4.5.0
     # via pydata-sphinx-theme
-urllib3==1.26.15
+urllib3==1.26.17
     # via requests
 wrapt==1.15.0
     # via deprecated
