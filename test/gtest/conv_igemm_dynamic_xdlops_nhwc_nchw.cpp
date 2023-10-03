@@ -83,9 +83,9 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by conv_igemm_dynamic test";
+                  "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
 
     default: params = Conv2dFloat::GetParam();
     }
@@ -156,7 +156,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     std::vector<std::string> env_nhwc_wrw = {
         "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops"};
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"};
 
     std::string v             = " --verbose";
     std::string dis_bk_data   = " --disable-backward-data";
