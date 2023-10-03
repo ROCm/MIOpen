@@ -180,7 +180,7 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = context;
-    std::ignore = fdesc_problem;
+    std::ignore = bn_problem;
     return false;
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_INFER{}))
@@ -201,6 +201,8 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
     case miopenInt32:
     case miopenInt8:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
     return false;
@@ -243,6 +245,8 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
             case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:
+            case miopenFloat8:
+            case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
             }
         };
