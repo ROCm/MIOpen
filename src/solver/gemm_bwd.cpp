@@ -113,7 +113,6 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
         }
         if(dyDesc.GetCastType() && wDesc.GetCastType())
         {
-#ifdef MIOPEN_BETA_API
             const auto a_cast_type = dyDesc.GetCastType();
             const auto b_cast_type = wDesc.GetCastType();
             if(a_cast_type != miopenFloat8 && a_cast_type != miopenBFloat8)
@@ -128,11 +127,6 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
                     "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
                 return false;
             }
-#else
-	    MIOPEN_LOG_W(
-	        "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
-	    return false;
-#endif
         }
         else
         {

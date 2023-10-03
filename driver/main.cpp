@@ -84,7 +84,6 @@ int main(int argc, char* argv[])
     {
         drv = new ConvDriver<int8_t, int32_t>();
     }
-#ifdef MIOPEN_BETA_API
     else if(base_arg == "convfp8")
     {
         drv = new ConvDriver<float8, float>();
@@ -93,7 +92,6 @@ int main(int argc, char* argv[])
     {
         drv = new ConvDriver<bfloat8, float>();
     }
-#endif
     else if(base_arg == "CBAInfer")
     {
         drv = new CBAInferFusionDriver<float, double>();

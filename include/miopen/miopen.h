@@ -361,8 +361,8 @@ typedef enum
     miopenFloat8  = 7,
     miopenBFloat8 = 8,
 #else
-    //miopenReserved1 = 7,
-    //miopenReserved2 = 8,
+    miopenReserved1 = 7,
+    miopenReserved2 = 8,
 #endif
 } miopenDataType_t;
 
@@ -615,7 +615,7 @@ typedef enum
               miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
               enum.>*/
 #else
-    //miopenReserved1 = 2,
+    miopenReserved = 2,
 #endif
 } miopenConvolutionAttrib_t;
 

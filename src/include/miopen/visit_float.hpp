@@ -77,10 +77,8 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<bfloat16>{});
         break;
     }
-#ifdef MIOPEN_BETA_API
     case miopenFloat8:
     case miopenBFloat8:
-#endif
     case miopenInt8x4:
     case miopenInt8: {
         f(as_float<int8_t>{});
