@@ -68,6 +68,9 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+# Build librarie with beta apis
+add_definitions("-DMIOPEN_BETA_API_FP8=1")
+
 set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
 set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
