@@ -60,7 +60,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dHalf : public testing::TestWithParam<std::vector<TestCase>>
+class Conv2dFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -70,8 +70,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf::GetParam(); break;
-    case miopenFloat:
+    case miopenFloat: params = Conv2dFloat::GetParam(); break;
+    case miopenHalf:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt8x4:
@@ -79,11 +79,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by conv_igemm_dynamic_xdlops_half test";
+                  "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
 
-    default: params = Conv2dHalf::GetParam();
+    default: params = Conv2dFloat::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -113,7 +113,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv2dHalf, HalfTest)
+TEST_P(Conv2dFloat, FloatTest)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -129,13 +129,9 @@ TEST_P(Conv2dHalf, HalfTest)
 std::vector<TestCase> GetTestCases(const std::string& precision)
 {
 
-    std::vector<std::string> env_fwd = {
+    std::vector<std::string> env_bwd = {
         "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlops"};
-
-    std::vector<std::string> env_wrw = {
-        "MIOPEN_FIND_MODE=normal",
-        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops"};
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops"};
 
     std::string v           = " --verbose";
     std::string dis_bk_data = " --disable-backward-data";
@@ -144,18 +140,11 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
     const std::vector<TestCase> test_cases = {
         // clang-format off
-    //fwd
-    TestCase{env_fwd, precision + v + " --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1" + dis_bk_data + dis_bk_wei},
-    TestCase{env_fwd, precision + v + " --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
-
-    //wrw
-    TestCase{env_wrw, precision + v + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1" + dis_fwd + dis_bk_data},
-    TestCase{env_wrw, precision + v + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
-    TestCase{env_wrw, precision + v + " --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
-    TestCase{env_wrw, precision + v + " --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_data}
+    //bwd
+    TestCase{env_bwd, precision + v + " --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei}
         // clang-format on
     };
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsFwdWrw, Conv2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsBwd, Conv2dFloat, testing::Values(GetTestCases("--float")));

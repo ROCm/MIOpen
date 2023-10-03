@@ -310,6 +310,6 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw, Conv2dFloat, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw, Conv2dHalf, testing::Values(GetTestCases("--half")));
