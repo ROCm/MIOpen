@@ -111,11 +111,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
+
+    /// \todo remove packed reference convolution kernels --amberhassaan
+#ifndef NDEBUG// enable in debug mode only
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
     {
         kernel_name << "naive_conv_packed_";
     }
     else
+#endif
     {
         kernel_name << "naive_conv_nonpacked_";
     }
