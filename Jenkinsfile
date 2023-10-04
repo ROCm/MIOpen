@@ -527,7 +527,7 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     triggers{
-        //triggers periodic runs midnight on saturday
+        //triggers periodic runs everyday on midnight
         cron(env.BRANCH_NAME == "miopen_nightly" ? '0 0 * * *' : '')
     }
     stages{
