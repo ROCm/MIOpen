@@ -609,15 +609,6 @@ static auto GetFusedWinogradSolvers()
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
 }
 
-static constexpr auto ValidateOps(const std::vector<std::shared_ptr<FusionOpDescriptor>>& ops,
-                                  const std::initializer_list<miopenFusionOp_t>& expected)
-{
-    return ops.size() == expected.size() &&
-           std::equal(ops.begin(), ops.end(), expected.begin(), [](auto& l, auto r) {
-               return l->kind() == r;
-           });
-};
-
 struct FusionFindParameters : PrimitiveFindParameters
 {
 };
