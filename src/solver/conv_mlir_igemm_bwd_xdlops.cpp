@@ -38,7 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -49,6 +49,8 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!problem.direction.IsBackwardData())
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -62,14 +64,14 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmBwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -78,14 +80,14 @@ bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmBwdXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmBwdXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {

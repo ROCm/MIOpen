@@ -321,23 +321,20 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
         return GetKernelSrc(program);
     }();
 
+#if MIOPEN_BUILD_DEV
     if(miopen::EndsWith(filename, ".cpp"))
     {
-#if MIOPEN_BUILD_DEV
         params += " -Werror" + HipKernelWarningsString();
-#else
-        params += " -Wno-everything";
-#endif
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-#if MIOPEN_BUILD_DEV
         params +=
             " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+    }
 #else
+    if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
         params += " -Wno-everything";
 #endif
-    }
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
     BuildCodeObjectInMemory(params, src, filename);

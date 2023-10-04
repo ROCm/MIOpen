@@ -51,6 +51,10 @@
 #include <unordered_map>
 
 #if MIOPEN_USE_ROCBLAS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#define ROCBLAS_BETA_FEATURES_API 1
+#pragma clang diagnostic pop
 #include <miopen/manage_ptr.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
