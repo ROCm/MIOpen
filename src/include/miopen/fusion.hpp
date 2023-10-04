@@ -129,7 +129,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t bnBias,
                            ConstData_t estimatedMean,
                            ConstData_t estimatedVariance,
-                           double epsilon);
+                           double epsilon) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);

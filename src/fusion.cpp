@@ -34,6 +34,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/fusion/utils.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/conv/solver_finders.hpp>
@@ -117,58 +118,91 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     return miopenStatusSuccess;
 }
 
-static auto AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
-    const FusionContext& context,
-    const FusionDescription& problem,
-    std::vector<Allocator::ManageDataPtr>& invoke_bufs,
-    miopen::OperatorArgs& params,
-    bool bias)
+static auto
+AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
+                                         const FusionDescription& problem,
+                                         std::vector<Allocator::ManageDataPtr>& invoke_bufs,
+                                         miopen::OperatorArgs& params,
+                                         const FusionPlanDescriptor& plan)
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward, bias ? 1 : 0);
-    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    auto& handle = context.GetStream();
 
-    auto& handle = conv_ctx.GetStream();
+    const auto allocate_buffer = [&](std::size_t size) {
+        auto ptr = handle.Create(size);
+        auto ret = ptr.get();
+        invoke_bufs.push_back(std::move(ptr));
+        return ret;
+    };
 
-    if(bias)
-        invoke_bufs.push_back(handle.Create(conv_problem.GetBiasSize()));
-    invoke_bufs.push_back(handle.Create(conv_problem.GetInSize()));
-    invoke_bufs.push_back(handle.Create(conv_problem.GetWeightsSize()));
-    invoke_bufs.push_back(handle.Create(conv_problem.GetOutSize()));
+    const auto conv_id       = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpConvForward);
+    const auto bias_id       = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBiasForward);
+    const auto activation_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpActivForward);
+    const auto bnorm_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormInference);
 
-    if(bias)
-        MIOPEN_LOG_I("bias addr: " << invoke_bufs[0].get()
-                                   << " , size: " << conv_problem.GetBiasSize());
-    MIOPEN_LOG_I("in addr: " << invoke_bufs[1].get() << " , size: " << conv_problem.GetInSize());
-    MIOPEN_LOG_I("weight addr: " << invoke_bufs[2].get()
-                                 << " , size: " << conv_problem.GetWeightsSize());
-    MIOPEN_LOG_I("out addr: " << invoke_bufs[3].get() << " , size: " << conv_problem.GetOutSize());
+    Data_t bias_ptr = nullptr;
+    TensorDescriptor in_desc, out_desc;
+    bool gfx90aaltimpl = false;
 
-    const auto gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    if(conv_id != -1)
+    {
+        const auto conv_problem =
+            problem.GetConvProblem(0, conv::Direction::Forward, bias_id != -1 ? 1 : 0);
+        gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
-    auto conv_data =
-        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(invoke_bufs[2].get());
-    auto bias_data =
-        bias ? std::make_unique<miopen::fusion::BiasOpInvokeParam>(invoke_bufs[0].get()) : nullptr;
+        in_desc  = conv_problem.GetIn();
+        out_desc = conv_problem.GetOut();
 
-    const float activ_alpha = 0.5f;
-    const float activ_beta  = 0.5f;
-    const float activ_gamma = 0.5f;
-    auto activ_data         = std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-        activ_alpha, activ_beta, activ_gamma);
+        if(bias_id != -1)
+        {
+            bias_ptr = allocate_buffer(conv_problem.GetBiasSize());
 
-    int args = 0;
-    params.SetArg(args++, std::move(conv_data));
-    if(bias)
-        params.SetArg(args++, std::move(bias_data));
-    params.SetArg(args++, std::move(activ_data));
+            MIOPEN_LOG_I("bias addr: " << bias_ptr << " , size: " << conv_problem.GetBiasSize());
+            params.SetArg(bias_id, std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
+        }
 
-    const auto id_offset = bias ? 1 : 0;
-    return miopen::fusion::FusionInvokeParams(params,
-                                              conv_problem.GetIn(),
-                                              invoke_bufs[id_offset].get(),
-                                              conv_problem.GetOut(),
-                                              invoke_bufs[2 + id_offset].get(),
-                                              gfx90aaltimpl);
+        auto wei_ptr = allocate_buffer(conv_problem.GetWeightsSize());
+        params.SetArg(conv_id, std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
+
+        MIOPEN_LOG_I("weight addr: " << wei_ptr << " , size: " << conv_problem.GetWeightsSize());
+    }
+
+    if(activation_id != -1)
+    {
+        const float alpha = 0.5f;
+        const float beta  = 0.5f;
+        const float gamma = 0.5f;
+
+        params.SetArg(
+            activation_id,
+            std::make_unique<miopen::fusion::ActivationOpInvokeParam>(alpha, beta, gamma));
+    }
+
+    if(bnorm_id != -1)
+    {
+        const auto& bn_op =
+            dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*plan.op_map[bnorm_id]);
+
+        out_desc = in_desc = bn_op.input_desc;
+
+        auto scale_ptr    = allocate_buffer(bn_op.base_desc.GetElementSize());
+        auto mean_ptr     = allocate_buffer(bn_op.base_desc.GetElementSize());
+        auto variance_ptr = allocate_buffer(bn_op.base_desc.GetElementSize());
+
+        if(bias_ptr == nullptr)
+            allocate_buffer(bn_op.base_desc.GetElementSize());
+
+        const auto epsilon = 0.5f;
+        bn_op.SetArgs(
+            params, nullptr, nullptr, scale_ptr, bias_ptr, mean_ptr, variance_ptr, epsilon);
+    }
+
+    const auto in_ptr  = allocate_buffer(in_desc.GetElementSize());
+    const auto out_ptr = allocate_buffer(out_desc.GetElementSize());
+    MIOPEN_LOG_I("in addr: " << in_ptr << " , size: " << in_desc.GetElementSize());
+    MIOPEN_LOG_I("out addr: " << out_ptr << " , size: " << in_desc.GetElementSize());
+
+    return miopen::fusion::FusionInvokeParams(
+        params, in_desc, in_ptr, out_desc, out_ptr, gfx90aaltimpl);
 }
 
 namespace debug {
@@ -444,7 +478,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              ConstData_t bnBias,
                                                              ConstData_t estimatedMean,
                                                              ConstData_t estimatedVariance,
-                                                             double epsilon)
+                                                             double epsilon) const
 {
     auto op_args = std::make_unique<fusion::BatchNormInferenceOpInvokeParam>(
         bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
@@ -584,48 +618,6 @@ static constexpr auto ValidateOps(const std::vector<std::shared_ptr<FusionOpDesc
            });
 };
 
-static auto MakeFusionInvokeParams(const FusionContext& fusion_ctx,
-                                   const FusionDescription& fusion_problem,
-                                   std::vector<Allocator::ManageDataPtr>& invoke_bufs,
-                                   miopen::OperatorArgs& params)
-{
-    // Workaround: Fused API does not pass user-allocated buffers,
-    // but we need these buffers during find.
-    // Since, find invokes kernel launch and kernel launch needs these buffers.
-
-    if(ValidateOps(
-           fusion_problem.fusion_plan_desc->op_map,
-           {miopenFusionOpConvForward, miopenFusionOpBiasForward, miopenFusionOpActivForward}))
-    {
-        MIOPEN_LOG_I2("Allocating buffers for conv+bias+activ fusion");
-        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
-            fusion_ctx, fusion_problem, invoke_bufs, params, true);
-    }
-    else if(ValidateOps(fusion_problem.fusion_plan_desc->op_map,
-                        {miopenFusionOpConvForward, miopenFusionOpActivForward}))
-    {
-        MIOPEN_LOG_I2("Allocating buffers for conv+activ fusion");
-        return AllocateBuffersAndMakeConvBiasActivFusionInvokeParams(
-            fusion_ctx, fusion_problem, invoke_bufs, params, false);
-    }
-    else
-    {
-        // handle the rest of the fusion operators cases
-        // eg: Convolution + Bias + BatchNorm + Activation,
-        //     Convolution + BatchNorm + Activation
-        //     Convolution + BatchNorm
-        //     GEMM + Activation
-        //
-        MIOPEN_LOG_W("Allocating buffers for given fusion operators is not supported yet.");
-        return miopen::fusion::FusionInvokeParams(OperatorArgs(),
-                                                  miopen::TensorDescriptor(),
-                                                  nullptr,
-                                                  miopen::TensorDescriptor(),
-                                                  nullptr,
-                                                  false);
-    }
-}
-
 struct FusionFindParameters : PrimitiveFindParameters
 {
 };
@@ -684,17 +676,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     auto fusion_ctx     = FusionContext{handle};
     auto fusion_problem = FusionDescription{this};
-    miopen::OperatorArgs params;
-    std::vector<Allocator::ManageDataPtr> invoke_bufs;
     const FindEnforce enforce;
-    // During search mode, miopen invokes kernel to find the best config.
-    // If memory allocation of the invoke params for the given fusion plan
-    // is not supported we return early.
-    if(enforce.IsSearch(fusion_ctx) && invoke_bufs.empty())
-    {
-        MIOPEN_LOG_I("No supported fusion solvers found during Search Mode.");
-        return miopenStatusUnsupportedOp;
-    }
 
     // tmp_sols is a collection of ConvSolutions that have been return from Find for the
     // fusion_problem. These ConvSolutions store instructions on how to build kernels and an invoker
@@ -708,8 +690,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
             // We need buffers for find, thus we allocate them.
-            const auto invoke_params =
-                MakeFusionInvokeParams(fusion_ctx, fusion_problem, invoke_bufs, params);
+            miopen::OperatorArgs params;
+            std::vector<Allocator::ManageDataPtr> invoke_bufs;
+            const auto invoke_params = AllocateBuffersAndMakeFusionInvokeParams(
+                fusion_ctx, fusion_problem, invoke_bufs, params, *this);
 
             FindCore(invoke_params,
                      record,
