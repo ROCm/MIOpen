@@ -158,4 +158,6 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsFwdWrw, Conv2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsFwdWrw,
+                         Conv2dHalf,
+                         testing::Values(GetTestCases("--half")));

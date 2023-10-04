@@ -147,4 +147,6 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     return test_cases;
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsBwd, Conv2dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsBwd,
+                         Conv2dFloat,
+                         testing::Values(GetTestCases("--float")));
