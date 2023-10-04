@@ -121,7 +121,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
     ConvSolution result;
     auto ck_args = CKArgsType{problem};
 
-    TransposeSolutionDefault2Ndhwc trans_input(
+    TransposeSolutionDefault2Ndhwc tr_in(
         ctx,
         problem.GetInDataType(),
         ck_args.N,
@@ -130,7 +130,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
         ck_args.Hi,
         ck_args.Wi);
 
-    TransposeSolutionDefault2Ndhwc trans_weight(
+    TransposeSolutionDefault2Ndhwc tr_wei(
         ctx,
         problem.GetWeightsDataType(),
         ck_args.K1,
@@ -139,7 +139,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
         ck_args.Y,
         ck_args.X);
 
-    TransposeSolutionNdhwc2Default trans_output(
+    TransposeSolutionNdhwc2Default tr_out(
         ctx,
         problem.GetOutDataType(),
         ck_args.N,
@@ -150,9 +150,62 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
 
     result.construction_params.insert(
         result.construction_params.end(),
-        {trans_input.GetKernelInfo(), 
-         trans_weight.GetKernelInfo(),
-         trans_output.GetKernelInfo()});
+        {tr_in.GetKernelInfo(), 
+         tr_wei.GetKernelInfo(),
+         tr_out.GetKernelInfo()});
+
+    struct TransposeInstance {
+      size_t tensor_sz = 0;
+      std::vector<OpKernelArg> kern_args{};
+      int index = -1;
+      size_t buf_offset = 0;
+      shared<Data_t> buf_handle{};
+
+      template <typename TransSolnType>
+      TransposeInstance(const TransSolnType& trans_sol, int idx, const MultiBufferWorkspaceTraits& wt) {
+        tensor_sz = trans_sol.GetOutputTensorSize();
+        kern_args = trans_sol.GetKernelArg();
+        index = idx;
+        assert(index >= 0);
+        buf_offset = wt.GetOffset(index);
+      }
+
+      shared<Data_t> AllocBuffer(const Handle& handle, std::size_t workSpace) const {
+        auto buf_handle = CreateSubBuffer(workSpace, buf_offset, tensor_sz);
+        assert(buf_handle.get());
+        return buf_handle;
+      }
+
+      void Run(const Handle& handle, const std::vector<Kernel>& kernels, Data_t out_ptr, Data_t in_ptr) {
+        assert(buf_handle.get()); // call AllocBuffer before calling Run
+        kern_args[0] = out_ptr;
+        kern_args[1] = in_ptr;
+        handle.Run(kernels[index])(kern_args);
+        if (handle.IsProfilingEnabled()) {
+          handle.AccumKernelTime(handle.GetKernelTime());
+        }
+      }
+
+      TransposeInstance() = delete;
+      TransposeInstance(const TransposeInstance&) = default;
+      TransposeInstance(TransposeInstance&&) = default;
+      ~TransposeInstance() = default;
+    };
+
+    constexpr size_t buf_alignment = 256;
+    MultiBufferWorkspaceTraits wt(
+      {
+        tr_in.GetOutputTensorSize(),
+        tr_wei.GetOutputTensorSize(),
+        tr_out.GetOutputTensorSize()
+      },
+      buf_alignment);
+
+
+    TransposeInstance tr_inst_in(tr_in, 0, wt);
+    TransposeInstance tr_inst_wei(tr_wei, 1, wt);
+    TransposeInstance tr_inst_out(tr_out, 2, wt);
+
 
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
@@ -161,22 +214,49 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
         MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
 
     result.invoker_factory =
-        [ck_args     = CKArgsType{problem},
-         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
-            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
-                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+        [ck_args     = std::move(ck_args),
+         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)},
+         tr_inst_in = std::move(tr_inst_in),
+         tr_inst_wei = std::move(tr_inst_wei),
+         tr_inst_out = std::move(tr_inst_out)]
+           (const std::vector<Kernel>& kernels) mutable {
+            return [ck_args = std::move(ck_args), 
+              kernels = kernels,
+              sh_conv_ptr = std::move(sh_conv_ptr),
+              tr_inst_in = std::move(tr_inst_in),
+              tr_inst_wei = std::move(tr_inst_wei),
+              tr_inst_out = std::move(tr_inst_out)] (const Handle& handle, const AnyInvokeParams& primitive_parameters) 
+            {
+                handle.ResetKernelTime();
 
-                const auto enable_profiling = handle.IsProfilingEnabled();
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+
+                auto tmp_buf_in = tr_inst_in.AllocBuffer(handle, data_ctx.workSpace);
+                auto tmp_buf_wei = tr_inst_wei.AllocBuffer(handle, data_ctx.workSpace);
+                auto tm_buf_out = tr_inst_out.AllocBuffer(handle, data_ctx.workSpace);
+
+                tr_inst_in.Run(handle, kernels, tmp_buf_in.get(), data_ctx.tensors.in);
+                tr_inst_wei.Run(handle, kernels, tmp_buf_wei.get(), data_ctx.tensors.wei);
+
+
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, 
+                     tmp_buf_in.get(),
+                    tmp_buf_wei.get(),
+                    tmp_buf_out.get());
+
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 float elapsed_time =
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-                if(enable_profiling)
+
+                if(handle.IsProfilingEnabled())
                 {
-                    handle.ResetKernelTime();
                     handle.AccumKernelTime(elapsed_time);
                 }
+
+                tr_inst_out.Run(handle, kernels, data_ctx.tensors.out, tmp_buf_out.get());
+                
+
+
             };
         };
     return result;
