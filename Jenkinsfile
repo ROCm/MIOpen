@@ -431,15 +431,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == "_miopen_nightly" ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == "_miopen_nightly" ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == "_miopen_nightly" ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
