@@ -48,7 +48,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           problem.IsLayoutDefault() && (!problem.IsInt8());
+           problem.IsLayoutDefault() && (problem.IsFp16() || problem.IsFp32() || problem.IsBfp16());
 }
 
 // Check tensor data type respectively
