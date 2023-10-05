@@ -156,7 +156,7 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t bnScale,
                            ConstData_t bnBias,
                            double expAvgFactor,
-                           double epsilon);
+                           double epsilon) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormFwdTrain; };
     std::vector<size_t> GetLocalWGSz();
     std::vector<size_t> GetGlobalWGSz();
@@ -189,7 +189,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
                            Data_t resBnScaleDiff,
                            Data_t resBnBiasDiff,
                            ConstData_t savedMean,
-                           ConstData_t savedInvVariance);
+                           ConstData_t savedInvVariance) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormBwdTrain; };
     std::vector<size_t> GetLocalWGSz();
     std::vector<size_t> GetGlobalWGSz();

@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <array>
 #include <cassert>
+#include <miopen/batch_norm.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/logger.hpp>
@@ -134,10 +135,16 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
         return ret;
     };
 
-    const auto conv_id       = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpConvForward);
-    const auto bias_id       = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBiasForward);
-    const auto activation_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpActivForward);
-    const auto bnorm_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormInference);
+    const auto conv_id      = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpConvForward);
+    const auto bias_id      = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBiasForward);
+    const auto activ_fwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpActivForward);
+    const auto activ_bwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpActivBackward);
+    const auto bn_inf_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormInference);
+    const auto bn_fwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormFwdTrain);
+    const auto bn_bwd_id = solver::fusion::GetOpIdx(plan.op_map, miopenFusionOpBatchNormBwdTrain);
+
+    const auto any_activ = activ_fwd_id != -1 || activ_bwd_id != -1;
+    const auto any_bn    = bn_inf_id != -1 || bn_fwd_id != -1 || bn_bwd_id != -1;
 
     Data_t bias_ptr = nullptr;
     TensorDescriptor in_desc, out_desc;
@@ -166,34 +173,124 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
         MIOPEN_LOG_I("weight addr: " << wei_ptr << " , size: " << conv_problem.GetWeightsSize());
     }
 
-    if(activation_id != -1)
+    if(any_activ)
     {
         const float alpha = 0.5f;
         const float beta  = 0.5f;
         const float gamma = 0.5f;
 
-        params.SetArg(
-            activation_id,
-            std::make_unique<miopen::fusion::ActivationOpInvokeParam>(alpha, beta, gamma));
+        if(activ_fwd_id != -1)
+        {
+            params.SetArg(
+                activ_fwd_id,
+                std::make_unique<miopen::fusion::ActivationOpInvokeParam>(alpha, beta, gamma));
+        }
+        else if(activ_bwd_id != -1)
+        {
+            const auto& activ_op =
+                dynamic_cast<ActivBwdFusionOpDescriptor&>(*plan.op_map[activ_bwd_id]);
+
+            auto x = allocate_buffer(activ_op.input_desc.GetElementSize());
+            auto y = allocate_buffer(activ_op.input_desc.GetElementSize());
+
+            params.SetArg(activ_bwd_id,
+                          std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
+                              y, x, alpha, beta, gamma));
+        }
     }
 
-    if(bnorm_id != -1)
+    if(any_bn)
     {
-        const auto& bn_op =
-            dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*plan.op_map[bnorm_id]);
+        const auto epsilon = 0.00001;
+        const auto expAvg  = 0.99;
+        const auto alpha   = 1.0;
+        const auto beta    = 0.0;
 
-        out_desc = in_desc = bn_op.input_desc;
+        if(bn_inf_id != -1)
+        {
+            const auto& bn_op =
+                dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*plan.op_map[bn_inf_id]);
 
-        auto scale_ptr    = allocate_buffer(bn_op.base_desc.GetElementSize());
-        auto mean_ptr     = allocate_buffer(bn_op.base_desc.GetElementSize());
-        auto variance_ptr = allocate_buffer(bn_op.base_desc.GetElementSize());
+            out_desc = in_desc = bn_op.input_desc;
 
-        if(bias_ptr == nullptr)
-            allocate_buffer(bn_op.base_desc.GetElementSize());
+            const auto size   = bn_op.base_desc.GetElementSize();
+            auto scale_ptr    = allocate_buffer(size);
+            auto mean_ptr     = allocate_buffer(size);
+            auto variance_ptr = allocate_buffer(size);
+            if(bias_ptr == nullptr)
+                bias_ptr = allocate_buffer(size);
 
-        const auto epsilon = 0.5f;
-        bn_op.SetArgs(
-            params, nullptr, nullptr, scale_ptr, bias_ptr, mean_ptr, variance_ptr, epsilon);
+            if(bias_ptr == nullptr)
+                allocate_buffer(bn_op.base_desc.GetElementSize());
+
+            bn_op.SetArgs(
+                params, &alpha, &beta, scale_ptr, bias_ptr, mean_ptr, variance_ptr, epsilon);
+        }
+        else if(bn_fwd_id != -1)
+        {
+            const auto& bn_op =
+                dynamic_cast<BatchNormFwdTrainFusionOpDescriptor&>(*plan.op_map[bn_fwd_id]);
+
+            out_desc = in_desc = bn_op.input_desc;
+
+            // We don't have descriptor here
+            miopen::TensorDescriptor derivedBnDesc{};
+            miopen::DeriveBNTensorDescriptor(derivedBnDesc, in_desc, bn_op.mode);
+
+            const auto size              = derivedBnDesc.GetElementSize();
+            Data_t scale_ptr             = allocate_buffer(size);
+            Data_t mean_ptr              = allocate_buffer(size);
+            Data_t variance_ptr          = allocate_buffer(size);
+            Data_t save_mean_ptr         = allocate_buffer(size);
+            Data_t save_inv_variance_ptr = allocate_buffer(size);
+            if(bias_ptr == nullptr)
+                bias_ptr = allocate_buffer(size);
+
+            bn_op.SetArgs(params,
+                          &alpha,
+                          &beta,
+                          mean_ptr,
+                          variance_ptr,
+                          save_mean_ptr,
+                          save_inv_variance_ptr,
+                          scale_ptr,
+                          bias_ptr,
+                          expAvg,
+                          epsilon);
+        }
+        else if(bn_bwd_id != -1)
+        {
+            const auto& bn_op =
+                dynamic_cast<BatchNormBwdTrainFusionOpDescriptor&>(*plan.op_map[bn_bwd_id]);
+
+            out_desc = in_desc = bn_op.input_desc;
+
+            Data_t x_ptr = allocate_buffer(in_desc.GetElementSize());
+
+            // We don't have descriptor here
+            miopen::TensorDescriptor derivedBnDesc{};
+            miopen::DeriveBNTensorDescriptor(derivedBnDesc, in_desc, bn_op.mode);
+
+            const auto size               = derivedBnDesc.GetElementSize();
+            Data_t scale_ptr              = allocate_buffer(size);
+            Data_t res_bn_scale_diff_ptr  = allocate_buffer(size);
+            Data_t res_bn_bias_diff_ptr   = allocate_buffer(size);
+            Data_t saved_mean_ptr         = allocate_buffer(size);
+            Data_t saved_inv_variance_ptr = allocate_buffer(size);
+            if(bias_ptr == nullptr)
+                bias_ptr = allocate_buffer(size);
+
+            bn_op.SetArgs(params,
+                          &alpha,
+                          &beta,
+                          x_ptr,
+                          scale_ptr,
+                          bias_ptr,
+                          res_bn_scale_diff_ptr,
+                          res_bn_bias_diff_ptr,
+                          saved_mean_ptr,
+                          saved_inv_variance_ptr);
+        }
     }
 
     const auto in_ptr  = allocate_buffer(in_desc.GetElementSize());
@@ -504,7 +601,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                             ConstData_t bnScale,
                                                             ConstData_t bnBias,
                                                             double expAvgFactor,
-                                                            double epsilon)
+                                                            double epsilon) const
 {
     if(runningMeanVar && (runningMean == nullptr || runningVariance == nullptr))
     {
@@ -543,7 +640,7 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                             Data_t resBnScaleDiff,
                                                             Data_t resBnBiasDiff,
                                                             ConstData_t savedMean,
-                                                            ConstData_t savedInvVariance)
+                                                            ConstData_t savedInvVariance) const
 {
     auto op_args = std::make_unique<fusion::BatchNormBwdTrainingOpInvokeParam>(
         x, bnScale, bnBias, resBnScaleDiff, resBnBiasDiff, savedMean, savedInvVariance);
