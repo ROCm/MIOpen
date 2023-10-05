@@ -73,7 +73,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     auto env = std::string("");
 
     if(params.find("-std=") == std::string::npos)
-        params += " --std=c++11";
+        params += " --std=c++17";
 
 #if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
     params += " --cuda-gpu-arch=" + lots.device;
