@@ -68,7 +68,7 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
-# Build librarie with beta apis
+# Build library with Beta APIs
 add_definitions("-DMIOPEN_BETA_API_FP8=1")
 
 set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
