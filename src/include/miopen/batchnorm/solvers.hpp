@@ -152,6 +152,16 @@ struct BnCKBwdBackward final : BatchnormSolver
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
+struct BnCKFwdTraining final : BatchnormSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<BnCKFwdTraining>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
+};
+
 } // namespace batchnorm
 
 } // namespace solver

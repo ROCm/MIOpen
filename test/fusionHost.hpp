@@ -202,17 +202,17 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
+template <class T, class U, class V = U>
 void batchNormSpatialHostFwdTrain(const tensor<T>& input,
                                   tensor<T>& out,
                                   const tensor<U>& scale,
                                   const tensor<U>& bias,
                                   double epsilon,
                                   double expAvgFactor,
-                                  tensor<U>& saveMean,
-                                  tensor<U>& saveInvVar,
-                                  tensor<U>& runMean,
-                                  tensor<U>& runVar)
+                                  tensor<V>& saveMean,
+                                  tensor<V>& saveInvVar,
+                                  tensor<V>& runMean,
+                                  tensor<V>& runVar)
 {
 
     int height, width, n_batch, channels;

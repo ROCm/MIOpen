@@ -338,3 +338,106 @@ private:
         dBias_dev  = handle.Write(dBias.data);
     }
 };
+
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType,
+          typename TConfig>
+struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, TConfig>
+{
+    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    {
+        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_layout);
+        CreateTensors();
+        InitTensorsWithRandValue();
+        WriteToGPU();
+    }
+
+    tensor<ScaleDataType> scale;
+    tensor<BiasDataType> shift;
+    tensor<MeanVarDataType> saveMean;
+    tensor<MeanVarDataType> saveVariance;
+    tensor<MeanVarDataType> runMean;
+    tensor<MeanVarDataType> runVariance;
+
+    tensor<MeanVarDataType> saveMean_ref;
+    tensor<MeanVarDataType> saveVariance_ref;
+    tensor<MeanVarDataType> runMean_ref;
+    tensor<MeanVarDataType> runVariance_ref;
+
+    miopen::Allocator::ManageDataPtr scale_dev;
+    miopen::Allocator::ManageDataPtr shift_dev; // bias
+    miopen::Allocator::ManageDataPtr saveMean_dev;
+    miopen::Allocator::ManageDataPtr saveVariance_dev;
+    miopen::Allocator::ManageDataPtr runMean_dev;
+    miopen::Allocator::ManageDataPtr runVariance_dev;
+    double epsilon          = 1.0e-5;
+    double averageFactor    = 0.1;
+    float alpha             = static_cast<float>(1.0f);
+    float beta              = static_cast<float>(0);
+    const float activ_alpha = static_cast<double>(0.5f);
+    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_gamma = static_cast<double>(0.5f);
+
+private:
+    void CreateTensors()
+    {
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc,
+                                         BNTestData<XDataType, YDataType, TConfig>::input.desc,
+                                         BNTestData<XDataType, YDataType, TConfig>::bn_mode);
+        scale    = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
+                                      BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                      derivedBnDesc.GetLengths()};
+        shift    = tensor<BiasDataType>{miopen_type<BiasDataType>{},
+                                     BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                     derivedBnDesc.GetLengths()};
+        saveMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                           BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                           derivedBnDesc.GetLengths()};
+        saveVariance =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
+        runMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                          derivedBnDesc.GetLengths()};
+        runVariance =
+            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
+                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                    derivedBnDesc.GetLengths()};
+    }
+
+    void InitTensorsWithRandValue()
+    {
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+        };
+        scale.generate(gen_value);
+        shift.generate(gen_value);
+
+        auto gen_var = [](auto...) {
+            return static_cast<MeanVarDataType>(1e-2) *
+                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+        };
+        runMean.generate(gen_var);
+        runVariance.generate(gen_var);
+
+        saveMean_ref     = saveMean;
+        saveVariance_ref = saveVariance;
+        runMean_ref      = runMean;
+        runVariance_ref  = runVariance;
+    }
+    void WriteToGPU()
+    {
+        auto&& handle    = get_handle();
+        scale_dev        = handle.Write(scale.data);
+        shift_dev        = handle.Write(shift.data);
+        saveMean_dev     = handle.Write(saveMean.data);
+        saveVariance_dev = handle.Write(saveVariance.data);
+        runMean_dev      = handle.Write(runMean.data);
+        runVariance_dev  = handle.Write(runVariance.data);
+    }
+};

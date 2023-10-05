@@ -58,6 +58,21 @@ void ComputeCPUBNBwd(DLModule& dl_module)
                                  dl_module.savedInvVar);
 }
 
+template <typename DLModule>
+void ComputeCPUBNFwdTrain(DLModule& dl_module)
+{
+    batchNormSpatialHostFwdTrain(dl_module.input,
+                                 dl_module.ref_out,
+                                 dl_module.scale,
+                                 dl_module.shift,
+                                 dl_module.epsilon,
+                                 dl_module.averageFactor,
+                                 dl_module.saveMean_ref,
+                                 dl_module.saveVariance_ref,
+                                 dl_module.runMean_ref,
+                                 dl_module.runVariance_ref);
+}
+
 template <typename T>
 void CompareTensor(const tensor<T>& output,
                    const tensor<T>& ref_out,
