@@ -25,89 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
+#include "conv3d_test_case.hpp"
 
-#include "get_handle.hpp"
-#include <miopen/conv/data_invoke_params.hpp>
-
-#include "../driver/tensor_driver.hpp"
-#include "conv_common.hpp"
-
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
-{
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<int8_t>()
-{
-    return miopenInt8;
-}
-
-struct ConvTestCase
-{
-    size_t G;
-    size_t N;
-    size_t C;
-    size_t D;
-    size_t H;
-    size_t W;
-    size_t k;
-    size_t z;
-    size_t y;
-    size_t x;
-    size_t pad_x;
-    size_t pad_y;
-    size_t pad_z;
-    size_t stride_x;
-    size_t stride_y;
-    size_t stride_z;
-    size_t dilation_x;
-    size_t dilation_y;
-    size_t dilation_z;
-    miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
-    {
-        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D
-                  << " H:" << tc.H << " W:" << tc.W << " k:" << tc.k << " z:" << tc.z
-                  << " y:" << tc.y << " x:" << tc.x << " pad_z:" << tc.pad_z
-                  << " pad_y:" << tc.pad_y << " pad_x:" << tc.pad_x << " stride_z:" << tc.stride_z
-                  << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
-                  << " dilation_z:" << tc.dilation_z << " dilation_y:" << tc.dilation_y
-                  << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode;
-    }
-
-    std::vector<size_t> GetInput() { return {N, C, D, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, z, y, x}; }
-
-    miopen::ConvolutionDescriptor GetConv()
-    {
-        return miopen::ConvolutionDescriptor{
-            3,
-            miopenConvolution,
-            miopenPaddingDefault,
-            {static_cast<int>(pad_z), static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_z), static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_z),
-             static_cast<int>(dilation_y),
-             static_cast<int>(dilation_x)},
-            {0, 0, 0},
-            static_cast<int>(G),
-            1.0};
-    }
-};
-
-std::vector<ConvTestCase> ConvTestConfigs()
+std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -139,7 +59,7 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 template <typename T = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
+          std::tuple<miopenConvFwdAlgorithm_t, Conv3DTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -195,7 +115,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    ConvTestCase conv_config;
+    Conv3DTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

@@ -44,7 +44,7 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
                const miopen::TensorDescriptor& outputDesc,
                ConstData_t output,
                const miopen::ConvolutionDescriptor& convDesc,
-               const ConvTestCase& conv_config,
+               const Conv3DTestCase& conv_config,
                bool& test_skipped)
 {
     auto&& handle = get_handle();
