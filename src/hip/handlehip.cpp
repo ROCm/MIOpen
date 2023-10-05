@@ -242,7 +242,7 @@ struct HandleImpl
             rhandle_pool.push_back(std::move(r_ptr));
         }
 #else
-        void add_stream(StreamPtr& s_ptr) { stream_pool.push_back(s_ptr); }
+        void add_stream(StreamPtr s_ptr) { stream_pool.push_back(s_ptr); }
 #endif
         //  stream_pool used as cache for parallel streams created by MIOpen.
         StreamPtrPool stream_pool;
@@ -342,7 +342,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
 #else
-            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream));
+            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
         }
 }
