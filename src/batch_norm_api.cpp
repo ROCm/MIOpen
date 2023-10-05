@@ -243,13 +243,6 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  const void* savedMean,
                                  const void* savedInvVariance)
 {
-    // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopenBFloat16)
-    {
-        return miopenStatusNotImplemented;
-    }
 
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,
