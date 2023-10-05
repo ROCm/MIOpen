@@ -129,14 +129,28 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
             return false;
     }();
 
+    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
+
+                auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<5>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
                 if(is_f8)
+                {
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
@@ -159,10 +173,15 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                                      problem.GetConv().attribute.fp8rounding_mode.Get() ==
                                          miopenF8RoundingModeStochastic,
                                      problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
                 else
+                {
                     handle.Run(kern)(tensors.x,
                                      tensors.dw,
                                      tensors.dy,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
@@ -179,6 +198,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                                      fy,
                                      fx,
                                      group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
@@ -189,7 +209,9 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -197,9 +219,21 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
+                auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.xDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<6>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
                 handle.Run(kern)(tensors.x,
                                  tensors.dw,
                                  tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
                                  di,
                                  hi,
                                  wi,
@@ -232,6 +266,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

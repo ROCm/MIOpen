@@ -390,6 +390,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/workaround_issue_1431.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
+        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
