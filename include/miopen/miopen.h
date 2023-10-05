@@ -356,13 +356,13 @@ typedef enum
         4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
-    miopenDouble = 6,  /*!< 64-bit floating point (Partially supported) */
+    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
 #ifdef MIOPEN_BETA_API_FP8
     miopenFloat8  = 7,
     miopenBFloat8 = 8,
 #else
-    //miopenReserved1 = 7,
-    //miopenReserved2 = 8,
+// miopenReserved1 = 7,
+// miopenReserved2 = 8,
 #endif
 } miopenDataType_t;
 
@@ -615,7 +615,7 @@ typedef enum
               miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
               enum.>*/
 #else
-    //miopenReserved1 = 2,
+// miopenReserved1 = 2,
 #endif
 } miopenConvolutionAttrib_t;
 
