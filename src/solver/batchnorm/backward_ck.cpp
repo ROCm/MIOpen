@@ -80,12 +80,12 @@ struct CKArgsBNormBwd
 
         std::copy(problem.GetXDesc().GetStrides().begin(),
                   problem.GetXDesc().GetStrides().end(),
-                  x_desc_strides.begin());
+                  in_strides.begin());
         arrScaleBiasMeanVarLengths[0] = lens[1]; // get channel
         arrScaleBiasMeanVarStrides[0] = 1;
 
         // prep for CK
-        std::sort(x_desc_strides.begin(), x_desc_strides.end(), std::greater<>());
+        std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
         std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
     }
 
@@ -97,9 +97,9 @@ struct CKArgsBNormBwd
     auto MakeArgPtr(const InvokerPtr& invoker_ptr, const InvokerParams& data_ctx) const
     {
         return invoker_ptr->MakeArgumentPointer(lens,
-                                                x_desc_strides,
-                                                x_desc_strides,
-                                                x_desc_strides,
+                                                in_strides,
+                                                in_strides,
+                                                in_strides,
                                                 reduceDims,
                                                 arrScaleBiasMeanVarLengths,
                                                 arrScaleBiasMeanVarStrides,
@@ -125,7 +125,7 @@ struct CKArgsBNormBwd
     }
 
     std::array<ck::index_t, Rank> lens;
-    std::array<ck::index_t, Rank> x_desc_strides;
+    std::array<ck::index_t, Rank> in_strides;
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
