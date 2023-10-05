@@ -176,7 +176,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
+std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
                                           const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -193,7 +193,7 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx,
     return "naive_conv.cpp";
 }
 
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
+std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem)
 {
     std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
@@ -212,12 +212,12 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx,
         ss << " -DWEIGHTS_TYPE=" << miopen::GetDataType(problem.GetWeightsDataType());
         ss << " -DOUTPUT_TYPE="
            << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
-        const auto in_cast_type = problem.GetInCastType();
+        const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
         if(in_cast_type)
             ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
         const auto wei_cast_type = problem.GetWeightsCastType();
         if(wei_cast_type)
-            ss << " -DWEIGHTS_CAST_TYPE=" << miopen::GetDataType(*(wei_cast_type));
+            ss << " -DWEIGHTS_CAST_TYPE=" << miopen::GetDataType(*wei_cast_type);
         const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
             ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);

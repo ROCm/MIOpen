@@ -360,7 +360,7 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
 }
 
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
-    const ConvolutionContext&, const ProblemDescription& problem)
+    const ExecutionContext&, const ProblemDescription& problem)
 {
     static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
         std::make_tuple(128, 128, 16),
@@ -768,7 +768,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
 PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC pp;
     pp.HeuristicInit(ctx, problem);
@@ -777,7 +777,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {
@@ -785,7 +785,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfig(
 }
 
 PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx,
+ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
@@ -793,7 +793,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 }
 
 size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     const int hi          = problem.GetInHeight_();
     const int wi          = problem.GetInWidth_();
@@ -849,7 +849,7 @@ size_t ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
         return false;
@@ -916,7 +916,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {

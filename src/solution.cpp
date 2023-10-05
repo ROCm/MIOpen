@@ -177,7 +177,7 @@ void Solution::RunImpl(Handle& handle,
     }
 
     const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ConvolutionContext{{&handle}};
+    auto conv_ctx             = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
