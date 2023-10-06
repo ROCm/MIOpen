@@ -4,7 +4,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/util_sol.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 #include <boost/any.hpp>
 
 namespace miopen {

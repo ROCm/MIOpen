@@ -28,6 +28,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 
 namespace miopen {
 namespace solver {
@@ -112,6 +113,53 @@ ConvSolution InitInvokerFactory(const ProblemDescription& problem, const std::st
     return result;
 }
 
+struct TransposeInstance {
+  size_t tensor_sz = 0;
+  std::vector<OpKernelArg> kern_args{};
+  int index = -1;
+  size_t buf_offset = 0;
+
+  template <typename TransSolnType>
+  TransposeInstance(const TransSolnType& trans_sol, int idx, const MultiBufferWorkspaceTraits& wt) {
+    tensor_sz = trans_sol.GetOutputTensorSize();
+    kern_args = trans_sol.GetKernelArg();
+    index = idx;
+    assert(index >= 0);
+    buf_offset = wt.GetOffset(index);
+  }
+
+  shared<Data_t> AllocBuffer(const Handle& handle, Data_t workSpace) const {
+    auto buf_handle = handle.CreateSubBuffer(workSpace, buf_offset, tensor_sz);
+    assert(buf_handle.get());
+    return buf_handle;
+  }
+
+  void Run(const Handle& handle, const std::vector<Kernel>& kernels, Data_t out_ptr, ConstData_t in_ptr) {
+    assert(out_ptr);
+    assert(in_ptr);
+    assert(kernels.size() > index);
+
+    kern_args[0] = out_ptr;
+    kern_args[1] = in_ptr;
+    MIOPEN_LOG_I("Running kernel for transpose: " << kernels[index].name);
+    MIOPEN_LOG_I("out_ptr = " << out_ptr << ", in_ptr = " << in_ptr);
+
+    for (int i = 2; i < kern_args.size(); ++i) {
+      MIOPEN_LOG_I("arg #" << i << " = " << *(reinterpret_cast<uint32_t*>(kern_args[i].buffer.data())));
+    }
+
+    handle.Run(kernels[index])(kern_args);
+    if (handle.IsProfilingEnabled()) {
+      handle.AccumKernelTime(handle.GetKernelTime());
+    }
+  }
+
+  TransposeInstance() = delete;
+  TransposeInstance(const TransposeInstance&) = default;
+  TransposeInstance(TransposeInstance&&) = default;
+  ~TransposeInstance() = default;
+};
+
 template <typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDescription& problem, const std::string& kernel_id)
 {
@@ -154,43 +202,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
          tr_wei.GetKernelInfo(),
          tr_out.GetKernelInfo()});
 
-    struct TransposeInstance {
-      size_t tensor_sz = 0;
-      std::vector<OpKernelArg> kern_args{};
-      int index = -1;
-      size_t buf_offset = 0;
-      shared<Data_t> buf_handle{};
-
-      template <typename TransSolnType>
-      TransposeInstance(const TransSolnType& trans_sol, int idx, const MultiBufferWorkspaceTraits& wt) {
-        tensor_sz = trans_sol.GetOutputTensorSize();
-        kern_args = trans_sol.GetKernelArg();
-        index = idx;
-        assert(index >= 0);
-        buf_offset = wt.GetOffset(index);
-      }
-
-      shared<Data_t> AllocBuffer(const Handle& handle, std::size_t workSpace) const {
-        auto buf_handle = CreateSubBuffer(workSpace, buf_offset, tensor_sz);
-        assert(buf_handle.get());
-        return buf_handle;
-      }
-
-      void Run(const Handle& handle, const std::vector<Kernel>& kernels, Data_t out_ptr, Data_t in_ptr) {
-        assert(buf_handle.get()); // call AllocBuffer before calling Run
-        kern_args[0] = out_ptr;
-        kern_args[1] = in_ptr;
-        handle.Run(kernels[index])(kern_args);
-        if (handle.IsProfilingEnabled()) {
-          handle.AccumKernelTime(handle.GetKernelTime());
-        }
-      }
-
-      TransposeInstance() = delete;
-      TransposeInstance(const TransposeInstance&) = default;
-      TransposeInstance(TransposeInstance&&) = default;
-      ~TransposeInstance() = default;
-    };
 
     constexpr size_t buf_alignment = 256;
     MultiBufferWorkspaceTraits wt(
@@ -225,7 +236,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
               sh_conv_ptr = std::move(sh_conv_ptr),
               tr_inst_in = std::move(tr_inst_in),
               tr_inst_wei = std::move(tr_inst_wei),
-              tr_inst_out = std::move(tr_inst_out)] (const Handle& handle, const AnyInvokeParams& primitive_parameters) 
+              tr_inst_out = std::move(tr_inst_out)] (const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable 
             {
                 handle.ResetKernelTime();
 
@@ -233,12 +244,16 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
 
                 auto tmp_buf_in = tr_inst_in.AllocBuffer(handle, data_ctx.workSpace);
                 auto tmp_buf_wei = tr_inst_wei.AllocBuffer(handle, data_ctx.workSpace);
-                auto tm_buf_out = tr_inst_out.AllocBuffer(handle, data_ctx.workSpace);
+                auto tmp_buf_out = tr_inst_out.AllocBuffer(handle, data_ctx.workSpace);
 
+                MIOPEN_LOG_I("Running input transpose");
                 tr_inst_in.Run(handle, kernels, tmp_buf_in.get(), data_ctx.tensors.in);
-                tr_inst_wei.Run(handle, kernels, tmp_buf_wei.get(), data_ctx.tensors.wei);
+                handle.Finish();
+                MIOPEN_LOG_I("Running weight transpose");
+                tr_inst_wei.Run(handle, kernels, tmp_buf_wei.get(), data_ctx.tensors.w);
+                handle.Finish();
 
-
+                MIOPEN_LOG_I("Running CK convolution");
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, 
                      tmp_buf_in.get(),
                     tmp_buf_wei.get(),
@@ -246,15 +261,19 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx, const ProblemDe
 
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 float elapsed_time =
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), handle.IsProfilingEnabled()});
 
                 if(handle.IsProfilingEnabled())
                 {
                     handle.AccumKernelTime(elapsed_time);
                 }
 
+                handle.Finish();
+                MIOPEN_LOG_I("Running output transpose");
                 tr_inst_out.Run(handle, kernels, data_ctx.tensors.out, tmp_buf_out.get());
                 
+                handle.Finish();
+                MIOPEN_LOG_I("Inovker finished executing");
 
 
             };

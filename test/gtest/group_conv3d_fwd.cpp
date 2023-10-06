@@ -32,7 +32,8 @@
 #include "get_handle.hpp"
 #include "group_conv3d_fwd.hpp"
 
-struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
+// struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
+struct ConvFwdSolverTest3D : ConvFwdSolverTest<float>
 {
 };
 
@@ -67,7 +68,15 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
+
+    std::vector<std::uint8_t> workspace(
+        inputDesc.GetNumBytes() + wDesc.GetNumBytes() + outputDesc.GetNumBytes());
+
+    auto workspace_dev = handle.Write(workspace);
+
+
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, workspace_dev.get(), workspace.size(), false};
+    
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -95,4 +104,4 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTest3D,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNDHWC)));
+                                          testing::ValuesIn({miopenTensorNDHWC, miopenTensorNCDHW})));

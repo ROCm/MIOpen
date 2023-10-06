@@ -76,6 +76,7 @@ struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
     {
+      assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
     }
 };
 
@@ -89,6 +90,7 @@ struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
     {
+      assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
     }
 };
 
@@ -103,6 +105,7 @@ struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, c_, d_ * h_ * w_)
     {
+      assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
     }
 };
 
@@ -117,6 +120,7 @@ struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, d_ * h_ * w_, c_)
     {
+      assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
     }
 };
 
