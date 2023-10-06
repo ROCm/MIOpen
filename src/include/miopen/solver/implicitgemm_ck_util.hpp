@@ -42,8 +42,10 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
     });
 }
 
-template <typename DeviceOpType, typename CKArgsType>
-std::vector<std::string> FillValidKernelsIDs(const ProblemDescription& problem)
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename ProblemDescriptionType = ProblemDescription>
+std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& problem)
 {
     const auto args      = CKArgsType{problem};
     const auto conv_ptrs = DeviceOpType::GetInstances();
@@ -60,8 +62,10 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescription& problem)
     return valid_kernels;
 }
 
-template <typename DeviceOpType, typename CKArgsType>
-bool IsCKArgsSupported(const ProblemDescription& problem, const std::string& kernel_id)
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename ProblemDescriptionType = ProblemDescription>
+bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
@@ -69,20 +73,25 @@ bool IsCKArgsSupported(const ProblemDescription& problem, const std::string& ker
     return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
 }
 
-template <typename DeviceOpType, typename CKArgsType>
-bool IsCKApplicable(const ProblemDescription& problem)
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename ProblemDescriptionType = ProblemDescription>
+bool IsCKApplicable(const ProblemDescriptionType& problem)
 {
     const auto args = CKArgsType{problem};
-    if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
-        return false;
+    // if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
+    //     return false;
 
     const auto ptrs = DeviceOpType::GetInstances();
     return std::any_of(
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
 
-template <typename DeviceOpType, typename CKArgsType, typename CastType>
-ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx, const ProblemDescription& problem, const std::string& kernel_id)
+template <typename DeviceOpType, 
+          typename CKArgsType, 
+          typename CastType,
+          typename ProblemDescriptionType=ProblemDescription>
+ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx, const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
@@ -98,6 +107,42 @@ ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+
+                const auto enable_profiling = handle.IsProfilingEnabled();
+                float elapsed_time =
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                if(enable_profiling)
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed_time);
+                }
+            };
+        };
+    return result;
+}
+
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename CastType,
+          typename ProblemDescriptionType = ProblemDescription>
+ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
+                                   const std::string& kernel_id)
+{
+    auto conv_ptrs = DeviceOpType::GetInstances();
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+
+    if(ptr_iter == conv_ptrs.end())
+        return {miopenStatusInvalidValue};
+
+    ConvSolution result;
+    result.invoker_factory =
+        [ck_args     = CKArgsType{problem},
+         sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
+            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 
                 const auto enable_profiling = handle.IsProfilingEnabled();
@@ -676,6 +721,5 @@ ConvSolution InitInvokerFactoryFwdNCDHW(const ExecutionContext& ctx, const Probl
     return result;
 }
 #endif
-
 } // namespace solver
 } // namespace miopen
