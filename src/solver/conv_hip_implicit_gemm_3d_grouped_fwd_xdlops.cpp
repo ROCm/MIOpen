@@ -332,69 +332,29 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     return false;
 }
 
-ConvSolution GetNCDHWSolution(  
-    [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config)
-{
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenInt8:
-        return InitInvokerFactoryNCHW<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenHalf:
-        return InitInvokerFactoryNCHW<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenFloat:
-        return InitInvokerFactoryNCHW<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
-#endif
-}
-
 ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
-  if (problem.IsLayoutDefault()) {
-    return GetNCDHWSolution(ctx, problem, config);
-  }
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenInt8:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenHalf:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenFloat:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
-#endif
+  return MakeSolutionGroupConvImplicitGemmXdlops(
+      problem,
+      [&] (auto data_type_val) {
+        using T = std::remove_cv_t<decltype(data_type_val)>;
+        return InitInvokerFactoryFwdNCHW<3, DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+      },
+      [&] (auto data_type_val) {
+        using T = std::remove_cv_t<decltype(data_type_val)>;
+        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+      });
+
+#else
     return {};
+#endif
 }
 
 } // namespace solver

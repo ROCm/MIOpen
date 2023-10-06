@@ -139,10 +139,10 @@ struct CKArgs
 
     int G;
     int N;
+    int K1;
+    int C1;
     int K;
     int C;
-    int C1;
-    int K1;
     int Hi;
     int Wi;
     int Ho;
@@ -327,29 +327,22 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
-    {
-    case miopenHalf:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenFloat:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt8:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-    case miopenInt32:
-    case miopenInt8x4:
-    case miopenBFloat16:
-    case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
-    }
-#endif
+  return MakeSolutionGroupConvImplicitGemmXdlops(
+      problem,
+      [&] (auto data_type_val) {
+        using T = std::remove_cv_t<decltype(data_type_val)>;
+        return InitInvokerFactoryFwdNCHW<2, DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+      },
+      [&] (auto data_type_val) {
+        using T = std::remove_cv_t<decltype(data_type_val)>;
+        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+      });
+
+#else
     return {};
+#endif
 }
 
 } // namespace solver
