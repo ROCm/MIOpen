@@ -26,48 +26,48 @@
 
 #include "bn.hpp"
 
-struct BNInferTestHalf
-    : BNInferTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
+struct BNFwdTrainTestHalf
+    : BNFwdTrainTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
 {
 };
 
-struct BNInferTestFloat : BNInferTest<float, float, float, float, float>
+struct BNFwdTrainTestFloat : BNFwdTrainTest<float, float, float, float, float>
 {
 };
 
-struct BNInferTestDouble : BNInferTest<double, double, double, double, double>
+struct BNFwdTrainTestDouble : BNFwdTrainTest<double, double, double, double, double>
 {
 };
 
-struct BNInferTestBFloat16 : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16, double>
+struct BNFwdTrainTestBFloat16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, double>
 {
 };
 
-TEST_P(BNInferTestHalf, BnInferCKHalf) {}
+TEST_P(BNFwdTrainTestHalf, BnFwdTrainCKHalf) {}
 
-TEST_P(BNInferTestFloat, BnInferCKFloat) {}
+TEST_P(BNFwdTrainTestFloat, BnFwdTrainCKFloat) {}
 
 // Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
 // only supports half and float
-TEST_P(BNInferTestDouble, DISABLED_BnInferCKDouble) {}
-TEST_P(BNInferTestBFloat16, DISABLED_BnInferCKBFloat16) {}
+TEST_P(BNFwdTrainTestDouble, DISABLED_BnFwdTrainCKDouble) {}
+TEST_P(BNFwdTrainTestBFloat16, DISABLED_BnFwdTrainCKBFloat16) {}
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
-                         BNInferTestHalf,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestHalfNHWCSuite,
+                         BNFwdTrainTestHalf,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
-                         BNInferTestFloat,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
+                         BNFwdTrainTestFloat,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
-                         BNInferTestDouble,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
+                         BNFwdTrainTestDouble,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatNHWCSuite,
-                         BNInferTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
+                         BNFwdTrainTestBFloat16,
                          testing::Combine(testing::ValuesIn(Network1()),
                                           testing::Values(miopenTensorNHWC)));
