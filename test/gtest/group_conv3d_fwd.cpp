@@ -69,13 +69,11 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << conv_config;
     }
 
-    std::vector<std::uint8_t> workspace(
-        inputDesc.GetNumBytes() + wDesc.GetNumBytes() + outputDesc.GetNumBytes());
-
-    auto workspace_dev = handle.Write(workspace);
+    auto [workspace_gpu, workspace_sz] = AllocateConvTransposeWorkspace(handle,
+        inputDesc, wDesc, outputDesc);
 
 
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, workspace_dev.get(), workspace.size(), false};
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
     
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));

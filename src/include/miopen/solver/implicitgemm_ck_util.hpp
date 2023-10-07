@@ -259,8 +259,6 @@ struct TransposeInstanceMaker2D {
         },
         buf_alignment);
 
-
-
     return std::make_tuple(
         TransposeInstance(tr_in, 0, wt),
         TransposeInstance(tr_wei, 1, wt),

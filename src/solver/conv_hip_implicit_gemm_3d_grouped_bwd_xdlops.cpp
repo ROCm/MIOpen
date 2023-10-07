@@ -313,7 +313,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
         return false;
     if(!problem.Is3d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))
@@ -344,7 +344,11 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
       problem,
       [&] (auto data_type_val) {
         using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryBwdNCHW<3, DeviceOpGBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+        /// \todo This call should be InitInvokerFactoryBwdNCHW but due to the
+        /// silliness of "in tensor is out and out is in" in backward pass,
+        /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
+        /// output -- amberhassaan
+        return InitInvokerFactoryFwdNCHW<3, DeviceOpGBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
       },
       [&] (auto data_type_val) {

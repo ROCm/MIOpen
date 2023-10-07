@@ -2631,3 +2631,29 @@ struct conv_bias_driver : test_driver
         verify(verify_backwards_bias<T>{output, bias});
     }
 };
+
+std::pair<miopen::Allocator::ManageDataPtr, size_t>
+AllocateConvTransposeWorkspace(
+    miopen::Handle& handle,
+    const miopen::TensorDescriptor& x,
+    const miopen::TensorDescriptor& w,
+    const miopen::TensorDescriptor& y) {
+
+  constexpr size_t alignment = 256u;
+
+  auto align = [&] (size_t sz) {
+    auto ret = (sz + alignment - 1) & ~(alignment - 1);
+    assert (ret >= sz);
+    return ret;
+  };
+
+
+  auto w_sz = align(x.GetNumBytes()) + align(w.GetNumBytes()) + align(y.GetNumBytes());
+  std::vector<std::uint8_t> w_cpu(w_sz);
+
+  auto w_gpu = handle.Write(w_cpu);
+  assert(w_gpu.get());
+
+  return std::make_pair(std::move(w_gpu), w_cpu.size());
+}
+

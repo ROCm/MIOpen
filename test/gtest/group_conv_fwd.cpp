@@ -67,8 +67,12 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemmFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
+    auto [workspace_gpu, workspace_sz] = AllocateConvTransposeWorkspace(handle,
+        inputDesc, wDesc, outputDesc);
 
+
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
+    
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
     ASSERT_TRUE(sol.Succeeded());
@@ -95,4 +99,4 @@ INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
-                                          testing::Values(miopenTensorNHWC)));
+                                          testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));

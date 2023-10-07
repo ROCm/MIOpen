@@ -307,7 +307,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
         return false;
     if(!problem.Is3d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))

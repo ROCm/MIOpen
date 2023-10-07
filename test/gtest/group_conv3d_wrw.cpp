@@ -68,7 +68,11 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemm3DGroupWrwXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params = miopen::conv::WrWInvokeParams{tensors, nullptr, 0, false};
+    auto [workspace_gpu, workspace_sz] = AllocateConvTransposeWorkspace(handle,
+        inputDesc, wDesc, outputDesc);
+
+    const auto invoke_params = miopen::conv::WrWInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
+    
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
     ASSERT_TRUE(sol.Succeeded());
@@ -96,4 +100,4 @@ INSTANTIATE_TEST_SUITE_P(
     ConvWrwSolverTest3D,
     testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
                      testing::ValuesIn(ConvTestConfigs()),
-                     testing::Values(miopenTensorNDHWC)));
+                     testing::ValuesIn({miopenTensorNDHWC, miopenTensorNCDHW})));
