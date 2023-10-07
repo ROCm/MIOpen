@@ -67,12 +67,12 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemmFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    auto [workspace_gpu, workspace_sz] = AllocateConvTransposeWorkspace(handle,
-        inputDesc, wDesc, outputDesc);
+    auto [workspace_gpu, workspace_sz] =
+        AllocateConvTransposeWorkspace(handle, inputDesc, wDesc, outputDesc);
 
+    const auto invoke_params =
+        miopen::conv::DataInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
 
-    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
-    
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
     ASSERT_TRUE(sol.Succeeded());

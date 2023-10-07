@@ -339,18 +339,21 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
 {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-  return MakeSolutionGroupConvImplicitGemmXdlops(
-      problem,
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryFwdNCHW<3, DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-      },
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-      });
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryFwdNCHW<3,
+                                             DeviceOpGFwdPtrs<T>,
+                                             CKArgs,
+                                             conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
 
 #else
     return {};

@@ -336,18 +336,18 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-  return MakeSolutionGroupConvImplicitGemmXdlops(
-      problem,
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryWrwNCHW<3, DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
-            ctx, problem, config.kernel_id);
-      },
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
-            ctx, problem, config.kernel_id);
-      });
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryWrwNCHW<3, DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
 
 #else
     return {};

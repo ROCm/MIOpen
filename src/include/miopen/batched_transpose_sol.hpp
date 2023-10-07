@@ -76,7 +76,7 @@ struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
     {
-      assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
+        assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
     }
 };
 
@@ -90,40 +90,39 @@ struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
     {
-      assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
+        assert(size_t(h_ * w_) == (size_t(h_) * size_t(w_)));
     }
 };
 
 struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution
 {
     TransposeSolutionDefault2Ndhwc(const ExecutionContext& ctx_,
-                                  miopenDataType_t data_type_,
-                                  uint32_t n_,
-                                  uint32_t c_,
-                                  uint32_t d_,
-                                  uint32_t h_,
-                                  uint32_t w_)
+                                   miopenDataType_t data_type_,
+                                   uint32_t n_,
+                                   uint32_t c_,
+                                   uint32_t d_,
+                                   uint32_t h_,
+                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, c_, d_ * h_ * w_)
     {
-      assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
+        assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
     }
 };
 
 struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution
 {
     TransposeSolutionNdhwc2Default(const ExecutionContext& ctx_,
-                                  miopenDataType_t data_type_,
-                                  uint32_t n_,
-                                  uint32_t c_,
-                                  uint32_t d_,
-                                  uint32_t h_,
-                                  uint32_t w_)
+                                   miopenDataType_t data_type_,
+                                   uint32_t n_,
+                                   uint32_t c_,
+                                   uint32_t d_,
+                                   uint32_t h_,
+                                   uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, d_ * h_ * w_, c_)
     {
-      assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
+        assert(size_t(d_ * h_ * w_) == (size_t(d_) * size_t(h_) * size_t(w_)));
     }
 };
-
 
 } // namespace miopen
 

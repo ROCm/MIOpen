@@ -64,7 +64,7 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
+        G = ProblemInterpreter::GetGroupCountG(problem);
         assert(G == 1);
         N  = ProblemInterpreter::GetBatchN(problem);
         K1 = ProblemInterpreter::GetOutputChannelK(problem);
@@ -78,7 +78,7 @@ struct CKArgs
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
 
-        input = {Hi, Wi};
+        input  = {Hi, Wi};
         output = {Ho, Wo};
         filter = {Y, X};
 
@@ -327,18 +327,18 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-  return MakeSolutionGroupConvImplicitGemmXdlops(
-      problem,
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryBwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-      },
-      [&] (auto data_type_val) {
-        using T = std::remove_cv_t<decltype(data_type_val)>;
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
-            ctx, problem, config.kernel_id);
-      });
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        problem,
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryBwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = std::remove_cv_t<decltype(data_type_val)>;
+            return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        });
 
 #else
     return {};
