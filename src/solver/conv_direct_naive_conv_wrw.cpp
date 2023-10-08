@@ -127,6 +127,8 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ExecutionContext& ctx,
 
     int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
 
+    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
     {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
