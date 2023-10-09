@@ -160,7 +160,7 @@ protected:
         test_skipped                = false;
         std::tie(algo, conv_config) = GetParam();
         input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.x, conv_config.y};
+        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
             const auto tmp = float8(scalar_gen_random_float{-0.5, 0.5}());
