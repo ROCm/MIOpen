@@ -43,14 +43,14 @@ struct BNInferTestBFloat16 : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16,
 {
 };
 
-TEST_P(BNInferTestHalf, BnFwdInferCKHalf) {}
+TEST_P(BNInferTestHalf, BnInferCKHalf) {}
 
-TEST_P(BNInferTestFloat, BnFwdInferCKFloat) {}
+TEST_P(BNInferTestFloat, BnInferCKFloat) {}
 
 // Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
 // only supports half and float
-TEST_P(BNInferTestDouble, DISABLED_BnFwdInferCKDouble) {}
-TEST_P(BNInferTestBFloat16, DISABLED_BnFwdInferCKBFloat16) {}
+TEST_P(BNInferTestDouble, DISABLED_BnInferCKDouble) {}
+TEST_P(BNInferTestBFloat16, DISABLED_BnInferCKBFloat16) {}
 
 INSTANTIATE_TEST_SUITE_P(BNInferTestHalfNHWCSuite,
                          BNInferTestHalf,
