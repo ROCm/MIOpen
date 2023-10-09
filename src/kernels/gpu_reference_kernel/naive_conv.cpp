@@ -128,7 +128,7 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
 ///
 /// - strides here are stored right to left, i.e., for NHWC, stride for N is
 /// at index 3 while stride for C is at index 0. This is different from how the
-/// tensor descriptors store strides, which is always NCHW order, left-to-right. 
+/// tensor descriptors store strides, which is always NCHW order, left-to-right.
 
 template <bool ASSUME_PACKED, typename src_data_t, typename acc_data_t, typename dst_data_t>
 inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
