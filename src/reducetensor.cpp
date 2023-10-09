@@ -208,6 +208,8 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenHalf: return (2);
     case miopenFloat: return (4);
     case miopenDouble: return (8);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8: return (1);
     case miopenInt8x4: return (4);
     case miopenBFloat16: return (2);
@@ -268,8 +270,10 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
     case miopenInt8x4:
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32: return (static_cast<int>('O'));
-    default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported.");
+    default: MIOPEN_THROW("Only float, half, bfloat16, float8, bfloat8 data type is supported.");
     };
 };
 
@@ -307,6 +311,8 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     case miopenInt8: return DataTypeEnum_t::Int8;
     case miopenInt8x4: return DataTypeEnum_t::Int8x4;
     case miopenInt32: return DataTypeEnum_t::Int32;
+    case miopenFloat8:
+    case miopenBFloat8:
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };
@@ -720,6 +726,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             " -DCK_PARAM_DST_DATATYPE=" + std::to_string(detailStatic::GetDataTypeId(dstDataType));
         param +=
             " -DCK_PARAM_REDUCE_COMPTYPE=" + std::to_string(detailStatic::GetDataTypeId(compType));
+        param +=
+            " -DMIOPEN_FP8_IEEE_EXPONENT_BIAS=" + std::to_string(MIOPEN_FP8_IEEE_EXPONENT_BIAS);
+        param += " -DMIOPEN_FP8_CLIPPING" + std::to_string(MIOPEN_FP8_CLIPPING);
 
         param += " -DCK_PARAM_SRC_DESC_LENGTHS=";
         for(int i = 0; i < inDescLengths.size(); i++)
