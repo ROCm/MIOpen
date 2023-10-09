@@ -330,12 +330,12 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     return MakeSolutionGroupConvImplicitGemmXdlops(
         problem,
         [&](auto data_type_val) {
-            using T = std::remove_cv_t<decltype(data_type_val)>;
+            using T = decltype(data_type_val);
             return InitInvokerFactoryBwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
-            using T = std::remove_cv_t<decltype(data_type_val)>;
+            using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });

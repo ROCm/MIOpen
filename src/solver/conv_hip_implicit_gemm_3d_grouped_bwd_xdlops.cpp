@@ -343,7 +343,7 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
     return MakeSolutionGroupConvImplicitGemmXdlops(
         problem,
         [&](auto data_type_val) {
-            using T = std::remove_cv_t<decltype(data_type_val)>;
+            using T = decltype(data_type_val);
             /// \todo This call should be InitInvokerFactoryBwdNCHW but due to the
             /// silliness of "in tensor is out and out is in" in backward pass,
             /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
@@ -355,7 +355,7 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
-            using T = std::remove_cv_t<decltype(data_type_val)>;
+            using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
