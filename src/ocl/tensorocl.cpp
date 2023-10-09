@@ -1944,6 +1944,7 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
+    case miopenInt8x4: // fallthrough
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
@@ -1965,6 +1966,11 @@ void CastTensor(const Handle& handle,
     if(srcDesc.GetLengths() != dstDesc.GetLengths())
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor cast operation is not supported for int8x4.");
     }
 
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);

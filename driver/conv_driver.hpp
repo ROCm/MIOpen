@@ -83,10 +83,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
-// Support in the library discontinued, but left in the driver
-// for reference in the future.
-#define miopenInt8x4 (static_cast<miopenDataType_t>(4))
-
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 typedef cl_int status_t;

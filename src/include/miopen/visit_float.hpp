@@ -91,6 +91,7 @@ void visit_float(miopenDataType_t t, F f)
         f(as_float<double>{});
         break;
     }
+    case miopenInt8x4: MIOPEN_THROW("miopenInt8x4: Support discontinued.");
     }
 }
 

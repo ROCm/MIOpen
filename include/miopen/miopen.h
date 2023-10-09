@@ -350,7 +350,7 @@ typedef enum
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
     miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
     miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
-    // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
+    miopenInt8x4   = 4, /*!< Pack of four Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
