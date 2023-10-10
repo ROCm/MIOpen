@@ -409,6 +409,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
@@ -655,6 +656,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
@@ -922,6 +924,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
