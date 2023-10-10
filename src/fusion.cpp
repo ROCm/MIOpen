@@ -163,14 +163,14 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
         {
             bias_ptr = allocate_buffer(conv_problem.GetBiasSize());
 
-            MIOPEN_LOG_I("bias addr: " << bias_ptr << " , size: " << conv_problem.GetBiasSize());
+            MIOPEN_LOG_I("bias addr: " << bias_ptr << ", size: " << conv_problem.GetBiasSize());
             params.SetArg(bias_id, std::make_unique<miopen::fusion::BiasOpInvokeParam>(bias_ptr));
         }
 
         auto wei_ptr = allocate_buffer(conv_problem.GetWeightsSize());
         params.SetArg(conv_id, std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
 
-        MIOPEN_LOG_I("weight addr: " << wei_ptr << " , size: " << conv_problem.GetWeightsSize());
+        MIOPEN_LOG_I("weight addr: " << wei_ptr << ", size: " << conv_problem.GetWeightsSize());
     }
 
     if(any_activ)
@@ -294,9 +294,9 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
     }
 
     const auto in_ptr  = allocate_buffer(in_desc.GetElementSpace());
+    MIOPEN_LOG_I("in addr: " << in_ptr << ", size: " << in_desc.GetElementSpace());
     const auto out_ptr = allocate_buffer(out_desc.GetElementSpace());
-    MIOPEN_LOG_I("in addr: " << in_ptr << " , size: " << in_desc.GetElementSpace());
-    MIOPEN_LOG_I("out addr: " << out_ptr << " , size: " << in_desc.GetElementSpace());
+    MIOPEN_LOG_I("out addr: " << out_ptr << ", size: " << in_desc.GetElementSpace());
 
     return miopen::fusion::FusionInvokeParams(
         params, in_desc, in_ptr, out_desc, out_ptr, gfx90aaltimpl);
