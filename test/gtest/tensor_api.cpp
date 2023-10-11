@@ -55,7 +55,7 @@
 
 namespace {
 
-using testDataType_t = int;
+using testDataType_t     = int;
 using testTensorLayout_t = int;
 
 enum class TestStatus
@@ -106,12 +106,13 @@ TestStatus Set4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
     if(check_skip)
         return TestStatus::Passed;
 
-    miopenStatus_t status = miopenSet4dTensorDescriptor(tensorDesc,
-                                                        static_cast<miopenDataType_t>(params.dataType),
-                                                        params.dimsA[0],
-                                                        params.dimsA[1],
-                                                        params.dimsA[2],
-                                                        params.dimsA[3]);
+    miopenStatus_t status =
+        miopenSet4dTensorDescriptor(tensorDesc,
+                                    static_cast<miopenDataType_t>(params.dataType),
+                                    params.dimsA[0],
+                                    params.dimsA[1],
+                                    params.dimsA[2],
+                                    params.dimsA[3]);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -129,7 +130,11 @@ TestStatus SetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
         return TestStatus::Passed;
 
     miopenStatus_t status = miopenSetNdTensorDescriptorWithLayout(
-        tensorDesc, static_cast<miopenDataType_t>(params.dataType), static_cast<miopenTensorLayout_t>(params.tensorLayout), params.dimsA, params.nbDims);
+        tensorDesc,
+        static_cast<miopenDataType_t>(params.dataType),
+        static_cast<miopenTensorLayout_t>(params.tensorLayout),
+        params.dimsA,
+        params.nbDims);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -148,16 +153,17 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
     if(check_skip)
         return TestStatus::Passed;
 
-    miopenStatus_t status = miopenSet4dTensorDescriptorEx(tensorDesc,
-                                                          static_cast<miopenDataType_t>(params.dataType),
-                                                          params.dimsA[0],
-                                                          params.dimsA[1],
-                                                          params.dimsA[2],
-                                                          params.dimsA[3],
-                                                          params.stridesA[0],
-                                                          params.stridesA[1],
-                                                          params.stridesA[2],
-                                                          params.stridesA[3]);
+    miopenStatus_t status =
+        miopenSet4dTensorDescriptorEx(tensorDesc,
+                                      static_cast<miopenDataType_t>(params.dataType),
+                                      params.dimsA[0],
+                                      params.dimsA[1],
+                                      params.dimsA[2],
+                                      params.dimsA[3],
+                                      params.stridesA[0],
+                                      params.stridesA[1],
+                                      params.stridesA[2],
+                                      params.stridesA[3]);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
@@ -276,15 +282,16 @@ protected:
             {
                 for(int ndims = 1; ndims <= max_ndims; ndims++)
                 {
-                    const TestConfig config = {false,
-                                            {datatype,
-                                                layout,
-                                                ndims,
-                                                dims + (max_ndims - ndims),
-                                                use_strides ? (strides + (max_ndims - ndims)) : nullptr,
-                                                use_strides},
-                                            true,
-                                            false};
+                    const TestConfig config = {
+                        false,
+                        {datatype,
+                         layout,
+                         ndims,
+                         dims + (max_ndims - ndims),
+                         use_strides ? (strides + (max_ndims - ndims)) : nullptr,
+                         use_strides},
+                        true,
+                        false};
                     configs.push_back(config);
                 }
             }
@@ -299,10 +306,11 @@ protected:
         return configs;
     }
 
-    static void GenerateWrongConfigs(const TestConfig& valid_config, std::vector<TestConfig>& wrong_configs)
+    static void GenerateWrongConfigs(const TestConfig& valid_config,
+                                     std::vector<TestConfig>& wrong_configs)
     {
         const auto wrong_datatypes = {static_cast<testDataType_t>(miopenFirstDataType) - 1,
-                                    static_cast<testDataType_t>(miopenLastDataType) + 1};
+                                      static_cast<testDataType_t>(miopenLastDataType) + 1};
         const auto wrong_layouts   = {static_cast<testTensorLayout_t>(miopenFirstTensorLayout) - 1,
                                     static_cast<testTensorLayout_t>(miopenLastTensorLayout) + 1};
         const auto wrong_ndims     = {-1, 0};
@@ -453,10 +461,13 @@ public:
     static std::string GetNameSuffix(const ::testing::TestParamInfo<TestConfig> param_info)
     {
         std::ostringstream ss;
-        const TestConfig& config = param_info.param;
+        const TestConfig& config   = param_info.param;
         const TensorParams& params = config.params;
 
-        auto val_to_str = [](int v){auto s = std::to_string(std::abs(v)); return v >= 0 ? s : ("N" + s); };
+        auto val_to_str = [](int v) {
+            auto s = std::to_string(std::abs(v));
+            return v >= 0 ? s : ("N" + s);
+        };
 
         ss << std::setw(4) << std::setfill('0') << param_info.index << std::setfill(' ') << "_";
         ss << (config.valid ? "V" : "N") << "_";
@@ -509,11 +520,14 @@ public:
 
 } // namespace
 
-TEST_P(TestSetTensor, SetTensor)
-{
-    RunTest();
-}
+TEST_P(TestSetTensor, SetTensor) { RunTest(); }
 
-INSTANTIATE_TEST_SUITE_P(TensorApiSetTensor, TestSetTensor, testing::ValuesIn(TestSetTensor::GetValidConfigs()), TestSetTensor::GetNameSuffix);
+INSTANTIATE_TEST_SUITE_P(TensorApiSetTensor,
+                         TestSetTensor,
+                         testing::ValuesIn(TestSetTensor::GetValidConfigs()),
+                         TestSetTensor::GetNameSuffix);
 
-INSTANTIATE_TEST_SUITE_P(TensorApiSetWrongTensor, TestSetTensor, testing::ValuesIn(TestSetTensor::GetWrongConfigs()), TestSetTensor::GetNameSuffix);
+INSTANTIATE_TEST_SUITE_P(TensorApiSetWrongTensor,
+                         TestSetTensor,
+                         testing::ValuesIn(TestSetTensor::GetWrongConfigs()),
+                         TestSetTensor::GetNameSuffix);
