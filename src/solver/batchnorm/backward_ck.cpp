@@ -157,7 +157,7 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
 #endif
 
 bool BnCKBwdBackward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
@@ -165,7 +165,7 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
         return false;
