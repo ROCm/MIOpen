@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/env.hpp"
 #include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/problem_description.hpp>
@@ -48,7 +49,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           problem.IsLayoutDefault() && (!problem.IsInt8());
+           problem.IsLayoutDefault() && (problem.IsFp16() || problem.IsFp32() || problem.IsBfp16());
 }
 
 // Check tensor data type respectively
@@ -105,10 +106,20 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.GetOutDataType() == miopenInt32;
 }
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
-    kernel_name << "naive_conv_";
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
+    {
+        kernel_name << "naive_conv_packed_";
+    }
+    else
+    {
+        kernel_name << "naive_conv_nonpacked_";
+    }
+
     if(problem.direction.IsForward())
         kernel_name << "fwd_";
     else if(problem.direction.IsBackwardData())
@@ -212,12 +223,12 @@ std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
         ss << " -DWEIGHTS_TYPE=" << miopen::GetDataType(problem.GetWeightsDataType());
         ss << " -DOUTPUT_TYPE="
            << miopen::GetDataType(ProblemInterpreter::GetOutputDataType(problem));
-        const auto in_cast_type = problem.GetInCastType();
+        const auto in_cast_type = ProblemInterpreter::GetInputCastType(problem);
         if(in_cast_type)
             ss << " -DINPUT_CAST_TYPE=" << miopen::GetDataType(*in_cast_type);
         const auto wei_cast_type = problem.GetWeightsCastType();
         if(wei_cast_type)
-            ss << " -DWEIGHTS_CAST_TYPE=" << miopen::GetDataType(*(wei_cast_type));
+            ss << " -DWEIGHTS_CAST_TYPE=" << miopen::GetDataType(*wei_cast_type);
         const auto out_cast_type = ProblemInterpreter::GetOutputCastType(problem);
         if(out_cast_type)
             ss << " -DOUTPUT_CAST_TYPE=" << miopen::GetDataType(*out_cast_type);
@@ -242,6 +253,50 @@ bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
             return false;
     }
     return true;
+}
+
+/// Figure out the index of C (channel) stride so we can expand it into
+/// (G, C_per_group). Return value G_stride_idx is the position of G stride
+/// in the stride vector, such that the (G_stride_idx - 1) is the index that
+/// contains C's stride as a multiplying factor
+int conv_internal::GetGroupStrideIndex(const ProblemDescription& problem)
+{
+    int G_stride_idx = -1;
+    if(problem.IsLayoutDefault())
+    {
+        G_stride_idx = 1;
+    }
+    else
+    {
+        assert(problem.IsLayoutNHWC());
+        assert(problem.Is2d() || problem.Is3d());
+        //
+        // G_stride_idx = problem.Is2d() ? 3 : 4;
+        // For NHWC, MIOpen stores strides in NCHW order, so we are interested in 1 + W's
+        // stride as that will be the value of G_stride_idx;
+        G_stride_idx = problem.Is2d() ? 4 : 5;
+    }
+    assert(G_stride_idx != -1);
+    return G_stride_idx;
+}
+
+void conv_internal::DebugPrintTensorStrides(const TensorDescriptor& inDesc,
+                                            const TensorDescriptor& wDesc,
+                                            const TensorDescriptor& outDesc)
+{
+
+    auto printOneStrideVec = [](const char* name, const auto& vec) {
+        MIOPEN_LOG_I(name << " = [");
+        for(const size_t v : vec)
+        {
+            MIOPEN_LOG_I(v << ",");
+        }
+        MIOPEN_LOG_I("]\n");
+    };
+
+    printOneStrideVec("inDesc = ", inDesc.GetStrides());
+    printOneStrideVec("wDesc = ", wDesc.GetStrides());
+    printOneStrideVec("outDesc = ", outDesc.GetStrides());
 }
 
 } // namespace solver
