@@ -296,8 +296,7 @@ void ValidateConvTensors(const ConvTensors& tensors)
                                           tensors.xDesc.GetSize() != tensors.wDesc.GetSize();
 
     const auto trivial_tensor_types_not_matched =
-        tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-        tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4;
+        tensors.xDesc.GetType() != tensors.yDesc.GetType() && tensors.xDesc.GetType() != miopenInt8;
 
     // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
     //    MIOPEN_THROW(miopenStatusBadParm);
@@ -425,11 +424,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
-
-    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         ValidateGroupCount(xDesc, wDesc, *this);

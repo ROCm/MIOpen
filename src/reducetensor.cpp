@@ -211,11 +211,10 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8: return (1);
-    case miopenInt8x4: return (4);
+    case miopenInt8x4: return (4); // Support discontinued.
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
-    default:
-        MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
+    default: MIOPEN_THROW("Only float, half, double, bfloat16, int8 data types are supported.");
     };
 };
 
@@ -269,7 +268,7 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenBFloat16: return (static_cast<int>('B'));
     case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32: return (static_cast<int>('O'));

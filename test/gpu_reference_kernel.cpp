@@ -303,8 +303,6 @@ static std::string miopen_type_to_string(miopenDataType_t type)
         return "int32";
     if(type == miopenInt8)
         return "int8";
-    if(type == miopenInt8x4)
-        return "int8x4";
     if(type == miopenBFloat16)
         return "bf16";
     return "n/a";
