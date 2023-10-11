@@ -48,8 +48,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
                                 const TensorDescriptor& rstdDesc,
                                 Data_t rstd,
                                 miopenLayerNormMode_t mode,
-                                const float epsilon,
-                                const int32_t normalized_dim)
+                                float epsilon,
+                                int32_t normalized_dim)
 {
     if(x == nullptr || y == nullptr)
     {
