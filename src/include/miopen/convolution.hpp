@@ -407,7 +407,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     friend void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv);
 
 private:
-    void ValidateConvTensors(const ConvTensors& conv_tensors) const;
+    void ValidateTensors(const ConvTensors& conv_tensors) const;
 };
 
 void ConvolutionBackwardBias(const Handle& handle,

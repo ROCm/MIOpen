@@ -377,7 +377,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
     }
 }
 
-void ConvolutionDescriptor::ValidateConvTensors(const ConvTensors& tensors) const
+void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
 {
 
     // Group stride in current TensorDescriptor is implicit. When invoking kernels,
@@ -471,13 +471,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
-
-    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         ValidateGroupCount(xDesc, wDesc, *this);
@@ -789,7 +784,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm);
 
@@ -925,7 +920,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
@@ -991,7 +986,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
 
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {
@@ -1125,7 +1120,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
 {
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
     if(xDesc.GetType() == miopenInt8)
@@ -1188,7 +1183,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
 
     if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
