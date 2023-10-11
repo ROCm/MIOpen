@@ -65,10 +65,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf:
     case miopenBFloat16:
     case miopenFloat:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenInt32:
     case miopenDouble:
-        FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt32, "
                   "miopenDouble data "
                   "type not supported by "
                   "test_conv_hip_igemm_xdlops test";
