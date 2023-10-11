@@ -80,8 +80,8 @@ float Im2d2ColGPU(const Handle& handle,
 
     int data_size_bound = c * in_h * in_w;
 
-    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
-    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int data_size_bound_pack = data_size_bound;
+    int im_offset_pack       = im_offset;
 
     if(!kernels.empty())
     {
@@ -105,7 +105,7 @@ float Im2d2ColGPU(const Handle& handle,
     }
     else
     {
-        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
+        const int c_pack = c;
 
         std::string params;
         int num_ch_per_wg;
@@ -182,14 +182,11 @@ float Im2d2ColGPU(const Handle& handle,
             }
         }
 
-        params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
-        params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
-        params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
-        params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
+        params += " -DLOCAL_MEM_SIZE=" +
+                  std::to_string(local_mem_sz); // needs some changes to the kernel launch
         params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
-        params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
-        params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-        params += " -DUSE_IM_OFF_GUARD=1";
+        params += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
+        params += " -DUSE_IM_OFF_GUARD=1"; // always one
 
         params += GetDataTypeKernelParams(type);
 
@@ -272,7 +269,12 @@ float Im2d2ColGPU(const Handle& handle,
             stride_w,
             dilation_h,
             dilation_w,
-            col);
+            col,
+            num_ch_per_wg,
+            num_blks_x,
+            num_blks,
+            tile_sz_x,
+            tile_sz_y);
     }
 
     return handle.GetKernelTime();
@@ -329,9 +331,8 @@ float Im3d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
-    // int8x4 vectorize-c format
-    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
-    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
+    int im_offset_pack = im_offset;
+    int im_c_pack      = im_c;
 
     if(!kernels.empty())
     {
@@ -770,13 +771,6 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
-
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
@@ -907,13 +901,6 @@ float transpose_CNHW2NCHW(const Handle& handle,
     std::string kernel_name = "transpose_CNHW2NCHW";
 
     std::string params = GetDataTypeKernelParams(type);
-
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
@@ -1168,14 +1155,8 @@ float transpose_packed_MN2NM(const Handle& handle,
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     std::string params = GetDataTypeKernelParams(type);
-    if(type == miopenInt8x4)
-    {
-        m /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
-    if(!(type == miopenInt8x4 || type == miopenInt8))
+    if(type != miopenInt8)
     {
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }

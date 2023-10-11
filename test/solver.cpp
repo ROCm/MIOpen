@@ -49,12 +49,12 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription& problem) const override
     {
-        return problem.GetInWidth() == 1;
+        return problem.GetInWidth_() == 1;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
+    solver::ConvSolution GetSolution(const ExecutionContext&,
                                      const ProblemDescription&) const override
     {
         solver::ConvSolution ret;
@@ -88,12 +88,12 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override
     {
         return true;
     }
 
-    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
+    TestConfig GetDefaultPerformanceConfig(const ExecutionContext&,
                                            const ProblemDescription&) const override
     {
         TestConfig config{};
@@ -101,14 +101,14 @@ public:
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
+    bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const ProblemDescription&,
                                   const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&,
+    TestConfig Search(const ExecutionContext&,
                       const ProblemDescription&,
                       const AnyInvokeParams&) const override
     {
@@ -118,7 +118,7 @@ public:
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
+    solver::ConvSolution GetSolution(const ExecutionContext&,
                                      const ProblemDescription&,
                                      const TestConfig& config) const override
     {
@@ -140,7 +140,7 @@ private:
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
-static solver::ConvSolution FindSolution(const ConvolutionContext& ctx,
+static solver::ConvSolution FindSolution(const ExecutionContext& ctx,
                                          const ProblemDescription& problem,
                                          const std::string& db_path)
 {
@@ -175,29 +175,29 @@ public:
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
                       {1, 1, 1, 1},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = false; });
+                      [](ExecutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
         const auto searches           = SearchableTestSolver::searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(
-            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ConvolutionContext&) {});
+            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ExecutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
                       {1, 1, 1, 2},
-                      [](ConvolutionContext& c) { c.do_search = true; });
+                      [](ExecutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.
         EXPECT_EQUAL(searches, searchable_solver.searches_done());
@@ -208,14 +208,14 @@ private:
         const std::string& db_path,
         const char* expected_kernel,
         const std::initializer_list<size_t>& in,
-        const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
+        const std::function<void(ExecutionContext&)>& context_filler = [](ExecutionContext&) {})
     {
-        const auto problem = ProblemDescription{TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                TensorDescriptor{miopenFloat, in},
-                                                ConvolutionDescriptor{},
-                                                conv::Direction::Forward};
-        auto ctx           = ConvolutionContext{};
+        const auto problem = conv::ProblemDescription{TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      TensorDescriptor{miopenFloat, in},
+                                                      ConvolutionDescriptor{},
+                                                      conv::Direction::Forward};
+        auto ctx           = ExecutionContext{};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 

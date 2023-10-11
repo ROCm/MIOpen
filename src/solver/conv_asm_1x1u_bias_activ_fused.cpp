@@ -38,7 +38,11 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "half.hpp"
+#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 using half_float::half;
 
@@ -138,7 +142,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = conv_problem.conv_problem.GetOutDataType();
+    const auto out_data_type = conv_problem.GetOutDataType();
     sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -243,13 +247,16 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
         return false;
     if(conv_problem.GetPadH() != 0)
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
+    if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != 1)
+    if(conv_problem.GetKernelStrideH() != 1)
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != conv_problem.conv_problem.GetDilationW())
+    if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != 1)
+    if(conv_problem.GetDilationH() != 1)
+        return false;
+
+    if(conv_problem.IsTensorsCasted())
         return false;
 
     // Check if the conovlution part is applicable

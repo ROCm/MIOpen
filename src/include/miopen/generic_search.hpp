@@ -29,9 +29,9 @@
 
 #include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/conv/context.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
@@ -255,7 +255,7 @@ using RunAndMeasure_t =
                                                           std::declval<Top>(),
                                                           std::declval<ConstData_t>(),
                                                           std::declval<ConstData_t>(),
-                                                          std::declval<ConvolutionContext>(),
+                                                          std::declval<ExecutionContext>(),
                                                           std::declval<ConvSolution>(),
                                                           std::declval<float&>()));
 
@@ -381,8 +381,25 @@ auto GenericSearch(const Solver s,
     std::random_device rd{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
-    const std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
+    std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
+
+    if(all_configs.empty())
+    {
+        const auto default_config = s.GetDefaultPerformanceConfig(context, problem);
+
+        if(default_config.IsValid(context, problem))
+        {
+            all_configs.emplace_back(default_config);
+            n_runs_total += 1;
+        }
+        else
+        {
+            const auto id = s.SolverDbId();
+            MIOPEN_THROW("Generic search has failed. Solver " + id +
+                         " cannot produce any valid configuration.");
+        }
+    }
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();

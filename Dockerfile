@@ -18,13 +18,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/5.4.3/ubuntu/focal/amdgpu-install_5.4.50403-1_all.deb  --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/5.7/ubuntu/focal/amdgpu-install_5.7.50700-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.4.50403-1_all.deb
+    ./amdgpu-install_5.7.50700-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=5.4.3;\
+RUN export ROCM_APT_VER=5.7;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
@@ -44,8 +44,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     lbzip2 \
     lcov \
     libncurses5-dev \
-    llvm-amdgpu \
-    miopengemm \
     pkg-config \
     python3-dev \
     python3-pip \
@@ -107,6 +105,9 @@ RUN ccache -s
 # Install doc requirements
 ADD docs/.sphinx/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
+
+# Composable Kernel requires this version cmake
+RUN pip3 install --upgrade cmake==3.27.5
 
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature

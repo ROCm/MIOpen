@@ -528,14 +528,14 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
     wksp_sz_lb += total_label_len;
 
     // labels with blanks
-    wksp_sz_lb += static_cast<unsigned long>(batch_size) * (2UL * max_label_len + 1);
+    wksp_sz_lb += static_cast<size_t>(batch_size) * (static_cast<size_t>(2) * max_label_len + 1);
 
     // logsoftmax of probs
-    wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * class_sz;
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat +=
-        static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
+    wksp_sz_dat += static_cast<size_t>(max_time_step) * batch_size *
+                   (static_cast<size_t>(2) * max_label_len + 1);
 
     *workSpaceSizeCPU = (wksp_sz_dat + wksp_sz_lb) * sizeof(T);
 }
@@ -721,10 +721,10 @@ struct ctc_driver : test_driver
         std::vector<int> labelLengths(batchSize, labelLen);
 
         for(int i = 0; i < batchSize; i++)
-            inputLengths[i] = GET_RAND() % inputLen + 1;
+            inputLengths[i] = prng::gen_A_to_B(1, inputLen - 1);
 
         for(int i = 0; i < batchSize; i++)
-            labelLengths[i] = GET_RAND() % labelLen + 1;
+            labelLengths[i] = prng::gen_A_to_B(1, labelLen - 1);
 
         for(int i = 0; i < batchSize; i++)
             if(inputLengths[i] < labelLengths[i] * 2 + 1)
@@ -737,7 +737,7 @@ struct ctc_driver : test_driver
         std::vector<int> probsDims  = {max_time_step, batch_sz, class_sz};
         std::vector<int> lossesDims = {batch_sz};
 
-        unsigned long max_value = 17;
+        uint64_t max_value = 17;
 
         probs = tensor<T>{probsDims}.generate(tensor_elem_gen_integer{max_value});
         for(int j = 0; j < batch_sz * max_time_step; j++)
@@ -762,7 +762,7 @@ struct ctc_driver : test_driver
         int blank_lb = ctcLossDesc.blank_label_id;
         for(size_t i = 0; i < labels_sz; i++)
         {
-            labels[i] = static_cast<int>(GET_RAND() % numClass + 1);
+            labels[i] = prng::gen_off_range(1, numClass);
             if(blank_lb > numClass)
                 labels[i] = labels[i] == numClass ? numClass - 1 : labels[i];
             else if(blank_lb < 0)

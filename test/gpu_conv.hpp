@@ -87,18 +87,16 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
 
         const auto tensors = miopen::ConvFwdTensors{
             input.desc, in_dev.get(), weights.desc, wei_dev.get(), rout.desc, out_dev.get()};
-        const auto problem = miopen::ProblemDescription{
+        const auto problem = miopen::conv::ProblemDescription{
             input.desc, weights.desc, rout.desc, filter, miopen::conv::Direction::Forward};
-        auto ctx = miopen::ConvolutionContext{};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetFwd()};
-            const auto invoker =
-                miopen::LoadOrPrepareInvoker(ctx, problem.conv_problem, naive_conv_id.Value());
+            const auto invoker = miopen::LoadOrPrepareInvoker(ctx, problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             rout.data = handle.Read<Tout>(out_dev, rout.data.size());
         }
@@ -125,18 +123,16 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
 
         const auto tensors = miopen::ConvBwdTensors{
             output.desc, out_dev.get(), weights.desc, wei_dev.get(), input.desc, in_dev.get()};
-        const auto problem = miopen::ProblemDescription{
-            input.desc, weights.desc, output.desc, filter, miopen::conv::Direction::BackwardData};
-        auto ctx = miopen::ConvolutionContext{};
+        const auto problem = miopen::conv::ProblemDescription{
+            output.desc, weights.desc, input.desc, filter, miopen::conv::Direction::BackwardData};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetBwd()};
-            const auto invoker =
-                miopen::LoadOrPrepareInvoker(ctx, problem.conv_problem, naive_conv_id.Value());
+            const auto invoker = miopen::LoadOrPrepareInvoker(ctx, problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             input.data = handle.Read<Tin>(in_dev, input.data.size());
         }
@@ -163,21 +159,20 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
 
         const auto tensors = miopen::ConvWrwTensors{
             output.desc, out_dev.get(), input.desc, in_dev.get(), weights.desc, wei_dev.get()};
-        const auto problem = miopen::ProblemDescription{input.desc,
-                                                        weights.desc,
-                                                        output.desc,
-                                                        filter,
-                                                        miopen::conv::Direction::BackwardWeights};
-        auto ctx           = miopen::ConvolutionContext{};
+        const auto problem =
+            miopen::conv::ProblemDescription{output.desc,
+                                             weights.desc,
+                                             input.desc,
+                                             filter,
+                                             miopen::conv::Direction::BackwardWeights};
+        auto ctx = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
-        ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::WrWInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetWrW()};
-            const auto invoker =
-                miopen::LoadOrPrepareInvoker(ctx, problem.conv_problem, naive_conv_id.Value());
+            const auto invoker = miopen::LoadOrPrepareInvoker(ctx, problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
         }

@@ -228,7 +228,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     std::string conv_compiler_options;
 
 private:
-    mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
+    ProblemDescription GetConvProblem();
 };
 
 namespace fusion {

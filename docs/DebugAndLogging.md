@@ -11,8 +11,8 @@ All logging messages output to standard error stream (`stderr`). The following e
 
 > **_NOTE 1:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
 > ```
-> 1, yes, true, enable, enabled - to enable feature
-> 0, no, false, disable, disabled - to disable feature
+> 1, on, yes, true, enable, enabled - to enable feature
+> 0, off, no, false, disable, disabled - to disable feature
 > ```
 
 * `MIOPEN_LOG_LEVEL` - In addition to API call information and driver commands, MIOpen prints various information related to the progress of its internal operations. This information can be useful both for debugging and for understanding the principles of operation of the library. The `MIOPEN_LOG_LEVEL` environment variable controls the verbosity of these messages. Allowed values are:
@@ -234,7 +234,7 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
 
 Syntax of value:
-* decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).
+* decimal or hex (with `0x` prefix) value that should fit into 64-bit unsigned integer.
 * If syntax is violated, then the behavior is unspecified.
 
 Semantics:

@@ -26,14 +26,24 @@
 
 #include <miopen/solution.hpp>
 
+#include <miopen/any_solver.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/any_solver.hpp>
 
 #include <nlohmann/json.hpp>
 
 #include <boost/hof/match.hpp>
+
+namespace miopen::debug {
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdConvolution(const miopen::TensorDescriptor& x,
+                       const miopen::TensorDescriptor& w,
+                       const miopen::ConvolutionDescriptor& conv,
+                       const miopen::TensorDescriptor& y,
+                       miopenProblemDirection_t dir,
+                       std::optional<uint64_t> solver_id);
+} // namespace miopen::debug
 
 namespace miopen {
 
@@ -53,6 +63,26 @@ void Solution::Run(Handle& handle,
     });
 
     boost::apply_visitor(run, problem.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand() const
+{
+    const auto log_function = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+
+    boost::apply_visitor(log_function, problem.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
+{
+    const auto& x_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        problem.GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    miopen::debug::LogCmdConvolution(
+        x_desc, w_desc, conv_desc, y_desc, problem.GetDirection(), solver.Value());
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -79,7 +109,8 @@ void Solution::RunImpl(Handle& handle,
     const auto problem_ =
         conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
 
-    if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    if(problem_.GetDirection() == miopenProblemDirectionBackward &&
+       y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -146,8 +177,7 @@ void Solution::RunImpl(Handle& handle,
     }
 
     const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ConvolutionContext{{&handle}};
-    conv_ctx.DetectRocm();
+    auto conv_ctx             = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);

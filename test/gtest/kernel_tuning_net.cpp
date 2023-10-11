@@ -12,14 +12,14 @@ struct KernelTuningNetTestCase : AIModelTestCase
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 {
-    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNCHW},
              true,
              "1,16,1,64,2,2,1,4"},
 
-            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1},
+            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -29,7 +29,7 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
 {
-    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -52,8 +52,19 @@ protected:
         auto conv_desc                       = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
-        problem = miopen::ProblemDescription(
-            input_tensor.desc, weights_tensor.desc, output_desc, conv_desc, test_case.direction);
+
+        problem = (test_case.direction == miopen::conv::Direction::Forward)
+                      ? miopen::conv::ProblemDescription(input_tensor.desc,
+                                                         weights_tensor.desc,
+                                                         output_desc,
+                                                         conv_desc,
+                                                         test_case.direction)
+                      : miopen::conv::ProblemDescription(output_desc,
+                                                         weights_tensor.desc,
+                                                         input_tensor.desc,
+                                                         conv_desc,
+                                                         test_case.direction);
+
         expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;
 #else
@@ -82,9 +93,8 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     T perf_config;
     bool valid = false;
     perf_config.RunParmeterPredictionModel(ctx, problem, valid);

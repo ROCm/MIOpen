@@ -95,12 +95,12 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
                       : (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
     int top_off = b * mlo_topdf_batch_str + o * mlo_topdf_channel_str;
 
-    _FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
+    _FLOAT_ACCUM res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
     for(int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
     {
         for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
         {
-            res[k][l] = 0;
+            res[k][l] = (_FLOAT_ACCUM)0;
         }
     }
 
@@ -183,9 +183,10 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
                     pool_size     = (pool_size == 0) ? 1 : pool_size;
                     int lcl_top_h = top_h - top_y;
                     int lcl_top_w = top_w - top_x;
-                    _FLOAT add_val =
-                        (lcl_top_diff[lcl_top_h * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_top_w] /
-                         (_FLOAT)pool_size);
+                    _FLOAT_ACCUM add_val =
+                        CVT_FLOAT2ACCUM(
+                            lcl_top_diff[lcl_top_h * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_top_w]) /
+                        CVT_INTEGRAL2ACCUM(pool_size);
                     res[k][l] += add_val;
 #if 0
 				if (bot_x+l==6&&bot_y+k==0&&o==3&&b==0)
@@ -206,7 +207,7 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
         {
             if(bot_y + k < mlo_bot_height && bot_x + l < mlo_bot_width)
             {
-                bot_diff[bot_off + k * mlo_botdf_str + l] = res[k][l];
+                bot_diff[bot_off + k * mlo_botdf_str + l] = CVT_ACCUM2FLOAT(res[k][l]);
 #if 0
 					if (lcl_id0==0&&lcl_id1==0&&o==0&&b==0)
 					{

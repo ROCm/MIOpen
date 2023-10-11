@@ -27,6 +27,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/env.hpp>
+#include <miopen/conv/tensors.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
@@ -45,10 +47,22 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
                               const FusionDescription& problem,
                               const AnyInvokeParams& invoke_params) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
-    const auto conv_ctx     = context.GetConvContext(conv_problem);
-    const auto legacy       = ConvOclDirectFwd{};
-    return legacy.Search(conv_ctx, conv_problem, invoke_params);
+    const auto conv_problem          = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx              = context.GetConvContext(conv_problem);
+    const auto legacy                = ConvOclDirectFwd{};
+    const auto& fusion_invoke_params = invoke_params.CastTo<miopen::fusion::FusionInvokeParams>();
+    const auto wei_ocl_ptr           = dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(
+                                 *fusion_invoke_params.op_args.params[0])
+                                 .weights;
+    const auto& tensors = miopen::ConvFwdTensors{fusion_invoke_params.inDesc,
+                                                 fusion_invoke_params.in,
+                                                 conv_problem.GetWeights(),
+                                                 wei_ocl_ptr,
+                                                 fusion_invoke_params.outDesc,
+                                                 fusion_invoke_params.out};
+    const auto data_invoke_params =
+        miopen::conv::DataInvokeParams{tensors, nullptr, 0, fusion_invoke_params.gfx90aFp16alt};
+    return legacy.Search(conv_ctx, conv_problem, data_invoke_params);
 }
 
 bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,

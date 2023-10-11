@@ -223,11 +223,11 @@ struct tensor_vec_driver : test_driver
             src_lens[3] = src_lens[3] / stride_w;
         }
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
-                                  : miopen_type<T>{} == miopenInt8 ? 127
-                                                                   : 17;
-        src                     = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
-        dst                     = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
+        src                = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
+        dst                = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
 
         verify_equals(verify_tensor_trans<T>{src, dst, stride_h, stride_w, forw});
     }

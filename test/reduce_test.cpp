@@ -43,10 +43,6 @@
 
 #include "cpu_reduce_util.hpp"
 
-/// Not reproducible with ROCm 4.1 and 4.2.
-#define WORKAROUND_GPU_NUMERIC_ERROR \
-    (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
-
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
 {
@@ -767,19 +763,6 @@ struct reduce_driver : test_driver
                 compTypeVal = static_cast<int>(miopenFloat);
         }
 
-#if WORKAROUND_GPU_NUMERIC_ERROR
-        if(std::is_same<T, double>::value)
-        {
-            if(inLengths == std::vector<std::size_t>{64, 3, 280, 81} &&
-               toReduceDims == std::vector<int>{0, 1, 2, 3} && (reduceOp == 3 || reduceOp == 4) &&
-               indicesOpt == 1)
-            {
-                std::cout << "Workaround: Skipping the test." << std::endl;
-                return;
-            };
-        }
-#endif
-
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
             static_cast<miopenDataType_t>(compTypeVal),
@@ -811,7 +794,7 @@ struct reduce_driver : test_driver
             outLengths[toReduceDim] = static_cast<std::size_t>(1);
         }
 
-        unsigned long max_value;
+        uint64_t max_value;
 
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             max_value = miopen_type<T>{} == miopenHalf   ? 41
@@ -850,12 +833,11 @@ struct reduce_driver : test_driver
         };
 
         // Special data generation for NORM1 and NORM2 using a space of limitless number of values.
-        // This method is slower due to the use of GET_RAND(), it is usually used for manual
-        // testing
         auto gen_value_3 = [&](auto... is) {
-            auto rand_upper   = tensor_elem_gen_integer{max_value}(is...);
-            auto sign_value   = tensor_elem_gen_checkboard_sign{}(is...);
-            double rand_ratio = static_cast<double>(GET_RAND() / (static_cast<double>(RAND_MAX)));
+            auto rand_upper = tensor_elem_gen_integer{max_value}(is...);
+            auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
+            auto rand_ratio = prng::gen_A_to_B(
+                0.1, 1.); // limit range due to numeric errors, see WORKAROUND_GPU_NUMERIC_ERROR
 
             return rand_upper * sign_value * rand_ratio;
         };

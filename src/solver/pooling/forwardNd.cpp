@@ -37,12 +37,93 @@ namespace solver {
 
 namespace pooling {
 
-bool PoolingForwardNd::IsApplicable(const ExecutionContext&,
+namespace {
+
+constexpr int top_w_per_work = 1;
+constexpr int top_h_per_work = 4;
+constexpr int top_d_per_work = 2;
+
+struct kernel_params
+{
+    uint32_t stride_d;
+    uint32_t stride_h;
+    uint32_t stride_w;
+    uint32_t kernel_sz_d;
+    uint32_t kernel_sz_h;
+    uint32_t kernel_sz_w;
+
+    kernel_params(const miopen::pooling::ProblemDescription& p)
+    {
+        const auto& pd = p.GetPooling();
+        stride_d       = pd.strides[0];
+        stride_h       = pd.strides[1];
+        stride_w       = pd.strides[2];
+        kernel_sz_d    = pd.lens[0];
+        kernel_sz_h    = pd.lens[1];
+        kernel_sz_w    = pd.lens[2];
+    }
+};
+
+std::size_t sizeof_kernel_FLOAT(const miopen::pooling::ProblemDescription& problem)
+{
+    const auto datatype = problem.GetXDesc().GetType();
+    return get_data_size(datatype);
+}
+
+inline std::size_t RoundUpToMultiple(std::size_t v, std::size_t m)
+{
+    assert(m > 0);
+    return ((v + m - 1) / m) * m;
+}
+
+// Compute amount of private memory required for holding the arrays defined
+// in the "mloPoolingNDFwd" kernel:
+//
+// #define BOT_TILE_W ((TOP_W_PER_WORK - 1) * STRIDE_W + KERNEL_SZ_W)
+// #define BOT_TILE_H ((TOP_H_PER_WORK - 1) * STRIDE_H + KERNEL_SZ_H)
+// #define BOT_TILE_D ((TOP_D_PER_WORK - 1) * STRIDE_D + KERNEL_SZ_D)
+//
+// _FLOAT bot_data[BOT_TILE_D][BOT_TILE_H][BOT_TILE_W];
+//
+std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& problem)
+{
+    const kernel_params kp(problem);
+
+    const std::size_t bot_tile_w = ((top_w_per_work - 1) * kp.stride_w + kp.kernel_sz_w);
+    const std::size_t bot_tile_h = ((top_h_per_work - 1) * kp.stride_h + kp.kernel_sz_h);
+    const std::size_t bot_tile_d = ((top_d_per_work - 1) * kp.stride_d + kp.kernel_sz_d);
+
+    const auto sizeof_bot_data =
+        sizeof_kernel_FLOAT(problem) * bot_tile_d * bot_tile_h * bot_tile_w;
+    MIOPEN_LOG_T("sizeof_bot_data " << sizeof_bot_data);
+
+    /// \ref alignment_of_arrays_in_gpu_memory
+    return RoundUpToMultiple(sizeof_bot_data, 16);
+}
+
+} // namespace
+
+bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 5 && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW" &&
-           problem.GetYDesc().GetLayout("NCDHW") == "NCDHW";
+
+    return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
+           && problem.GetXDesc().GetSize() == 5                                               //
+           && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
+           && (problem.GetXDesc().GetType() == miopenFloat                                    //
+               || problem.GetXDesc().GetType() == miopenHalf)                                 //
+           && (problem.GetPooling().GetMode() == miopenPoolingMax                             //
+               || problem.GetPooling().GetMode() == miopenPoolingAverage                      //
+               || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive)            //
+           && sizeof_private_memory(problem) <= TargetProperties::GetMaxWaveScratchSize()     //
+                                                    / context.GetStream().GetWavefrontWidth() //
+           /// \todo This solver does not support workspace index mask mode yet.
+           &&
+           !(problem.GetPooling().GetMode() == miopenPoolingMax                                 //
+             && problem.GetPooling().GetWorkspaceIndexMode() == miopenPoolingWorkspaceIndexMask //
+             && problem.SaveIndex() == true);
 }
 
 ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
@@ -53,9 +134,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
     const int batch = problem.GetXDesc().GetLengths()[0];
     const int chal  = problem.GetXDesc().GetLengths()[1];
 
-    const int top_w_per_work = 1;
-    const int top_h_per_work = 4;
-    const int top_d_per_work = 2;
+    const kernel_params kp(problem);
 
     const int top_d = *(problem.GetYDesc().GetLengths().rbegin() + 2);
     const int top_h = *(problem.GetYDesc().GetLengths().rbegin() + 1);
@@ -86,19 +165,19 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
 
         auto build_params = KernelBuildParameters{
             {"MLO_POOLING_OP_ID", static_cast<long long>(pooling_method)},
-            {"MAX_ACTIV_WORKITEM", static_cast<uint>(max_activ_workitem)},
+            {"MAX_ACTIV_WORKITEM", static_cast<unsigned>(max_activ_workitem)},
             {"MLO_POOLING_GROUP_SZ0", static_cast<long long>(lcl_work)},
             {"MLO_POOLING_GROUP_SZ1", 1},
             {"MLO_POOLING_GROUP_SZ2", 1},
-            {"TOP_W_PER_WORK", static_cast<uint>(top_w_per_work)},
-            {"TOP_H_PER_WORK", static_cast<uint>(top_h_per_work)},
-            {"TOP_D_PER_WORK", static_cast<uint>(top_d_per_work)},
-            {"KERNEL_SZ_D", static_cast<uint>(problem.GetPooling().lens[0])},
-            {"KERNEL_SZ_H", static_cast<uint>(problem.GetPooling().lens[1])},
-            {"KERNEL_SZ_W", static_cast<uint>(problem.GetPooling().lens[2])},
-            {"STRIDE_D", static_cast<uint>(problem.GetPooling().strides[0])},
-            {"STRIDE_H", static_cast<uint>(problem.GetPooling().strides[1])},
-            {"STRIDE_W", static_cast<uint>(problem.GetPooling().strides[2])},
+            {"TOP_W_PER_WORK", top_w_per_work},
+            {"TOP_H_PER_WORK", top_h_per_work},
+            {"TOP_D_PER_WORK", top_d_per_work},
+            {"KERNEL_SZ_D", kp.kernel_sz_d},
+            {"KERNEL_SZ_H", kp.kernel_sz_h},
+            {"KERNEL_SZ_W", kp.kernel_sz_w},
+            {"STRIDE_D", kp.stride_d},
+            {"STRIDE_H", kp.stride_h},
+            {"STRIDE_W", kp.stride_w},
             {"MLO_POOLING_INDEX_TYPE",
              get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
             {"MLO_POOLING_INDEX_MAX",
@@ -122,7 +201,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
@@ -143,26 +222,26 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
             kernel(params.x,
                    params.y,
                    params.workspace,
-                   static_cast<uint>(params.pooling.pads[0]),
-                   static_cast<uint>(params.pooling.pads[1]),
-                   static_cast<uint>(params.pooling.pads[2]),
-                   static_cast<uint>(batch_),
-                   static_cast<uint>(chal_),
-                   static_cast<uint>(params.xDesc.GetLengths()[2]),
-                   static_cast<uint>(params.xDesc.GetLengths()[3]),
-                   static_cast<uint>(params.xDesc.GetLengths()[4]),
-                   static_cast<uint>(top_d_),
-                   static_cast<uint>(top_h_),
-                   static_cast<uint>(top_w_),
-                   static_cast<uint>(params.xDesc.GetStrides()[0]),
-                   static_cast<uint>(params.xDesc.GetStrides()[1]),
-                   static_cast<uint>(params.xDesc.GetStrides()[2]),
-                   static_cast<uint>(params.xDesc.GetStrides()[3]),
-                   static_cast<uint>(params.yDesc.GetStrides()[0]),
-                   static_cast<uint>(params.yDesc.GetStrides()[1]),
-                   static_cast<uint>(params.yDesc.GetStrides()[2]),
-                   static_cast<uint>(params.yDesc.GetStrides()[3]),
-                   static_cast<uint>(total_work_));
+                   static_cast<unsigned>(params.pooling.pads[0]),
+                   static_cast<unsigned>(params.pooling.pads[1]),
+                   static_cast<unsigned>(params.pooling.pads[2]),
+                   static_cast<unsigned>(batch_),
+                   static_cast<unsigned>(chal_),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[2]),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[3]),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[4]),
+                   static_cast<unsigned>(top_d_),
+                   static_cast<unsigned>(top_h_),
+                   static_cast<unsigned>(top_w_),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[0]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[1]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[2]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[3]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[0]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[1]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[2]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[3]),
+                   static_cast<unsigned>(total_work_));
         };
     };
 
