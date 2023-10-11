@@ -358,7 +358,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
-    return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
+    return {(xDesc.GetType() == miopenInt8
                  ? (yType)
                  : xDesc.GetType()), // TODO: This function overrides the output type with
                                      // essentially the input which is incorrect.
