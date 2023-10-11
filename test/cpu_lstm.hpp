@@ -31,6 +31,121 @@
  *
  **********************************************/
 
+size_t LSTMCPUReserveSpaceSize(
+    size_t nLayers, size_t inputTotalBatch, size_t outH, size_t sizeOfT, bool use_dropout)
+{
+    int workspace_scale     = 6;
+    size_t reserveSpaceSize = 2 * workspace_scale * nLayers * inputTotalBatch * outH;
+    size_t dropout_reserveSpaceSize = 0;
+    if(use_dropout)
+    {
+        dropout_reserveSpaceSize = (nLayers - 1) * inputTotalBatch * outH;
+        dropout_reserveSpaceSize += (dropout_reserveSpaceSize + sizeOfT - 1) / sizeOfT;
+    }
+    return reserveSpaceSize + dropout_reserveSpaceSize;
+}
+
+size_t LSTMCPUWorkSpaceByteSize(
+    size_t nLayers, size_t inputTotalBatch, size_t hidVec, size_t sizeOfT, bool isBidirect)
+{
+    auto workspace_scale = 6;
+    return (workspace_scale * nLayers * inputTotalBatch * hidVec * sizeOfT) *
+                                  (isBidirect ? 2 : 1);
+}
+
+size_t LSTMCPUHiddenStateSize(size_t hiddenLayers, size_t hiddenBatchSize, size_t hidVec)
+{
+    return hiddenLayers * hiddenBatchSize * hidVec;
+}
+
+size_t LSTMCPUIOSize(size_t TotalBatchsPerSeqLen, size_t ioVecLen)
+{
+    return TotalBatchsPerSeqLen * ioVecLen;
+}
+
+size_t LSTMCPUWeightSize(size_t nLayers,
+                         size_t hidVec,
+                         size_t inVec,
+                         bool biasMode,
+                         bool inputMode,
+                         bool dirMode)
+{
+    const size_t hidden_tensors_per_layer = 4;
+    if(inputMode)
+    {
+        inVec = 0;
+    }
+
+    int bi  = dirMode ? 2 : 1;
+    auto sz = hidden_tensors_per_layer * hidVec * bi *
+              (inVec + hidVec + (nLayers - 1) * (bi + 1) * hidVec);
+
+    if(biasMode)
+    {
+        sz += nLayers * 2 * hidden_tensors_per_layer * hidVec * bi;
+    }
+    return sz;
+}
+
+template <class T>
+void LSTMFwdCPUVerify(miopen::Handle& handle,
+                      bool use_dropout,
+                      const miopen::DropoutDescriptor& dropoutDesc,
+                      const std::vector<T>& in,
+                      const std::vector<T>& wei, // [ input_state_weight_trans
+                                                 // hidden_state_weight0_trans input1_trans
+                                                 // hidden1_trans ... output_weight;
+                                                 // bidirectional reversed weights ]
+                      std::vector<T>& hy_host,   // current/final hidden state
+                      const std::vector<T>& hx,  // initial hidden state
+                      std::vector<T>& cy_host,   // current/final cell state
+                      const std::vector<T>& cx,  // initial cell state
+                      std::vector<T>& out_host,
+                      const std::vector<size_t>& in_n, // input batch size
+                      int in_h,                     // input data length
+                      int seqLength_cpu,            // Number of iterations to unroll over
+                      int bidirection,              // whether using bidirectional net
+                      int biased,                   // whether using bias
+                      int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
+                                 // unidirection, 2 by numlayer for bidirection
+                      int hy_n,  // equal to input batch size in_n[0]
+                      int hy_h,  // hidden state number
+                      int out_h, // 1 by hy_h related function for unidirection, 2 by hy_h
+                                 // related function for bidirection
+                      int inputMode_cpu,
+                      std::vector<T>& rsvspace,
+                      bool hx_is_null,
+                      bool cx_is_null)
+{
+    assert(!std::all_of(
+        in_n.cbegin(), in_n.cend(), [](size_t x) { return x >= 0 && x <= INT32_MAX; }));
+    std::vector<int> in_n_downgrade(in_n.cbegin(), in_n.cend());
+    LSTMFwdCPUVerify(handle,
+                     use_dropout,
+                     dropoutDesc,
+                     in,
+                     wei,
+                     hy_host,
+                     hx,
+                     cy_host,
+                     cx,
+                     out_host,
+                     in_n_downgrade,
+                     in_h,
+                     seqLength_cpu,
+                     bidirection,
+                     biased,
+                     hy_d,
+                     hy_n,
+                     hy_h,
+                     out_h,
+                     inputMode_cpu,
+                     rsvspace,
+                     hx_is_null,
+                     cx_is_null);
+}
+
+
 template <class T>
 void LSTMFwdCPUVerify(miopen::Handle& handle,
                       bool use_dropout,
