@@ -431,15 +431,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: env.BRANCH_NAME == "miopen_nightly" ? true : false,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -527,8 +527,8 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     triggers{
-        //triggers periodic runs everyday on midnight
-        cron(env.BRANCH_NAME == "miopen_nightly" ? '0 0 * * *' : '')
+        
+        cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
     }
     stages{
         stage('Build Docker'){
