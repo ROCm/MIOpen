@@ -72,7 +72,7 @@ struct FusionDescription : ProblemDescriptionBase
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
+        auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
         ProblemDescription::Visit(conv_prob, f);
     }
 #endif
@@ -98,6 +98,8 @@ struct FusionDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }
+
+    miopen::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
