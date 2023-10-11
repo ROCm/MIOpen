@@ -190,8 +190,9 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
             const auto& activ_op =
                 dynamic_cast<ActivBwdFusionOpDescriptor&>(*plan.op_map[activ_bwd_id]);
 
-            auto x = allocate_buffer(activ_op.input_desc.GetElementSpace());
-            auto y = allocate_buffer(activ_op.input_desc.GetElementSpace());
+            const auto space = activ_op.input_desc.GetNumBytes();
+            auto x           = allocate_buffer(space);
+            auto y           = allocate_buffer(space);
 
             params.SetArg(activ_bwd_id,
                           std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
@@ -213,7 +214,7 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
 
             out_desc = in_desc = bn_op.input_desc;
 
-            const auto size   = bn_op.base_desc.GetElementSpace();
+            const auto size   = bn_op.base_desc.GetNumBytes();
             auto scale_ptr    = allocate_buffer(size);
             auto mean_ptr     = allocate_buffer(size);
             auto variance_ptr = allocate_buffer(size);
@@ -221,7 +222,7 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
                 bias_ptr = allocate_buffer(size);
 
             if(bias_ptr == nullptr)
-                allocate_buffer(bn_op.base_desc.GetElementSpace());
+                allocate_buffer(bn_op.base_desc.GetNumBytes());
 
             bn_op.SetArgs(
                 params, &alpha, &beta, scale_ptr, bias_ptr, mean_ptr, variance_ptr, epsilon);
@@ -237,7 +238,7 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
             miopen::TensorDescriptor derivedBnDesc{};
             miopen::DeriveBNTensorDescriptor(derivedBnDesc, in_desc, bn_op.mode);
 
-            const auto size              = derivedBnDesc.GetElementSpace();
+            const auto size              = derivedBnDesc.GetNumBytes();
             Data_t scale_ptr             = allocate_buffer(size);
             Data_t mean_ptr              = allocate_buffer(size);
             Data_t variance_ptr          = allocate_buffer(size);
@@ -265,13 +266,13 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
 
             out_desc = in_desc = bn_op.input_desc;
 
-            Data_t x_ptr = allocate_buffer(in_desc.GetElementSpace());
+            Data_t x_ptr = allocate_buffer(in_desc.GetNumBytes());
 
             // We don't have descriptor here
             miopen::TensorDescriptor derivedBnDesc{};
             miopen::DeriveBNTensorDescriptor(derivedBnDesc, in_desc, bn_op.mode);
 
-            const auto size               = derivedBnDesc.GetElementSpace();
+            const auto size               = derivedBnDesc.GetNumBytes();
             Data_t scale_ptr              = allocate_buffer(size);
             Data_t res_bn_scale_diff_ptr  = allocate_buffer(size);
             Data_t res_bn_bias_diff_ptr   = allocate_buffer(size);
@@ -293,10 +294,10 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
         }
     }
 
-    const auto in_ptr  = allocate_buffer(in_desc.GetElementSpace());
-    MIOPEN_LOG_I("in addr: " << in_ptr << ", size: " << in_desc.GetElementSpace());
-    const auto out_ptr = allocate_buffer(out_desc.GetElementSpace());
-    MIOPEN_LOG_I("out addr: " << out_ptr << ", size: " << in_desc.GetElementSpace());
+    const auto in_ptr = allocate_buffer(in_desc.GetNumBytes());
+    MIOPEN_LOG_I("in addr: " << in_ptr << ", size: " << in_desc.GetNumBytes());
+    const auto out_ptr = allocate_buffer(out_desc.GetNumBytes());
+    MIOPEN_LOG_I("out addr: " << out_ptr << ", size: " << in_desc.GetNumBytes());
 
     return miopen::fusion::FusionInvokeParams(
         params, in_desc, in_ptr, out_desc, out_ptr, gfx90aaltimpl);
