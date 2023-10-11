@@ -94,7 +94,8 @@ struct gpu_reference_kernel_base
 
     static std::vector<int> get_image_size() { return {9, 14}; }
 
-    static std::vector<int> get_channel_size() { return {3, 8}; }
+    // Warning: Channel size must be multiple of group size
+    static std::vector<int> get_channel_size() { return {4, 8}; }
 
     static std::vector<int> get_filter_depth() { return {1, 3}; }
 
@@ -301,8 +302,6 @@ static std::string miopen_type_to_string(miopenDataType_t type)
         return "int32";
     if(type == miopenInt8)
         return "int8";
-    if(type == miopenInt8x4)
-        return "int8x4";
     if(type == miopenBFloat16)
         return "bf16";
     return "n/a";

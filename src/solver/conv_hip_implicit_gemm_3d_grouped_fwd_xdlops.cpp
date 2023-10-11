@@ -214,7 +214,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -257,7 +257,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -326,7 +326,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -355,7 +355,7 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
         return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
