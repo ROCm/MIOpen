@@ -32,6 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -319,8 +320,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(miopen::StartsWith(arch, "gfx11") || miopen::StartsWith(arch, "gfx10"))
+    if(!ck_utility::is_conv_ck_supported_hardware(ctx.GetStream().GetDeviceName(), false))
         return false;
     switch(problem.GetInDataType())
     {
