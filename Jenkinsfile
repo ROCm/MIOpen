@@ -317,7 +317,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
         throw e
     }
     finally{
-        if (conf.get("needs_reboot", false)) {
+        if (conf.get("needs_reboot", true)) {
             reboot()
         }
     }
@@ -431,15 +431,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -544,7 +544,7 @@ pipeline {
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
+                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
                     }
                 }
             }
@@ -561,7 +561,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false)
+                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
                     }
                 }
                 stage('Clang Format') {
@@ -588,7 +588,7 @@ pipeline {
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
-                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, build_install: "true")
+                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
                   }
                 }
                 stage('Perf DB Validity Test') {
@@ -598,7 +598,7 @@ pipeline {
 
                     }
                     steps{
-                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, build_install: "true")
+                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
@@ -612,7 +612,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc)"
                     }
                     steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false)
+                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
                     }
                 }
             }
