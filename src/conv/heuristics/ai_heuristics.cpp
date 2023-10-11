@@ -348,10 +348,11 @@ protected:
     }
 };
 
-std::unique_ptr<Model> GetModel(const std::string& device) {
-    if (device == "gfx90a")
+std::unique_ptr<Model> GetModel(const std::string& device)
+{
+    if(device == "gfx90a")
         return std::make_unique<Gfx90aModel>();
-    else if (device == "gfx908")
+    else if(device == "gfx908")
         return std::make_unique<Gfx908Model>();
     else
         return nullptr;
