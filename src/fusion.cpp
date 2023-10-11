@@ -153,7 +153,7 @@ AllocateBuffersAndMakeFusionInvokeParams(const FusionContext& context,
     if(conv_id != -1)
     {
         const auto conv_problem =
-            problem.GetConvProblem(0, conv::Direction::Forward, bias_id != -1 ? 1 : 0);
+            problem.GetConvProblem(conv_id, conv::Direction::Forward, bias_id != -1 ? 1 : 0);
         gfx90aaltimpl = conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
 
         in_desc  = conv_problem.GetIn();
