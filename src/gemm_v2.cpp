@@ -63,10 +63,6 @@
 /// "disabled expansion of recursive macro" injected by rocblas headers.
 #define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
 
-/// Maintain API compatibility with various rocBLAS version
-#define USE_GEMM_FLAGS_PACK_INT8X4 \
-    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000) && (MIOPEN_ROCBLAS_VERSION_FLAT < 4000000))
-
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)
 /// Some 2.42 versions have rocblas_gemm_flags_fp16_alt_impl, but
@@ -110,7 +106,7 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 {
     // Complex compute types are only supported in newer version of the API
     assert(desc.dataType == desc.a_cast_type && desc.dataType == desc.b_cast_type);
-    if(desc.dataType == miopenInt8 || desc.dataType == miopenInt8x4)
+    if(desc.dataType == miopenInt8)
         return rocblas_datatype::rocblas_datatype_i32_r;
     else
         return rocblas_datatype::rocblas_datatype_f32_r;
@@ -413,6 +409,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
@@ -440,7 +437,6 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
         case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
@@ -472,12 +468,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-#if USE_GEMM_FLAGS_PACK_INT8X4
-                rocblas_gemm_flags_pack_int8x4
-#else
-                0
-#endif
-            );
+                0);
         }
         break;
         case miopenInt32: break;
@@ -621,9 +612,9 @@ miopenStatus_t CallGemm(const Handle& handle,
         };
         break;
 
+        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
+            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
         };
         break;
         }
@@ -665,6 +656,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
@@ -693,7 +685,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
         case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
@@ -729,12 +720,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_i32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-#if USE_GEMM_FLAGS_PACK_INT8X4
-                rocblas_gemm_flags_pack_int8x4
-#else
-                0
-#endif
-            );
+                0);
         }
         break;
         case miopenInt32: break;
@@ -893,10 +879,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             break;
         }
 
+        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
-        }
+            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
+        };
         break;
         }
 
@@ -938,6 +924,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.a_cast_type, gemm_desc.b_cast_type);
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
@@ -968,7 +955,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
         case miopenInt8: {
             assert(gemm_desc.k % 4 == 0);
 
@@ -1002,12 +988,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocBlasComputeType(gemm_desc), // rocblas_datatype::rocblas_datatype_i32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-#if USE_GEMM_FLAGS_PACK_INT8X4
-                    rocblas_gemm_flags_pack_int8x4
-#else
-                    0
-#endif
-                );
+                    0);
             }
         }
         break;
@@ -1163,10 +1144,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             break;
         }
 
+        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenDouble data type not supported by MIOpenGEMM.");
-        }
+            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
+        };
         break;
         }
 
@@ -1196,7 +1177,7 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopenInt8)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1351,7 +1332,7 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopenInt8)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1455,7 +1436,7 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopenInt8)
         assert(wDesc.GetType() == yDesc.GetType());
 #else
     (void)yDesc;
