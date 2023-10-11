@@ -145,7 +145,7 @@ protected:
     virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
 };
 
-class Gfx908Model : public Model
+class Gfx908Model final : public Model
 {
 public:
     Gfx908Model() : Model("gfx908") {}
@@ -255,7 +255,7 @@ protected:
     }
 };
 
-class Gfx90aModel : public Model
+class Gfx90aModel final : public Model
 {
 public:
     Gfx90aModel() : Model("gfx90a") {}
