@@ -397,8 +397,12 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
             // strides in NCHW order for some weird reason.
             g_stride_index = td.GetStrides().size() - 1;
         }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "Layout not supported for grouped convolution");
+        }
 
-        if(g_stride_index != 1)
+        if(g_stride_index != -1)
         {
             return (td.GetStrides()[g_stride_index] % this->group_count) != 0;
         }
