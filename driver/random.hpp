@@ -91,6 +91,7 @@ inline T gen_0_to_B(T B)
 template <typename T>
 inline T gen_A_to_B(T A, T B)
 {
+    assert(B > A);
     return gen_0_to_B(B - A) + A;
 }
 
