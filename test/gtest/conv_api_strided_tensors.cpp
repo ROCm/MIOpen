@@ -194,3 +194,4 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
               miopenStatusSuccess);
     ASSERT_TRUE(device.Synchronize());
 }
+#endif
