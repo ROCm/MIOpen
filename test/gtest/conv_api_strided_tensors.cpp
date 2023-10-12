@@ -139,9 +139,6 @@ protected:
     std::vector<float> h_output;
 };
 
-/// \todo re-enable this test after NCDHW grouped convolution lands (PR 2429)
-/// \todo add cpu reference convolution for verification --amberhassaan
-#if 0
 TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
 {
     auto device = Device(handle);
@@ -197,4 +194,3 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
               miopenStatusSuccess);
     ASSERT_TRUE(device.Synchronize());
 }
-#endif
