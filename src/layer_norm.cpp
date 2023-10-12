@@ -26,10 +26,10 @@
 #include <miopen/layernorm.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
-
-#define LOCAL_SIZE 256
+#include <miopen/normalization/invoke_params.hpp>
+#include <miopen/normalization/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 namespace miopen {
 
@@ -74,58 +74,29 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
     }
 
-    auto dims         = xDesc.GetLengths();
-    size_t grid_size  = 1;
-    size_t outer_size = 1;
-    size_t inner_size = 1;
-    size_t i          = 0;
-    for(; i < normalized_dim; i++)
-    {
-        outer_size *= dims[i];
-        grid_size *= dims[i];
-    }
+    const auto problem =
+        normalization::ProblemDescription{mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim_};
 
-    for(; i < dims.size(); i++)
-    {
-        inner_size *= dims[i];
-        grid_size *= dims[i];
-    }
+    const auto invoke_params = [&]() {
+        auto tmp           = normalization::InvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.xDesc          = &xDesc;
+        tmp.x              = x;
+        tmp.x              = weight;
+        tmp.x              = bias;
+        tmp.y              = y;
+        tmp.mean           = mean;
+        tmp.rstd           = rstd;
+        tmp.epsilon        = epsilon;
+        tmp.normalized_dim = normalized_dim;
+        tmp.mode           = mode;
+        return tmp;
+    }();
 
-    auto dtype = xDesc.GetType();
+    const auto algo    = AlgorithmName{"LayerNormForward"};
+    const auto solvers = solver::SolverContainer<solver::normalization::LayernormForward>{};
 
-    const std::vector<size_t> vld{LOCAL_SIZE, 1, 1};
-    const std::vector<size_t> vgd{outer_size * vld[0], 1, 1};
-
-    std::string algo_name = "LayerNormForward";
-    std::string network_config =
-        "lnfwd-dtype" + std::to_string(static_cast<int32_t>(dtype)) + "g" + std::to_string(vgd[0]) +
-        "l" + std::to_string(vld[0]) + "normalized_dim" + std::to_string(normalized_dim) + "grid" +
-        std::to_string(grid_size) + "outer_size" + std::to_string(outer_size) + "inner_size" +
-        std::to_string(inner_size) + "mode" + std::to_string(static_cast<int32_t>(mode)) + "eps" +
-        std::to_string(static_cast<float>(epsilon));
-
-    std::string program_name = "MIOpenLayerNorm.cpp";
-    std::string kernel_name  = "LayernormFwdContiguous";
-
-    // compile parameters
-    std::string parms =
-        " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int32_t>(dtype == miopenHalf)) +
-        " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int32_t>(dtype == miopenFloat)) +
-        " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
-        " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
-
-    parms += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
-
-    auto&& kernels = handle.GetKernels(algo_name, network_config);
-    if(!kernels.empty())
-    {
-        kernels.front()(x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
-    }
-    else
-    {
-        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, weight, bias, mean, rstd, epsilon, inner_size, mode);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
