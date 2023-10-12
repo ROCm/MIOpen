@@ -193,9 +193,8 @@ private:
                                      derivedBnDesc.GetLengths()};
         estMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                           derivedBnDesc.GetLengths()};
-        estVariance =
-            tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
+        estVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
@@ -276,20 +275,16 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, DyDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, DyDataType, TConfig>::bn_mode);
-        bnScale = tensor<ScaleDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+        bnScale   = tensor<ScaleDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
                                         derivedBnDesc.GetLengths()};
-        savedMean =
-            tensor<MeanVarDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
-        savedInvVar =
-            tensor<MeanVarDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
-        dScale =
-            tensor<DscaleDbiasDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                        derivedBnDesc.GetLengths()};
-        dBias =
-            tensor<DscaleDbiasDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                        derivedBnDesc.GetLengths()};
+        savedMean = tensor<MeanVarDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        savedInvVar = tensor<MeanVarDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        dScale = tensor<DscaleDbiasDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        dBias = tensor<DscaleDbiasDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
         dScale_ref = dScale;
         dBias_ref  = dBias;
     }
@@ -384,14 +379,12 @@ private:
                                      derivedBnDesc.GetLengths()};
         saveMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                            derivedBnDesc.GetLengths()};
-        saveVariance =
-            tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
+        saveVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
         runMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                           derivedBnDesc.GetLengths()};
-        runVariance =
-            tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
+        runVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()

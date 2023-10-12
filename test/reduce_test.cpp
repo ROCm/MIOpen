@@ -459,7 +459,7 @@ struct verify_reduce_no_indices
             result = cpuImpl<double>();
 
         const auto& dimLengths = output.desc.GetLengths();
-        auto result_dataFloat = tensor<float>(dimLengths);
+        auto result_dataFloat  = tensor<float>(dimLengths);
 
         for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);
@@ -622,7 +622,7 @@ struct verify_reduce_no_indices
         auto result = gpuImpl();
 
         const auto& dimLengths = output.desc.GetLengths();
-        auto result_dataFloat = tensor<float>(dimLengths);
+        auto result_dataFloat  = tensor<float>(dimLengths);
 
         for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);

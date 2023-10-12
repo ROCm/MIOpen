@@ -2052,8 +2052,7 @@ struct conv_driver : test_driver
 
         if(!input_dims.empty())
         {
-            input =
-                tensor<T>{input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
