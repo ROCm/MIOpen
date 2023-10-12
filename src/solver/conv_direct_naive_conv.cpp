@@ -49,7 +49,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           problem.IsLayoutDefault() && (!problem.IsInt8());
+           problem.IsLayoutDefault() && (problem.IsFp16() || problem.IsFp32() || problem.IsBfp16());
 }
 
 // Check tensor data type respectively
@@ -111,11 +111,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
+
+    /// \todo remove packed reference convolution kernels --amberhassaan
+#ifndef NDEBUG // enable in debug mode only
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS()))
     {
         kernel_name << "naive_conv_packed_";
     }
     else
+#endif
     {
         kernel_name << "naive_conv_nonpacked_";
     }

@@ -122,12 +122,6 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
     KernelInfo kernel;
 
     kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
-    const auto is_f8   = [&]() {
-        if(kernel.kernel_file == "fp8_naive_conv.cpp")
-            return true;
-        else
-            return false;
-    }();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
@@ -138,6 +132,8 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
     kernel.l_wk.push_back(block_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
+
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
@@ -166,6 +162,9 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ExecutionContext& ctx,
                     handle.Run(kern)(tensors.in,
                                      tensors.w,
                                      tensors.out,
+                                     in_strides,
+                                     wei_strides,
+                                     out_strides,
                                      hi,
                                      wi,
                                      n,
