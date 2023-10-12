@@ -161,6 +161,13 @@ struct tensor
     {
     }
 
+    template <class X>
+    tensor(miopenTensorLayout_t layout, const std::vector<X>& dims, const std::vector<X>& strides)
+        : desc(miopen_type<T>{}, layout, dims, strides), data(desc.GetElementSpace())
+    {
+        assert(dims.size() == strides.size());
+    }
+
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
         : desc(miopen_type<T>{}, {n, c, h, w}), data(n * c * h * w)
     {
