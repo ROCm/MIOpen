@@ -171,9 +171,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
        arg != "rnn_seqfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
-       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" &&
-       arg != "--version")
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
+       arg != "layernormfp16" && arg != "layernormbfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

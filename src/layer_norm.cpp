@@ -62,7 +62,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
     if(xDesc.GetLengths() != yDesc.GetLengths())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor dimension lengths do not match.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LayerNormForward: Tensor dimension lengths do not match.");
     }
 
     bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
