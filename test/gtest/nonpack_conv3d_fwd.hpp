@@ -96,8 +96,7 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input                                      = tensor<T>{
-            tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
