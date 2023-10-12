@@ -1336,7 +1336,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         std::cout << "*****************************************************************************"
                      "*******************************************"
                   << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+        std::cout << "***** WARNING: test_drive was called more than once. This function "
                      "should only be called once."
                   << std::endl;
         std::cout << "***** This may abort in the future. Please update the test driver. "

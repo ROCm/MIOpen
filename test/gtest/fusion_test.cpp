@@ -40,7 +40,7 @@ public:
     {
         cba<T>::SetUp();
         weights2 =
-            tensor<T>{miopen_type<T>{}, cba<T>::tensor_layout, cba<T>::conv_config.GetWeights()};
+            tensor<T>{cba<T>::tensor_layout, cba<T>::conv_config.GetWeights()};
         weights2.generate(tensor_elem_gen_integer{3});
         cba<T>::weights = weights2;
         auto&& handle   = get_handle();

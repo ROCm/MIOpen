@@ -2053,7 +2053,7 @@ struct conv_driver : test_driver
         if(!input_dims.empty())
         {
             input =
-                tensor<T>{type, input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
+                tensor<T>{input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
@@ -2062,8 +2062,7 @@ struct conv_driver : test_driver
         {
             ///\todo This means input_dims ranged in NCHW way, shall we determine the tensor
             /// dimension via layout string?
-            input = tensor<T>{type,
-                              input_layout_t,
+            input = tensor<T>{input_layout_t,
                               batch_size,
                               input_channels,
                               spatial_dim_elements.at(0),
@@ -2084,7 +2083,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
@@ -2093,7 +2092,7 @@ struct conv_driver : test_driver
             }
             else
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
@@ -2104,8 +2103,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "NCHW")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     output_channels,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
@@ -2114,8 +2112,7 @@ struct conv_driver : test_driver
             }
             else if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
                                     filter_dims.at(1),
