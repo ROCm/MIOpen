@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 
@@ -164,7 +163,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     eps  = static_cast<double>(inflags.GetValueDouble("eps"));
     mode = miopenLayerNormMode_t(inflags.GetValueInt("mode"));
 
-    return (0);
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -230,7 +229,6 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t mean_sz   = GetTensorSize(meanDesc);
     size_t rstd_sz   = GetTensorSize(rstdDesc);
 
-    // MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 
     in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -250,7 +248,6 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
     rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
 
-    // MIOPEN_BACKEND_HIP
     int status;
 
     for(int i = 0; i < in_sz; i++)
@@ -275,8 +272,8 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= mean_dev->ToGPU(q, mean.data());
     status |= rstd_dev->ToGPU(q, rstd.data());
 
-    if(status != CL_SUCCESS)
-        printf("Error copying data to GPU\n");
+    if(status != 0)
+        std::cout << "Error copying data to GPU\n" << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -426,4 +423,3 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
 }
 
 #endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
-#endif

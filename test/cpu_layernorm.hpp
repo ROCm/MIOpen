@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
 #ifndef GUARD_CPU_LAYERNORM_HPP
 #define GUARD_CPU_LAYERNORM_HPP
 
@@ -79,5 +78,4 @@ void cpu_layernorm_forward(tensor<T> input,
         });
     });
 }
-#endif
 #endif

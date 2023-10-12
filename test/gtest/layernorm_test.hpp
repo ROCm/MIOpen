@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
 
@@ -102,13 +101,12 @@ inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 }
 
 template <typename T = float>
-struct LayerNormSolverTest : public ::testing::TestWithParam<LayerNormTestCase>
+struct LayerNormTest : public ::testing::TestWithParam<LayerNormTestCase>
 {
 protected:
     void SetUp() override
     {
         auto&& handle    = get_handle();
-        test_skipped     = false;
         layernorm_config = GetParam();
         std::mt19937 gen(0);
         std::uniform_real_distribution<> d{-3, 3};
@@ -169,9 +167,6 @@ protected:
     }
     void TearDown() override
     {
-        if(test_skipped)
-            return;
-
         auto&& handle = get_handle();
 
         cpu_layernorm_forward<T>(
@@ -241,7 +236,4 @@ protected:
     size_t nomalized_dim;
     float eps;
     miopenLayerNormMode_t ln_mode;
-
-    bool test_skipped = false;
 };
-#endif

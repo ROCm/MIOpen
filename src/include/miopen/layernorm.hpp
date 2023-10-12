@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef MIOPEN_LAYERNORM_HPP_
 #define MIOPEN_LAYERNORM_HPP_
 
@@ -54,4 +53,3 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
 } // namespace miopen
 #endif // _MIOPEN_LAYERNORM_HPP_
-#endif

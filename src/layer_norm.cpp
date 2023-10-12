@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/layernorm.hpp>
-#ifdef MIOPEN_BETA_API
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
@@ -53,17 +52,17 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 {
     if(x == nullptr || y == nullptr)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Null pointer for tensor.");
     }
 
     if(xDesc.GetType() != yDesc.GetType())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
     }
 
     if(xDesc.GetLengths() != yDesc.GetLengths())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor dimension lengths do not match.");
     }
 
     bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
@@ -71,7 +70,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
     if(!is_all_packed)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "All tensor is not packed.");
+        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
     }
 
     auto dims         = xDesc.GetLengths();
@@ -114,7 +113,6 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
         " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
 
-    parms += " -DMIOPEN_BETA_API=1";
     parms += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
