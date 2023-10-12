@@ -84,3 +84,174 @@ protected:
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename DscaleDbiasDataType,
+          typename MeanVarDataType>
+struct BNBwdTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
+{
+protected:
+    void SetUp() override
+    {
+        test_skipped                       = false;
+        std::tie(bn_config, tensor_layout) = GetParam();
+        bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
+
+        auto&& handle = get_handle();
+        miopenBatchNormalizationBackward(&handle,
+                                         bn_config.mode,
+                                         &bn_bwd_test_data.alphaDataDiff,
+                                         &bn_bwd_test_data.betaDataDiff,
+                                         &bn_bwd_test_data.alphaParamDiff,
+                                         &bn_bwd_test_data.betaParamDiff,
+                                         &bn_bwd_test_data.input.desc,
+                                         bn_bwd_test_data.in_dev.get(),
+                                         &bn_bwd_test_data.dy.desc,
+                                         bn_bwd_test_data.dy_dev.get(),
+                                         &bn_bwd_test_data.output.desc,
+                                         bn_bwd_test_data.out_dev.get(),
+                                         &bn_bwd_test_data.bnScale.desc,
+                                         bn_bwd_test_data.bnScale_dev.get(),
+                                         bn_bwd_test_data.dScale_dev.get(),
+                                         bn_bwd_test_data.dBias_dev.get(),
+                                         bn_bwd_test_data.epsilon,
+                                         bn_bwd_test_data.savedMean_dev.get(),
+                                         bn_bwd_test_data.savedInvVar_dev.get());
+
+        std::fill(bn_bwd_test_data.output.begin(),
+                  bn_bwd_test_data.output.end(),
+                  std::numeric_limits<DxDataType>::quiet_NaN());
+    }
+
+    void TearDown() override
+    {
+        if(test_skipped)
+            return;
+        auto&& handle = get_handle();
+        bn_bwd_test_data.output.data =
+            handle.Read<DyDataType>(bn_bwd_test_data.out_dev, bn_bwd_test_data.output.data.size());
+        bn_bwd_test_data.dScale.data = handle.Read<DxDataType>(bn_bwd_test_data.dScale_dev,
+                                                               bn_bwd_test_data.dScale.data.size());
+        bn_bwd_test_data.dBias.data =
+            handle.Read<DxDataType>(bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
+
+        test::ComputeCPUBNBwd<XDataType,
+                              DxDataType,
+                              DyDataType,
+                              AccDataType,
+                              ScaleDataType,
+                              DscaleDbiasDataType,
+                              MeanVarDataType>(bn_bwd_test_data);
+
+        // using tolerance = 1e-4 since this the tolerance CK uses
+        test::CompareTensor<DxDataType>(bn_bwd_test_data.output, bn_bwd_test_data.ref_out, 1e-4);
+        test::CompareTensor<DxDataType>(bn_bwd_test_data.dScale, bn_bwd_test_data.dScale_ref, 1e-4);
+        test::CompareTensor<DxDataType>(bn_bwd_test_data.dBias, bn_bwd_test_data.dBias_ref, 1e-4);
+    }
+
+    BNTestCase bn_config;
+    bool test_skipped = false;
+    BNBwdTestData<XDataType,
+                  DxDataType,
+                  DyDataType,
+                  AccDataType,
+                  ScaleDataType,
+                  DscaleDbiasDataType,
+                  MeanVarDataType,
+                  BNTestCase>
+        bn_bwd_test_data;
+    miopenTensorLayout_t tensor_layout;
+};
+
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+struct BNFwdTrainTest
+    : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
+{
+protected:
+    void SetUp() override
+    {
+        test_skipped                       = false;
+        std::tie(bn_config, tensor_layout) = GetParam();
+        bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
+
+        auto&& handle = get_handle();
+        miopenBatchNormalizationForwardTraining(&handle,
+                                                bn_config.mode,
+                                                &bn_fwd_train_test_data.alpha,
+                                                &bn_fwd_train_test_data.beta,
+                                                &bn_fwd_train_test_data.input.desc,
+                                                bn_fwd_train_test_data.in_dev.get(),
+                                                &bn_fwd_train_test_data.output.desc,
+                                                bn_fwd_train_test_data.out_dev.get(),
+                                                &bn_fwd_train_test_data.scale.desc,
+                                                bn_fwd_train_test_data.scale_dev.get(),
+                                                bn_fwd_train_test_data.shift_dev.get(),
+                                                bn_fwd_train_test_data.averageFactor,
+                                                bn_fwd_train_test_data.runMean_dev.get(),
+                                                bn_fwd_train_test_data.runVariance_dev.get(),
+                                                bn_fwd_train_test_data.epsilon,
+                                                bn_fwd_train_test_data.saveMean_dev.get(),
+                                                bn_fwd_train_test_data.saveVariance_dev.get());
+
+        std::fill(bn_fwd_train_test_data.output.begin(),
+                  bn_fwd_train_test_data.output.end(),
+                  std::numeric_limits<YDataType>::quiet_NaN());
+        std::fill(bn_fwd_train_test_data.saveMean_ref.begin(),
+                  bn_fwd_train_test_data.saveMean_ref.end(),
+                  std::numeric_limits<YDataType>::quiet_NaN());
+        std::fill(bn_fwd_train_test_data.saveVariance_ref.begin(),
+                  bn_fwd_train_test_data.saveVariance_ref.end(),
+                  std::numeric_limits<YDataType>::quiet_NaN());
+    }
+
+    void TearDown() override
+    {
+        if(test_skipped)
+            return;
+        auto&& handle                      = get_handle();
+        bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
+            bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());
+
+        bn_fwd_train_test_data.saveMean.data = handle.Read<MeanVarDataType>(
+            bn_fwd_train_test_data.saveMean_dev, bn_fwd_train_test_data.saveMean.data.size());
+        bn_fwd_train_test_data.saveVariance.data =
+            handle.Read<MeanVarDataType>(bn_fwd_train_test_data.saveVariance_dev,
+                                         bn_fwd_train_test_data.saveVariance_ref.data.size());
+        bn_fwd_train_test_data.runMean.data = handle.Read<MeanVarDataType>(
+            bn_fwd_train_test_data.runMean_dev, bn_fwd_train_test_data.runMean_ref.data.size());
+        bn_fwd_train_test_data.runVariance.data =
+            handle.Read<MeanVarDataType>(bn_fwd_train_test_data.runVariance_dev,
+                                         bn_fwd_train_test_data.runVariance_ref.data.size());
+        test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
+
+        // 4e-3 is tolerance used by CK kernel.
+        test::CompareTensor<YDataType>(
+            bn_fwd_train_test_data.output, bn_fwd_train_test_data.ref_out, 4e-3);
+        test::CompareTensor<MeanVarDataType>(
+            bn_fwd_train_test_data.saveMean, bn_fwd_train_test_data.saveMean_ref, 4e-3);
+        test::CompareTensor<MeanVarDataType>(
+            bn_fwd_train_test_data.saveVariance, bn_fwd_train_test_data.saveVariance_ref, 4e-3);
+        test::CompareTensor<MeanVarDataType>(
+            bn_fwd_train_test_data.runMean, bn_fwd_train_test_data.runMean_ref, 4e-3);
+        test::CompareTensor<MeanVarDataType>(
+            bn_fwd_train_test_data.runVariance, bn_fwd_train_test_data.runVariance_ref, 4e-3);
+    }
+
+    BNTestCase bn_config;
+    bool test_skipped = false;
+    BNFwdTrainTestData<XDataType,
+                       YDataType,
+                       ScaleDataType,
+                       BiasDataType,
+                       MeanVarDataType,
+                       BNTestCase>
+        bn_fwd_train_test_data;
+    miopenTensorLayout_t tensor_layout;
+};
