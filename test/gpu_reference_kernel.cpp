@@ -394,7 +394,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             EXPECT(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
             EXPECT(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
             EXPECT(hipMalloc(&out_dev, sizeof(Tout) * out_sz) == hipSuccess);
-
+#endif
             EXPECT(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
             EXPECT(miopenInitConvolutionNdDescriptor(convDesc,
                                                      2,
@@ -545,7 +545,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                               in,
                                               wei,
@@ -618,7 +618,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                                 in,
                                                 wei,
@@ -763,7 +763,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             EXPECT(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
             EXPECT(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
             EXPECT(hipMalloc(&out_dev, sizeof(Tout) * out_sz) == hipSuccess);
-
+#endif
             EXPECT(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
             EXPECT(miopenInitConvolutionNdDescriptor(convDesc,
                                                      3,
@@ -834,7 +834,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
                                         wei,
@@ -908,7 +908,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                               in,
                                               wei,
@@ -981,7 +981,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                  out.data.data(),
                                  sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
-
+#endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                                 in,
                                                 wei,
