@@ -74,8 +74,8 @@ miopenStatus_t LayerNormForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
     }
 
-    const auto problem =
-        normalization::ProblemDescription{mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim_};
+    const auto problem = normalization::ProblemDescription{
+        mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim_};
 
     const auto invoke_params = [&]() {
         auto tmp           = normalization::InvokeParams{};

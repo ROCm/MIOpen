@@ -57,14 +57,16 @@ struct ProblemDescription : ProblemDescriptionBase
           yDesc(yDesc_),
           meanDesc(meanDesc_),
           rstdDesc(rstdDesc_),
-          epsilon_(epsilon_),
-          resultrunning(normalized_dim_) {}
+          epsilon(epsilon_),
+          normalized_dim(normalized_dim_)
+    {
+    }
 
     miopenLayerNormMode_t GetMode() const { return mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetBiasDesc() const { return biasDesc; }
-    const TensorDescriptor& GetYDesc() const{ return yDesc; }
+    const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetMeanDesc() const { return meanDesc; }
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
 

@@ -40,27 +40,27 @@ namespace normalization {
 using NormalizationSolver =
     NonTunableSolverBase<ExecutionContext, miopen::normalization::ProblemDescription>;
 
-struct LayernormForward final : BatchnormSolver
+struct LayernormForward final : NormalizationSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<LayernormForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::normalization::ProblemDescription& problem) const override;
     bool GetSolution(const ExecutionContext& context,
-                             const miopen::normalization::ProblemDescription& problem) const override;
+                     const miopen::normalization::ProblemDescription& problem) const override;
 };
 
-struct LayernormCKForward final : BatchnormSolver
+struct LayernormCKForward final : NormalizationSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<LayernormCKForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::normalization::ProblemDescription& problem) const override;
     bool GetSolution(const ExecutionContext& context,
-                             const miopen::normalization::ProblemDescription& problem) const override;
+                     const miopen::normalization::ProblemDescription& problem) const override;
 };
 
-} // namespace batchnorm
+} // namespace normalization
 
 } // namespace solver
 

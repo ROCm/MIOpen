@@ -36,9 +36,9 @@ namespace solver {
 
 namespace normalization {
 
-bool NormalizationForward::IsApplicable(const ExecutionContext&,
-                                  const miopen::normalization::ProblemDescription& problem) const
-{   
+bool NormalizationForward::IsApplicable(
+    const ExecutionContext&, const miopen::normalization::ProblemDescription& problem) const
+{
     if(problem.GetXDesc().GetType() != problem.GetYDesc().GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
@@ -46,11 +46,13 @@ bool NormalizationForward::IsApplicable(const ExecutionContext&,
 
     if(problem.GetXDesc().GetLengths() != problem.GetYDesc().GetLengths())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor dimension lengths do not match.");
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LayerNormForward: Tensor dimension lengths do not match.");
     }
 
-    bool is_all_packed = problem.GetXDesc().IsPacked() && problem.GetWeightDesc().IsPacked() && problem.GetBiasDesc().IsPacked() &&
-                         problem.GetYDesc().IsPacked() && problem.GetMeanDesc().IsPacked() && problem.GetRstdDesc().IsPacked();
+    bool is_all_packed = problem.GetXDesc().IsPacked() && problem.GetWeightDesc().IsPacked() &&
+                         problem.GetBiasDesc().IsPacked() && problem.GetYDesc().IsPacked() &&
+                         problem.GetMeanDesc().IsPacked() && problem.GetRstdDesc().IsPacked();
 
     if(!is_all_packed)
     {
@@ -59,16 +61,17 @@ bool NormalizationForward::IsApplicable(const ExecutionContext&,
     return true;
 }
 
-ConvSolution NormalizationForward::GetSolution(const ExecutionContext& context,
-                                         const miopen::normalization::ProblemDescription& problem) const
+ConvSolution
+NormalizationForward::GetSolution(const ExecutionContext& context,
+                                  const miopen::normalization::ProblemDescription& problem) const
 {
     const auto& handle = context.GetStream();
 
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dims         = xDesc.GetLengths();
- 
+        auto dims = xDesc.GetLengths();
+
         size_t grid_size  = 1;
         size_t outer_size = 1;
         size_t inner_size = 1;
@@ -141,7 +144,7 @@ ConvSolution NormalizationForward::GetSolution(const ExecutionContext& context,
                    params.rstd,
                    params.epsilon,
                    inner_size_,
-                   params.mode,);
+                   params.mode, );
         };
     };
 

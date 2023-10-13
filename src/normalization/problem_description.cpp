@@ -52,7 +52,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     }
 
     auto dtype = xDesc.GetType();
-    
+
     std::ostringstream ss;
 
     ss << "dtype" << dtype;
