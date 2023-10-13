@@ -10,7 +10,7 @@ typedef enum {
     miopenFloat    = 1,
     miopenInt32    = 2,
     miopenInt8     = 3,
-    miopenInt8x4   = 4,
+    /* Value 4 is reserved. */
     miopenBFloat16 = 5,
 } miopenDataType_t;
 ```
@@ -22,7 +22,6 @@ Type descriptions:
  * `miopenFloat` - 32-bit floating point
  * `miopenInt32` - 32-bit integer, used primarily for `int8` convolution outputs
  * `miopenInt8` - 8-bit integer, currently only supported by `int8` convolution forward path, tensor set, tensor copy, tensor cast, tensor transform, tensor transpose, and im2col.
- * `miopenInt8x4` - 8-bit 4 element vector type used primarily with `int8` convolutions forward path.
  * `miopenBFloat16` - brain float fp-16 (8-bit exponent, 7-bit fraction), currently only supported by convolutions, tensor set, and tensor copy.
 
 

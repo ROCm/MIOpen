@@ -268,17 +268,16 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     states_host = std::vector<prngStates>(states_size);
 
-    srand(0);
     Tgpu Data_scale = static_cast<Tgpu>(0.01);
 
     for(int i = 0; i < in_sz; i++)
     {
-        in.data[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in.data[i] = prng::gen_0_to_B(Data_scale);
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        dout.data[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        dout.data[i] = prng::gen_0_to_B(Data_scale);
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -303,8 +302,7 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < reserveSpaceSize; i++)
         {
-            reservespace[i] = static_cast<unsigned char>(
-                RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)) > dropout);
+            reservespace[i]      = static_cast<uint8_t>(prng::gen_canonical<float>() > dropout);
             reservespace_host[i] = reservespace[i];
         }
         status |= reservespace_dev->ToGPU(q, reservespace.data());

@@ -2945,7 +2945,7 @@ struct gru_basic_driver : test_driver
 
     void run()
     {
-
+        const T Data_scale = static_cast<T>(0.001);
 #if(MIOPEN_BACKEND_OPENCL == 1)
         if(type == miopenHalf)
             exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
@@ -3056,10 +3056,9 @@ struct gru_basic_driver : test_driver
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
         std::size_t in_sz = static_cast<std::size_t>(inVecReal) * batch_n;
         std::vector<T> input(in_sz);
-        srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
         {
-            input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
+            input[i] = prng::gen_descreet_unsigned(Data_scale, 100);
         }
 
         std::size_t hx_sz = ((dirMode != 0) ? 2ULL : 1ULL) * hiddenSize * batchSize * numLayers;
@@ -3077,7 +3076,7 @@ struct gru_basic_driver : test_driver
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)
         {
-            weights[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 0.001 * float(GET_RAND() % 100);
+            weights[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
         }
 
 #if(MIO_GRU_TEST_DEBUG > 0)
@@ -3094,7 +3093,7 @@ struct gru_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                hx[i] = 0.001 * float(GET_RAND() % 100);
+                hx[i] = prng::gen_descreet_unsigned(Data_scale, 100);
             }
         }
 
@@ -3102,7 +3101,7 @@ struct gru_basic_driver : test_driver
         {
             for(std::size_t i = 0; i < hx_sz; i++)
             {
-                dhyin[i] = 0.001 * float(GET_RAND() % 100);
+                dhyin[i] = prng::gen_descreet_unsigned(Data_scale, 100);
             }
         }
 
@@ -3166,7 +3165,7 @@ struct gru_basic_driver : test_driver
         std::vector<T> dyin(yin.size());
         for(std::size_t i = 0; i < yin.size(); i++)
         {
-            dyin[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
+            dyin[i] = prng::gen_descreet_unsigned(Data_scale, 100);
         }
 
 #if(MIO_GRU_TEST_DEBUG > 0)

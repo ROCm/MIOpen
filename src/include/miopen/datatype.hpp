@@ -53,7 +53,10 @@ inline std::string GetDataType(miopenDataType_t type)
         type_str = "bfloat16";
     }
     break;
-    case miopenInt8x4:
+    case miopenInt8x4: {
+        type_str = "UNSUPPORTED_TYPE";
+    }
+    break;
     case miopenInt8: {
         type_str = "int8_t";
     }
@@ -64,6 +67,14 @@ inline std::string GetDataType(miopenDataType_t type)
     break;
     case miopenDouble: {
         type_str = "double";
+    }
+    break;
+    case miopenFloat8: {
+        type_str = "float8";
+    }
+    break;
+    case miopenBFloat8: {
+        type_str = "bfloat8";
     }
     break;
     }
@@ -129,10 +140,11 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     int use_fp16x8             = 0;
     int use_fp32               = 0;
     int use_int8               = 0;
-    int use_int8x4             = 0;
     int use_int32              = 0;
     int use_bfp16              = 0;
     int use_fp64               = 0;
+    int use_fp8                = 0;
+    int use_bfp8               = 0;
     const int use_rne_bfloat16 = MIOPEN_USE_RNE_BFLOAT16;
 
     switch(type)
@@ -140,12 +152,14 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     case miopenHalf: use_fp16 = 1; break;
     case miopenFloat: use_fp32 = 1; break;
     case miopenInt8: use_int8 = 1; break;
-    case miopenInt8x4: use_int8x4 = 1; break;
     case miopenBFloat16: use_bfp16 = 1; break;
     case miopenInt32: use_int32 = 1; break;
     case miopenDouble: use_fp64 = 1; break;
+    case miopenFloat8: use_fp8 = 1; break;
+    case miopenBFloat8: use_bfp8 = 1; break;
+    case miopenInt8x4: // fallthrough
     default:
-        MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
+        MIOPEN_THROW("Only float, half, bfloat16, int8, float8, bfloat8 data types are supported.");
         break;
     }
 
@@ -155,13 +169,18 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
         {"MIOPEN_USE_FP16x8", use_fp16x8},
         {"MIOPEN_USE_FP32", use_fp32},
         {"MIOPEN_USE_INT8", use_int8},
-        {"MIOPEN_USE_INT8x4", use_int8x4},
         {"MIOPEN_USE_BFP16", use_bfp16},
         {"MIOPEN_USE_INT32", use_int32},
         {"MIOPEN_USE_RNE_BFLOAT16", use_rne_bfloat16},
+        {"MIOPEN_FP8_IEEE_EXPONENT_BIAS", MIOPEN_FP8_IEEE_EXPONENT_BIAS},
+        {"MIOPEN_FP8_CLIPPING", MIOPEN_FP8_CLIPPING},
     };
     if(use_fp64 != 0)
         kbp.Define("MIOPEN_USE_FP64", use_fp64);
+    if(use_fp8 != 0)
+        kbp.Define("MIOPEN_USE_FP8", use_fp8);
+    if(use_bfp8 != 0)
+        kbp.Define("MIOPEN_USE_FP8", use_bfp8);
     return kbp;
 }
 

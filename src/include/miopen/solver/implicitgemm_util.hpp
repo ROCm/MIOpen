@@ -95,61 +95,61 @@ static inline std::size_t KernelFilterDilationW(const ProblemDescription& proble
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInChannels();
+        return problem.GetInChannels_();
     else
-        return problem.GetOutChannels();
+        return problem.GetOutChannels_();
 }
 
 static inline std::size_t KernelInputChannelC(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetBatchSize();
+        return problem.GetBatchSize_();
     else
-        return problem.GetInChannels() / problem.GetGroupCount();
+        return problem.GetInChannels_() / problem.GetGroupCount();
 }
 
 static inline std::size_t KernelBatchN(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetOutChannels() / problem.GetGroupCount();
+        return problem.GetOutChannels_() / problem.GetGroupCount();
     else
-        return problem.GetBatchSize();
+        return problem.GetBatchSize_();
 }
 
 static inline std::size_t KernelOutputHeightHo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutHeight();
+        return problem.GetOutHeight_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsHeight();
+        return problem.GetWeightsHeight_();
     else
-        return problem.GetInHeight();
+        return problem.GetInHeight_();
 }
 
 static inline std::size_t KernelOutputWidthWo(const ProblemDescription& problem)
 {
     if(problem.direction.IsForward())
-        return problem.GetOutWidth();
+        return problem.GetOutWidth_();
     else if(problem.direction.IsBackwardWrW())
-        return problem.GetWeightsWidth();
+        return problem.GetWeightsWidth_();
     else
-        return problem.GetInWidth();
+        return problem.GetInWidth_();
 }
 
 static inline std::size_t KernelFilterWidthX(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInWidth();
+        return problem.GetInWidth_();
     else
-        return problem.GetWeightsWidth();
+        return problem.GetWeightsWidth_();
 }
 
 static inline std::size_t KernelFilterHeightY(const ProblemDescription& problem)
 {
     if(problem.direction.IsBackwardWrW())
-        return problem.GetInHeight();
+        return problem.GetInHeight_();
     else
-        return problem.GetWeightsHeight();
+        return problem.GetWeightsHeight_();
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -419,7 +419,7 @@ static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
 
 ///\todo remove
 template <class PerformanceImplicitGemm_t>
-inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx,
+inline static auto GetPerformanceConfigBase(const ExecutionContext& ctx,
                                             const ProblemDescription& problem)
 {
     PerformanceImplicitGemm_t pp;
@@ -459,7 +459,7 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
     return lds_size;
 }
 
-static inline bool use_amd_inline_asm(const ConvolutionContext& ctx,
+static inline bool use_amd_inline_asm(const ExecutionContext& ctx,
                                       const ProblemDescription& problem)
 {
 
@@ -475,7 +475,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx,
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});
 }
 
-static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
+static inline bool is_use_amd_buffer_load_store(const ExecutionContext& ctx)
 {
 #if WORKAROUND_MIOPEN_ISSUE_557
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -485,7 +485,7 @@ static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 #endif
 }
 
-static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
+static inline bool is_use_v_fmac_f32(const ExecutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return StartsWith(device_name, "gfx103");
@@ -570,7 +570,7 @@ int amd_lds_write_max_length()
 
 constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
-static inline auto get_static_ck_common_compiler_flag(const ConvolutionContext& ctx)
+static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ctx)
 {
     auto compiler_flag = std::string(" --std=c++14");
 
@@ -601,7 +601,7 @@ static inline auto get_static_ck_common_compiler_flag(const ConvolutionContext& 
     return compiler_flag;
 }
 
-static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext& c)
+static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c)
 {
     return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
             c.GetStream().GetMaxComputeUnits() == 64) ||

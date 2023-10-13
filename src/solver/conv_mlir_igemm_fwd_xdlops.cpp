@@ -52,19 +52,21 @@ void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
     GemmBThreadCopyMoreGemmKPack = false;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!problem.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));
 #else
@@ -123,7 +125,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConvMlirIgemmXdlops::IsValid(const ExecutionContext& ctx,
                                              const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -187,14 +189,14 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                     const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConvMlirIgemmXdlops& config) const
 {
@@ -203,14 +205,14 @@ bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmFwdXdlops::Search(const ExecutionContext& ctx,
                                const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {

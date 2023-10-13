@@ -85,7 +85,7 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConvMlirIgemm::IsValid(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -136,13 +136,13 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ProblemDescription&)
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ExecutionContext&,
                                               const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
@@ -150,24 +150,26 @@ bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
     return config.IsValid(ctx, problem);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& ctx,
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!problem.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     // Note: ConvMlirIgemmFwd can run on a machine with xdlops support, however, it is
     // guaranteed to be slower than its xdlops alternative, therefore disabling it to
@@ -187,7 +189,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx,
 #endif
 }
 
-ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwd::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {

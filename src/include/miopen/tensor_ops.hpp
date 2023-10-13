@@ -75,7 +75,20 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         is_all_packed &= real_descriptors[itensor]->IsPacked();
 
-    if(is_all_packed)
+    bool is_all_same_strided        = true;
+    const auto& real_desc_0_strides = real_descriptors[0]->GetStrides();
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
+        if(real_desc_0_strides != real_descriptors[itensor]->GetStrides())
+        {
+            is_all_same_strided = false;
+            break;
+        }
+
+    auto non1_length_strides =
+        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
+        boost::adaptors::filtered(f_length_is_not_1_t());
+
+    if((is_all_packed && is_all_same_strided) || non1_length_strides.empty())
     {
         auto sz = real_descriptors[0]->GetElementSize();
         return create_tuple<NTensor>([&](auto itensor) {
@@ -87,10 +100,6 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
-
-    auto non1_length_strides =
-        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
-        boost::adaptors::filtered(f_length_is_not_1_t());
 
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = boost::get<0>(*i);
@@ -173,9 +182,10 @@ void OpTensor(const Handle& handle,
               const void* beta,
               const TensorDescriptor& cTensorDesc,
               Data_t CTensor,
-              size_t Aoffset = 0,
-              size_t Boffset = 0,
-              size_t Coffset = 0);
+              size_t Aoffset         = 0,
+              size_t Boffset         = 0,
+              size_t Coffset         = 0,
+              bool nonStandardSquash = false);
 
 void CopyTensor(const Handle& handle,
                 const TensorDescriptor& srcDesc,

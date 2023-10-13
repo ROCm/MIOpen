@@ -27,7 +27,7 @@
 #pragma once
 
 #include <miopen/invoker.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/problem_description.hpp>
 
 namespace miopen {
 namespace conv {

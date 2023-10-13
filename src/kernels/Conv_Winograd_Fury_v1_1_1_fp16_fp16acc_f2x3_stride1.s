@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,39 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+.include "Conv_Winograd_Fury_v1_1_1_metadata.inc"
 
-#include <gtest/gtest.h>
-#include "cpu_conv.hpp"
-#include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
+.if (.amdgcn.gfx_generation_number == 11)
+    KERNEL_PROLOG fp16_fp16acc_f2x3_stride1
 
-#include "conv_test_base.hpp"
+    .include "Conv_Winograd_Fury_v1_1_1_gfx11_fp16_fp16acc_f2x3_stride1.inc"
 
-template <typename T = float>
-struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T>
-{
-public:
-    void SetUp() override
-    {
-        test_skipped                               = false;
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
-        ConvFwdSolverTestBase<T>::SetUpImpl(conv_config, tensor_layout);
-    }
-    void TearDown() override
-    {
-        if(test_skipped)
-            return;
-        ConvFwdSolverTestBase<T>::TearDownConv();
-        ConvFwdSolverTestBase<T>::ThresholdChecks();
-    }
-    ConvTestCase conv_config;
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
-    miopenTensorLayout_t tensor_layout;
-};
+    KERNEL_EPILOG fp16_fp16acc_f2x3_stride1
+.else
+    .error "Unsupported gfx generation"
+    .end
+.endif

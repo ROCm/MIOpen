@@ -80,7 +80,11 @@ struct ConvTestCase
     }
 
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, y, x}; }
+    std::vector<size_t> GetWeights()
+    {
+        EXPECT_EQUAL(C % G, 0);
+        return {k, C / G, y, x};
+    }
 
     miopen::ConvolutionDescriptor GetConv()
     {

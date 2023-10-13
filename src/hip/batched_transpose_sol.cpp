@@ -322,7 +322,11 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
                                                    uint32_t width_)
     : data_type(data_type_), batch(batch_), height(height_), width(width_)
 {
-    if(data_type == miopenInt8x4 || data_type == miopenDouble)
+    if(!(data_type == miopenHalf     //
+         || data_type == miopenFloat //
+         || data_type == miopenInt32 //
+         || data_type == miopenInt8  //
+         || data_type == miopenBFloat16))
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);

@@ -564,6 +564,9 @@ struct superTensorTest : test_driver
                                algo,
                                dataType);
 
+        if(inMode_lookup[inMode] == miopenRNNskip && in_size != wei_hh)
+            return;
+
         std::array<int, 2> in_lens = {{batch_size, in_size}};
         miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);

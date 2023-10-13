@@ -28,14 +28,16 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <miopen/convolution.hpp>
+#include <miopen/driver_arguments.hpp>
 
 extern std::string const logConv;
 extern std::string const logFindConv;
+extern std::string const logFusionConvBiasActiv;
+extern std::string const logBnormActiv;
 extern std::string const envConv;
 
-enum class ConvDirection;
-
 namespace miopen {
+struct OperatorArgs;
 namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
@@ -53,6 +55,10 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& yDesc,
                            ConvDirection conv_dir,
                            bool is_immediate);
+// Copy of function declaration that is in miopen.
+// This is for testing purpose only.
+void LogCmdFusion(const miopenFusionPlanDescriptor_t);
+
 } // namespace debug
 } // namespace miopen
 // Function that is used in multiple test cases.
@@ -60,8 +66,19 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
-                                   const ConvDirection&,
+                                   const miopen::debug::ConvDirection&,
                                    bool)> const& func,
                 std::string env_var,
                 std::string sub_str,
                 bool set_env);
+
+// Function that is used in multiple test cases.
+void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
+                         std::string env_var,
+                         std::string sub_str,
+                         bool set_env);
+
+void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
+                           std::string env_var,
+                           std::string sub_str,
+                           bool set_env);
