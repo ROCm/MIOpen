@@ -588,15 +588,17 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
         }
         if(kidx % 100 == 0)
             std::cout << "Lines of find db completed:" << kidx << std::endl;
-        ++counter;
         counter.fetch_add(1, std::memory_order_relaxed);
     }
 }
 
-TEST(DBSync, StaticFDBSync)
+void StaticFDBSync(const std::string& arch, const size_t num_cu)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
+    if(handle.GetDeviceName() != arch)
+        GTEST_SKIP();
+    setenv("MIOPEN_DEVICE_CU", std::to_string(num_cu).c_str(), 1);
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
@@ -616,26 +618,23 @@ TEST(DBSync, StaticFDBSync)
     std::vector<std::thread> agents;
     agents.reserve(total_threads);
     for(auto idx = 0; idx < total_threads; ++idx)
-    {
         agents.emplace_back(CheckFDBEntry, idx, total_threads, std::ref(fdb_data), std::ref(_ctx), std::ref(counter));
-    }
 
     for(auto idx = 0; idx < total_threads; ++idx)
-    {
         agents.at(idx).join();
-    }
-    ASSERT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work";
-    // for each key , val pair in the find db
-    // for each solver entry in the val of find db
-    // check that the solver is applicable
-    // check the workspace value is correct
-    // Make sure the perf db entry is valid
-    // make sure the kdb entry exists and is loadable in hip
-    // Bonus: No phantom entries in perf db, no phantom entries in kdb
-
-    // Lets look at the dynamic kernels
-    // construct the list of dynamic solvers
-
-    // for each entry in the find db, for each applicable dynamic solver make sure we have the required kdb entries 
-
+    ASSERT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work" << counter << " : " << fdb_data.size();
 }
+
+struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
+{
+};
+
+TEST_P(DBSync, StaticFDBSync)
+{
+    std::string arch;
+    size_t num_cu;
+    std::tie(arch, num_cu) = GetParam();
+    StaticFDBSync(arch, num_cu);
+}
+
+INSTANTIATE_TEST_SUITE_P(DBSyncSuite, DBSync, testing::Values(std::make_pair("gfx90a", 104), std::make_pair("gfx90a", 110), std::make_pair("gfx908", 120)));
