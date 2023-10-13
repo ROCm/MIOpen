@@ -63,6 +63,16 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
+static inline bool is_conv_ck_supported_hardware(const std::string& device_name, bool is_wrw)
+{
+    auto res_wrw = StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
+                   StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
+                   StartsWith(device_name, "gfx942");
+    return is_wrw ? res_wrw
+                  : (res_wrw || StartsWith(device_name, "gfx900") ||
+                     StartsWith(device_name, "gfx906"));
+}
+
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
     return StartsWith(device_name, "gfx908");

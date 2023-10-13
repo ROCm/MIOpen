@@ -36,6 +36,7 @@
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/invoker.hpp>
+#include <miopen/conv/tensors.hpp>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -378,6 +379,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);
     friend void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv);
+
+private:
+    void ValidateTensors(const ConvTensors& conv_tensors) const;
 };
 
 void ConvolutionBackwardBias(const Handle& handle,

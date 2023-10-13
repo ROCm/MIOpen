@@ -284,30 +284,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 namespace {
 
-void ValidateConvTensors(const ConvTensors& tensors)
-{
-    const auto invalid_buffers =
-        tensors.x == nullptr || tensors.w == nullptr || tensors.y == nullptr;
-
-    const auto tensor_sizes_not_matched = tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
-                                          tensors.xDesc.GetSize() != tensors.wDesc.GetSize();
-
-    const auto trivial_tensor_types_not_matched =
-        tensors.xDesc.GetType() != tensors.yDesc.GetType() && tensors.xDesc.GetType() != miopenInt8;
-
-    // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
-    //    MIOPEN_THROW(miopenStatusBadParm);
-    //}
-
-    const auto x_tensor_invalid = tensors.xDesc.GetSize() < 3;
-
-    const auto bad_parameters = invalid_buffers || tensor_sizes_not_matched ||
-                                trivial_tensor_types_not_matched || x_tensor_invalid;
-
-    if(bad_parameters)
-        MIOPEN_THROW(miopenStatusBadParm);
-}
-
 void ValidateAlphaBeta(const void* alpha, const void* beta)
 {
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
@@ -398,6 +374,88 @@ static void ConvForwardCheckNumerics(const Handle& handle,
     }
 }
 
+void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
+{
+
+    // Group stride in current TensorDescriptor is implicit. When invoking kernels,
+    // we need to add the group dimension G and compute its stride. We want the stride
+    // left of C to be a multiple of group count G. e.g. for NCHW, the stride for N
+    // should be a multiple of G so that we can compute the strides for NGCHW
+    auto bad_group_stride = [this](const TensorDescriptor& td) {
+        auto l             = td.GetLayout_t();
+        int g_stride_index = -1;
+        if(l == miopenTensorNCHW || l == miopenTensorNCDHW)
+        {
+            g_stride_index = 0; // stride index for N;
+        }
+        else if(l == miopenTensorNHWC || l == miopenTensorNDHWC)
+        {
+            // stride index for W. Normally this would be 2nd-last stride but we store
+            // strides in NCHW order for some weird reason.
+            g_stride_index = td.GetStrides().size() - 1;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "Layout not supported for grouped convolution");
+        }
+
+        if(g_stride_index != -1)
+        {
+            return (td.GetStrides()[g_stride_index] % this->group_count) != 0;
+        }
+
+        return false;
+    };
+
+    // invalid_buffers
+    if(tensors.x == nullptr || tensors.w == nullptr || tensors.y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "One of the convolution tensors is null");
+    }
+
+    // x_tensor_invalid =
+    if(tensors.xDesc.GetSize() < 3)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "input tensor's number of dimensions is wrong");
+    }
+
+    // tensor_sizes_not_matched =
+    if(tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
+       tensors.xDesc.GetSize() != tensors.wDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "number of dimensions mismatch between input, output and weights tensors");
+    }
+
+    // trivial_tensor_types_not_matched =
+    if(tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
+       tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "input/output tensor data types do not match");
+    }
+
+    // check for bad_group_stride. This applies for input and output only. There
+    // is no check for weight tensor currently.
+    // no need to check for group_count == 1
+
+    if((this->group_count > 1) && bad_group_stride(tensors.xDesc))
+    {
+        MIOPEN_THROW(
+            miopenStatusBadParm,
+            "Invalid input tensor strides. Channel stride must be a multiple of group count");
+    }
+    if((this->group_count > 1) && bad_group_stride(tensors.yDesc))
+    {
+        MIOPEN_THROW(
+            miopenStatusBadParm,
+            "Invalid output tensor strides. Channel stride must be a multiple of group count");
+    }
+
+    // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
+    //    MIOPEN_THROW(miopenStatusBadParm);
+    //}
+}
+
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                const void* alpha,
                                                const TensorDescriptor& xDesc,
@@ -413,13 +471,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 {
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
 
-    if(!(xDesc.IsPacked() && wDesc.IsPacked() && yDesc.IsPacked()))
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only fully packed tensors are supported");
-    }
-
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
@@ -734,7 +787,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm);
 
@@ -871,7 +924,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
@@ -937,7 +990,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
 
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {
@@ -1071,7 +1124,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
 {
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
     decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
     if(xDesc.GetType() == miopenInt8)
@@ -1134,7 +1187,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
-    ValidateConvTensors(tensors);
+    ValidateTensors(tensors);
 
     if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
