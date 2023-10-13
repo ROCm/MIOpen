@@ -431,8 +431,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     }
 
     // trivial_tensor_types_not_matched =
-    if(tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-       tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4)
+    if(tensors.xDesc.GetType() != tensors.yDesc.GetType() && tensors.xDesc.GetType() != miopenInt8)
     {
         MIOPEN_THROW(miopenStatusBadParm, "input/output tensor data types do not match");
     }
