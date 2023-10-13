@@ -69,6 +69,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetMeanDesc() const { return meanDesc; }
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
+    const int32_t GetNormalizedDim() const { return normalized_dim; }
 
     NetworkConfig MakeNetworkConfig() const;
 

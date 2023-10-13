@@ -33,7 +33,7 @@
 
 namespace miopen {
 
-miopenStatus_t LayerNormForward(const Handle& handle,
+miopenStatus_t LayerNormForward(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& weightDesc,
@@ -75,7 +75,7 @@ miopenStatus_t LayerNormForward(const Handle& handle,
     }
 
     const auto problem = normalization::ProblemDescription{
-        mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim_};
+        mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim};
 
     const auto invoke_params = [&]() {
         auto tmp           = normalization::InvokeParams{};
@@ -102,4 +102,4 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 }
 
 } // namespace miopen
-#endif
+

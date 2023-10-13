@@ -46,7 +46,7 @@ struct LayernormForward final : NormalizationSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::normalization::ProblemDescription& problem) const override;
-    bool GetSolution(const ExecutionContext& context,
+    ConvSolution GetSolution(const ExecutionContext& context,
                      const miopen::normalization::ProblemDescription& problem) const override;
 };
 
@@ -56,7 +56,7 @@ struct LayernormCKForward final : NormalizationSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::normalization::ProblemDescription& problem) const override;
-    bool GetSolution(const ExecutionContext& context,
+    ConvSolution GetSolution(const ExecutionContext& context,
                      const miopen::normalization::ProblemDescription& problem) const override;
 };
 

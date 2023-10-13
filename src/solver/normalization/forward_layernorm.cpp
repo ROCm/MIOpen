@@ -30,13 +30,15 @@
 #include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
 
+#define LOCAL_SIZE 256
+
 namespace miopen {
 
 namespace solver {
 
 namespace normalization {
 
-bool NormalizationForward::IsApplicable(
+bool LayernormForward::IsApplicable(
     const ExecutionContext&, const miopen::normalization::ProblemDescription& problem) const
 {
     if(problem.GetXDesc().GetType() != problem.GetYDesc().GetType())
@@ -62,7 +64,7 @@ bool NormalizationForward::IsApplicable(
 }
 
 ConvSolution
-NormalizationForward::GetSolution(const ExecutionContext& context,
+LayernormForward::GetSolution(const ExecutionContext& context,
                                   const miopen::normalization::ProblemDescription& problem) const
 {
     const auto& handle = context.GetStream();
@@ -70,26 +72,17 @@ NormalizationForward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dims = xDesc.GetLengths();
+        auto dtype = problem.GetXDesc().GetType();
+        auto dims = problem.GetXDesc().GetLengths();
 
-        size_t grid_size  = 1;
         size_t outer_size = 1;
-        size_t inner_size = 1;
-        size_t i          = 0;
-        for(; i < normalized_dim; i++)
+        for(size_t i = 0 ; i < problem.GetNormalizedDim(); i++)
         {
             outer_size *= dims[i];
-            grid_size *= dims[i];
-        }
-
-        for(; i < dims.size(); i++)
-        {
-            inner_size *= dims[i];
-            grid_size *= dims[i];
         }
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = outer_size * vld[0];
+        size_t xgridsize  = outer_size * xlocalsize;
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -105,7 +98,6 @@ NormalizationForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"MIOPEN_BETA_API", 1},
             {"LOCAL_SIZE", LOCAL_SIZE},
         };
 
@@ -129,9 +121,8 @@ NormalizationForward::GetSolution(const ExecutionContext& context,
 
             auto dims          = params.xDesc->GetLengths();
             size_t inner_size_ = 1;
-            size_t i           = params.normalized_dim;
 
-            for(; i < dims.size(); i++)
+            for(size_t i = params.normalized_dim ; i < dims.size(); i++)
             {
                 inner_size_ *= dims[i];
             }
@@ -144,11 +135,11 @@ NormalizationForward::GetSolution(const ExecutionContext& context,
                    params.rstd,
                    params.epsilon,
                    inner_size_,
-                   params.mode, );
+                   params.mode);
         };
     };
 
-    return miopenStatusSuccess;
+    return result;
 }
 
 } // namespace normalization

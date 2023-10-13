@@ -129,6 +129,7 @@ set( MIOpen_Source
     logger.cpp
     layernorm_api.cpp
     lrn_api.cpp
+    normalization/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
