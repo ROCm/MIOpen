@@ -26,6 +26,7 @@
 
 #include <miopen/problem.hpp>
 
+#include <miopen/activ/problem_description.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
@@ -176,6 +177,16 @@ Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
     return found->second;
 }
 
+const TensorDescriptor& Problem::GetTensorDescriptor(miopenTensorArgumentId_t name,
+                                                     const std::string& name_str,
+                                                     const TensorDescriptor& default_value) const
+{
+    const auto found = tensor_descriptors.find(name);
+    if(found == tensor_descriptors.end())
+        return default_value;
+    return found->second;
+}
+
 Problem Problem::MakeTransposed() const
 {
     auto transposed = Problem{};
@@ -229,6 +240,30 @@ conv::ProblemDescription Problem::AsConvolution() const
     return conv_dir == conv::Direction::Forward
                ? conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv_dir)
                : conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, conv_dir);
+}
+
+activ::ProblemDescription Problem::AsActivation() const
+{
+    const auto& activ_desc = boost::get<ActivationDescriptor>(operator_descriptor);
+
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
+    const auto& y_desc =
+        GetTensorDescriptor(miopenTensorActivationY, "miopenTensorActivationY", x_desc);
+
+    if(direction == miopenProblemDirectionForward)
+    {
+        return {activ_desc, x_desc, y_desc};
+    }
+    else
+    {
+        const auto& dx_desc =
+            GetTensorDescriptor(miopenTensorActivationDX, "miopenTensorActivationDX", x_desc);
+        const auto& dy_desc =
+            GetTensorDescriptor(miopenTensorActivationDY, "miopenTensorActivationDY", dx_desc);
+
+        return {activ_desc, x_desc, y_desc, dx_desc, dy_desc};
+    }
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
@@ -406,7 +441,8 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 
 void Problem::LogDriverCommand() const
 {
-    const auto log_function = boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
+    const auto log_function =
+        boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
                           [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); });
 
     boost::apply_visitor(log_function, operator_descriptor);

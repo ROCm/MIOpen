@@ -48,9 +48,13 @@ struct Handle;
 struct Solution;
 struct FindOptions;
 
-namespace conv {
+namespace activ {
 struct ProblemDescription;
-} // namespace conv
+} // namespace activ
+
+namespace activ {
+struct ProblemDescription;
+} // namespace activ
 
 using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
 
@@ -84,8 +88,14 @@ struct Problem : miopenProblem
 
     conv::ProblemDescription AsConvolution() const;
 
+    activ::ProblemDescription AsActivation() const;
+
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
+
+    const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name,
+                                                const std::string& name_str,
+                                                const TensorDescriptor& default_value) const;
 
     Problem MakeTransposed() const;
 
