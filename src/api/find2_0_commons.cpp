@@ -38,12 +38,11 @@
 
 #include <nlohmann/json.hpp>
 
-extern "C" {
-miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
-                                       miopenConvolutionDescriptor_t operatorDesc,
-                                       miopenProblemDirection_t direction)
+template <class OperationDescriptor>
+miopenStatus_t MakeProblem(miopenProblem_t* problem,
+                           OperationDescriptor operatorDesc,
+                           miopenProblemDirection_t direction)
 {
-    MIOPEN_LOG_FUNCTION(problem);
     return miopen::try_([&] {
         miopen::deref(problem)        = new miopen::Problem();
         decltype(auto) problem_deref  = miopen::deref(*problem);
@@ -52,6 +51,23 @@ miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
         problem_deref.SetOperatorDescriptor(operator_deref);
         problem_deref.SetDirection(direction);
     });
+}
+
+extern "C" {
+miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
+                                       miopenConvolutionDescriptor_t operatorDesc,
+                                       miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem);
+    return MakeProblem(problem, operatorDesc, direction);
+}
+
+miopenStatus_t miopenCreateActivationProblem(miopenProblem_t* problem,
+                                             miopenActivationDescriptor_t operatorDesc,
+                                             miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem);
+    return MakeProblem(problem, operatorDesc, direction);
 }
 
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem)

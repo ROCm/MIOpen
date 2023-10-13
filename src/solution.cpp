@@ -58,9 +58,11 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
 
-    const auto run = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-    });
+    const auto run = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) {
+            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+        },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(run, problem.GetOperatorDescriptor());
 }
@@ -68,7 +70,8 @@ void Solution::Run(Handle& handle,
 void Solution::LogDriverCommand() const
 {
     const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(log_function, problem.GetOperatorDescriptor());
 }

@@ -134,9 +134,13 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
         owned_buffers.emplace_back(std::move(buffer));
     }
 
-    const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
-    });
+    const auto find = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) {
+            return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+        },
+        [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        });
 
     auto ret = boost::apply_visitor(find, operator_descriptor);
 
@@ -191,7 +195,8 @@ Problem Problem::MakeTransposed() const
         transposed.tensor_descriptors.emplace(descriptor.first, descriptor.second);
 
     const auto transpose_tensors = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(transpose_tensors, operator_descriptor);
 
@@ -397,7 +402,8 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 void Problem::LogDriverCommand() const
 {
     const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(log_function, operator_descriptor);
 }

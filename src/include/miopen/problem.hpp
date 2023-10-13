@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/object.hpp>
@@ -51,7 +52,7 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
 
 struct Problem : miopenProblem
 {

@@ -5458,6 +5458,23 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
  */
 miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
 
+#ifdef MIOPEN_BETA_API
+
+/*! @brief Initializes a problem object describing a activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateActivationProblem(miopenProblem_t* problem,
+                              miopenActivationDescriptor_t operatorDesc,
+                              miopenProblemDirection_t direction);
+
+#endif
+
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
 
