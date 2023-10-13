@@ -74,16 +74,8 @@ inline std::size_t GetTensorVectorLength(const miopenTensorDescriptor_t& tensor)
     int size = 0;
     miopenGetTensorDescriptorSize(tensor, &size);
 
-    if(size == 4 || size == 5)
-    {
-        miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
-        return vectorLength;
-    }
-    else
-    {
-        MIOPEN_THROW("We only support 4D layout in vector format");
-    }
-    return 0;
+    miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
+    return vectorLength;
 }
 
 inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)

@@ -41,6 +41,7 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
+#include <optional>
 
 namespace miopen {
 
@@ -100,11 +101,13 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenFloat: return 4;
     case miopenHalf:
     case miopenBFloat16: return 2;
-    case miopenInt8x4:
-    case miopenInt8: return 1;
+    case miopenInt8x4: break;
+    case miopenInt8:
+    case miopenFloat8:
+    case miopenBFloat8: return 1;
     case miopenDouble: return 8;
     }
-    MIOPEN_THROW("Unknown data type");
+    MIOPEN_THROW("Unknown or unsupported data type");
 }
 
 template <class X, class Y>
@@ -185,6 +188,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
+    std::optional<miopenDataType_t> GetCastType() const;
+    void SetCastType(miopenDataType_t cast_type_);
 
     std::size_t GetElementSize() const;
 
@@ -280,7 +285,8 @@ private:
     bool packed;
     std::size_t vector_length = 1;
 
-    miopenDataType_t type             = miopenFloat;
+    miopenDataType_t type = miopenFloat;
+    std::optional<miopenDataType_t> cast_type;
     miopenTensorLayout_t tensorLayout = GetDefaultLayout();
 };
 

@@ -168,9 +168,11 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -208,9 +210,11 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -225,7 +229,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmBwdXdlops pp;
@@ -234,7 +238,7 @@ ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionConte
 }
 
 bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
@@ -242,7 +246,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,
                                      const AnyInvokeParams& invoke_ctx) const
 {
@@ -250,7 +254,7 @@ ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -261,6 +265,9 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     if(problem.GetInDataType() != problem.GetWeightsDataType() ||
        problem.GetWeightsDataType() != problem.GetOutDataType() ||
        problem.GetInDataType() != problem.GetOutDataType())
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
     if(!problem.direction.IsBackwardData())
         return false;
@@ -283,9 +290,11 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -294,7 +303,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
@@ -309,9 +318,11 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
             problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");

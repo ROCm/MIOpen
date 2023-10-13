@@ -29,7 +29,7 @@
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
 #include <miopen/readonlyramdb.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
 
 #include <miopen/find_db.hpp>
 #include <miopen/tensor.hpp>
@@ -96,7 +96,7 @@ miopenDataType_t GetDataTypeFromString(const std::string& data_type)
     else if(data_type == "INT8")
         return miopenInt8;
     else if(data_type == "INT8x4")
-        return miopenInt8x4;
+        return miopenInt8x4; // Support discontinued. Maintain compatibility with old databases.
     else if(data_type == "INT32")
         return miopenInt32;
     else if(data_type == "BF16")
@@ -398,7 +398,7 @@ void BuildKernel(const std::string& program_file, const std::string& program_arg
 
 using FDBLine = std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>;
 
-void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::vector<FDBLine>& find_data, const miopen::ConvolutionContext& _ctx, std::atomic<size_t>& counter)
+void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::vector<FDBLine>& find_data, const miopen::ExecutionContext& _ctx, std::atomic<size_t>& counter)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = _ctx.GetStream();
@@ -468,7 +468,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
 
      // Convert the map to a vector
@@ -493,7 +493,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 }
 
 
-void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLine>& data, miopen::ConvolutionContext& _ctx, std::atomic<size_t>& counter)
+void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLine>& data, miopen::ExecutionContext& _ctx, std::atomic<size_t>& counter)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, _ctx.GetStream());
@@ -603,7 +603,7 @@ TEST(DBSync, StaticFDBSync)
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";    
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
 
     // Convert the map to a vector
