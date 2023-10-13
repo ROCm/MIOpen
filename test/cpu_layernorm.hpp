@@ -71,8 +71,8 @@ void cpu_layernorm_forward(tensor<T> input,
         ref_rstd[o] = rstd_v;
 
         ford(inner_size)([&](int32_t i) {
-            T weight_v = mode ? 1 : weight[i];
-            T bias_v   = mode ? 0 : bias[i];
+            T weight_v = mode ? weight[i] : 1;
+            T bias_v   = mode ? bias[i] : 0;
             ref_output[o * inner_size + i] =
                 (input[o * inner_size + i] - mean_v) * rstd_v * weight_v + bias_v;
         });

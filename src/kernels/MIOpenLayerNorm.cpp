@@ -102,8 +102,8 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        pweight = mode ? CVT_FP32_2ACCUM(1.0f) : CVT_FLOAT2ACCUM(weight[i]);
-        pbias   = mode ? static_cast<FLOAT>(0) : CVT_FLOAT2ACCUM(bias[i]);
+        pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
+        pbias   = mode ? CVT_FLOAT2ACCUM(bias[i]) : static_cast<FLOAT>(0);
 
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx]) - pmean) * prstd * pweight + pbias;
         y[idx]          = CVT_ACCUM2FLOAT(val);

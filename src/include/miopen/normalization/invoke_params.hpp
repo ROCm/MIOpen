@@ -44,7 +44,7 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t y                   = nullptr;
     Data_t mean                = nullptr;
     Data_t rstd                = nullptr;
-    double epsilon             = 0;
+    float epsilon              = 0;
     int32_t normalized_dim     = 0;
     miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
 

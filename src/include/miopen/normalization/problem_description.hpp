@@ -48,7 +48,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& meanDesc_,
                        const TensorDescriptor& rstdDesc_,
-                       double epsilon_,
+                       float epsilon_,
                        int32_t normalized_dim_)
         : mode(mode_),
           xDesc(xDesc_),

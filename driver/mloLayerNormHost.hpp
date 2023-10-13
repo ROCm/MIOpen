@@ -78,8 +78,8 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
         for(i = 0; i < inner_size; i++)
         {
-            Tcheck pweight = mode ? 1 : static_cast<Tcheck>(weight[i]);
-            Tcheck pbias   = mode ? 0 : static_cast<Tcheck>(bias[i]);
+            Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : 1;
+            Tcheck pbias   = mode ? static_cast<Tcheck>(bias[i]) : 0;
             outputhost[o * inner_size + i] =
                 (static_cast<Tcheck>(input[o * inner_size + i]) - pmean) * prstd * pweight + pbias;
         }

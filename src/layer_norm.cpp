@@ -82,8 +82,8 @@ miopenStatus_t LayerNormForward(Handle& handle,
         tmp.type           = InvokeType::Run;
         tmp.xDesc          = &xDesc;
         tmp.x              = x;
-        tmp.x              = weight;
-        tmp.x              = bias;
+        tmp.weight         = weight;
+        tmp.bias           = bias;
         tmp.y              = y;
         tmp.mean           = mean;
         tmp.rstd           = rstd;
@@ -102,4 +102,3 @@ miopenStatus_t LayerNormForward(Handle& handle,
 }
 
 } // namespace miopen
-

@@ -150,7 +150,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     printf("Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-           "tensorop[fp16], reduce[fp16,fp64], layernorm[bf16, fp16, fp32]\n");
+           "tensorop[fp16], reduce[fp16,fp64], layernorm[bfp16, fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 

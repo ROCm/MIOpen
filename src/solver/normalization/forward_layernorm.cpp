@@ -38,8 +38,8 @@ namespace solver {
 
 namespace normalization {
 
-bool LayernormForward::IsApplicable(
-    const ExecutionContext&, const miopen::normalization::ProblemDescription& problem) const
+bool LayernormForward::IsApplicable(const ExecutionContext&,
+                                    const miopen::normalization::ProblemDescription& problem) const
 {
     if(problem.GetXDesc().GetType() != problem.GetYDesc().GetType())
     {
@@ -65,7 +65,7 @@ bool LayernormForward::IsApplicable(
 
 ConvSolution
 LayernormForward::GetSolution(const ExecutionContext& context,
-                                  const miopen::normalization::ProblemDescription& problem) const
+                              const miopen::normalization::ProblemDescription& problem) const
 {
     const auto& handle = context.GetStream();
 
@@ -73,10 +73,10 @@ LayernormForward::GetSolution(const ExecutionContext& context,
 
     {
         auto dtype = problem.GetXDesc().GetType();
-        auto dims = problem.GetXDesc().GetLengths();
+        auto dims  = problem.GetXDesc().GetLengths();
 
         size_t outer_size = 1;
-        for(size_t i = 0 ; i < problem.GetNormalizedDim(); i++)
+        for(size_t i = 0; i < problem.GetNormalizedDim(); i++)
         {
             outer_size *= dims[i];
         }
@@ -119,12 +119,12 @@ LayernormForward::GetSolution(const ExecutionContext& context,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::normalization::InvokeParams>();
 
-            auto dims          = params.xDesc->GetLengths();
-            size_t inner_size_ = 1;
+            auto dims         = params.xDesc->GetLengths();
+            size_t inner_size = 1;
 
-            for(size_t i = params.normalized_dim ; i < dims.size(); i++)
+            for(size_t i = params.normalized_dim; i < dims.size(); i++)
             {
-                inner_size_ *= dims[i];
+                inner_size *= dims[i];
             }
 
             kernel(params.x,
@@ -134,8 +134,8 @@ LayernormForward::GetSolution(const ExecutionContext& context,
                    params.mean,
                    params.rstd,
                    params.epsilon,
-                   inner_size_,
-                   params.mode);
+                   inner_size,
+                   static_cast<bool>(params.mode));
         };
     };
 
