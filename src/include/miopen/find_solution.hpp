@@ -77,7 +77,18 @@ auto FindSolutionImpl(rank<1>,
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
             PerformanceConfig config{};
-            if(db.Load(problem, s.SolverDbId(), config))
+            // The passes in string needs to have priority over the entry in the database
+            if(!perf_cfg.empty())
+            {
+                config.Deserialize(perf_cfg);
+                if(s.IsValidPerformanceConfig(context, problem, config))
+                {
+                    return s.GetSolution(context, problem, config);
+                }
+                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(db.Load(problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -97,16 +108,6 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
-            }
-            else if(!perf_cfg.empty())
-            {
-                config.Deserialize(perf_cfg);
-                if(s.IsValidPerformanceConfig(context, problem, config))
-                {
-                    return s.GetSolution(context, problem, config);
-                }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
-                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else
             {

@@ -29,12 +29,19 @@
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/seq_tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
+}
+
+extern "C" miopenStatus_t miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::SeqTensorDescriptor(); });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
@@ -192,6 +199,37 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
+extern "C" miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc, cast_type);
+    }
+
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetCastType(cast_type); });
+}
+
+extern "C" miopenStatus_t miopenGetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                  miopenDataType_t& cast_type)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        MIOPEN_LOG_FUNCTION(tensorDesc);
+    }
+    return miopen::try_([&] {
+        const auto c_type = miopen::deref(tensorDesc).GetCastType();
+        if(c_type)
+        {
+            cast_type = *c_type;
+        }
+        else
+        {
+            cast_type = miopen::deref(tensorDesc).GetType();
+        }
+    });
+}
+
 extern "C" miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
                                                   size_t* numBytes)
 {
@@ -241,6 +279,12 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
 }
 
 extern "C" miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc);
+    return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
+}
+
+extern "C" miopenStatus_t miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
     return miopen::try_([&] { miopen_destroy_object(tensorDesc); });
