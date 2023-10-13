@@ -130,9 +130,8 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        input.generate([](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<XDataType>(1e-2), 100);
-        });
+        input.generate(
+            [](auto...) { return prng::gen_descreet_uniform_sign<XDataType>(1e-2, 100); });
     }
 
     void SetDirection() { direction = bn_config.Direction; }
@@ -201,15 +200,14 @@ private:
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) *
-                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         estVariance.generate(gen_var);
     }
@@ -303,15 +301,14 @@ private:
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         dy.generate(gen_value);
         bnScale.generate(gen_value);
         savedMean.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) *
-                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         savedInvVar.generate(gen_var);
 
@@ -409,14 +406,13 @@ private:
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) *
-                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         runMean.generate(gen_var);
         runVariance.generate(gen_var);

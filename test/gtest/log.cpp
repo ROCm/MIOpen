@@ -227,16 +227,12 @@ struct CreateBNormFusionPlan
         estMean     = tensor<T>{input_lens};
         estVariance = tensor<T>{input_lens};
 
-        auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<T>(1e-2), 100);
-        };
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         input.generate(gen_value);
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
-        auto gen_var = [](auto...) {
-            return static_cast<T>(1e-2) * static_cast<T>(prng::gen_0_to_B(100) + 1);
-        };
+        auto gen_var = [](auto...) { return static_cast<T>(1e-2 * (prng::gen_0_to_B(100) + 1)); };
         estVariance.generate(gen_var);
         activ_desc    = {activ_mode, activ_alpha, activ_beta, activ_gamma};
         output        = tensor<T>{input_lens};
