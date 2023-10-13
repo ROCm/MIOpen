@@ -2627,7 +2627,7 @@ struct conv_bias_driver : test_driver
     }
 };
 
-std::pair<miopen::Allocator::ManageDataPtr, size_t>
+inline std::pair<miopen::Allocator::ManageDataPtr, size_t>
 AllocateConvTransposeWorkspace(miopen::Handle& handle,
                                const miopen::TensorDescriptor& x,
                                const miopen::TensorDescriptor& w,
