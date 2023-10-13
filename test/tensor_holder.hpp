@@ -185,7 +185,7 @@ struct tensor
 
     tensor(std::size_t n) : desc(miopen_type<T>{}, {n}), data(n) {}
 
-    tensor(miopen::TensorDescriptor&& rhs) : desc(std::move(rhs))
+    tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
         assert(desc.GetType() == miopen_type<T>{});
         data.resize(desc.GetElementSpace());
