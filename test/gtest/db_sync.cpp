@@ -473,8 +473,9 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 
      // Convert the map to a vector
     std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
-
-    std::copy(find_db.GetCacheMap().begin(), find_db.GetCacheMap().end(), fdb_data.begin());
+    const auto& find_db_map = find_db.GetCacheMap();
+    fdb_data.resize(find_db_map.size());
+    std::copy(find_db_map.begin(), find_db_map.end(), fdb_data.begin());
     std::atomic<size_t> counter = 0;
     const int total_threads = std::min(static_cast<int>(std::thread::hardware_concurrency()), 32);
     std::vector<std::thread> agents;
@@ -592,7 +593,7 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
     }
 }
 
-TEST(DBSync, DISABLED_StaticFDBSync)
+TEST(DBSync, StaticFDBSync)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
@@ -607,8 +608,9 @@ TEST(DBSync, DISABLED_StaticFDBSync)
 
     // Convert the map to a vector
     std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
-
-    std::copy(find_db.GetCacheMap().begin(), find_db.GetCacheMap().end(), fdb_data.begin());
+    const auto& find_db_map = find_db.GetCacheMap();
+    fdb_data.resize(find_db_map.size());
+    std::copy(find_db_map.begin(), find_db_map.end(), fdb_data.begin());
     std::atomic<size_t> counter = 0;
     const int total_threads = std::min(std::thread::hardware_concurrency(), static_cast<unsigned int>(32));
     std::vector<std::thread> agents;
