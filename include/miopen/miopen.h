@@ -5230,6 +5230,12 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+#ifdef MIOPEN_BETA_API
+    miopenTensorActivationX  = 4,
+    miopenTensorActivationY  = 5,
+    miopenTensorActivationDX = 6,
+    miopenTensorActivationDY = 7,
+#endif
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t

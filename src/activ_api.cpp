@@ -69,14 +69,14 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
     });
 }
 
-static void LogCmdActivation(const miopenTensorDescriptor_t xDesc,
-                             const miopenActivationDescriptor_t activDesc,
-                             const bool Fwd)
+void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
+                      const miopen::ActivationDescriptor& activ_desc,
+                      bool fwd)
 {
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        if(x_desc.GetType() == miopenHalf)
         {
             ss << "activfp16";
         }
@@ -84,14 +84,19 @@ static void LogCmdActivation(const miopenTensorDescriptor_t xDesc,
         {
             ss << "activ";
         }
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
-           << miopen::deref(xDesc).GetLengths()[1] << " -H " << miopen::deref(xDesc).GetLengths()[2]
-           << " -W " << miopen::deref(xDesc).GetLengths()[3] << " -m "
-           << miopen::deref(activDesc).GetMode() << " --forw " << (Fwd ? "1" : "2") << " -A "
-           << miopen::deref(activDesc).GetAlpha() << " -B " << miopen::deref(activDesc).GetBeta()
-           << " -G " << miopen::deref(activDesc).GetGamma();
+        ss << " -n " << x_desc.GetLengths()[0] << " -c " << x_desc.GetLengths()[1] << " -H "
+           << x_desc.GetLengths()[2] << " -W " << x_desc.GetLengths()[3] << " -m "
+           << activ_desc.GetMode() << " --forw " << (fwd ? "1" : "2") << " -A "
+           << activ_desc.GetAlpha() << " -B " << activ_desc.GetBeta() << " -G "
+           << activ_desc.GetGamma();
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
+}
+
+static void
+LogCmdActivation(miopenTensorDescriptor_t x_desc, miopenActivationDescriptor_t activ_desc, bool fwd)
+{
+    LogCmdActivation(miopen::deref(x_desc), miopen::deref(activ_desc), fwd);
 }
 
 extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,

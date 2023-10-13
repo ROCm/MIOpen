@@ -53,6 +53,11 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            std::optional<uint64_t> solver_id);
 } // namespace miopen::debug
 
+// Todo: This should be updated when a separate driver command is implemented
+void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
+                      const miopen::ActivationDescriptor& activ_desc,
+                      bool fwd);
+
 namespace miopen {
 
 namespace detail {
@@ -401,9 +406,8 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 
 void Problem::LogDriverCommand() const
 {
-    const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); },
-        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
+    const auto log_function = boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
+                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); });
 
     boost::apply_visitor(log_function, operator_descriptor);
 }
@@ -417,6 +421,13 @@ void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
     miopen::debug::LogCmdFindConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
+}
+
+void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
+{
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
+    LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)

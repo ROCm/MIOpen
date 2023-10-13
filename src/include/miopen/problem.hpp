@@ -113,6 +113,7 @@ private:
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
+    void LogDriverCommand(const ActivationDescriptor& descriptor) const;
 };
 
 } // namespace miopen
