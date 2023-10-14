@@ -173,7 +173,7 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     if(use_fp8 != 0)
         kbp.Define("MIOPEN_USE_FP8", use_fp8);
     if(use_bfp8 != 0)
-        kbp.Define("MIOPEN_USE_FP8", use_bfp8);
+        kbp.Define("MIOPEN_USE_BFP8", use_bfp8);
     return kbp;
 }
 
