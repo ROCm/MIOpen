@@ -52,6 +52,10 @@ endif()
 
 project ( MIOpen C CXX )
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 enable_testing()
 
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
@@ -63,6 +67,9 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
+
+# Build library with Beta APIs
+add_definitions("-DMIOPEN_BETA_API=1")
 
 set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
 set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
@@ -102,11 +109,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "MIOpen requires at least gcc 5.3")
     endif()
 endif()
-
-
-############################################################
-# require C++14
-add_compile_options(-std=c++17)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -683,6 +685,7 @@ enable_clang_tidy(
         -cppcoreguidelines-avoid-capture-default-when-capturing-this
         -cppcoreguidelines-rvalue-reference-param-not-moved
         -readability-avoid-unconditional-preprocessor-if
+        -bugprone-lambda-function-name
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER

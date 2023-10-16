@@ -147,9 +147,9 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_fin_build_cmd(prefixpath){
-    def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
+    def flags = "-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release"
     def compiler = 'clang++'
-    def config_targets = "all"
+    def config_targets = "install"
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
     def configargs = ""
     if (prefixpath != "")
@@ -309,6 +309,7 @@ def reboot(){
 def buildHipClangJobAndReboot(Map conf=[:]){
     try{
         buildHipClangJob(conf)
+        cleanWs()
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -316,7 +317,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
         throw e
     }
     finally{
-        if (conf.get("needs_gpu", true)) {
+        if (conf.get("needs_reboot", true)) {
             reboot()
         }
     }
@@ -362,6 +363,7 @@ def RunPerfTest(Map conf=[:]){
             catch (Exception err){
                 currentBuild.result = 'SUCCESS'
             }
+            cleanWs()
         }
         }
     }
@@ -375,14 +377,17 @@ def RunPerfTest(Map conf=[:]){
 def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
-        archiveArtifacts "pdb_valid_err.json"
-        sh "grep clear pdb_valid_err.json"
-        def has_error = sh (
-            script: "echo \$?",
-            returnStdout: true
-        ).trim()
-        assert has_error.toInteger() == 0
+        dir(path: "$WORKSPACE"){
+            sh "ls install/bin/"
+            sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
+            archiveArtifacts "pdb_valid_err.json"
+            sh "grep clear pdb_valid_err.json"
+            def has_error = sh (
+                script: "echo \$?",
+                returnStdout: true
+            ).trim()
+            assert has_error.toInteger() == 0
+        }
     }
 }
 
@@ -426,15 +431,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: true,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: true,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true,
+            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -450,11 +455,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_VEGA10",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_VEGA20",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
@@ -466,7 +471,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_NAVI21",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "DATATYPE_NA",
@@ -521,6 +526,10 @@ pipeline {
         Smoke_targets = "check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
+    triggers{
+        
+        cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
+    }
     stages{
         stage('Build Docker'){
             when {
@@ -539,7 +548,7 @@ pipeline {
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false)
+                        buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
                     }
                 }
             }
@@ -556,7 +565,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false)
+                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
                     }
                 }
                 stage('Clang Format') {
@@ -583,19 +592,17 @@ pipeline {
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
-                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, build_install: "true")
+                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
                   }
                 }
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
+                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
-                        //temporarily disabled
-                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
-                        echo "skip perf db valid check"
+                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
@@ -609,7 +616,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc)"
                     }
                     steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false)
+                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
                     }
                 }
             }

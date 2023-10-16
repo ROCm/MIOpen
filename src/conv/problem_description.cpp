@@ -127,6 +127,19 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
         ss << 'x' << GetOutLayout();
     }
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
+
+    std::ostringstream optional;
+    if(const auto ct = GetInCastType())
+        optional << "ci" << GetDataTypeName(*ct);
+    if(const auto ct = GetWeightsCastType())
+        optional << "cw" << GetDataTypeName(*ct);
+    if(const auto ct = GetOutCastType())
+        optional << "co" << GetDataTypeName(*ct);
+    if(!optional.str().empty())
+    {
+        ss << 'x' << optional.str();
+    }
+
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
        << PrintDHW(
@@ -175,11 +188,18 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     {
         // Group count > 1 identifies Group/Depthwise modes.
         if(GetGroupCount() != 1)
-            optional << 'g' << GetGroupCount();
+            optional << "_g" << GetGroupCount();
+
+        if(const auto ct = GetInCastType())
+            optional << "_ci" << GetDataTypeName(*ct);
+        if(const auto ct = GetWeightsCastType())
+            optional << "_cw" << GetDataTypeName(*ct);
+        if(const auto ct = GetOutCastType())
+            optional << "_co" << GetDataTypeName(*ct);
     }
     if(!optional.str().empty())
     {
-        stream << '_' << optional.str();
+        stream << optional.str();
     }
 }
 
@@ -224,7 +244,7 @@ bool ProblemDescription::IsNCHWc_CHWNc() const
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 {
-    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8() || IsFp8() || IsBfp8())
     {
         ctx.general_compile_options += GetDataTypeKernelParams(GetInDataType());
         return;
