@@ -134,19 +134,16 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
-    solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/forward_inference.cpp
-    solver/batchnorm/forward_inference_ck.cpp
     solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
-    solver/batchnorm/forward_training_ck.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -170,8 +167,6 @@ set( MIOpen_Source
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_bin_winoRxS_fused.cpp
-    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
-    solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
@@ -244,6 +239,16 @@ endif()
 
 if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
+endif()
+
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+    list(APPEND MIOpen_Source
+        solver/batchnorm/backward_ck.cpp
+        solver/batchnorm/forward_inference_ck.cpp
+        solver/batchnorm/forward_training_ck.cpp
+        solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+        solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    )
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")

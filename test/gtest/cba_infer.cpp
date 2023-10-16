@@ -138,6 +138,7 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
@@ -145,6 +146,7 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+#endif
 
 #if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
