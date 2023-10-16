@@ -5466,7 +5466,7 @@ miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgor
 
 #ifdef MIOPEN_BETA_API
 
-/*! @brief Initializes a problem object describing a activation operation.
+/*! @brief Initializes a problem object describing an activation operation.
  * @note As of now there is no way to actually get any solution for this kind of problems
  *
  * @param problem      Pointer to the problem to initialize
