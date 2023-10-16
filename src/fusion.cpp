@@ -767,7 +767,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto fusion_problem = FusionDescription{this};
     const FindEnforce enforce;
 
-    // tmp_sols is a collection of ConvSolutions that have been return from Find for the
+    // sols is a collection of ConvSolutions that have been returned from Find for the
     // fusion_problem. These ConvSolutions store instructions on how to build kernels and an invoker
     // factory.
     std::vector<miopen::solver::ConvSolution> sols;
