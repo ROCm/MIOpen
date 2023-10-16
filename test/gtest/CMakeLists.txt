@@ -7,7 +7,7 @@ enable_testing()
 find_package(rocblas)
 
 set(SOURCES
-    log_test_helper.cpp
+    log.cpp
     platform.cpp
     )
 
@@ -28,7 +28,7 @@ function(add_gtest TEST_NAME)
         target_link_libraries(test_${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
     endif()
     # Enable CMake to discover the test binary
-    gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
+    gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
 
   endif()
 endfunction()

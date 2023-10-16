@@ -1432,9 +1432,9 @@ void SetTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "real descritor: " << yDesc << std::endl
-                              << "flat descritor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1472,12 +1472,12 @@ void SetTensor(const Handle& handle,
                                           std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
-
-        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            GetDataTypeKernelParams(dataType);
+        std::stringstream ss;
+        ss << "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET"
+           << GetDataTypeKernelParams(dataType);
         for(int i = 0; i < yDim_flat; ++i)
         {
-            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            ss << " -DWORK_LENGTH_" << std::to_string(i) << "=" << std::to_string(worker_sizes[i]);
         }
 
         kernel = handle.AddKernel(kernel_name,
@@ -1486,7 +1486,7 @@ void SetTensor(const Handle& handle,
                                   kernel_name,
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
-                                  parms);
+                                  ss.str());
     }
 
     switch(yDim_flat)
@@ -1586,9 +1586,9 @@ void ScaleTensor(const Handle& handle,
 #ifndef NDEBUG
     if(yDesc.GetSize() != yDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "real descritor: " << yDesc << std::endl
-                              << "flat descritor: " << yDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "real descriptor: " << yDesc << std::endl
+                               << "flat descriptor: " << yDesc_flat << std::endl);
     }
 #endif
 
@@ -1597,10 +1597,13 @@ void ScaleTensor(const Handle& handle,
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
+
+    if(!(dataType == miopenHalf     //
+         || dataType == miopenFloat //
+         || dataType == miopenInt32 //
+         || dataType == miopenDouble))
     {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
+        MIOPEN_THROW(miopenStatusBadParm, "ScaleTensor: unsupported data type.");
     }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
@@ -1762,11 +1765,11 @@ void CopyTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "src real descriptor: " << srcDesc << std::endl
-                              << "src flat descriptor: " << srcDesc_flat << std::endl
-                              << "dst real descriptor: " << dstDesc << std::endl
-                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -1934,11 +1937,14 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenHalf: return option += "2";
     case miopenFloat: return option += "3";
     case miopenBFloat16: return option += "4";
+    case miopenFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
+    case miopenBFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
-    case miopenInt8x4:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
+    case miopenInt8x4: // fallthrough
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
@@ -1974,11 +1980,11 @@ void CastTensor(const Handle& handle,
 #ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
-        MIOPEN_LOG_I(__func__ << std::endl
-                              << "src real descriptor: " << srcDesc << std::endl
-                              << "src flat descriptor: " << srcDesc_flat << std::endl
-                              << "dst real descriptor: " << dstDesc << std::endl
-                              << "dst flat descriptor: " << dstDesc_flat << std::endl);
+        MIOPEN_LOG_I2(__func__ << std::endl
+                               << "src real descriptor: " << srcDesc << std::endl
+                               << "src flat descriptor: " << srcDesc_flat << std::endl
+                               << "dst real descriptor: " << dstDesc << std::endl
+                               << "dst flat descriptor: " << dstDesc_flat << std::endl);
     }
 #endif
 
@@ -2233,24 +2239,6 @@ void TransformTensor(const Handle& handle,
             }
         }
     }
-    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
-    {
-        if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid y channel size");
-        }
-
-        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
-    }
-    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
-    {
-        if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid x channel size");
-        }
-
-        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false, alpha, beta);
-    }
     else
     {
         auto x_y_len          = boost::combine(x_len, y_len);
@@ -2270,16 +2258,16 @@ void TransformTensor(const Handle& handle,
 #ifndef NDEBUG
         if(xDesc.GetSize() != xDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << xDesc << std::endl
-                                  << "flat descritor: " << xDesc_flat << std::endl);
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << xDesc << std::endl
+                                   << "flat descriptor: " << xDesc_flat << std::endl);
         }
 
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
-            MIOPEN_LOG_I(__func__ << std::endl
-                                  << "real descritor: " << yDesc << std::endl
-                                  << "flat descritor: " << yDesc_flat << std::endl);
+            MIOPEN_LOG_I2(__func__ << std::endl
+                                   << "real descriptor: " << yDesc << std::endl
+                                   << "flat descriptor: " << yDesc_flat << std::endl);
         }
 #endif
 
@@ -2290,12 +2278,20 @@ void TransformTensor(const Handle& handle,
         const miopenDataType_t dataTypex = xDesc_flat.GetType();
         const miopenDataType_t dataTypey = yDesc_flat.GetType();
 
-        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
+        if(!(dataTypex == miopenHalf        //
+             || dataTypex == miopenFloat    //
+             || dataTypex == miopenInt32    //
+             || dataTypex == miopenBFloat16 //
+             || dataTypex == miopenDouble))
         {
             MIOPEN_THROW("Tensor x is a unsupported data type");
         }
 
-        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
+        if(!(dataTypey == miopenHalf        //
+             || dataTypey == miopenFloat    //
+             || dataTypey == miopenInt32    //
+             || dataTypey == miopenBFloat16 //
+             || dataTypey == miopenDouble))
         {
             MIOPEN_THROW("Tensor y is a unsupported data type");
         }

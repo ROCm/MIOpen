@@ -68,6 +68,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << ((packed) ? "11" : "10"); // + lite bit
     ss << xDesc.GetType();
+    if(const auto ct = xDesc.GetCastType())
+        ss << GetDataTypeName(*ct);
     ss << activDesc.GetMode();
     ss << read_unit;
     ss << MAP_RD;
