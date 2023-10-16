@@ -345,7 +345,7 @@ auto train_gpu_fwd(miopen::Handle& handle,
 //};
 
 template <class T>
-struct cpu_rnn_packed_ref
+struct rnn_ref
 {
     struct FWDResObj
     {
@@ -357,13 +357,13 @@ struct cpu_rnn_packed_ref
                   std::vector<T> fwd_cy,
                   bool nohy,
                   bool nocy)
-            : y(std::move(fwd_y)), 
-            hy(nohy ? std::vector<T>{} : std::move(fwd_hy)),
-            cy(nocy ? std::vector<T>{} : std::move(fwd_cy))
+            : y(std::move(fwd_y)),
+              hy(nohy ? std::vector<T>{} : std::move(fwd_hy)),
+              cy(nocy ? std::vector<T>{} : std::move(fwd_cy))
         {
         }
     };
-    
+
     struct BWDResObj
     {
         std::vector<T> din;
@@ -385,11 +385,55 @@ struct cpu_rnn_packed_ref
     {
         std::vector<T> dwei;
 
-        WRWResObj(std::vector<T> wrw_dwei)
-            : dwei(std::move(wrw_dwei))
-        {
-        }
+        WRWResObj(std::vector<T> wrw_dwei) : dwei(std::move(wrw_dwei)) {}
     };
+
+    virtual size_t getReserveSpaceSize() const = 0;
+
+    virtual size_t getWorkSpaceSize() const = 0;
+
+    virtual FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const std::vector<T>& xData,
+                  const std::vector<T>& hxData,
+                  const std::vector<T>& cxData,
+                  const std::vector<T>& wData,
+                  std::vector<T>& reserveSpace,
+                  bool nohx,
+                  bool nocx,
+                  bool nohy,
+                  bool nocy) const = 0;
+
+    virtual BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const std::vector<T>& dyData,
+                  const std::vector<T>& dhyData,
+                  const std::vector<T>& dcyData,
+                  const std::vector<T>& cxData,
+                  const std::vector<T>& weiData,
+                  std::vector<T>& reserveSpace,
+                  std::vector<T>& workSpace,
+                  bool nodhx,
+                  bool nodcx,
+                  bool nodhy,
+                  bool nodcy,
+                  bool nocx) const = 0;
+
+    virtual WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
+                          const std::vector<T>& xData,
+                          const std::vector<T>& hxData,
+                          const std::vector<T>& doutData,
+                          std::vector<T>& reserveSpace,
+                          std::vector<T>& workSpace,
+                          bool nohx) const = 0;
+    
+    virtual ~rnn_ref(){};
+};
+
+template <class T>
+struct cpu_rnn_packed_ref : public rnn_ref<T>
+{
+    using typename rnn_ref<T>::FWDResObj;
+    using typename rnn_ref<T>::BWDResObj;
+    using typename rnn_ref<T>::WRWResObj;
 
     // supported only hDesc equal to cDesc
     cpu_rnn_packed_ref(const miopen::RNNDescriptor& rnn,
@@ -418,11 +462,11 @@ struct cpu_rnn_packed_ref
 
     }
 
-    size_t getReserveSpaceSize() const { 
+    size_t getReserveSpaceSize() const override { 
         return reserve_space_size_cpu;
     }
 
-    size_t getWorkSpaceSize() const { return work_space_size_cpu; }
+    size_t getWorkSpaceSize() const override { return work_space_size_cpu; }
 
     FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
                   const std::vector<T>& xData,
@@ -433,7 +477,7 @@ struct cpu_rnn_packed_ref
                   bool nohx,
                   bool nocx,
                   bool nohy,
-                  bool nocy) const
+                  bool nocy) const override
     {
         assert(checkSeqTensor(xDesc));
 
@@ -496,7 +540,7 @@ struct cpu_rnn_packed_ref
                   bool nodcx,
                   bool nodhy,
                   bool nodcy,
-                  bool nocx) const
+                  bool nocx) const override
     {
         assert(checkSeqTensor(xDesc));
 
@@ -559,7 +603,7 @@ struct cpu_rnn_packed_ref
                   const std::vector<T>& doutData,
                   std::vector<T>& reserveSpace,
                   std::vector<T>& workSpace,
-                  bool nohx) const
+                  bool nohx) const override
     {
         assert(checkSeqTensor(xDesc));
 
@@ -603,34 +647,6 @@ struct cpu_rnn_packed_ref
     }
 
 private:
-    //FWDResObj fwd_result_tuple(std::vector<T>&& fwd_y,
-    //                           std::vector<T>&& fwd_hy,
-    //                           std::vector<T>&& fwd_cy,
-    //                           bool nohy,
-    //                           bool nocy) const
-    //{
-    //    return std::make_tuple(std::move(fwd_y),
-    //                           nohy ? std::vector<T>{} : std::move(fwd_hy),
-    //                           nocy ? std::vector<T>{} : std::move(fwd_cy));
-    //}
-    //
-    //BWDResObj bwd_result_tuple(std::vector<T>&& bwd_din,
-    //                           std::vector<T>&& bwd_dhx,
-    //                           std::vector<T>&& bwd_dcx) const
-    //{
-    //    return std::make_tuple(bwd_din, bwd_dhx, bwd_dcx);
-    //}
-    //
-    //WRWResObj wrw_result_tuple(std::vector<T>&& wrw_dwei) const
-    //{
-    //    return std::make_tuple(wrw_dwei);
-    //}
-
-    //void checkBatches(const std::vector<size_t>& batchs) const
-    //{
-    //    auto int_positive = [](size_t x) { return x >= 0 && x <= INT32_MAX; };
-    //    assert( std::all_of(batchs.cbegin(), batchs.cend(), int_positive));
-    //}
 
     bool checkSeqTensor(const miopen::SeqTensorDescriptor& desc) const { 
         bool ret = true;
@@ -648,6 +664,102 @@ private:
     bool useDropout{};
     size_t hiddenLayers, hiddenBatchs, hidVec, outVec, inVec;
     size_t reserve_space_size_cpu, work_space_size_cpu;
+};
+
+template <class T>
+struct cpu_rnn_universal_ref : rnn_ref<T>
+{
+    using typename rnn_ref<T>::FWDResObj;
+    using typename rnn_ref<T>::BWDResObj;
+    using typename rnn_ref<T>::WRWResObj;
+
+    cpu_rnn_universal_ref(const miopen::RNNDescriptor& rnn,
+                       const miopen::SeqTensorDescriptor& maxX,
+                       const miopen::TensorDescriptor& hPackedDesc)
+        : packed_ref(rnn, maxX, hPackedDesc), hiddenDesc(hPackedDesc)
+    {
+        
+    }
+
+    size_t getReserveSpaceSize() const override { return packed_ref.getReserveSpaceSize(); }
+
+    size_t getWorkSpaceSize() const override { return packed_ref.getWorkSpaceSize(); }
+
+    FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const std::vector<T>& xData,
+                  const std::vector<T>& hxData,
+                  const std::vector<T>& cxData,
+                  const std::vector<T>& wData,
+                  std::vector<T>& reserveSpace,
+                  bool nohx,
+                  bool nocx,
+                  bool nohy,
+                  bool nocy) const override
+    {
+        if(xDesc.IsPacked() && miopenRNNDataSeqMajorNotPadded ==
+                                   miopen::RNNDescriptor::getBaseLayoutFromDataTensor(xDesc))
+        {
+            return packed_ref.fwd(
+                xDesc, xData, hxData, cxData, wData, reserveSpace, nohx, nocx, nohy, nocy);
+        }
+    }
+
+    BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const std::vector<T>& dyData,
+                  const std::vector<T>& dhyData,
+                  const std::vector<T>& dcyData,
+                  const std::vector<T>& cxData,
+                  const std::vector<T>& weiData,
+                  std::vector<T>& reserveSpace,
+                  std::vector<T>& workSpace,
+                  bool nodhx,
+                  bool nodcx,
+                  bool nodhy,
+                  bool nodcy,
+                  bool nocx) const override
+    {
+        return packed_ref.bwd(xDesc,
+                              dyData,
+                              dhyData,
+                              dcyData,
+                              cxData,
+                              weiData,
+                              reserveSpace,
+                              workSpace,
+                              nodhx,
+                              nodcx,
+                              nodhy,
+                              nodcy,
+                              nocx);
+    }
+
+    WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
+                  const std::vector<T>& xData,
+                  const std::vector<T>& hxData,
+                  const std::vector<T>& doutData,
+                  std::vector<T>& reserveSpace,
+                  std::vector<T>& workSpace,
+                  bool nohx) const override
+    {
+
+        return packed_ref.wrw(xDesc,
+                              xData,
+                              hxData,
+                              doutData,
+                              reserveSpace,
+                              workSpace,
+                              nohx);
+    }
+
+
+    private:
+    cpu_rnn_packed_ref<T> packed_ref;
+
+
+
+
+    private: 
+        const miopen::TensorDescriptor hiddenDesc;
 };
 
 template <class T>
@@ -733,7 +845,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
     {
         //auto&& handle = get_handle();
         
-        cpu_rnn_packed_ref<T> refMethod(rnnDesc, input.desc, xHiddenState.desc);
+        cpu_rnn_universal_ref<T> refMethod{rnnDesc, input.desc, xHiddenState.desc};
         
         std::vector<T> reserve_space(refMethod.getReserveSpaceSize());
         std::vector<T> work_space(refMethod.getWorkSpaceSize());
