@@ -94,7 +94,6 @@ struct Problem : miopenProblem
                                                        const std::string& name_str) const;
 
     const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name,
-                                                const std::string& name_str,
                                                 const TensorDescriptor& default_value) const;
 
     Problem MakeTransposed() const;
