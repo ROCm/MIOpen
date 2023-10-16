@@ -118,7 +118,7 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 
 auto rocBlasDataType(miopenDataType_t data_type)
 {
-#if !defined(_WIN32) || (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
+#if ROCBLAS_BETA_FEATURE_API
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
     else if(data_type == miopenBFloat8)
