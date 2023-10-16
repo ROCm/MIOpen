@@ -247,8 +247,7 @@ activ::ProblemDescription Problem::AsActivation() const
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
-    const auto& y_desc =
-        GetTensorDescriptor(miopenTensorActivationY, x_desc);
+    const auto& y_desc = GetTensorDescriptor(miopenTensorActivationY, x_desc);
 
     if(direction == miopenProblemDirectionForward)
     {
@@ -256,10 +255,8 @@ activ::ProblemDescription Problem::AsActivation() const
     }
     else
     {
-        const auto& dx_desc =
-            GetTensorDescriptor(miopenTensorActivationDX, x_desc);
-        const auto& dy_desc =
-            GetTensorDescriptor(miopenTensorActivationDY, dx_desc);
+        const auto& dx_desc = GetTensorDescriptor(miopenTensorActivationDX, x_desc);
+        const auto& dy_desc = GetTensorDescriptor(miopenTensorActivationDY, dx_desc);
 
         return {activ_desc, x_desc, y_desc, dx_desc, dy_desc};
     }
