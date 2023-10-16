@@ -78,6 +78,8 @@ template <typename DeviceOpType,
 bool IsCKApplicable(const ProblemDescriptionType& problem)
 {
     const auto args = CKArgsType{problem};
+    // if(!std::all_of(args.strides.begin(), args.strides.end(), [](auto x) { return x == 1; }))
+    //     return false;
 
     const auto ptrs = DeviceOpType::GetInstances();
     return std::any_of(

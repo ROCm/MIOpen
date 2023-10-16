@@ -431,15 +431,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: env.BRANCH_NAME == env.NIGHTLY_BRANCH ? true : false,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -525,10 +525,6 @@ pipeline {
         Full_test       = " -DMIOPEN_TEST_ALL=On"
         Smoke_targets = "check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
-    }
-    triggers{
-        
-        cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
     }
     stages{
         stage('Build Docker'){

@@ -167,11 +167,13 @@ static int MeasurePerfConfig(const Handle& handle,
     {
         return 1;
     }
+#if !MIOPEN_ALLOC_BUFFERS
     if(problem.GetBias() && bias_ocl_buf == nullptr)
     {
         MIOPEN_LOG_WE("Legacy search: Bias buffer required");
         return 2;
     }
+#endif
 
     MIOPEN_LOG_I2("Trying " << config);
     const auto kernel_params     = kernel_search_result.construction_params[0];
@@ -249,6 +251,51 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
     candidate.n_in_data_tiles = 3;
     candidate.n_stacks        = 1;
 
+#if MIOPEN_ALLOC_BUFFERS
+    miopen::Handle profile_h;
+
+    // allocate input/output buffers
+    size_t bot_sz = problem.GetInSize() / sizeof(Tgpu);
+    std::vector<Tgpu> bot_sys_buf(bot_sz);
+    for(size_t i = 0; i < bot_sz; i++)
+    {
+        bot_sys_buf[i] =
+            static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
+    }
+    auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
+    auto bot_ocl_ptr = bot_ocl_buf.get();
+
+    size_t top_sz = problem.GetOutSize() / sizeof(Tgpu);
+    std::vector<Tgpu> top_sys_buf(top_sz);
+    auto top_ocl_buf = profile_h.Write(top_sys_buf);
+    auto top_ocl_ptr = top_ocl_buf.get();
+
+    size_t weights_sz = problem.GetWeightsSize() / sizeof(Tgpu);
+    std::vector<Tgpu> wei_sys_buf(weights_sz);
+    for(size_t i = 0; i < weights_sz; i++)
+    {
+        wei_sys_buf[i] = static_cast<Tgpu>((rand() * (1.0 / RAND_MAX) - 0.5) *
+                                           0.001); // NOLINT (concurrency-mt-unsafe)
+    }
+    auto wei_ocl_buf = profile_h.Write(wei_sys_buf);
+    auto wei_ocl_ptr = wei_ocl_buf.get();
+
+    std::vector<Tgpu> bias_sys_buf;
+    miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
+    if(problem.GetBias() != 0)
+    {
+        size_t bias_sz = problem.GetBiasSize() / sizeof(Tgpu);
+        bias_sys_buf   = std::vector<Tgpu>(bias_sz);
+        for(size_t i = 0; i < bias_sz; i++)
+        {
+            bias_sys_buf[i] =
+                static_cast<Tgpu>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
+        }
+
+        bias_ocl_buf = profile_h.Write(bias_sys_buf);
+    }
+    auto bias_ocl_ptr = bias_ocl_buf.get();
+#else
     auto& profile_h           = ctx.GetStream();
     const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
     const auto bot_ocl_ptr    = invoke_params.tensors.in;
@@ -257,6 +304,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
     // There was no place in the source, where it has been actually set to something other than
     // nullptr.
     const auto bias_ocl_ptr = static_cast<Data_t>(nullptr);
+#endif
     AutoEnableProfiling enableProfiling{profile_h};
 
     // search loop here

@@ -28,7 +28,7 @@
 #include <thread>
 #include <chrono>
 
-#include "random.hpp"
+#include <stdlib.h>
 
 static std::atomic<int> num_prod{};
 
@@ -41,12 +41,11 @@ using data_t = std::vector<T>;
 template <typename T>
 void producer(int thread_idx, data_t<T>& common_data, ThreadSafeQueue<T>& comp_queue)
 {
-    prng::reset_seed(thread_idx);
     for(auto idx = thread_idx; idx < data_len; idx += total_producers)
     {
         comp_queue.push(std::move(common_data.at(idx)));
-        num_prod.fetch_add(1, std::memory_order_relaxed);
-        std::this_thread::sleep_for(std::chrono::milliseconds(prng::gen_0_to_B(100) + 1));
+        num_prod++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 100));
     }
 }
 

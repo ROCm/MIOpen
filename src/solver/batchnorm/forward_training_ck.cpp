@@ -151,11 +151,14 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
 }
 #endif
 
-bool BnCKFwdTraining::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
+bool BnCKFwdTraining::IsApplicable(const ExecutionContext& context,
+                                   const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = context;
+    std::ignore = fdesc_problem;
+    return false;
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
         return false;
     if(!bn_problem.IsLayoutNHWC())
@@ -174,7 +177,7 @@ bool BnCKFwdTraining::IsApplicable(
     case miopenInt8x4:
     case miopenBFloat8:
     case miopenFloat8:
-    default: MIOPEN_THROW("BnCKFwdTraining operation does not support this data type");
+    default: MIOPEN_THROW("BnCKFwdTraining operation does not supprot this data type");
     }
     return false;
 #endif
@@ -225,8 +228,7 @@ ConvSolution BnCKFwdTraining::GetSolution(
     case miopenBFloat8:
     case miopenFloat8:
     default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdTraining operation does not support this data type");
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining operation not for this data type");
     }
 #endif
     return {};
