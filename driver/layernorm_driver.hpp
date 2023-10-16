@@ -255,19 +255,19 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
     status = in_dev->ToGPU(q, in.data());
 
     for(int i = 0; i < weight_sz; i++)
     {
-        weight[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
     status = weight_dev->ToGPU(q, weight.data());
 
     for(int i = 0; i < bias_sz; i++)
     {
-        bias[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
     status = bias_dev->ToGPU(q, bias.data());
 
