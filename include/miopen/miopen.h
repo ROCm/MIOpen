@@ -112,11 +112,13 @@ typedef enum
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
 
+#ifdef MIOPEN_BETA_API
 typedef enum
 {
     miopenF8RoundingModeStandard   = 0,
     miopenF8RoundingModeStochastic = 1,
 } miopenF8RoundingMode_t;
+#endif
 
 /*! @brief Get character string for an error code.
  *
@@ -346,17 +348,21 @@ MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
  */
 typedef enum
 {
-    miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
-    miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
-    miopenInt8x4 =
-        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
+    miopenHalf     = 0, /*!< 16-bit floating point (Fully supported) */
+    miopenFloat    = 1, /*!< 32-bit floating point (Fully supported) */
+    miopenInt32    = 2, /*!< 32-bit int point (Partially supported) */
+    miopenInt8     = 3, /*!< 8-bit int point (Partially supported) */
+    miopenInt8x4   = 4, /*!< Pack of four Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
-    miopenDouble  = 6,  /*!< 64-bit floating point (Partially supported) */
+    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+#ifdef MIOPEN_BETA_API
     miopenFloat8  = 7,
-    miopenBFloat8 = 8
+    miopenBFloat8 = 8,
+#else
+// miopenReserved1 = 7,
+// miopenReserved2 = 8,
+#endif
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -601,11 +607,15 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+#ifdef MIOPEN_BETA_API
     MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
         2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
               rounding modes are supported miopenF8RoundingModeStandard and
               miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
               enum.>*/
+#else
+// miopenReserved1 = 2,
+#endif
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -723,6 +733,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
+#ifdef MIOPEN_BETA_API
 /*! @brief Set the tensor cast type
  *
  *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
@@ -734,6 +745,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
                                                      miopenDataType_t cast_type);
+#endif
 
 /*! @brief Set shape of N-dimensional tensor
  *
@@ -1715,6 +1727,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * Runs the forward convolution layer based on the selected algorithm. The function
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1751,6 +1765,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
+ *  The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ *  alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2018,6 +2034,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
 /*! @brief Calculates the gradient with respect to the bias.
  *
  * Compute the convolution backwards gradient with respect to the bias tensor.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)

@@ -75,7 +75,7 @@ std::size_t GetMaxWorkSpaceSize(const std::vector<std::pair<std::string, std::si
     return sz;
 }
 
-std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeGEMM(const miopen::ExecutionContext& ctx,
                                  const miopen::ProblemDescription& problem)
 {
 #if MIOPEN_USE_GEMM
@@ -91,7 +91,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx,
 #endif
 }
 
-std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ExecutionContext& ctx,
                                          const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
@@ -99,7 +99,7 @@ std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(FindAllImplicitGemmWorkspaceSizes(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeDirect(const miopen::ExecutionContext& ctx,
                                    const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -107,7 +107,7 @@ std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(AllDirectForwardBackwardDataWorkspaceSize(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeFFT(const miopen::ExecutionContext& ctx,
                                 const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
@@ -115,7 +115,7 @@ std::size_t GetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(AllFFTForwardBackwardDataWorkspaceSize(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeWinograd(const miopen::ExecutionContext& ctx,
                                      const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
@@ -123,7 +123,7 @@ std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(FindAllWinogradWorkspaceSizes(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ExecutionContext& ctx,
                                       const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
@@ -131,7 +131,7 @@ std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(AllDirectBwdWrW2DWorkspaceSize(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ExecutionContext& ctx,
                                         const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
@@ -139,7 +139,7 @@ std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ConvolutionContext& ctx,
     return GetMaxWorkSpaceSize(FindWinogradWrWWorkspaceSizes(ctx, problem));
 }
 
-std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ConvolutionContext& ctx,
+std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ExecutionContext& ctx,
                                             const miopen::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
@@ -358,7 +358,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
-    return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
+    return {(xDesc.GetType() == miopenInt8
                  ? (yType)
                  : xDesc.GetType()), // TODO: This function overrides the output type with
                                      // essentially the input which is incorrect.
@@ -382,7 +382,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 /// for some related host-side optimizations.
 ///
 /// These optimizations are kind of cutting corners, but advantages are quite high.
-bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
+bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ExecutionContext& ctx,
                                                           const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
@@ -433,31 +433,30 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         return solutions.front().workspace_size;
     }
 
-    auto conv_ctx = ConvolutionContext{ctx};
     size_t workspace_size;
 
     if(problem.GetDirection() != conv::Direction::BackwardWeights)
     {
-        if(IsWinograd3x3SupportedAndFast(conv_ctx, problem))
+        if(IsWinograd3x3SupportedAndFast(ctx, problem))
         {
-            conv_ctx.use_dynamic_solutions_only = true;
-            workspace_size                      = GetWorkSpaceSizeWinograd(conv_ctx, problem);
+            ctx.use_dynamic_solutions_only = true;
+            workspace_size                 = GetWorkSpaceSizeWinograd(ctx, problem);
         }
         else
         {
-            workspace_size = std::max({GetWorkSpaceSizeFFT(conv_ctx, problem),
-                                       GetWorkSpaceSizeGEMM(conv_ctx, problem),
-                                       GetWorkSpaceSizeDirect(conv_ctx, problem),
-                                       GetWorkSpaceSizeImplicitGemm(conv_ctx, problem),
-                                       GetWorkSpaceSizeWinograd(conv_ctx, problem)});
+            workspace_size = std::max({GetWorkSpaceSizeFFT(ctx, problem),
+                                       GetWorkSpaceSizeGEMM(ctx, problem),
+                                       GetWorkSpaceSizeDirect(ctx, problem),
+                                       GetWorkSpaceSizeImplicitGemm(ctx, problem),
+                                       GetWorkSpaceSizeWinograd(ctx, problem)});
         }
     }
     else
     {
-        workspace_size = std::max({GetWorkSpaceSizeGEMM(conv_ctx, problem),
-                                   GetWorkSpaceSizeDirectWrW(conv_ctx, problem),
-                                   GetWorkSpaceSizeImplicitGemmWrW(conv_ctx, problem),
-                                   GetWorkSpaceSizeWinogradWrW(conv_ctx, problem)});
+        workspace_size = std::max({GetWorkSpaceSizeGEMM(ctx, problem),
+                                   GetWorkSpaceSizeDirectWrW(ctx, problem),
+                                   GetWorkSpaceSizeImplicitGemmWrW(ctx, problem),
+                                   GetWorkSpaceSizeWinogradWrW(ctx, problem)});
     }
 
     MIOPEN_LOG_I(workspace_size);
