@@ -1421,15 +1421,15 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen_type<Tref>{},
+    outhost   = tensor<Tref>(
                            miopen::deref(outputTensor).GetLayout_t(),
                            miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
-    din_host  = tensor<Tref>(miopen_type<Tref>{},
+    din_host  = tensor<Tref>(
                             miopen::deref(inputTensor).GetLayout_t(),
                             miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
-    dwei_host = tensor<Tref>(miopen_type<Tref>{},
+    dwei_host = tensor<Tref>(
                              miopen::deref(weightTensor).GetLayout_t(),
                              miopen::deref(weightTensor).GetLengths(),
                              miopen::deref(weightTensor).GetStrides());
