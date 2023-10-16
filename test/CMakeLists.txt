@@ -366,10 +366,7 @@ function(add_test_executable TEST_NAME)
     endif()
     target_link_libraries(${TEST_NAME} nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
     target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-    target_include_directories(${TEST_NAME} PRIVATE
-            $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/kernels>)
+    target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
     target_include_directories(${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
     if(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
         target_link_libraries(${TEST_NAME} hip::device hip::host)
