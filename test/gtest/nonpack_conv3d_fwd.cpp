@@ -30,7 +30,7 @@
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
-#include "group_conv3d_fwd.hpp"
+#include "nonpack_conv3d_fwd.hpp"
 
 struct ConvFwdSolverTest3D : ConvFwdSolverTest<half_float::half>
 {
@@ -44,7 +44,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                const miopen::TensorDescriptor& outputDesc,
                Data_t output,
                const miopen::ConvolutionDescriptor& convDesc,
-               const Conv3DTestCase& conv_config,
+               const NonPackTestCase& conv_config,
                bool& test_skipped)
 {
     auto&& handle = get_handle();
@@ -78,7 +78,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     handle.Finish();
 }
 
-TEST_P(ConvFwdSolverTest3D, CKGroupConvFwd3D)
+TEST_P(ConvFwdSolverTest3D, CKNonPackConvFwd3D)
 {
     SolverFwd<miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
                                                                    in_dev.get(),

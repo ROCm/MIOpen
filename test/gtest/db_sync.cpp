@@ -73,7 +73,7 @@ miopenDataType_t GetDataTypeFromString(const std::string& data_type)
     else if(data_type == "INT8")
         return miopenInt8;
     else if(data_type == "INT8x4")
-        return miopenInt8x4;
+        return miopenInt8x4; // Support discontinued. Maintain compatibility with old databases.
     else if(data_type == "INT32")
         return miopenInt32;
     else if(data_type == "BF16")

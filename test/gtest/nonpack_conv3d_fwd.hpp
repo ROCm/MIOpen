@@ -25,135 +25,92 @@
  *******************************************************************************/
 #pragma once
 
-#include <random>
+#include "conv3d_test_case.hpp"
 
-#include "get_handle.hpp"
-#include <miopen/conv/data_invoke_params.hpp>
-
-#include "../driver/tensor_driver.hpp"
-#include "conv_common.hpp"
-
-template <typename T>
-miopenDataType_t GetDataType();
-
-template <>
-miopenDataType_t GetDataType<float>()
+struct NonPackTestCase : Conv3DTestCase
 {
-    return miopenFloat;
-}
-
-template <>
-miopenDataType_t GetDataType<half_float::half>()
-{
-    return miopenHalf;
-}
-
-template <>
-miopenDataType_t GetDataType<int8_t>()
-{
-    return miopenInt8;
-}
-
-struct ConvTestCase
-{
-    size_t G;
-    size_t N;
-    size_t C;
-    size_t H;
-    size_t W;
-    size_t k;
-    size_t y;
-    size_t x;
-    size_t pad_x;
-    size_t pad_y;
-    size_t stride_x;
-    size_t stride_y;
-    size_t dilation_x;
-    size_t dilation_y;
-    miopenConvolutionMode_t conv_mode;
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
-    {
-        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " H:" << tc.H
-                  << " W:" << tc.W << " k:" << tc.k << " y:" << tc.y << " x:" << tc.x
-                  << " pad_y:" << tc.pad_y << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y << " conv_mode:" << tc.conv_mode;
-    }
-
-    std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights()
-    {
-        EXPECT_EQUAL(C % G, 0);
-        return {k, C / G, y, x};
-    }
-
-    miopen::ConvolutionDescriptor GetConv()
-    {
-        return miopen::ConvolutionDescriptor{
-            2,
-            miopenConvolution,
-            miopenPaddingDefault,
-            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
-            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)},
-            {0, 0},
-            static_cast<int>(G),
-            1.0};
-    }
+    size_t i0;
+    size_t i1;
+    size_t i2;
+    size_t i3;
+    size_t i4;
+    size_t w0;
+    size_t w1;
+    size_t w2;
+    size_t w3;
+    size_t w4;
+    size_t o0;
+    size_t o1;
+    size_t o2;
+    size_t o3;
+    size_t o4;
+    std::vector<size_t> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
+    std::vector<size_t> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
+    std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
 };
 
-std::vector<ConvTestCase> ConvTestConfigs()
-{ // g  n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
-    return {{1, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 256, 12, 28, 28, 12, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 256, 192, 28, 28, 192, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 256, 384, 28, 28, 384, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 256, 1024, 28, 28, 2048, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
-}
-
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
-{
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
-
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
+std::vector<NonPackTestCase> ConvTestConfigs()
+{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             10240,
+             1,
+             2560,
+             160,
+             16,
+             432,
+             1,
+             144,
+             48,
+             16,
+             9216,
+             1,
+             2304,
+             256,
+             16},
+            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             65536,
+             1,
+             24000,
+             2048,
+             64,
+             1728,
+             1,
+             576,
+             192,
+             64,
+             98304,
+             1,
+             32768,
+             2048,
+             128}};
 }
 
 template <typename T = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase, miopenTensorLayout_t>>
+          std::tuple<miopenConvFwdAlgorithm_t, NonPackTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                               = false;
+        test_skipped = false;
+
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
+        input                                      = tensor<T>{
+            miopen_type<T>{}, tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        SetTensorLayout(input.desc);
-        SetTensorLayout(weights.desc);
-
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
-
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -185,7 +142,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    ConvTestCase conv_config;
+    NonPackTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
