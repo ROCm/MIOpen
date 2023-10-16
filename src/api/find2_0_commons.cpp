@@ -188,6 +188,10 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorConvolutionW: stream << "ConvW"; break;
     case miopenTensorConvolutionX: stream << "ConvX"; break;
     case miopenTensorConvolutionY: stream << "ConvY"; break;
+    case miopenTensorActivationX: stream << "ActivX"; break;
+    case miopenTensorActivationDX: stream << "ActivDX"; break;
+    case miopenTensorActivationY: stream << "ActivY"; break;
+    case miopenTensorActivationDY: stream << "ActivDY"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 
