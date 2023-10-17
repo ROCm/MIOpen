@@ -309,6 +309,261 @@ struct TransposeInstanceMaker3D
     }
 };
 
+#if 1
+
+namespace internal {
+
+enum class ConvOperandType: int {
+  Input = 0,
+  Weights,
+  Output
+};
+
+enum class  TransposeType: int {
+  NHWC_TO_NCHW = 0,
+  NCHW_TO_NHWC
+};
+
+template <unsigned ND, TransposeType TPOSE_TYPE>
+struct ChooseTransposeSolver;
+
+template <unsigned ND> 
+ChooseTransposeSolver<ND, NHWC_TO_NCHW> {
+  static_assert(ND == 2 or ND == 3);
+  using type = std::conditional_t<ND == 2,
+        TransposeSolutionNhwc2Default,
+        TransposeSolutionNdhwc2Default>;
+};
+
+template <unsigned ND> 
+ChooseTransposeSolver<ND, NCHW_TO_NHWC> {
+  static_assert(ND == 2 or ND == 3);
+  using type = std::conditional_t<ND == 2,
+        TransposeSolutionDefault2Nhwc,
+        TransposeSolutionDefault2Ndhwc>;
+};
+
+
+template <ConvOperandType CONV_OP>
+class TransposeInstanceTagged: public TransposeInstance {
+
+public:
+
+  template <typename TransSolnType>
+  TransposeInstanceTagged(
+      const TransSolnType& sol, 
+      int idx,
+      const MultiBufferWorkspaceTraits& wt): 
+    TransposeInstance(sol, idx, wt) {}
+
+  constexpr ConvOperandType GetConvOperandType() const noexcept {
+    return  CONV_OP;
+  }
+
+    void ConvertFrom(const Handle& handle, const std::vector<Kernel>& kernels, const ConvTensors& tensors)
+    {
+      ConvertFrom(handle, kernels, pickTensorPtr(tensors));
+    }
+
+    void ConvertTo(const Handle& handle, const std::vector<Kernel>& kernels, const ConvTensors& tensors)    
+    {
+      ConvertTo(handle, kernels, pickTensorPtr(tensors));
+    }
+
+private:
+
+    Data_t pickTensorPtr(const ConvTensors& tensors) {
+      std::array<Data_t, 3> data_ptrs = {
+        const_cast<Data_t>(tensors.x),
+        const_cast<Data_t>(tensors.w),
+        tensors.y};
+
+      using IntType = std::underlying_type_t<ConvOperandType>;
+      return data_ptrs[static_cast<IntType>(CONV_OP)];
+    }
+
+};
+
+template <unsigned ND, TransposeType TPOSE_TYPE, ConvOperandType CONV_OP>
+struct TransposeOperand;
+
+template <unsigned ND, TransposeType TPOSE_TYPE>
+struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandType::Input> {
+  using TransposeSolver = typename ChooseTransposeSolver<ND, TPOSE_TYPE>::type;
+
+  template <typename CKArgsType>
+  TransposeSolver MakeTransposeSolver(const ExecutionContext& ctx,
+      const ProblemDescription& problem,
+      const CKArgsType& ck_args) const {
+
+    if constexpr(ND == 2) {
+      return TransposeSolver {
+        ctx,
+        problem.GetInDataType(),
+        ck_args.N,
+        ck_args.C1,
+        ck_args.Di,
+        ck_args.Hi,
+        ck_args.Wi};
+    } else {
+      return TransposeSolver {
+        ctx,
+        problem.GetInDataType(),
+        ck_args.N,
+        ck_args.C1,
+        ck_args.Hi,
+        ck_args.Wi};
+
+    }
+  }
+
+  TransposeInstanceTagged<ConvOperandType::Input>
+
+
+};
+
+
+void
+sortByEnumOrder(std::array<TransposeInstanceTagged*>, 3>& tagged_ptrs) {
+
+  std::sort(tagged_ptrs.begin(), tagged_ptrs.end(),
+      [] (const auto& left, const auto& right) {
+        using IntType = std::underlying_type_t<ConvOperandType>;
+        return static_cast<IntType>(left->GetConvOperandType()) < static_cast<IntType>(right->GetConvOperandType());
+      });
+}
+
+
+} // end namespace internal
+
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename CastType,
+          typename TpostInstMaker,
+          typename PreTposeFn,
+          typename PostTposeFn>
+ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
+                                    const ProblemDescription& problem,
+                                    const std::string& kernel_id,
+                                    TpostInstMaker&& tr_inst_maker,
+                                    PreTposeFn&& pre_tpose_fn,
+                                    PostTposeFn&& post_tpose_fn)
+{
+
+    assert(problem.IsLayoutDefault());
+
+    ConvSolution result;
+    auto ck_args = CKArgsType{problem};
+
+    auto input1_solv = input1.MakeTransposeSolver(ctx, problem, ck_args);
+    auto input2_solv = input2.MakeTransposeSolver(ctx, problem, ck_args);
+    auto output1_solv = output1.MakeTransposeSolver(ctx, problem, ck_args);
+
+    auto combined_initialization = [&] (auto... tpose_ops) {
+      result.construction_params.insert(
+          result.construction_params.end(),
+          { tpose_ops.GetKernelInfo(), ...});
+
+      constexpr size_t buf_alignment = 256ull;
+      MultiBufferWorkspaceTraits wt(
+          { tpose_ops.GetOutputTensorSize(), ...},
+          buf_alignment);
+
+      int i = 0;
+      size_t[] unused = { tpose_ops.InitBufferOffset(i++, wt),...};
+      assert(size_t(i) == sizeof...(tpose_ops));
+    };
+
+
+    { 
+      { // inside invoker 
+        
+        
+            input1.AllocBuffer(handle, data_ctx.workSpace);
+            input2.AllocBuffer(handle, data_ctx.workSpace);
+            output1.AllocBuffer(handle, data_ctx.workSpace);
+
+
+
+        input1.ConvertFrom(handle, kernels, data_ctx.tensors);
+
+        input2.ConvertFrom(handle, kernels, data_ctx.tensors);
+
+
+        std::array<TransposeInstanceTagged*, 3> tagged_ptrs = 
+                          { &input1_ti, &input2_ti, output1_ti};
+        sortByEnumOrder(tagged_ptrs);
+
+
+            auto invoker_ptr   = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr  = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tagged_ptrs[0]->GetBufferPtr(),
+                                                   tagged_ptrs[1]->GetBufferPtr(),
+                                                   tagged_ptrs[2]->GetBufferPtr());
+
+
+         output1.ConvertFrom(handle, kernels, data_ctx.tensors);
+
+
+      }
+    }
+
+
+    auto [_tr_inst_in, _tr_inst_wei, _tr_inst_out] = tr_inst_maker(result, ctx, problem, ck_args);
+
+    auto conv_ptrs = DeviceOpType::GetInstances();
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+
+    if(ptr_iter == conv_ptrs.end())
+        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+
+    result.invoker_factory = [pre_tpose_fn,
+                              post_tpose_fn,
+                              ck_args     = std::move(ck_args),
+                              sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)},
+                              tr_inst_in  = std::move(_tr_inst_in),
+                              tr_inst_wei = std::move(_tr_inst_wei),
+                              tr_inst_out = std::move(_tr_inst_out)](
+                                 const std::vector<Kernel>& kernels) mutable {
+        return [pre_tpose_fn,
+                post_tpose_fn,
+                kernels,
+                ck_args     = std::move(ck_args),
+                sh_conv_ptr = std::move(sh_conv_ptr),
+                tr_inst_in  = std::move(tr_inst_in),
+                tr_inst_wei = std::move(tr_inst_wei),
+                tr_inst_out = std::move(tr_inst_out)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            handle.ResetKernelTime();
+
+            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+
+            tr_inst_in.AllocBuffer(handle, data_ctx.workSpace);
+            tr_inst_wei.AllocBuffer(handle, data_ctx.workSpace);
+            tr_inst_out.AllocBuffer(handle, data_ctx.workSpace);
+
+            pre_tpose_fn(handle, kernels, data_ctx.tensors, tr_inst_in, tr_inst_wei, tr_inst_out);
+
+            auto invoker_ptr   = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr  = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_inst_in.GetBufferPtr(),
+                                                   tr_inst_wei.GetBufferPtr(),
+                                                   tr_inst_out.GetBufferPtr());
+            float elapsed_time = invoker_ptr->Run(
+                argument_ptr.get(), {handle.GetStream(), handle.IsProfilingEnabled()});
+            if(handle.IsProfilingEnabled())
+            {
+                handle.AccumKernelTime(elapsed_time);
+            }
+
+            post_tpose_fn(handle, kernels, data_ctx.tensors, tr_inst_in, tr_inst_wei, tr_inst_out);
+        };
+    };
+    return result;
+}
+
+#else 
+
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -381,6 +636,60 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     return result;
 }
 
+#endif//1
+
+#if 1
+template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
+                                       const ProblemDescription& problem,
+                                       const std::string& kernel_id)
+{
+
+    static_assert(ND == 2 || ND == 3, "Num Dimensions must be 2 or 3");
+
+    using Input1 = TransposeInput<ND, internal::TransposeType::NHWC_TO_NCHW, internal::ConvOperandType::Input>;
+    using Input2 = TransposeInput<ND, internal::TransposeType::NHWC_TO_NCHW, internal::ConvOperandType::Weights>;
+    using Output = TransposeOutput<ND, internal::TransposeType::NCHW_TO_NHWC, internal::ConvOperandType::Output>;
+
+
+
+
+    using TrInstMaker =
+        std::conditional_t<ND == 2,
+                           TransposeInstanceMaker2D<TransposeSolutionDefault2Nhwc,
+                                                    TransposeSolutionDefault2Nhwc,
+                                                    TransposeSolutionNhwc2Default>,
+                           TransposeInstanceMaker3D<TransposeSolutionDefault2Ndhwc,
+                                                    TransposeSolutionDefault2Ndhwc,
+                                                    TransposeSolutionNdhwc2Default>>;
+
+    TrInstMaker tr_inst_maker{};
+
+    auto pre_tpose_fn = [](const Handle& handle,
+                           const std::vector<Kernel>& kernels,
+                           const ConvTensors& tensors,
+                           TransposeInstance& tr_inst_in,
+                           TransposeInstance& tr_inst_wei,
+                           [[maybe_unused]] TransposeInstance& tr_inst_out) {
+        tr_inst_in.ConvertFrom(handle, kernels, tensors.x);
+        tr_inst_wei.ConvertFrom(handle, kernels, tensors.w);
+    };
+
+    auto post_tpose_fn = [](const Handle& handle,
+                            const std::vector<Kernel>& kernels,
+                            const ConvTensors& tensors,
+                            [[maybe_unused]] TransposeInstance& tr_inst_in,
+                            [[maybe_unused]] TransposeInstance& tr_inst_wei,
+                            TransposeInstance& tr_inst_out) {
+        tr_inst_out.ConvertTo(handle, kernels, const_cast<Data_t>(tensors.y));
+    };
+
+    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+        ctx, problem, kernel_id, tr_inst_maker, pre_tpose_fn, post_tpose_fn);
+}
+
+#else 
+
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
                                        const ProblemDescription& problem,
@@ -421,6 +730,7 @@ ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
     return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, tr_inst_maker, pre_tpose_fn, post_tpose_fn);
 }
+#endif
 
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
