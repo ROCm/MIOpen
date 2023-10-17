@@ -52,9 +52,9 @@ namespace activ {
 struct ProblemDescription;
 } // namespace activ
 
-namespace activ {
+namespace conv {
 struct ProblemDescription;
-} // namespace activ
+} // namespace conv
 
 using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
 
