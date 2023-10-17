@@ -139,7 +139,6 @@ protected:
     std::vector<float> h_output;
 };
 
-// This test should be replaced when strided tensors are fully implemented
 TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
 {
     auto device = Device(handle);
@@ -178,9 +177,8 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
     const float alpha = 1.f;
     const float beta  = 0.f;
 
-    // miopenConvolutionForward() must return error if the format is not supported
     ASSERT_TRUE(device.Synchronize());
-    ASSERT_NE(miopenConvolutionForward(handle,
+    ASSERT_EQ(miopenConvolutionForward(handle,
                                        &alpha,
                                        input_descr,
                                        d_input.Data(),
