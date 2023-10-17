@@ -27,6 +27,7 @@
 
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <miopen/solver/ck_utility_common.hpp>
 
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
@@ -41,11 +42,15 @@ struct BNInferTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miop
 protected:
     void SetUp() override
     {
-        test_skipped                       = false;
         std::tie(bn_config, tensor_layout) = GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            return;
+        }
         miopenBatchNormalizationForwardInference(&handle,
                                                  bn_config.mode,
                                                  &bn_infer_test_data.alpha,
@@ -69,7 +74,10 @@ protected:
     void TearDown() override
     {
         if(test_skipped)
+        {
+            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
+        }
         auto&& handle                  = get_handle();
         bn_infer_test_data.output.data = handle.Read<YDataType>(
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
@@ -96,11 +104,15 @@ struct BNBwdTest : public ::testing::TestWithParam<std::tuple<BNTestCase, miopen
 protected:
     void SetUp() override
     {
-        test_skipped                       = false;
         std::tie(bn_config, tensor_layout) = GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            return;
+        }
         miopenBatchNormalizationBackward(&handle,
                                          bn_config.mode,
                                          &bn_bwd_test_data.alphaDataDiff,
@@ -129,7 +141,10 @@ protected:
     void TearDown() override
     {
         if(test_skipped)
+        {
+            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
+        }
         auto&& handle = get_handle();
         bn_bwd_test_data.output.data =
             handle.Read<DyDataType>(bn_bwd_test_data.out_dev, bn_bwd_test_data.output.data.size());
@@ -177,11 +192,15 @@ struct BNFwdTrainTest
 protected:
     void SetUp() override
     {
-        test_skipped                       = false;
         std::tie(bn_config, tensor_layout) = GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            return;
+        }
         miopenBatchNormalizationForwardTraining(&handle,
                                                 bn_config.mode,
                                                 &bn_fwd_train_test_data.alpha,
@@ -214,7 +233,10 @@ protected:
     void TearDown() override
     {
         if(test_skipped)
+        {
+            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
+        }
         auto&& handle                      = get_handle();
         bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
             bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());
