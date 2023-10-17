@@ -32,8 +32,7 @@ namespace prng {
 template <typename T>
 inline T gen_descreet_uniform_sign(double scale, int32_t range)
 {
-    return static_cast<T>((gen_canonical<int>() ? -scale : scale) *
-                          static_cast<double>(gen_0_to_B(range)));
+    return static_cast<T>(scale * prng::gen_A_to_B(-range + 1, range));
 }
 
 template <typename T>
