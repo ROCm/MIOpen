@@ -32,6 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -86,10 +87,16 @@ struct CKArgs
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
-        // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-        out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        // miopen strides to CK strides
+        auto miopen_in_strides  = problem.GetIn().GetStrides();
+        auto miopen_out_strides = problem.GetOut().GetStrides();
+        auto miopen_wei_strides = problem.GetWeights().GetStrides();
+        miopen_in_strides.insert(miopen_in_strides.begin(), C);
+        miopen_out_strides.insert(miopen_out_strides.begin(), K);
+        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
+        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
+        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
+        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -210,7 +217,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -253,7 +260,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -271,7 +278,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
 ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
     pp.HeuristicInit(problem);
@@ -279,7 +286,7 @@ ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
 }
 
 bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
@@ -287,7 +294,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ExecutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const AnyInvokeParams& invoke_ctx) const
 {
@@ -295,7 +302,7 @@ ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -313,8 +320,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(!(arch == "gfx908" || arch == "gfx90a"))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     switch(problem.GetInDataType())
     {
@@ -322,7 +328,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -333,7 +339,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
@@ -341,16 +347,16 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:

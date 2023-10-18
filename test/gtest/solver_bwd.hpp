@@ -32,7 +32,7 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 
@@ -59,9 +59,9 @@ struct ConvBwdSolverTest
                                              output.desc,
                                              conv_desc,
                                              miopen::conv::Direction::BackwardData);
-        const auto problem                   = miopen::ProblemDescription{conv_problem};
-        const miopen::ConvolutionContext ctx = [&] {
-            auto tmp = miopen::ConvolutionContext{&handle};
+        const auto problem                 = miopen::ProblemDescription{conv_problem};
+        const miopen::ExecutionContext ctx = [&] {
+            auto tmp = miopen::ExecutionContext{&handle};
             problem.conv_problem.SetupFloats(tmp);
             return tmp;
         }();

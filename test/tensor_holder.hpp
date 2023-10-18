@@ -44,7 +44,7 @@
 #endif
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
@@ -195,9 +195,10 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(desc.GetType() == miopen_type<T>{} ||
-               ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                (desc.GetType() == miopenFloat || desc.GetType() == miopenInt32)));
+        assert(desc.GetType() == miopen_type<T>{}    //
+               || (miopen_type<T>{} == miopenInt8    //
+                   && (desc.GetType() == miopenFloat //
+                       || desc.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
