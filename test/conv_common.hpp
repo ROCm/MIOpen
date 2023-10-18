@@ -2646,8 +2646,8 @@ AllocateConvTransposeWorkspace(miopen::Handle& handle,
     auto w_sz = align(x.GetNumBytes()) + align(w.GetNumBytes()) + align(y.GetNumBytes());
     std::vector<std::uint8_t> w_cpu(w_sz);
 
-    auto w_gpu = handle.Write(w_cpu);
-    assert(w_gpu.get());
+    auto res = std::pair(handle.Write(w_cpu), w_cpu.size());
+    assert(res.first.get());
 
-    return std::make_pair(std::move(w_gpu), w_cpu.size());
+    return res;
 }
