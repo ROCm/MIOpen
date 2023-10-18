@@ -30,7 +30,7 @@ message(STATUS "Suppressing googltest warnings with flags: ${GTEST_CMAKE_CXX_FLA
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        e2239ee6043f73722e7aa812a459f54a28552929
+  GIT_TAG        f8d7d77c06936315286eb55f8de22cd23c188571
 )
 
 # Will be necessary for windows build
