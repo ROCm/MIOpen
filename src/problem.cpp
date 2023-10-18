@@ -52,12 +52,12 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            const miopen::TensorDescriptor& y,
                            miopenProblemDirection_t dir,
                            std::optional<uint64_t> solver_id);
-} // namespace miopen::debug
 
 // Todo: This should be updated when a separate driver command is implemented
 void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
                       const miopen::ActivationDescriptor& activ_desc,
                       bool fwd);
+} // namespace miopen::debug
 
 namespace miopen {
 
