@@ -49,7 +49,7 @@ protected:
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
         {
             test_skipped = true;
-            return;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenBatchNormalizationForwardInference(&handle,
                                                  bn_config.mode,
@@ -75,7 +75,6 @@ protected:
     {
         if(test_skipped)
         {
-            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
         }
         auto&& handle                  = get_handle();
@@ -111,7 +110,7 @@ protected:
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
         {
             test_skipped = true;
-            return;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenBatchNormalizationBackward(&handle,
                                          bn_config.mode,
@@ -142,7 +141,6 @@ protected:
     {
         if(test_skipped)
         {
-            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
         }
         auto&& handle = get_handle();
@@ -199,7 +197,7 @@ protected:
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
         {
             test_skipped = true;
-            return;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenBatchNormalizationForwardTraining(&handle,
                                                 bn_config.mode,
@@ -234,7 +232,6 @@ protected:
     {
         if(test_skipped)
         {
-            GTEST_SKIP() << " Not Applicable : " << bn_config;
             return;
         }
         auto&& handle                      = get_handle();
