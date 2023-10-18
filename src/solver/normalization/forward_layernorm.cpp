@@ -67,7 +67,7 @@ ConvSolution
 LayernormForward::GetSolution(const ExecutionContext& context,
                               const miopen::normalization::ProblemDescription& problem) const
 {
-    const auto& handle = context.GetStream();
+    std::ignore = context;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
