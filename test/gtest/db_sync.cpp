@@ -228,7 +228,6 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         conv::ProblemDescription tmp{in, wei, out, conv, dir};
     }
     conv.group_count = group_cnt;
-    prob_desc        = conv::ProblemDescription{in, wei, out, conv, dir};
     prob_desc        = (dir == miopen::conv::Direction::Forward)
                              ? conv::ProblemDescription{in, wei, out, conv, dir}
                              : conv::ProblemDescription{out, wei, in, conv, dir};
