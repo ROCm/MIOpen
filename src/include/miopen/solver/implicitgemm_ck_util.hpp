@@ -374,7 +374,7 @@ struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandTag::Output>:
     if constexpr(ND == 3) {
       return TransposeSolver {
         ctx,
-        problem.GetInDataType(),
+        problem.GetOutDataType(),
         static_cast<uint32_t>(ck_args.N),
         static_cast<uint32_t>(ck_args.K1),
         static_cast<uint32_t>(ck_args.Do),
@@ -383,7 +383,7 @@ struct TransposeOperand<ND, TPOSE_TYPE, ConvOperandTag::Output>:
     } else {
       return TransposeSolver {
         ctx,
-        problem.GetInDataType(),
+        problem.GetOutDataType(),
         static_cast<uint32_t>(ck_args.N),
         static_cast<uint32_t>(ck_args.K1),
         static_cast<uint32_t>(ck_args.Ho),
@@ -571,32 +571,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     ConvSolution result;
     auto ck_args = CKArgsType{problem};
 
-    /*
-    auto input1_solv = input1.MakeTransposeSolver(ctx, problem, ck_args);
-    auto input2_solv = input2.MakeTransposeSolver(ctx, problem, ck_args);
-    auto output_solv = output.MakeTransposeSolver(ctx, problem, ck_args);
-
-    auto combined_initialization = [&] (auto... tpose_solvers) {
-      result.construction_params.insert(
-          result.construction_params.end(),
-          { tpose_solvers.GetKernelInfo(), ...});
-
-      constexpr size_t buf_alignment = 256ull;
-      MultiBufferWorkspaceTraits wt(
-          { tpose_ops.GetOutputTensorSize(), ...},
-          buf_alignment);
-
-
-      int i = 0;
-      std::array<TransposeInstance, 3> ret = {  
-        TransposeInstance(tpose_solvers, i++, wt),...};
-
-      assert(size_t(i) == sizeof...(tpose_ops));
-
-      return ret;
-    };
-    */
-
     auto [_input1_tr_inst, _input2_tr_inst, _output_tr_inst] = internal::MakeTaggedTransposeInstances<CKArgsType>(result, ctx, problem, ck_args, input1_op, input2_op, output_op);
 
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -647,15 +621,20 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 });
 
 
-                auto invoker_ptr   = sh_conv_ptr->MakeInvokerPointer();
-                auto argument_ptr  = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                       tr_ptrs[0]->GetBufferPtr(),
-                                                       tr_ptrs[1]->GetBufferPtr(),
-                                                       tr_ptrs[2]->GetBufferPtr());
+            auto invoker_ptr   = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr  = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_ptrs[0]->GetBufferPtr(),
+                                                   tr_ptrs[1]->GetBufferPtr(),
+                                                   tr_ptrs[2]->GetBufferPtr());
 
+            float elapsed_time = invoker_ptr->Run(
+                argument_ptr.get(), {handle.GetStream(), handle.IsProfilingEnabled()});
+            if(handle.IsProfilingEnabled())
+            {
+                handle.AccumKernelTime(elapsed_time);
+            }
 
-             output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
-
+            output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
 
         };
     };
