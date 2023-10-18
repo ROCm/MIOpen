@@ -316,7 +316,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_conv_ck_supported_hardware(ctx.GetStream().GetDeviceName(), true))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     switch(problem.GetInDataType())
     {
@@ -343,13 +343,13 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGWrwPtrs<int8_t>, CKArgs, conv::WrWInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGWrwPtrs<int8_t>, CKArgs, conv::WrWInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGWrwPtrs<ck::half_t>, CKArgs, conv::WrWInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGWrwPtrs<ck::half_t>, CKArgs, conv::WrWInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGWrwPtrs<float>, CKArgs, conv::WrWInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGWrwPtrs<float>, CKArgs, conv::WrWInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
     case miopenInt8x4: // Support discontinued.
