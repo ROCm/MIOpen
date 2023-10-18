@@ -165,7 +165,7 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+    if(!ck_utility::is_ck_whitelist(context.GetStream()))
         return false;
     if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
         return false;
