@@ -459,7 +459,7 @@ void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
 {
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
-    LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
+    miopen::debug::LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)

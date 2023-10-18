@@ -69,6 +69,7 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
     });
 }
 
+namespace miopen::debug {
 void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
                       const miopen::ActivationDescriptor& activ_desc,
                       bool fwd)
@@ -98,6 +99,7 @@ LogCmdActivation(miopenTensorDescriptor_t x_desc, miopenActivationDescriptor_t a
 {
     LogCmdActivation(miopen::deref(x_desc), miopen::deref(activ_desc), fwd);
 }
+}
 
 extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,
                                                   miopenActivationDescriptor_t activDesc,
@@ -117,7 +119,7 @@ extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
-    LogCmdActivation(xDesc, activDesc, true);
+    miopen::debug::LogCmdActivation(xDesc, activDesc, true);
     return miopen::try_([&] {
         miopen::deref(activDesc).Forward(miopen::deref(handle),
                                          alpha,
@@ -153,7 +155,7 @@ extern "C" miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
         return miopenStatusNotImplemented;
     }
 
-    LogCmdActivation(xDesc, activDesc, false);
+    miopen::debug::LogCmdActivation(xDesc, activDesc, false);
     return miopen::try_([&] {
         miopen::deref(activDesc).Backward(miopen::deref(handle),
                                           alpha,
