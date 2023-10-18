@@ -39,9 +39,13 @@ endif()
 #     remain in the future)  perform final conversion (and rounding) of FP32
 #     to BF16 results. This affects the main functionality of the library.
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
+option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
+option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
 set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
     Normal Fast Hybrid FastHybrid DynamicHybrid)
+
+option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
@@ -123,6 +127,7 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
+    layernorm_api.cpp
     lrn_api.cpp
     op_args.cpp
     operator.cpp
@@ -147,6 +152,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
@@ -158,6 +164,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
+    solver/batchnorm/forward_training_ck.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -279,6 +286,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
         include/miopen/implicitgemm_params.hpp
+        kernels/gpu_reference_kernel/fp8_kern_types.h
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.inc
@@ -380,6 +388,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/bfloat16_dev.hpp
         kernels/float_types.h
         kernels/workaround_issue_1431.hpp
+        kernels/hip_f8_impl.hpp
+        kernels/hip_float8.hpp
+        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -392,7 +403,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
-        kernels/MIOpenCheckNumerics.cl
+        kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
         kernels/MIOpenBatchNormActivBwdSpatial.cl
         kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
@@ -406,6 +417,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
@@ -545,6 +557,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
+        layer_norm.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
@@ -674,7 +687,7 @@ clang_tidy_check(MIOpen)
 
 find_package(zstd)
 if(zstd_FOUND)
-    target_link_libraries(MIOpen PRIVATE zstd::libzstd_static)
+    target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
 endif()
 
 function(target_internal_library TARGET)
@@ -840,8 +853,10 @@ if(NOT WIN32 AND NOT APPLE)
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
-############################################################
-target_link_libraries(MIOpen PRIVATE "-lroctx64")
+
+if(NOT WIN32)
+    target_link_libraries(MIOpen PRIVATE roctx64)
+endif()
 
 ############################################################
 # Installation

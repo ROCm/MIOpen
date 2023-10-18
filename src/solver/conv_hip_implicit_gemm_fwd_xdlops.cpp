@@ -169,8 +169,10 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -210,8 +212,10 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -226,7 +230,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmFwdXdlops pp;
@@ -235,7 +239,7 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionConte
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -243,7 +247,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmFwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,
                                      const AnyInvokeParams& invoke_ctx) const
 {
@@ -251,7 +255,7 @@ ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -278,6 +282,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
+    if(problem.IsTensorsCasted())
+        return false;
     if(problem.GetGroupCount() > 1)
         return false;
     switch(problem.GetInDataType())
@@ -285,8 +291,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenFloat8:
+    case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -295,7 +303,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -303,18 +311,20 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<float>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4:
+    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
+    case miopenFloat8:
+    case miopenBFloat8:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
