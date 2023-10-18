@@ -99,7 +99,7 @@ LogCmdActivation(miopenTensorDescriptor_t x_desc, miopenActivationDescriptor_t a
 {
     LogCmdActivation(miopen::deref(x_desc), miopen::deref(activ_desc), fwd);
 }
-}
+} // namespace miopen::debug
 
 extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,
                                                   miopenActivationDescriptor_t activDesc,
