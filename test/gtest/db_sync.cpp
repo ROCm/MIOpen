@@ -205,7 +205,9 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
         conv::ProblemDescription tmp{in, wei, out, conv, dir};
     }
     conv.group_count = group_cnt;
-    prob_desc        = conv::ProblemDescription{in, wei, out, conv, dir};
+    prob_desc        = (dir == miopen::conv::Direction::Forward)
+                             ? conv::ProblemDescription{in, wei, out, conv, dir}
+                             : conv::ProblemDescription{out, wei, in, conv, dir};
 }
 
 struct FDBVal
@@ -267,7 +269,7 @@ void CheckKDBObjects(const boost::filesystem::path& filename,
 {
     // clang-format off
         auto select_query = "SELECT count(*) FROM kern_db WHERE (kernel_name = ?) AND ( kernel_args = ?)";
-    // clang-format on 
+    // clang-format on
     const std::vector<std::string> value = {kernel_name, kernel_args};
     auto sql = SQLite{filename.string(), true};
     auto stmt = SQLite::Statement{sql, select_query, value};
@@ -289,7 +291,7 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 {
     // clang-format off
         auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
-    // clang-format on 
+    // clang-format on
     auto sql = SQLite{filename.string(), true};
     auto stmt = SQLite::Statement{sql, select_query};
     int count = 0;
@@ -407,14 +409,14 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 
     for(const auto& kinder : find_db.GetCacheMap())
     {
-        auto ctx = _ctx; 
+        auto ctx = _ctx;
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
         std::stringstream ss;
         problem.Serialize(ss);
         // moment of truth
-        ++idx; 
+        ++idx;
         ASSERT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << idx << ":Parsed Key: " << ss.str();
         // Check the kernels for all dynamic solvers exist
         for(const auto& id : dyn_solvers)
@@ -434,7 +436,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
                     compile_options += " -mcpu=" + handle.GetDeviceName();
                     auto search = checked_kdbs.find({program_file, compile_options});
                     if(search != checked_kdbs.end()) // we have reported this object before, no need to check again
-                        continue; 
+                        continue;
                     miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options, found);
                     EXPECT_TRUE(found) << "KDB entry not found for fdb-key:" << kinder.first << " Solver: " << id.ToString() << " filename:" << program_file << " compile_args:" << compile_options;
                     checked_kdbs.emplace(std::make_pair(KDBKey{program_file, compile_options}, found));
@@ -463,14 +465,14 @@ TEST(DbSync, DISABLED_StaticFDBSync)
     size_t cnt_finddb_entry = 0;
     for(const auto& kinder : find_db.GetCacheMap())
     {
-        auto ctx = _ctx; 
+        auto ctx = _ctx;
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
         std::stringstream ss;
         problem.Serialize(ss);
         // moment of truth
-        ++idx; 
+        ++idx;
         EXPECT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << idx << ":Parsed Key: " << ss.str();
 
         std::vector<miopen::FDBVal> fdb_vals;
@@ -536,7 +538,7 @@ TEST(DbSync, DISABLED_StaticFDBSync)
                         else
                             found = checked_kdbs.at(KDBKey{program_file, compile_options});
                         if(!found)
-                            EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
+                            EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args
                         if(!reported_already)
                             BuildKernel(kern.kernel_file, kern.comp_options);
                     }
@@ -562,6 +564,6 @@ TEST(DbSync, DISABLED_StaticFDBSync)
     // Lets look at the dynamic kernels
     // construct the list of dynamic solvers
 
-    // for each entry in the find db, for each applicable dynamic solver make sure we have the required kdb entries 
+    // for each entry in the find db, for each applicable dynamic solver make sure we have the required kdb entries
 
 }
