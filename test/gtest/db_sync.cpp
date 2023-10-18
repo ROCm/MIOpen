@@ -591,15 +591,46 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
         counter.fetch_add(1, std::memory_order_relaxed);
     }
 }
+namespace miopen
+{
+    struct TestHandle: Handle
+    {
+        TestHandle(size_t _num_cu) : Handle(),  num_cu(_num_cu)
+        {
+        }
+
+        std::size_t GetMaxComputeUnits() const
+        {
+            if(num_cu == 0)
+                return Handle::GetMaxComputeUnits();
+            return num_cu;
+        }
+        size_t num_cu = 0;
+    };
+}
+
+static inline miopen::TestHandle& get_test_handle(size_t num_cu)
+{
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static miopen::TestHandle h{num_cu};
+    static const std::thread::id id = std::this_thread::get_id();
+    if(std::this_thread::get_id() != id)
+    {
+        std::cout << "Cannot use handle across multiple threads\n";
+        std::abort();
+    }
+    return h;
+}
 
 void StaticFDBSync(const std::string& arch, const size_t num_cu)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    auto& handle = get_handle();
+    auto& handle = get_test_handle(num_cu);
     if(handle.GetDeviceName() != arch)
         GTEST_SKIP();
-    setenv("MIOPEN_DEVICE_CU", std::to_string(num_cu).c_str(), 1);
+    handle.num_cu = num_cu;
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
+    std::cout << "Handle CU count: " << handle.GetMaxComputeUnits() << " Parameter Value: " << num_cu << std::endl;
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
@@ -622,7 +653,7 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
 
     for(auto idx = 0; idx < total_threads; ++idx)
         agents.at(idx).join();
-    ASSERT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work" << counter << " : " << fdb_data.size();
+    EXPECT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work" << counter << " : " << fdb_data.size();
 }
 
 struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
