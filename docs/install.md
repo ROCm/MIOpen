@@ -56,7 +56,7 @@ The script `utils/install_precompiled_kernels.sh` provided as part of MIOpen aut
 
 The above script depends on the __rocminfo__ package to query the GPU architecture.
 
-More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/doc/src/cache.md#installing-pre-compiled-kernels).
+More info can be found [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/docs/cache.md#installing-pre-compiled-kernels).
 
 ## Installing the dependencies
 
