@@ -163,7 +163,6 @@ template <typename XDataType,
           typename MeanVarDataType>
 static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
                                                                          DxDataType,
                                                                          DyDataType,
