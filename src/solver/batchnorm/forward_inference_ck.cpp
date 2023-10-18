@@ -175,14 +175,11 @@ static void RunCKSolution(const Handle& handle,
 }
 #endif
 
-bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
-                                    const miopen::batchnorm::ProblemDescription& bn_problem) const
+bool BnCKFwdInference::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = bn_problem;
-    return false;
-#else
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_INFER{}))
         return false;
     if(!bn_problem.IsLayoutNHWC())
@@ -202,24 +199,17 @@ bool BnCKFwdInference::IsApplicable(const ExecutionContext& context,
     case miopenInt8:
     case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
-    case miopenBFloat8:
-    default: MIOPEN_THROW("Unsupported datatype");
+    case miopenBFloat8: break;
     }
-    return false;
 #endif
+    return false;
 }
 
-ConvSolution
-BnCKFwdInference::GetSolution(const ExecutionContext& context,
-                              const miopen::batchnorm::ProblemDescription& bn_problem) const
+ConvSolution BnCKFwdInference::GetSolution(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = bn_problem;
-    return {};
-#else
-    std::ignore = context;
-
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
@@ -252,6 +242,8 @@ BnCKFwdInference::GetSolution(const ExecutionContext& context,
         };
     };
     return result;
+#else
+    return {};
 #endif
 }
 

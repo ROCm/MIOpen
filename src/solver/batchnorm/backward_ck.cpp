@@ -154,40 +154,6 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                           CKArgsBNormBwd>(problem);
 }
 
-#endif
-
-bool BnCKBwdBackward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
-{
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
-        return false;
-    if(!bn_problem.IsLayoutNHWC())
-        return false;
-    if(!ck_utility::is_ck_whitelist(context.GetStream()))
-        return false;
-    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
-        return false;
-
-    switch(bn_problem.GetXDesc().GetType())
-    {
-    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
-    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
-    case miopenBFloat16:
-        return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
-    case miopenInt32:
-    case miopenInt8:
-    case miopenInt8x4:
-    case miopenBFloat8:
-    case miopenFloat8:
-    default: MIOPEN_THROW("BnCKBwdBackward operation does not support this data type");
-    }
-#endif
-    return false;
-}
-
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
@@ -195,8 +161,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-ConvSolution
-MakeAnyInvokerFactory([[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem)
+static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
@@ -218,9 +183,39 @@ MakeAnyInvokerFactory([[maybe_unused]] const miopen::batchnorm::ProblemDescripti
                                                    MeanVarDataType>,
                                  CKArgsBNormBwd,
                                  miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
-#else
-    return {};
+}
+
 #endif
+
+bool BnCKBwdBackward::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
+        return false;
+    if(!bn_problem.IsLayoutNHWC())
+        return false;
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+        return false;
+    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+        return false;
+
+    switch(bn_problem.GetXDesc().GetType())
+    {
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
+    case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
+    case miopenBFloat16:
+        return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenInt32:
+    case miopenInt8:
+    case miopenInt8x4:
+    case miopenBFloat8:
+    case miopenFloat8: break;
+    }
+#endif
+    return false;
 }
 
 ConvSolution BnCKBwdBackward::GetSolution(
