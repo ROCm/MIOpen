@@ -46,6 +46,8 @@ namespace miopen {
 namespace solver {
 namespace ck_utility {
 
+// Disclaimer: Currently CK is only supported in MI100, MI200 and MI300.
+//             Please use is_ck_whitelist instead of this function.
 static inline bool is_ck_supported_hardware(const Handle& handle)
 {
     return (StartsWith(handle.GetDeviceName(), "gfx803") && handle.GetMaxComputeUnits() == 64) ||
@@ -63,14 +65,19 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
-static inline bool is_conv_ck_supported_hardware(const std::string& device_name, bool is_wrw)
+// MI100 : gfx908
+// MI200 : gfx90a
+// MI300 : gfx940, gfx941, gfx942
+static inline bool is_ck_whitelist(const std::string& device_name)
 {
-    auto res_wrw = StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
-                   StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
-                   StartsWith(device_name, "gfx942");
-    return is_wrw ? res_wrw
-                  : (res_wrw || StartsWith(device_name, "gfx900") ||
-                     StartsWith(device_name, "gfx906"));
+    return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
+            StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
+            StartsWith(device_name, "gfx942"));
+}
+
+static inline bool is_ck_whitelist(const Handle& handle)
+{
+    return is_ck_whitelist(handle.GetDeviceName());
 }
 
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
