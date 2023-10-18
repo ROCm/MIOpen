@@ -155,7 +155,7 @@ bool BnCKFwdTraining::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
         return false;
     if(!bn_problem.IsLayoutNHWC())
@@ -176,8 +176,8 @@ bool BnCKFwdTraining::IsApplicable(
     case miopenFloat8:
     default: MIOPEN_THROW("BnCKFwdTraining operation does not support this data type");
     }
-    return false;
 #endif
+    return false;
 }
 
 template <typename XDataType,
@@ -186,8 +186,10 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
+ConvSolution
+MakeAnyInvokerFactory([[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem)
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNFwdTrainingPtrs<XDataType,
                                                                                  YDataType,
                                                                                  AccDataType,
@@ -205,6 +207,9 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                                            MeanVarDataType>,
                                  CKArgsBNormFwdTraining,
                                  miopen::batchnorm::InvokeParams>(bn_problem, kernel_id);
+#else
+    return {};
+#endif
 }
 
 ConvSolution BnCKFwdTraining::GetSolution(

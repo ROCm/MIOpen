@@ -160,7 +160,7 @@ bool BnCKBwdBackward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
         return false;
     if(!bn_problem.IsLayoutNHWC())
@@ -184,8 +184,8 @@ bool BnCKBwdBackward::IsApplicable(
     case miopenFloat8:
     default: MIOPEN_THROW("BnCKBwdBackward operation does not support this data type");
     }
-    return false;
 #endif
+    return false;
 }
 
 template <typename XDataType,
@@ -195,8 +195,10 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
+ConvSolution
+MakeAnyInvokerFactory([[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem)
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
                                                                          DxDataType,
                                                                          DyDataType,
@@ -216,6 +218,9 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                                    MeanVarDataType>,
                                  CKArgsBNormBwd,
                                  miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
+#else
+    return {};
+#endif
 }
 
 ConvSolution BnCKBwdBackward::GetSolution(
