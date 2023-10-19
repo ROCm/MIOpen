@@ -24,6 +24,7 @@ list(APPEND GTEST_CMAKE_CXX_FLAGS
      -Wno-old-style-cast
      -Wno-deprecated
      -Wno-unsafe-buffer-usage
+     -Wno-float-equal
 )
 message(STATUS "Suppressing googltest warnings with flags: ${GTEST_CMAKE_CXX_FLAGS}")
 
