@@ -171,7 +171,10 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_h, in_w}};
-        wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels, fil_h, fil_w});
+        if(dir == conv::Direction::Forward)
+            wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels / group_cnt, fil_h, fil_w});
+        else
+            wei = TensorDescriptor(precision, wei_layout, {in_channels, out_channels / group_cnt, fil_h, fil_w});
         out = TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_h, out_w}};
         conv =
             ConvolutionDescriptor{{pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dil_h, dil_w}};
@@ -215,8 +218,13 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_d, in_h, in_w}};
-        wei = TensorDescriptor(
-            precision, wei_layout, {out_channels, in_channels, fil_d, fil_h, fil_w});
+        if(dir == conv::Direction::Forward)
+            wei = TensorDescriptor(
+                precision, wei_layout, {out_channels, in_channels / group_cnt, fil_d, fil_h, fil_w});
+        else
+            wei = TensorDescriptor(
+                precision, wei_layout, {in_channels, out_channels / group_cnt, fil_d, fil_h, fil_w});
+
         out =
             TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_d, out_h, out_w}};
         conv = ConvolutionDescriptor{{pad_d, pad_h, pad_w},
