@@ -89,8 +89,9 @@ ARG CCACHE_DIR="/tmp"
 RUN env
 # RUN cget -p $PREFIX install https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
 ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
-RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz -O /tmp/ccache.tar.gz && \
-    tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
+RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache
+ADD https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz /tmp/ccache.tar.gz
+RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
     cd /tmp/ccache-${CCACHE_COMMIT}/build && \
     cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 

@@ -80,8 +80,8 @@ float Im2d2ColGPU(const Handle& handle,
 
     int data_size_bound = c * in_h * in_w;
 
-    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
-    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int data_size_bound_pack = data_size_bound;
+    int im_offset_pack       = im_offset;
 
     if(!kernels.empty())
     {
@@ -105,7 +105,7 @@ float Im2d2ColGPU(const Handle& handle,
     }
     else
     {
-        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
+        const int c_pack = c;
 
         std::string params;
         int num_ch_per_wg;
@@ -331,9 +331,8 @@ float Im3d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
-    // int8x4 vectorize-c format
-    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
-    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
+    int im_offset_pack = im_offset;
+    int im_c_pack      = im_c;
 
     if(!kernels.empty())
     {
@@ -772,13 +771,6 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
-
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
@@ -909,13 +901,6 @@ float transpose_CNHW2NCHW(const Handle& handle,
     std::string kernel_name = "transpose_CNHW2NCHW";
 
     std::string params = GetDataTypeKernelParams(type);
-
-    if(type == miopenInt8x4)
-    {
-        c /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
     if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
@@ -1170,14 +1155,8 @@ float transpose_packed_MN2NM(const Handle& handle,
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     std::string params = GetDataTypeKernelParams(type);
-    if(type == miopenInt8x4)
-    {
-        m /= 4;
-        in_offset /= 4;
-        out_offset /= 4;
-    }
 
-    if(!(type == miopenInt8x4 || type == miopenInt8))
+    if(type != miopenInt8)
     {
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }

@@ -30,7 +30,6 @@
 #include <limits>
 #include <memory>
 #include <iomanip>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -422,7 +421,7 @@ struct tensor_transform_driver : test_driver
         }
 
         // Test tensor scale addition
-        if(miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4)
+        if(miopen_type<T>{} == miopenInt8)
             return;
 
         super_src = tensor<T>{superLens_src}.generate(tensor_elem_gen_integer{max_value});
