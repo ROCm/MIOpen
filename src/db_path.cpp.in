@@ -65,7 +65,7 @@ std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
-#if (MIOPEN_BUILD_DEV != 0) || defined(_WIN32)
+#if(MIOPEN_BUILD_DEV != 0) || defined(_WIN32)
         return "${MIOPEN_SYSTEM_DB_PATH}";
 #else
     {
