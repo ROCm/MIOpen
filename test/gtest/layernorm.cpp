@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "layernorm_test.hpp"
+#include "layernorm.hpp"
 #ifdef MIOPEN_BETA_API
 
 struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
