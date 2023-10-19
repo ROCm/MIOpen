@@ -171,7 +171,10 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_h, in_w}};
-        wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels, fil_h, fil_w});
+        if(dir == conv::Direction::Forward)
+            wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels / group_cnt, fil_h, fil_w});
+        else
+            wei = TensorDescriptor(precision, wei_layout, {in_channels, out_channels / group_cnt, fil_h, fil_w});
         out = TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_h, out_w}};
         conv =
             ConvolutionDescriptor{{pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dil_h, dil_w}};
@@ -215,8 +218,12 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_d, in_h, in_w}};
-        wei = TensorDescriptor(
-            precision, wei_layout, {out_channels, in_channels, fil_d, fil_h, fil_w});
+        if(dir == conv::Direction::Forward)
+            wei = TensorDescriptor(
+                precision, wei_layout, {out_channels, in_channels / group_cnt, fil_d, fil_h, fil_w});
+        else
+            wei = TensorDescriptor(
+                precision, wei_layout, {in_channels, out_channels / group_cnt, fil_d, fil_h, fil_w});
         out =
             TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_d, out_h, out_w}};
         conv = ConvolutionDescriptor{{pad_d, pad_h, pad_w},
@@ -325,7 +332,7 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 {
     // clang-format off
         auto select_query = "SELECT count(*) FROM kern_db WHERE ( kernel_args like '-mcpu=%sram-ecc%') OR (kernel_args like '-mcpu=%xnack%')";
-    // clang-format on 
+    // clang-format on
     auto sql = SQLite{filename.string(), true};
     auto stmt = SQLite::Statement{sql, select_query};
     int count = 0;
@@ -418,7 +425,7 @@ void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::
     const auto data_size = find_data.size();
     for(auto kidx = thread_index; kidx < data_size; kidx += total_threads)
     {
-        auto ctx = _ctx; 
+        auto ctx = _ctx;
         const auto& kinder = find_data[kidx];
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
@@ -443,7 +450,7 @@ void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::
                     compile_options += " -mcpu=" + handle.GetDeviceName();
                     auto search = checked_kdbs.find({program_file, compile_options});
                     if(search != checked_kdbs.end()) // we have reported this object before, no need to check again
-                        continue; 
+                        continue;
                     EXPECT_TRUE(miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options)) << "KDB entry not found for fdb-key:" << kinder.first << " Solver: " << id.ToString() << " filename:" << program_file << " compile_args:" << compile_options;
                     checked_kdbs.emplace(KDBKey{program_file, compile_options});
                     BuildKernel(kern.kernel_file, kern.comp_options, handle);
@@ -502,7 +509,7 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
     for(auto kidx = thread_index; kidx < data_size; kidx += total_threads)
     {
         const auto& kinder = data.at(kidx);
-        auto ctx = _ctx; 
+        auto ctx = _ctx;
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
@@ -575,7 +582,7 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
                         else
                             found = checked_kdbs.count(KDBKey{program_file, compile_options}) > 0;
                         if(!found)
-                            EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
+                            EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args
                         if(!reported_already)
                             BuildKernel(kern.kernel_file, kern.comp_options, ctx.GetStream());
                     }
@@ -635,7 +642,7 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     miopen::CheckKDBObjects(kdb_file_path, "", "");
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
-    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";    
+    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
     auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
 
