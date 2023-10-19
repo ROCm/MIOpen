@@ -44,9 +44,9 @@ protected:
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
         auto test_case = GetParam();
         tensor<G> input_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetInput());
+            tensor<G>(test_case.layout, test_case.conv.GetInput());
         tensor<G> weights_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
+            tensor<G>(test_case.layout, test_case.conv.GetWeights());
         auto conv_desc                       = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
