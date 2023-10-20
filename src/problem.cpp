@@ -45,7 +45,7 @@
 #include <boost/hof/match.hpp>
 
 namespace miopen::debug {
-// Todo: This should be updated when a separate driver command is implemented
+/// \todo: This should be updated when a separate driver command is implemented
 void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            const miopen::TensorDescriptor& w,
                            const miopen::ConvolutionDescriptor& conv,
@@ -53,7 +53,7 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            miopenProblemDirection_t dir,
                            std::optional<uint64_t> solver_id);
 
-// Todo: This should be updated when a separate driver command is implemented
+/// \todo: This should be updated when a separate driver command is implemented
 void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
                       const miopen::ActivationDescriptor& activ_desc,
                       bool fwd);
