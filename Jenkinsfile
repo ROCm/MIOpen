@@ -121,7 +121,8 @@ def cmake_build(Map conf=[:]){
 
     if ( build_fin == "ON" )
     {
-        def fin_build_cmd = cmake_fin_build_cmd(miopen_install_path)
+        conf.set("fin_prefixpath", miopen_install_path)
+        def fin_build_cmd = cmake_fin_build_cmd(conf)
         cmd += """
             export RETDIR=\$PWD
             cd ${env.WORKSPACE}/fin
@@ -146,16 +147,17 @@ def cmake_build(Map conf=[:]){
     }
 }
 
-def cmake_fin_build_cmd(prefixpath){
+def cmake_fin_build_cmd(Map conf=[:]){
+    def prefixpath = conf.get("fin_prefixpath","/opt/rocm")
+
     def flags = "-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release"
     def compiler = 'clang++'
     def config_targets = "install"
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
-    def configargs = ""
-    if (prefixpath != "")
-    {
-        configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
-    }
+    def configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
+
+    def setup_cmd = conf.get("fin_setup_cmd", "CXX=${compilerpath} cmake ${configargs} ${flags} ..")
+    def build_cmd = conf.get("fin_build_cmd","dumb-init make -j\$(nproc) ${config_targets}")
 
     def fin_cmd = """
             echo \$HSA_ENABLE_SDMA
@@ -163,8 +165,8 @@ def cmake_fin_build_cmd(prefixpath){
             rm -rf build
             mkdir build
             cd build
-            CXX=${compilerpath} cmake ${configargs} ${flags} ..
-            dumb-init make -j\$(nproc) ${config_targets}
+            ${setup_cmd}
+            ${build_cmd}
     """
     return fin_cmd
 }
@@ -589,21 +591,45 @@ pipeline {
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
                     }
                 }
-                stage('Tuna Fin Build Test') {
+                stage('Fin Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
-                      build_cmd = "make -j\$(nproc) "
+                        fin_build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
-                  }
+                        buildHipClangJobAndReboot(build_fin: "ON", fin_build_cmd: fin_build_cmd, needs_gpu:false, needs_reboot:false)
+                    }
+                }
+                stage('Fin Clang Format') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        execute_cmd = "cd fin/src; find .. -iname \'*.h\' \
+                                -o -iname \'*.hpp\' \
+                                -o -iname \'*.cpp\' \
+                                -o -iname \'*.h.in\' \
+                                -o -iname \'*.hpp.in\' \
+                                -o -iname \'*.cpp.in\' \
+                                -o -iname \'*.cl\' \
+                                | grep -v -E '(build/)|(base64)' \
+                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
+                    }
+                }
+                stage('Fin Tests') {
+                    agent{ label rocmnode("tunatest") }
+                    environment{
+                        fin_build_cmd="make -j\$(nproc) fin_check"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(build_fin: "ON", fin_build_cmd: fin_build_cmd, needs_gpu:false, needs_reboot:false)
+                    }
                 }
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
-
                     }
                     steps{
                         CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")

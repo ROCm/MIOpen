@@ -1,0 +1,10 @@
+[
+{
+"pdb_verif": true,
+"steps": ["perf_db_test"],
+"arch": "gfx90a",
+"num_cu": 110,
+"cleanup": false,
+"db_path": "/opt/rocm/share/miopen/db" 
+}
+]
