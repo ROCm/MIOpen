@@ -29,7 +29,7 @@
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
 #include <miopen/readonlyramdb.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
 
 #include <miopen/find_db.hpp>
 #include <miopen/tensor.hpp>
@@ -72,8 +72,6 @@ miopenDataType_t GetDataTypeFromString(const std::string& data_type)
         return miopenHalf;
     else if(data_type == "INT8")
         return miopenInt8;
-    else if(data_type == "INT8x4")
-        return miopenInt8x4;
     else if(data_type == "INT32")
         return miopenInt32;
     else if(data_type == "BF16")
@@ -402,7 +400,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 
     std::unordered_map<KDBKey, bool> checked_kdbs;
     auto& handle = get_handle();
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
 
     for(const auto& kinder : find_db.GetCacheMap())
@@ -458,7 +456,7 @@ TEST(DbSync, DISABLED_StaticFDBSync)
     std::unordered_map<KDBKey, bool> checked_kdbs;
 
     auto& handle = get_handle();
-    auto _ctx     = miopen::ConvolutionContext{};
+    auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
     size_t cnt_finddb_entry = 0;
     for(const auto& kinder : find_db.GetCacheMap())

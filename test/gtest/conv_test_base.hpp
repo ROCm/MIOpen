@@ -29,6 +29,7 @@
 #include <iostream>
 
 #include "conv_common.hpp"
+#include "conv_tensor_gen.hpp"
 
 template <typename T>
 miopenDataType_t GetDataType();
@@ -43,6 +44,18 @@ template <>
 miopenDataType_t GetDataType<half_float::half>()
 {
     return miopenHalf;
+}
+
+template <>
+miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>()
+{
+    return miopenFloat8;
+}
+
+template <>
+miopenDataType_t GetDataType<miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>>()
+{
+    return miopenBFloat8;
 }
 
 struct ConvTestCase
@@ -67,7 +80,7 @@ struct ConvTestCase
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
                   << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
                   << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
-                  << " dilation_x:" << tc.dilation_x << " )";
+                  << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode << " )";
     }
     const std::vector<size_t> GetInput() { return {N, C, H, W}; }
     const std::vector<size_t> GetWeights() { return {k, C, y, x}; }
@@ -123,24 +136,24 @@ std::vector<ConvTestCase> ConvTestConfigs()
             {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-template <typename T>
+template <typename T, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTestBase
 {
 protected:
     void SetUpImpl(ConvTestCase conv_config, miopenTensorLayout_t tensor_layout)
     {
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        input.generate(tensor_elem_gen_integer{3});
-        weights.generate(tensor_elem_gen_integer{3});
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
+        input.generate(GenData<T>{});
+        weights.generate(GenWeights<T>{});
 
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
 
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -152,7 +165,22 @@ protected:
     {
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
+        ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
+        if(use_cpu_ref)
+        {
+            cpu_convolution_forward(conv_desc.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    ref_out,
+                                    conv_desc.GetConvPads(),
+                                    conv_desc.GetConvStrides(),
+                                    conv_desc.GetConvDilations(),
+                                    conv_desc.GetGroupCount());
+        }
+        else
+        {
+            ref_out = ref_conv_fwd(input, weights, ref_out, conv_desc);
+        }
     }
 
     void ThresholdChecks()

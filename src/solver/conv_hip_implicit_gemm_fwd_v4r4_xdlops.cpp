@@ -120,7 +120,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::SetNextValue(const ProblemDescrip
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R4Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmForwardV4R4Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                              const ProblemDescription& problem)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops tmp;
@@ -624,7 +624,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
@@ -807,7 +807,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
@@ -815,7 +815,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsValid(const ConvolutionContext&
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
@@ -847,7 +847,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ProblemDescription
 
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvHipImplicitGemmForwardV4R4Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops config;
     config.HeuristicInit(ctx, problem);
@@ -856,7 +856,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops::GetDefaultPerformanceConfig(
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
@@ -966,7 +966,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops::GetSolution(
     return result;
 }
 
-bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS{}))
@@ -988,6 +988,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     if(!problem.direction.IsForward())
@@ -1028,7 +1031,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops
-ConvHipImplicitGemmForwardV4R4Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmForwardV4R4Xdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 

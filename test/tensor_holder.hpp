@@ -42,6 +42,12 @@
 #else
 #include <half.hpp>
 #endif
+using half         = half_float::half;
+using hip_bfloat16 = bfloat16;
+#include <hip_float8.hpp>
+using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
 #include <iomanip>
 #include <fstream>
 
@@ -110,6 +116,16 @@ struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 {
 };
 
+template <>
+struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
+{
+};
+
+template <>
+struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
+{
+};
+
 template <class T>
 struct tensor
 {
@@ -140,17 +156,14 @@ struct tensor
     }
 
     template <class X>
-    tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
-        : desc(t, layout, dims), data(desc.GetElementSpace())
+    tensor(miopenTensorLayout_t layout, const std::vector<X>& dims)
+        : desc(miopen_type<T>{}, layout, dims), data(desc.GetElementSpace())
     {
     }
 
     template <class X>
-    tensor(miopenDataType_t t,
-           miopenTensorLayout_t layout,
-           const std::vector<X>& dims,
-           const std::vector<X>& strides)
-        : desc(t, layout, dims, strides), data(desc.GetElementSpace())
+    tensor(miopenTensorLayout_t layout, const std::vector<X>& dims, const std::vector<X>& strides)
+        : desc(miopen_type<T>{}, layout, dims, strides), data(desc.GetElementSpace())
     {
         assert(dims.size() == strides.size());
     }
@@ -160,13 +173,8 @@ struct tensor
     {
     }
 
-    tensor(miopenDataType_t t,
-           miopenTensorLayout_t layout,
-           std::size_t n,
-           std::size_t c,
-           std::size_t h,
-           std::size_t w)
-        : desc(t, layout, {n, c, h, w}), data(desc.GetElementSpace())
+    tensor(miopenTensorLayout_t layout, std::size_t n, std::size_t c, std::size_t h, std::size_t w)
+        : desc(miopen_type<T>{}, layout, {n, c, h, w}), data(desc.GetElementSpace())
     {
     }
 
@@ -179,9 +187,7 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(desc.GetType() == miopen_type<T>{} ||
-               ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                (desc.GetType() == miopenFloat || desc.GetType() == miopenInt32)));
+        assert(desc.GetType() == miopen_type<T>{});
         data.resize(desc.GetElementSpace());
     }
 
@@ -371,49 +377,11 @@ void serialize(std::istream& s, tensor<T>& x)
 template <class T>
 void serialize(std::ostream& s, const tensor<T>& x)
 {
-    std::vector<std::size_t> lens    = x.desc.GetLengths();
-    std::vector<std::size_t> strides = x.desc.GetStrides();
+    const auto& lens    = x.desc.GetLengths();
+    const auto& strides = x.desc.GetStrides();
     serialize(s, lens);
     serialize(s, strides);
     serialize(s, x.data);
-}
-
-template <class T>
-void save_tensor(tensor<T> input, std::string fn, int slice)
-{
-    std::ofstream myfile;
-    myfile.open(fn, std::ofstream::out | std::ofstream::trunc);
-    int b, c, h, w;
-    std::tie(b, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
-    for(auto hidx = 0; hidx < h; hidx++)
-    {
-        for(auto widx = 0; widx < w; widx++)
-        {
-            myfile << std::setprecision(9) << input(0, slice, hidx, widx) << ", ";
-        }
-        myfile << std::endl;
-    }
-    myfile.close();
-}
-
-template <class T, class G>
-tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
-{
-    // TODO: Compute float
-    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
-}
-
-template <class T, class X>
-tensor<T> make_tensor(const std::vector<X>& dims)
-{
-    // TODO: Compute float
-    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
-}
-
-template <class T, class X, class G>
-tensor<T> make_tensor(const std::vector<X>& dims, G g)
-{
-    return make_tensor<T>(dims).generate(g);
 }
 
 struct tensor_generate
@@ -424,100 +392,6 @@ struct tensor_generate
         return std::forward<Tensor>(t.generate(g));
     }
 };
-
-template <class F>
-struct protect_void_fn
-{
-    F f;
-    protect_void_fn(F x) : f(std::move(x)) {}
-
-    // template<class... Ts>
-    // auto operator()(Ts&&... xs) const MIOPEN_RETURNS
-    // (f(std::forward<Ts>(xs)...));
-
-    template <class... Ts>
-    void operator()(Ts&&... xs) const
-    {
-        f(std::forward<Ts>(xs)...);
-    }
-};
-
-template <class F>
-protect_void_fn<F> protect_void(F f)
-{
-    return {std::move(f)};
-}
-
-struct cross_args_apply
-{
-    template <class F, class T, class... Ts>
-    void operator()(F f, T&& x, Ts&&... xs) const
-    {
-        miopen::each_args(std::bind(f, std::forward<T>(x), std::placeholders::_1),
-                          std::forward<Ts>(xs)...);
-    }
-};
-
-template <class F, class... Ts>
-void cross_args(F f, Ts&&... xs)
-{
-    miopen::each_args(
-        std::bind(cross_args_apply{}, protect_void(std::move(f)), std::placeholders::_1, xs...),
-        xs...);
-}
-
-template <class T>
-struct generate_both_visitation
-{
-    template <class F, class G1, class G2>
-    void operator()(F f, G1 g1, G2 g2) const
-    {
-        for(auto&& input : get_inputs())
-            for(auto&& weights : get_weights())
-                if(input.at(1) == weights.at(1)) // channels must match
-                    f(make_tensor<T>(input, g1), make_tensor<T>(weights, g2));
-    }
-};
-
-template <class T, class F, class... Gs>
-void generate_binary_all(F f, Gs... gs)
-{
-    cross_args(std::bind(generate_both_visitation<T>{},
-                         protect_void(f),
-                         std::placeholders::_1,
-                         std::placeholders::_2),
-               gs...);
-}
-
-template <class T, class F, class G>
-void generate_binary_one(F f, std::vector<int> input, std::vector<int> weights, G g)
-{
-    f(make_tensor<T>(input, g), make_tensor<T>(weights, g));
-}
-
-template <class T>
-struct generate_activ_visitation
-{
-    template <class F, class G>
-    void operator()(F f, G g) const
-    {
-        for(auto&& input : get_inputs())
-            f(make_tensor<T>(input, g));
-    }
-};
-
-template <class T, class F, class... Gs>
-void generate_unary_all(F f, Gs... gs)
-{
-    miopen::each_args(
-        std::bind(generate_activ_visitation<T>{}, protect_void(f), std::placeholders::_1), gs...);
-}
-
-template <class T, class F, class G>
-void generate_unary_one(F f, std::vector<int> input, G g)
-{
-    f(make_tensor<T>(input, g));
-}
 
 struct tensor_elem_gen_integer
 {
