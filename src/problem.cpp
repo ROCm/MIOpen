@@ -346,8 +346,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     })();
 
     const auto legacy_problem = ProblemDescription{conv_problem};
-    const auto netcfg         = conv_problem.BuildConfKey();
-    auto conv_ctx             = ConvolutionContext{{&handle}};
+    const auto netcfg         = conv_problem.MakeNetworkConfig();
+    auto conv_ctx             = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
