@@ -111,9 +111,9 @@ struct verify_reduce_with_indices
 
         if(toVerifyData)
         {
-            const auto dimLengths = output.desc.GetLengths();
+            const auto& dimLengths = output.desc.GetLengths();
 
-            auto result_dataFloat = make_tensor<float>(dimLengths);
+            auto result_dataFloat = tensor<float>(dimLengths);
 
             auto& result_dataT = std::get<0>(results);
 
@@ -124,9 +124,9 @@ struct verify_reduce_with_indices
         }
         else
         {
-            const auto dimLengths = indices.desc.GetLengths();
+            const auto& dimLengths = indices.desc.GetLengths();
 
-            auto result_indicesFloat = make_tensor<float>(dimLengths);
+            auto result_indicesFloat = tensor<float>(dimLengths);
 
             auto& result_indices = std::get<1>(results);
 
@@ -147,9 +147,9 @@ struct verify_reduce_with_indices
 
         if(toVerifyData)
         {
-            const auto dimLengths = output.desc.GetLengths();
+            const auto& dimLengths = output.desc.GetLengths();
 
-            auto result_dataFloat = make_tensor<float>(dimLengths);
+            auto result_dataFloat = tensor<float>(dimLengths);
 
             tensor<T>& result_dataT = std::get<0>(results);
 
@@ -160,9 +160,9 @@ struct verify_reduce_with_indices
         }
         else
         {
-            const auto dimLengths = indices.desc.GetLengths();
+            const auto& dimLengths = indices.desc.GetLengths();
 
-            auto result_indicesFloat = make_tensor<float>(dimLengths);
+            auto result_indicesFloat = tensor<float>(dimLengths);
 
             tensor<int>& result_indices = std::get<1>(results);
 
@@ -458,8 +458,8 @@ struct verify_reduce_no_indices
         else if(compTypeVal == miopenDouble)
             result = cpuImpl<double>();
 
-        const auto dimLengths = output.desc.GetLengths();
-        auto result_dataFloat = make_tensor<float>(dimLengths);
+        const auto& dimLengths = output.desc.GetLengths();
+        auto result_dataFloat  = tensor<float>(dimLengths);
 
         for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);
@@ -621,8 +621,8 @@ struct verify_reduce_no_indices
 
         auto result = gpuImpl();
 
-        const auto dimLengths = output.desc.GetLengths();
-        auto result_dataFloat = make_tensor<float>(dimLengths);
+        const auto& dimLengths = output.desc.GetLengths();
+        auto result_dataFloat  = tensor<float>(dimLengths);
 
         for(size_t i = 0; i < result.data.size(); i++)
             result_dataFloat.data[i] = convert_type<float>(result.data[i]);
