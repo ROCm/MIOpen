@@ -223,6 +223,10 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
 
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(problem.IsTensorsCasted())
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))

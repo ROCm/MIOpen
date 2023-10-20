@@ -97,8 +97,6 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
-    if(!problem.IsLayoutDefault())
-        return false;
     if(!problem.direction.IsForward())
         return false;
     if(!problem.Is2d())
@@ -106,6 +104,12 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
     if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
 
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
+    if(!problem.IsLayoutDefault())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)

@@ -317,6 +317,10 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
 
     if(!problem.IsFp32())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
 
     if(problem.IsTensorsCasted())
         return false;

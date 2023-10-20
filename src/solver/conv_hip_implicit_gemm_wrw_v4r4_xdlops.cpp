@@ -1057,6 +1057,11 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     if(!IsXdlopsSupport(ctx))
         return false;
 
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
+
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 

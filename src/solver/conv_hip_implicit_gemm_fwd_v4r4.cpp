@@ -583,8 +583,6 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!problem.IsLayoutDefault())
-        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.direction.IsForward())
@@ -594,6 +592,12 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsFp32())
         return false;
     if(problem.GetGroupCount() != 1)
+        return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
+    if(!problem.IsLayoutDefault())
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;

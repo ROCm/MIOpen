@@ -832,6 +832,10 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
 
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
 
     if(!problem.IsFp32() && !problem.IsFp16())
         return false;

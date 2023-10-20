@@ -51,6 +51,11 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     if(!ctx.rmv.IsV2orV3())
         return false;
 
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
+
     if(problem.IsTensorsCasted())
         return false;
 

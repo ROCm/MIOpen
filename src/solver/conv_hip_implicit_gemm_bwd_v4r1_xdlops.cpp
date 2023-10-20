@@ -838,6 +838,10 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 

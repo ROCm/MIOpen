@@ -320,6 +320,10 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
         return false;
     if(!problem.Is3d())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(!problem.IsLayoutNHWC())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))

@@ -479,6 +479,10 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())

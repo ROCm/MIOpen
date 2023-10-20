@@ -271,6 +271,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

@@ -243,6 +243,10 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
+    if(conv_problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(conv_problem.GetPadH() != conv_problem.GetPadW())
         return false;
     if(conv_problem.GetPadH() != 0)

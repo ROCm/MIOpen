@@ -586,17 +586,21 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!problem.IsLayoutDefault())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
-        return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
         return false;
     if(!problem.IsFp32())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
 
+    if(!problem.IsLayoutDefault())
+        return false;
+    if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)

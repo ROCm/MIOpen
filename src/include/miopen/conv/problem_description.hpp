@@ -367,6 +367,17 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsNCHWc_NCHWc() const;
     bool IsNCHWc_CHWNc() const;
 
+    bool HasNonPackedTensors() const
+    {
+        return !(in.IsPacked() && weights.IsPacked() && out.IsPacked());
+    }
+
+    bool HasMixedDataTypes() const
+    {
+        return !(GetInDataType() == GetWeightsDataType() &&
+                 GetWeightsDataType() == GetOutDataType());
+    }
+
     void HeuristicUpdateLayouts();
 
     void BuildConfKey(std::string& conf_key) const;

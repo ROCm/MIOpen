@@ -176,6 +176,10 @@ bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))

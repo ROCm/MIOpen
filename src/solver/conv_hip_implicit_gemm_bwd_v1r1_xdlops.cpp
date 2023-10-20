@@ -784,6 +784,11 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ExecutionContext& 
     if(!problem.Is2d())
         return false;
 
+    if(problem.HasNonPackedTensors())
+    {
+        return false;
+    }
+
     if(problem.IsTensorsCasted())
         return false;
 
