@@ -87,13 +87,13 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
-    if(xDesc.GetType() == miopenInt8x4 || xDesc.GetType() == miopenInt8)
-    {
-        // rocBlas needs the output to be int32 always
-        if(yDesc.GetType() != miopenFloat && yDesc.GetType() != miopenInt32 &&
-           yDesc.GetType() != miopenInt8x4)
-            return false;
-    }
+
+    // rocBlas needs the output to be 32-bit always
+    if(xDesc.GetType() == miopenInt8      //
+       && (yDesc.GetType() != miopenFloat //
+           && yDesc.GetType() != miopenInt32))
+        return false;
+
     const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
     if(problem.IsTensorsCasted())
     {
@@ -185,8 +185,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
             n_transpose_packed_MN2NM = 1;
         n_gemm_strided_batched = conv.group_count;
         n_transpose_CNHW2NCHW  = 1;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
     }
     // 1x1_stride=1 with GEMM and zero workspace
@@ -205,8 +204,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
             n_gemm_strided_batched = conv.group_count;
             n_gemm_runs            = in_n;
         }
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
     }
     else // not 1x1
@@ -216,8 +214,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
             n_transpose_packed_MN2NM = in_n;
         n_gemm_strided_batched = conv.group_count;
         n_gemm_runs            = in_n;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
     }
 
@@ -410,7 +407,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                 x_t_size *= 2;
             }
 
-            if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+            if(wDesc.GetType() == miopenInt8)
             {
                 const auto xts = GetTypeSize(xDesc.GetType());
                 if(xts > 0)
@@ -494,8 +491,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             if(handle.IsProfilingEnabled())
                 time_gemm += handle.GetKernelTime();
 
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
+            if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
@@ -782,7 +778,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     auto solution = ConvSolution{miopenStatusSuccess};
 
     const auto group_count = conv.group_count;
-    const auto lowp_quant  = conv.lowp_quant;
 
     if(group_count > 1)
     {
@@ -881,14 +876,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                     }
                 }
 
-                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
-                {
-                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                    if(handle.IsProfilingEnabled())
-                        time_gemm += handle.GetKernelTime();
-                }
-
                 if(handle.IsProfilingEnabled())
                 {
                     handle.ResetKernelTime();
@@ -966,14 +953,6 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
                 if(handle.IsProfilingEnabled())
                     time += handle.GetKernelTime();
-
-                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
-                {
-                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-                    CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
-                    if(handle.IsProfilingEnabled())
-                        time += handle.GetKernelTime();
-                }
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -1268,8 +1247,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 }
             }
 
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
+            if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 

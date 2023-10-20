@@ -55,10 +55,9 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat8:
     case miopenInt8:
     case miopenBFloat16:
-    case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
-        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, miopenDouble "
+        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
                   "data type not supported by "
                   "conv_trans test";
 

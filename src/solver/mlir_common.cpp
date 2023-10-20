@@ -57,7 +57,6 @@ static const char* DTypeName(miopenDataType_t ty)
     case miopenBFloat16: return "bf16";
     case miopenInt32: return "i32";
     case miopenInt8: return "i8";
-    case miopenInt8x4: return "i8x4";
     case miopenFloat8: return "fp8";
     case miopenBFloat8: return "bfp8";
     }

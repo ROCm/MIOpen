@@ -27,39 +27,68 @@
 
 #include "conv3d_test_case.hpp"
 
-std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 128, 64, 14, 28, 28, 64, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 32, 28, 28, 28, 32, 3, 3, 3, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {8, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {16, 64, 32, 28, 28, 28, 32, 3, 3, 3, 1, 1, 1, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {3, 48, 48, 28, 28, 28, 48, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {3, 48, 39, 28, 28, 28, 39, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {5, 120, 60, 28, 28, 28, 60, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
-}
-
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
+struct NonPackTestCase : Conv3DTestCase
 {
-    // get layout string names
-    std::string layout_str = desc.GetLayout_str();
+    size_t i0;
+    size_t i1;
+    size_t i2;
+    size_t i3;
+    size_t i4;
+    size_t w0;
+    size_t w1;
+    size_t w2;
+    size_t w3;
+    size_t w4;
+    size_t o0;
+    size_t o1;
+    size_t o2;
+    size_t o3;
+    size_t o4;
+    std::vector<size_t> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
+    std::vector<size_t> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
+    std::vector<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
+};
 
-    std::vector<std::size_t> lens = desc.GetLengths();
-    std::vector<int> int_lens(lens.begin(), lens.end());
-
-    // set the strides for the tensor
-    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
+std::vector<NonPackTestCase> ConvTestConfigs()
+{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             10240,
+             1,
+             2560,
+             160,
+             16,
+             432,
+             1,
+             144,
+             48,
+             16,
+             9216,
+             1,
+             2304,
+             256,
+             16},
+            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+             65536,
+             1,
+             24000,
+             2048,
+             64,
+             1728,
+             1,
+             576,
+             192,
+             64,
+             98304,
+             1,
+             32768,
+             2048,
+             128}};
 }
 
 template <typename T = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, Conv3DTestCase, miopenTensorLayout_t>>
+          std::tuple<miopenConvFwdAlgorithm_t, NonPackTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
@@ -67,10 +96,8 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
-        SetTensorLayout(input.desc);
-        SetTensorLayout(weights.desc);
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
@@ -82,7 +109,6 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -115,7 +141,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-    Conv3DTestCase conv_config;
+    NonPackTestCase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

@@ -26,16 +26,17 @@
 
 #pragma once
 
+#include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
-#include <miopen/convolution.hpp>
 #include <miopen/names.hpp>
+
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/convolution.hpp>
+
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
-#include <miopen/tensor.hpp>
-#include <miopen/problem_description_base.hpp>
-
-#include <boost/any.hpp>
 
 namespace miopen {
 
@@ -43,24 +44,6 @@ struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
-
-inline std::string GetDataTypeName(miopenDataType_t data_type)
-{
-    switch(data_type)
-    {
-    case miopenFloat: return "FP32";
-    case miopenHalf: return "FP16";
-    case miopenInt8: return "INT8";
-    case miopenInt8x4: return "INT8x4";
-    case miopenInt32: return "INT32";
-    case miopenBFloat16: return "BF16";
-    case miopenDouble: return "FP64";
-    case miopenFloat8: return "FP8";
-    case miopenBFloat8: return "BFP8";
-    }
-
-    return "Unknown(" + std::to_string(data_type) + ")";
-}
 
 template <class TElement>
 constexpr auto GetDHW(unsigned spatial_dims, const std::vector<TElement>& data)
@@ -386,14 +369,17 @@ struct ProblemDescription : ProblemDescriptionBase
 
     void HeuristicUpdateLayouts();
 
-    void BuildConfKey(std::string& conf_key) const;
+    void MakeNetworkConfig(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
+    NetworkConfig MakeNetworkConfig() const override
     {
         std::string ret;
-        BuildConfKey(ret);
+        MakeNetworkConfig(ret);
         return NetworkConfig{ret};
     }
+
+    // Todo: remove after fixing fin
+    [[deprecated]] NetworkConfig BuildConfKey() const { return MakeNetworkConfig(); }
 
     void Serialize(std::ostream& stream) const;
 

@@ -40,7 +40,7 @@ fastjsonschema==2.16.3
     # via rocm-docs-core
 gitdb==4.0.10
     # via gitpython
-gitpython==3.1.35
+gitpython==3.1.37
     # via rocm-docs-core
 idna==3.4
     # via requests
@@ -92,7 +92,7 @@ requests==2.31.0
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core==0.25.0
+rocm-docs-core==0.26.0
     # via -r requirements.in
 smmap==5.0.0
     # via gitdb
