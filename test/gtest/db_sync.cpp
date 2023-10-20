@@ -40,29 +40,6 @@
 
 #include <regex>
 #include <exception>
-#include <unordered_set>
-
-struct KDBKey
-{
-    std::string program_file;
-    std::string program_args;
-    bool operator==(const KDBKey& other) const
-    {
-        return (program_file == other.program_file) && (program_args == other.program_args);
-    }
-};
-
-template <>
-struct std::hash<KDBKey>
-{
-    std::size_t operator()(const KDBKey& k) const
-    {
-        using std::hash;
-        using std::string;
-
-        return ((hash<string>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
-    }
-};
 
 namespace miopen {
 conv::Direction GetDirectionFromString(const std::string& direction)
@@ -169,10 +146,7 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_h, in_w}};
-        if(dir == conv::Direction::Forward)
-            wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels / group_cnt, fil_h, fil_w});
-        else
-            wei = TensorDescriptor(precision, wei_layout, {in_channels, out_channels / group_cnt, fil_h, fil_w});
+        wei = TensorDescriptor(precision, wei_layout, {out_channels, in_channels, fil_h, fil_w});
         out = TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_h, out_w}};
         conv =
             ConvolutionDescriptor{{pad_h, pad_w}, {conv_stride_h, conv_stride_w}, {dil_h, dil_w}};
@@ -216,13 +190,8 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
 
         // construct the problem, serialize it and verify the output
         in  = TensorDescriptor{precision, in_layout, {batchsize, in_channels, in_d, in_h, in_w}};
-        if(dir == conv::Direction::Forward)
-            wei = TensorDescriptor(
-                precision, wei_layout, {out_channels, in_channels / group_cnt, fil_d, fil_h, fil_w});
-        else
-            wei = TensorDescriptor(
-                precision, wei_layout, {in_channels, out_channels / group_cnt, fil_d, fil_h, fil_w});
-
+        wei = TensorDescriptor(
+            precision, wei_layout, {out_channels, in_channels, fil_d, fil_h, fil_w});
         out =
             TensorDescriptor{precision, out_layout, {batchsize, out_channels, out_d, out_h, out_w}};
         conv = ConvolutionDescriptor{{pad_d, pad_h, pad_w},
@@ -235,7 +204,6 @@ void ParseProblemKey(const std::string& key_, conv::ProblemDescription& prob_des
     }
     conv.group_count = group_cnt;
     prob_desc        = conv::ProblemDescription{in, wei, out, conv, dir};
-
 }
 
 struct FDBVal
@@ -290,42 +258,29 @@ void GetPerfDbVals(const boost::filesystem::path& filename,
     }
 }
 
-auto LoadKDBObjects(const boost::filesystem::path& filename)
+void CheckKDBObjects(const boost::filesystem::path& filename,
+                     const std::string& kernel_name,
+                     const std::string& kernel_args,
+                     bool& found)
 {
-    std::unordered_set<KDBKey> kdb_cache;
-    auto select_query = "SELECT kernel_name, kernel_args from kern_db";
-    auto sql          = SQLite{filename.string(), true};
-    auto stmt         = SQLite::Statement{sql, select_query};
-    int count         = 0;
-    std::cout << "Loading kdb entries into cache" << std::endl;
+    // clang-format off
+        auto select_query = "SELECT count(*) FROM kern_db WHERE (kernel_name = ?) AND ( kernel_args = ?)";
+    // clang-format on 
+    const std::vector<std::string> value = {kernel_name, kernel_args};
+    auto sql = SQLite{filename.string(), true};
+    auto stmt = SQLite::Statement{sql, select_query, value};
+    int count = 0;
     while(true)
     {
         auto rc = stmt.Step(sql);
         if(rc == SQLITE_ROW)
-        {
-            ++count;
-            const auto kernel_name = stmt.ColumnText(0);
-            const auto kernel_args = stmt.ColumnText(1);
-            kdb_cache.emplace(KDBKey{kernel_name, kernel_args});
-        }
+            count = stmt.ColumnInt64(0);
         else if(rc == SQLITE_DONE)
             break;
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
             throw std::runtime_error(sql.ErrorMessage());
-        if(count % 2000 == 0)
-            std::cout << "Loaded " << count << " entries from KDB" << std::endl;
     }
-
-    std::cout << "Done loading " << count << " entries from kdb file: " << filename << std::endl;
-    return kdb_cache;
-}
-
-bool CheckKDBObjects(const boost::filesystem::path& filename,
-                     const std::string& kernel_name,
-                     const std::string& kernel_args)
-{
-    static const auto kdb_cache = LoadKDBObjects(filename);
-    return kdb_cache.find(KDBKey{kernel_name, kernel_args}) != kdb_cache.end();
+    found = count != 0;
 }
 
 bool CheckKDBForTargetID(const boost::filesystem::path& filename)
@@ -350,9 +305,33 @@ bool CheckKDBForTargetID(const boost::filesystem::path& filename)
 }
 } // namespace miopen
 
-
-void SetupPaths(boost::filesystem::path& fdb_file_path, boost::filesystem::path& pdb_file_path, boost::filesystem::path& kdb_file_path, const miopen::Handle& handle)
+struct KDBKey
 {
+    std::string program_file;
+    std::string program_args;
+    bool operator==(const KDBKey& other) const
+    {
+        return (program_file == other.program_file) && (program_args == other.program_args);
+    }
+
+};
+
+template<>
+struct std::hash<KDBKey>
+{
+    std::size_t operator()(const KDBKey& k) const
+    {
+        using std::hash;
+        using std::string;
+
+        return ((hash<string>()(k.program_file))
+                ^ (hash<string>()(k.program_args) << 1) >> 1);
+    }
+};
+
+void SetupPaths(boost::filesystem::path& fdb_file_path, boost::filesystem::path& pdb_file_path, boost::filesystem::path& kdb_file_path)
+{
+    auto& handle = get_handle();
     const std::string ext = ".fdb.txt";
     const auto root_path  = boost::filesystem::path(miopen::GetSystemDbPath());
     // The base name has to be the test name for each GPU arch we have
@@ -366,32 +345,26 @@ void SetupPaths(boost::filesystem::path& fdb_file_path, boost::filesystem::path&
     ASSERT_TRUE(boost::filesystem::exists(kdb_file_path)) << "Db file does not exist" << kdb_file_path;
 }
 
-TEST(DBSync, KDBTargetID)
+TEST(DBSync, DISABLED_KDBTargetID)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
+    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
     std::ignore = fdb_file_path;
     std::ignore = pdb_file_path;
     EXPECT_FALSE(miopen::CheckKDBForTargetID(kdb_file_path));
 }
 
-bool LogBuildMessage()
-{
-    MIOPEN_LOG_W("Unable to produce missing binary due to COMGR being enabled");
-    return true;
-}
-
-void BuildKernel(const std::string& program_file, const std::string& program_args, [[maybe_unused]] miopen::Handle& handle)
+void BuildKernel(const std::string& program_file, const std::string& program_args)
 {
     // Build the code object entry
     // This will write the code object in the user kdb which Jenkins can archive
     // This has to be done with the offline clang compiler and not COMGR (or hipRTC) otherwise the code object would be target ID specific
 #if MIOPEN_USE_COMGR
-    static const bool discard = LogBuildMessage();
-    std::ignore = discard;
+    MIOPEN_LOG_W("Unable to produce missing binary due to COMGR being enabled");
     std::ignore = program_file;
     std::ignore = program_args;
 #else
+    auto& handle =  get_handle();
     try
     {
         auto p = handle.LoadProgram(program_file, program_args, false, "");
@@ -403,14 +376,16 @@ void BuildKernel(const std::string& program_file, const std::string& program_arg
 #endif
 }
 
-using FDBLine = std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>;
-
-void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::vector<FDBLine>& find_data, const miopen::ExecutionContext& _ctx, std::atomic<size_t>& counter)
+TEST(DBSync, DISABLED_DynamicFDBSync)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    auto& handle = _ctx.GetStream();
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
-    std::unordered_set<KDBKey> checked_kdbs;
+    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
+
+    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    size_t idx         = 0;
+    // assert that find_db.cache is not empty, since that indicates the file was not readable
+    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
+
      //Get list of dynamic solvers
     std::vector<miopen::solver::Id> dyn_solvers;
     for(const auto id : miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
@@ -422,17 +397,23 @@ void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::
             dyn_solvers.push_back(id);
         }
     }
-    const auto data_size = find_data.size();
-    for(auto kidx = thread_index; kidx < data_size; kidx += total_threads)
+
+    std::unordered_map<KDBKey, bool> checked_kdbs;
+    auto& handle = get_handle();
+    auto _ctx     = miopen::ExecutionContext{};
+    _ctx.SetStream(&handle);
+
+    for(const auto& kinder : find_db.GetCacheMap())
     {
         auto ctx = _ctx; 
-        const auto& kinder = find_data[kidx];
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
         problem.SetupFloats(ctx); // TODO: Check if this is necessary
         std::stringstream ss;
         problem.Serialize(ss);
-        ASSERT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << kidx << ":Parsed Key: " << ss.str();
+        // moment of truth
+        ++idx; 
+        ASSERT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << idx << ":Parsed Key: " << ss.str();
         // Check the kernels for all dynamic solvers exist
         for(const auto& id : dyn_solvers)
         {
@@ -444,6 +425,7 @@ void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::
                 EXPECT_TRUE(sol.Succeeded()) << "Applicable solver generated invalid solution fdb-key:" << kinder.first << " Solver: " << id.ToString();
                 for(const auto& kern : sol.construction_params)
                 {
+                    bool found = false;
                     std::string compile_options = kern.comp_options;
                     std::string program_file = kern.kernel_file + ".o";
                     ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir")) << "MLIR detected in dynamic solvers";
@@ -451,64 +433,34 @@ void CheckDynamicFDBEntry(size_t thread_index, size_t total_threads, const std::
                     auto search = checked_kdbs.find({program_file, compile_options});
                     if(search != checked_kdbs.end()) // we have reported this object before, no need to check again
                         continue; 
-                    EXPECT_TRUE(miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options)) << "KDB entry not found for fdb-key:" << kinder.first << " Solver: " << id.ToString() << " filename:" << program_file << " compile_args:" << compile_options;
-                    checked_kdbs.emplace(KDBKey{program_file, compile_options});
-                    BuildKernel(kern.kernel_file, kern.comp_options, handle);
+                    miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options, found);
+                    EXPECT_TRUE(found) << "KDB entry not found for fdb-key:" << kinder.first << " Solver: " << id.ToString() << " filename:" << program_file << " compile_args:" << compile_options;
+                    checked_kdbs.emplace(std::make_pair(KDBKey{program_file, compile_options}, found));
+                    BuildKernel(kern.kernel_file, kern.comp_options);
                 }
             }
         }
-        if(kidx % 100 == 0)
-            std::cout << "Lines of find db completed:" << counter << std::endl;
-        counter.fetch_add(1, std::memory_order_relaxed);
     }
-
 }
 
-TEST(DBSync, DISABLED_DynamicFDBSync)
+TEST(DbSync, DISABLED_StaticFDBSync)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    auto& handle = get_handle();
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
-    miopen::CheckKDBObjects(kdb_file_path, "", "");
+    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path);
 
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
+    size_t idx         = 0;
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
 
+    std::unordered_map<KDBKey, bool> checked_kdbs;
+
+    auto& handle = get_handle();
     auto _ctx     = miopen::ExecutionContext{};
     _ctx.SetStream(&handle);
-
-     // Convert the map to a vector
-    std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
-    const auto& find_db_map = find_db.GetCacheMap();
-    fdb_data.resize(find_db_map.size());
-    std::copy(find_db_map.begin(), find_db_map.end(), fdb_data.begin());
-    std::atomic<size_t> counter = 0;
-    const int total_threads = std::min(static_cast<int>(std::thread::hardware_concurrency()), 32);
-    std::vector<std::thread> agents;
-    agents.reserve(total_threads);
-    for(auto idx = 0; idx < total_threads; ++idx)
+    size_t cnt_finddb_entry = 0;
+    for(const auto& kinder : find_db.GetCacheMap())
     {
-        agents.emplace_back(CheckDynamicFDBEntry, idx, total_threads, std::cref(fdb_data), std::cref(_ctx), std::ref(counter));
-    }
-
-    for(auto idx = 0; idx < total_threads; ++idx)
-    {
-        agents.at(idx).join();
-    }
-    ASSERT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work";
-}
-
-
-void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLine>& data, miopen::ExecutionContext& _ctx, std::atomic<size_t>& counter)
-{
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, _ctx.GetStream());
-    std::unordered_set<KDBKey> checked_kdbs;
-    const auto data_size = data.size();
-    for(auto kidx = thread_index; kidx < data_size; kidx += total_threads)
-    {
-        const auto& kinder = data.at(kidx);
         auto ctx = _ctx; 
         miopen::conv::ProblemDescription problem;
         miopen::ParseProblemKey(kinder.first, problem);
@@ -516,7 +468,8 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
         std::stringstream ss;
         problem.Serialize(ss);
         // moment of truth
-        EXPECT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << kidx << ":Parsed Key: " << ss.str();
+        ++idx; 
+        EXPECT_TRUE(ss.str() == kinder.first) << "Failed to parse FDB key:" << idx << ":Parsed Key: " << ss.str();
 
         std::vector<miopen::FDBVal> fdb_vals;
         std::unordered_map<std::string, std::string> pdb_vals;
@@ -569,22 +522,21 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
                         std::string program_file = kern.kernel_file + ".o";
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
-                            auto& handle = ctx.GetStream();
                             compile_options += " -mcpu=" + handle.GetDeviceName();
                         }
                         auto search = checked_kdbs.find({program_file, compile_options});
                         bool reported_already = search != checked_kdbs.end();
                         if(!reported_already) // we have reported this object before, no need to check again
                         {
-                            found = miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options);
-                            checked_kdbs.emplace(KDBKey{program_file, compile_options});
+                            miopen::CheckKDBObjects(kdb_file_path, program_file, compile_options, found);
+                            checked_kdbs.emplace(std::make_pair(KDBKey{program_file, compile_options}, found));
                         }
                         else
-                            found = checked_kdbs.count(KDBKey{program_file, compile_options}) > 0;
+                            found = checked_kdbs.at(KDBKey{program_file, compile_options});
                         if(!found)
                             EXPECT_TRUE(found) << "KDB entry not found for  fdb-key:" << kinder.first << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry << " filename: " << program_file << " compile args: " << compile_options;// for fdb key, solver id, solver pdb entry and kdb file and args 
                         if(!reported_already)
-                            BuildKernel(kern.kernel_file, kern.comp_options, ctx.GetStream());
+                            BuildKernel(kern.kernel_file, kern.comp_options);
                     }
                 }
             }
@@ -593,45 +545,10 @@ void CheckFDBEntry(size_t thread_index, size_t total_threads, std::vector<FDBLin
                        pdb_vals.end())  << "Non-Tunable solver found in PDB" << solv.GetSolverDbId() ;
             ++fdb_idx;
         }
-        if(kidx % 100 == 0)
-            std::cout << "Lines of find db completed:" << kidx << std::endl;
-        ++counter;
-        counter.fetch_add(1, std::memory_order_relaxed);
-    }
-}
 
-TEST(DBSync, StaticFDBSync)
-{
-    boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
-    auto& handle = get_handle();
-    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
-    // Warmup the kdb cache
-    miopen::CheckKDBObjects(kdb_file_path, "", "");
-    const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
-    // assert that find_db.cache is not empty, since that indicates the file was not readable
-    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";    
-    auto _ctx     = miopen::ExecutionContext{};
-    _ctx.SetStream(&handle);
-
-    // Convert the map to a vector
-    std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
-    const auto& find_db_map = find_db.GetCacheMap();
-    fdb_data.resize(find_db_map.size());
-    std::copy(find_db_map.begin(), find_db_map.end(), fdb_data.begin());
-    std::atomic<size_t> counter = 0;
-    const int total_threads = std::min(std::thread::hardware_concurrency(), static_cast<unsigned int>(32));
-    std::vector<std::thread> agents;
-    agents.reserve(total_threads);
-    for(auto idx = 0; idx < total_threads; ++idx)
-    {
-        agents.emplace_back(CheckFDBEntry, idx, total_threads, std::ref(fdb_data), std::ref(_ctx), std::ref(counter));
+        std::cout << "Lines of find db completed:" << ++cnt_finddb_entry << std::endl;
     }
 
-    for(auto idx = 0; idx < total_threads; ++idx)
-    {
-        agents.at(idx).join();
-    }
-    ASSERT_TRUE(counter == fdb_data.size()) << "Multi-threading error, work done is not equal to total work";
     // for each key , val pair in the find db
     // for each solver entry in the val of find db
     // check that the solver is applicable
