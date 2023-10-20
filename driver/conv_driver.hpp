@@ -83,6 +83,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
+// Support in the library discontinued, but left in the driver
+// for reference in the future.
+#define miopenInt8x4 (static_cast<miopenDataType_t>(4))
+
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 typedef cl_int status_t;
@@ -152,6 +156,26 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
     else
     {
         printf("Could not open file %s for writing\n", fileName);
+    }
+}
+
+static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
+{
+    static const std::unordered_map<std::string, miopenDataType_t> conv_map = {
+        {"fp32", miopenFloat},
+        {"fp16", miopenHalf},
+        {"bf16", miopenBFloat16},
+        {"fp8", miopenFloat8},
+        {"bf8", miopenBFloat8}};
+
+    const auto res = conv_map.find(type);
+    if(res != conv_map.end())
+    {
+        return res->second;
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid compute/cast type short hand supplied");
     }
 }
 
@@ -225,6 +249,7 @@ public:
     int ChkLayout_ShortName();
 
     int GetandSetData() override;
+    bool TensorsCasted() const;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetBiasTensorLengthsFromCmdLine();
@@ -381,9 +406,14 @@ private:
         // Computation error of fp16 is ~2^13 (=8192) bigger than
         // the one of fp32 because mantissa is shorter by 13 bits.
         auto tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 1) ? 1.5e-6 : 8.2e-3;
+
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<Tgpu, bfloat16>::value)
             tolerance *= 8.0;
+        constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
+        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
+        if(is_bfp8 || is_fp8 || TensorsCasted())
+            tolerance *= 37.0;
         return tolerance;
     }
 
@@ -557,6 +587,34 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     if(solution_value >= 0)
         immediate_solution = solution_value;
 
+    const std::set<std::string> valid_cast_types = {"fp32", "fp16", "bf16", "fp8", "bf8"};
+    if(inflags.GetValueStr("in_cast_type") != "-1")
+    {
+        const auto in_cast_type = inflags.GetValueStr("in_cast_type");
+        if(valid_cast_types.find(in_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for in_cast_type argument:" << in_cast_type << std::endl;
+            return 1;
+        }
+    }
+    if(inflags.GetValueStr("wei_cast_type") != "-1")
+    {
+        const auto wei_cast_type = inflags.GetValueStr("wei_cast_type");
+        if(valid_cast_types.find(wei_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for wei_cast_type argument:" << wei_cast_type << std::endl;
+            return 1;
+        }
+    }
+    if(inflags.GetValueStr("out_cast_type") != "-1")
+    {
+        const auto out_cast_type = inflags.GetValueStr("out_cast_type");
+        if(valid_cast_types.find(out_cast_type) == valid_cast_types.end())
+        {
+            std::cout << "Invalid value for out_cast_type argument:" << out_cast_type << std::endl;
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -620,13 +678,31 @@ int ConvDriver<Tgpu, Tref>::ChkLayout_ShortName()
 }
 
 template <typename Tgpu, typename Tref>
+bool ConvDriver<Tgpu, Tref>::TensorsCasted() const
+{
+    return inflags.GetValueStr("in_cast_type") != "-1" ||
+           inflags.GetValueStr("wei_cast_type") != "-1" ||
+           inflags.GetValueStr("out_cast_type") != "-1";
+}
+
+template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
+    if(inflags.GetValueStr("in_cast_type") != "-1")
+    {
+        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("in_cast_type"));
+        miopenSetTensorCastType(inputTensor, in_cast_type);
+    }
     SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
+    if(inflags.GetValueStr("wei_cast_type") != "-1")
+    {
+        const auto in_cast_type = DataTypeFromShortString(inflags.GetValueStr("wei_cast_type"));
+        miopenSetTensorCastType(weightTensor, in_cast_type);
+    }
 
     if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
     {
@@ -658,6 +734,11 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     miopenDataType_t y_type =
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
+    if(inflags.GetValueStr("out_cast_type") != "-1")
+    {
+        const auto out_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
+        miopenSetTensorCastType(outputTensor, out_cast_type);
+    }
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -821,6 +902,12 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n<valid name>   Immediate mode, build and run specified solution"
                          "\n<invalid name> Use Find() API",
                          "string");
+    inflags.AddInputFlag(
+        "in_cast_type", 'U', "-1", "Cast type for input tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
 
     return 0;
 }
@@ -1049,7 +1136,6 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         convDesc, spatial_dim, pads.data(), conv_strides.data(), conv_dilations.data(), mode);
 
     miopenSetConvolutionGroupCount(convDesc, group_count);
-
     if(mode == miopenTranspose)
     {
         miopenSetTransposeConvNdOutputPadding(convDesc, spatial_dim, trans_output_pads.data());
@@ -1109,6 +1195,32 @@ void RanGenSubnormBuffer(T* buf, size_t size, int percentage)
     });
 }
 
+template <>
+float8 RanGenWeights()
+{
+    const auto tmp =
+        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<float8>(tmp2);
+}
+
+template <>
+bfloat8 RanGenWeights()
+{
+    const auto tmp =
+        prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
+    // 1 in 2 chance of number being positive
+    const float sign =
+        (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+                      static_cast<float>(2) * sign * static_cast<float>(tmp);
+    return static_cast<bfloat8>(tmp2);
+}
+
 } // namespace detail
 
 template <typename Tgpu, typename Tref>
@@ -1135,11 +1247,14 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-    bool is_transform       = IsInputTensorTransform();
-    bool is_int8            = data_type == miopenInt8 || data_type == miopenInt8x4;
-    size_t in_sz            = GetTensorSize(inputTensor);
-    size_t wei_sz           = GetTensorSize(weightTensor);
-    size_t out_sz           = GetTensorSize(outputTensor);
+    bool is_transform = IsInputTensorTransform();
+    bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
+    // Data generated for very low precision types follows the same constraints whether its fp8,
+    // bfp8 or even if the interim tensors are being casted
+    bool is_fp8   = data_type == miopenFloat8 || data_type == miopenBFloat8 || TensorsCasted();
+    size_t in_sz  = GetTensorSize(inputTensor);
+    size_t wei_sz = GetTensorSize(weightTensor);
+    size_t out_sz = GetTensorSize(outputTensor);
     auto subnorm_percentage = miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{});
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
@@ -1310,16 +1425,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen_type<Tref>{},
-                           miopen::deref(outputTensor).GetLayout_t(),
+    outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLayout_t(),
                            miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
-    din_host  = tensor<Tref>(miopen_type<Tref>{},
-                            miopen::deref(inputTensor).GetLayout_t(),
+    din_host  = tensor<Tref>(miopen::deref(inputTensor).GetLayout_t(),
                             miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
-    dwei_host = tensor<Tref>(miopen_type<Tref>{},
-                             miopen::deref(weightTensor).GetLayout_t(),
+    dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLayout_t(),
                              miopen::deref(weightTensor).GetLengths(),
                              miopen::deref(weightTensor).GetStrides());
 
@@ -1338,7 +1450,10 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(!weiFileName.empty())
             weiRead = readBufferFromFile<Tgpu>(wei.data.data(), wei_sz, weiFileName.c_str());
 
-    const Tgpu Data_scale = is_int8 ? static_cast<Tgpu>(127) : static_cast<Tgpu>(0.01);
+    const Tgpu Data_scale = is_int8 ? static_cast<Tgpu>(127)
+                                    : (is_fp8 ? static_cast<Tgpu>(1.0) : static_cast<Tgpu>(0.01));
+    const Tgpu Data_min   = (is_fp8 ? static_cast<Tgpu>(-1.0) : static_cast<Tgpu>(0.0));
+    const Tgpu Data_max   = (is_fp8 ? static_cast<Tgpu>(1.0) : static_cast<Tgpu>(1.0));
     if(is_int8)
     {
         if(inflags.GetValueInt("bias") != 0)
@@ -1361,6 +1476,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     else
     {
+
         bool doutRead = false;
         if(is_bwd || is_wrw)
             if(!doutFileName.empty())
@@ -1375,7 +1491,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 /// initialization of input buffers regardless of which kinds of
                 /// convolutions are currently selectedfor testing (see the "-F" option).
                 /// Verification cache would be broken otherwise.
-                auto val = prng::gen_0_to_B(Data_scale);
+                auto val =
+                    is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
                 if(is_bwd || is_wrw)
                     dout.data[i] = val;
             }
@@ -1394,8 +1511,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             db_host     = tensor<Tref>(miopen::deref(biasTensor));
             for(int i = 0; i < b_sz; i++)
             {
-                b.data[i] = static_cast<Tgpu>(i % 8) + prng::gen_canonical<Tgpu>();
-                db[i]     = static_cast<Tgpu>(i % 8) + prng::gen_canonical<Tgpu>();
+                b.data[i] =
+                    static_cast<Tgpu>(i % 8) +
+                    (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_canonical<Tgpu>());
+                db[i] = static_cast<Tgpu>(i % 8) + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max)
+                                                           : prng::gen_canonical<Tgpu>());
             }
 
             if(!biasFileName.empty())
@@ -1413,7 +1533,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < in_sz; i++)
         {
             /// \ref move_rand
-            auto val = prng::gen_0_to_B(Data_scale);
+            auto val = is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
             if(is_fwd || is_wrw)
                 in.data[i] = val;
         }
@@ -1475,7 +1595,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_fwd)
     {
-        out_dev = std::unique_ptr<GPUMem>(
+        // TODO: For the temporary conversion to half, this is required, however, that would also
+        // need change elsewhere which has not yet been implemented out_dev =
+        // std::unique_ptr<GPUMem>(new GPUMem(
+        //     ctx, out_sz, is_int8 ? sizeof(float) : (is_fp8 ? sizeof(half) : sizeof(Tgpu))));
+        std::ignore = is_fp8;
+        out_dev     = std::unique_ptr<GPUMem>(
             new GPUMem(ctx, out_sz, is_int8 ? sizeof(float) : sizeof(Tgpu)));
         status |=
             (is_int8 ? out_dev->ToGPU(q, out_int8.data()) : out_dev->ToGPU(q, out.data.data()));
@@ -1496,7 +1621,8 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16)) ||
+             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8 ||
+             miopen_type<Tgpu>{} == miopenBFloat8)) ||
            (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else
@@ -3394,8 +3520,8 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         else
         {
             std::cout << "Backward Convolution Data Verifies OK on "
-                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_data << ')'
-                      << std::endl;
+                      << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_data
+                      << " < " << tolerance << ')' << std::endl;
         }
     }
 
@@ -3429,6 +3555,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             else if(std::is_same<Tgpu, float16>::value)
                 tolerance *= 5;
         }
+        // bfloat8 has very poor accuracy in wrw direction
+        if(std::is_same<Tgpu, bfloat8>::value)
+            tolerance = tolerance * 2;
 
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
@@ -3443,7 +3572,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         {
             std::cout << "Backward Convolution Weights Verifies OK on "
                       << (UseGPUReference() ? "GPU" : "CPU") << " reference (" << error_weights
-                      << ')' << std::endl;
+                      << " < " << tolerance << ')' << std::endl;
         }
     }
 

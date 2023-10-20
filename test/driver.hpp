@@ -274,11 +274,12 @@ struct test_driver
         {
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
-        case miopenInt8x4:
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
+        case miopenFloat8: ss << "--float8"; break;
+        case miopenBFloat8: ss << "--bfloat8"; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -301,11 +302,12 @@ struct test_driver
         {
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
-        case miopenInt8x4:
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
+        case miopenFloat8: ret.emplace_back("--float8"); break;
+        case miopenBFloat8: ret.emplace_back("--bfloat8"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -877,6 +879,21 @@ struct test_driver
     }
 
     template <class V, class... Ts>
+    auto verify_eps(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        return verify_impl(
+            [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
+                CHECK(miopen::range_distance(cpu) == miopen::range_distance(gpu));
+
+                double threshold = v.epsilon() * tolerance;
+                error            = {miopen::rms_range(cpu, gpu)};
+                return error.front() <= threshold;
+            },
+            v,
+            xs...);
+    }
+
+    template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
         return verify_impl(
@@ -1317,7 +1334,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         std::cout << "*****************************************************************************"
                      "*******************************************"
                   << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+        std::cout << "***** WARNING: test_drive was called more than once. This function "
                      "should only be called once."
                   << std::endl;
         std::cout << "***** This may abort in the future. Please update the test driver. "
