@@ -603,7 +603,7 @@ pipeline {
                 stage('Fin Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        execute_cmd = "cd fin/src; find .. -iname \'*.h\' \
+                        execute_cmd = "cd ../fin/src; find .. -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
