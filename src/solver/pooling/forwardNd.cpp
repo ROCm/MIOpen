@@ -106,11 +106,24 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
 bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 5 && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW" &&
-           problem.GetYDesc().GetLayout("NCDHW") == "NCDHW" &&
-           sizeof_private_memory(problem) <=
-               TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
+
+    return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
+           && problem.GetXDesc().GetSize() == 5                                               //
+           && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
+           && (problem.GetXDesc().GetType() == miopenFloat                                    //
+               || problem.GetXDesc().GetType() == miopenHalf)                                 //
+           && (problem.GetPooling().GetMode() == miopenPoolingMax                             //
+               || problem.GetPooling().GetMode() == miopenPoolingAverage                      //
+               || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive)            //
+           && sizeof_private_memory(problem) <= TargetProperties::GetMaxWaveScratchSize()     //
+                                                    / context.GetStream().GetWavefrontWidth() //
+           /// \todo This solver does not support workspace index mask mode yet.
+           &&
+           !(problem.GetPooling().GetMode() == miopenPoolingMax                                 //
+             && problem.GetPooling().GetWorkspaceIndexMode() == miopenPoolingWorkspaceIndexMask //
+             && problem.SaveIndex() == true);
 }
 
 ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
