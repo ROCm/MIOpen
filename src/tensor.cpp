@@ -227,6 +227,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         SetStrideNd(GetLayout_str());
     }
 }
+
 void TensorDescriptor::SetStrideNd(const std::string& layout)
 {
     std::string default_layout = miopen::tensor_layout_get_default(layout.size());

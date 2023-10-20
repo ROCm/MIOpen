@@ -263,15 +263,15 @@ struct TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-    void SetStrideNd(const std::string& layout);
-    void LensReorder(const std::string& layout);
-
 private:
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
+
+    void SetStrideNd(const std::string& layout);
+    void LensReorder(const std::string& layout);
 
     void CalculateStrides();
     void CalculateVectorLength();
