@@ -274,7 +274,6 @@ struct test_driver
         {
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
-        case miopenInt8x4: ss << "--UNSUPPORED_TYPE "; break;
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
@@ -303,7 +302,6 @@ struct test_driver
         {
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
-        case miopenInt8x4: ret.emplace_back("--UNSUPPORTED_TYPE"); break;
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
@@ -1336,7 +1334,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         std::cout << "*****************************************************************************"
                      "*******************************************"
                   << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+        std::cout << "***** WARNING: test_drive was called more than once. This function "
                      "should only be called once."
                   << std::endl;
         std::cout << "***** This may abort in the future. Please update the test driver. "
