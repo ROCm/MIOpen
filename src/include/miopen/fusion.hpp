@@ -61,7 +61,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const = 0;
-    virtual miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle);
+    virtual miopenStatus_t GetNetworkConfig(std::ostringstream& network_config);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t kind() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
@@ -74,7 +74,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
 {
     BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
@@ -85,7 +85,7 @@ struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -100,7 +100,7 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivBwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -121,7 +121,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -129,7 +129,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t bnBias,
                            ConstData_t estimatedMean,
                            ConstData_t estimatedVariance,
-                           double epsilon);
+                           double epsilon) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
@@ -145,7 +145,7 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -156,12 +156,11 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t bnScale,
                            ConstData_t bnBias,
                            double expAvgFactor,
-                           double epsilon);
+                           double epsilon) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormFwdTrain; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
-    void calcBNParams(Handle& handle,
-                      std::vector<size_t> in_lens,
+    std::vector<size_t> GetLocalWGSz();
+    std::vector<size_t> GetGlobalWGSz();
+    void calcBNParams(std::vector<size_t> in_lens,
                       int& variant,
                       size_t& in_cstride,
                       size_t& in_nstride,
@@ -180,7 +179,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -190,12 +189,11 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
                            Data_t resBnScaleDiff,
                            Data_t resBnBiasDiff,
                            ConstData_t savedMean,
-                           ConstData_t savedInvVariance);
+                           ConstData_t savedInvVariance) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormBwdTrain; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
-    void calcBNParams(Handle& handle,
-                      std::vector<size_t> in_lens,
+    std::vector<size_t> GetLocalWGSz();
+    std::vector<size_t> GetGlobalWGSz();
+    void calcBNParams(std::vector<size_t> in_lens,
                       int& variant,
                       size_t& in_cstride,
                       size_t& in_nstride,
@@ -217,7 +215,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
-    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
 
