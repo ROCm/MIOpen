@@ -27,6 +27,9 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/names.hpp>
+
+#include <string>
 
 namespace miopen {
 
@@ -49,6 +52,13 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 
 struct ProblemDescriptionBase
 {
+    ProblemDescriptionBase()                              = default;
+    ProblemDescriptionBase(const ProblemDescriptionBase&) = default;
+    virtual ~ProblemDescriptionBase()                     = default;
+
+    ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
+
+    [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
 };
 
 } // namespace miopen
