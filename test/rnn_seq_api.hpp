@@ -184,12 +184,6 @@ struct verify_rnn_api_base
             }
         std::cout << std::endl;
 
-        //std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
-        //          << " dirMode: " << dirMode << std::endl;
-        //
-        //std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
-        //          << " inputLen: " << inputVecLen << " numLayers: " << nLayers
-        //          << " useDropout: " << int(use_dropout) << std::endl;
         if(badtensor >= 0)
         {
             if(badtensor < 3)
@@ -285,64 +279,6 @@ auto train_gpu_fwd(miopen::Handle& handle,
     return std::make_tuple(fwd_y, fwd_hy, fwd_cy);
 }
 
-//template <class T>
-//std::vector<T> transformedIOBufferLayout(miopen::SeqTensorDescriptor& src_desc, std::vector<T> src_data, bool isInput=true)
-//{
-//    bool is_padded_src = input.desc.IsPaddedSeqLayout();
-//
-//    if(isInput)
-//    {
-//        auto [packedXInSize, packedYOutSize] = GetTempPackedBuffersSize(batch_seq, in_vec, out_vec);
-//
-//        std::vector<T> converted_data(isInput ? packedXInSize : packedYOutSize);
-//
-//        if(isInput)
-//        {
-//            ChangeDataPadding(src_data, converted_data, batch_seq, batch_seq[0], in_vec, false);
-//        }
-//        return converted_data;
-//    }
-//    else
-//    {
-//        return src_data;
-//    }
-//}
-
-//template <class T>
-//struct IOBufferView
-//{
-//    IOBufferView(miopen::SeqTensorDescriptor& src_desc,
-//                 std::vector<T> src_data,
-//                 bool isInput = true)
-//    {
-//        if(src_desc.IsPaddedSeqLayout())
-//        {
-//            auto [packedXInSize, packedYOutSize] =
-//                GetTempPackedBuffersSize(batch_seq, in_vec, out_vec);
-//
-//            std::vector<T> converted_data(isInput ? packedXInSize : packedYOutSize);
-//
-//            if(isInput)
-//            {
-//                ChangeDataPadding(src_data, converted_data, batch_seq, batch_seq[0], in_vec, false);
-//            }
-//            return converted_data;
-//        }
-//        else
-//        {
-//            return src_data;
-//        }
-//    }
-//
-//    std::vector<T>&
-//    GetData()
-//    {
-//
-//    }
-//
-//    std::vector<T>* srcPtr;
-//    std::vector<T> convertedTmp;
-//};
 
 template <class T>
 struct rnn_ref
@@ -393,31 +329,34 @@ struct rnn_ref
     virtual size_t getWorkSpaceSize() const = 0;
 
     virtual FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
-                  const std::vector<T>& xData,
-                  const std::vector<T>& hxData,
-                  const std::vector<T>& cxData,
-                  const std::vector<T>& wData,
-                  std::vector<T>& reserveSpace,
-                  bool nohx,
-                  bool nocx,
-                  bool nohy,
-                  bool nocy) const = 0;
+                          const miopen::SeqTensorDescriptor& yDesc,
+                          const std::vector<T>& xData,
+                          const std::vector<T>& hxData,
+                          const std::vector<T>& cxData,
+                          const std::vector<T>& wData,
+                          std::vector<T>& reserveSpace,
+                          bool nohx,
+                          bool nocx,
+                          bool nohy,
+                          bool nocy) const = 0;
 
     virtual BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
-                  const std::vector<T>& dyData,
-                  const std::vector<T>& dhyData,
-                  const std::vector<T>& dcyData,
-                  const std::vector<T>& cxData,
-                  const std::vector<T>& weiData,
-                  std::vector<T>& reserveSpace,
-                  std::vector<T>& workSpace,
-                  bool nodhx,
-                  bool nodcx,
-                  bool nodhy,
-                  bool nodcy,
-                  bool nocx) const = 0;
+                          const miopen::SeqTensorDescriptor& yDesc,
+                          const std::vector<T>& dyData,
+                          const std::vector<T>& dhyData,
+                          const std::vector<T>& dcyData,
+                          const std::vector<T>& cxData,
+                          const std::vector<T>& weiData,
+                          std::vector<T>& reserveSpace,
+                          std::vector<T>& workSpace,
+                          bool nodhx,
+                          bool nodcx,
+                          bool nodhy,
+                          bool nodcy,
+                          bool nocx) const = 0;
 
     virtual WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
+                          const miopen::SeqTensorDescriptor& dyDesc,
                           const std::vector<T>& xData,
                           const std::vector<T>& hxData,
                           const std::vector<T>& doutData,
@@ -469,6 +408,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
     size_t getWorkSpaceSize() const override { return work_space_size_cpu; }
 
     FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor&,
                   const std::vector<T>& xData,
                   const std::vector<T>& hxData,
                   const std::vector<T>& cxData,
@@ -529,6 +469,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
     }
 
     BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor& ,
                   const std::vector<T>& dyData,
                   const std::vector<T>& dhyData,
                   const std::vector<T>& dcyData,
@@ -598,6 +539,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
     }
 
     WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor& ,
                   const std::vector<T>& xData,
                   const std::vector<T>& hxData,
                   const std::vector<T>& doutData,
@@ -674,11 +616,10 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
     using typename rnn_ref<T>::WRWResObj;
 
     cpu_rnn_universal_ref(const miopen::RNNDescriptor& rnn,
-                       const miopen::SeqTensorDescriptor& maxX,
-                       const miopen::TensorDescriptor& hPackedDesc)
-        : packed_ref(rnn, maxX, hPackedDesc), hiddenDesc(hPackedDesc)
+                          const miopen::SeqTensorDescriptor& maxX,
+                          const miopen::TensorDescriptor& hPackedDesc)
+        : packed_ref(ConstructPackedRNNRef(rnn, maxX, hPackedDesc)), hiddenDesc(hPackedDesc)
     {
-        
     }
 
     size_t getReserveSpaceSize() const override { return packed_ref.getReserveSpaceSize(); }
@@ -686,6 +627,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
     size_t getWorkSpaceSize() const override { return packed_ref.getWorkSpaceSize(); }
 
     FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor& yDesc,
                   const std::vector<T>& xData,
                   const std::vector<T>& hxData,
                   const std::vector<T>& cxData,
@@ -700,11 +642,91 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                                    miopen::RNNDescriptor::getBaseLayoutFromDataTensor(xDesc))
         {
             return packed_ref.fwd(
-                xDesc, xData, hxData, cxData, wData, reserveSpace, nohx, nocx, nohy, nocy);
+                xDesc, yDesc, xData, hxData, cxData, wData, reserveSpace, nohx, nocx, nohy, nocy);
+        }
+        else {
+            auto converted_seq_order =
+                GetSamplesIndexDescendingOrder(xDesc.GetSequenceLengthsVector());
+            
+            //IO
+            ////////////////////////////////////////////////////////////////
+            seqTensor<T> x_tensor_converted(GetSeqDescriptorLayoutTransform(
+                xDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
+            
+            const miopen::SeqTensorDescriptor y_converted_desc(GetSeqDescriptorLayoutTransform(
+                yDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
+
+            
+
+            TransformRNNIOLayaoutToTarget(xDesc,
+                                          x_tensor_converted.desc,
+                                          converted_seq_order,
+                                          xData,
+                                          x_tensor_converted.data);
+            ///////////////////////////////////////////////////////////////
+
+            auto& hid = hiddenDesc.GetLengths();
+
+            std::vector<T> hxData_converted{};
+            if (!nohx) {
+                hxData_converted.resize(hxData.size());
+                HiddenTensorReorder(hxData, hxData_converted, converted_seq_order, hid, true);
+            }
+
+            std::vector<T> cxData_converted{};
+            if (!nocx) {
+                cxData_converted.resize(cxData.size());
+                HiddenTensorReorder(cxData, cxData_converted, converted_seq_order, hid, true);
+            }
+
+            auto packed_res = packed_ref.fwd(x_tensor_converted.desc,
+                                             y_converted_desc,
+                                             x_tensor_converted.data,
+                                             hxData_converted,
+                                             cxData_converted,
+                                             wData,
+                                             reserveSpace,
+                                             nohx,
+                                             nocx,
+                                             nohy,
+                                             nocy);
+
+            
+            std::vector<int> reverse_order = GetReverseOrderIndex(converted_seq_order);
+            // IO
+            ////////////////////////////////////////////////////////////////
+            seqTensor<T> y_tensor(yDesc);
+            if(yDesc.IsPaddingMarkerSpecified())
+            {
+                const T paddingSymbol =
+                    *reinterpret_cast<const T*>(yDesc.GetPaddingMarkerHolder().data());
+                std::fill(y_tensor.data.begin(), y_tensor.data.end(), paddingSymbol);
+            }
+
+            TransformRNNIOLayaoutToTarget(
+                y_converted_desc, y_tensor.desc, reverse_order, packed_res.y, y_tensor.data);
+            ////////////////////////////////////////////////////////////////
+
+            std::vector<T> hyData_converted{};
+            if(!nohy)
+            {
+                hyData_converted.resize(packed_res.hy.size());
+                HiddenTensorReorder(packed_res.hy, hyData_converted, reverse_order, hid, true);
+            }
+
+            std::vector<T> cyData_converted{};
+            if(!nocy)
+            {
+                cyData_converted.resize(packed_res.cy.size());
+                HiddenTensorReorder(packed_res.cy, cyData_converted, reverse_order, hid, true);
+            }
+
+            return {y_tensor.data, hyData_converted, cyData_converted, nohy, nocy};
         }
     }
 
     BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor& yDesc,
                   const std::vector<T>& dyData,
                   const std::vector<T>& dhyData,
                   const std::vector<T>& dcyData,
@@ -718,48 +740,204 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                   bool nodcy,
                   bool nocx) const override
     {
-        return packed_ref.bwd(xDesc,
-                              dyData,
-                              dhyData,
-                              dcyData,
-                              cxData,
-                              weiData,
-                              reserveSpace,
-                              workSpace,
-                              nodhx,
-                              nodcx,
-                              nodhy,
-                              nodcy,
-                              nocx);
+        if(xDesc.IsPacked() && miopenRNNDataSeqMajorNotPadded ==
+                                   miopen::RNNDescriptor::getBaseLayoutFromDataTensor(xDesc))
+        {
+            return packed_ref.bwd(xDesc,
+                                  yDesc,
+                                  dyData,
+                                  dhyData,
+                                  dcyData,
+                                  cxData,
+                                  weiData,
+                                  reserveSpace,
+                                  workSpace,
+                                  nodhx,
+                                  nodcx,
+                                  nodhy,
+                                  nodcy,
+                                  nocx);
+        }
+        else
+        {
+            auto converted_seq_order =
+                GetSamplesIndexDescendingOrder(xDesc.GetSequenceLengthsVector());
+
+            // IO
+            ////////////////////////////////////////////////////////////////
+            seqTensor<T> dy_tensor_converted(GetSeqDescriptorLayoutTransform(
+                yDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
+
+            const miopen::SeqTensorDescriptor x_converted_desc(GetSeqDescriptorLayoutTransform(
+                xDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
+
+            TransformRNNIOLayaoutToTarget(yDesc,
+                                          dy_tensor_converted.desc,
+                                          converted_seq_order,
+                                          dyData,
+                                          dy_tensor_converted.data);
+            ///////////////////////////////////////////////////////////////
+            auto& hid = hiddenDesc.GetLengths();
+
+            std::vector<T> dhyData_converted{};
+            if(!nodhy)
+            {
+                dhyData_converted.resize(dhyData.size());
+                HiddenTensorReorder(dhyData, dhyData_converted, converted_seq_order, hid, true);
+            }
+
+            std::vector<T> dcyData_converted{};
+            if(!nodcy)
+            {
+                dcyData_converted.resize(cxData.size());
+                HiddenTensorReorder(dcyData, dcyData_converted, converted_seq_order, hid, true);
+            }
+
+            std::vector<T> cxData_converted{};
+            if(!nocx)
+            {
+                cxData_converted.resize(cxData.size());
+                HiddenTensorReorder(cxData, cxData_converted, converted_seq_order, hid, true);
+            }
+
+            auto packed_res = packed_ref.bwd(x_converted_desc,
+                                             dy_tensor_converted.desc,
+                                             dy_tensor_converted.data,
+                                             dhyData_converted,
+                                             dcyData_converted,
+                                             cxData_converted,
+                                             weiData,
+                                             reserveSpace,
+                                             workSpace,
+                                             nodhx,
+                                             nodcx,
+                                             nodhy,
+                                             nodcy,
+                                             nocx);
+            std::vector<int> reverse_order = GetReverseOrderIndex(converted_seq_order);
+
+            // IO
+            ////////////////////////////////////////////////////////////////
+            seqTensor<T> dx_tensor(xDesc);
+            if(dx_tensor.desc.IsPaddingMarkerSpecified())
+            {
+                const T paddingSymbol =
+                    *reinterpret_cast<const T*>(dx_tensor.desc.GetPaddingMarkerHolder().data());
+                std::fill(dx_tensor.data.begin(), dx_tensor.data.end(), paddingSymbol);
+            }
+
+            TransformRNNIOLayaoutToTarget(
+                x_converted_desc, dx_tensor.desc, reverse_order, packed_res.din, dx_tensor.data);
+            ////////////////////////////////////////////////////////////////
+
+
+            std::vector<T> dhxData_converted{};
+            if(!nodhx)
+            {
+                dhxData_converted.resize(packed_res.dhx.size());
+                HiddenTensorReorder(packed_res.dhx, dhxData_converted, reverse_order, hid, true);
+            }
+
+            std::vector<T> dcxData_converted{};
+            if(!nodcx)
+            {
+                dcxData_converted.resize(packed_res.dcx.size());
+                HiddenTensorReorder(packed_res.dcx, dcxData_converted, reverse_order, hid, true);
+            }
+
+            return {dx_tensor.data, dhxData_converted, dcxData_converted, nodhx, nodcx};
+        }
     }
 
     WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
+                  const miopen::SeqTensorDescriptor& dyDesc,
                   const std::vector<T>& xData,
                   const std::vector<T>& hxData,
-                  const std::vector<T>& doutData,
+                  const std::vector<T>& dyData,
                   std::vector<T>& reserveSpace,
                   std::vector<T>& workSpace,
                   bool nohx) const override
     {
+        if(xDesc.IsPacked() && miopenRNNDataSeqMajorNotPadded ==
+                                   miopen::RNNDescriptor::getBaseLayoutFromDataTensor(xDesc))
+        {
+            return packed_ref.wrw(
+                xDesc, dyDesc, xData, hxData, dyData, reserveSpace, workSpace, nohx);
+        }
+        else
+        {
+            auto converted_seq_order =
+                GetSamplesIndexDescendingOrder(xDesc.GetSequenceLengthsVector());
+            
+            // IO
+            ////////////////////////////////////////////////////////////////
+            seqTensor<T> x_tensor_converted(GetSeqDescriptorLayoutTransform(
+                xDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
 
-        return packed_ref.wrw(xDesc,
-                              xData,
-                              hxData,
-                              doutData,
-                              reserveSpace,
-                              workSpace,
-                              nohx);
+            seqTensor<T> dy_tensor_converted(GetSeqDescriptorLayoutTransform(
+                dyDesc, miopenRNNDataSeqMajorNotPadded, converted_seq_order));
+
+            TransformRNNIOLayaoutToTarget(xDesc,
+                                          x_tensor_converted.desc,
+                                          converted_seq_order,
+                                          xData,
+                                          x_tensor_converted.data);
+
+            TransformRNNIOLayaoutToTarget(dyDesc,
+                                          dy_tensor_converted.desc,
+                                          converted_seq_order,
+                                          dyData,
+                                          dy_tensor_converted.data);
+            ///////////////////////////////////////////////////////////////
+            auto& hid = hiddenDesc.GetLengths();
+
+            std::vector<T> hxData_converted{};
+            if(!nohx)
+            {
+                hxData_converted.resize(hxData.size());
+                HiddenTensorReorder(hxData, hxData_converted, converted_seq_order, hid, true);
+            }
+
+            auto packed_res = packed_ref.wrw(x_tensor_converted.desc,
+                                             dy_tensor_converted.desc,
+                                             x_tensor_converted.data,
+                                             hxData_converted,
+                                             dy_tensor_converted.data,
+                                             reserveSpace,
+                                             workSpace,
+                                             nohx);
+
+            return packed_res;
+        }
     }
 
 
     private:
     cpu_rnn_packed_ref<T> packed_ref;
+    const miopen::TensorDescriptor hiddenDesc;
 
+    inline cpu_rnn_packed_ref<T> ConstructPackedRNNRef(const miopen::RNNDescriptor& rnn,
+                                                 const miopen::SeqTensorDescriptor& maxX,
+                                                 const miopen::TensorDescriptor& hPackedDesc) const
+    {
+        if(maxX.IsPacked() && miopenRNNDataSeqMajorNotPadded ==
+                                   miopen::RNNDescriptor::getBaseLayoutFromDataTensor(maxX))
+        {
+            return cpu_rnn_packed_ref<T>{rnn, maxX, hPackedDesc};
+        }
+        else
+        {
+            return cpu_rnn_packed_ref<T>{
+                rnn,
+                GetSeqDescriptorLayoutTransform(
+                    maxX,
+                    miopenRNNDataSeqMajorNotPadded,
+                    GetSamplesIndexDescendingOrder(maxX.GetSequenceLengthsVector())),
+                hPackedDesc};
+        }
+    }
 
-
-
-    private: 
-        const miopen::TensorDescriptor hiddenDesc;
+    
 };
 
 template <class T>
@@ -851,6 +1029,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
         std::vector<T> work_space(refMethod.getWorkSpaceSize());
 
         auto [fwd_y, fwd_hy, fwd_cy] = refMethod.fwd(input.desc,
+                                                     output.desc,
                                                      input.data,
                                                      xHiddenState.data,
                                                      xCellState.data,
@@ -862,6 +1041,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                      nocy);
         
         auto [bwd_din, bwd_dhx, bwd_dcx] = refMethod.bwd(input.desc,
+                                                         output.desc,
                                                          dOutput.data,
                                                          dyHiddenState.data,
                                                          dyCellState.data,
@@ -876,6 +1056,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                          nocx);
 
         auto wrw_res = refMethod.wrw(input.desc,
+                                     output.desc,
                                      input.data,
                                      xHiddenState.data,
                                      dOutput.data,
@@ -883,31 +1064,12 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                      work_space,
                                      nohx);
 
-        //std::vector<T> hidden_state(xHiddenState.data.size());
-        //std::vector<T> cell_state(xCellState.data.size());
-        //std::vector<T> output_seq(output.data.size());
-        //
-        //std::vector<T> converted_input;
-        //std::vector<T> converted_output;
-        //
-        //const std::vector<T>* packed_input;
-        //std::vector<T>* packed_output;
-
-        //const std::vector<T> packed_input = transformedIOBufferLayout(input.desc, input.data, true);
-        //std::vector<T> packed_output = transformedIOBufferLayout(output.desc, output_seq, false);
-
-        
 
         //if(is_padded_verification)
         //{
         //    std::fill(output_seq.begin(), output_seq.end(), padding_symbol);
         //    ChangeDataPadding(*packed_output, output_seq, batch_seq, batch_seq[0], out_vec, true);
         //}
-
-        //std::copy(reserve_space.begin(), reserve_space.end(), RSVcpu);
-        //std::vector<T> hyy = nohy ? std::vector<T>{} : hidden_state;
-        //std::vector<T> cyy = nocy ? std::vector<T>{} : cell_state;
-
 
 
         return result_tuple(std::move(fwd_y),
@@ -1077,7 +1239,7 @@ struct verify_inference_rnn : verify_rnn_api_base<T>
         return std::make_tuple(fwd_y, fwd_hy, fwd_cy);
     }
 
-        auto gpu() -> decltype(result_tuple({}, {}, {})) const
+    auto gpu() -> decltype(result_tuple({}, {}, {})) const
     {
         auto&& handle = get_handle();
 
@@ -1399,10 +1561,16 @@ struct rnn_seq_api_test_driver : test_driver
         const auto inOut_layout = rnn_data_layout(io_layout);
         const auto out_vector_len = hiddenSize * ((dirMode != 0) ? 2 : 1);
 
+        T padding_m        = static_cast<T>(0);
+
         seqTensor<T> input = build_RNN_seqTensor<T>(
-                         inOut_layout, batchSize, seqLength, inVecLen, seqLenArray),
-                     output = build_RNN_seqTensor<T>(
-                         inOut_layout, batchSize, seqLength, out_vector_len, seqLenArray);
+                         inOut_layout, batchSize, seqLength, inVecLen, seqLenArray, &padding_m),
+                     output = build_RNN_seqTensor<T>(inOut_layout,
+                                                     batchSize,
+                                                     seqLength,
+                                                     out_vector_len,
+                                                     seqLenArray,
+                                                     &padding_m);
         seqTensor<T> dy(output);
 
         const auto num_hidden_layers = numLayers * ((dirMode != 0) ? 2 : 1);
