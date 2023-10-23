@@ -69,7 +69,7 @@ const int INVOKE_LIMIT = 4;
 
 class BaseFin
 {
-    public:
+public:
     BaseFin() {}
     virtual ~BaseFin() {}
     void Usage();
@@ -270,7 +270,7 @@ class BaseFin
         return kernel_time;
     }
 
-    protected:
+protected:
     template <typename Tgpu>
     void InitDataType();
     miopenDataType_t data_type = miopenFloat; // the datatype passed in through the command line

@@ -23,7 +23,7 @@
 # SOFTWARE.
 # 
 ################################################################################
-cmake_minimum_required( VERSION 3.5 )
+cmake_minimum_required( VERSION 3.15 )
 list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip /opt/rocm/hcc /opt/rocm/opencl)
 
 configure_file("${PROJECT_SOURCE_DIR}/src/include/config.h.in" "${PROJECT_BINARY_DIR}/src/include/config.h")

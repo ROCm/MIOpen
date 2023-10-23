@@ -79,7 +79,7 @@ using json = nlohmann::json;
 template <typename Tgpu, typename Tcpu>
 class ConvFin : public BaseFin
 {
-    public:
+public:
     ConvFin() : BaseFin() {}
     ConvFin(json _job) : BaseFin(), job(_job)
     {
