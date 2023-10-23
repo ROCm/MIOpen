@@ -121,7 +121,7 @@ def cmake_build(Map conf=[:]){
 
     if ( build_fin == "ON" )
     {
-        conf.set("fin_prefixpath", miopen_install_path)
+        conf.put("fin_prefixpath", miopen_install_path)
         def fin_build_cmd = cmake_fin_build_cmd(conf)
         cmd += """
             export RETDIR=\$PWD
