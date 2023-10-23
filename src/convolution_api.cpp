@@ -56,16 +56,8 @@ static inline auto MakeFwdCtxAndProblem(miopenHandle_t handle,
     const auto direction =
         (conv.mode != miopenTranspose) ? Direction::Forward : Direction::BackwardData;
 
-    auto problem = (conv.mode != miopenTranspose) ? ProblemDescription{miopen::deref(xDesc),
-                                                                       miopen::deref(wDesc),
-                                                                       miopen::deref(yDesc),
-                                                                       conv,
-                                                                       direction}
-                                                  : ProblemDescription{miopen::deref(yDesc),
-                                                                       miopen::deref(wDesc),
-                                                                       miopen::deref(xDesc),
-                                                                       conv,
-                                                                       direction};
+    auto problem = ProblemDescription{
+        miopen::deref(xDesc), miopen::deref(wDesc), miopen::deref(yDesc), conv, direction};
 
     auto ctx = ExecutionContext{&miopen::deref(handle)};
     problem.SetupFloats(ctx);
