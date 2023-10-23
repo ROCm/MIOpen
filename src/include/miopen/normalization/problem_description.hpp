@@ -86,7 +86,7 @@ struct ProblemDescription : ProblemDescriptionBase
             outer_size *= dims[i];
         }
 
-        return (outer_size > 1024);
+        return (outer_size > 32);
     }
 
     NetworkConfig MakeNetworkConfig() const;

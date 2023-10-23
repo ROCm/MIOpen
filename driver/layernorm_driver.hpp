@@ -199,23 +199,30 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     int in_h = inflags.GetValueInt("in_h");
     int in_d = inflags.GetValueInt("in_d");
 
-    if(in_h != 0)
+    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
     {
-        if(in_d != 0)
-        {
-            dim_size = 5;
-            return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-        }
-        else
-        {
-            dim_size = 4;
-            return std::vector<int>({in_n, in_c, in_h, in_w});
-        }
+        dim_size = 5;
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
     }
-    else
+    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
+    {
+        dim_size = 4;
+        return std::vector<int>({in_n, in_c, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
     {
         dim_size = 3;
         return std::vector<int>({in_n, in_c, in_w});
+    }
+    else if((in_n != 0) && (in_w != 0))
+    {
+        dim_size = 2;
+        return std::vector<int>({in_n, in_w});
+    }
+    else
+    {
+        std::cout << "Error Input Tensor Lengths\n" << std::endl;
+	return std::vector<int>({0});
     }
 }
 

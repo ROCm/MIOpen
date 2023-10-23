@@ -26,7 +26,7 @@
 
 #include <miopen/normalization/solvers.hpp>
 #include <miopen/normalization/invoke_params.hpp>
-#include <miopen/batch_norm.hpp>
+#include <miopen/layernorm.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/normalization.hpp>
@@ -39,6 +39,7 @@ namespace normalization {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
+using index_t     = int32_t;
 
 constexpr index_t Rank         = 2;
 constexpr index_t NumReduceDim = 1;
@@ -48,35 +49,54 @@ using F32  = float;
 using F64  = double;
 using BF16 = ushort;
 
-struct CKArgsLNormFwd
+struct CKArgs2DLNormFwd
 {
-    CKArgsLNormFwd(const miopen::normalization::ProblemDescription& problem)
-    {
-        std::copy(problem.GetXDesc().GetLengths().begin(),
-                  problem.GetXDesc().GetLengths().end(),
-                  xyLengths.begin());
-
-        std::copy(problem.GetXDesc().GetStrides().begin(),
-                  problem.GetXDesc().GetStrides().end(),
-                  xyStrides.begin());
-
-        std::copy(problem.GetWeightDesc().GetStrides().begin(),
-                  problem.GetWeightDesc().GetStrides().end(),
-                  gammaStrides.begin());
-
-        std::copy(problem.GetBiasDesc().GetStrides().begin(),
-                  problem.GetBiasDesc().GetStrides().end(),
-                  betaStrides.begin());
-
-        epsilon = problem.GetEpsilon();
-    }
-
-    std::array<ck::index_t, Rank> xyLengths;
-    std::array<ck::index_t, Rank> xyStrides;
-    std::array<ck::index_t, Rank> gammaStrides;
-    std::array<ck::index_t, Rank> betaStrides;
+    std::vector<index_t> xyLengths;
+    std::vector<index_t> xyStrides;
+    std::vector<index_t> gammaStrides;
+    std::vector<index_t> betaStrides;
     float epsilon;
 };
+
+CKArgs2DLNormFwd make_2d_args(const miopen::normalization::ProblemDescription& problem)
+{
+    CKArgs2DLNormFwd args;
+
+    args.xyLengths.resize(Rank);
+    args.xyStrides.resize(Rank);
+    auto length = problem.GetXDesc().GetLengths();
+    auto stride = problem.GetXDesc().GetStrides();
+
+    for(int i = 0 ; i < Rank; i++)
+    {
+        args.xyLengths[i] = length[i];
+        args.xyStrides[i] = stride[i];
+    }
+
+    args.gammaStrides.resize(Rank);
+    args.betaStrides.resize(Rank);
+    auto wstride = problem.GetWeightDesc().GetStrides();
+    auto bstride = problem.GetBiasDesc().GetStrides();
+    int j = wstride.size() - 1;
+    for(int i = Rank - 1 ; i >=0 ; i--)
+    {
+        if(j < 0)
+        {
+            args.gammaStrides[i] = 0;
+            args.betaStrides[i] = 0;
+        }
+        else
+        {
+            args.gammaStrides[i] = wstride[j];
+            args.betaStrides[i] = bstride[j];
+        }
+        j--;
+    }
+
+    args.epsilon = problem.GetEpsilon();
+
+    return args;
+}
 
 template <typename XDataType,
           typename GammaDataType,
@@ -85,8 +105,8 @@ template <typename XDataType,
           typename YDataType>
 static int CheckCKApplicability(const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args       = CKArgsLNormFwd{problem};
-    using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
+    const auto& args = make_2d_args(problem);
+    using DeviceOp   = ck::tensor_operation::device::DeviceNormalization<XDataType,
                                                                        GammaDataType,
                                                                        BetaDataType,
                                                                        ComputeDataType,
@@ -101,10 +121,10 @@ static int CheckCKApplicability(const miopen::normalization::ProblemDescription&
     for(const auto& it : ln_fwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
-                                                    {args.xyStrides},
-                                                    {args.gammaStrides},
-                                                    {args.betaStrides},
-                                                    {args.xyStrides},
+                                                    args.xyStrides,
+                                                    args.gammaStrides,
+                                                    args.betaStrides,
+                                                    args.xyStrides,
                                                     {NumReduceDim},
                                                     args.epsilon,
                                                     nullptr,
@@ -132,7 +152,7 @@ static void RunCKSolution(const Handle& handle,
                           const AnyInvokeParams& primitive_parameters,
                           const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args = CKArgsLNormFwd{problem};
+    const auto& args = make_2d_args(problem);
 
     using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
                                                                        GammaDataType,
@@ -150,13 +170,13 @@ static void RunCKSolution(const Handle& handle,
             problem);
     assert(kernel_index >= 0 && kernel_index < ln_fwd_ptrs.size());
     auto& ln_ptr       = ln_fwd_ptrs.at(kernel_index);
-    const auto& params = primitive_parameters.CastTo<miopen::normalization::InfInvokeParams>();
+    const auto& params = primitive_parameters.CastTo<miopen::normalization::InvokeParams>();
 
     auto argument_ptr = ln_ptr->MakeArgumentPointer(args.xyLengths,
-                                                    {args.xyStrides},
-                                                    {args.gammaStrides},
-                                                    {args.betaStrides},
-                                                    {args.xyStrides},
+                                                    args.xyStrides,
+                                                    args.gammaStrides,
+                                                    args.betaStrides,
+                                                    args.xyStrides,
                                                     {NumReduceDim},
                                                     args.epsilon,
                                                     {params.x},
@@ -238,6 +258,7 @@ Layernorm2DCKForward::GetSolution(const ExecutionContext& context,
                 RunCKSolution<F32, F32, F32, F32, F32>(handle, primitive_parameters, problem);
                 break;
             case miopenDouble:
+            case miopenBFloat16:
             case miopenInt8:
             case miopenInt32:
             case miopenInt8x4: // Support discontinued.
