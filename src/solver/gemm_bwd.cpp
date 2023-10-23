@@ -43,7 +43,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 #define WORKAROUND_MIOPENGEMM_ISSUE_59 1
-#define WORKAROUND_MIOPENGEMM_ISSUE_2474 1
+#define WORKAROUND_ISSUE_2474 1
 
 // copy from convolution.cpp
 // Workaround for issue 1430.
@@ -246,7 +246,7 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
 bool GemmBwd1x1_stride2::IsApplicable(const ExecutionContext& context,
                                       const conv::ProblemDescription& problem) const
 {
-#if MIOPEN_USE_GEMM && !WORKAROUND_MIOPENGEMM_ISSUE_2474
+#if MIOPEN_USE_GEMM && !WORKAROUND_ISSUE_2474
     if(!GemmBwdBase::IsApplicable(context, problem))
         return false;
 
@@ -484,7 +484,7 @@ bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
                                       const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM && (!MIOPEN_USE_MIOPENGEMM || !WORKAROUND_MIOPENGEMM_ISSUE_59) && \
-    !WORKAROUND_MIOPENGEMM_ISSUE_2474
+    !WORKAROUND_ISSUE_2474
     return IsApplicableBeforeWorkaround(context, problem);
 #else
     std::ignore = context;
@@ -684,7 +684,7 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
 bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
                                const conv::ProblemDescription& problem) const
 {
-#if MIOPEN_USE_GEMM && !WORKAROUND_MIOPENGEMM_ISSUE_2474
+#if MIOPEN_USE_GEMM && !WORKAROUND_ISSUE_2474
     if(!GemmBwdBase::IsApplicable(context, problem))
         return false;
 
