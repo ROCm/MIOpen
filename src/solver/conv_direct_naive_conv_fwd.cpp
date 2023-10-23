@@ -53,10 +53,6 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ExecutionContext& ctx,
     if(!problem.direction.IsForward())
         return false;
 
-    if(problem.HasNonPackedTensors())
-    {
-        return false;
-    }
     if(problem.IsTensorsCasted())
     {
         auto test_cast = [&](const TensorDescriptor& desc) {

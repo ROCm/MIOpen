@@ -263,10 +263,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
-        return false;
     if(!problem.direction.IsForward())
         return false;
     if(!problem.Is2d())
@@ -275,6 +271,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     {
         return false;
     }
+    if(problem.HasMixedDataTypes())
+        return false;
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

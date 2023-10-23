@@ -46,10 +46,6 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
 
     if(!problem.direction.IsBackwardData())
         return false;
-    if(problem.HasNonPackedTensors())
-    {
-        return false;
-    }
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
