@@ -67,8 +67,8 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
         auto gen_value = [](auto...) {
@@ -80,7 +80,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
         auto&& handle = get_handle();
@@ -97,7 +97,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out     = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
