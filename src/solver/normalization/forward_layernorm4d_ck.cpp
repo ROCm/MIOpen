@@ -67,7 +67,7 @@ CKArgsLNormFwd make_args(const miopen::normalization::ProblemDescription& proble
     auto length = problem.GetXDesc().GetLengths();
     auto stride = problem.GetXDesc().GetStrides();
 
-    for(int i = 0 ; i < Rank; i++)
+    for(int i = 0; i < Rank; i++)
     {
         args.xyLengths[i] = length[i];
         args.xyStrides[i] = stride[i];
@@ -77,18 +77,18 @@ CKArgsLNormFwd make_args(const miopen::normalization::ProblemDescription& proble
     args.betaStrides.resize(Rank);
     auto wstride = problem.GetWeightDesc().GetStrides();
     auto bstride = problem.GetBiasDesc().GetStrides();
-    int j = wstride.size() - 1;
-    for(int i = Rank - 1 ; i >= 0 ; i--)
+    int j        = wstride.size() - 1;
+    for(int i = Rank - 1; i >= 0; i--)
     {
         if(j < 0)
         {
             args.gammaStrides[i] = 0;
-            args.betaStrides[i] = 0;
+            args.betaStrides[i]  = 0;
         }
         else
         {
             args.gammaStrides[i] = wstride[j];
-            args.betaStrides[i] = bstride[j];
+            args.betaStrides[i]  = bstride[j];
         }
         j--;
     }
@@ -105,8 +105,8 @@ template <typename XDataType,
           typename YDataType>
 static int CheckCKApplicability(const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args = make_args(problem);
-    using DeviceOp   = ck::tensor_operation::device::DeviceNormalization<XDataType,
+    const auto& args       = make_args(problem);
+    using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
                                                                        GammaDataType,
                                                                        BetaDataType,
                                                                        ComputeDataType,
@@ -153,8 +153,8 @@ static void RunCKSolution(const Handle& handle,
                           const AnyInvokeParams& primitive_parameters,
                           const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args = make_args(problem);
-    using DeviceOp   = ck::tensor_operation::device::DeviceNormalization<XDataType,
+    const auto& args       = make_args(problem);
+    using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
                                                                        GammaDataType,
                                                                        BetaDataType,
                                                                        ComputeDataType,

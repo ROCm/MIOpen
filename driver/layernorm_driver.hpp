@@ -222,7 +222,7 @@ std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     else
     {
         std::cout << "Error Input Tensor Lengths\n" << std::endl;
-	return std::vector<int>({0});
+        return std::vector<int>({0});
     }
 }
 
