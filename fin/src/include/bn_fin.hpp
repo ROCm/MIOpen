@@ -51,7 +51,7 @@ using json = nlohmann::json;
 template <typename Tgpu, typename Tcpu>
 class BNFin : public BaseFin
 {
-    public:
+public:
     BNFin() : BaseFin() {}
     BNFin(json _job) : BaseFin(), job(_job)
     {
