@@ -345,7 +345,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto netcfg = conv_problem.BuildConfKey();
+    const auto netcfg = conv_problem.MakeNetworkConfig();
     auto conv_ctx     = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 

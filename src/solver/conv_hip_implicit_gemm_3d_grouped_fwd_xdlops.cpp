@@ -221,7 +221,6 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -264,7 +263,6 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -324,7 +322,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_conv_ck_supported_hardware(ctx.GetStream().GetDeviceName(), false))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     switch(problem.GetInDataType())
     {
@@ -332,7 +330,6 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     case miopenBFloat16:
@@ -351,17 +348,15 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>,
-                                  CKArgs,
-                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
+            problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:

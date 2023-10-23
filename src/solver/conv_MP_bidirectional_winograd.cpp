@@ -735,7 +735,7 @@ ExecutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW
     GetTransformedConvContext(const ExecutionContext& ctx,
                               const ProblemDescription& transformed_problem) const
 {
-    auto transformed_ctx = ExecutionContext{static_cast<const ExecutionContext&>(ctx)};
+    auto transformed_ctx = ctx;
     transformed_problem.SetupFloats(transformed_ctx);
 
     return transformed_ctx;

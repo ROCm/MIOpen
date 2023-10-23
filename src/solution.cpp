@@ -154,7 +154,7 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = conv_problem.BuildConfKey();
+    const auto net_cfg       = conv_problem.MakeNetworkConfig();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
     const auto checkNumericsOutput_ = [&]() {

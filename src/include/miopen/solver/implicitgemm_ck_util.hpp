@@ -95,13 +95,16 @@ template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
-ConvSolution InitInvokerFactory(const ProblemDescriptionType& problem, const std::string& kernel_id)
+ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
-        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
 
     ConvSolution result;
     result.invoker_factory =

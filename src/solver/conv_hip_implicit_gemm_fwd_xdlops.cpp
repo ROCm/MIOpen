@@ -175,7 +175,6 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -218,7 +217,6 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -297,7 +295,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -314,16 +311,15 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
