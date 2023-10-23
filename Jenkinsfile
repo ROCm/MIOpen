@@ -620,7 +620,7 @@ pipeline {
                     }
                 }
                 stage('Fin Tests') {
-                    agent{ label rocmnode("tunatest") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         fin_build_cmd="make -j\$(nproc) fin_check"
                     }
