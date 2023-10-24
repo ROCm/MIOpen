@@ -265,15 +265,21 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < weight_sz; i++)
     {
-        weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
+            weight[i] = static_cast<Tgpu>(1);
+        else
+            weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = weight_dev->ToGPU(q, weight.data());
+    status |= weight_dev->ToGPU(q, weight.data());
 
     for(int i = 0; i < bias_sz; i++)
     {
-        bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        if(mode == MIOPEN_ELEMENTWISE_AFFINE)
+            bias[i] = static_cast<Tgpu>(0);
+        else
+            bias[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
-    status = bias_dev->ToGPU(q, bias.data());
+    status |= bias_dev->ToGPU(q, bias.data());
 
     status |= out_dev->ToGPU(q, out.data());
     status |= mean_dev->ToGPU(q, mean.data());

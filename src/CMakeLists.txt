@@ -168,7 +168,6 @@ set( MIOpen_Source
     solver/batchnorm/forward_training_ck.cpp
     solver/normalization/forward_layernorm.cpp
     solver/normalization/forward_layernorm2d_ck.cpp
-    solver/normalization/forward_layernorm4d_ck.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp

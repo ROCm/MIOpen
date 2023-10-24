@@ -74,8 +74,6 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsRank2Dim1() const { return (xDesc.GetLengths().size() == 2) && (normalized_dim == 1); }
 
-    bool IsRank4Dim3() const { return (xDesc.GetLengths().size() == 4) && (normalized_dim == 3); }
-
     bool IsLargeSize() const
     {
         auto dims = xDesc.GetLengths();
