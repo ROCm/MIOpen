@@ -243,10 +243,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
-    if(conv_problem.HasNonPackedTensors())
-    {
-        return false;
-    }
     if(conv_problem.GetPadH() != conv_problem.GetPadW())
         return false;
     if(conv_problem.GetPadH() != 0)
@@ -258,9 +254,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
     if(conv_problem.GetDilationH() != 1)
-        return false;
-
-    if(conv_problem.IsTensorsCasted())
         return false;
 
     // Check if the conovlution part is applicable
