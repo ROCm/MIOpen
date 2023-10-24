@@ -80,12 +80,12 @@ struct CKArgsBNormBwd
 
         std::copy(problem.GetXDesc().GetStrides().begin(),
                   problem.GetXDesc().GetStrides().end(),
-                  strides.begin());
+                  in_strides.begin());
         arrScaleBiasMeanVarLengths[0] = lens[1]; // get channel
         arrScaleBiasMeanVarStrides[0] = 1;
 
         // prep for CK
-        std::sort(strides.begin(), strides.end(), std::greater<>());
+        std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
         std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
     }
 
@@ -97,9 +97,9 @@ struct CKArgsBNormBwd
     auto MakeArgPtr(const InvokerPtr& invoker_ptr, const InvokerParams& data_ctx) const
     {
         return invoker_ptr->MakeArgumentPointer(lens,
-                                                strides,
-                                                strides,
-                                                strides,
+                                                in_strides,
+                                                in_strides,
+                                                in_strides,
                                                 reduceDims,
                                                 arrScaleBiasMeanVarLengths,
                                                 arrScaleBiasMeanVarStrides,
@@ -124,8 +124,8 @@ struct CKArgsBNormBwd
         return invoker_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
-    std::array<ck::index_t, Rank> lens;    // inOutLengths
-    std::array<ck::index_t, Rank> strides; // inOutStrides
+    std::array<ck::index_t, Rank> lens;
+    std::array<ck::index_t, Rank> in_strides;
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
@@ -154,43 +154,6 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                           CKArgsBNormBwd>(problem);
 }
 
-#endif
-
-bool BnCKBwdBackward::IsApplicable(const ExecutionContext& context,
-                                   const miopen::batchnorm::ProblemDescription& bn_problem) const
-{
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = fdesc_problem;
-    return false;
-#else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
-        return false;
-    if(!bn_problem.IsLayoutNHWC())
-        return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
-        return false;
-    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
-        return false;
-
-    switch(bn_problem.GetXDesc().GetType())
-    {
-    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
-    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
-    case miopenBFloat16:
-        return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
-    case miopenInt32:
-    case miopenInt8:
-    case miopenInt8x4:
-    case miopenBFloat8:
-    case miopenFloat8:
-    default: MIOPEN_THROW("Unsupported datatype");
-    }
-    return false;
-#endif
-}
-
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
@@ -198,7 +161,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
+static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
                                                                          DxDataType,
@@ -221,6 +184,39 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                  miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
 }
 
+#endif
+
+bool BnCKBwdBackward::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_BACK{}))
+        return false;
+    if(!bn_problem.IsLayoutNHWC())
+        return false;
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+        return false;
+    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+        return false;
+
+    switch(bn_problem.GetXDesc().GetType())
+    {
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
+    case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
+    case miopenBFloat16:
+        return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenInt32:
+    case miopenInt8:
+    case miopenInt8x4:
+    case miopenBFloat8:
+    case miopenFloat8: break;
+    }
+#endif
+    return false;
+}
+
 ConvSolution BnCKBwdBackward::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
@@ -240,7 +236,8 @@ ConvSolution BnCKBwdBackward::GetSolution(
     case miopenBFloat8:
     case miopenFloat8:
     default:
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward operation not for this data type");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "BnCKBwdBackward operation does not support this data type");
     }
 #endif
     return {};
