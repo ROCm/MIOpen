@@ -229,8 +229,8 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
     std::vector<miopen::solver::Id> solver_list;
     if(job.contains("solvers"))
         for(std::string solver_str : job["solvers"]) // cppcheck-suppress useStlAlgorithm
-            solver_list.push_back(
-                miopen::solver::Id(solver_str)); // cppcheck-suppress useStlAlgorithm
+            solver_list.push_back(                   // cppcheck-suppress useStlAlgorithm
+                miopen::solver::Id(solver_str));     // cppcheck-suppress useStlAlgorithm
     else
         solver_list = miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
 
@@ -1433,7 +1433,7 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
         }
         output[filestr]["errors"] = err_list;
 
-        for(auto& val : err_list)
+        for(auto& val : err_list) // cppcheck-suppress constVariable
         {
             if(err_sum.count(val["solver"]) == 0)
                 err_sum[val["solver"]] = 1;
