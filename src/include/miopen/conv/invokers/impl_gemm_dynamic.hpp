@@ -206,11 +206,11 @@ MakeImplGemmDynamicForwardInvokerFactory(const ProblemDescription& problem, cons
 InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
 
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
-                                                                  const int cfg);
+                                                             const int cfg);
 
 InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory(
-    const ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
+MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                              const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ExecutionContext& ctx,

@@ -112,7 +112,7 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescript
 }
 
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
-                                                                  const int cfg)
+                                                             const int cfg)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
@@ -247,8 +247,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescri
 }
 
 InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory(
-    const ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
+                                              const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
     int hi         = problem.GetOutHeight_();
     int wi         = problem.GetOutWidth_();
