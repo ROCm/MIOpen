@@ -207,6 +207,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
