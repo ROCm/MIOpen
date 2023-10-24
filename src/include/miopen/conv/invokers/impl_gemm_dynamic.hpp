@@ -205,17 +205,11 @@ MakeImplGemmDynamicForwardInvokerFactory(const ProblemDescription& problem, cons
 
 InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
 
-template <typename T = int>
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
-                                                             const T& cfg);
+                                                                  const int cfg);
 
-template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ProblemDescription& problem,
-                                                                  const int& cfg);
-
-template <>
 InvokerFactory
-MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
+MakeImplGemmDynamicBackwardDataInvokerFactory(
     const ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(

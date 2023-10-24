@@ -45,8 +45,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 namespace conv {
 namespace {
 
-using ProblemDescription = conv::ProblemDescription;
-
 class DirectSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
 protected:
