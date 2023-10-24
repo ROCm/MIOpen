@@ -30,7 +30,7 @@
 #include <miopen/config.h>
 #include <miopen/fusion_plan.hpp>
 #include <cstdlib>
-#include "random.hpp"
+#include "../random.hpp"
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"
