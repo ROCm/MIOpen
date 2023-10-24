@@ -593,10 +593,7 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsFp32())
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
-
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

@@ -66,14 +66,10 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(problem.IsTensorsCasted())
         return false;

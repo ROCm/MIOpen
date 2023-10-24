@@ -755,9 +755,8 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
+
     if(problem.IsTensorsCasted())
         return false;
 
@@ -765,9 +764,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(!IsIndexRangeLargeEnough(problem))
         return false;

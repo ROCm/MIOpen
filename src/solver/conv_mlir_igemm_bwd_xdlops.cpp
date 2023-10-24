@@ -51,9 +51,7 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
     if(!problem.direction.IsBackwardData())
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

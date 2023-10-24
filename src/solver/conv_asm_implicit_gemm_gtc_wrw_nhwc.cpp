@@ -867,9 +867,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         return false;
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
+
     if(!problem.IsFp32() && !problem.IsFp16() &&
        !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
         return false;

@@ -261,12 +261,9 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.HasMixedDataTypes())
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.direction.IsBackwardData())

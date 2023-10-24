@@ -285,9 +285,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     return IsWinogradV21Preferred<Winodata, Winofilter>(asic, problem)
                ? IsShaderConstraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)

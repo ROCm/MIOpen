@@ -594,9 +594,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
     if(problem.GetGroupCount() != 1)
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsIndexRangeLargeEnough(problem))

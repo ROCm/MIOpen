@@ -144,9 +144,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!problem.Is2d())
         return false;
@@ -164,9 +162,7 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())

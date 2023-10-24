@@ -561,9 +561,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
         return false;
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!problem.IsLayoutNCHWc())
         return false;

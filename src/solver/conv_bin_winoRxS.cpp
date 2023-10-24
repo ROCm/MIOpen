@@ -186,9 +186,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     }
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     // Check implementation limits.
@@ -222,11 +220,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
-
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.IsTensorsCasted())
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))

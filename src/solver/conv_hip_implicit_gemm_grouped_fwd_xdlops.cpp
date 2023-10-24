@@ -287,9 +287,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetConv().attribute.deterministic)

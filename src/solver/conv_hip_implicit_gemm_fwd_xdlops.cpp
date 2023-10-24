@@ -266,9 +266,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     if(!problem.Is2d())
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.HasMixedDataTypes())
         return false;
     if(!IsXdlopsSupport(ctx))

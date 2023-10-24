@@ -639,9 +639,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.use_hip_kernels)
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))

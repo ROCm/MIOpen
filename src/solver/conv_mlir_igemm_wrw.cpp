@@ -51,9 +51,7 @@ bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     // Note: ConvMlirIgemmWrW can run on a machine with xdlops support, however, it is

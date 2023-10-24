@@ -1129,9 +1129,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!problem.Is2d())
         return false;
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
@@ -1146,9 +1144,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
 // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
 #if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS

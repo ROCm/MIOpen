@@ -992,10 +992,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ExecutionContext& 
 
     if(!problem.Is2d())
         return false;
+
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
@@ -1010,9 +1009,8 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ExecutionContext& 
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+
     // gemm size
     {
         int gemm_g       = -1;

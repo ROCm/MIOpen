@@ -1058,9 +1058,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     if(problem.HasNonPackedTensors())
-    {
         return false;
-    }
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
@@ -1081,9 +1079,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
