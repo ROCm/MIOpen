@@ -432,7 +432,9 @@ int BNFin<Tgpu, Tref>::MIOpenFindCompile()
 
         res_item["workspace"] = sln.workspace_sz;
         std::vector<miopen::solver::KernelInfo> kernels;
-        std::copy(sln.construction_params.begin(), sln.construction_params.end(), std::back_inserter(kernels));
+        std::copy(sln.construction_params.begin(),
+                  sln.construction_params.end(),
+                  std::back_inserter(kernels));
         std::ignore      = miopen::solver::PrecompileKernels(handle, kernels);
         json kernel_list = json::array();
         for(const auto& k : kernels)

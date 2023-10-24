@@ -229,7 +229,8 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
     std::vector<miopen::solver::Id> solver_list;
     if(job.contains("solvers"))
         for(std::string solver_str : job["solvers"]) // cppcheck-suppress useStlAlgorithm
-            solver_list.push_back(miopen::solver::Id(solver_str)); // cppcheck-suppress useStlAlgorithm
+            solver_list.push_back(
+                miopen::solver::Id(solver_str)); // cppcheck-suppress useStlAlgorithm
     else
         solver_list = miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
 
@@ -291,7 +292,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
             for(const auto& current_solution : all_solutions)
                 for(auto&& kernel :
                     current_solution.construction_params) // cppcheck-suppress useStlAlgorithm
-                    kernels.push_back(kernel); // cppcheck-suppress useStlAlgorithm
+                    kernels.push_back(kernel);            // cppcheck-suppress useStlAlgorithm
             std::ignore = miopen::solver::PrecompileKernels(handle, kernels);
 
             res_item["reason"]         = "Success";
@@ -366,7 +367,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
     std::vector<miopen::solver::Id> solver_list;
     if(job.contains("solvers"))
         for(std::string solver_str : job["solvers"]) // cppcheck-suppress useStlAlgorithm
-            solver_list.push_back(miopen::solver::Id(solver_str)); // cppcheck-suppress useStlAlgorithm
+            solver_list.push_back(
+                miopen::solver::Id(solver_str)); // cppcheck-suppress useStlAlgorithm
     else
         solver_list = miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
 
@@ -582,7 +584,6 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     res_item["reason"] = "Corrupt Binary";
                     std::cerr << "Corrupt Binary Object" << std::endl;
                     throw std::runtime_error("Corrupt binary object");
-                    //return false;
                 }
             }
 
@@ -856,7 +857,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                 {
                     std::cerr << "Corrupt Binary Object" << std::endl;
                     throw std::runtime_error("Corrupt binary object");
-                    //return false;
                 }
             }
 
@@ -1647,7 +1647,6 @@ int ConvFin<Tgpu, Tref>::CopyToDevice()
 {
 #if MIOPEN_MODE_NOGPU
     throw std::runtime_error("Unable to copy buffers to device with NOGPU backend");
-    //return -1;
 #else
     auto status = inputTensor.ToDevice();
     status |= inputTensor_vect4.ToDevice();
@@ -1664,7 +1663,6 @@ int ConvFin<Tgpu, Tref>::CopyFromDevice()
 {
 #if MIOPEN_MODE_NOGPU
     throw std::runtime_error("Unable to copy buffers to device with NOGPU backend");
-    //return -1;
 #else
     auto status = inputTensor.FromDevice();
     status |= inputTensor_vect4.FromDevice();
