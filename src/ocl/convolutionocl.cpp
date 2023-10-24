@@ -198,9 +198,9 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             auto ctx_copy                       = ctx;
             ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             const auto params =
-                ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
+                conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-            FindCore(invoke_ctx, record, ctx_copy, problem, params, GetConvSolverFinders());
+            FindCore(invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
         });
     }
 
@@ -596,7 +596,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                 const auto solver_id = solver::Id{kinder};
                 const auto sol       = solver_id.GetSolver();
                 const auto algo      = solver_id.GetAlgo();
-                if(IsAlgorithmDisabled(algo))
+                if(conv::IsAlgorithmDisabled(algo))
                     continue;
                 if(!sol.IsDynamic())
                     continue; // branch should never be taken
@@ -627,7 +627,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
             // solver_id is always valid here, because taken from registry.
             // Validity check is not required.
             const auto algo = solver_id.GetAlgo();
-            if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+            if(conv::IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
                 continue;
             const auto& s = solver_id.GetSolver();
             // Let's allow non-dynamic later, if necessary.
@@ -681,7 +681,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
     for(const auto& pair : fdb_record)
     {
         const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
-        if(IsAlgorithmDisabled(algo))
+        if(conv::IsAlgorithmDisabled(algo))
             continue;
 
         const auto solver_id = solver::Id{pair.first};

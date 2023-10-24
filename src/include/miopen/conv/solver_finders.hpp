@@ -137,7 +137,11 @@ protected:
                                          const FindParameters& parameters) const = 0;
 };
 
+namespace conv {
+
 const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
+
+} // namespace conv
 
 void FindCore(const AnyInvokeParams& invoke_ctx,
               DbRecord& record,
@@ -145,6 +149,8 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
               const ProblemDescriptionBase& problem,
               const PrimitiveFindParameters& parameters,
               const std::vector<std::unique_ptr<ISolversFinder>>& finders);
+
+namespace conv {
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 
@@ -154,4 +160,5 @@ struct ConvFindParameters : PrimitiveFindParameters
     ConvFindParameters(bool use_winograd_only_) : use_winograd_only(use_winograd_only_) {}
 };
 
+} // namespace conv
 } // namespace miopen

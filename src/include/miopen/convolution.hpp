@@ -63,25 +63,9 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-struct AnyInvokeParams;
-struct ExecutionContext;
 struct ExecutionContext;
 struct Handle;
 struct TensorDescriptor;
-struct ConvFwdTensors;
-struct ConvWrwTensors;
-
-using ExtraKernelArgs = std::tuple<int /*N*/,
-                                   int /*C*/,
-                                   int /*H*/,
-                                   int /*W*/,
-                                   int /*K*/,
-                                   int /*n_groups*/,
-                                   int /*out_H*/,
-                                   int /*out_W*/>;
-
-struct ConvFwdTensors;
-struct ConvWrwTensors;
 
 struct ConvolutionAttribute
 {
@@ -404,6 +388,7 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                 const std::string& filename);
 
 } // namespace miopen
+
 MIOPEN_DEFINE_OBJECT(miopenConvolutionDescriptor, miopen::ConvolutionDescriptor);
 
 #endif // GUARD_MIOPEN_CONVOLUTION_HPP_

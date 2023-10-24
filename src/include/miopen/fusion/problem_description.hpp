@@ -100,7 +100,7 @@ struct FusionDescription : ProblemDescriptionBase
         }
     }
 
-    miopen::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
+    conv::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
