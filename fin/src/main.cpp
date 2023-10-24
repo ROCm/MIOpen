@@ -67,7 +67,7 @@ int main(int argc, char* argv[], char* envp[])
     std::vector<std::string> args(argv, argv + argc);
     std::map<char, std::string> MapInputs = {};
 
-    for(auto& arg : args)
+    for(const auto& arg : args)
     {
         if(arg == "--help" || arg == "-help" || arg == "-h")
         {
@@ -129,7 +129,7 @@ int main(int argc, char* argv[], char* envp[])
     res_item["process_env"] = jenv;
     final_output.push_back(res_item);
     // process through the jobs
-    for(auto& it : j)
+    for(const auto& it : j)
     {
         auto command                    = it;
         std::unique_ptr<fin::BaseFin> f = nullptr;

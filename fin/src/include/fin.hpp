@@ -296,7 +296,7 @@ template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
     os << "{ size: " << vs.size() << ", entries: ";
-    for(auto& v : vs)
+    for(const auto& v : vs)
         os << v << " ";
     os << "}";
     return os;

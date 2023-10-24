@@ -146,7 +146,7 @@ int BNFin<Tgpu, Tref>::TestApplicability()
         }
         app_solvers.push_back(sln.solver_id);
     }
-    for(auto& elem : app_solvers)
+    for(const auto& elem : app_solvers)
     {
         std::cerr << elem << std::endl;
     }
@@ -432,8 +432,7 @@ int BNFin<Tgpu, Tref>::MIOpenFindCompile()
 
         res_item["workspace"] = sln.workspace_sz;
         std::vector<miopen::solver::KernelInfo> kernels;
-        for(auto&& kernel : sln.construction_params) // cppcheck-suppress useStlAlgorithm
-            kernels.push_back(kernel);
+        std::copy(sln.construction_params.begin(), sln.construction_params.end(), std::back_inserter(kernels));
         std::ignore      = miopen::solver::PrecompileKernels(handle, kernels);
         json kernel_list = json::array();
         for(const auto& k : kernels)

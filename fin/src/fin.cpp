@@ -104,8 +104,7 @@ void BaseFin::InitNoGpuHandle(miopen::Handle& handle,
 void BaseFin::VerifyDevProps(const std::string& in_arch, const unsigned long in_num_cu)
 {
     std::cerr << "Verifying device properties" << std::endl;
-    std::string arch    = in_arch;
-    arch                = arch.substr(0, arch.find(':'));
+    std::string arch    = in_arch.substr(0, in_arch.find(':'));
     const size_t num_cu = in_num_cu;
     std::ignore         = num_cu;
     if(arch == "gfx900")

@@ -28,15 +28,6 @@
 
 namespace fin {
 
-tensor::randInit(double dataScale, double min, double max)
-{
-    // different for fwd/wrw and bwd
-    for(auto& it : cpuData)
-    {
-        // it =
-    }
-}
-
 size_t tensor::size()
 {
     // TODO: check that all internal storages have the same size
