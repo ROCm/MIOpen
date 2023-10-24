@@ -172,7 +172,6 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -214,7 +213,6 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -296,7 +294,6 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -320,7 +317,6 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
             problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:

@@ -50,7 +50,6 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: return true;
     }
@@ -228,6 +227,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         SetStrideNd(GetLayout_str());
     }
 }
+
 void TensorDescriptor::SetStrideNd(const std::string& layout)
 {
     std::string default_layout = miopen::tensor_layout_get_default(layout.size());

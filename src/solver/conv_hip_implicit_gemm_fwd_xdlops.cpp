@@ -172,7 +172,6 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -215,7 +214,6 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -296,7 +294,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -322,7 +319,6 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
         return MakeInvokerFactory<DeviceOpPtrs<float>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
