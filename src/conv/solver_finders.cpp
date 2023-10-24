@@ -205,11 +205,11 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 /// Register invoker only for the best solution within algorithm.
 /// Add all solutions to the find-db record.
 static void EvaluateInvokers(Handle& handle,
-                      const std::vector<solver::ConvSolution>& solutions,
-                      const AlgorithmName& algorithm_name,
-                      const NetworkConfig& network_config,
-                      const AnyInvokeParams& invoke_ctx,
-                      DbRecord& record)
+                             const std::vector<solver::ConvSolution>& solutions,
+                             const AlgorithmName& algorithm_name,
+                             const NetworkConfig& network_config,
+                             const AnyInvokeParams& invoke_ctx,
+                             DbRecord& record)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
