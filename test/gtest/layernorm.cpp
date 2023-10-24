@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "layernorm_test.hpp"
+#include "layernorm.hpp"
 
 std::string GetFloatArg()
 {

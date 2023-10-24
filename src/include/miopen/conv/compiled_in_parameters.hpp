@@ -27,8 +27,8 @@
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <cassert>
 
