@@ -280,6 +280,7 @@ enable_cppcheck(
         style
         performance
         portability
+	--inline-suppr
     SUPPRESS
         ConfigurationNotChecked
         constStatement

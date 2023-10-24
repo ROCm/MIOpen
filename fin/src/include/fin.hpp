@@ -191,7 +191,7 @@ public:
     void SolutionHasProgram(const miopen::Handle& handle,
                             const miopen::solver::ConvSolution& solution)
     {
-        for(auto& kern : solution.construction_params)
+        for(auto& kern : solution.construction_params) // cppcheck-suppress constVariable
         {
             std::string kernel_file = kern.kernel_file;
             std::string comp_opts   = kern.comp_options;
