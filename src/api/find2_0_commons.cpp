@@ -39,7 +39,7 @@
 #include <nlohmann/json.hpp>
 
 template <class OperationDescriptor>
-miopenStatus_t MakeProblem(miopenProblem_t* problem,
+static miopenStatus_t MakeProblem(miopenProblem_t* problem,
                            OperationDescriptor operatorDesc,
                            miopenProblemDirection_t direction)
 {
