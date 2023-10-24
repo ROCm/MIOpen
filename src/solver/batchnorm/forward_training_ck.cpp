@@ -28,17 +28,18 @@
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batch_norm.hpp>
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_forward.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-#endif
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING)
 
 namespace miopen {
 namespace solver {
 namespace batchnorm {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 
 using PassThroughOp = ck::tensor_operation::element_wise::PassThrough;
 using index_t       = int32_t;
@@ -149,13 +150,13 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                                                     MeanVarDataType>,
                           CKArgsBNormFwdTraining>(problem);
 }
-#endif
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 bool BnCKFwdTraining::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
         return false;
     if(!bn_problem.IsLayoutNHWC())
@@ -173,13 +174,13 @@ bool BnCKFwdTraining::IsApplicable(
     case miopenInt8:
     case miopenInt8x4:
     case miopenBFloat8:
-    case miopenFloat8:
-    default: MIOPEN_THROW("BnCKFwdTraining operation does not support this data type");
+    case miopenFloat8: break;
     }
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
     return false;
-#endif
 }
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 template <typename XDataType,
           typename YDataType,
           typename AccDataType,
@@ -206,12 +207,13 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                  CKArgsBNormFwdTraining,
                                  miopen::batchnorm::InvokeParams>(bn_problem, kernel_id);
 }
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 ConvSolution BnCKFwdTraining::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     switch(bn_problem.GetXDesc().GetType())
     {
 
@@ -224,11 +226,10 @@ ConvSolution BnCKFwdTraining::GetSolution(
     case miopenInt8x4:
     case miopenBFloat8:
     case miopenFloat8:
-    default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "BnCKFwdTraining operation does not support this data type");
     }
-#endif
+#endif // MIOPEN_USE_COMPOSABLEKERNEL
     return {};
 }
 
