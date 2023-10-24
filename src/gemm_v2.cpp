@@ -118,7 +118,7 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 
 auto rocBlasDataType(miopenDataType_t data_type)
 {
-#if !defined(_WIN32) || (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
+#if ROCBLAS_BETA_FEATURES_API
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
     else if(data_type == miopenBFloat8)
@@ -619,9 +619,9 @@ miopenStatus_t CallGemm(const Handle& handle,
         };
         break;
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
         };
         break;
         }
@@ -886,10 +886,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             break;
         }
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
-        };
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
         break;
         }
 
@@ -1151,10 +1151,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             break;
         }
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
-        };
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
         break;
         }
 

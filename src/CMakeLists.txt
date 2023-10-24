@@ -42,7 +42,7 @@ option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
-set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
+set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
     Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
@@ -96,6 +96,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
+        conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     ctc.cpp
@@ -108,6 +109,7 @@ set( MIOpen_Source
     find_controls.cpp
     find_db.cpp
     fusion.cpp
+        fusion/problem_description.cpp
     generic_search.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
@@ -128,7 +130,6 @@ set( MIOpen_Source
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
     solution.cpp
-    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -225,7 +226,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     seq_tensor.cpp
-    )
+)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
@@ -514,7 +515,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_DEVELOPMENT_KERNELS}")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
     endif()
@@ -636,7 +637,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNELS}" "${MIOPEN_DEVELOPMENT_KERNELS_DEPS}" "" " (dev kernels)")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (dev includes)")
     endif()
@@ -760,7 +761,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
             file(GLOB MODEL_FILES kernels/*.model)
             if( NOT ENABLE_ASAN_PACKAGING )
               install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif() 
+            endif ()
             foreach(MODEL_FILE ${MODEL_FILES})
                 get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
                 configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)

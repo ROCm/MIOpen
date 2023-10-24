@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,35 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "layernorm.hpp"
+#ifdef MIOPEN_BETA_API
 
-#pragma once
-
-#include <string>
-
-namespace miopen {
-
-struct NetworkConfig
+struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
 {
-    NetworkConfig() = default;
-    explicit NetworkConfig(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
-
-private:
-    std::string value;
 };
 
-struct AlgorithmName
-{
-    AlgorithmName() = default;
-    explicit AlgorithmName(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
+TEST_P(LayerNormSolverTestFloat, LayerNormTestFw){};
 
-    bool operator<(const AlgorithmName& r) const { return (value < r.value); }
-
-private:
-    std::string value;
-};
-
-} // namespace miopen
+INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
+                         LayerNormSolverTestFloat,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+#endif

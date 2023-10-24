@@ -133,7 +133,7 @@ void BatchNormForwardTraining(Handle& handle,
 
     const auto solvers = solver::SolverContainer<
 #if MIOPEN_USE_COMPOSABLEKERNEL
-        solver::batchnorm::BnCKFwdTraining,
+                                                 solver::batchnorm::BnCKFwdTraining,
 #endif
                                                  solver::batchnorm::BnFwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
@@ -354,7 +354,7 @@ void BatchNormBackward(Handle& handle,
 
     const auto solvers = solver::SolverContainer<
 #if MIOPEN_USE_COMPOSABLEKERNEL
-        solver::batchnorm::BnCKBwdBackward,
+                                                 solver::batchnorm::BnCKBwdBackward,
 #endif
                                                  solver::batchnorm::BnBwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
