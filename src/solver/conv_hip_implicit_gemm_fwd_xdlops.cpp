@@ -261,13 +261,13 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsForward())
-        return false;
-    if(!problem.Is2d())
-        return false;
     if(problem.HasNonPackedTensors())
         return false;
     if(problem.HasMixedDataTypes())
+        return false;
+    if(!problem.direction.IsForward())
+        return false;
+    if(!problem.Is2d())
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;

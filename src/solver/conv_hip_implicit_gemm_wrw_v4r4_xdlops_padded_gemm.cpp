@@ -1123,15 +1123,16 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!ctx.use_hip_kernels)
         return false;
 
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+        return false;
+
     if(!problem.direction.IsBackwardWrW())
         return false;
 
     if(!problem.Is2d())
         return false;
-    if(problem.HasNonPackedTensors())
-        return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(problem.IsTensorsCasted())

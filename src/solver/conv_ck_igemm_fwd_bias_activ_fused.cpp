@@ -409,15 +409,15 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     const auto conv_problem = fdesc_problem.GetConvProblem(0, conv::Direction::Forward);
 
-    if(conv_problem.GetConv().attribute.deterministic)
+    if(conv_problem.IsTensorsCasted())
         return false;
-    if(!conv_problem.Is2d())
+    if(conv_problem.GetConv().attribute.deterministic)
         return false;
     if(conv_problem.HasNonPackedTensors())
         return false;
     if(conv_problem.HasMixedDataTypes())
         return false;
-    if(conv_problem.IsTensorsCasted())
+    if(!conv_problem.Is2d())
         return false;
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx940" && arch != "gfx941" &&
