@@ -225,7 +225,6 @@ bool Layernorm2DCKForward::IsApplicable(
     case miopenBFloat16:
     case miopenInt32:
     case miopenInt8:
-    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -261,7 +260,6 @@ Layernorm2DCKForward::GetSolution(const ExecutionContext& context,
             case miopenBFloat16:
             case miopenInt8:
             case miopenInt32:
-            case miopenInt8x4: // Support discontinued.
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
