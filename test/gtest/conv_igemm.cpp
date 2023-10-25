@@ -1,3 +1,30 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+
 #include <tuple>
 
 #include <miopen/miopen.h>
@@ -89,11 +116,13 @@ void Run2dDriver(miopenDataType_t prec)
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
-    if(devName == "gfx94X" || devName == "gfx103x")
+    if(devName == "gfx94x" || devName == "gfx103x")
         return true;
     else
         return false;
 }
+
+// miopen
 
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -107,7 +136,7 @@ TEST_P(ConfigWithBF16, BF16Test)
 
     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
 
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+#else // MIOPEN_BACKEND_HIP
     const auto& handle = get_handle();
     
     if(IsTestSupportedForDevice(handle) &&
@@ -129,7 +158,7 @@ TEST_P(ConfigWithHalf, HalfTest)
 
     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
 
-#else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+#else // MIOPEN_BACKEND_HIP
     const auto& handle = get_handle();
     
     if(IsTestSupportedForDevice(handle) &&
@@ -145,12 +174,122 @@ TEST_P(ConfigWithHalf, HalfTest)
 #endif
 };
 
-std::vector<TestCase> GetTestCases(const std::string& precision){
+std::vector<TestCase> GetTestCases(const std::string& precision)
+{
+
+    std::vector<std::string> env = {
+        "MIOPEN_FIND_MODE=normal",
+        "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd"};
 
 
+    std::string flags           = " --verbose";
 
-
+    std::string psd0 = " --pads_strides_dilations 0 0 2 2 1 1";
+    std::string psd1 = " --pads_strides_dilations 0 0 1 1 1 1";
+    std::string psd2 = " --pads_strides_dilations 1 1 2 2 1 1";
+    std::string psd3 = " --pads_strides_dilations 0 0 1 1 2 2";
+    std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1";
+    std::string psd5 = " --pads_strides_dilations 2 2 2 2 1 1";
     
+
+    std::string grep = "| grep -v \"No suitable algorithm was found to execute the required convolution\"" ;
+
+    const std::vector<TestCase> test_cases = {
+
+        // clang-format off
+        {flags + "--input 64 16 28 28 --weights 192 16 3 3 " + psd0 + grep},
+        {flags + "--input 64 16 14 14 --weights 160 16 3 3 " + psd0 + grep},
+        {flags + "--input 64 16 7 7 --weights 128 16 3 3 " + psd0 + grep},
+        {flags + "--input 64 16 55 55 --weights 96 16 1 7 " + psd0 + grep},
+        {flags + "--input 64 16 28 28 --weights 64 16 1 7 " + psd0 + grep},
+        {flags + "--input 64 16 14 14 --weights 32 16 1 7 " + psd0 + grep},
+        {flags + "--input 64 32 28 28 --weights 192 32 3 3 " + psd0 + grep},
+        {flags + "--input 64 32 14 14 --weights 160 32 3 3 " + psd0 + grep},
+        {flags + "--input 64 32 7 7 --weights 128 32 3 3 " + psd0 + grep},
+        {flags + "--input 64 32 55 55 --weights 96 32 1 7 " + psd0 + grep},
+        {flags + "--input 64 32 28 28 --weights 64 32 1 7 " + psd0 + grep},
+        {flags + "--input 64 32 14 14 --weights 32 32 1 7 " + psd0 + grep},
+
+        {flags + "--input 64 64 56 56 --weights 256 64 1 1 " + psd1 + grep},
+        {flags + "--input 64 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
+        {flags + "--input 64 64 73 73 --weights 80 64 1 1 " + psd1 + grep},
+        {flags + "--input 64 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
+        {flags + "--input 64 128 55 55 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 64 128 28 28 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 64 128 14 14 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 64 128 7 7 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 16 64 56 56 --weights 256 64 1 1 " + psd1 + grep},
+        {flags + "--input 16 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
+        {flags + "--input 16 64 73 73 --weights 80 64 1 1 " + psd1 + grep},
+        {flags + "--input 16 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
+        {flags + "--input 16 128 55 55 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 16 128 28 28 --weights 16 128 1 1 " + psd1 + grep},
+        {flags + "--input 16 128 7 7 --weights 16 128 1 1 " + psd1 + grep},
+
+        {flags + "--input 64 64 55 55 --weights 16 128 1 1 " + psd0 + grep},
+        {flags + "--input 64 128 28 28 --weights 16 128 1 1 " + psd0 + grep},
+        {flags + "--input 64 128 14 14 --weights 16 128 1 1 " + psd0 + grep},
+        {flags + "--input 64 128 7 7 --weights 16 128 1 1 " + psd0 + grep},
+
+        {flags + "--input 64 128 28 28 --weights 512 128 1 1 " + psd1 + grep},
+        {flags + "--input 64 160 73 73 --weights 64 160 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 35 35 --weights 32 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 35 35 --weights 48 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 35 35 --weights 64 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 28 28 --weights 16 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 28 28 --weights 32 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 28 28 --weights 64 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 192 28 28 --weights 96 192 1 1 " + psd1 + grep},
+        {flags + "--input 64 256 35 35 --weights 48 256 1 1 " + psd1 + grep},
+        {flags + "--input 64 256 35 35 --weights 64 256 1 1 " + psd1 + grep},
+
+        {flags + "--input 64 256 56 56 --weights 128 256 1 1 " + psd0 + grep},
+        {flags + "--input 64 256 56 56 --weights 512 256 1 1 " + psd0 + grep},
+
+
+        {flags + "--input 64 256 56 56 --weights 64 256 1 1 " + psd1 + grep},
+        {flags + "--input 64 256 28 28 --weights 128 256 1 1 " + psd1 + grep},
+        {flags + "--input 64 256 28 28 --weights 32 256 1 1 " + psd1 + grep},
+        {flags + "--input 64 256 28 28 --weights 64 256 1 1 " + psd1 + grep},
+        {flags + "--input 64 288 35 35 --weights 48 288 1 1 " + psd1 + grep},
+        {flags + "--input 64 288 35 35 --weights 64 288 1 1 " + psd1 + grep},
+        {flags + "--input 64 384 35 35 --weights 192 384 1 1 " + psd1 + grep},
+        {flags + "--input 64 384 35 35 --weights 64 384 1 1 " + psd1 + grep},
+        {flags + "--input 64 384 35 35 --weights 96 384 1 1 " + psd1 + grep},
+
+        {flags + "--input 64 480 14 14 --weights 16 480 1 1 " + psd1 + grep},
+        {flags + "--input 64 480 14 14 --weights 192 480 1 1 " + psd1 + grep},
+        {flags + "--input 64 480 14 14 --weights 64 480 1 1 " + psd1 + grep},
+        {flags + "--input 64 480 14 14 --weights 96 480 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 28 28 --weights 128 512 1 1 " + psd1 + grep},
+
+        {flags + "--input 64 512 28 28 --weights 256 512 1 1 " + psd0 + grep},
+
+        {flags + "--input 64 512 14 14 --weights 112 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 128 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 144 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 160 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 24 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 32 512 1 1 " + psd1 + grep},
+        {flags + "--input 64 512 14 14 --weights 64 512 1 1 " + psd1 + grep},
+
+        {flags + "--input 128 832 7 7 --weights 32 832 1 1 " + psd1 + grep},
+        {flags + "--input 128 832 7 7 --weights 192 832 1 1 " + psd1 + grep},
+        {flags + "--input 128 832 7 7 --weights 128 832 1 1 " + psd1 + grep},
+
+        {flags + "--input 128 832 7 7 --weights 32 832 1 1 " + psd3 + grep},
+        {flags + "--input 128 832 7 7 --weights 192 832 1 1 " + psd3 + grep},
+        {flags + "--input 128 832 7 7 --weights 128 832 1 1 " + psd3 + grep},
+        {flags + "--input 16 2048 7 7 --weights 192 2048 1 1 " + psd3 + grep},
+
+        {flags + "--input 64 32 28 28 --weights 192 32 3 3 " + psd2 + grep},
+        {flags + "--input 8 16 14 14 --weights 32 16 1 1 " + psd4 + grep},
+        {flags + "--input 64 32 14 14 --weights 192 32 3 3 " + psd2 + grep},
+        {flags + "--input 64 32 7 7 --weights 192 32 3 3 " + psd2 + grep},
+        {flags + "--input 64 32 28 28 --weights 192 32 3 3 " + psd5 + grep},
+        {flags + "--input 64 32 14 14 --weights 192 32 3 3 " + psd5 + grep},
+        {flags + "--input 64 32 7 7 --weights 192 32 3 3 " + psd5 + grep}
+    }
 }
 
 
