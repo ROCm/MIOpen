@@ -285,9 +285,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     return IsWinogradV21Preferred<Winodata, Winofilter>(asic, problem)
                ? IsShaderConstraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)
@@ -622,9 +620,10 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
 {
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(!ctx.use_asm_kernels)

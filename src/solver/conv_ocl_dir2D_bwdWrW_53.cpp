@@ -51,6 +51,8 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
@@ -61,9 +63,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
     if(!problem.direction.IsBackwardWrW())
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     bool workaround = false;
 
