@@ -593,15 +593,6 @@ pipeline {
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
                     }
                 }
-                //stage('Fin Hip Tidy') {
-                //    agent{ label rocmnode("nogpu") }
-                //    environment{
-                //        fin_build_cmd = "make -j\$(nproc) -k analyze"
-                //    }
-                //    steps{
-                //        buildHipClangJobAndReboot(build_fin: "ON", fin_build_cmd: fin_build_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
-                //    }
-                //}
                 stage('Fin Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
