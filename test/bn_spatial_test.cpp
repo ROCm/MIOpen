@@ -101,11 +101,11 @@ struct verify_forward_train_bn_spatial
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
 
-            const U Data_scale = static_cast<U>(0.001);
+            const double Data_scale = 0.001;
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
-                runVar[i]  = prng::gen_descreet_unsigned(Data_scale, 100);
+                runMean[i] = prng::gen_descreet_uniform_sign<U>(Data_scale, 100);
+                runVar[i]  = prng::gen_descreet_unsigned<U>(Data_scale, 100);
             }
         }
         auto saveMean   = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
@@ -270,11 +270,11 @@ struct verify_forward_train_bn_spatial
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width};
 
-            const U Data_scale = static_cast<U>(0.001);
+            const double Data_scale = 0.001;
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
-                runVar[i]  = prng::gen_descreet_unsigned(Data_scale, 100);
+                runMean[i] = prng::gen_descreet_uniform_sign<U>(Data_scale, 100);
+                runVar[i]  = prng::gen_descreet_unsigned<U>(Data_scale, 100);
             }
         }
 
@@ -1150,15 +1150,15 @@ struct batch_norm_spatial_driver : test_driver
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
 
-            const PREC_TYPE Data_scale = static_cast<PREC_TYPE>(1e-4);
+            const double Data_scale = 1e-4;
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
-                shift[i] = prng::gen_descreet_uniform_sign(Data_scale, 100);
+                scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+                shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = prng::gen_descreet_uniform_sign(static_cast<T>(1e-5), 100);
+                input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
             }
         }
 
