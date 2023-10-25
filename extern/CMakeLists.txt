@@ -56,7 +56,7 @@ endif()
 FetchContent_Declare(
         Boost
         GIT_REPOSITORY https://github.com/boostorg/boost.git
-        GIT_TAG boost-1.81.0
+        GIT_TAG boost-1.83.0
         SYSTEM
         ${__boost_find_package_args})
 
