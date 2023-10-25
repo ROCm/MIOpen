@@ -40,8 +40,8 @@
 
 template <class OperationDescriptor>
 static miopenStatus_t MakeProblem(miopenProblem_t* problem,
-                           OperationDescriptor operatorDesc,
-                           miopenProblemDirection_t direction)
+                                  OperationDescriptor operatorDesc,
+                                  miopenProblemDirection_t direction)
 {
     return miopen::try_([&] {
         miopen::deref(problem)        = new miopen::Problem();
