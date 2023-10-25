@@ -41,6 +41,7 @@ namespace normalization {
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::normalization::ProblemDescription& problem) const
 {
+    std::ignore = problem;
     return true;
 }
 
