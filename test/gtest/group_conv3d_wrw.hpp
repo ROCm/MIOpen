@@ -63,12 +63,12 @@ protected:
         test_skipped = false;
 
         std::tie(algo, conv_config, tensor_layout) = GetParam();
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
+
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
         input.generate(gen_value);
 
         std::fill(weights.begin(), weights.end(), 0);
@@ -76,7 +76,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         output.generate(gen_value);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -90,7 +90,7 @@ protected:
 
         auto&& handle = get_handle();
 
-        ref_wei      = tensor<T>{miopen_type<T>{}, tensor_layout, weights.desc.GetLengths()};
+        ref_wei      = tensor<T>{tensor_layout, weights.desc.GetLengths()};
         ref_wei      = ref_conv_wrw(input, weights, output, conv_desc);
         weights.data = handle.Read<T>(wei_dev, weights.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_wei)) << "Cpu data is all zeros";

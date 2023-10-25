@@ -287,7 +287,6 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -342,7 +341,6 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -415,8 +413,9 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(conv_problem.GetInDataType() != conv_problem.GetWeightsDataType() ||
-       conv_problem.GetInDataType() != conv_problem.GetOutDataType())
+    if(conv_problem.HasNonPackedTensors())
+        return false;
+    if(conv_problem.HasMixedDataTypes())
         return false;
     if(!conv_problem.Is2d())
         return false;
@@ -435,7 +434,6 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -469,7 +467,6 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:
-            case miopenInt8x4: // Support discontinued.
             case miopenBFloat16:
             case miopenDouble:
             default: MIOPEN_THROW("Unsupported datatype");
