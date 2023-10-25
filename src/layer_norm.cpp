@@ -66,6 +66,13 @@ miopenStatus_t LayerNormForward(Handle& handle,
                      "LayerNormForward: Tensor dimension lengths do not match.");
     }
 
+    if((normalized_dim < 0) || (normalized_dim > xDesc.GetLengths().size()))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LayerNormForward: normalized dim is greater than 0 and less than or equal "
+                     "Tensor dimension length.");
+    }
+
     bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
                          yDesc.IsPacked() && meanDesc.IsPacked() && rstdDesc.IsPacked();
 
