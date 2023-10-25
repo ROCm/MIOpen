@@ -263,17 +263,17 @@ struct na_fusion_driver : test_driver
         estVariance = tensor<PREC_TYPE>{
             ssn, ssc, ssh, ssw}; //.generate(                tensor_elem_gen_integer{max_value});;
 
-        PREC_TYPE Data_scale{static_cast<T>(0.01)};
+        const double Data_scale = 0.01;
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
-            scale[i]       = prng::gen_descreet_uniform_sign(Data_scale, 100);
-            shift[i]       = prng::gen_descreet_uniform_sign(Data_scale, 100);
-            estMean[i]     = prng::gen_descreet_uniform_sign(Data_scale, 100);
-            estVariance[i] = Data_scale * static_cast<PREC_TYPE>(prng::gen_off_range(1, 100));
+            scale[i]       = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i]       = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            estMean[i]     = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            estVariance[i] = static_cast<PREC_TYPE>(Data_scale * prng::gen_off_range(1, 100));
         }
         for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = prng::gen_descreet_uniform_sign(static_cast<T>(Data_scale), 100);
+            input[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
         }
 
         auto&& handle = get_handle();

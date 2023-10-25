@@ -30,15 +30,15 @@
 
 namespace prng {
 template <typename T>
-inline T gen_descreet_uniform_sign(T scale, int32_t range)
+inline T gen_descreet_uniform_sign(double scale, int32_t range)
 {
-    return (gen_canonical<int>() ? -scale : scale) * static_cast<T>(gen_0_to_B(range));
+    return static_cast<T>(scale * prng::gen_A_to_B(-range + 1, range));
 }
 
 template <typename T>
-inline T gen_descreet_unsigned(T scale, int32_t range)
+inline T gen_descreet_unsigned(double scale, int32_t range)
 {
-    return scale * static_cast<T>(gen_0_to_B(range));
+    return static_cast<T>(scale * static_cast<double>(gen_0_to_B(range)));
 }
 } // namespace prng
 #endif // GUARD_MIOPEN_TEST_RANDOM_HPP
