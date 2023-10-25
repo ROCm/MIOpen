@@ -532,7 +532,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 void CheckFDBEntry(size_t thread_index,
                    size_t total_threads,
                    std::vector<FDBLine>& data,
-                   miopen::ExecutionContext& _ctx,
+                   const miopen::ExecutionContext& _ctx,
                    std::atomic<size_t>& counter)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
