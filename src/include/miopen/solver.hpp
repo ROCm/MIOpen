@@ -2959,8 +2959,7 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
 struct GemmFwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext&,
-                 const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
@@ -3045,8 +3044,7 @@ struct GemmFwdRest final : GemmFwdBase
 struct GemmBwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext&,
-                 const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
@@ -3116,8 +3114,7 @@ struct GemmBwdRest final : GemmBwdBase
 struct GemmWrwBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext&,
-                 const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
