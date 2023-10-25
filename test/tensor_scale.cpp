@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -123,7 +122,7 @@ struct tensor_scale_driver : test_driver
 
     void run()
     {
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         super = tensor<T>{superLens}.generate(tensor_elem_gen_integer{max_value});
 

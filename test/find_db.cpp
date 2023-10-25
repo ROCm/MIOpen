@@ -103,7 +103,7 @@ private:
     {
         MIOPEN_LOG_I("Starting backward find-db test.");
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
         const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
@@ -137,7 +137,7 @@ private:
     {
         std::cout << "Starting forward find-db test." << std::endl;
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
         const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
@@ -171,7 +171,7 @@ private:
     {
         MIOPEN_LOG_I("Starting wrw find-db test.");
 
-        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto ctx     = ExecutionContext{&handle};
         const auto problem = conv::ProblemDescription{
             y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
         const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);

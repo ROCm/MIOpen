@@ -27,7 +27,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& 
         if(problem.direction.IsBackwardWrW())
             MIOPEN_THROW("MakeImplGemmDataInvokerFactory shouldn't be used for WrW invokers.");
 
-        const auto& conv       = problem.conv_problem.GetConv();
+        const auto& conv       = problem.GetConv();
         const auto& lowp_quant = conv.lowp_quant;
 
         return [conv, lowp_quant](const std::vector<Kernel>& kernels) {

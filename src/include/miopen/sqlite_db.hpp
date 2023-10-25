@@ -230,8 +230,7 @@ public:
             dbInvalid = true;
             return;
         }
-
-        if(!is_system && !filename.empty())
+        else if(!is_system)
         {
             auto file            = boost::filesystem::path(filename_);
             const auto directory = file.remove_filename();
@@ -256,7 +255,9 @@ public:
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
+            {
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
+            }
             else
             {
                 const auto log_level =

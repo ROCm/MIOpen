@@ -82,15 +82,15 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ProblemDescription& problem) co
     if(!IsValidValue())
         return false;
     // to-do add support of uneven_outputs into grouped conv
-    bool uneven_outputs = (problem.GetOutChannels() % filters_per_wave) != 0;
-    auto num_wavefronts = problem.GetOutChannels() / filters_per_wave;
+    bool uneven_outputs = (problem.GetOutChannels_() % filters_per_wave) != 0;
+    auto num_wavefronts = problem.GetOutChannels_() / filters_per_wave;
     if(problem.GetGroupCount() > 1 &&
        (uneven_outputs || (num_wavefronts % problem.GetGroupCount() != 0)))
         return false;
 
     // Count the number of VGPRs required.
-    const auto img_width  = problem.GetInWidth();
-    const auto img_height = problem.GetInHeight();
+    const auto img_width  = problem.GetInWidth_();
+    const auto img_height = problem.GetInHeight_();
     int n                 = 0;
 
     const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
@@ -115,7 +115,7 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ProblemDescription& problem) co
     const int input_lines_per_wave =
         (img_height == output_lines_per_wave) ? output_lines_per_wave : (output_lines_per_wave + 2);
 
-    const int k_group_size                  = problem.GetOutChannels() / problem.GetGroupCount();
+    const int k_group_size                  = problem.GetOutChannels_() / problem.GetGroupCount();
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
     n += (k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 4)
              ? (gprs_per_input_line * input_lines_per_wave)
@@ -141,7 +141,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
     filters_per_wave      = 2;
     output_lines_per_wave = 2;
 
-    if(problem.GetOutChannels() % (filters_per_wave * problem.GetGroupCount()) != 0)
+    if(problem.GetOutChannels_() % (filters_per_wave * problem.GetGroupCount()) != 0)
     {
         filters_per_wave = 1;
     }
@@ -150,7 +150,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ProblemDescription& probl
 }
 
 PerformanceConfigConvAsm3x3U
-ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvAsm3x3U::GetDefaultPerformanceConfig(const ExecutionContext&,
                                          const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm3x3U pp;
@@ -159,15 +159,14 @@ ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext&,
     return pp;
 }
 
-bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext&,
+bool ConvAsm3x3U::IsValidPerformanceConfig(const ExecutionContext&,
                                            const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm3x3U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
-                               const ProblemDescription& problem) const
+bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U{}))
         return false;
@@ -188,6 +187,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     if(target.Xnack() && *target.Xnack())
         return false;
 
+    if(problem.IsTensorsCasted())
+        return false;
+
     const std::string name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90")))
         return false;
@@ -196,20 +198,23 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
         return false;
     }
 
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
+        return false;
+
     constexpr auto GIB                         = static_cast<int64_t>(1024) * 1024 * 1024;
     constexpr auto TIB                         = GIB * 1024;
     constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
     constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
     const auto IN_FEATURE_COUNT =
-        static_cast<int64_t>(problem.GetBatchSize()) * problem.GetInChannels();
+        static_cast<int64_t>(problem.GetBatchSize_()) * problem.GetInChannels_();
     const auto OUT_FEATURE_COUNT =
-        static_cast<int64_t>(problem.GetBatchSize()) * problem.GetOutChannels();
-    const auto IN_IMG_SZ  = ELEM_SZ * problem.GetInHeight() * problem.GetInWidth();
-    const auto OUT_IMG_SZ = ELEM_SZ * problem.GetOutHeight() * problem.GetOutWidth();
+        static_cast<int64_t>(problem.GetBatchSize_()) * problem.GetOutChannels_();
+    const auto IN_IMG_SZ  = ELEM_SZ * problem.GetInHeight_() * problem.GetInWidth_();
+    const auto OUT_IMG_SZ = ELEM_SZ * problem.GetOutHeight_() * problem.GetOutWidth_();
     const auto IN_BUF_SZ  = IN_IMG_SZ * IN_FEATURE_COUNT;
     const auto OUT_BUF_SZ = OUT_IMG_SZ * OUT_FEATURE_COUNT;
-    const auto WEI_BUF_SZ = ELEM_SZ * problem.GetInChannels() * problem.GetOutChannels() *
-                            problem.GetWeightsHeight() * problem.GetWeightsWidth();
+    const auto WEI_BUF_SZ = ELEM_SZ * problem.GetInChannels_() * problem.GetOutChannels_() *
+                            problem.GetWeightsHeight_() * problem.GetWeightsWidth_();
     // clang-format off
     return problem.GetPadW() == 1
         && problem.GetPadH() == 1
@@ -217,12 +222,12 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
         && problem.GetKernelStrideH() == 1
         && problem.GetDilationW() == 1
         && problem.GetDilationH() == 1
-        && problem.GetWeightsWidth() == 3
-        && problem.GetWeightsHeight() == 3
-        && problem.GetInChannels() > 0
-        && (problem.GetInChannels() / problem.GetGroupCount()) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
-        && problem.GetInWidth() > 3
-        && problem.GetInWidth() <= 1000
+        && problem.GetWeightsWidth_() == 3
+        && problem.GetWeightsHeight_() == 3
+        && problem.GetInChannels_() > 0
+        && (problem.GetInChannels_() / problem.GetGroupCount()) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
+        && problem.GetInWidth_() > 3
+        && problem.GetInWidth_() <= 1000
         && IN_IMG_SZ  <= GIB
         && OUT_IMG_SZ <= 4 * GIB
         && IN_FEATURE_COUNT  - 1 <= SHADER_FEATURE_INDEX_MAX
@@ -236,7 +241,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& ctx,
     // clang-format on
 }
 
-ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
                                       const ProblemDescription& problem,
                                       const PerformanceConfigConvAsm3x3U& config) const
 {
@@ -268,18 +273,18 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
         }
     }
 
-    const int k_group_size                  = problem.GetOutChannels() / problem.GetGroupCount();
+    const int k_group_size                  = problem.GetOutChannels_() / problem.GetGroupCount();
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
 
-    const auto w64_chunks   = (problem.GetInWidth() + 63) / 64;
-    const auto active_lanes = (problem.GetInWidth() + w64_chunks - 1) / w64_chunks;
+    const auto w64_chunks   = (problem.GetInWidth_() + 63) / 64;
+    const auto active_lanes = (problem.GetInWidth_() + w64_chunks - 1) / w64_chunks;
 
     KernelBuildParameters options{
-        {"batch_size", problem.GetBatchSize()},
-        {"img_width", problem.GetInWidth()},
-        {"img_height", problem.GetInHeight()},
-        {"input_channels", problem.GetInChannels()},
-        {"output_channels", problem.GetOutChannels()},
+        {"batch_size", problem.GetBatchSize_()},
+        {"img_width", problem.GetInWidth_()},
+        {"img_height", problem.GetInHeight_()},
+        {"input_channels", problem.GetInChannels_()},
+        {"output_channels", problem.GetOutChannels_()},
         {"weights_layout", problem.direction.IsForward() ? 0 : 1},
         {"reverse_weights", problem.direction.IsForward() ? 0 : 1},
         {"ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4},
@@ -301,10 +306,10 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
 
     construction_params.g_wk.push_back(static_cast<size_t>(
         active_lanes *
-        ((problem.GetOutChannels() + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave)));
-    construction_params.g_wk.push_back((problem.GetInHeight() + pcfg->output_lines_per_wave - 1) /
+        ((problem.GetOutChannels_() + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave)));
+    construction_params.g_wk.push_back((problem.GetInHeight_() + pcfg->output_lines_per_wave - 1) /
                                        pcfg->output_lines_per_wave);
-    construction_params.g_wk.push_back(problem.GetBatchSize());
+    construction_params.g_wk.push_back(problem.GetBatchSize_());
 
     construction_params.kernel_file = "conv3x3.s";
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
@@ -315,7 +320,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& ctx,
+PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const AnyInvokeParams& invoke_ctx) const
 {

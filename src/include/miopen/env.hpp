@@ -98,7 +98,7 @@ inline bool IsEnvvarValueEnabled(const char* name)
 
 // Return 0 if env is enabled else convert environment var to an int.
 // Supports hexadecimal with leading 0x or decimal
-inline unsigned long int EnvvarValue(const char* name, unsigned long int fallback = 0)
+inline uint64_t EnvvarValue(const char* name, uint64_t fallback = 0)
 {
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
@@ -108,7 +108,7 @@ inline unsigned long int EnvvarValue(const char* name, unsigned long int fallbac
     }
     else
     {
-        return strtoul(value_env_p, nullptr, 0);
+        return strtoull(value_env_p, nullptr, 0);
     }
 }
 
@@ -147,7 +147,7 @@ inline bool IsDisabled(T)
 }
 
 template <class T>
-inline unsigned long int Value(T, unsigned long int fallback = 0)
+inline uint64_t Value(T, uint64_t fallback = 0)
 {
     static const auto result = miopen::EnvvarValue(T::value(), fallback);
     return result;

@@ -234,7 +234,7 @@ Different ROCm versions use Code Object files of different versions (or, in othe
 `MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX` - `ConvMPBidirectWinograd*`, FWD BWD
 
 Syntax of value:
-* decimal or hex (with `0x` prefix) value that should fit into `unsigned long` (64 bits).
+* decimal or hex (with `0x` prefix) value that should fit into 64-bit unsigned integer.
 * If syntax is violated, then the behavior is unspecified.
 
 Semantics:

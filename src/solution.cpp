@@ -154,7 +154,7 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = conv_problem.BuildConfKey();
+    const auto net_cfg       = conv_problem.MakeNetworkConfig();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
     const auto checkNumericsOutput_ = [&]() {
@@ -177,8 +177,7 @@ void Solution::RunImpl(Handle& handle,
     }
 
     const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ConvolutionContext{{&handle}};
-    conv_ctx.DetectRocm();
+    auto conv_ctx             = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);

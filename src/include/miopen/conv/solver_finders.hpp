@@ -27,39 +27,50 @@
 #pragma once
 
 #include <miopen/conv_solution.hpp>
-#include <miopen/conv/context.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/problem_description.hpp>
 
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace miopen {
 
 class DbRecord;
 
-class SolversFinder
+// This can be used to pass some primitive-specific pre-computed data to finders.
+struct PrimitiveFindParameters
+{
+protected:
+    PrimitiveFindParameters() = default;
+};
+
+class ISolversFinder
 {
 public:
-    virtual ~SolversFinder() = default;
+    virtual ~ISolversFinder() = default;
 
-    virtual AlgorithmName GetAlgorithmName(const conv::ProblemDescription& ptroblem) const = 0;
+    [[nodiscard]] virtual AlgorithmName
+    GetAlgorithmName(const ProblemDescriptionBase& problem) const = 0;
 
-    inline std::vector<solver::ConvSolution> Find(const ConvolutionContext& ctx,
-                                                  const ProblemDescription& problem,
-                                                  const AnyInvokeParams& invoke_ctx,
-                                                  bool use_winograd_only) const
+    [[nodiscard]] inline std::vector<solver::ConvSolution>
+    Find(const ExecutionContext& ctx,
+         const ProblemDescriptionBase& problem,
+         const AnyInvokeParams& invoke_ctx,
+         const PrimitiveFindParameters& parameters) const
     {
-        if(!IsEnabled(ctx, problem.conv_problem, use_winograd_only))
+        if(!IsEnabled(ctx, problem, parameters))
         {
-            MIOPEN_LOG_I2("Skipping " << GetAlgorithmName(problem.conv_problem).ToString());
+            MIOPEN_LOG_I2("Skipping " << GetAlgorithmName(problem).ToString());
             return {};
         }
 
         try
         {
-            MIOPEN_LOG_I2("Starting find for "
-                          << GetAlgorithmName(problem.conv_problem).ToString());
-            return FindImpl(ctx, problem, invoke_ctx, use_winograd_only);
+            MIOPEN_LOG_I2("Starting find for " << GetAlgorithmName(problem).ToString());
+            return FindImpl(ctx, problem, invoke_ctx, parameters);
         }
         catch(Exception& ex)
         {
@@ -69,23 +80,79 @@ public:
     }
 
 protected:
-    virtual bool IsEnabled(const ConvolutionContext& ctx,
-                           const conv::ProblemDescription& problem,
-                           bool use_winograd_only) const                             = 0;
-    virtual std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
-                                                       const ProblemDescription& problem,
-                                                       const AnyInvokeParams& invoke_ctx,
-                                                       bool use_winograd_only) const = 0;
+    [[nodiscard]] virtual bool IsEnabled(const ExecutionContext& ctx,
+                                         const ProblemDescriptionBase& problem,
+                                         const PrimitiveFindParameters& parameters) const = 0;
+    [[nodiscard]] virtual std::vector<solver::ConvSolution>
+    FindImpl(const ExecutionContext& ctx,
+             const ProblemDescriptionBase& problem,
+             const AnyInvokeParams& invoke_ctx,
+             const PrimitiveFindParameters& parameters) const = 0;
 };
 
-const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders();
+template <class ProblemDescription, class FindParameters>
+class SolversFinderMixin : public ISolversFinder
+{
+public:
+    static_assert(std::is_base_of_v<ProblemDescriptionBase, ProblemDescription>);
+    static_assert(std::is_base_of_v<PrimitiveFindParameters, FindParameters>);
 
-void ConvFindCore(const AnyInvokeParams& invoke_ctx,
-                  DbRecord& record,
-                  const ConvolutionContext& ctx,
-                  const ProblemDescription& problem,
-                  bool use_winograd_only,
-                  const std::vector<std::unique_ptr<SolversFinder>>& finders);
+    [[nodiscard]] AlgorithmName GetAlgorithmName(const ProblemDescriptionBase& problem) const final
+    {
+        return GetAlgorithmName(static_cast<const ProblemDescription&>(problem));
+    }
+
+    [[nodiscard]] std::vector<solver::ConvSolution>
+    FindImpl(const ExecutionContext& ctx,
+             const ProblemDescriptionBase& problem,
+             const AnyInvokeParams& invoke_ctx,
+             const PrimitiveFindParameters& parameters) const final
+    {
+        return FindImpl(ctx,
+                        static_cast<const ProblemDescription&>(problem),
+                        invoke_ctx,
+                        static_cast<const FindParameters&>(parameters));
+    }
+
+    [[nodiscard]] bool IsEnabled(const ExecutionContext& ctx,
+                                 const ProblemDescriptionBase& problem,
+                                 const PrimitiveFindParameters& parameters) const final
+    {
+        return IsEnabled(ctx,
+                         static_cast<const ProblemDescription&>(problem),
+                         static_cast<const FindParameters&>(parameters));
+    }
+
+protected:
+    [[nodiscard]] virtual AlgorithmName
+    GetAlgorithmName(const ProblemDescription& problem) const = 0;
+
+    [[nodiscard]] virtual std::vector<solver::ConvSolution>
+    FindImpl(const ExecutionContext& ctx,
+             const ProblemDescription& problem,
+             const AnyInvokeParams& invoke_ctx,
+             const FindParameters& parameters) const = 0;
+
+    [[nodiscard]] virtual bool IsEnabled(const ExecutionContext& ctx,
+                                         const ProblemDescription& problem,
+                                         const FindParameters& parameters) const = 0;
+};
+
+const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
+
+void FindCore(const AnyInvokeParams& invoke_ctx,
+              DbRecord& record,
+              const ExecutionContext& ctx,
+              const ProblemDescriptionBase& problem,
+              const PrimitiveFindParameters& parameters,
+              const std::vector<std::unique_ptr<ISolversFinder>>& finders);
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
+
+struct ConvFindParameters : PrimitiveFindParameters
+{
+    bool use_winograd_only;
+    ConvFindParameters(bool use_winograd_only_) : use_winograd_only(use_winograd_only_) {}
+};
+
 } // namespace miopen

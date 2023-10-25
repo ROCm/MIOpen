@@ -53,6 +53,7 @@
  * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
+ * @defgroup layernorm
  * @defgroup LRN
  * @defgroup batchnorm
  * @defgroup activation
@@ -110,6 +111,14 @@ typedef enum
     miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
+
+#ifdef MIOPEN_BETA_API
+typedef enum
+{
+    miopenF8RoundingModeStandard   = 0,
+    miopenF8RoundingModeStochastic = 1,
+} miopenF8RoundingMode_t;
+#endif
 
 /*! @brief Get character string for an error code.
  *
@@ -270,6 +279,14 @@ MIOPEN_DECLARE_OBJECT(miopenFusionOpDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
 
+/*! @ingroup tensor
+ * @brief Creates the miopenSeqTensorDescriptor_t type
+ *
+ * SeqTensor descriptor is an object that allows the user to specify tensor with sequence dimension.
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenSeqTensorDescriptor);
+
 /*! @ingroup convolutions
  * @brief Creates the miopenConvolutionDescriptor_t type
  *
@@ -333,13 +350,19 @@ typedef enum
 {
     miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
-    miopenInt8x4 =
-        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
+    miopenInt32 = 2, /*!< 32-bit integer (Partially supported) */
+    miopenInt8  = 3, /*!< 8-bit integer (Partially supported) */
+    // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+#ifdef MIOPEN_BETA_API
+    miopenFloat8  = 7,
+    miopenBFloat8 = 8,
+#else
+// miopenReserved1 = 7,
+// miopenReserved2 = 8,
+#endif
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -439,7 +462,18 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
-
+#ifdef MIOPEN_BETA_API
+/*! @ingroup layernorm
+ * @enum miopenLayerNormAlgorithm_t
+ * LayerNorm implementation algorithms
+ */
+typedef enum
+{
+    MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
+    MIOPEN_WEIGHT_BIAS =
+        1, /*!< learnable weights and biases of the module of shape normalized_shape */
+} miopenLayerNormMode_t;
+#endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
@@ -554,10 +588,10 @@ typedef enum
  */
 typedef enum
 {
-    MIOPEN_32BIT_INDICES = 0, /*!< unsigned integer indices */
-    MIOPEN_64BIT_INDICES = 1, /*!< unsigned long indices */
-    MIOPEN_16BIT_INDICES = 2, /*!< unsigned short indices */
-    MIOPEN_8BIT_INDICES  = 3, /*!< unsigned char indices */
+    MIOPEN_32BIT_INDICES = 0, /*!< 32-bit unsigned integer indices */
+    MIOPEN_64BIT_INDICES = 1, /*!< 64-bit unsigned integer indices */
+    MIOPEN_16BIT_INDICES = 2, /*!< 16-bit unsigned integer indices */
+    MIOPEN_8BIT_INDICES  = 3, /*!< 8-bit unsigned integer indices */
 } miopenIndicesType_t;
 
 /*! @ingroup convolutions
@@ -573,6 +607,15 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+#ifdef MIOPEN_BETA_API
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
+        2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
+              rounding modes are supported miopenF8RoundingModeStandard and
+              miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
+              enum.>*/
+#else
+// miopenReserved1 = 2,
+#endif
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -690,7 +733,21 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
-/*! @brief Get size of N-dimensional tensor
+#ifdef MIOPEN_BETA_API
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 datatype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+#endif
+
+/*! @brief Set shape of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
@@ -720,6 +777,23 @@ MIOPEN_EXPORT miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t 
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t tensorDesc);
+
+/*! @brief Create a Tensor Descriptor for sequence data
+ *
+ * API for creating an uninitialized sequence data tensor descriptor.
+ * @param tensorDesc Pointer to a sequence data tensor descriptor type (output)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc);
+
+/*! @brief Destroys the sequence data tensor descriptor
+ *
+ * @param tensorDesc Tensor descriptor (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroySeqTensorDescriptor(miopenSeqTensorDescriptor_t tensorDesc);
 
 /*! @brief Execute element-wise tensor operations
  *
@@ -1653,6 +1727,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * Runs the forward convolution layer based on the selected algorithm. The function
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1689,6 +1765,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
+ *  The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ *  alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1956,6 +2034,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
 /*! @brief Calculates the gradient with respect to the bias.
  *
  * Compute the convolution backwards gradient with respect to the bias tensor.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2402,6 +2482,55 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a layernorm forward layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+                                                    miopenLayerNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const float epsilon,
+                                                    const int32_t normalized_dim,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm
@@ -3298,6 +3427,26 @@ typedef enum
     miopenRNNIOWithPadding = 1, /*!< Padded data at RNN input/output */
 } miopenRNNPaddingMode_t;
 
+/*! @enum miopenRNNFWDMode_t
+ * Recurrent Neural Network Training/Inference mode
+ */
+typedef enum
+{
+    miopenRNNTraining  = 0, /*!< FWD, BWD, WRW */
+    miopenRNNInference = 1, /*!< Only FWD-inference no back-propagation */
+} miopenRNNFWDMode_t;
+
+/*! @enum miopenRNNBaseLayout_t
+ * Data layouts for RNN operations
+ */
+typedef enum
+{
+    miopenRNNDataUnknownLayout     = 0,
+    miopenRNNDataSeqMajorNotPadded = 1,
+    miopenRNNDataSeqMajorPadded    = 2,
+    miopenRNNDataBatchMajorPadded  = 3,
+} miopenRNNBaseLayout_t;
+
 /*! @brief Create a RNN layer Descriptor
  *
  * API for creating an uninitialized RNN layer descriptor.
@@ -3415,6 +3564,59 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnn
                                                        miopenRNNAlgo_t algo,
                                                        miopenDataType_t dataType);
 
+/*! @brief Set shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ *
+ * @param seqTensorDesc     Tensor descriptor (input/output)
+ * @param dataType          MIOpen datatype (input)
+ * @param layout            One of the main supported layouts for RNN data(input)
+ * @param maxSequenceLen      Sequence length limit within this SeqTensor(input)
+ * @param batchSize         Number of sequences within this SeqTensor (input)
+ * @param vectorSize        Vector size (input)
+ * @param sequenceLenArray  Array containing the length of each sequence in the SeqTensor(input)
+ * @param paddingMarker     Not used, should be NULL (input)
+ * @return                  miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t dataType,
+                                    miopenRNNBaseLayout_t layout,
+                                    int maxSequenceLen,
+                                    int batchSize,
+                                    int vectorSize,
+                                    const int* sequenceLenArray,
+                                    void* paddingMarker);
+
+/*! @brief Get shape of RNN seqData tensor
+ *
+ * Interface for setting tensor shape to be used as RNN input data
+ *
+ * @param seqTensorDesc             Tensor descriptor (input)
+ * @param dataType                  MIOpen datatype (output)
+ * @param layout                    One of the main supported layouts for RNN data(output)
+ * @param maxSequenceLen              Sequence length limit within this SeqTensor(output)
+ * @param batchSize                 Number of sequences within this SeqTensor (output)
+ * @param vectorSize                Vector size (output)
+ * @param sequenceLenArrayLimit  Limit for number of elements that can be returned to user
+ * by sequenceLenArray (input)
+ * @param sequenceLenArray          Array containing the length of each sequence in the
+ * SeqTensor. This is allowed to be a NULL pointer if sequenceLenArrayLimit is 0 (output)
+ * @param paddingMarker             Not used, should be NULL (input)
+ * @return                          miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
+                                    miopenDataType_t* dataType,
+                                    miopenRNNBaseLayout_t* layout,
+                                    int* maxSequenceLen,
+                                    int* batchSize,
+                                    int* vectorSize,
+                                    int sequenceLenArrayLimit,
+                                    int* sequenceLenArray,
+                                    void* paddingMarker);
+
 /*! @brief Query the amount of memory required to execute the RNN layer
  *
  * This function calculates the amount of memory required to run the RNN layer given an RNN
@@ -3458,6 +3660,29 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNTrainingReserveSize(miopenHandle_t hand
                                                              const int sequenceLen,
                                                              const miopenTensorDescriptor_t* xDesc,
                                                              size_t* numBytes);
+
+/*! @brief Query the amount of additional memory required for this RNN layer execution.
+ *
+ * This function calculates the size of extra buffers, depending on the layer configuration, which
+ * is determined by: RNN descriptor, isInference, and data descriptor. If isInference is True,
+ * reserve_space_size is always zero, because the reserve_space buffer is not used in Inference
+ * computation.
+ *
+ * @param handle           MIOpen handle (input)
+ * @param rnnDesc          RNN layer descriptor type (input)
+ * @param xDesc            Sequence data tensor descriptor (input)
+ * @param fwdMode          Specifies in which mode the buffers will be used.
+ * @param workSpaceSize    Minimum WorkSpace buffer size required for RNN layer execution (output)
+ * @param reserveSpaceSize Minimum ReserveSpaceSize buffer size required for RNN layer execution
+ * (output)
+ * @return                 miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNTempSpaceSizes(miopenHandle_t handle,
+                                                        miopenRNNDescriptor_t rnnDesc,
+                                                        miopenSeqTensorDescriptor_t xDesc,
+                                                        miopenRNNFWDMode_t fwdMode,
+                                                        size_t* workSpaceSize,
+                                                        size_t* reserveSpaceSize);
 
 /*! @brief Query the amount of parameter memory required for RNN training
  *
@@ -4024,6 +4249,196 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNPaddingMode(miopenRNNDescriptor_t rnnDe
 
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNPaddingMode(miopenRNNDescriptor_t rnnDesc,
                                                      miopenRNNPaddingMode_t* paddingMode);
+
+/*! @brief Execute forward training for recurrent layer.
+ *
+ * Interface for executing the forward training / inference pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+ *
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ * function.(input)
+ * @param x                     Pointer to input tensor (input)
+ *
+ * @param hDesc                A hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ * @param hy                    Pointer to the hidden layer output tensor. If hy is NULL,
+ * then the final hidden state will not be saved. (output)
+ *
+ * @param cDesc                A cell tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param cx                    Pointer to the cell layer input tensor. If cx is NULL,
+ * then the initial cell state will be zero initialized. (input)
+ * @param cy                    Pointer to the cell layer output tensor. If hy is NULL,
+ * then the final cell state will not be saved. (output)
+ *
+ * @param yDesc                 An array of fully packed tensor descriptors associated
+ * with the output from each time step. The first dimension of the tensor descriptors
+ * must equal the first dimension of the first descriptor (batch size) in the xDesc
+ * tensor array. The second dimension of the element of the descriptor array
+ * depends on the direction mode selected. If the direction mode is unidirectional,
+ * the second dimension is the hiddenSize. If direction mode is bidirectional
+ * the second dimension is twice the hiddenSize. (input)
+ * @param y                     Pointer to output tensor (output)
+ *
+ * @param w                     Pointer to input weights tensor (input)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward (input / output)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for hidden states used durning training
+ * (input / output)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward  (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRNNForward(miopenHandle_t handle,
+                                              const miopenRNNDescriptor_t rnnDesc,
+                                              miopenRNNFWDMode_t fwdMode,
+                                              const miopenSeqTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const miopenTensorDescriptor_t hDesc,
+                                              const void* hx,
+                                              void* hy,
+                                              const miopenTensorDescriptor_t cDesc,
+                                              const void* cx,
+                                              void* cy,
+                                              const miopenSeqTensorDescriptor_t yDesc,
+                                              void* y,
+                                              const void* w,
+                                              size_t weightSpaceSize,
+                                              void* workSpace,
+                                              size_t workSpaceNumBytes,
+                                              void* reserveSpace,
+                                              size_t reserveSpaceNumBytes);
+
+/*! @brief Execute backward data for recurrent layer
+ *
+ * Interface for executing the backward data pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+
+ * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param y                     Pointer to input tensor (input)
+ * @param dy                    Pointer to the hidden layer input tensor (input)
+ *
+ * @param hDesc                An input hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ * @param dhy                   Pointer to the cell layer input tensor (input)
+ * @param dhx                   Pointer to the delta hidden layer output tensor. If dhx is NULL
+ * the hidden gradient will not ouput. (output)
+ *
+ * @param cDesc                A input cell tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param cx                    Pointer to the hidden layer input tensor. If cx is NULL,
+ * then the initial cell state will be zero initialized. (input)
+ * @param dcy                   Pointer to the cell layer input tensor. If dcy is NULL,
+ * then the initial delta cell state will be zero initialized. (input)
+ * @param dcx                   Pointer to the cell layer output tensor. If dcx is NULL
+ * the cell gradient will not ouput. (output)
+
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param dx                    Pointer to the cell layer output tensor (output)
+ *
+ * @param w                     Pointer to input weights tensor (input)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward training (input)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for random states (input / output)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardSeqData(miopenHandle_t handle,
+                                                      const miopenRNNDescriptor_t rnnDesc,
+                                                      const miopenSeqTensorDescriptor_t yDesc,
+                                                      const void* y,
+                                                      const void* dy,
+                                                      const miopenTensorDescriptor_t hDesc,
+                                                      const void* hx,
+                                                      const void* dhy,
+                                                      void* dhx,
+                                                      const miopenTensorDescriptor_t cDesc,
+                                                      const void* cx,
+                                                      const void* dcy,
+                                                      void* dcx,
+                                                      const miopenSeqTensorDescriptor_t xDesc,
+                                                      void* dx,
+                                                      const void* w,
+                                                      size_t weightSpaceSize,
+                                                      void* workSpace,
+                                                      size_t workSpaceNumBytes,
+                                                      void* reserveSpace,
+                                                      size_t reserveSpaceNumBytes);
+
+/*! @brief Execute backward weights for recurrent layer
+ *
+ * Interface for executing the backward weights pass on a RNN.
+ *
+ * @param handle                MIOpen handle (input)
+ * @param rnnDesc               RNN layer descriptor type (input)
+
+ * @param xDesc                 An input tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param x                     Pointer to input tensor (input)
+ *
+ * @param hDesc                A hidden tensor descriptor that has as its first dimension
+ * of the number of layers if the direction mode is unidirectional and twice the
+ * number of layers if the direction mode is bidirectional. The second dimension of
+ * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
+ * array. The third dimension equals the hiddenSize. (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL,
+ * then the initial hidden state will be zero initialized. (input)
+ *
+ * @param yDesc                 An output tensor descriptor for sequenced RNN data. This
+ * miopenSeqTensorDescriptor_t should be initialyzed by `miopenSetRNNDataSeqTensorDescriptor`
+ function.(input)
+ * @param y                     Pointer to the output tensor (input)
+ *
+ * @param dw                    Pointer to input weights tensor (input / output)
+ * @param weightSpaceSize       Number of allocated bytes in memory for the weights tensor
+ * @param workSpace             Pointer to memory allocated for forward training (input)
+ * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
+ * @param reserveSpace          Pointer to memory allocated for random states (input)
+ * @param reserveSpaceNumBytes  Number of allocated bytes in memory for use in the forward (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenRNNBackwardWeightsSeqTensor(miopenHandle_t handle,
+                                  const miopenRNNDescriptor_t rnnDesc,
+                                  const miopenSeqTensorDescriptor_t xDesc,
+                                  const void* x,
+                                  const miopenTensorDescriptor_t hDesc,
+                                  const void* hx,
+                                  const miopenSeqTensorDescriptor_t yDesc,
+                                  const void* y,
+                                  void* dw,
+                                  size_t weightSpaceSize,
+                                  void* workSpace,
+                                  size_t workSpaceNumBytes,
+                                  const void* reserveSpace,
+                                  size_t reserveSpaceNumBytes);
 
 /*! @brief Execute forward training for recurrent layer
  *

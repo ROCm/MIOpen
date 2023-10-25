@@ -48,7 +48,7 @@ namespace conv {
 namespace {
 
 std::function<void(std::ostream&)>
-PrintDHW(char sep, int spatial_dims, int depth, int height, int width)
+PrintDHW(char sep, unsigned spatial_dims, int depth, int height, int width)
 {
     return [=](std::ostream& stream) {
         if(spatial_dims > 2)
@@ -103,17 +103,18 @@ void ProblemDescription::HeuristicUpdateLayouts()
     // If we did not find consistent layout, leave them as-is
 }
 
-void ProblemDescription::BuildConfKey(std::string& conf_key) const
+void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
 {
     std::ostringstream ss;
 
-    ss << GetInChannels();
-    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
+    ss << GetInChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
     ss << 'x'
-       << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
-    ss << 'x' << GetOutChannels();
-    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
-    ss << 'x' << GetInBatchSize();
+       << PrintDHW(
+              'x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    ss << 'x' << GetOutChannels_();
+    ss << 'x' << PrintDHW('x', GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
+    ss << 'x' << GetInBatchSize_();
     if((GetInLayout() == "NCHW" && GetWeightsLayout() == "NCHW" && GetOutLayout() == "NCHW") ||
        (GetInLayout() == "NCDHW" && GetWeightsLayout() == "NCDHW" && GetOutLayout() == "NCDHW"))
     {
@@ -126,6 +127,19 @@ void ProblemDescription::BuildConfKey(std::string& conf_key) const
         ss << 'x' << GetOutLayout();
     }
     ss << 'x' << EncodeDataTypesForKey(GetInDataType(), GetWeightsDataType(), GetOutDataType());
+
+    std::ostringstream optional;
+    if(const auto ct = GetInCastType())
+        optional << "ci" << GetDataTypeName(*ct);
+    if(const auto ct = GetWeightsCastType())
+        optional << "cw" << GetDataTypeName(*ct);
+    if(const auto ct = GetOutCastType())
+        optional << "co" << GetDataTypeName(*ct);
+    if(!optional.str().empty())
+    {
+        ss << 'x' << optional.str();
+    }
+
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     ss << 'x'
        << PrintDHW(
@@ -145,12 +159,12 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     // Problem description with non-default layout
     // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NHWC-NCHW-NCHW-FP32-F
     // clang-format off
-    stream << GetInChannels();
-    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth(), GetInHeight(), GetInWidth());
-    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth(), GetWeightsHeight(), GetWeightsWidth());
-    stream << sep << GetOutChannels();
-    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth(), GetOutHeight(), GetOutWidth());
-    stream << sep << GetInBatchSize();
+    stream << GetInChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetInDepth_(), GetInHeight_(), GetInWidth_());
+    stream << sep << PrintDHW('x', GetSpatialDims(), GetWeightsDepth_(), GetWeightsHeight_(), GetWeightsWidth_());
+    stream << sep << GetOutChannels_();
+    stream << sep << PrintDHW(sep, GetSpatialDims(), GetOutDepth_(), GetOutHeight_(), GetOutWidth_());
+    stream << sep << GetInBatchSize_();
     stream << sep << PrintDHW('x', GetSpatialDims(), GetPadD(), GetPadH(), GetPadW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetKernelStrideD(), GetKernelStrideH(), GetKernelStrideW());
     stream << sep << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
@@ -174,11 +188,18 @@ void ProblemDescription::Serialize(std::ostream& stream) const
     {
         // Group count > 1 identifies Group/Depthwise modes.
         if(GetGroupCount() != 1)
-            optional << 'g' << GetGroupCount();
+            optional << "_g" << GetGroupCount();
+
+        if(const auto ct = GetInCastType())
+            optional << "_ci" << GetDataTypeName(*ct);
+        if(const auto ct = GetWeightsCastType())
+            optional << "_cw" << GetDataTypeName(*ct);
+        if(const auto ct = GetOutCastType())
+            optional << "_co" << GetDataTypeName(*ct);
     }
     if(!optional.str().empty())
     {
-        stream << '_' << optional.str();
+        stream << optional.str();
     }
 }
 
@@ -223,7 +244,7 @@ bool ProblemDescription::IsNCHWc_CHWNc() const
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 {
-    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8() || IsFp8() || IsBfp8())
     {
         ctx.general_compile_options += GetDataTypeKernelParams(GetInDataType());
         return;

@@ -90,20 +90,19 @@ struct ExecutionContext
     // performance config.
     bool disable_perfdb_access      = false;
     bool use_dynamic_solutions_only = false;
+    bool is_for_generic_search      = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext(Handle* stream_) : stream(stream_) {}
+    ExecutionContext() { DetectRocm(); }
+    ExecutionContext(Handle* stream_) : stream(stream_) { DetectRocm(); }
 
-    ExecutionContext()                        = default;
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
     ExecutionContext(ExecutionContext&&)      = default;
     ExecutionContext& operator=(const ExecutionContext&) = default;
     ExecutionContext& operator=(ExecutionContext&&) = default;
-
-    ExecutionContext& DetectRocm();
 
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
@@ -281,6 +280,12 @@ struct ExecutionContext
 
 private:
     Handle* stream = nullptr;
+
+    void DetectRocm();
+};
+
+struct [[deprecated]] ConvolutionContext : ExecutionContext
+{
 };
 
 bool IsHipKernelsEnabled();
