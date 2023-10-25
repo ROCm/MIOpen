@@ -23,7 +23,7 @@
 # SOFTWARE.
 # 
 ################################################################################
-cmake_minimum_required( VERSION 3.5)
+
 if( NOT ENABLE_ASAN_PACKAGING )
   install(FILES install_precompiled_kernels.sh
       PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
