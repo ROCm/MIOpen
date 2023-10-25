@@ -10,8 +10,11 @@ typedef enum {
     miopenFloat    = 1,
     miopenInt32    = 2,
     miopenInt8     = 3,
-    miopenInt8x4   = 4,
+    /* Value 4 is reserved. */
     miopenBFloat16 = 5,
+    miopenDouble   = 6,
+    miopenFloat8   = 7,
+    miopenBFloat8  = 8
 } miopenDataType_t;
 ```
 
@@ -22,8 +25,10 @@ Type descriptions:
  * `miopenFloat` - 32-bit floating point
  * `miopenInt32` - 32-bit integer, used primarily for `int8` convolution outputs
  * `miopenInt8` - 8-bit integer, currently only supported by `int8` convolution forward path, tensor set, tensor copy, tensor cast, tensor transform, tensor transpose, and im2col.
- * `miopenInt8x4` - 8-bit 4 element vector type used primarily with `int8` convolutions forward path.
  * `miopenBFloat16` - brain float fp-16 (8-bit exponent, 7-bit fraction), currently only supported by convolutions, tensor set, and tensor copy.
+ * `miopenDouble` - 64-bit floating point, supported only by reduction, layerNorm, batchNorm.
+ * `miopenFloat8` - 8-bit floating point (layout 1.4.3, exponent bias 7), currently only supported by convolutions.
+ * `miopenBFloat8` - 8-bit floating point (layout 1.5.2, exponent bias 15), currently only supported by convolutions.
 
 
 Note: In addition to the standard datatypes above, pooling contains its own indexing datatypes:

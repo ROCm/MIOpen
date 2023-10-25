@@ -172,7 +172,6 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -215,7 +214,6 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -230,7 +228,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmFwdXdlops pp;
@@ -239,7 +237,7 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionConte
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -247,7 +245,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmFwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,
                                      const AnyInvokeParams& invoke_ctx) const
 {
@@ -255,7 +253,7 @@ ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -294,7 +292,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -303,7 +300,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
 }
 
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
-    [[maybe_unused]] const ConvolutionContext& ctx,
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
@@ -311,16 +308,15 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpPtrs<float>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:

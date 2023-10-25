@@ -42,7 +42,7 @@ option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
-set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
+set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
     Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
@@ -103,6 +103,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
+        conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -119,6 +120,7 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
+        fusion/problem_description.cpp
     generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
@@ -146,12 +148,12 @@ set( MIOpen_Source
     rnn/Solutions/rnn_transformer.cpp
     softmax_api.cpp
     solution.cpp
-    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
@@ -163,6 +165,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
+    solver/batchnorm/forward_training_ck.cpp
     solver/conv_asm_1x1u.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
@@ -247,7 +250,7 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     seq_tensor.cpp
-    )
+)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
@@ -388,6 +391,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/workaround_issue_1431.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
+        kernels/stride_array.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -525,7 +529,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_DEVELOPMENT_KERNELS}")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
     endif()
@@ -647,7 +651,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNELS}" "${MIOPEN_DEVELOPMENT_KERNELS_DEPS}" "" " (dev kernels)")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (dev includes)")
     endif()
@@ -684,7 +688,7 @@ clang_tidy_check(MIOpen)
 
 find_package(zstd)
 if(zstd_FOUND)
-    target_link_libraries(MIOpen PRIVATE zstd::libzstd_static)
+    target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
 endif()
 
 function(target_internal_library TARGET)
@@ -746,7 +750,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
             file(GLOB MODEL_FILES kernels/*.model)
             if( NOT ENABLE_ASAN_PACKAGING )
               install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif() 
+            endif ()
             foreach(MODEL_FILE ${MODEL_FILES})
                 get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
                 configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
@@ -850,8 +854,10 @@ if(NOT WIN32 AND NOT APPLE)
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
-############################################################
-target_link_libraries(MIOpen PRIVATE "-lroctx64")
+
+if(NOT WIN32)
+    target_link_libraries(MIOpen PRIVATE roctx64)
+endif()
 
 ############################################################
 # Installation

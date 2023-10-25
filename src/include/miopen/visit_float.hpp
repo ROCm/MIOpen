@@ -79,7 +79,6 @@ void visit_float(miopenDataType_t t, F f)
     }
     case miopenFloat8:
     case miopenBFloat8:
-    case miopenInt8x4:
     case miopenInt8: {
         f(as_float<int8_t>{});
         break;

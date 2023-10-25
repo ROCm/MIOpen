@@ -44,7 +44,7 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                const miopen::TensorDescriptor& outputDesc,
                ConstData_t output, // dy
                const miopen::ConvolutionDescriptor& convDesc,
-               const ConvTestCase& conv_config,
+               const Conv3DTestCase& conv_config,
                bool& test_skipped)
 {
 
@@ -57,7 +57,7 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
 
     const auto problem = miopen::conv::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::BackwardWeights};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
 

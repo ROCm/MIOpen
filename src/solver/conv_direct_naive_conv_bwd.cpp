@@ -34,7 +34,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD)
 namespace miopen {
 namespace solver {
 
-bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
@@ -74,7 +74,7 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ConvolutionContext& ctx,
     return true;
 }
 
-ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
     ConvSolution result;
@@ -134,25 +134,37 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto is_f8 = [&]() {
-        if(kernel.kernel_file == "fp8_naive_conv.cpp")
-            return true;
-        else
-            return false;
-    }();
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
+
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
 
+    int G_stride_idx = conv_internal::GetGroupStrideIndex(problem);
+
     if(problem.Is2d())
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
+                auto in_strides = conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<5>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<5>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.outDesc.GetStrides(), G_stride_idx));
+                /// \ref backward_tensors_reversed_why
                 if(is_f8)
+                {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
                                      hi,
                                      wi,
                                      n,
@@ -172,10 +184,15 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                                      problem.GetConv().attribute.fp8rounding_mode.Get() ==
                                          miopenF8RoundingModeStochastic,
                                      problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+                }
                 else
+                {
                     handle.Run(kern)(tensors.out,
                                      tensors.w,
                                      tensors.in,
+                                     out_strides,
+                                     wei_strides,
+                                     in_strides,
                                      hi,
                                      wi,
                                      n,
@@ -192,6 +209,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                                      fy,
                                      fx,
                                      group);
+                }
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
@@ -202,7 +220,9 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     else
+    {
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -210,9 +230,26 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 const auto& tensors     = data_ctx.tensors;
                 float elapsed           = 0;
 
+                auto in_strides = conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                    group, tensors.inDesc.GetStrides(), G_stride_idx));
+                // For weights, we split K to (G, K_per_group), which is always index 0
+                auto wei_strides = conv_internal::MakeStrideArray<6>(
+                    conv_internal::SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+                auto out_strides =
+                    conv_internal::MakeStrideArray<6>(conv_internal::SplitStrideCtoGC(
+                        group, tensors.outDesc.GetStrides(), G_stride_idx));
+
+                /// \anchor backward_tensors_reversed_why
+                /// \todo Someone made the silly decision of swapping in and
+                /// out pointers in ConvTensors for backward pass, so now I have to
+                /// pass out in place of in, out_strides in place of in_strides and
+                /// vice-versa --amberhassaan
                 handle.Run(kern)(tensors.out,
                                  tensors.w,
                                  tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
                                  di,
                                  hi,
                                  wi,
@@ -245,6 +282,7 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ConvolutionContext& ctx,
                 }
             };
         };
+    }
     result.construction_params.push_back(kernel);
     return result;
 }

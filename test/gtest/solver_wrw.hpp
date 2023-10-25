@@ -32,7 +32,7 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 
@@ -59,8 +59,8 @@ struct ConvWrwSolverTest
                                              input.desc,
                                              conv_desc,
                                              miopen::conv::Direction::BackwardWeights});
-        const miopen::ConvolutionContext ctx = [&] {
-            auto tmp = miopen::ConvolutionContext{&handle};
+        const miopen::ExecutionContext ctx = [&] {
+            auto tmp = miopen::ExecutionContext{&handle};
             problem.conv_problem.SetupFloats(tmp);
             return tmp;
         }();
