@@ -206,7 +206,7 @@ MakeImplGemmDynamicForwardInvokerFactory(const ProblemDescription& problem, cons
 InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescription& problem);
 
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
-                                                             const int cfg);
+                                                             int cfg);
 
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,

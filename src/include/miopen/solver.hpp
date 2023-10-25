@@ -514,20 +514,20 @@ struct ConvAsm5x10u2v2f1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsm5x10u2v2b1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
@@ -537,10 +537,10 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
         return GetSolverDbId<ConvAsm7x7c3h224w224k64u2v2p3q3f1>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclDirectFwd11x11 final : ConvSolver
@@ -1738,13 +1738,13 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
@@ -1754,13 +1754,13 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicFwd_1x1>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
@@ -1770,18 +1770,18 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicWrw>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
@@ -1791,18 +1791,18 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicWrwXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
@@ -1812,13 +1812,13 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicBwd>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
@@ -1828,13 +1828,13 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
@@ -1844,13 +1844,13 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicBwdXdlops>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 /// Holds common member functions for the Solvers which share the same
@@ -1873,10 +1873,11 @@ private:
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    static ConvSolution BaseGetSolution(const ExecutionContext& ctx,
-                                        const miopen::conv::ProblemDescription& problem,
-                                        const LegacyPerformanceConfig& config);
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
+
+    static ConvSolution BaseGetSolution(const ExecutionContext&,
+                                        const miopen::conv::ProblemDescription&,
+                                        const LegacyPerformanceConfig&);
 
     bool IsApplicable(const ExecutionContext&,
                       const miopen::conv::ProblemDescription&) const override;
@@ -1910,26 +1911,26 @@ struct ConvBinWinograd3x3U final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinograd3x3U>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvBinWinogradRxS final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinogradRxS>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigConvBinWinogradRxS>
@@ -2201,18 +2202,18 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
             ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
@@ -2650,16 +2651,16 @@ struct fft final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<fft>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops>
@@ -2958,8 +2959,8 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
 struct GemmFwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx,
-                 const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext&,
+                 const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
@@ -2975,16 +2976,16 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
@@ -2993,16 +2994,16 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
@@ -3011,16 +3012,16 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
@@ -3029,23 +3030,23 @@ struct GemmFwdRest final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmBwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx,
-                 const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext&,
+                 const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
@@ -3060,16 +3061,16 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmBwdRest;
 };
@@ -3078,15 +3079,15 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
+    bool IsApplicable(const ExecutionContext&,
                       const miopen::conv::ProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
+    ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription& problem) const override;
 
 private:
@@ -3100,23 +3101,23 @@ struct GemmBwdRest final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmWrwBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    float GetWti(const ExecutionContext& ctx,
-                 const miopen::conv::ProblemDescription& problem) const override;
+    float GetWti(const ExecutionContext&,
+                 const miopen::conv::ProblemDescription&) const override;
 
 private:
     bool IsApplicable(const ExecutionContext&,
@@ -3130,11 +3131,11 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmWrwUniversal;
 };
@@ -3143,16 +3144,16 @@ struct GemmWrwUniversal final : GemmWrwBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
-    size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                            const miopen::conv::ProblemDescription& problem) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& ctx,
-                             const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsmImplicitGemmGTC>
@@ -3354,7 +3355,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsm
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
     std::string ToString() const override;
-    std::string ToKernelName(const ExecutionContext& ctx) const;
+    std::string ToKernelName(const ExecutionContext&) const;
     int BlockSize() const;
 };
 
@@ -4146,7 +4147,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     bool operator==(const PerformanceConfigAsmImplicitGemmGTCvector& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTCvector& other);
     std::string ToString() const override;
-    std::string ToKernelName(const ExecutionContext& ctx) const;
+    std::string ToKernelName(const ExecutionContext&) const;
     int BlockSize() const;
 };
 struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmImplicitGemmGTCvector
