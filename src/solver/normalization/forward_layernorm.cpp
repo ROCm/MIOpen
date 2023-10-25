@@ -41,25 +41,6 @@ namespace normalization {
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::normalization::ProblemDescription& problem) const
 {
-    if(problem.GetXDesc().GetType() != problem.GetYDesc().GetType())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
-    }
-
-    if(problem.GetXDesc().GetLengths() != problem.GetYDesc().GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "LayerNormForward: Tensor dimension lengths do not match.");
-    }
-
-    bool is_all_packed = problem.GetXDesc().IsPacked() && problem.GetWeightDesc().IsPacked() &&
-                         problem.GetBiasDesc().IsPacked() && problem.GetYDesc().IsPacked() &&
-                         problem.GetMeanDesc().IsPacked() && problem.GetRstdDesc().IsPacked();
-
-    if(!is_all_packed)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
-    }
     return true;
 }
 
