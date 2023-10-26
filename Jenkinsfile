@@ -589,24 +589,6 @@ pipeline {
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
                     }
                 }
-                stage('Tuna Fin Build Test') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                      fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU"
-                    }
-                    steps{
-		      buildHipClangJobAndReboot(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
-                  }
-                }
-                stage('Perf DB Validity Test') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU"
-                    }
-                    steps{
-                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
-                    }
-                }
                 stage('HipNoGPU Debug Build Test') {
                     when {
                         beforeAgent true
@@ -619,6 +601,35 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
+                    }
+                }
+                stage('Tuna Fin Build Test') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                      fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU"
+                    }
+                    steps{
+		      buildHipClangJobAndReboot(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
+                  }
+                }
+                stage('dbsync gfx908') {
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+			config_targets='test_db_sync'
+			execute_cmd='./bin/test_db_sync'
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd=execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                    }
+                }
+                stage('dbsync gfx90a') {
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+			config_targets='test_db_sync'
+			execute_cmd='./bin/test_db_sync'
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd=execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
             }
