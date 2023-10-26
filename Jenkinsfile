@@ -610,7 +610,7 @@ pipeline {
                     }
                     steps{
 		      buildHipClangJobAndReboot(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
-                  }
+                    }
                 }
                 stage('dbsync gfx908') {
                     agent{ label rocmnode("gfx908") }
@@ -619,7 +619,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd=execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('dbsync gfx90a') {
@@ -629,7 +629,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd=execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
             }
