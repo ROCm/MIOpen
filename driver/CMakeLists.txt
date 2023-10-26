@@ -23,11 +23,11 @@
 # SOFTWARE.
 # 
 ################################################################################
-cmake_minimum_required( VERSION 3.5)
 
 find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
+target_include_directories(MIOpenDriver PRIVATE ../src/kernels)
 target_link_libraries(MIOpenDriver MIOpen)
 target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
 if(NOT MIOPEN_EMBED_DB STREQUAL "")

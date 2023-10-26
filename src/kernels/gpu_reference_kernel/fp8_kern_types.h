@@ -58,6 +58,6 @@
 
 #define KERNEL_NAME_SUFFIX CAT(CAT(INPUT_TYPE, _), CAT(CAT(WEIGHTS_TYPE, _), OUTPUT_TYPE))
 
-#define FWD_KERNEL_NAME CAT(naive_conv_fwd_nchw_, KERNEL_NAME_SUFFIX)
-#define BWD_KERNEL_NAME CAT(naive_conv_bwd_nchw_, KERNEL_NAME_SUFFIX)
-#define WRW_KERNEL_NAME CAT(naive_conv_wrw_nchw_, KERNEL_NAME_SUFFIX)
+#define FWD_KERNEL_NAME CAT(naive_conv_nonpacked_fwd_nchw_, KERNEL_NAME_SUFFIX)
+#define BWD_KERNEL_NAME CAT(naive_conv_nonpacked_bwd_nchw_, KERNEL_NAME_SUFFIX)
+#define WRW_KERNEL_NAME CAT(naive_conv_nonpacked_wrw_nchw_, KERNEL_NAME_SUFFIX)

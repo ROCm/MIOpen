@@ -23,16 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "layernorm_test.hpp"
-#ifdef MIOPEN_BETA_API
 
-struct LayerNormSolverTestFloat : LayerNormSolverTest<float>
+#include <miopen/fusion/problem_description.hpp>
+
+#include <miopen/fusion/utils.hpp>
+
+namespace miopen {
+
+miopen::ProblemDescription FusionDescription::GetConvProblem(conv::Direction dir, int bias) const
 {
-};
+    const auto idx = [&]() {
+        switch(dir)
+        {
+        case conv::Direction::Forward:
+            return solver::fusion::GetOpIdx(fusion_plan_desc->op_map, miopenFusionOpConvForward);
+        case conv::Direction::BackwardData: MIOPEN_THROW(miopenStatusNotImplemented);
+        case conv::Direction::BackwardWeights: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+    return GetConvProblem(idx, dir, bias);
+}
 
-TEST_P(LayerNormSolverTestFloat, LayerNormTestFw){};
-
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormSolverTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
-#endif
+} // namespace miopen

@@ -1597,10 +1597,13 @@ void ScaleTensor(const Handle& handle,
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
-    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
+
+    if(!(dataType == miopenHalf     //
+         || dataType == miopenFloat //
+         || dataType == miopenInt32 //
+         || dataType == miopenDouble))
     {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
+        MIOPEN_THROW(miopenStatusBadParm, "ScaleTensor: unsupported data type.");
     }
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
@@ -1941,8 +1944,6 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
-    case miopenInt8x4:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
@@ -1964,11 +1965,6 @@ void CastTensor(const Handle& handle,
     if(srcDesc.GetLengths() != dstDesc.GetLengths())
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
-    }
-
-    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor cast operation is not supported for int8x4.");
     }
 
     auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
@@ -2237,24 +2233,6 @@ void TransformTensor(const Handle& handle,
             }
         }
     }
-    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
-    {
-        if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid y channel size");
-        }
-
-        transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
-    }
-    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
-    {
-        if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
-        {
-            MIOPEN_THROW("Invalid x channel size");
-        }
-
-        transpose_NCHW2Vec(handle, y_len, x, y, 4, false, false, alpha, beta);
-    }
     else
     {
         auto x_y_len          = boost::combine(x_len, y_len);
@@ -2294,12 +2272,20 @@ void TransformTensor(const Handle& handle,
         const miopenDataType_t dataTypex = xDesc_flat.GetType();
         const miopenDataType_t dataTypey = yDesc_flat.GetType();
 
-        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
+        if(!(dataTypex == miopenHalf        //
+             || dataTypex == miopenFloat    //
+             || dataTypex == miopenInt32    //
+             || dataTypex == miopenBFloat16 //
+             || dataTypex == miopenDouble))
         {
             MIOPEN_THROW("Tensor x is a unsupported data type");
         }
 
-        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
+        if(!(dataTypey == miopenHalf        //
+             || dataTypey == miopenFloat    //
+             || dataTypey == miopenInt32    //
+             || dataTypey == miopenBFloat16 //
+             || dataTypey == miopenDouble))
         {
             MIOPEN_THROW("Tensor y is a unsupported data type");
         }
