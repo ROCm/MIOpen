@@ -386,7 +386,7 @@ struct cba_fusion_driver : test_driver
                     bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1};
                     for(std::size_t i = 0; i < bias.desc.GetElementSize(); i++)
                     {
-                        bias[i] = prng::gen_descreet_uniform_sign(static_cast<T>(0.1), 100);
+                        bias[i] = prng::gen_descreet_uniform_sign<T>(0.1, 100);
                     }
                 }
 
