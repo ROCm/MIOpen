@@ -370,14 +370,12 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, workSpaceSize);
-    miopen::try_([&] {
+    return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
         std::tie(ctx, problem) = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
         *workSpaceSize         = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
-
-    return (miopenStatusSuccess);
 }
 
 namespace miopen {

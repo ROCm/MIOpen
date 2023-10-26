@@ -172,7 +172,6 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -214,7 +213,6 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -262,11 +260,10 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
+    if(problem.HasNonPackedTensors())
         return false;
-
+    if(problem.HasMixedDataTypes())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.direction.IsBackwardData())
@@ -294,7 +291,6 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -311,14 +307,13 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpBwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpBwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpBwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpBwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:

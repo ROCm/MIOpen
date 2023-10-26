@@ -50,7 +50,7 @@ void ConvDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
     {
         ss << "convbfp16";
     }
-    else if(desc.GetType() == miopenInt8 || desc.GetType() == miopenInt8x4)
+    else if(desc.GetType() == miopenInt8)
     {
         ss << "convint8";
     }
@@ -200,8 +200,6 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     ss << " -g " << convDesc.group_count;
     if(print_for_conv_driver)
         ss << " -F " << std::to_string(static_cast<int>(conv_dir)) << " -t 1"; // clang-format on
-    if(xDesc.GetType() == miopenInt8x4)
-        ss << " -Z 1";
     if(immediate_mode_solver_id.has_value())
     {
         ss << " -S " << *immediate_mode_solver_id;

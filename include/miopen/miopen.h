@@ -348,11 +348,11 @@ MIOPEN_DECLARE_OBJECT(miopenReduceTensorDescriptor);
  */
 typedef enum
 {
-    miopenHalf     = 0, /*!< 16-bit floating point (Fully supported) */
-    miopenFloat    = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32    = 2, /*!< 32-bit int point (Partially supported) */
-    miopenInt8     = 3, /*!< 8-bit int point (Partially supported) */
-    miopenInt8x4   = 4, /*!< Pack of four Int8 in NCHW_VECT_C format (Support discontinued) */
+    miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
+    miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
+    miopenInt32 = 2, /*!< 32-bit integer (Partially supported) */
+    miopenInt8  = 3, /*!< 8-bit integer (Partially supported) */
+    // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
@@ -5230,6 +5230,12 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+#ifdef MIOPEN_BETA_API
+    miopenTensorActivationX  = 4,
+    miopenTensorActivationY  = 5,
+    miopenTensorActivationDX = 6,
+    miopenTensorActivationDY = 7,
+#endif
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5457,6 +5463,23 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
  * @return         miopenStatus_t
  */
 miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
+
+#ifdef MIOPEN_BETA_API
+
+/*! @brief Initializes a problem object describing an activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateActivationProblem(miopenProblem_t* problem,
+                              miopenActivationDescriptor_t operatorDesc,
+                              miopenProblemDirection_t direction);
+
+#endif
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
