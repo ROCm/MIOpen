@@ -578,12 +578,12 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
     const auto legacy_problem = ProblemDescription{problem};
-    const auto& inDesc =
+    const auto& xDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
-    ValidateGroupCount(inDesc, weightsDesc, *this);
+    ValidateGroupCount(xDesc, weightsDesc, *this);
 
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
