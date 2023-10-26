@@ -58,34 +58,60 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
 
-    const auto run = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) {
-            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-        },
-        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
-
-    boost::apply_visitor(run, problem.GetOperatorDescriptor());
+    boost::apply_visitor(
+        boost::hof::match(
+            [&](const Problem& problem_) {
+                boost::apply_visitor(
+                    boost::hof::match(
+                        [&](const ConvolutionDescriptor& op_desc) {
+                            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+                        },
+                        [&](const ActivationDescriptor& /*op_desc*/) {
+                            MIOPEN_THROW(miopenStatusNotImplemented);
+                        }),
+                    problem_.GetOperatorDescriptor());
+            },
+            [](const FusedProblem& problem_) {
+                std::ignore = problem_;
+                MIOPEN_THROW(miopenStatusNotImplemented);
+            }),
+        problem.item);
 }
 
 void Solution::LogDriverCommand() const
 {
-    const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); },
-        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
-
-    boost::apply_visitor(log_function, problem.GetOperatorDescriptor());
+    boost::apply_visitor([&](const auto& problem_) { LogDriverCommand(problem_); }, problem.item);
 }
 
-void Solution::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
+void Solution::LogDriverCommand(const ConvolutionDescriptor& desc) const
 {
+    auto problem_ = boost::get<const Problem&>(problem.item);
     const auto& x_desc =
-        problem.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
-        problem.GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     const auto& y_desc =
-        problem.GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+        problem_.GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
     miopen::debug::LogCmdConvolution(
-        x_desc, w_desc, conv_desc, y_desc, problem.GetDirection(), solver.Value());
+        x_desc, w_desc, desc, y_desc, problem_.GetDirection(), solver.Value());
+}
+
+void Solution::LogDriverCommand(const ActivationDescriptor& desc) const
+{
+    std::ignore = desc;
+    MIOPEN_THROW(miopenStatusNotImplemented);
+}
+
+void Solution::LogDriverCommand(const Problem& problem_) const
+{
+    boost::apply_visitor([&](const auto& op_desc) { LogDriverCommand(op_desc); },
+                         problem_.GetOperatorDescriptor());
+}
+
+void Solution::LogDriverCommand(const FusedProblem& problem_) const
+{
+    std::ignore = problem_;
+    MIOPEN_THROW(miopenStatusNotImplemented);
 }
 
 void Solution::RunImpl(Handle& handle,
@@ -94,6 +120,8 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        const ConvolutionDescriptor& conv_desc)
 {
+    const auto& problem_casted = boost::get<const Problem&>(problem.item);
+
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
         if(found == inputs.end())
@@ -101,7 +129,7 @@ void Solution::RunImpl(Handle& handle,
                          "Problem is missing " + name_str + " tensor descriptor.");
         auto ret = found->second;
         if(!ret.descriptor.has_value())
-            ret.descriptor = GetProblem().GetTensorDescriptorChecked(name, name_str);
+            ret.descriptor = problem_casted.GetTensorDescriptorChecked(name, name_str);
         return ret;
     };
 
@@ -110,7 +138,7 @@ void Solution::RunImpl(Handle& handle,
     auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
     const auto problem_ =
-        conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
+        conv_desc.mode == miopenTranspose ? Transpose(problem_casted, &x, w, &y) : problem_casted;
 
     if(problem_.GetDirection() == miopenProblemDirectionBackward &&
        y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
