@@ -367,16 +367,30 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsNCHWc_NCHWc() const;
     bool IsNCHWc_CHWNc() const;
 
+    bool HasNonPackedTensors() const
+    {
+        return !(in.IsPacked() && weights.IsPacked() && out.IsPacked());
+    }
+
+    bool HasMixedDataTypes() const
+    {
+        return !(GetInDataType() == GetWeightsDataType() &&
+                 GetWeightsDataType() == GetOutDataType());
+    }
+
     void HeuristicUpdateLayouts();
 
-    void BuildConfKey(std::string& conf_key) const;
+    void MakeNetworkConfig(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
+    NetworkConfig MakeNetworkConfig() const override
     {
         std::string ret;
-        BuildConfKey(ret);
+        MakeNetworkConfig(ret);
         return NetworkConfig{ret};
     }
+
+    // Todo: remove after fixing fin
+    [[deprecated]] NetworkConfig BuildConfKey() const { return MakeNetworkConfig(); }
 
     void Serialize(std::ostream& stream) const;
 
