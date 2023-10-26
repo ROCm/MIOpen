@@ -360,6 +360,7 @@ private:
 
     miopenConvolutionDescriptor_t convDesc;
     miopenConvolutionDescriptor_t warmupConvDesc;
+    miopenConvolutionMode_t mode;
 
     bool is_wrw = true, is_bwd = true, is_fwd = true;
     bool is_wrw_winograd = false;
@@ -534,6 +535,19 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
                          inflags.GetValueStr("fil_layout") + "c" + std::to_string(vector_length));
         inflags.SetValue("out_layout",
                          inflags.GetValueStr("out_layout") + "c" + std::to_string(vector_length));
+    }
+
+    if((inflags.GetValueStr("mode")) == "conv")
+    {
+        mode = miopenConvolution;
+    }
+    else if((inflags.GetValueStr("mode")) == "trans")
+    {
+        mode = miopenTranspose;
+    }
+    else
+    {
+        MIOPEN_THROW("Incorrect Convolution Mode\n");
     }
 
     num_iterations = inflags.GetValueInt("iter");
@@ -755,13 +769,12 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
         std::vector<int> pads           = {0, 0};
         std::vector<int> conv_strides   = {1, 1};
         std::vector<int> conv_dilations = {1, 1};
-        miopenConvolutionMode_t mode    = miopenConvolution;
         miopenInitConvolutionNdDescriptor(warmupConvDesc,
                                           spatial_dim,
                                           pads.data(),
                                           conv_strides.data(),
                                           conv_dilations.data(),
-                                          mode);
+                                          miopenConvolution);
         miopenSetConvolutionFindMode(warmupConvDesc, miopenConvolutionFindModeNormal);
         miopenHiddenSetConvolutionFindMode(
             warmupConvDesc,
@@ -980,20 +993,6 @@ std::vector<int> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
         }
     }
 
-    miopenConvolutionMode_t mode;
-    if((inflags.GetValueStr("mode")) == "conv")
-    {
-        mode = miopenConvolution;
-    }
-    else if((inflags.GetValueStr("mode")) == "trans")
-    {
-        mode = miopenTranspose;
-    }
-    else
-    {
-        MIOPEN_THROW("Incorrect Convolution Mode\n");
-    }
-
     if(mode == miopenTranspose)
     {
         wei_lens[0] = wei_c_len;
@@ -1085,21 +1084,6 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
             printf("Invalid group number\n");
             exit(0); // NOLINT (concurrency-mt-unsafe)
         }
-    }
-
-    miopenConvolutionMode_t mode;
-    if((inflags.GetValueStr("mode")) == "conv")
-    {
-        mode = miopenConvolution;
-    }
-    else if((inflags.GetValueStr("mode")) == "trans")
-    {
-        mode = miopenTranspose;
-    }
-    else
-    {
-        printf("Incorrect Convolution Mode\n");
-        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     // adjust padding based on user-defined padding mode
@@ -2252,7 +2236,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(miopen::deref(convDesc).mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                       outhost,
@@ -2308,7 +2292,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         std::cout << "gpu reference convolution does not support bias yet" << std::endl;
         return -1;
     }
-    auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
+    auto ref_solution_id = mode == miopenTranspose //
                                ? miopen::solver::Id("ConvDirectNaiveConvBwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvFwd").Value();
     auto rc              = miopenConvolutionForwardImmediate(handle,
@@ -3142,7 +3126,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
 {
-    if(miopen::deref(convDesc).mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                         dout,
@@ -3178,7 +3162,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardDataCPU()
 {
-    if(miopen::deref(convDesc).mode == miopenTranspose)
+    if(mode == miopenTranspose)
     {
         cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                 dout,
@@ -3275,7 +3259,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 {
     AutoPrepareForGpuReference naive_conv_enable;
 
-    auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
+    auto ref_solution_id = mode == miopenTranspose //
                                ? miopen::solver::Id("ConvDirectNaiveConvFwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvBwd").Value();
     auto rc              = miopenConvolutionBackwardDataImmediate(handle,
@@ -3324,7 +3308,7 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
 {
     std::ostringstream ss;
 
-    miopenConvolutionMode_t mode;
+    miopenConvolutionMode_t unused;
 
     int spatial_dim = inflags.GetValueInt("spatial_dim");
 
@@ -3339,7 +3323,7 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
                                      pads.data(),
                                      conv_strides.data(),
                                      conv_dilations.data(),
-                                     &mode);
+                                     &unused);
 
     auto get_basename_string = [&]() {
         switch(direction)
@@ -3538,6 +3522,11 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         // WrW deviation is ~twice worse than Bwd due to more FP computations involved,
         // which means more roundings, so GPU amd CPU computations diverge more.
         auto tolerance = 2 * GetDefaultTolerance();
+
+        // fp32 transposed convolutions show worse precision.
+        if(mode == miopenTranspose && std::is_same<Tgpu, float>::value)
+            tolerance *= 2;
+
         // Winograd and iGemm WrW algorithms reveal bigger deviation than other algos.
         if(is_wrw_winograd && std::is_same<Tgpu, float>::value)
         {
