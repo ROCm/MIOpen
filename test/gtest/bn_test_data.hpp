@@ -123,20 +123,15 @@ struct BNTestData
 private:
     void CreateTensors()
     {
-        input   = tensor<XDataType>{miopen_type<XDataType>{}, tensor_layout, bn_config.GetInput()};
-        output  = tensor<YDataType>{miopen_type<YDataType>{}, tensor_layout, bn_config.GetInput()};
-        ref_out = tensor<YDataType>{miopen_type<YDataType>{}, tensor_layout, bn_config.GetInput()};
+        input   = tensor<XDataType>{tensor_layout, bn_config.GetInput()};
+        output  = tensor<YDataType>{tensor_layout, bn_config.GetInput()};
+        ref_out = tensor<YDataType>{tensor_layout, bn_config.GetInput()};
     }
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<XDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
-        };
-        input.generate(gen_value);
+        input.generate(
+            [](auto...) { return prng::gen_descreet_uniform_sign<XDataType>(1e-2, 100); });
     }
 
     void SetDirection() { direction = bn_config.Direction; }
@@ -187,34 +182,28 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, YDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, YDataType, TConfig>::bn_mode);
-        scale   = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                                      BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        scale   = tensor<ScaleDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                       derivedBnDesc.GetLengths()};
-        shift   = tensor<BiasDataType>{miopen_type<BiasDataType>{},
-                                     BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        shift   = tensor<BiasDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                      derivedBnDesc.GetLengths()};
-        estMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        estMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                           derivedBnDesc.GetLengths()};
-        estVariance =
-            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
+        estVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_int_distribution<> d{0, 100};
-        auto gen_value = [&](auto...) {
-            return 1e-2 * static_cast<ScaleDataType>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
 
-        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<MeanVarDataType>(d(gen)) + 1); };
+        auto gen_var = [](auto...) {
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
+        };
         estVariance.generate(gen_var);
     }
     void WriteToGPU()
@@ -273,33 +262,23 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
 private:
     void CreateTensors()
     {
-        dy = tensor<DyDataType>{miopen_type<DyDataType>{},
-                                BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+        dy = tensor<DyDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
                                 BNTestData<XDataType, DyDataType, TConfig>::bn_config.GetInput()};
 
         auto derivedBnDesc = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, DyDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, DyDataType, TConfig>::bn_mode);
-        bnScale = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
+        bnScale   = tensor<ScaleDataType>{BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
                                         derivedBnDesc.GetLengths()};
-        savedMean =
-            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                    BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
-        savedInvVar =
-            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                    BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
-        dScale =
-            tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
-                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                        derivedBnDesc.GetLengths()};
-        dBias =
-            tensor<DscaleDbiasDataType>{miopen_type<DscaleDbiasDataType>{},
-                                        BNTestData<XDataType, DyDataType, TConfig>::tensor_layout,
-                                        derivedBnDesc.GetLengths()};
+        savedMean = tensor<MeanVarDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        savedInvVar = tensor<MeanVarDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        dScale = tensor<DscaleDbiasDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        dBias = tensor<DscaleDbiasDataType>{
+            BNTestData<XDataType, DyDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
         dScale_ref = dScale;
         dBias_ref  = dBias;
     }
@@ -307,15 +286,14 @@ private:
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         dy.generate(gen_value);
         bnScale.generate(gen_value);
         savedMean.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) *
-                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         savedInvVar.generate(gen_var);
 
@@ -388,39 +366,30 @@ private:
         miopen::DeriveBNTensorDescriptor(derivedBnDesc,
                                          BNTestData<XDataType, YDataType, TConfig>::input.desc,
                                          BNTestData<XDataType, YDataType, TConfig>::bn_mode);
-        scale    = tensor<ScaleDataType>{miopen_type<ScaleDataType>{},
-                                      BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        scale    = tensor<ScaleDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                       derivedBnDesc.GetLengths()};
-        shift    = tensor<BiasDataType>{miopen_type<BiasDataType>{},
-                                     BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        shift    = tensor<BiasDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                      derivedBnDesc.GetLengths()};
-        saveMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                           BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        saveMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                            derivedBnDesc.GetLengths()};
-        saveVariance =
-            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
-        runMean = tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                          BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        saveVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
+        runMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                           derivedBnDesc.GetLengths()};
-        runVariance =
-            tensor<MeanVarDataType>{miopen_type<MeanVarDataType>{},
-                                    BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
-                                    derivedBnDesc.GetLengths()};
+        runVariance = tensor<MeanVarDataType>{
+            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign(static_cast<ScaleDataType>(1e-2), 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
         };
         scale.generate(gen_value);
         shift.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2) *
-                   static_cast<MeanVarDataType>(prng::gen_0_to_B(100) + 1);
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         runMean.generate(gen_var);
         runVariance.generate(gen_var);

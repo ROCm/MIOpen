@@ -142,8 +142,8 @@ struct ConvFwdSolverTestBase
 protected:
     void SetUpImpl(ConvTestCase conv_config, miopenTensorLayout_t tensor_layout)
     {
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         input.generate(GenData<T>{});
         weights.generate(GenWeights<T>{});
 
@@ -152,7 +152,7 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
 
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
         auto&& handle = get_handle();
@@ -165,7 +165,7 @@ protected:
     {
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out = tensor<T>{miopen_type<T>{}, output.desc.GetLayout_t(), output_desc.GetLengths()};
+        ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_forward(conv_desc.GetSpatialDimension(),

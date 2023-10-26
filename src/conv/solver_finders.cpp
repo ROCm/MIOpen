@@ -30,6 +30,7 @@
 #include <miopen/config.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
+#include <miopen/problem_description.hpp>
 
 namespace miopen {
 
@@ -41,27 +42,26 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
-class DirectSolverFinder : public SolversFinder
+class DirectSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
-public:
-    AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
+protected:
+    AlgorithmName GetAlgorithmName(const ProblemDescription& problem) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoDirect,
                                                                 problem.GetDirection())};
     }
 
-protected:
     bool IsEnabled(const ExecutionContext& /*ctx*/,
-                   const conv::ProblemDescription& /*problem*/,
-                   bool use_winograd_only) const override
+                   const ProblemDescription& /*problem*/,
+                   const ConvFindParameters& parameters) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
+        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool /*use_winograd_only*/) const override
+                                               const ConvFindParameters&) const override
     {
         return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllDirectSolutions(ctx, problem, invoke_ctx)
@@ -69,27 +69,26 @@ protected:
     }
 };
 
-class ImplicitGemmSolverFinder : public SolversFinder
+class ImplicitGemmSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
-public:
-    AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
+protected:
+    AlgorithmName GetAlgorithmName(const ProblemDescription& problem) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoImplicitGEMM,
                                                                 problem.GetDirection())};
     }
 
-protected:
     bool IsEnabled(const ExecutionContext& /*ctx*/,
-                   const conv::ProblemDescription& /*problem*/,
-                   bool use_winograd_only) const override
+                   const ProblemDescription& /*problem*/,
+                   const ConvFindParameters& parameters) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
+        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool /*use_winograd_only*/) const override
+                                               const ConvFindParameters&) const override
     {
         return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllImplicitGemmSolutions(ctx, problem, invoke_ctx)
@@ -97,72 +96,70 @@ protected:
     }
 };
 
-class FftSolverFinder : public SolversFinder
+class FftSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
-public:
-    AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
+protected:
+    AlgorithmName GetAlgorithmName(const ProblemDescription& problem) const override
     {
         return AlgorithmName{
             ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoFFT, problem.GetDirection())};
     }
 
-protected:
     bool IsEnabled(const ExecutionContext& /*ctx*/,
-                   const conv::ProblemDescription& problem,
-                   bool use_winograd_only) const override
+                   const ProblemDescription& problem,
+                   const ConvFindParameters& parameters) const override
     {
-        return !use_winograd_only && problem.GetDirection() != conv::Direction::BackwardWeights &&
+        return !parameters.use_winograd_only &&
+               problem.GetDirection() != conv::Direction::BackwardWeights &&
                !IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool /*use_winograd_only*/) const override
+                                               const ConvFindParameters&) const override
     {
         return FindAllFFTSolutions(ctx, problem, invoke_ctx);
     }
 };
 
-class GemmSolverFinder : public SolversFinder
+class GemmSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
-public:
-    AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
+protected:
+    AlgorithmName GetAlgorithmName(const ProblemDescription& problem) const override
     {
         return AlgorithmName{
             ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoGEMM, problem.GetDirection())};
     }
 
-protected:
     bool IsEnabled(const ExecutionContext& /*ctx*/,
-                   const conv::ProblemDescription& /*problem*/,
-                   bool use_winograd_only) const override
+                   const ProblemDescription& /*problem*/,
+                   const ConvFindParameters& parameters) const override
     {
-        return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
+        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool /*use_winograd_only*/) const override
+                                               const ConvFindParameters&) const override
     {
         return FindAllGemmSolutions(ctx, problem, invoke_ctx);
     }
 };
 
-class WinogradSolverFinder : public SolversFinder
+class WinogradSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
-public:
-    AlgorithmName GetAlgorithmName(const conv::ProblemDescription& problem) const override
+protected:
+    AlgorithmName GetAlgorithmName(const ProblemDescription& problem) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(miopenConvolutionAlgoWinograd,
                                                                 problem.GetDirection())};
     }
 
-protected:
     bool IsEnabled(const ExecutionContext& /*ctx*/,
-                   const conv::ProblemDescription& /*problem*/,
-                   bool /*use_winograd_only*/) const override
+                   const ProblemDescription& /*problem*/,
+                   const ConvFindParameters& /*parameters*/) const override
     {
         return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
     }
@@ -170,10 +167,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool use_winograd_only) const override
+                                               const ConvFindParameters& parameters) const override
     {
         auto ctx_copy = ctx;
-        if(use_winograd_only)
+        if(parameters.use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
         return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllWinogradSolutions(ctx_copy, problem, invoke_ctx)
@@ -181,10 +178,10 @@ protected:
     }
 };
 
-const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders()
+const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 {
     static const auto finders = []() {
-        auto tmp = std::vector<std::unique_ptr<SolversFinder>>{};
+        auto tmp = std::vector<std::unique_ptr<ISolversFinder>>{};
         tmp.emplace_back(std::make_unique<WinogradSolverFinder>());
         tmp.emplace_back(std::make_unique<DirectSolverFinder>());
         tmp.emplace_back(std::make_unique<ImplicitGemmSolverFinder>());
@@ -196,24 +193,14 @@ const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders()
     return finders;
 }
 
-static inline void AppendPointersToElements(const std::vector<miopen::solver::ConvSolution>& from,
-                                            std::vector<const miopen::solver::ConvSolution*>& to)
-{
-    std::transform(from.begin(),
-                   from.end(),
-                   std::back_inserter(to),
-                   [](const miopen::solver::ConvSolution& s) { return &s; });
-}
-
 /// Register invoker only for the best solution within algorithm.
 /// Add all solutions to the find-db record.
-template <class InvokeParams>
-static void EvaluateInvokers(Handle& handle,
-                             const std::vector<solver::ConvSolution>& solutions,
-                             const AlgorithmName& algorithm_name,
-                             const NetworkConfig& network_config,
-                             const InvokeParams& invoke_ctx,
-                             DbRecord& record)
+void EvaluateInvokers(Handle& handle,
+                      const std::vector<solver::ConvSolution>& solutions,
+                      const AlgorithmName& algorithm_name,
+                      const NetworkConfig& network_config,
+                      const AnyInvokeParams& invoke_ctx,
+                      DbRecord& record)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
@@ -275,12 +262,21 @@ static void EvaluateInvokers(Handle& handle,
     }
 }
 
-void ConvFindCore(const AnyInvokeParams& invoke_ctx,
-                  DbRecord& record,
-                  const ExecutionContext& ctx,
-                  const ProblemDescription& problem,
-                  bool use_winograd_only,
-                  const std::vector<std::unique_ptr<SolversFinder>>& finders)
+static inline void AppendPointersToElements(const std::vector<miopen::solver::ConvSolution>& from,
+                                            std::vector<const miopen::solver::ConvSolution*>& to)
+{
+    std::transform(from.begin(),
+                   from.end(),
+                   std::back_inserter(to),
+                   [](const miopen::solver::ConvSolution& s) { return &s; });
+}
+
+void FindCore(const AnyInvokeParams& invoke_ctx,
+              DbRecord& record,
+              const ExecutionContext& ctx,
+              const ProblemDescriptionBase& problem,
+              const PrimitiveFindParameters& parameters,
+              const std::vector<std::unique_ptr<ISolversFinder>>& finders)
 {
     auto& handle = ctx.GetStream();
 
@@ -289,7 +285,7 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
             return std::make_pair(f->GetAlgorithmName(problem),
-                                  f->Find(ctx, problem, invoke_ctx, use_winograd_only));
+                                  f->Find(ctx, problem, invoke_ctx, parameters));
         });
 
     // Precompile
@@ -306,7 +302,7 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
 
     // Evaluate Invokers
     AutoEnableProfiling enableProfiling{handle};
-    const auto network_config = problem.BuildConfKey();
+    const auto network_config = problem.MakeNetworkConfig();
 
     for(const auto& ss : solutions)
         if(!ss.second.empty())
