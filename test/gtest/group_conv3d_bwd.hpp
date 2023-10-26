@@ -65,10 +65,9 @@ protected:
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
         std::fill(input.begin(), input.end(), std::numeric_limits<double>::quiet_NaN());
         weights.generate(gen_value);
         conv_desc = conv_config.GetConv();
