@@ -87,7 +87,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return (outer_size > 32);
     }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     miopenLayerNormMode_t mode;
