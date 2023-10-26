@@ -1236,6 +1236,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
     auto subnorm_percentage = miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{});
+    if(subnorm_percentage != 0)
+        std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
@@ -3455,8 +3457,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     std::cout << "Forward Convolution Verifies OK on " << (UseGPUReference() ? "GPU" : "CPU")
-              << " reference (" << miopen::Value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE{}) << ", "
-              << " reference (" << error << ')' << std::endl;
+              << " reference (" << error << " < " << tolerance << ')' << std::endl;
 
     return 0;
 }
