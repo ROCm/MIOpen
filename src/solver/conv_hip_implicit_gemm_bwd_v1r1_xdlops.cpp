@@ -784,6 +784,9 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ExecutionContext& 
     if(!problem.Is2d())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(problem.IsTensorsCasted())
         return false;
 
@@ -794,9 +797,8 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+
     // gemm size
     int gemm_g       = -1;
     int gemm_m       = -1;

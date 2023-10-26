@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/object.hpp>
@@ -47,11 +48,15 @@ struct Handle;
 struct Solution;
 struct FindOptions;
 
+namespace activ {
+struct ProblemDescription;
+} // namespace activ
+
 namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
 
 struct Problem : miopenProblem
 {
@@ -83,8 +88,13 @@ struct Problem : miopenProblem
 
     conv::ProblemDescription AsConvolution() const;
 
+    activ::ProblemDescription AsActivation() const;
+
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
+
+    const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name,
+                                                const TensorDescriptor& default_value) const;
 
     Problem MakeTransposed() const;
 
@@ -112,6 +122,7 @@ private:
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
+    void LogDriverCommand(const ActivationDescriptor& descriptor) const;
 };
 
 } // namespace miopen
