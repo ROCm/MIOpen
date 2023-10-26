@@ -23,9 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
 #include <miopen/activ.hpp>
 #include <miopen/logger.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include <cassert>
 
 namespace miopen {
 
@@ -69,4 +72,19 @@ std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x)
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
+
+void to_json(nlohmann::json& json, const ActivationDescriptor& descriptor)
+{
+    json = nlohmann::json{
+        {"mode", descriptor.GetMode()},
+        {"params", descriptor.parms},
+    };
+}
+
+void from_json(const nlohmann::json& json, ActivationDescriptor& descriptor)
+{
+    json.at("mode").get_to(descriptor.mode);
+    json.at("params").get_to(descriptor.parms);
+}
+
 } // namespace miopen
