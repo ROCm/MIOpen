@@ -85,8 +85,9 @@ miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t prob
                 [&](miopen::Problem& problem2_inner) { problems.emplace_back(problem2_inner); },
                 [&](const miopen::FusedProblem& problem2_inner) {
                     problems.reserve(problems.size() + problem2_inner.problems.size());
-                    for(auto&& problem : problem2_inner.problems)
-                        problems.emplace_back(problem);
+                    std::copy(problem2_inner.problems.begin(),
+                              problem2_inner.problems.end(),
+                              std::back_inserter(problems));
                 });
 
             boost::apply_visitor(impl2, miopen::deref(problem2).item);
