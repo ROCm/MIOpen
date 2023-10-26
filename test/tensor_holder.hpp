@@ -37,7 +37,7 @@
 
 #include "serialize.hpp"
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
