@@ -5467,7 +5467,7 @@ miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgor
 #ifdef MIOPEN_BETA_API
 
 /*! @brief Initializes a problem object describing an activation operation.
- * @note As of now there is no way to actually get any solution for this kind of problems
+ * @note As of now there is no way to actually get any solution for this kind of problems.
  *
  * @param problem      Pointer to the problem to initialize
  * @param operatorDesc Descriptor of the operator to be used
@@ -5478,6 +5478,27 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
+
+/*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
+ * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
+ * needed anymore.
+ * @example
+ * miopenProblem_t problem = makeSomeProblem1();
+ * miopenProblem_t problem2 = makeSomeProblem2();
+ * miopenProblem_t problem3 = makeSomeProblem3();
+ * miopenFuseProblems(problem, problem2);
+ * // Now problem contains {problem1, problem2}
+ * miopenFuseProblems(problem, problem3);
+ * // Now problem contains {problem1, problem2, problem3}
+ * miopenDestroyProblem(problem2);
+ * miopenDestroyProblem(problem3);
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem1     The first problem to fuse. The result would be stored here.
+ * @param problem2     The second problem to fuse.
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
 
 #endif
 

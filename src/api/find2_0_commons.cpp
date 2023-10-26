@@ -37,6 +37,7 @@
 #include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
+#include <boost/hof/match.hpp>
 
 template <class OperationDescriptor>
 static miopenStatus_t MakeProblem(miopenProblem_t* problem,
@@ -44,9 +45,12 @@ static miopenStatus_t MakeProblem(miopenProblem_t* problem,
                                   miopenProblemDirection_t direction)
 {
     return miopen::try_([&] {
-        miopen::deref(problem)        = new miopen::Problem();
-        decltype(auto) problem_deref  = miopen::deref(*problem);
-        decltype(auto) operator_deref = miopen::deref(operatorDesc);
+        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& container_deref  = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+        auto& operator_deref = miopen::deref(operatorDesc);
 
         problem_deref.SetOperatorDescriptor(operator_deref);
         problem_deref.SetDirection(direction);
@@ -70,6 +74,41 @@ miopenStatus_t miopenCreateActivationProblem(miopenProblem_t* problem,
     return MakeProblem(problem, operatorDesc, direction);
 }
 
+miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
+{
+    MIOPEN_LOG_FUNCTION(problem1, problem2);
+    return miopen::try_([&] {
+        auto& problem1_deref = miopen::deref(problem1);
+
+        auto emplace_problem2 = [problem2](auto& problems) {
+            const auto impl2 = boost::hof::match(
+                [&](miopen::Problem& problem2_inner) { problems.emplace_back(problem2_inner); },
+                [&](const miopen::FusedProblem& problem2_inner) {
+                    problems.reserve(problems.size() + problem2_inner.problems.size());
+                    for(auto&& problem : problem2_inner.problems)
+                        problems.emplace_back(problem);
+                });
+
+            boost::apply_visitor(impl2, miopen::deref(problem2).item);
+        };
+
+        boost::apply_visitor(boost::hof::match(
+                                 [&](miopen::Problem& problem1_inner) {
+                                     auto tmp = miopen::FusedProblem{};
+                                     tmp.problems.reserve(2);
+                                     tmp.problems.emplace_back(problem1_inner);
+                                     emplace_problem2(tmp.problems);
+                                     problem1_deref.item = std::move(tmp);
+                                 },
+                                 [&](miopen::FusedProblem& problem1_inner) {
+                                     emplace_problem2(problem1_inner.problems);
+                                 }),
+                             miopen::deref(problem1).item);
+
+        boost::get<miopen::FusedProblem&>(miopen::deref(problem1).item).PropagateDescriptors();
+    });
+}
+
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem)
 {
     MIOPEN_LOG_FUNCTION(problem);
@@ -82,8 +121,18 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
 {
     MIOPEN_LOG_FUNCTION(problem, id, descriptor);
 
-    return miopen::try_(
-        [&] { miopen::deref(problem).RegisterTensorDescriptor(id, miopen::deref(descriptor)); });
+    return miopen::try_([&] {
+        const auto impl = boost::hof::match(
+            [&](miopen::Problem& problem) {
+                problem.RegisterTensorDescriptor(id, miopen::deref(descriptor));
+            },
+            [&](const miopen::FusedProblem&) {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Attempt to set tensor descriptor of a fused problem");
+            });
+
+        boost::apply_visitor(impl, miopen::deref(problem).item);
+    });
 }
 
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
@@ -163,15 +212,18 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 
     return miopen::try_([&] {
         auto& handle_deref        = miopen::deref(handle);
-        const auto& problem_deref = miopen::deref(problem);
+        const auto& problem_deref = miopen::deref(problem).item;
 
-        problem_deref.LogDriverCommand();
+        boost::apply_visitor([](auto&& problem) { problem.LogDriverCommand(); }, problem_deref);
 
         const auto& options_deref =
             options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
-        auto solutions_deref =
-            problem_deref.FindSolutions(handle_deref, options_deref, maxSolutions);
+        auto solutions_deref = boost::apply_visitor(
+            [&](auto&& problem) {
+                return problem.FindSolutions(handle_deref, options_deref, maxSolutions);
+            },
+            problem_deref);
 
         for(auto i = 0; i < solutions_deref.size(); ++i)
             miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
