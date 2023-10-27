@@ -153,24 +153,15 @@ const char* LoggingLevelToCString(const LoggingLevel level)
 {
     switch(level)
     {
-    case LoggingLevel::Default:
-        return "Default";
-    case LoggingLevel::Quiet:
-        return "Quiet";
-    case LoggingLevel::Fatal:
-        return "Fatal";
-    case LoggingLevel::Error:
-        return "Error";
-    case LoggingLevel::Warning:
-        return "Warning";
-    case LoggingLevel::Info:
-        return "Info";
-    case LoggingLevel::Info2:
-        return "Info2";
-    case LoggingLevel::Trace:
-        return "Trace";
-    default:
-        return "<Unknown>";
+    case LoggingLevel::Default: return "Default";
+    case LoggingLevel::Quiet: return "Quiet";
+    case LoggingLevel::Fatal: return "Fatal";
+    case LoggingLevel::Error: return "Error";
+    case LoggingLevel::Warning: return "Warning";
+    case LoggingLevel::Info: return "Info";
+    case LoggingLevel::Info2: return "Info2";
+    case LoggingLevel::Trace: return "Trace";
+    default: return "<Unknown>";
     }
 }
 bool IsLoggingCmd()

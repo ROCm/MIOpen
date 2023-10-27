@@ -42,34 +42,17 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
 
         switch(aDesc.GetType())
         {
-        case miopenHalf:
-            ss << "reducefp16";
-            break;
-        case miopenFloat:
-            ss << "reducefp";
-            break;
-        case miopenInt32:
-            ss << "reduceint";
-            break;
-        case miopenInt8:
-            ss << "reduceint8";
-            break;
-        case miopenBFloat16:
-            ss << "reducebfp16";
-            break;
-        case miopenDouble:
-            ss << "reducefp64";
-            break;
+        case miopenHalf: ss << "reducefp16"; break;
+        case miopenFloat: ss << "reducefp"; break;
+        case miopenInt32: ss << "reduceint"; break;
+        case miopenInt8: ss << "reduceint8"; break;
+        case miopenBFloat16: ss << "reducebfp16"; break;
+        case miopenDouble: ss << "reducefp64"; break;
 #ifdef MIOPEN_BETA_API
-        case miopenFloat8:
-            ss << "reducefp8";
-            break;
-        case miopenBFloat8:
-            ss << "reducebfp8";
-            break;
+        case miopenFloat8: ss << "reducefp8"; break;
+        case miopenBFloat8: ss << "reducebfp8"; break;
 #endif
-        default:
-            ss << "reduce";
+        default: ss << "reduce";
         }
 
         ss << " -A " << *reinterpret_cast<const float*>(alpha);

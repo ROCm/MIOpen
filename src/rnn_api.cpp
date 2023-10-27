@@ -540,20 +540,11 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
 
         switch(rnnMode)
         {
-        case miopenRNNRELU:
-            mode = "relu";
-            break;
-        case miopenRNNTANH:
-            mode = "tanh";
-            break;
-        case miopenLSTM:
-            mode = "lstm";
-            break;
-        case miopenGRU:
-            mode = "gru";
-            break;
-        default:
-            mode = "<UNKNOWN>";
+        case miopenRNNRELU: mode = "relu"; break;
+        case miopenRNNTANH: mode = "tanh"; break;
+        case miopenLSTM: mode = "lstm"; break;
+        case miopenGRU: mode = "gru"; break;
+        default: mode = "<UNKNOWN>";
         }
 
         std::string batch_sz;
@@ -613,20 +604,11 @@ static void LogCmdRNN(const miopenSeqTensorDescriptor_t xDesc,
 
         switch(rnnMode)
         {
-        case miopenRNNRELU:
-            mode = "relu";
-            break;
-        case miopenRNNTANH:
-            mode = "tanh";
-            break;
-        case miopenLSTM:
-            mode = "lstm";
-            break;
-        case miopenGRU:
-            mode = "gru";
-            break;
-        default:
-            mode = "<UNKNOWN>";
+        case miopenRNNRELU: mode = "relu"; break;
+        case miopenRNNTANH: mode = "tanh"; break;
+        case miopenLSTM: mode = "lstm"; break;
+        case miopenGRU: mode = "gru"; break;
+        default: mode = "<UNKNOWN>";
         }
 
         std::string seq_len_array;

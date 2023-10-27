@@ -142,16 +142,11 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
 {
     switch(layout)
     {
-    case miopen_tensor_layout_nchw:
-        return "NCHW";
-    case miopen_tensor_layout_ncdhw:
-        return "NCDHW";
-    case miopen_tensor_layout_nhwc:
-        return "NHWC";
-    case miopen_tensor_layout_ndhwc:
-        return "NDHWC";
-    default:
-        MIOPEN_THROW("Unsupported tensor layout");
+    case miopen_tensor_layout_nchw: return "NCHW";
+    case miopen_tensor_layout_ncdhw: return "NCDHW";
+    case miopen_tensor_layout_nhwc: return "NHWC";
+    case miopen_tensor_layout_ndhwc: return "NDHWC";
+    default: MIOPEN_THROW("Unsupported tensor layout");
     }
 }
 
