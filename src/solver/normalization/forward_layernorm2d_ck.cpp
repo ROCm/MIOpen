@@ -38,176 +38,164 @@ namespace solver {
 namespace normalization {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using index_t     = int32_t;
-
-constexpr index_t Rank         = 2;
-constexpr index_t NumReduceDim = 1;
-
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;
 using BF16 = ushort;
 
-struct CKArgs2DLNormFwd
+template <typename XDataType,
+          typename GammaDataType,
+          typename BetaDataType,
+          typename ComputeDataType,
+          typename YDataType>
+using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
+    XDataType,
+    GammaDataType,
+    BetaDataType,
+    ComputeDataType,
+    YDataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    2,
+    1>;
+template <typename XDataType,
+          typename GammaDataType,
+          typename BetaDataType,
+          typename ComputeDataType,
+          typename YDataType>
+using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOp<XDataType, GammaDataType, BetaDataType, ComputeDataType, YDataType>>;
+
+namespace {
+struct CKArgs
 {
-    std::vector<index_t> xyLengths;
-    std::vector<index_t> xyStrides;
-    std::vector<index_t> gammaStrides;
-    std::vector<index_t> betaStrides;
+    CKArgs(const miopen::normalization::ProblemDescription& problem)
+    {
+        auto length = problem.GetXDesc().GetLengths();
+
+        N = length[0];
+        W = length[1];
+
+        N_stride = W;
+        W_stride = 1;
+
+        xyLengths    = {N, W};
+        xyStrides    = {N_stride, W_stride};
+        gammaStrides = {0, W_stride};
+        betaStrides  = {0, W_stride};
+        epsilon      = problem.GetEpsilon();
+        ;
+    }
+
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
+    CKArgs& operator=(const CKArgs&) = default;
+
+    template <typename LNPtr>
+    auto MakeArgPtr(
+        const LNPtr& ln_ptr, ConstData_t x, ConstData_t weight, ConstData_t bias, Data_t y) const
+    {
+        return ln_ptr->MakeArgumentPointer(xyLengths,
+                                           xyStrides,
+                                           gammaStrides,
+                                           betaStrides,
+                                           xyStrides,
+                                           {1},
+                                           epsilon,
+                                           x,
+                                           weight,
+                                           bias,
+                                           y,
+                                           nullptr,
+                                           nullptr,
+                                           ck::tensor_operation::element_wise::PassThrough{});
+    }
+
+    template <typename LNPtr>
+    bool IsSupportedBy(const LNPtr& ln_ptr) const
+    {
+        auto arg_ptr = MakeArgPtr(ln_ptr, nullptr, nullptr, nullptr, nullptr);
+        return ln_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    int32_t N;
+    int32_t W;
+    int32_t N_stride;
+    int32_t W_stride;
+    std::vector<int32_t> xyLengths;
+    std::vector<int32_t> xyStrides;
+    std::vector<int32_t> gammaStrides;
+    std::vector<int32_t> betaStrides;
     float epsilon;
 };
+} // namespace
 
-CKArgs2DLNormFwd make_2d_args(const miopen::normalization::ProblemDescription& problem)
+template <typename DeviceOpType>
+int CheckCKApplicability(const miopen::normalization::ProblemDescription& problem)
 {
-    CKArgs2DLNormFwd args;
+    const auto ln_args = CKArgs{problem};
+    const auto ln_ptrs = DeviceOpType::GetInstances();
 
-    args.xyLengths.resize(Rank);
-    args.xyStrides.resize(Rank);
-    auto length = problem.GetXDesc().GetLengths();
-    auto stride = problem.GetXDesc().GetStrides();
-
-    for(int i = 0; i < Rank; i++)
-    {
-        args.xyLengths[i] = length[i];
-        args.xyStrides[i] = stride[i];
-    }
-
-    args.gammaStrides.resize(Rank);
-    args.betaStrides.resize(Rank);
-    auto wstride = problem.GetWeightDesc().GetStrides();
-    auto bstride = problem.GetBiasDesc().GetStrides();
-    int j        = wstride.size() - 1;
-    for(int i = Rank - 1; i >= 0; i--)
-    {
-        if(j < 0)
-        {
-            args.gammaStrides[i] = 0;
-            args.betaStrides[i]  = 0;
-        }
-        else
-        {
-            args.gammaStrides[i] = wstride[j];
-            args.betaStrides[i]  = bstride[j];
-        }
-        j--;
-    }
-
-    args.epsilon = problem.GetEpsilon();
-
-    return args;
+    return std::any_of(ln_ptrs.begin(), ln_ptrs.end(), [&ln_args](auto& ln_ptrs) {
+        return ln_args.IsSupportedBy(ln_ptrs);
+    });
 }
 
-template <typename XDataType,
-          typename GammaDataType,
-          typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
-static int CheckCKApplicability(const miopen::normalization::ProblemDescription& problem)
+template <typename LnPtrsType>
+typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
+                                        const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args       = make_2d_args(problem);
-    using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
-                                                                       GammaDataType,
-                                                                       BetaDataType,
-                                                                       ComputeDataType,
-                                                                       YDataType,
-                                                                       PassThrough,
-                                                                       Rank,
-                                                                       NumReduceDim>;
-    const auto ln_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
-    assert(!ln_fwd_ptrs.empty());
-    int count = 0;
-    for(const auto& it : ln_fwd_ptrs)
-    {
-        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
-                                                    args.xyStrides,
-                                                    args.gammaStrides,
-                                                    args.betaStrides,
-                                                    args.xyStrides,
-                                                    {NumReduceDim},
-                                                    args.epsilon,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    PassThrough{});
-        if(it->IsSupportedArgument(argument_ptr.get()))
-        {
-            return count;
-        }
-        count++;
-    }
-    return -1;
+    const auto ln_args = CKArgs{problem};
+    return std::find_if(ln_ptrs.begin(), ln_ptrs.end(), [&ln_args](auto& ln_ptrs) {
+        return ln_args.IsSupportedBy(ln_ptrs);
+    });
 }
 
-template <typename XDataType,
-          typename GammaDataType,
-          typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
-static void RunCKSolution(const Handle& handle,
-                          const AnyInvokeParams& primitive_parameters,
-                          const miopen::normalization::ProblemDescription& problem)
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename CastType,
+          typename ProblemDescriptionType = ProblemDescription>
+ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context,
+                                const miopen::normalization::ProblemDescription& problem)
 {
-    const auto& args = make_2d_args(problem);
+    auto ln_ptr      = DeviceOpType::GetInstances();
+    auto ln_ptr_iter = FindLnPtr(ln_ptr, problem);
 
-    using DeviceOp         = ck::tensor_operation::device::DeviceNormalization<XDataType,
-                                                                       GammaDataType,
-                                                                       BetaDataType,
-                                                                       ComputeDataType,
-                                                                       YDataType,
-                                                                       PassThrough,
-                                                                       Rank,
-                                                                       NumReduceDim>;
-    const auto ln_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
-
-    int kernel_index =
-        CheckCKApplicability<XDataType, GammaDataType, BetaDataType, ComputeDataType, YDataType>(
-            problem);
-    assert(kernel_index >= 0 && kernel_index < ln_fwd_ptrs.size());
-    auto& ln_ptr       = ln_fwd_ptrs.at(kernel_index);
-    const auto& params = primitive_parameters.CastTo<miopen::normalization::InvokeParams>();
-
-    auto argument_ptr = ln_ptr->MakeArgumentPointer(args.xyLengths,
-                                                    args.xyStrides,
-                                                    args.gammaStrides,
-                                                    args.betaStrides,
-                                                    args.xyStrides,
-                                                    {NumReduceDim},
-                                                    args.epsilon,
-                                                    {params.x},
-                                                    {params.weight},
-                                                    {params.bias},
-                                                    {params.y},
-                                                    nullptr,
-                                                    nullptr,
-                                                    PassThrough{});
-
-    auto invoker_ptr            = ln_ptr->MakeInvokerPointer();
-    const auto enable_profiling = handle.IsProfilingEnabled();
-
-    float elapsed_time =
-        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-    if(enable_profiling)
+    if(ln_ptr_iter == ln_ptr.end())
     {
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(elapsed_time);
+        MIOPEN_LOG_E("Layernorm kernel does not exist.");
+        return {miopenStatusInvalidValue};
     }
+
+    ConvSolution result;
+    result.invoker_factory =
+        [ck_args   = CKArgsType{problem},
+         sh_ln_ptr = std::shared_ptr{std::move(*ln_ptr_iter)}](const std::vector<Kernel>&) mutable {
+            return [ck_args = std::move(ck_args), sh_ln_ptr = std::move(sh_ln_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                auto argument_ptr    = ck_args.MakeArgPtr(
+                    sh_ln_ptr, data_ctx.x, data_ctx.weight, data_ctx.bias, data_ctx.y);
+                auto invoker_ptr = sh_ln_ptr->MakeInvokerPointer();
+
+                const auto enable_profiling = handle.IsProfilingEnabled();
+                float elapsed_time =
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                if(enable_profiling)
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed_time);
+                }
+            };
+        };
+    return result;
 }
 #endif
 
 bool Layernorm2DCKForward::IsApplicable(
-    const ExecutionContext& context, const miopen::normalization::ProblemDescription& problem) const
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::normalization::ProblemDescription& problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = problem;
-    return false;
-#else
+#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_LN{}))
         return false;
     if(!problem.IsRank2Dim1())
@@ -219,8 +207,10 @@ bool Layernorm2DCKForward::IsApplicable(
 
     switch(problem.GetXDesc().GetType())
     {
-    case miopenHalf: return (CheckCKApplicability<F16, F16, F16, F32, F16>(problem) != -1);
-    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32>(problem) != -1);
+    case miopenHalf:
+        return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>>(problem);
+    case miopenFloat:
+        return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenDouble:
     case miopenBFloat16:
     case miopenInt32:
@@ -229,45 +219,37 @@ bool Layernorm2DCKForward::IsApplicable(
     case miopenBFloat8:
     default: MIOPEN_THROW("Unsupported datatype");
     }
-    return false;
 #endif
+    return false;
 }
 
-ConvSolution
-Layernorm2DCKForward::GetSolution(const ExecutionContext& context,
-                                  const miopen::normalization::ProblemDescription& problem) const
+ConvSolution Layernorm2DCKForward::GetSolution(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::normalization::ProblemDescription& problem) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = problem;
-    return {};
-#else
-    std::ignore = context;
-
-    ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(problem.GetXDesc().GetType())
-            {
-            case miopenHalf:
-                RunCKSolution<F16, F16, F16, F32, F16>(handle, primitive_parameters, problem);
-                break;
-            case miopenFloat:
-                RunCKSolution<F32, F32, F32, F32, F32>(handle, primitive_parameters, problem);
-                break;
-            case miopenDouble:
-            case miopenBFloat16:
-            case miopenInt8:
-            case miopenInt32:
-            case miopenFloat8:
-            case miopenBFloat8:
-            default: MIOPEN_THROW("Unsupported datatype");
-            }
-        };
-    };
-    return result;
+#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+    switch(problem.GetXDesc().GetType())
+    {
+    case miopenHalf:
+        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>,
+                                  CKArgs,
+                                  miopen::normalization::InvokeParams>(context, problem);
+    case miopenFloat:
+        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>,
+                                  CKArgs,
+                                  miopen::normalization::InvokeParams>(context, problem);
+    case miopenDouble:
+    case miopenBFloat16:
+    case miopenInt8:
+    case miopenInt32:
+    case miopenFloat8:
+    case miopenBFloat8:
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+    }
 #endif
+    return {};
 }
 
 } // namespace normalization
