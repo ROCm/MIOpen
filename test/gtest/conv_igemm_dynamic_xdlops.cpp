@@ -78,12 +78,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf: params = Conv2dHalf::GetParam(); break;
     case miopenInt8:
     case miopenBFloat16:
-    case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "miopenInt8, miopenBFloat16, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic_xdlops test";
 

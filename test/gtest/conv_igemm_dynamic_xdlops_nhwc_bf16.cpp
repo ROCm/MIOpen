@@ -74,12 +74,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenFloat:
     case miopenHalf:
     case miopenInt8:
-    case miopenInt8x4:
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "miopenFloat, miopenHalf, miopenInt8, miopenInt8x4, miopenInt32, "
+        FAIL() << "miopenFloat, miopenHalf, miopenInt8, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_bf16 test";
 
