@@ -300,6 +300,9 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
+        return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;

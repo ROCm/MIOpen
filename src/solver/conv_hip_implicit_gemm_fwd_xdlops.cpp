@@ -297,7 +297,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+        return false;
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
     if(problem.IsTensorsCasted())
         return false;

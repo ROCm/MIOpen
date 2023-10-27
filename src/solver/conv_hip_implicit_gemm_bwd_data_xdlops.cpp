@@ -289,7 +289,10 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+        return false;
+    // needed because layout transpose kernel does not support non-packed tensors
+    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
