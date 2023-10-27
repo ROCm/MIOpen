@@ -298,12 +298,16 @@ extern "C" miopenStatus_t miopenGetRNNTempSpaceSizes(miopenHandle_t handle,
 
     return miopen::try_([&] {
         if(workSpaceSize != nullptr)
+        {
             miopen::deref(workSpaceSize) = miopen::deref(rnnDesc).GetMaxWorkspaceSize(
                 miopen::deref(handle), miopen::deref(xDesc), fwdMode);
+        }
 
         if((fwdMode == miopenRNNTraining) && reserveSpaceSize != nullptr)
+        {
             miopen::deref(reserveSpaceSize) = miopen::deref(rnnDesc).GetMaxReserveSize(
                 miopen::deref(handle), miopen::deref(xDesc));
+        }
     });
 }
 
@@ -533,16 +537,24 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
     {
         std::string mode;
         miopenRNNMode_t rnnMode = miopen::deref(rnnDesc).rnnMode;
-        if(rnnMode == miopenRNNRELU)
+
+        switch(rnnMode)
+        {
+        case miopenRNNRELU:
             mode = "relu";
-        else if(rnnMode == miopenRNNTANH)
+            break;
+        case miopenRNNTANH:
             mode = "tanh";
-        else if(rnnMode == miopenLSTM)
+            break;
+        case miopenLSTM:
             mode = "lstm";
-        else if(rnnMode == miopenGRU)
+            break;
+        case miopenGRU:
             mode = "gru";
-        else
+            break;
+        default:
             mode = "<UNKNOWN>";
+        }
 
         std::string batch_sz;
         if(miopen::deref(xDesc[0]).GetLengths()[0] ==
@@ -598,16 +610,24 @@ static void LogCmdRNN(const miopenSeqTensorDescriptor_t xDesc,
     {
         std::string mode;
         miopenRNNMode_t rnnMode = miopen::deref(rnnDesc).rnnMode;
-        if(rnnMode == miopenRNNRELU)
+
+        switch(rnnMode)
+        {
+        case miopenRNNRELU:
             mode = "relu";
-        else if(rnnMode == miopenRNNTANH)
+            break;
+        case miopenRNNTANH:
             mode = "tanh";
-        else if(rnnMode == miopenLSTM)
+            break;
+        case miopenLSTM:
             mode = "lstm";
-        else if(rnnMode == miopenGRU)
+            break;
+        case miopenGRU:
             mode = "gru";
-        else
+            break;
+        default:
             mode = "<UNKNOWN>";
+        }
 
         std::string seq_len_array;
         {

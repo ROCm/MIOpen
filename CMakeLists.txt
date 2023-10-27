@@ -559,8 +559,6 @@ enable_clang_tidy(
         -bugprone-macro-parentheses
         # too many narrowing conversions in our code
         -bugprone-narrowing-conversions
-        -cert-dcl37-c
-        -cert-dcl51-cpp
         -cert-env33-c
         # Yea we shouldn't be using rand()
         -cert-msc30-c
@@ -589,12 +587,10 @@ enable_clang_tidy(
         -cppcoreguidelines-special-member-functions
         -fuchsia-*
         -google-explicit-constructor
-        -google-readability-braces-around-statements
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
         -hicpp-avoid-c-arrays
-        -hicpp-braces-around-statements
         -hicpp-explicit-conversions
         -hicpp-named-parameter
         -hicpp-no-array-decay
@@ -630,7 +626,6 @@ enable_clang_tidy(
         -modernize-concat-nested-namespaces
         -modernize-unary-static-assert
         -performance-unnecessary-value-param
-        -readability-braces-around-statements
         -readability-convert-member-functions-to-static
         -readability-else-after-return
         # TODO We are not ready to use it, but very useful.

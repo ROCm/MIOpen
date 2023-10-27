@@ -1200,7 +1200,9 @@ std::size_t ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(
     const ExecutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto k = ProblemInterpreter::GetOutputChannelK(problem);

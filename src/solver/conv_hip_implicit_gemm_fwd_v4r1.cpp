@@ -292,10 +292,14 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
         if(KernelFilterHeightY(problem) * KernelFilterWidthX(problem) >= WeiBlockCopySubLengths_E)
+        {
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
+        }
         else
+        {
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
                 static_cast<int>(KernelFilterHeightY(problem) * KernelFilterWidthX(problem)));
+        }
     }
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;

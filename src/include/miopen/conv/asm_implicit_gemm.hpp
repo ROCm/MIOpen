@@ -255,7 +255,9 @@ static inline int igemm_split_batch_size(const int hi,
     // max_n * image_size <= max_tensor_size
     size_t max_n = max_tensor_size / image_size;
     if(max_n > n)
+    {
         max_n = n % max_n;
+    }
     else if(max_n < n)
     {
         // find the smallest multiple m of n such that (n / m) * image_size <= max_tensor_size.
@@ -265,7 +267,9 @@ static inline int igemm_split_batch_size(const int hi,
         while(n % max_n != 0)
         {
             if(n % m == 0)
+            {
                 max_n = n / m;
+            }
             else
             {
                 m += 1;

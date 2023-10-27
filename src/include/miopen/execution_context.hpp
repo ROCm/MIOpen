@@ -219,10 +219,14 @@ struct ExecutionContext
                             try
                             {
                                 if(pos != std::string::npos)
+                                {
                                     cur_count = std::stoi(fname.substr(pos + 1));
+                                }
                                 else
+                                {
                                     cur_count =
                                         std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                                }
                             }
                             catch(const std::exception& e)
                             {

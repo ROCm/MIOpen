@@ -490,6 +490,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
         xDesc, wDesc, convDesc, yDesc, miopen::debug::ConvDirection::Fwd, false);
     /// workaround for previous trans conv logic
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             miopen::deref(convDesc).FindConvBwdDataAlgorithm(miopen::deref(handle),
                                                              miopen::deref(xDesc),
@@ -512,6 +513,7 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
                     static_cast<miopenConvFwdAlgorithm_t>(perfResults[i].bwd_data_algo);
             }
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).FindConvFwdAlgorithm(miopen::deref(handle),
@@ -563,6 +565,7 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 
     /// workaround for previous trans conv logic
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             // It is guaranteed that enum values are equal, see conv_algo_name.cpp
             const auto algo_trans = static_cast<miopenConvBwdDataAlgorithm_t>(algo);
@@ -579,6 +582,7 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
                                                             DataCast(workSpace),
                                                             workSpaceSize);
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionForward(miopen::deref(handle),
@@ -654,8 +658,10 @@ static inline void ReturnSolutions(const std::vector<miopenConvSolution_t>& solu
     if(solution_count_ret != nullptr)
         *solution_count_ret = solutions.size();
     if(solutions_ret != nullptr)
+    {
         for(auto i = 0; i < solutions.size(); ++i)
             solutions_ret[i] = solutions[i];
+    }
 }
 
 extern "C" miopenStatus_t
@@ -694,19 +700,23 @@ miopenConvolutionForwardGetSolutionWorkspaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetBackwardSolutionWorkspaceSize(miopen::deref(handle),
                                                                          miopen::deref(xDesc),
                                                                          miopen::deref(wDesc),
                                                                          miopen::deref(yDesc),
                                                                          solution_id);
+        }
         else
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
                                                                         miopen::deref(wDesc),
                                                                         miopen::deref(xDesc),
                                                                         miopen::deref(yDesc),
                                                                         solution_id);
+        }
     });
 }
 
@@ -747,6 +757,7 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
 
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             miopen::deref(convDesc).ConvolutionBackwardImmediate(miopen::deref(handle),
                                                                  miopen::deref(xDesc),
                                                                  DataCast(x),
@@ -757,7 +768,9 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
                                                                  DataCast(workSpace),
                                                                  workSpaceSize,
                                                                  solution_id);
+        }
         else
+        {
             miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
                                                                 miopen::deref(wDesc),
                                                                 DataCast(w),
@@ -768,6 +781,7 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
                                                                 DataCast(workSpace),
                                                                 workSpaceSize,
                                                                 solution_id);
+        }
     });
 }
 
@@ -825,19 +839,23 @@ miopenConvolutionBackwardDataGetSolutionWorkspaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetForwardSolutionWorkspaceSize(miopen::deref(handle),
                                                                         miopen::deref(wDesc),
                                                                         miopen::deref(dyDesc),
                                                                         miopen::deref(dxDesc),
                                                                         solution_id);
+        }
         else
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetBackwardSolutionWorkspaceSize(miopen::deref(handle),
                                                                          miopen::deref(dyDesc),
                                                                          miopen::deref(wDesc),
                                                                          miopen::deref(dxDesc),
                                                                          solution_id);
+        }
     });
 }
 
@@ -877,6 +895,7 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
         dxDesc, wDesc, convDesc, dyDesc, miopen::debug::ConvDirection::Bwd, true);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             miopen::deref(convDesc).ConvolutionForwardImmediate(miopen::deref(handle),
                                                                 miopen::deref(wDesc),
                                                                 DataCast(w),
@@ -887,7 +906,9 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
                                                                 DataCast(workSpace),
                                                                 workSpaceSize,
                                                                 solution_id);
+        }
         else
+        {
             miopen::deref(convDesc).ConvolutionBackwardImmediate(miopen::deref(handle),
                                                                  miopen::deref(dyDesc),
                                                                  DataCast(dy),
@@ -898,6 +919,7 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
                                                                  DataCast(workSpace),
                                                                  workSpaceSize,
                                                                  solution_id);
+        }
     });
 }
 
@@ -955,19 +977,23 @@ extern "C" miopenStatus_t miopenConvolutionBackwardWeightsGetSolutionWorkspaceSi
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id, workSpaceSize);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetWrwSolutionWorkspaceSize(miopen::deref(handle),
                                                                     miopen::deref(xDesc),
                                                                     miopen::deref(dyDesc),
                                                                     miopen::deref(dwDesc),
                                                                     solution_id);
+        }
         else
+        {
             *workSpaceSize =
                 miopen::deref(convDesc).GetWrwSolutionWorkspaceSize(miopen::deref(handle),
                                                                     miopen::deref(dyDesc),
                                                                     miopen::deref(xDesc),
                                                                     miopen::deref(dwDesc),
                                                                     solution_id);
+        }
     });
 }
 
@@ -1007,6 +1033,7 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
         xDesc, dwDesc, convDesc, dyDesc, miopen::debug::ConvDirection::WrW, true);
     return miopen::try_([&] {
         if(miopen::deref(convDesc).mode == miopenTranspose)
+        {
             miopen::deref(convDesc).ConvolutionWrwImmediate(miopen::deref(handle),
                                                             miopen::deref(xDesc),
                                                             DataCast(x),
@@ -1017,7 +1044,9 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
                                                             DataCast(workSpace),
                                                             workSpaceSize,
                                                             solution_id);
+        }
         else
+        {
             miopen::deref(convDesc).ConvolutionWrwImmediate(miopen::deref(handle),
                                                             miopen::deref(dyDesc),
                                                             DataCast(dy),
@@ -1028,6 +1057,7 @@ miopenConvolutionBackwardWeightsImmediate(miopenHandle_t handle,
                                                             DataCast(workSpace),
                                                             workSpaceSize,
                                                             solution_id);
+        }
     });
 }
 
@@ -1067,6 +1097,7 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
         dxDesc, wDesc, convDesc, dyDesc, miopen::debug::ConvDirection::Bwd, false);
     /// workaround for previous trans conv logic
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             miopen::deref(convDesc).FindConvFwdAlgorithm(miopen::deref(handle),
                                                          miopen::deref(dyDesc),
@@ -1089,6 +1120,7 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
                     static_cast<miopenConvBwdDataAlgorithm_t>(perfResults[i].fwd_algo);
             }
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).FindConvBwdDataAlgorithm(miopen::deref(handle),
@@ -1141,6 +1173,7 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
 
     /// workaround for previous trans conv logic
     if(miopen::deref(convDesc).mode == miopenTranspose)
+    {
         return miopen::try_([&] {
             // It is guaranteed that enum values are equal, see conv_algo_name.cpp
             const auto algo_trans = static_cast<miopenConvFwdAlgorithm_t>(algo);
@@ -1157,6 +1190,7 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
                                                        DataCast(workSpace),
                                                        workSpaceSize);
         });
+    }
 
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionBackwardData(miopen::deref(handle),

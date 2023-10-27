@@ -45,8 +45,10 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_266868
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
+    {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
             return false;
+    }
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
@@ -63,9 +65,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(problem.IsTensorsCasted())
         return false;

@@ -334,9 +334,11 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
             }
 
             if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
+            {
                 MIOPEN_THROW("Not enough workspace for GemmBwd1x1_stride2. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
+            }
 
             // Initialization required for upsampling in bwd direction
             float zero = 0.f;
@@ -375,6 +377,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
             if(conv_params.type == InvokeType::Run)
             {
                 if(group_count > 1)
+                {
                     gemm_status = CallGemmStridedBatched(handle,
                                                          gemm_desc,
                                                          w,
@@ -384,7 +387,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                                          workspace,
                                                          dyDesc_.GetElementSize(),
                                                          GemmBackend_t::rocblas);
+                }
                 else
+                {
                     // tensors.dx = CNHW2NCHW(transpose(tensors.w) * NCHW2CNHW(tensors.dy))
                     gemm_status = CallGemm(handle,
                                            gemm_desc,
@@ -395,6 +400,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                            workspace,
                                            dyDesc_.GetElementSize(),
                                            GemmBackend_t::rocblas);
+                }
             }
             else
             {
@@ -774,9 +780,11 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
             }
 
             if((workspace_req > 0 && workspace == nullptr) || workspace_size < workspace_req)
+            {
                 MIOPEN_THROW("Not enough workspace for GemmBwdRest. (" +
                              std::to_string(workspace_size) + " < " +
                              std::to_string(workspace_req) + ")");
+            }
 
             const auto gemm_desc = [&]() {
                 auto tmp            = tmp_gemm_desc;
@@ -796,6 +804,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
                     // tensors.dx = transpose(tensors.w) * tensors.dy
                     if(group_count > 1)
+                    {
                         gemm_status = CallGemmStridedBatched(handle,
                                                              gemm_desc,
                                                              w,
@@ -805,7 +814,9 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                                                              workspace,
                                                              0,
                                                              GemmBackend_t::rocblas);
+                    }
                     else
+                    {
                         gemm_status = CallGemm(handle,
                                                gemm_desc,
                                                w,
@@ -815,6 +826,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                                                workspace,
                                                0,
                                                GemmBackend_t::rocblas);
+                    }
 
                     if(gemm_status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmBwdRest execution failure.");

@@ -729,8 +729,10 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(
                     {
                         if(miopen::IsDisabled(
                                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+                        {
                             if(problem.IsFp16() && gks > 0)
                                 vector_store = 1;
+                        }
                         if(gks > 0)
                             gemm_k_global_split = static_cast<int>(gks);
                     }
@@ -795,11 +797,15 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
+    {
         return false;
+    }
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    {
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
+    }
 
     const auto group      = problem.GetGroupCount();
     const int k           = problem.GetInChannels_();
@@ -1018,10 +1024,12 @@ size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
     }
 
     if(!problem.IsFp32())
+    {
         size_tensor_cast =
             miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                              // kernel is FP32, when using FP32 atomic
             * n * c * hi * wi;
+    }
 
     MultiBufferWorkspaceTraits wt(
         {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);

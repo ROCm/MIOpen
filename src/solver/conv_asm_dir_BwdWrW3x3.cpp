@@ -153,21 +153,29 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
     {
         if((problem.GetOutChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0) ||
            (problem.GetInChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0))
+        {
             return false;
+        }
     }
     else
     {
         if((problem.GetOutChannels_() % (GetKPerWave() * problem.GetGroupCount()) != 0) ||
            (problem.GetInChannels_() % (GetCPerWave() * problem.GetGroupCount()) != 0))
+        {
             return false;
+        }
     }
     if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels_() % (64 / chunk_size) != 0))
+    {
         return false;
+    }
     if((reverse_inout != 0 ? problem.GetInChannels_() : problem.GetOutChannels_()) %
            GetCPerWave() !=
        0)
+    {
         return false;
+    }
     if(!(chunk_size * k_per_wave <= 64))
         return false;
     if((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) % k_per_wave !=
@@ -217,8 +225,10 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
         if(!(vgprs <= 256))
             return false;
         if(n_per_group > 4)
+        {
             if(!(vgprs <= 128))
                 return false;
+        }
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
         const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size *
@@ -258,39 +268,61 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ExecutionContext& ctx
     chunk_size = (problem.GetOutWidth_() < 48) ? 8 : 16;
     if((problem.GetOutChannels_() % (64 / chunk_size) != 0) &&
        (problem.GetInChannels_() % (64 / chunk_size) != 0))
+    {
         chunk_size = 16; // Fixup for correctness
+    }
 
     reverse_inout = 0;
     if(IsReverseInOutAllowed(problem) &&
        ((problem.GetOutChannels_() % 4 != 0) || (problem.GetOutWidth_() < 8)))
+    {
         reverse_inout = 1;
+    }
 
     const auto c_k =
         problem.GetOutChannels_() * problem.GetInChannels_() / problem.GetGroupCount(); // C*K
     if(c_k < 256)
+    {
         k_per_wave = 1;
+    }
     else if(c_k < 16384)
+    {
         k_per_wave = 2;
+    }
     else // C*K >= 16k
+    {
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
+    }
     while((reverse_inout != 0 ? problem.GetOutChannels_() : problem.GetInChannels_()) %
               k_per_wave !=
           0)
+    {
         k_per_wave /= 2; // Fixup for correctness
+    }
 
     if(c_k <= 512)
+    {
         n_per_group = 8;
+    }
     else if(c_k <= 4096)
+    {
         n_per_group = 4;
+    }
     else if(c_k <= 8192)
+    {
         n_per_group = 2;
+    }
     else
+    {
         n_per_group = 1;
+    }
     if(n_per_group > problem.GetBatchSize_())
         n_per_group = problem.GetBatchSize_(); // n_per_group should never be > batch size.
     if(problem.GetOutWidth_() >= 256 &&
        n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
+    {
         n_per_group = 4;
+    }
 
     pipe_lines_depth = (problem.GetOutHeight_() <= 1) ? 1 : 2;
     if((problem.GetOutHeight_() < 8) && (problem.GetOutWidth_() < 64))

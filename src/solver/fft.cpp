@@ -317,9 +317,13 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 
     if(((in_h == 28) && (in_w == 28)) || ((in_h == 14) && (in_w == 14)) ||
        ((in_h == 7) && (in_w == 7)))
+    {
         cgemm_choice = 2;
+    }
     else if((in_h == 27) && (in_w == 27))
+    {
         cgemm_choice = 1;
+    }
 
     if((in_n < 16) || (in_c < 16) || (out_c < 16))
         cgemm_choice = 0;
@@ -343,13 +347,21 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     }
 
     if((in_h == 28) && (in_w == 28))
+    {
         parms += " -DCFF_IMG_SZ_28_28";
+    }
     else if((in_h == 27) && (in_w == 27))
+    {
         parms += " -DCFF_IMG_SZ_27_27";
+    }
     else if((in_h == 14) && (in_w == 14))
+    {
         parms += " -DCFF_IMG_SZ_14_14";
+    }
     else if((in_h == 7) && (in_w == 7))
+    {
         parms += " -DCFF_IMG_SZ_7_7";
+    }
 
     const auto workSpaceSize = GetWorkspaceSize(ctx, problem);
 
@@ -428,9 +440,11 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
+            {
                 MIOPEN_THROW("Not enough workspace for FFT: expected " +
                              std::to_string(workSpaceSize) + ", got " +
                              std::to_string(params.workSpaceSize));
+            }
 
             float time_fft = 0;
             int kernel_id  = 0;

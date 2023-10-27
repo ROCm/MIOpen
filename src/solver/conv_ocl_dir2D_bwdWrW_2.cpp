@@ -424,6 +424,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
     n_waves                                = 1;
     read_size                              = 6;
     const auto n_output_channels_per_group = problem.GetInChannels_() / problem.GetGroupCount();
+    // NOLINTBEGIN(*-braces-around-statements)
     if(n_output_channels_per_group % 4 == 0)
         n_out_channels_per_tile = 4;
     else if(n_output_channels_per_group % 3 == 0)
@@ -432,6 +433,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
         n_out_channels_per_tile = 2;
     else
         n_out_channels_per_tile = 1;
+    // NOLINTEND(*-braces-around-statements)
     n_out_channels_tiles = 1;
     n_out_rows_in_lcl    = problem.GetWeightsHeight_();
 }

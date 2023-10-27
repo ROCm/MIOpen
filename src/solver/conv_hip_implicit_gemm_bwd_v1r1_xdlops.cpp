@@ -721,7 +721,9 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ExecutionContext&,
                                                        const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto y          = ProblemInterpreter::GetFilterHeightY(problem);

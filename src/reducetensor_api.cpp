@@ -39,16 +39,24 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(aDesc.GetType() == miopenHalf)
+
+        switch(aDesc.GetType())
+        {
+        case miopenHalf:
             ss << "reducefp16";
-        else if(aDesc.GetType() == miopenBFloat16)
-            ss << "reducebfp16";
-        else if(aDesc.GetType() == miopenInt8)
+            break;
+        case miopenInt8:
             ss << "reduceint8";
-        else if(aDesc.GetType() == miopenDouble)
+            break;
+        case miopenBFloat16:
+            ss << "reducebfp16";
+            break;
+        case miopenDouble:
             ss << "reducefp64";
-        else
+            break;
+        default:
             ss << "reduce";
+        }
 
         ss << " -A " << *reinterpret_cast<const float*>(alpha);
         ss << " -B " << *reinterpret_cast<const float*>(beta);

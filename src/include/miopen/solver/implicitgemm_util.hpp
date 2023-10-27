@@ -232,11 +232,17 @@ GetEPackLength(const ExecutionContext& ctx, const ProblemDescription& problem, b
     int EPACK = 1;
     if(problem.IsFp16()) // for fp16, either 2 or 4 Es could be packed
     {
-        if(IsXdlopsSupport(ctx) && isXdlopsInvoked) // in xdlops, 4 fp16s are packed
+        if(IsXdlopsSupport(ctx) && isXdlopsInvoked)
+        {
+            // in xdlops, 4 fp16s are packed
             EPACK = 4;
-        else // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
+        }
+        else
+        {
+            // for fp16, either 2 or 4 Es could be packed in non-xdlops scenarios.
             // EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
             EPACK = 2;
+        }
     }
     else if(problem.IsBfp16()) // for bfp16, only 2 Es could be packed
     {

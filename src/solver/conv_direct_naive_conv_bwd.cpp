@@ -118,7 +118,9 @@ ConvSolution ConvDirectNaiveConvBwd::GetSolution(const ExecutionContext& ctx,
             grid_size = static_cast<size_t>(group) * n * di;
     }
     else
+    {
         MIOPEN_THROW("Unsupported layout");
+    }
 
     KernelInfo kernel;
 

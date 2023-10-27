@@ -342,10 +342,14 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ExecutionContext& ctx,
 
     const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    {
         bfp16_convert = 0;
+    }
     else
+    {
         bfp16_convert =
             (problem.GetOutDataType() == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
+    }
 
     if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) + bfp16_convert <=
          (n_part_cnt > 4 ? 128 : 256)))

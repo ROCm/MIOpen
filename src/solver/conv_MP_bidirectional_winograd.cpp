@@ -229,9 +229,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     {
         unsigned int const waves_in_group = 512 / wave_size;
@@ -325,9 +323,7 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     // ROCBLAS for GEMM step
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(problem.IsTensorsCasted())
         return false;
@@ -339,20 +335,30 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3{}))
             return false;
+    }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3{}))
             return false;
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3{}))
             return false;
+    }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3{}))
             return false;
+    }
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem);
 }
@@ -853,20 +859,30 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3{}))
             return false;
+    }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
             return false;
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
             return false;
+    }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
             return false;
+    }
 
     const auto xdlops_problem = GetTransformedProblem(problem);
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);

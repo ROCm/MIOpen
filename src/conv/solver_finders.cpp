@@ -305,8 +305,10 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
     const auto network_config = problem.MakeNetworkConfig();
 
     for(const auto& ss : solutions)
+    {
         if(!ss.second.empty())
             EvaluateInvokers(handle, ss.second, ss.first, network_config, invoke_ctx, record);
+    }
 }
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
