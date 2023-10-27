@@ -8,7 +8,7 @@ def miopenCheckout()
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        extensions: scm.extensions + [[$class: 'GitLFSPull'], [$class: 'SubmoduleOption', parentCredentials: true]],
         userRemoteConfigs: scm.userRemoteConfigs
     ])
 }
@@ -251,7 +251,6 @@ def buildHipClangJob(Map conf=[:]){
 
         def codecov = conf.get("codecov", false)
         def needs_gpu = conf.get("needs_gpu", true)
-        def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
         gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
@@ -285,10 +284,6 @@ def buildHipClangJob(Map conf=[:]){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 150, unit:'MINUTES')
                 {
-                    if (lfs_pull) {
-                        sh "git lfs pull --exclude="
-                    }
-
                     cmake_build(conf)
 
                     if (codecov) {
@@ -624,7 +619,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('dbsync gfx90a') {
@@ -634,7 +629,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
             }
