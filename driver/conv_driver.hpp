@@ -74,14 +74,18 @@
 #include <boost/optional.hpp>
 
 // Declare hidden function for MIGraphX to smoke test it.
-extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                             int findMode);
+extern "C" MIOPEN_EXPORT miopenStatus_t
+miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
+
+// Support in the library discontinued, but left in the driver
+// for reference in the future.
+#define miopenInt8x4 (static_cast<miopenDataType_t>(4))
 
 #if MIOPEN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
@@ -1421,16 +1425,13 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen_type<Tref>{},
-                           miopen::deref(outputTensor).GetLayout_t(),
+    outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLayout_t(),
                            miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
-    din_host  = tensor<Tref>(miopen_type<Tref>{},
-                            miopen::deref(inputTensor).GetLayout_t(),
+    din_host  = tensor<Tref>(miopen::deref(inputTensor).GetLayout_t(),
                             miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());
-    dwei_host = tensor<Tref>(miopen_type<Tref>{},
-                             miopen::deref(weightTensor).GetLayout_t(),
+    dwei_host = tensor<Tref>(miopen::deref(weightTensor).GetLayout_t(),
                              miopen::deref(weightTensor).GetLengths(),
                              miopen::deref(weightTensor).GetStrides());
 

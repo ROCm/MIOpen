@@ -207,8 +207,8 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 // Hidden C++ functions for MIGraphX.
-extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                             int findMode)
+extern "C" MIOPEN_EXPORT miopenStatus_t
+miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode)
 {
     return miopen::try_([&] {
         miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
@@ -380,19 +380,18 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, workSpaceSize);
-    miopen::try_([&] {
+    return miopen::try_([&] {
         auto ctx               = ExecutionContext{};
         auto problem           = ProblemDescription{};
         std::tie(ctx, problem) = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
         *workSpaceSize         = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
-
-    return (miopenStatusSuccess);
 }
 
 namespace miopen {
 namespace debug {
 
+MIOPEN_EXPORT
 void LogCmdConvolution(const miopen::TensorDescriptor& x,
                        const miopen::TensorDescriptor& w,
                        const miopen::ConvolutionDescriptor& conv,
@@ -407,6 +406,7 @@ void LogCmdConvolution(const miopen::TensorDescriptor& x,
     }
 }
 
+MIOPEN_EXPORT
 void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            const miopen::TensorDescriptor& w,
                            const miopen::ConvolutionDescriptor& conv,
@@ -421,6 +421,7 @@ void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
     }
 }
 
+MIOPEN_EXPORT
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
@@ -437,6 +438,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
     }
 }
 
+MIOPEN_EXPORT
 void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,

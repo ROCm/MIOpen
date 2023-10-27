@@ -191,7 +191,6 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -234,7 +233,6 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -282,9 +280,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(problem.HasMixedDataTypes())
         return false;
     if(!problem.direction.IsForward())
         return false;
@@ -313,7 +311,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }

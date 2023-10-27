@@ -97,7 +97,10 @@ ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
-        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
 
     ConvSolution result;
     result.invoker_factory =
@@ -500,7 +503,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
-        MIOPEN_THROW("PerformanceConfig kernel '" + kernel_id + "' does not exist");
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
 
     result.invoker_factory =
         [ck_args        = std::move(ck_args),

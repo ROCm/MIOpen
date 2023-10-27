@@ -40,7 +40,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -612,9 +612,9 @@ miopenStatus_t CallGemm(const Handle& handle,
         };
         break;
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
         };
         break;
         }
@@ -879,10 +879,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             break;
         }
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
-        };
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
         break;
         }
 
@@ -1144,10 +1144,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             break;
         }
 
-        case miopenInt8x4:
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "Unknown or unsupported data type.");
-        };
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "miopenDouble data type not supported by MIOpenGEMM.");
+        }
         break;
         }
 

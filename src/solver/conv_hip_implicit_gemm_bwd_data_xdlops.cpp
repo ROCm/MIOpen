@@ -191,7 +191,6 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -233,7 +232,6 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -281,11 +279,10 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
+    if(problem.HasNonPackedTensors())
         return false;
-
+    if(problem.HasMixedDataTypes())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.direction.IsBackwardData())
@@ -313,7 +310,6 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: break;
     }
@@ -331,7 +327,11 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryBwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            /// \todo This call should be InitInvokerFactoryBwdNCHW but due to the
+            /// silliness of "in tensor is out and out is in" in backward pass,
+            /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
+            /// output -- amberhassaan
+            return InitInvokerFactoryFwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
