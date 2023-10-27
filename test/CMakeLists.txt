@@ -750,14 +750,14 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     set_tests_properties(test_miopendriver_regression_big_tensor
         PROPERTIES TIMEOUT 600)
 
-    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX94X_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
+    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for:
         #   [SWDEV-375617] Fix 3d convolution Host API bug
         #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1935
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_regression OCL_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression_issue_2047 OCL_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
         # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
         COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
             $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
