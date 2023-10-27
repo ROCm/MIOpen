@@ -8,7 +8,8 @@ def miopenCheckout()
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'GitLFSPull'], [$class: 'SubmoduleOption', parentCredentials: true]],
+        //extensions: scm.extensions + [[$class: 'GitLFSPull'], [$class: 'SubmoduleOption', parentCredentials: true]],
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
         userRemoteConfigs: scm.userRemoteConfigs
     ])
 }
@@ -236,8 +237,14 @@ def getDockerImage(Map conf=[:])
 }
 
 def buildHipClangJob(Map conf=[:]){
+        def lfs_pull = conf.get("lfs_pull", false)
+
         show_node_info()
         miopenCheckout()
+        if (lfs_pull) {
+            sh "git lfs pull --exclude="
+        }
+
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
@@ -619,7 +626,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('dbsync gfx90a') {
@@ -629,7 +636,7 @@ pipeline {
 			execute_cmd='./bin/test_db_sync'
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
             }
