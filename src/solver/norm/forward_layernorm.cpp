@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/normalization/solvers.hpp>
+#include <miopen/norm/solvers.hpp>
 
-#include <miopen/normalization/invoke_params.hpp>
+#include <miopen/norm/invoke_params.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
 
@@ -36,18 +36,17 @@ namespace miopen {
 
 namespace solver {
 
-namespace normalization {
+namespace norm {
 
 bool LayernormForward::IsApplicable(const ExecutionContext&,
-                                    const miopen::normalization::ProblemDescription& problem) const
+                                    const miopen::norm::ProblemDescription& problem) const
 {
     std::ignore = problem;
     return true;
 }
 
-ConvSolution
-LayernormForward::GetSolution(const ExecutionContext& context,
-                              const miopen::normalization::ProblemDescription& problem) const
+ConvSolution LayernormForward::GetSolution(const ExecutionContext& context,
+                                           const miopen::norm::ProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -99,7 +98,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::normalization::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::norm::InvokeParams>();
 
             auto dims         = params.xDesc->GetLengths();
             size_t inner_size = 1;
@@ -124,7 +123,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace normalization
+} // namespace norm
 
 } // namespace solver
 

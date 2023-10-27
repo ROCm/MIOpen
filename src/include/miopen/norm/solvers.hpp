@@ -26,32 +26,42 @@
 
 #pragma once
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/norm/problem_description.hpp>
+
+#include <utility>
 
 namespace miopen {
-namespace normalization {
 
-struct InvokeParams : public miopen::InvokeParams
+namespace solver {
+
+namespace norm {
+
+using NormalizationSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::norm::ProblemDescription>;
+
+struct LayernormForward final : NormalizationSolver
 {
-    InvokeParams() = default;
+    const std::string& SolverDbId() const override { return GetSolverDbId<LayernormForward>(); }
 
-    const TensorDescriptor* xDesc = nullptr;
-
-    ConstData_t x              = nullptr;
-    ConstData_t weight         = nullptr;
-    ConstData_t bias           = nullptr;
-    Data_t y                   = nullptr;
-    Data_t mean                = nullptr;
-    Data_t rstd                = nullptr;
-    float epsilon              = 0;
-    int32_t normalized_dim     = 0;
-    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::norm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::norm::ProblemDescription& problem) const override;
 };
 
-} // namespace normalization
+struct Layernorm2DCKForward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Layernorm2DCKForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::norm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::norm::ProblemDescription& problem) const override;
+};
+
+} // namespace norm
+
+} // namespace solver
 
 } // namespace miopen

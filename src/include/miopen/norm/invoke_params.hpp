@@ -24,49 +24,34 @@
  *
  *******************************************************************************/
 
-#include <miopen/normalization/problem_description.hpp>
-#include <miopen/names.hpp>
+#pragma once
 
-#include <sstream>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace norm {
 
-namespace normalization {
-
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+struct InvokeParams : public miopen::InvokeParams
 {
-    auto dims         = xDesc.GetLengths();
-    size_t grid_size  = 1;
-    size_t outer_size = 1;
-    size_t inner_size = 1;
-    size_t i          = 0;
-    for(; i < normalized_dim; i++)
-    {
-        outer_size *= dims[i];
-        grid_size *= dims[i];
-    }
+    InvokeParams() = default;
 
-    for(; i < dims.size(); i++)
-    {
-        inner_size *= dims[i];
-        grid_size *= dims[i];
-    }
+    const TensorDescriptor* xDesc = nullptr;
 
-    auto dtype = xDesc.GetType();
+    ConstData_t x              = nullptr;
+    ConstData_t weight         = nullptr;
+    ConstData_t bias           = nullptr;
+    Data_t y                   = nullptr;
+    Data_t mean                = nullptr;
+    Data_t rstd                = nullptr;
+    float epsilon              = 0;
+    int32_t normalized_dim     = 0;
+    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
 
-    std::ostringstream ss;
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
 
-    ss << "dtype" << dtype;
-    ss << "normalized_dim" << normalized_dim;
-    ss << "grid_size" << grid_size;
-    ss << "outer_size" << outer_size;
-    ss << "inner_size" << inner_size;
-    ss << "mode" << mode;
-    ss << "epsilon" << epsilon;
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace normalization
+} // namespace norm
 
 } // namespace miopen

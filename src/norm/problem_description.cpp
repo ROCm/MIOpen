@@ -24,46 +24,49 @@
  *
  *******************************************************************************/
 
-#pragma once
+#include <miopen/norm/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#include <miopen/solver.hpp>
-#include <miopen/normalization/problem_description.hpp>
-
-#include <utility>
+#include <sstream>
 
 namespace miopen {
 
-namespace solver {
+namespace norm {
 
-namespace normalization {
-
-using NormalizationSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::normalization::ProblemDescription>;
-
-struct LayernormForward final : NormalizationSolver
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<LayernormForward>(); }
+    auto dims         = xDesc.GetLengths();
+    size_t grid_size  = 1;
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+    size_t i          = 0;
+    for(; i < normalized_dim; i++)
+    {
+        outer_size *= dims[i];
+        grid_size *= dims[i];
+    }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::normalization::ProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::normalization::ProblemDescription& problem) const override;
-};
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+        grid_size *= dims[i];
+    }
 
-struct Layernorm2DCKForward final : NormalizationSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<Layernorm2DCKForward>(); }
+    auto dtype = xDesc.GetType();
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::normalization::ProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::normalization::ProblemDescription& problem) const override;
-};
+    std::ostringstream ss;
 
-} // namespace normalization
+    ss << "dtype" << dtype;
+    ss << "normalized_dim" << normalized_dim;
+    ss << "grid_size" << grid_size;
+    ss << "outer_size" << outer_size;
+    ss << "inner_size" << inner_size;
+    ss << "mode" << mode;
+    ss << "epsilon" << epsilon;
 
-} // namespace solver
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace norm
 
 } // namespace miopen

@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/normalization/solvers.hpp>
-#include <miopen/normalization/invoke_params.hpp>
+#include <miopen/norm/solvers.hpp>
+#include <miopen/norm/invoke_params.hpp>
 #include <miopen/layernorm.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
@@ -35,7 +35,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_LN)
 
 namespace miopen {
 namespace solver {
-namespace normalization {
+namespace norm {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 using F16  = ck::half_t;
@@ -68,7 +68,7 @@ using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperatio
 namespace {
 struct CKArgs
 {
-    CKArgs(const miopen::normalization::ProblemDescription& problem)
+    CKArgs(const miopen::norm::ProblemDescription& problem)
     {
         auto length = problem.GetXDesc().GetLengths();
 
@@ -130,7 +130,7 @@ struct CKArgs
 } // namespace
 
 template <typename DeviceOpType>
-int CheckCKApplicability(const miopen::normalization::ProblemDescription& problem)
+int CheckCKApplicability(const miopen::norm::ProblemDescription& problem)
 {
     const auto ln_args = CKArgs{problem};
     const auto ln_ptrs = DeviceOpType::GetInstances();
@@ -142,7 +142,7 @@ int CheckCKApplicability(const miopen::normalization::ProblemDescription& proble
 
 template <typename LnPtrsType>
 typename LnPtrsType::iterator FindLnPtr(LnPtrsType& ln_ptrs,
-                                        const miopen::normalization::ProblemDescription& problem)
+                                        const miopen::norm::ProblemDescription& problem)
 {
     const auto ln_args = CKArgs{problem};
     return std::find_if(ln_ptrs.begin(), ln_ptrs.end(), [&ln_args](auto& ln_ptrs) {
@@ -155,7 +155,7 @@ template <typename DeviceOpType,
           typename CastType,
           typename ProblemDescriptionType = ProblemDescription>
 ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context,
-                                const miopen::normalization::ProblemDescription& problem)
+                                const miopen::norm::ProblemDescription& problem)
 {
     auto ln_ptr      = DeviceOpType::GetInstances();
     auto ln_ptr_iter = FindLnPtr(ln_ptr, problem);
@@ -193,7 +193,7 @@ ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context
 
 bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::normalization::ProblemDescription& problem) const
+    [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_LN{}))
@@ -225,7 +225,7 @@ bool Layernorm2DCKForward::IsApplicable(
 
 ConvSolution Layernorm2DCKForward::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::normalization::ProblemDescription& problem) const
+    [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetXDesc().GetType())
@@ -233,11 +233,11 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenHalf:
         return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>,
                                   CKArgs,
-                                  miopen::normalization::InvokeParams>(context, problem);
+                                  miopen::norm::InvokeParams>(context, problem);
     case miopenFloat:
         return MakeInvokerFactory<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>,
                                   CKArgs,
-                                  miopen::normalization::InvokeParams>(context, problem);
+                                  miopen::norm::InvokeParams>(context, problem);
     case miopenDouble:
     case miopenBFloat16:
     case miopenInt8:
@@ -252,6 +252,6 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     return {};
 }
 
-} // namespace normalization
+} // namespace norm
 } // namespace solver
 } // namespace miopen

@@ -27,8 +27,8 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/normalization/invoke_params.hpp>
-#include <miopen/normalization/solvers.hpp>
+#include <miopen/norm/invoke_params.hpp>
+#include <miopen/norm/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
@@ -81,11 +81,11 @@ miopenStatus_t LayerNormForward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
     }
 
-    const auto problem = normalization::ProblemDescription{
+    const auto problem = norm::ProblemDescription{
         mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim};
 
     const auto invoke_params = [&]() {
-        auto tmp           = normalization::InvokeParams{};
+        auto tmp           = norm::InvokeParams{};
         tmp.type           = InvokeType::Run;
         tmp.xDesc          = &xDesc;
         tmp.x              = x;
@@ -101,8 +101,8 @@ miopenStatus_t LayerNormForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"LayerNormForward"};
-    const auto solvers = solver::SolverContainer<solver::normalization::Layernorm2DCKForward,
-                                                 solver::normalization::LayernormForward>{};
+    const auto solvers = solver::SolverContainer<solver::norm::Layernorm2DCKForward,
+                                                 solver::norm::LayernormForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
