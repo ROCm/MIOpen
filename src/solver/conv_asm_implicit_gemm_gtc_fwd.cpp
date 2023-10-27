@@ -1518,6 +1518,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if(!problem.Is2d())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(!problem.IsFp32() && !problem.IsFp16())
         return false;
 
@@ -1531,9 +1534,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
 #if WORKAROUND_SWDEV_306318
     if((problem.GetWeightsHeight_() == 1) && (problem.GetWeightsWidth_() == 1) &&

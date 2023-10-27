@@ -394,6 +394,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())
@@ -407,10 +409,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.IsTensorsCasted())
         return false;
 #if WORKAROUND_ISSUE_532

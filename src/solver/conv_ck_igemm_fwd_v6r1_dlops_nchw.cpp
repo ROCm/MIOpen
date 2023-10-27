@@ -107,7 +107,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
-
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)

@@ -464,15 +464,14 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -521,9 +520,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     {
