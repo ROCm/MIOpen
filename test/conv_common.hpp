@@ -2630,13 +2630,12 @@ AllocateConvTransposeWorkspace(miopen::Handle& handle,
                                const miopen::TensorDescriptor& y)
 {
 
-    constexpr size_t alignment = 256u;
-
     auto align = [](size_t sz) {
-        static_assert(alignment > 0);
+        constexpr size_t alignment      = 256u;
         constexpr size_t alignment_mask = alignment - 1;
-        static_assert(alignment & alignment_mask  == 0);
-        return (sz + alignment_mask ) & ~(alignment_mask );
+        static_assert(alignment_mask > 0);
+        static_assert((alignment & alignment_mask) == 0);
+        return (sz + alignment_mask) & ~(alignment_mask);
     };
 
     auto w_sz = align(x.GetNumBytes()) + align(w.GetNumBytes()) + align(y.GetNumBytes());
