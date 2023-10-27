@@ -259,7 +259,7 @@ class Gfx90aModel final : public Model
 {
 public:
     Gfx90aModel() : Model("gfx90a") {}
-    bool IsProblemSupported(const ProblemDescription& problem,
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
                             const ExecutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
@@ -317,7 +317,7 @@ public:
     }
 
 protected:
-    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
