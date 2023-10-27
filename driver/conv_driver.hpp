@@ -74,8 +74,8 @@
 #include <boost/optional.hpp>
 
 // Declare hidden function for MIGraphX to smoke test it.
-extern "C" miopenStatus_t miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                             int findMode);
+extern "C" MIOPEN_EXPORT miopenStatus_t
+miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode);
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
