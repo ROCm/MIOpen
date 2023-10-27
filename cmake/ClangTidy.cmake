@@ -150,7 +150,7 @@ function(clang_tidy_check TARGET)
             set(tidy_target tidy-target-${TARGET}-${tidy_file})
             add_custom_target(${tidy_target}
                 DEPENDS ${SOURCE}
-                COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE} "-config-file=${PROJECT_SOURCE_DIR}/.clang-tidy" "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
+                COMMAND ${CLANG_TIDY_COMMAND} "-config-file=${PROJECT_SOURCE_DIR}/.clang-tidy" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
             )
