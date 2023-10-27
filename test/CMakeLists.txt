@@ -757,6 +757,24 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
+    add_custom_test(test_miopendriver_conv2d_trans
+        SKIP_UNLESS_ALL
+        GFX900_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
+        HALF_ENABLED BF16_ENABLED
+        # Why we have to use the driver:
+        #   The transposed convolutions are paritally implemented in the convolution_api layer,
+        #   but test apps (including test_conv*) were designed as unit tests and, therefore, do not use the public API.
+        # Also serves as a regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2459.
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 1 -W 112 -H 112 -c 64 -n 8 -k 32 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -g 1 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 7 -W 17 -H 17 -c 32 -n 128 -k 16 -p 3 -q 0 -u 1 -v 1 -l 1 -j 1 -g 2 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 10 -y 5 -W 341 -H 79 -c 32 -n 4 -k 8 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -g 4 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 20 -y 5 -W 700 -H 161 -c 1 -n 4 -k 32 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 3 -y 3 -W 108 -H 108 -c 3 -n 8 -k 64 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 5 -y 5 -W 175 -H 40 -c 128 -n 16 -k 256 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 5 -y 5 -W 700 -H 161 -c 1 -n 16 -k 64 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 7 -y 7 -W 224 -H 224 -c 3 -n 16 -k 64 -p 3 -q 3 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
+    )
+
     add_custom_test(test_miopendriver_regression OCL_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
         # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
         COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
