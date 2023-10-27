@@ -81,11 +81,6 @@ set(MIOPEN_TEST_LIMIT "2" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
-set(MIOPEN_TEST_OPENCL FALSE)
-if(MIOPEN_BACKEND_OPENCL)
-    set(MIOPEN_TEST_OPENCL TRUE)
-endif()
-
 set(MIOPEN_TEST_HIP_NOGPU FALSE)
 if(MIOPEN_MODE_NOGPU)
     set(MIOPEN_TEST_HIP_NOGPU TRUE)
@@ -241,11 +236,7 @@ option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 set_var_to_condition(WORKAROUND_ISSUE_1148_DEFAULT (MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X) AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
 
-if(MIOPEN_TEST_HALF)
-    if(MIOPEN_BACKEND_OPENCL)
-	    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
-    endif()
-elseif(MIOPEN_TEST_INT8)
+if(MIOPEN_TEST_INT8)
     set(SKIP_ALL_EXCEPT_TESTS
               test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set
               test_tensor_transform test_conv2d test_conv2d_find2)
@@ -269,16 +260,6 @@ if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
             test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
             test_pooling3d test_perfdb)
-endif()
-
-#TODO Code Quality WORKAROUND ROCm 5.1 update
-if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL)
-    if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906)
-        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_conv3d_find2)
-    endif()
-    if(MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X)
-        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_conv3d_find2)
-    endif()
 endif()
 
 #TODO WORKAROUND_ISSUE_1424
@@ -539,9 +520,9 @@ endfunction()
 #   SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR=TRUE.
 #   SKIP_UNLESS_COMPOSABLEKERNEL - The test should be only run if MIOPEN_TEST_COMPOSABLEKERNEL=TRUE.
 #
-# Backend: OCL HIP HIP_NOGPU
+# Backend: HIP HIP_NOGPU
 #   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   Default: OCL_ENABLED HIP_ENABLED HIP_NOGPU_DISABLED.
+#   Default: HIP_ENABLED HIP_NOGPU_DISABLED.
 
 function(add_custom_test NAME)
     set(options
@@ -549,7 +530,7 @@ function(add_custom_test NAME)
         GFX900_ENABLED GFX900_DISABLED GFX906_ENABLED GFX906_DISABLED GFX908_ENABLED GFX908_DISABLED
         GFX103X_ENABLED GFX103X_DISABLED GFX110X_ENABLED GFX110X_DISABLED GFX90A_ENABLED GFX90A_DISABLED GFX94X_ENABLED GFX94X_DISABLED
         SKIP_UNLESS_MLIR SKIP_UNLESS_COMPOSABLEKERNEL SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND TEST_TUNING SKIP_XNACK_ON
-        OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
+        HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
     set(oneValueArgs)
     set(multiValueArgs)
@@ -585,12 +566,6 @@ function(add_custom_test NAME)
     set(is_composablekernel_check)
     bool_not_f(${PARSE_SKIP_UNLESS_COMPOSABLEKERNEL} is_composablekernel_check)
     bool_or_f(${is_composablekernel_check} ${MIOPEN_TEST_COMPOSABLEKERNEL} is_composablekernel_check)
-
-    set(is_ocl_check)
-    set(OCL_TEST_DEFAULT TRUE)
-    option_support_check(${PARSE_OCL_ENABLED} ${PARSE_OCL_DISABLED} ${OCL_TEST_DEFAULT} is_ocl_check)
-    bool_not_f(${MIOPEN_TEST_OPENCL} NOT_MIOPEN_TEST_OPENCL)
-    bool_or_f(${NOT_MIOPEN_TEST_OPENCL} ${is_ocl_check} is_ocl_check)
 
     set(is_hip_check)
     set(HIP_TEST_DEFAULT TRUE)
@@ -679,7 +654,7 @@ function(add_custom_test NAME)
      AND is_mlir_check
      AND is_composablekernel_check
      AND (is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
-     AND (is_ocl_check AND is_hip_check AND is_hip_nogpu_check)
+     AND (is_hip_check AND is_hip_nogpu_check)
     )
         if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND AND PARSE_TEST_TUNING)
             message(FATAL_ERROR " TEST_PERF_DB_RECORD_NOT_FOUND and TEST_TUNING should not be used together")
@@ -760,7 +735,7 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_regression_issue_2047 OCL_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
+    add_custom_test(test_miopendriver_regression_issue_2047 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
         # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCmSoftwarePlatform/MIOpen/issues/2047
         COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
             $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
@@ -1663,11 +1638,6 @@ add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_E
 COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-add_custom_test(test_regression_float_mi100 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-# Regression test for SWDEV-305815 (issue 1206)
-COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-)
-
 # MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is disabled by default via #2306
 set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_FIND_MODE=normal
@@ -2099,7 +2069,7 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R5Xdlops GFX900_DISABLE
       ${TEST_CONV_VERBOSE_F} --input 128 16 54 54 --weights 64 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
+add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
     SKIP_UNLESS_COMPOSABLEKERNEL TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops $<TARGET_FILE:test_conv2d>
@@ -2186,7 +2156,7 @@ add_custom_test(smoke_solver_ConvWinogradFuryRxSf2x3_f16 GFX900_DISABLED GFX906_
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON OCL_DISABLED
+add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2288,7 +2258,7 @@ set(ARGS_REGRESSION_ISSUE_1012
     --disable-backward-data
     --disable-validation)
 
-add_custom_test(test_regression_opencl_float_mi100 GFX900_DISABLED GFX906_DISABLED HIP_DISABLED GFX90A_DISABLED
+add_custom_test(test_regression_float_mi100 GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
     # Issue #1012.
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 128, 832, 7,  7  --weights 32,  832, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  192, 28, 28 --weights 64,  192, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
@@ -2297,6 +2267,8 @@ add_custom_test(test_regression_opencl_float_mi100 GFX900_DISABLED GFX906_DISABL
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 14, 14 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    # SWDEV-305815 (issue 1206)
+    COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
