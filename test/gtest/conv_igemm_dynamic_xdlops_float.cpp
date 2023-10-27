@@ -24,10 +24,8 @@
  *
  *******************************************************************************/
 #include <tuple>
-
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
@@ -132,10 +130,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_FIND_MODE=normal",
         "MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops"};
 
-    std::string v           = " --verbose";
-    std::string dis_bk_data = " --disable-backward-data";
-    std::string dis_bk_wei  = " --disable-backward-weights";
-    std::string dis_fwd     = " --disable-forward";
+    const std::string v           = " --verbose";
+    const std::string dis_bk_data = " --disable-backward-data";
+    const std::string dis_bk_wei  = " --disable-backward-weights";
+    const std::string dis_fwd     = " --disable-forward";
 
     const std::vector<TestCase> test_cases = {
         // clang-format off
