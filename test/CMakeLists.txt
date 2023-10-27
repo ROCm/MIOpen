@@ -117,7 +117,6 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             OUTPUT_VARIABLE ROCMINFO_OUTPUT
             RESULT_VARIABLE ROCMINFO_EXIT_STATUS
         )
-        message(STATUS "${ROCMINFO_OUTPUT}")
         if(ROCMINFO_OUTPUT MATCHES "no GPU devices")
             message(WARNING "ROCk module is NOT loaded, possibly no GPU devices")
             set(MIOPEN_NO_GPU TRUE)
@@ -151,6 +150,10 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
 
         if(NOT (MIOPEN_TEST_GPU_DETECTION_FAILED) AND ROCMINFO_OUTPUT MATCHES "xnack\\+")
             set(MIOPEN_TEST_GPU_XNACK_ENABLED ON)
+        endif()
+
+        if(MIOPEN_TEST_GPU_DETECTION_FAILED)
+            message(STATUS "${ROCMINFO_OUTPUT}")
         endif()
     else()
         message(WARNING "ROCMINFO NOT FOUND, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
