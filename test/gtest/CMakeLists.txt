@@ -1,8 +1,5 @@
 include(gtest) #include gtest.cmake
 
-#add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
-#add_custom_target(tests)
-
 find_package(rocblas)
 
 set(SOURCES
