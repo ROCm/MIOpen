@@ -47,14 +47,13 @@ bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
         return false;
 
+    if(!problem.IsDirectionBackwardData())
+        return false;
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
          problem.IsBfp8()))
-        return false;
-
-    if(!problem.IsDirectionBackwardData())
         return false;
     if(problem.IsTensorsCasted())
     {

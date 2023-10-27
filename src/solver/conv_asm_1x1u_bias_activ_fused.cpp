@@ -38,7 +38,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -253,9 +253,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
     if(conv_problem.GetDilationH() != 1)
-        return false;
-
-    if(conv_problem.IsTensorsCasted())
         return false;
 
     // Check if the conovlution part is applicable

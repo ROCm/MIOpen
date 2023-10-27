@@ -29,6 +29,9 @@
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+
+#include <nlohmann/json_fwd.hpp>
+
 #include <vector>
 
 namespace miopen {
@@ -74,6 +77,9 @@ struct ActivationDescriptor : miopenActivationDescriptor
                             size_t dxOffset = 0);
 
     friend std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x);
+
+    friend void to_json(nlohmann::json& json, const ActivationDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& json, ActivationDescriptor& descriptor);
 
 private:
     std::vector<double> parms;

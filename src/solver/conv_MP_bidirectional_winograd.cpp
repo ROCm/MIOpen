@@ -232,9 +232,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     {
         unsigned int const waves_in_group = 512 / wave_size;
@@ -326,11 +324,11 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
+    if(problem.HasNonPackedTensors())
+        return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(problem.IsTensorsCasted())
         return false;

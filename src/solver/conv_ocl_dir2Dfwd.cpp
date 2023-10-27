@@ -51,17 +51,16 @@ bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)

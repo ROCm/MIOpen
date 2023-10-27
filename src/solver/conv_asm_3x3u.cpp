@@ -179,6 +179,8 @@ bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
@@ -197,9 +199,7 @@ bool ConvAsm3x3U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90")))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;

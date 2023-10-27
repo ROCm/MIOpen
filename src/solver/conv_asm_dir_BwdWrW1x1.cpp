@@ -481,11 +481,12 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsDirectionBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
 
@@ -495,13 +496,9 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
 
     const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;

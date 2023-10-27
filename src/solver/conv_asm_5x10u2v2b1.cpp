@@ -48,6 +48,8 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())
@@ -66,17 +68,11 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #endif
     if(!device_is_gfx8_9_no_xnack)
-    {
         return false;
-    }
     if(!problem.IsDirectionBackwardData())
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
 

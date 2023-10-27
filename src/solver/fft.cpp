@@ -119,9 +119,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto is_fwd    = problem.IsDirectionForward();
     decltype(auto) conv  = problem.GetConv();

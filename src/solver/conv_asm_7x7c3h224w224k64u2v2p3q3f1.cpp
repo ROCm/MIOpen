@@ -54,6 +54,9 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     if(!ctx.rmv.IsV2orV3())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(problem.IsTensorsCasted())
         return false;
 
@@ -68,17 +71,11 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
 #endif
     if(!(name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
          name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908"))
-    {
         return false;
-    }
     if(!problem.IsDirectionForward())
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     return problem.GetPadW() == 3            // -q

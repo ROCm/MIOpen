@@ -321,6 +321,9 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
     if(!problem.IsFp32())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(problem.IsTensorsCasted())
         return false;
 
@@ -331,9 +334,7 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
