@@ -237,14 +237,8 @@ def getDockerImage(Map conf=[:])
 }
 
 def buildHipClangJob(Map conf=[:]){
-        def lfs_pull = conf.get("lfs_pull", false)
-
         show_node_info()
         miopenCheckout()
-        if (lfs_pull) {
-            sh "git lfs pull --exclude="
-        }
-
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
@@ -258,6 +252,7 @@ def buildHipClangJob(Map conf=[:]){
 
         def codecov = conf.get("codecov", false)
         def needs_gpu = conf.get("needs_gpu", true)
+        def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
         gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
@@ -291,6 +286,10 @@ def buildHipClangJob(Map conf=[:]){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 150, unit:'MINUTES')
                 {
+                    if (lfs_pull) {
+                        sh "git lfs pull --exclude="
+                    }
+
                     cmake_build(conf)
 
                     if (codecov) {
