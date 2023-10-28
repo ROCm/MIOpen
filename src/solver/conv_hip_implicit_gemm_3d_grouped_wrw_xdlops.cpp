@@ -85,16 +85,32 @@ struct CKArgs
         output = {G, N, K, Do, Ho, Wo};
         weight = {G, K, C, Z, Y, X};
 
-        // miopen strides to CK strides
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+        // CK strides are in GNCDHW order
+        if(problem.IsLayoutNHWC())
+        {
+            // first entry reserved for G's stride
+            auto copy_strides = [](const auto& src, auto& dst) {
+                assert(dst.size() == (src.size() + 1));
+                std::copy(src.begin(), src.end(), dst.begin() + 1);
+            };
+            copy_strides(problem.GetIn().GetStrides(), in_strides);
+            copy_strides(problem.GetOut().GetStrides(), out_strides);
+            copy_strides(problem.GetWeights().GetStrides(), wei_strides);
+
+            // Now compute G's stride
+            in_strides[0]  = C;
+            out_strides[0] = K;
+            wei_strides[0] = K * wei_strides[1];
+        }
+        else
+        {
+            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
+            // for default layout, we produce packed strides because we transpose to
+            // NCHW layout before calling CK kernel
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        }
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
