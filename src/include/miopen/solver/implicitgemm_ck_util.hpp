@@ -324,18 +324,19 @@ class TransposeInstance
 {
     size_t tensor_sz = 0;
     std::vector<OpKernelArg> kern_args{};
-    int index         = -1;
+    size_t index      = std::numeric_limits<size_t>::max();
     size_t buf_offset = 0;
     shared<Data_t> buf_handle{};
 
 public:
     template <typename TransSolnType>
-    TransposeInstance(const TransSolnType& trans_sol, int idx, const MultiBufferWorkspaceTraits& wt)
+    TransposeInstance(const TransSolnType& trans_sol,
+                      size_t idx,
+                      const MultiBufferWorkspaceTraits& wt)
     {
-        tensor_sz = trans_sol.GetOutputTensorSize();
-        kern_args = trans_sol.GetKernelArg();
-        index     = idx;
-        assert(index >= 0);
+        tensor_sz  = trans_sol.GetOutputTensorSize();
+        kern_args  = trans_sol.GetKernelArg();
+        index      = idx;
         buf_offset = wt.GetOffset(index);
     }
 
@@ -529,9 +530,13 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
                 output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
 
+                float tot_time = 0;
+
                 input1_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
 
                 input2_tr_inst.ConvertFrom(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
 
                 std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                     &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
@@ -547,14 +552,17 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                        tr_ptrs[1]->GetBufferPtr(),
                                                        tr_ptrs[2]->GetBufferPtr());
 
-                float elapsed_time = invoker_ptr->Run(
-                    argument_ptr.get(), {handle.GetStream(), handle.IsProfilingEnabled()});
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.AccumKernelTime(elapsed_time);
-                }
+                tot_time += invoker_ptr->Run(argument_ptr.get(),
+                                             {handle.GetStream(), handle.IsProfilingEnabled()});
 
                 output_tr_inst.ConvertTo(handle, kernels, data_ctx.tensors);
+                tot_time += handle.GetKernelTime();
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(tot_time);
+                }
             };
         };
     return result;
