@@ -428,9 +428,11 @@ public:
 private:
     Data_t pickTensorPtr(const ConvTensors& tensors) const
     {
-        std::array<Data_t, 3> data_ptrs = {const_cast<Data_t>(tensors.x),
-                                           const_cast<Data_t>(tensors.w),
-                                           const_cast<Data_t>(tensors.y)};
+        std::array<Data_t, 3> data_ptrs = {
+            const_cast<Data_t>(tensors.x), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            const_cast<Data_t>(tensors.w), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            const_cast<Data_t>(tensors.y)  // NOLINT (cppcoreguidelines-pro-type-const-cast)
+        };
 
         return data_ptrs[GetConvOperandTagAsInt()];
     }
