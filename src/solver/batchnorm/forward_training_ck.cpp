@@ -149,39 +149,6 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                                                     MeanVarDataType>,
                           CKArgsBNormFwdTraining>(problem);
 }
-#endif
-
-bool BnCKFwdTraining::IsApplicable(const ExecutionContext& context,
-                                   const miopen::batchnorm::ProblemDescription& bn_problem) const
-{
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = context;
-    std::ignore = fdesc_problem;
-    return false;
-#else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
-        return false;
-    if(!bn_problem.IsLayoutNHWC())
-        return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
-        return false;
-
-    switch(bn_problem.GetXDesc().GetType())
-    {
-    case miopenHalf: return CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem);
-    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
-    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
-    case miopenInt32:
-    case miopenInt8:
-    case miopenInt8x4:
-    case miopenBFloat8:
-    case miopenFloat8:
-    default: MIOPEN_THROW("BnCKFwdTraining operation does not supprot this data type");
-    }
-    return false;
-#endif
-}
 
 template <typename XDataType,
           typename YDataType,
@@ -189,7 +156,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
+static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNFwdTrainingPtrs<XDataType,
                                                                                  YDataType,
@@ -209,6 +176,34 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                  CKArgsBNormFwdTraining,
                                  miopen::batchnorm::InvokeParams>(bn_problem, kernel_id);
 }
+#endif
+
+bool BnCKFwdTraining::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING{}))
+        return false;
+    if(!bn_problem.IsLayoutNHWC())
+        return false;
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+        return false;
+
+    switch(bn_problem.GetXDesc().GetType())
+    {
+    case miopenHalf: return CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem);
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
+    case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+    case miopenInt32:
+    case miopenInt8:
+    case miopenBFloat8:
+    case miopenFloat8: break;
+    }
+#endif
+    return false;
+}
 
 ConvSolution BnCKFwdTraining::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
@@ -224,11 +219,11 @@ ConvSolution BnCKFwdTraining::GetSolution(
     case miopenBFloat16: return MakeAnyInvokerFactory<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
     case miopenInt8:
     case miopenInt32:
-    case miopenInt8x4:
     case miopenBFloat8:
     case miopenFloat8:
     default:
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining operation not for this data type");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "BnCKFwdTraining operation does not support this data type");
     }
 #endif
     return {};

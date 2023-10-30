@@ -103,7 +103,7 @@ void ProblemDescription::HeuristicUpdateLayouts()
     // If we did not find consistent layout, leave them as-is
 }
 
-void ProblemDescription::BuildConfKey(std::string& conf_key) const
+void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
 {
     std::ostringstream ss;
 

@@ -50,7 +50,7 @@ void ConvDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
     {
         ss << "convbfp16";
     }
-    else if(desc.GetType() == miopenInt8 || desc.GetType() == miopenInt8x4)
+    else if(desc.GetType() == miopenInt8)
     {
         ss << "convint8";
     }
@@ -117,21 +117,28 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     std::stringstream ss;
     if(print_for_conv_driver)
         ConvDataType(ss, xDesc);
+
+    /// \todo Dimensions (N, C, H, W, K..) are always parsed as if layout is NC(D)HW.
+    /// For other layouts, invalid values are printed.
+
     if(convDesc.GetSpatialDimension() == 2)
     {
-        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
-            << " -c " << xDesc.GetLengths()[1]
-            << " -H " << xDesc.GetLengths()[2]
-            << " -W " << xDesc.GetLengths()[3]
-            << " -k " << wDesc.GetLengths()[0]
-            << " -y " << wDesc.GetLengths()[2]
-            << " -x " << wDesc.GetLengths()[3]
-            << " -p " << convDesc.GetConvPads()[0]
-            << " -q " << convDesc.GetConvPads()[1]
-            << " -u " << convDesc.GetConvStrides()[0]
-            << " -v " << convDesc.GetConvStrides()[1]
-            << " -l " << convDesc.GetConvDilations()[0]
-            << " -j " << convDesc.GetConvDilations()[1]; // clang-format on
+        ss << " -n " << xDesc.GetLengths()[0] //
+           << " -c " << xDesc.GetLengths()[1] //
+           << " -H " << xDesc.GetLengths()[2] //
+           << " -W " << xDesc.GetLengths()[3] //
+           << " -k "
+           << (convDesc.mode == miopenTranspose        //
+                   ? wDesc.GetLengths()[1]             //
+                   : wDesc.GetLengths()[0])            //
+           << " -y " << wDesc.GetLengths()[2]          //
+           << " -x " << wDesc.GetLengths()[3]          //
+           << " -p " << convDesc.GetConvPads()[0]      //
+           << " -q " << convDesc.GetConvPads()[1]      //
+           << " -u " << convDesc.GetConvStrides()[0]   //
+           << " -v " << convDesc.GetConvStrides()[1]   //
+           << " -l " << convDesc.GetConvDilations()[0] //
+           << " -j " << convDesc.GetConvDilations()[1];
         std::string x_layout = xDesc.GetLayout("NCHW");
         std::string w_layout = wDesc.GetLayout("NCHW");
         std::string y_layout = yDesc.GetLayout("NCHW");
@@ -150,25 +157,28 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     }
     else if(convDesc.GetSpatialDimension() == 3)
     {
-        ss << " -n " << xDesc.GetLengths()[0] // clang-format off
-            << " -c " << xDesc.GetLengths()[1]
-            << " --in_d " << xDesc.GetLengths()[2]
-            << " -H " << xDesc.GetLengths()[3]
-            << " -W " << xDesc.GetLengths()[4]
-            << " -k " << wDesc.GetLengths()[0]
-            << " --fil_d " << wDesc.GetLengths()[2]
-            << " -y " << wDesc.GetLengths()[3]
-            << " -x " << wDesc.GetLengths()[4]
-            << " --pad_d " << convDesc.GetConvPads()[0]
-            << " -p " << convDesc.GetConvPads()[1]
-            << " -q " << convDesc.GetConvPads()[2]
-            << " --conv_stride_d " << convDesc.GetConvStrides()[0]
-            << " -u " << convDesc.GetConvStrides()[1]
-            << " -v " << convDesc.GetConvStrides()[2]
-            << " --dilation_d " << convDesc.GetConvDilations()[0]
-            << " -l " << convDesc.GetConvDilations()[1]
-            << " -j " << convDesc.GetConvDilations()[2]
-            << " --spatial_dim 3"; // clang-format on
+        ss << " -n " << xDesc.GetLengths()[0]     //
+           << " -c " << xDesc.GetLengths()[1]     //
+           << " --in_d " << xDesc.GetLengths()[2] //
+           << " -H " << xDesc.GetLengths()[3]     //
+           << " -W " << xDesc.GetLengths()[4]     //
+           << " -k "
+           << (convDesc.mode == miopenTranspose                   //
+                   ? wDesc.GetLengths()[1]                        //
+                   : wDesc.GetLengths()[0])                       //
+           << " --fil_d " << wDesc.GetLengths()[2]                //
+           << " -y " << wDesc.GetLengths()[3]                     //
+           << " -x " << wDesc.GetLengths()[4]                     //
+           << " --pad_d " << convDesc.GetConvPads()[0]            //
+           << " -p " << convDesc.GetConvPads()[1]                 //
+           << " -q " << convDesc.GetConvPads()[2]                 //
+           << " --conv_stride_d " << convDesc.GetConvStrides()[0] //
+           << " -u " << convDesc.GetConvStrides()[1]              //
+           << " -v " << convDesc.GetConvStrides()[2]              //
+           << " --dilation_d " << convDesc.GetConvDilations()[0]  //
+           << " -l " << convDesc.GetConvDilations()[1]            //
+           << " -j " << convDesc.GetConvDilations()[2]            //
+           << " --spatial_dim 3";
         std::string x_layout = xDesc.GetLayout("NCDHW");
         std::string w_layout = wDesc.GetLayout("NCDHW");
         std::string y_layout = yDesc.GetLayout("NCDHW");
@@ -190,8 +200,6 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     ss << " -g " << convDesc.group_count;
     if(print_for_conv_driver)
         ss << " -F " << std::to_string(static_cast<int>(conv_dir)) << " -t 1"; // clang-format on
-    if(xDesc.GetType() == miopenInt8x4)
-        ss << " -Z 1";
     if(immediate_mode_solver_id.has_value())
     {
         ss << " -S " << *immediate_mode_solver_id;
