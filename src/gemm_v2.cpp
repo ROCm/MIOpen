@@ -49,6 +49,7 @@
 #include <rocblas.h>
 #else
 #include <rocblas/rocblas.h>
+/// rocblas_gemm_ex3 supports F8 datatypes.
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
 #endif
 #include <miopen/perf_field.hpp>
@@ -69,8 +70,6 @@
 /// some do not, and that leads to build errors.
 /// Let's pass literal value as a workaround; there should be no harm.
 #define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_FLAT == 2042000)
-
-#define F8_SUPPORTED (MIOPEN_ROCBLAS_VERSION_FLAT > 3000000)
 
 static inline uint32_t
 FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp16Alt)
@@ -118,7 +117,7 @@ auto rocBlasDataType(miopenDataType_t data_type)
 {
     /// \todo Not all supported data types are handled here.
     /// This is fine so far because this function is used only with FP16/F8.
-#if F8_SUPPORTED
+#if USE_ROCBLAS_GEMM_EX3
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
     if(data_type == miopenBFloat8)
