@@ -34,6 +34,7 @@
 #include <random>
 #include <cstdlib>
 #include <iostream>
+#include <algorithm>
 
 #include <miopen/rnn.hpp>
 #include <miopen/miopen.h>
@@ -155,10 +156,10 @@ struct verify_rnn_api_base
         auto& inLens = input.desc.GetLengths();
         auto& hLens = xHiddenState.desc.GetLengths();
 
-        std::cout << " --batch_size " << inLens[0]
-                  << " --seq_len " << inLens[1] << " --in_vec " << inLens[2] << " --hid_h "
-                  << hLens[2] << " --num_layer " << hLens[0] << " -r " << rnnDesc.dirMode << " -b "
-                  << rnnDesc.biasMode << " -p " << rnnDesc.inputMode << " -a " << rnnDesc.algoMode;
+        std::cout << " --batch_size " << inLens[0] << " --seq_len " << inLens[1] << " --in_vec "
+                  << inLens[2] << " --hid_h " << hLens[2] << " --num_layer " << rnnDesc.nLayers
+                  << " -r " << rnnDesc.dirMode << " -b " << rnnDesc.biasMode << " -p "
+                  << rnnDesc.inputMode << " -a " << rnnDesc.algoMode;
 
         bool useDropout = !miopen::float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
 
@@ -387,7 +388,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         inputMode  = rnnDesc.inputMode == miopenRNNskip;
         useDropout = !miopen::float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
 
-        std::tie(hiddenLayers, hiddenBatchs, hidVec) = miopen::tien<3>(hPackedDesc.GetLengths());
+        std::tie(hiddenLayers, std::ignore, hidVec) = miopen::tien<3>(hPackedDesc.GetLengths());
 
         outVec = hidVec * (dirMode ? 2 : 1);
 
@@ -426,46 +427,73 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         auto batch_seq                                     = xDesc.GetBatchesPerSequence();
         size_t seq_len      = batch_seq.size();
         size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0);
+        size_t batch_size   = batch_seq.at(0);
+
+        bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
+        bool is_hx_zip_req           = is_state_tensor_zip_req && !nohx;
+        bool is_cx_zip_req           = is_state_tensor_zip_req && !nocx;
 
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
-        std::vector<T> hidden_state(
-            LSTMCPUHiddenStateSize(hiddenLayers, hiddenBatchs, hidVec));
-        std::vector<T> cell_state(LSTMCPUHiddenStateSize(hiddenLayers, hiddenBatchs, hidVec));
+        std::vector<T> hidden_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
+        std::vector<T> cell_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
         
         std::vector<T> packed_output(LSTMCPUIOSize(total_batchs, outVec));
 
-        LSTMFwdCPUVerify(handle,
-                         useDropout,
-                         miopen::deref(rnnDesc.dropoutDesc),
-                         xData,
-                         wData,        // [ input_state_weight_trans
-                                            // hidden_state_weight0_trans input1_trans
-                                            // hidden1_trans ... output_weight;
-                                            // bidirectional reversed weights ]
-                         hidden_state,      // current/final hidden state
-                         hxData,       // initial hidden state
-                         cell_state,        // current/final cell state
-                         cxData,             // initial cell state
-                         packed_output,
-                         batch_seq_downgrade, // input batch size
-                         inVec,          // input data length
-                         seq_len,        // Number of iterations to unroll over
-                         dirMode,        // whether using bidirectional net
-                         biasMode,       // whether using bias
-                         hiddenLayers,   // 1 by numlayer (number of stacks of hidden layers)
-                                          // for unidirection, 2 by numlayer for bidirection
-                         batch_seq.at(0), // equal to input batch size in_n[0]
-                         hidVec,         // hidden state number
-                         outVec,         // 1 by hy_h related function for unidirection, 2 by hy_h
-                                          // related function for bidirection
-                         inputMode,
-                         reserveSpace,
-                         nohx,
-                         nocx);
+        LSTMFwdCPUVerify(
+            handle,
+            useDropout,
+            miopen::deref(rnnDesc.dropoutDesc),
+            xData,
+            wData,        // [ input_state_weight_trans
+                          // hidden_state_weight0_trans input1_trans
+                          // hidden1_trans ... output_weight;
+                          // bidirectional reversed weights ]
+            hidden_state, // current/final hidden state
+            is_hx_zip_req ? zipStateVectorTensor(
+                                hxData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                          : hxData, // initial hidden state
+            cell_state,                                                // current/final cell state
+            is_cx_zip_req ? zipStateVectorTensor(
+                                cxData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                          : cxData, // initial cell state
+            packed_output,
+            batch_seq_downgrade, // input batch size
+            inVec,               // input data length
+            seq_len,             // Number of iterations to unroll over
+            dirMode,             // whether using bidirectional net
+            biasMode,            // whether using bias
+            hiddenLayers,        // 1 by numlayer (number of stacks of hidden layers)
+                                 // for unidirection, 2 by numlayer for bidirection
+            batch_size,          // equal to input batch size in_n[0]
+            hidVec,              // hidden state number
+            outVec,              // 1 by hy_h related function for unidirection, 2 by hy_h
+                                 // related function for bidirection
+            inputMode,
+            reserveSpace,
+            nohx,
+            nocx);
 
-        return {
-            std::move(packed_output), std::move(hidden_state), std::move(cell_state), nohy, nocy};
+        if(is_state_tensor_zip_req)
+        {
+            return {
+                std::move(packed_output),
+                zipStateVectorTensor(std::move(hidden_state),
+                                     hiddenLayers,
+                                     batch_size,
+                                     xDesc.GetLengths()[0],
+                                     hidVec),
+                zipStateVectorTensor(
+                    std::move(cell_state), hiddenLayers, batch_size, xDesc.GetLengths()[0], hidVec),
+                nohy,
+                nocy};
+        }
+        else
+            return {std::move(packed_output),
+                    std::move(hidden_state),
+                    std::move(cell_state),
+                    nohy,
+                    nocy};
     }
 
     BWDResObj bwd(const miopen::SeqTensorDescriptor& xDesc,
@@ -487,55 +515,84 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
 
         auto batch_seq      = xDesc.GetBatchesPerSequence();
         size_t seq_len      = batch_seq.size();
+        size_t batch_size    = batch_seq.at(0);
+
+        bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
+        bool is_dhy_zip_req          = is_state_tensor_zip_req && !nodhy;
+        bool is_dcy_zip_req          = is_state_tensor_zip_req && !nodcy;
+        bool is_cx_zip_req           = is_state_tensor_zip_req && !nocx;
+
         size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0);
         
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
-        std::vector<T> d_hidden_state(
-            LSTMCPUHiddenStateSize(hiddenLayers, hiddenBatchs, hidVec));
-        std::vector<T> d_cell_state(
-            LSTMCPUHiddenStateSize(hiddenLayers, hiddenBatchs, hidVec));
+        std::vector<T> d_hidden_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
+        std::vector<T> d_cell_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
         std::vector<T> packed_dInput(LSTMCPUIOSize(total_batchs, inVec));
 
-        LSTMBwdDataCPUVerify(useDropout,
-                             miopen::deref(rnnDesc.dropoutDesc),
-                             packed_dInput,   // DX (output)
-                             weiData,        // [ input_state_weight_trans
-                                              //   hidden_state_weight0_trans input1_trans
-                                              //   hidden1_trans ... output_weight;
-                                              //   bidirectional reversed weights ]
-                             dhyData,         // current/final hidden state
-                             d_hidden_state, // DHX (output)
-                             {},             // HX initial hidden state
-                             dcyData,         // DCY current/final cell state
-                             d_cell_state,   // DCX (output)
-                             cxData,          // CX
-                             {},             // Y
-                             dyData,          // DY
+        LSTMBwdDataCPUVerify(
+            useDropout,
+            miopen::deref(rnnDesc.dropoutDesc),
+            packed_dInput, // DX (output)
+            weiData,       // [ input_state_weight_trans
+                           //   hidden_state_weight0_trans input1_trans
+                           //   hidden1_trans ... output_weight;
+                           //   bidirectional reversed weights ]
+            is_dhy_zip_req ? zipStateVectorTensor(
+                                 dhyData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                           : dhyData, // current/final hidden state
+            d_hidden_state,           // DHX (output)
+            {},                       // HX initial hidden state
+            is_dcy_zip_req ? zipStateVectorTensor(
+                                 dcyData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                           : dcyData, // DCY current/final cell state
+            d_cell_state,             // DCX (output)
+            is_cx_zip_req ? zipStateVectorTensor(
+                                cxData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                          : cxData, // CX
+            {},                     // Y
+            dyData,                 // DY
 
-                             batch_seq_downgrade, // input batch size
-                             inVec,          // input data length
-                             seq_len,         // Number of iterations to unroll over
-                             dirMode,        // whether using bidirectional net
-                             biasMode,       // whether using bias
-                             hiddenLayers,    // 1 by numlayer (number of stacks of hidden layers)
-                                              // for unidirection, 2 by numlayer for bidirection
-                             batch_seq.at(0), // equal to input batch size in_n[0]
-                             hidVec,         // hidden state number
-                             outVec,         // 1 by hy_h related function for unidirection, 2 by
-                                              // hy_h related function for bidirection
-                             inputMode,
-                             reserveSpace,
-                             workSpace,
-                             nocx,
-                             nodhy,
-                             nodcy);
+            batch_seq_downgrade, // input batch size
+            inVec,               // input data length
+            seq_len,             // Number of iterations to unroll over
+            dirMode,             // whether using bidirectional net
+            biasMode,            // whether using bias
+            hiddenLayers,        // 1 by numlayer (number of stacks of hidden layers)
+                                 // for unidirection, 2 by numlayer for bidirection
+            batch_size,          // equal to input batch size in_n[0]
+            hidVec,              // hidden state number
+            outVec,              // 1 by hy_h related function for unidirection, 2 by
+                                 // hy_h related function for bidirection
+            inputMode,
+            reserveSpace,
+            workSpace,
+            nocx,
+            nodhy,
+            nodcy);
 
-        return {std::move(packed_dInput),
-                std::move(d_hidden_state),
-                std::move(d_cell_state),
-                nodhx,
-                nodcx};
+        if(is_state_tensor_zip_req)
+        {
+            return {std::move(packed_dInput),
+                    zipStateVectorTensor(std::move(d_hidden_state),
+                                         hiddenLayers,
+                                         batch_size,
+                                         xDesc.GetLengths()[0],
+                                         hidVec),
+                    zipStateVectorTensor(std::move(d_cell_state),
+                                         hiddenLayers,
+                                         batch_size,
+                                         xDesc.GetLengths()[0],
+                                         hidVec),
+                    nodhx,
+                    nodcx};
+        }
+        else
+            return {std::move(packed_dInput),
+                    std::move(d_hidden_state),
+                    std::move(d_cell_state),
+                    nodhx,
+                    nodcx};
     }
 
     WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
@@ -554,36 +611,42 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
         size_t seq_len = batch_seq.size();
+        size_t batch_size = batch_seq.at(0);
+        
+        bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
+        bool is_hx_zip_req           = is_state_tensor_zip_req && !nohx;
 
         std::vector<T> dwei_data(
             LSTMCPUWeightSize(rnnDesc.nLayers, hidVec, inVec, biasMode, inputMode, dirMode));
 
-        LSTMBwdWeightCPUVerify(useDropout,
-                               xData,
-                               dwei_data, // (output) [ input_state_weight_trans
-                                           // hidden_state_weight0_trans
-                                           // input1_trans hidden1_trans ...
-                                           // output_weight; bidirectional
-                                           // reversed weights ]
-                               hxData,   // initial hidden state
-                               doutData,
-                               batch_seq_downgrade, // input batch size
-                               inVec,          // input data length
-                               seq_len,         // Number of iterations to unroll over
-                               dirMode,        // whether using bidirectional net
-                               biasMode,       // whether using bias
-                               hiddenLayers,   // 1 by numlayer (number of stacks of hidden
-                                                // layers) for unidirection, 2 by numlayer for
-                                                // bidirection
-                               batch_seq.at(0), // equal to input batch size in_n[0]
-                               hidVec,         // hidden state number
-                               outVec,         // 1 by hy_h related function for unidirection, 2
-                                                // by hy_h related function for bidirection
-                               inputMode,
-                               reserveSpace,
-                               workSpace,
-                               nohx);
-
+        LSTMBwdWeightCPUVerify(
+            useDropout,
+            xData,
+            dwei_data, // (output) [ input_state_weight_trans
+                       // hidden_state_weight0_trans
+                       // input1_trans hidden1_trans ...
+                       // output_weight; bidirectional
+                       // reversed weights ]
+            is_hx_zip_req ? zipStateVectorTensor(
+                                hxData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                          : hxData, // initial hidden state
+            doutData,
+            batch_seq_downgrade, // input batch size
+            inVec,               // input data length
+            seq_len,             // Number of iterations to unroll over
+            dirMode,             // whether using bidirectional net
+            biasMode,            // whether using bias
+            hiddenLayers,        // 1 by numlayer (number of stacks of hidden
+                                 // layers) for unidirection, 2 by numlayer for
+                                 // bidirection
+            batch_size,          // equal to input batch size in_n[0]
+            hidVec,              // hidden state number
+            outVec,              // 1 by hy_h related function for unidirection, 2
+                                 // by hy_h related function for bidirection
+            inputMode,
+            reserveSpace,
+            workSpace,
+            nohx);
 
         return {std::move(dwei_data)};
     }
@@ -598,13 +661,29 @@ private:
         return ret;
     }
 
+    //to remove zero size samples
+    std::vector<T> zipStateVectorTensor(const std::vector<T>& data,
+                                        size_t nLayers,
+                                        size_t inBatchSize,
+                                        size_t outBatchSize,
+                                        size_t vecSize) const
+    {
+        std::vector<T> ret(nLayers * outBatchSize * vecSize, static_cast<T>(0));
+        size_t copy_size = std::min(inBatchSize, outBatchSize) * vecSize;
+        for(size_t i = 0; i < nLayers; i++)
+            std::copy_n(data.begin() + i * inBatchSize * vecSize,
+                        copy_size,
+                        ret.begin() + i * outBatchSize * vecSize);
+        return ret;
+    }
+
     const miopen::RNNDescriptor rnnDesc{};
 
     bool dirMode{};
     bool biasMode{};
     bool inputMode{};
     bool useDropout{};
-    size_t hiddenLayers, hiddenBatchs, hidVec, outVec, inVec;
+    size_t hiddenLayers, hidVec, outVec, inVec;
     size_t reserve_space_size_cpu, work_space_size_cpu;
 };
 
@@ -1389,7 +1468,7 @@ struct rnn_seq_api_test_driver : test_driver
             &handle, &rnnDesc, &input.desc, miopenRNNInference, &inference_workSpace_size, nullptr);
 
         auto tmp_mem =
-            max(inference_workSpace_size, train_workSpace_size + train_reserveSpace_size);
+            std::max(inference_workSpace_size, train_workSpace_size + train_reserveSpace_size);
 
         size_t total_mem = statesSizeInBytes + tmp_mem +
                            (2 * output.GetSize() + input.GetSize() + weightsByteSize +
@@ -1419,6 +1498,7 @@ struct rnn_seq_api_test_driver : test_driver
                       std::vector<T>& weights)
     {
         const double scale = 0.01;
+        const double bwd_scale = scale * 0.001;
 
         struct scalar_gen_random_float
         {
@@ -1433,13 +1513,22 @@ struct rnn_seq_api_test_driver : test_driver
 
         auto gen_positive_value = [=](auto...) { return scalar_gen_random_float{0, 1 * scale}(); };
 
+
+        auto gen_positive_value_bwd = [=](auto...) {
+            double bwd_min  = std::numeric_limits<T>::epsilon();
+            double bwd_max = std::min(bwd_min * 100, 1. * scale);
+            return scalar_gen_random_float{std::numeric_limits<T>::epsilon(), bwd_max}();
+        };
+
         auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
             for(size_t it = 0; it < dst_sz; it++)
                 dst[it] = RAN_GEN<T>(static_cast<T>(range_l), static_cast<T>(range_r));
         };
-
+        srand(0);
         fill_array_via_gen(input.data, input.data.size(), 0.0, 1.0 * scale);
-        fill_array_via_gen(dy.data, dy.data.size(), 0.0, 1.0 * scale*0.1);
+        srand(0);
+        fill_array_via_gen(dy.data, dy.data.size(), 0, 1.0 * bwd_scale);
+        srand(0);
         
         const auto hidden_size = hx.desc.GetLengths()[2];
         const double wei_range = sqrt(1. / hidden_size);
@@ -1457,12 +1546,12 @@ struct rnn_seq_api_test_driver : test_driver
 
         if(!nohy)
         {
-            dhy.generate(gen_positive_value);
+            dhy.generate(gen_positive_value_bwd);
         }
 
         if(!nocy)
         {
-            dcy.generate(gen_positive_value);
+            dcy.generate(gen_positive_value_bwd);
         }
     }
 
@@ -1480,7 +1569,7 @@ struct rnn_seq_api_test_driver : test_driver
             if(seqLenArray.size() < batchSize)
             {
 
-                int padding_val = 1;
+                int padding_val = 0;
                 printf("sampl_lens size == %lu is shmaller than time batch_size == %d, padding the "
                        "rest "
                        "of data with %d\n",
