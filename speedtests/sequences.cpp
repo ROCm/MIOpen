@@ -172,7 +172,7 @@ bool Next(const TRange& range, TValue& value)
 template <class TValue, TValue... values>
 struct BoostSequence
 {
-    using ValueType      = TValue;
+    using value_type     = TValue;
     using const_iterator = const TValue*;
     constexpr const_iterator begin() const { return arr.begin(); }
     constexpr const_iterator end() const { return arr.end(); }
@@ -188,7 +188,7 @@ struct span_impl;
 template <class Start, class T, T... Ns>
 struct span_impl<Start, std::integer_sequence<T, Ns...>>
 {
-    using ValueType       = T;
+    using value_type      = T;
     using const_iterator  = const T*;
     T data[sizeof...(Ns)] = {(Ns + Start{})...};
 

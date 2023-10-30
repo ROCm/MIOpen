@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -44,7 +44,7 @@
 #include <miopen/bfloat16.hpp>
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 using float16 = half_float::half;
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
