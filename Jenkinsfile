@@ -631,9 +631,10 @@ pipeline {
                     environment{
 			config_targets='test_db_sync'
 			execute_cmd='./bin/test_db_sync'
+                        setup_flags=' -DMIOPEN_CACHE_DIR=$HOME/.cache/miopen'
                     }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('dbsync gfx90a') {
@@ -641,9 +642,10 @@ pipeline {
                     environment{
 			config_targets='test_db_sync'
 			execute_cmd='./bin/test_db_sync'
+                        setup_flags=' -DMIOPEN_CACHE_DIR=$HOME/.cache/miopen'
                     }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
             }
