@@ -702,11 +702,6 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
-if(WIN32)
-    # Refer to https://en.cppreference.com/w/cpp/language/types for details.
-    target_compile_options(MIOpen PUBLIC $<$<CXX_COMPILER_ID:Clang>:-U__LP64__>)
-endif()
-
 find_package(zstd)
 if(zstd_FOUND)
     target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
@@ -736,7 +731,6 @@ target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
-target_link_libraries(MIOpenCore PRIVATE Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 
 miopen_generate_export_header(MIOpen)
 
