@@ -295,7 +295,7 @@ def buildHipClangJob(Map conf=[:]){
                     }
                     catch(e){
                         if (lfs_pull) {
-                            archiveArtifacts artifacts: "~/.cache/miopen/**/*.kdb", allowEmptyArchive: true, fingerprint: true
+                            archiveArtifacts artifacts: "$HOME/.cache/miopen/**/*kdb", allowEmptyArchive: true, fingerprint: true
                         }
                         throw e
                     }
