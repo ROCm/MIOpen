@@ -68,6 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf:
     case miopenInt8:
     case miopenBFloat16:
+    case miopenInt8x4: // Support discontinued.
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:

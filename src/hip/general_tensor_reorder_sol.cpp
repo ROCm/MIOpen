@@ -137,6 +137,8 @@ GenericReorderSolutionImpl::GenericReorderSolutionImpl(miopenDataType_t data_typ
       order_2(order_2_),
       order_3(order_3_)
 {
+    if(data_type == miopenInt8x4)
+        MIOPEN_THROW("These data type are not supported");
     std::size_t data_size  = miopen::GetTypeSize(data_type);
     kernel_param_heuristic = tensor_reorder::HeuristicGet(data_size, dim_0, dim_1, dim_2, dim_3);
 }

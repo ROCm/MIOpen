@@ -198,6 +198,7 @@ bool BnCKFwdTraining::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
     case miopenInt32:
     case miopenInt8:
+    case miopenInt8x4:
     case miopenBFloat8:
     case miopenFloat8: break;
     }
@@ -219,6 +220,7 @@ ConvSolution BnCKFwdTraining::GetSolution(
     case miopenBFloat16: return MakeAnyInvokerFactory<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
     case miopenInt8:
     case miopenInt32:
+    case miopenInt8x4:
     case miopenBFloat8:
     case miopenFloat8:
     default:

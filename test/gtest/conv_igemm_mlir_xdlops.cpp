@@ -53,6 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8: params = ConfigWithInt8::GetParam(); break;
     case miopenBFloat16:
     case miopenFloat:
+    case miopenInt8x4: // Support discontinued.
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:

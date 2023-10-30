@@ -197,6 +197,7 @@ bool BnCKFwdInference::IsApplicable(
         return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt32:
     case miopenInt8:
+    case miopenInt8x4: // Support discontinued.
     case miopenFloat8:
     case miopenBFloat8: break;
     }
@@ -233,6 +234,7 @@ ConvSolution BnCKFwdInference::GetSolution(
                 break;
             case miopenInt8:
             case miopenInt32:
+            case miopenInt8x4: // Support discontinued.
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");

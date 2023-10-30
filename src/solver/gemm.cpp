@@ -89,6 +89,8 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& yDesc = problem.GetOut();
 
     // rocBlas needs the output to be 32-bit always
+    if(xDesc.GetType() == miopenInt8x4)
+        return false;
     if(xDesc.GetType() == miopenInt8      //
        && (yDesc.GetType() != miopenFloat //
            && yDesc.GetType() != miopenInt32))
