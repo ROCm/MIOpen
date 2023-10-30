@@ -8,6 +8,10 @@ set(SOURCES
     platform.cpp
     )
 
+if(MIOPEN_BACKEND_OPENCL)
+  set(SKIP_TESTS dumpTensorTest)
+endif()
+
 function(add_gtest TEST_NAME)
   if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
     message("Adding Test: " ${TEST_NAME})
@@ -30,15 +34,13 @@ function(add_gtest TEST_NAME)
   endif()
 endfunction()
 
-add_gtest(api_convbiasactiv)
-add_gtest(cba_infer)
-add_gtest(conv_api)
-add_gtest(conv_api_strided_tensors)
-add_gtest(log_test)
-add_gtest(log_test_neg)
-add_gtest(na_infer)
-add_gtest(solver_convasm3x3u)
+file(GLOB TESTS *.cpp)
+# Remove files that do not contain tests
+foreach(SOURCE ${SOURCES})
+    list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
+endforeach()
 
-if(NOT MIOPEN_BACKEND_OPENCL)
-  add_gtest(dumpTensorTest)
-endif()
+foreach(TEST ${TESTS})
+    get_filename_component(BASE_NAME ${TEST} NAME_WE)
+    add_gtest(${BASE_NAME})
+endforeach()
