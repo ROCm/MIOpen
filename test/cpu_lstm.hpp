@@ -751,15 +751,21 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
 
     if(use_dropout)
     {
-        for(int i = 0; i < (numlayer - 1) * batch_n_cpu * hy_h * bi; i++)
+        const size_t dropout_size = (numlayer - 1) * batch_n_cpu * hy_h * bi;
+        const size_t dropout_offset = numlayer * batch_n_cpu * hy_stride * 2;
+        if(dropout_size > 0)
         {
-            rsvspace.at(numlayer * batch_n_cpu * hy_stride * 2 + i) = dropout_hid_state.at(i);
-        }
-        auto p_drop_rsv = reinterpret_cast<unsigned char*>(&rsvspace.at(
-            numlayer * batch_n_cpu * hy_stride * 2 + (numlayer - 1) * batch_n_cpu * hy_h * bi));
-        for(int i = 0; i < (numlayer - 1) * batch_n_cpu * hy_h * bi; i++)
-        {
-            *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
+            for(int i = 0; i < dropout_size; i++)
+            {
+                rsvspace.at(dropout_offset + i) = dropout_hid_state.at(i);
+            }
+
+            auto p_drop_rsv =
+                reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
+            for(int i = 0; i < dropout_size; i++)
+            {
+                *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
+            }
         }
     }
 }
@@ -842,11 +848,16 @@ void LSTMBwdDataCPUVerify(bool use_dropout_cpu,
         dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
                                                                static_cast<unsigned char>(0));
 
-        auto p_drop_rsv = reinterpret_cast<unsigned char*>(&rsvspace.at(
-            numlayer * batch_n_cpu * hy_stride * 2 + (numlayer - 1) * batch_n_cpu * hy_h * bi));
-        for(int i = 0; i < (numlayer - 1) * batch_n_cpu * hy_h * bi; i++)
+        const size_t dropout_size   = (numlayer - 1) * batch_n_cpu * hy_h * bi;
+        const size_t dropout_offset = numlayer * batch_n_cpu * hy_stride * 2;
+        if(dropout_size > 0)
         {
-            dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
+            auto p_drop_rsv =
+                reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
+            for(int i = 0; i < dropout_size; i++)
+            {
+                dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
+            }
         }
     }
 
