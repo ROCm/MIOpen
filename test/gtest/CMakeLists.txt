@@ -2,9 +2,6 @@ include(googletest) #include googletest.cmake
 enable_testing()
 include(GoogleTest)
 
-#add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
-#add_custom_target(tests)
-
 find_package(rocblas)
 
 set(SOURCES)
@@ -24,7 +21,7 @@ function(add_gtest TEST_NAME)
     add_dependencies(tests test_${TEST_NAME})
     add_dependencies(check test_${TEST_NAME})
     target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
-    target_include_directories(test_${TEST_NAME} PRIVATE ../)
+    target_include_directories(test_${TEST_NAME} PRIVATE ../ ../../src/kernels)
     if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)

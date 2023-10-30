@@ -65,44 +65,70 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
-static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
-                                      const TensorDescriptor& wDesc,
+static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
+                                              const TensorDescriptor& w,
+                                              const miopenTensorLayout_t layout,
+                                              const int groups)
+{
+    if(layout == miopenTensorNCHW      //
+       || layout == miopenTensorNCHWc4 //
+       || layout == miopenTensorNCHWc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[1];
+    }
+
+    if(layout == miopenTensorCHWNc4 //
+       || layout == miopenTensorCHWNc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[0];
+    }
+
+    return true;
+}
+
+static inline bool IsValidGroupCount(const TensorDescriptor& x,
+                                     const TensorDescriptor& w,
+                                     const miopenTensorLayout_t layout,
+                                     const int groups)
+{
+    if(groups > 1) // Optimize for speed
+    {
+        if(x.GetLengths()[1] % groups != 0)
+            return false;
+
+        if(layout == miopenTensorNCHW      //
+           || layout == miopenTensorNCHWc4 //
+           || layout == miopenTensorNCHWc8)
+            return w.GetLengths()[0] % groups == 0;
+
+        if(layout == miopenTensorCHWNc4 //
+           || layout == miopenTensorCHWNc8)
+            return w.GetLengths()[3] % groups == 0;
+    }
+    return true;
+}
+
+static inline void ValidateGroupCount(const TensorDescriptor& x,
+                                      const TensorDescriptor& w,
                                       const ConvolutionDescriptor& conv)
 {
-    ///\todo How make these validation clearly
-    if(conv.group_count == 1)
-    {
-        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
-            (xDesc.GetLengths()[1] != wDesc.GetLengths()[1])) ||
-           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
-             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
-            (xDesc.GetLengths()[1] != wDesc.GetLengths()[0])))
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
-    if(conv.group_count > 1)
-    {
-        if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] ||
-           (((wDesc.GetLayout_t() == miopenTensorNCHW) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
-            (wDesc.GetLengths()[0] % conv.group_count != 0 ||
-             conv.group_count > wDesc.GetLengths()[0])) ||
-           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
-             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
-            (wDesc.GetLengths()[3] % conv.group_count != 0 ||
-             conv.group_count > wDesc.GetLengths()[3])))
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
-             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
-            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
-           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
-             wDesc.GetLayout_t() == miopenTensorCHWNc8)))
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
+    const auto layout = w.GetLayout_t();
+    const auto groups = conv.group_count;
+    assert(groups > 0);
+
+    const auto ok_c = IsValidFilterChannelNumber(x, w, layout, groups);
+    const auto ok_g = IsValidGroupCount(x, w, layout, groups);
+
+    if(ok_c && ok_g)
+        return;
+
+    MIOPEN_LOG_W(w.GetLayout_str() << "w {" << w.ToString() << "}, " //
+                                   << "x {" << x.ToString() << "}, " //
+                                   << "groups = " << conv.group_count);
+    if(!ok_c)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    if(!ok_g)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
 }
 
 static Invoker PrepareInvoker(ExecutionContext ctx,
@@ -131,7 +157,7 @@ Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
                              solver::Id solver_id)
 {
     const auto& handle = ctx.GetStream();
-    const auto config  = problem.BuildConfKey();
+    const auto config  = problem.MakeNetworkConfig();
     auto invoker       = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -200,13 +226,10 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             auto ctx_copy                       = ctx;
             ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             auto legacy_problem                 = ProblemDescription(problem);
+            const auto params =
+                ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, legacy_problem)};
 
-            ConvFindCore(invoke_ctx,
-                         record,
-                         ctx_copy,
-                         legacy_problem,
-                         conv.IsWinograd3x3SupportedAndFast(ctx_copy, legacy_problem),
-                         GetConvSolverFinders());
+            FindCore(invoke_ctx, record, ctx_copy, legacy_problem, params, GetConvSolverFinders());
         });
     }
 
@@ -431,8 +454,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     }
 
     // trivial_tensor_types_not_matched =
-    if(tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-       tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4)
+    if(tensors.xDesc.GetType() != tensors.yDesc.GetType() && tensors.xDesc.GetType() != miopenInt8)
     {
         MIOPEN_THROW(miopenStatusBadParm, "input/output tensor data types do not match");
     }
@@ -486,7 +508,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         const auto problem =
             conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        const auto network_config = problem.BuildConfKey();
+        const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -578,12 +600,12 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
     const auto legacy_problem = ProblemDescription{problem};
-    const auto& inDesc =
+    const auto& xDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
-    ValidateGroupCount(inDesc, weightsDesc, *this);
+    ValidateGroupCount(xDesc, weightsDesc, *this);
 
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
@@ -939,7 +961,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         const auto problem =
             conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
-        const auto network_config = problem.BuildConfKey();
+        const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1137,7 +1159,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
         decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
-        decltype(auto) network_config = problem.BuildConfKey();
+        decltype(auto) network_config = problem.MakeNetworkConfig();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
         if(!invoker)
