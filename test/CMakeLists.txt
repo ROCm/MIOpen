@@ -1665,7 +1665,8 @@ add_custom_test(test_conv_igemm_dynamic_dlops_nchwc_chwnc_fwd_fp16x8 SKIP_UNLESS
 )
 
 add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-# Regression test for SWDEV-291202
+    # Regression test for SWDEV-291202
+    ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops
     COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
