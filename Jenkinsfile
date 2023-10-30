@@ -290,10 +290,14 @@ def buildHipClangJob(Map conf=[:]){
                         sh "git lfs pull --exclude="
                     }
 
-                    cmake_build(conf)
-
-                    if (lfs_pull) {
-                        archiveArtifacts artifacts: "~/.cache/miopen/**/*.kdb", allowEmptyArchive: true, fingerprint: true
+                    try{
+                        cmake_build(conf)
+                    }
+                    catch(e){
+                        if (lfs_pull) {
+                            archiveArtifacts artifacts: "~/.cache/miopen/**/*.kdb", allowEmptyArchive: true, fingerprint: true
+                        }
+                        throw e
                     }
 
                     if (codecov) {
