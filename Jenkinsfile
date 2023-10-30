@@ -292,6 +292,10 @@ def buildHipClangJob(Map conf=[:]){
 
                     cmake_build(conf)
 
+                    if (lfs_pull) {
+                        archiveArtifacts artifacts: "~/.cache/miopen/**/*.kdb", allowEmptyArchive: true, fingerprint: true
+                    }
+
                     if (codecov) {
                         sh '''
                             cd build
