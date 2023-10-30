@@ -295,7 +295,7 @@ def buildHipClangJob(Map conf=[:]){
                     }
                     catch(e){
                         if (lfs_pull) {
-                            archiveArtifacts artifacts: "$HOME/.cache/miopen/**/*kdb", allowEmptyArchive: true, fingerprint: true
+                            archiveArtifacts artifacts: "${env.WORKSPACE}/cache/miopen/**/*kdb", allowEmptyArchive: true, fingerprint: true
                         }
                         throw e
                     }
@@ -631,7 +631,7 @@ pipeline {
                     environment{
 			config_targets='test_db_sync'
 			execute_cmd='./bin/test_db_sync'
-                        setup_flags=' -DMIOPEN_CACHE_DIR=$HOME/.cache/miopen'
+                        setup_flags=' -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
@@ -642,7 +642,7 @@ pipeline {
                     environment{
 			config_targets='test_db_sync'
 			execute_cmd='./bin/test_db_sync'
-                        setup_flags=' -DMIOPEN_CACHE_DIR=$HOME/.cache/miopen'
+                        setup_flags=' -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen'
                     }
                     steps{
                         buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
