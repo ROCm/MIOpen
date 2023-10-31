@@ -5359,18 +5359,23 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     // dinput
     if(inputMode == miopenRNNskip)
     {
-        sp_size[1] = batch_n;
-        sp_size[2] = hy_h;
-        x_size[1]  = batch_n;
-        x_size[2]  = hy_h;
-        x_desc     = miopen::TensorDescriptor(rnn_data_type, x_size, x_stride);
-        sp_desc    = miopen::TensorDescriptor(rnn_data_type, sp_size, sp_stride);
+        const std::vector<int> dx_size{1, batch_n, hy_h};
+        x_desc  = miopen::TensorDescriptor(rnn_data_type, dx_size, x_stride);
+        sp_desc = miopen::TensorDescriptor(rnn_data_type, dx_size, sp_stride);
 
         alpha0 = 1;
         alpha1 = 1;
         beta_t = 0;
-
-        for(int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
+        
+        CopyTensor(handle,
+                   sp_desc,
+                   workSpace,
+                   x_desc,
+                   dx,
+                   0,
+                   0, true);
+        profileRNNkernels(handle, 1, ctime);
+        for(int gi = 1; gi < nHiddenTensorsPerLayer * bi; gi++)
         {
             OpTensor(handle,
                      miopenTensorOpAdd,
