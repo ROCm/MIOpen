@@ -34,6 +34,8 @@
 #include <nlohmann/json.hpp>
 
 #include <boost/hof/match.hpp>
+#include "miopen/fusion/problem_description.hpp"
+#include "miopen/fusion/context.hpp"
 
 namespace miopen::debug {
 // Todo: This should be updated when a separate driver command is implemented
@@ -71,9 +73,8 @@ void Solution::Run(Handle& handle,
                         }),
                     problem_.GetOperatorDescriptor());
             },
-            [](const FusedProblem& problem_) {
-                std::ignore = problem_;
-                MIOPEN_THROW(miopenStatusNotImplemented);
+            [&](const FusedProblem& problem_) {
+                RunImpl(handle, inputs, workspace, workspace_size, problem_);
             }),
         problem.item);
 }
@@ -210,7 +211,7 @@ void Solution::RunImpl(Handle& handle,
     auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
-    decltype(auto) db        = GetDb(conv_ctx);
+    decltype(auto) db        = GetDb(ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
         conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
@@ -218,6 +219,46 @@ void Solution::RunImpl(Handle& handle,
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                       Data_t /*workspace*/,
+                       std::size_t /*workspace_size*/,
+                       const FusedProblem& problem_)
+{
+    const auto buffer_getter = [&](auto id, auto&& descriptor) {
+        const auto found = inputs.find(id);
+        if(found == inputs.end())
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + std::to_string(id) + " tensor descriptor.");
+        if(found->second.descriptor.has_value() && *found->second.descriptor != descriptor)
+            MIOPEN_THROW(miopenStatusNotImplemented,
+                         "Providing new descriptors for a fused solution is not supported.");
+        return found->second.buffer;
+    };
+
+    OperatorArgs op_args;
+    const auto invoke_params = problem_.MakeInvokeParams(buffer_getter, op_args);
+
+    const auto plan           = problem_.AsFusionPlan();
+    const auto fusion_problem = FusionDescription{&plan};
+    const auto net_cfg        = fusion_problem.MakeNetworkConfig();
+
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_params);
+        return;
+    }
+
+    const auto ctx      = FusionContext{handle};
+    const auto solution = MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
+    decltype(auto) invoker =
+        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+    invoker(handle, invoke_params);
 }
 
 Problem Solution::Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y)

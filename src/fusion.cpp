@@ -705,6 +705,29 @@ static auto GetFusedWinogradSolvers()
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
 }
 
+static auto GetAllFusionSolvers()
+{
+    return GetFusedNonConvSolvers() + GetFusedDirectSolvers() + GetFusedIGemmSolvers() +
+           GetFusedWinogradSolvers();
+}
+
+solver::ConvSolution MakeFusedSolution(const FusionContext& ctx,
+                                       solver::Id id,
+                                       const std::optional<std::string>& perf_cfg_override,
+                                       const FusionDescription& problem,
+                                       const AnyInvokeParams& invoke_params)
+{
+    decltype(auto) db = GetDb(ctx);
+    solver::ConvSolution solution{miopenStatusInternalError};
+
+    GetAllFusionSolvers().FindById(id, [&](auto solver) {
+        solution = miopen::solver::FindSolution(
+            solver, ctx, problem, db, invoke_params, perf_cfg_override.value_or(""));
+    });
+
+    return solution;
+}
+
 struct FusionFindParameters : PrimitiveFindParameters
 {
 };

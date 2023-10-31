@@ -116,17 +116,13 @@ void VisitType(int id, Args... args)
 static Data_t AllocateTensor(Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
-                             std::unordered_map<miopenTensorArgumentId_t, Data_t>& all,
                              miopenTensorArgumentId_t id,
                              const TensorDescriptor& descriptor)
 {
     const auto preallocated = options.preallocated_tensors.find(id);
 
     if(preallocated != options.preallocated_tensors.end())
-    {
-        all.emplace(id, preallocated->second);
         return preallocated->second;
-    }
 
     const auto element_size = get_data_size(descriptor.GetType());
     auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
@@ -137,7 +133,6 @@ static Data_t AllocateTensor(Handle& handle,
     });
 
     const auto allocated = buffer.get();
-    all.emplace(id, allocated);
     owned.emplace_back(std::move(buffer));
     return allocated;
 }
@@ -166,8 +161,14 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
     auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
 
+    const auto allocate = [&](auto id, auto&& descriptor) {
+        auto buffer = AllocateTensor(handle, options, owned_buffers, id, descriptor);
+        buffers.emplace(id, buffer);
+        return buffer;
+    };
+
     for(const auto& pair : tensor_descriptors)
-        AllocateTensor(handle, options, owned_buffers, buffers, pair.first, pair.second);
+        allocate(pair.first, pair.second);
 
     auto ret = boost::apply_visitor(
         boost::hof::match(
@@ -575,89 +576,31 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
                                                   const FindOptions& options,
                                                   std::size_t max_solutions) const
 {
-    auto owned = std::vector<Allocator::ManageDataPtr>{};
+    const auto find1_solutions = [&]() {
+        OperatorArgs params;
+        auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
 
-    FusionPlanDescriptor plan;
-
-    for(const auto& problem : problems)
-        AddProblemToPlan(plan, problem);
-
-    miopen::OperatorArgs params;
-
-    const auto make_invoke_params = [&]() {
-        auto buffers   = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
-        auto& in_desc  = problems.front().GetInput();
-        auto& out_desc = problems.back().GetOutput();
-        Data_t in, out;
-
-        {
-            auto allocate = [&](auto id, auto&& desc) {
-                return AllocateTensor(handle, options, owned, buffers, id, desc);
+        const auto make_invoke_params = [&]() {
+            auto buffer_allocator = [&](auto id, auto&& desc) {
+                return AllocateTensor(handle, options, owned_buffers, id, desc);
             };
 
-            in  = allocate(GetInputId(), in_desc);
-            out = allocate(GetOutputId(), out_desc);
+            return MakeInvokeParams(buffer_allocator, params);
+        };
 
-            for(const auto& problem : problems)
-                for(const auto& pair : problem.tensor_descriptors)
-                    if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
-                        allocate(pair.first, pair.second);
-        }
-
-        bool gfx90aaltimpl = false;
-
-        for(const auto& problem : problems)
-        {
-            boost::apply_visitor(
-                boost::hof::match(
-                    [&](const ConvolutionDescriptor& conv_desc) {
-                        gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
-
-                        const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
-                        params.params.emplace_back(
-                            std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
-                    },
-                    [&](const ActivationDescriptor& activ_desc) {
-                        const auto alpha = activ_desc.GetAlpha();
-                        const auto beta  = activ_desc.GetBeta();
-                        const auto gamma = activ_desc.GetGamma();
-
-                        if(problem.GetDirection() == miopenProblemDirectionForward)
-                        {
-                            params.params.emplace_back(
-                                std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-                                    alpha, beta, gamma));
-                        }
-                        else
-                        {
-                            const auto x = buffers.at(miopenTensorActivationX);
-                            const auto y = buffers.at(miopenTensorActivationY);
-
-                            params.params.emplace_back(
-                                std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
-                                    y, x, alpha, beta, gamma));
-                        }
-                    }),
-                problem.operator_descriptor);
-        }
-
-        return fusion::FusionInvokeParams(params, in_desc, in, out_desc, out, gfx90aaltimpl);
-    };
-
-    auto find1_solutions = plan.Find(handle, make_invoke_params);
-    owned.resize(0);
+        return AsFusionPlan().Find(handle, make_invoke_params);
+    }();
 
     auto ret = std::vector<Solution>{};
     ret.reserve(find1_solutions.size());
-
     // decltype(auto) db = GetDb(ExecutionContext{&handle});
 
-    for(auto i = 0; i < ret.size(); ++i)
+    for(const auto& find1_solution : find1_solutions)
     {
         auto solution = Solution{};
-        solution.SetTime(find1_solutions[i].time);
-        solution.SetWorkspaceSize(find1_solutions[i].workspace);
-        solution.SetSolver(find1_solutions[i].solver_id);
+        solution.SetTime(find1_solution.time);
+        solution.SetWorkspaceSize(find1_solution.workspace);
+        solution.SetSolver(find1_solution.solver_id);
         solution.SetProblem({*this});
         // solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx,
         // legacy_problem, db));
@@ -670,7 +613,6 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
 
     SortFindResults(options, ret);
     ret.resize(std::min(ret.size(), max_solutions));
-
     return ret;
 }
 
@@ -691,6 +633,74 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                     plan.AddOp(std::make_shared<ActivBwdFusionOpDescriptor>(activ_desc.GetMode()));
             }),
         problem.operator_descriptor);
+}
+
+fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
+    const std::function<Data_t(miopenTensorArgumentId_t, const TensorDescriptor&)>& buffer_getter,
+    OperatorArgs& operator_args) const
+{
+    auto buffers   = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
+    auto& in_desc  = problems.front().GetInput();
+    auto& out_desc = problems.back().GetOutput();
+
+    const auto get_buffer = [&](auto id, auto&& descriptor) {
+        auto buffer = buffer_getter(id, descriptor);
+        buffers.emplace(id, buffer);
+        return buffer;
+    };
+
+    bool gfx90aaltimpl = false;
+    auto in            = get_buffer(GetInputId(), in_desc);
+    auto out           = get_buffer(GetOutputId(), out_desc);
+
+    for(const auto& problem : problems)
+    {
+        for(const auto& pair : problem.tensor_descriptors)
+            if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
+                get_buffer(pair.first, pair.second);
+
+        boost::apply_visitor(
+            boost::hof::match(
+                [&](const ConvolutionDescriptor& conv_desc) {
+                    gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
+
+                    const auto wei_ptr = buffers.at(miopenTensorConvolutionW);
+                    operator_args.params.emplace_back(
+                        std::make_unique<miopen::fusion::ConvolutionOpInvokeParam>(wei_ptr));
+                },
+                [&](const ActivationDescriptor& activ_desc) {
+                    const auto alpha = activ_desc.GetAlpha();
+                    const auto beta  = activ_desc.GetBeta();
+                    const auto gamma = activ_desc.GetGamma();
+
+                    if(problem.GetDirection() == miopenProblemDirectionForward)
+                    {
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+                                alpha, beta, gamma));
+                    }
+                    else
+                    {
+                        const auto x = buffers.at(miopenTensorActivationX);
+                        const auto y = buffers.at(miopenTensorActivationY);
+
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::ActivationBwdOpInvokeParam>(
+                                y, x, alpha, beta, gamma));
+                    }
+                }),
+            problem.operator_descriptor);
+    }
+
+    return fusion::FusionInvokeParams(operator_args, in_desc, in, out_desc, out, gfx90aaltimpl);
+}
+
+FusionPlanDescriptor FusedProblem::AsFusionPlan() const
+{
+    FusionPlanDescriptor plan;
+    for(const auto& problem : problems)
+        AddProblemToPlan(plan, problem);
+    return plan;
 }
 
 } // namespace miopen

@@ -109,6 +109,12 @@ private:
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
 
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
+                 Data_t workspace,
+                 std::size_t workspace_size,
+                 const FusedProblem& problem_);
+
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
 
     void LogDriverCommand(const ConvolutionDescriptor& desc) const;

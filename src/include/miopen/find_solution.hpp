@@ -173,6 +173,29 @@ ConvSolution FindSolution(Solver s,
 template <class... Solvers>
 struct SolverContainer
 {
+    template <class... SolversRight>
+    auto operator+(SolverContainer<SolversRight...>) const
+    {
+        return SolverContainer<Solvers..., SolversRight...>{};
+    }
+
+    ///\todo: remove when AnySolver would be able to work with non-conv solvers
+    template <class Functor>
+    void FindById(solver::Id id, Functor&& receiver)
+    {
+        bool found = false;
+
+        miopen::each_args(
+            [&](auto solver) {
+                if(found || id != solver::Id{solver.SolverDbId()})
+                    return;
+
+                found = true;
+                receiver(solver);
+            },
+            Solvers{}...);
+    }
+
     // Search for all applicable solutions among many solvers
     template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>

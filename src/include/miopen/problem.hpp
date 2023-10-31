@@ -41,6 +41,9 @@
 
 #include <cstring>
 #include <unordered_map>
+#include "miopen/fusion/fusion_op_args.hpp"
+#include "miopen/fusion/fusion_invoke_params.hpp"
+#include "fusion_plan.hpp"
 
 namespace miopen {
 
@@ -174,8 +177,15 @@ struct FusedProblem
         return problems.back().GetOutputId();
     }
 
+    [[nodiscard]] FusionPlanDescriptor AsFusionPlan() const;
+
     friend void to_json(nlohmann::json& j, const FusedProblem& problem);
     friend void from_json(const nlohmann::json& j, FusedProblem& problem);
+
+    [[nodiscard]] fusion::FusionInvokeParams
+    MakeInvokeParams(const std::function<Data_t(miopenTensorArgumentId_t, const TensorDescriptor&)>&
+                         buffer_getter,
+                     OperatorArgs& operator_args) const;
 
 private:
     static void AddProblemToPlan(struct FusionPlanDescriptor& plan, const Problem& problem);
