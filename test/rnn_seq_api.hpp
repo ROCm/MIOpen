@@ -346,6 +346,7 @@ struct rnn_ref
                           const std::vector<T>& dyData,
                           const std::vector<T>& dhyData,
                           const std::vector<T>& dcyData,
+                          const std::vector<T>& hxData,
                           const std::vector<T>& cxData,
                           const std::vector<T>& weiData,
                           std::vector<T>& reserveSpace,
@@ -354,6 +355,7 @@ struct rnn_ref
                           bool nodcx,
                           bool nodhy,
                           bool nodcy,
+                          bool nohx,
                           bool nocx) const = 0;
 
     virtual WRWResObj wrw(const miopen::SeqTensorDescriptor& xDesc,
@@ -386,6 +388,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         dirMode    = rnnDesc.dirMode == miopenRNNbidirection;
         biasMode   = rnnDesc.biasMode == miopenRNNwithBias;
         inputMode  = rnnDesc.inputMode == miopenRNNskip;
+        rnnMode    = rnnDesc.rnnMode;
         useDropout = !miopen::float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
 
         std::tie(hiddenLayers, std::ignore, hidVec) = miopen::tien<3>(hPackedDesc.GetLengths());
@@ -395,18 +398,19 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         inVec                     = maxX.GetLengths()[2];
         size_t input_batchLen_sum = maxX.GetTotalSequenceLen();
 
-        reserve_space_size_cpu = LSTMCPUReserveSpaceSize(rnnDesc.nLayers, input_batchLen_sum, outVec, sizeof(T), useDropout);
+        reserveSpaceSizeCpu = UniRNNCPUReserveSpaceSize(
+            rnnMode, rnnDesc.nLayers, input_batchLen_sum, outVec, sizeof(T), useDropout);
 
-        work_space_size_cpu = LSTMCPUWorkSpaceByteSize(
-            rnnDesc.nLayers, input_batchLen_sum, rnn.hsize, sizeof(T), dirMode);
+        workSpaceSizeCpu = UniRNNCPUWorkSpaceByteSize(
+            rnnMode, rnnDesc.nLayers, input_batchLen_sum, rnn.hsize, sizeof(T), dirMode);
 
     }
 
     size_t getReserveSpaceSize() const override { 
-        return reserve_space_size_cpu;
+        return reserveSpaceSizeCpu;
     }
 
-    size_t getWorkSpaceSize() const override { return work_space_size_cpu; }
+    size_t getWorkSpaceSize() const override { return workSpaceSizeCpu; }
 
     FWDResObj fwd(const miopen::SeqTensorDescriptor& xDesc,
                   const miopen::SeqTensorDescriptor&,
@@ -435,12 +439,13 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
 
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
-        std::vector<T> hidden_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
-        std::vector<T> cell_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
-        
-        std::vector<T> packed_output(LSTMCPUIOSize(total_batchs, outVec));
+        std::vector<T> hidden_state(UniRNNCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
+        std::vector<T> cell_state(
+            UniRNNCPUCellStateSize(rnnDesc.rnnMode, hiddenLayers, batch_size, hidVec));
 
-        LSTMFwdCPUVerify(
+        std::vector<T> packed_output(UniRNNCPUIOSize(total_batchs, outVec));
+
+        UniformRNNFwdTrainCPUVerify(
             handle,
             useDropout,
             miopen::deref(rnnDesc.dropoutDesc),
@@ -469,6 +474,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
             hidVec,              // hidden state number
             outVec,              // 1 by hy_h related function for unidirection, 2 by hy_h
                                  // related function for bidirection
+            rnnMode,
             inputMode,
             reserveSpace,
             nohx,
@@ -501,6 +507,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
                   const std::vector<T>& dyData,
                   const std::vector<T>& dhyData,
                   const std::vector<T>& dcyData,
+                  const std::vector<T>& hxData,
                   const std::vector<T>& cxData,
                   const std::vector<T>& weiData,
                   std::vector<T>& reserveSpace,
@@ -509,6 +516,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
                   bool nodcx,
                   bool nodhy,
                   bool nodcy,
+                  bool nohx,
                   bool nocx) const override
     {
         assert(checkSeqTensor(xDesc));
@@ -520,17 +528,20 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
         bool is_dhy_zip_req          = is_state_tensor_zip_req && !nodhy;
         bool is_dcy_zip_req          = is_state_tensor_zip_req && !nodcy;
+        bool is_hx_zip_req           = is_state_tensor_zip_req && !nohx;
         bool is_cx_zip_req           = is_state_tensor_zip_req && !nocx;
+        
 
         size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0);
         
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
-        std::vector<T> d_hidden_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
-        std::vector<T> d_cell_state(LSTMCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
-        std::vector<T> packed_dInput(LSTMCPUIOSize(total_batchs, inVec));
+        std::vector<T> d_hidden_state(UniRNNCPUHiddenStateSize(hiddenLayers, batch_size, hidVec));
+        std::vector<T> d_cell_state(
+            UniRNNCPUCellStateSize(rnnDesc.rnnMode, hiddenLayers, batch_size, hidVec));
+        std::vector<T> packed_dInput(UniRNNCPUIOSize(total_batchs, inVec));
 
-        LSTMBwdDataCPUVerify(
+        UniformRNNBwdTrainCPUVerify(
             useDropout,
             miopen::deref(rnnDesc.dropoutDesc),
             packed_dInput, // DX (output)
@@ -542,7 +553,9 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
                                  dhyData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
                            : dhyData, // current/final hidden state
             d_hidden_state,           // DHX (output)
-            {},                       // HX initial hidden state
+            is_hx_zip_req ? zipStateVectorTensor(
+                                hxData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
+                          : hxData, // HX initial hidden state
             is_dcy_zip_req ? zipStateVectorTensor(
                                  dcyData, hiddenLayers, xDesc.GetLengths()[0], batch_size, hidVec)
                            : dcyData, // DCY current/final cell state
@@ -564,9 +577,11 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
             hidVec,              // hidden state number
             outVec,              // 1 by hy_h related function for unidirection, 2 by
                                  // hy_h related function for bidirection
+            rnnMode,
             inputMode,
             reserveSpace,
             workSpace,
+            nohx,
             nocx,
             nodhy,
             nodcy);
@@ -616,10 +631,10 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
         bool is_hx_zip_req           = is_state_tensor_zip_req && !nohx;
 
-        std::vector<T> dwei_data(
-            LSTMCPUWeightSize(rnnDesc.nLayers, hidVec, inVec, biasMode, inputMode, dirMode));
+        std::vector<T> dwei_data(UniRNNCPUWeightSize(
+            rnnMode, rnnDesc.nLayers, hidVec, inVec, biasMode, inputMode, dirMode));
 
-        LSTMBwdWeightCPUVerify(
+        UniformRNNBwdWeightCPUVerify(
             useDropout,
             xData,
             dwei_data, // (output) [ input_state_weight_trans
@@ -643,6 +658,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
             hidVec,              // hidden state number
             outVec,              // 1 by hy_h related function for unidirection, 2
                                  // by hy_h related function for bidirection
+            rnnMode,
             inputMode,
             reserveSpace,
             workSpace,
@@ -668,6 +684,9 @@ private:
                                         size_t outBatchSize,
                                         size_t vecSize) const
     {
+        if(data.empty())
+            return {};
+
         std::vector<T> ret(nLayers * outBatchSize * vecSize, static_cast<T>(0));
         size_t copy_size = std::min(inBatchSize, outBatchSize) * vecSize;
         for(size_t i = 0; i < nLayers; i++)
@@ -683,8 +702,9 @@ private:
     bool biasMode{};
     bool inputMode{};
     bool useDropout{};
+    miopenRNNMode_t rnnMode;
     size_t hiddenLayers, hidVec, outVec, inVec;
-    size_t reserve_space_size_cpu, work_space_size_cpu;
+    size_t reserveSpaceSizeCpu, workSpaceSizeCpu;
 };
 
 template <class T>
@@ -809,6 +829,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                   const std::vector<T>& dyData,
                   const std::vector<T>& dhyData,
                   const std::vector<T>& dcyData,
+                  const std::vector<T>& hxData,
                   const std::vector<T>& cxData,
                   const std::vector<T>& weiData,
                   std::vector<T>& reserveSpace,
@@ -817,6 +838,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                   bool nodcx,
                   bool nodhy,
                   bool nodcy,
+                  bool nohx,
                   bool nocx) const override
     {
         if(xDesc.IsPacked() && miopenRNNDataSeqMajorNotPadded ==
@@ -827,6 +849,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                                   dyData,
                                   dhyData,
                                   dcyData,
+                                  hxData,
                                   cxData,
                                   weiData,
                                   reserveSpace,
@@ -835,6 +858,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                                   nodcx,
                                   nodhy,
                                   nodcy,
+                                  nohx,
                                   nocx);
         }
         else
@@ -868,7 +892,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
             std::vector<T> dcyData_converted{};
             if(!nodcy)
             {
-                dcyData_converted.resize(cxData.size());
+                dcyData_converted.resize(dcyData.size());
                 HiddenTensorReorder(dcyData, dcyData_converted, converted_seq_order, hid, true);
             }
 
@@ -879,11 +903,19 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                 HiddenTensorReorder(cxData, cxData_converted, converted_seq_order, hid, true);
             }
 
+            std::vector<T> hxData_converted{};
+            if(!nohx)
+            {
+                hxData_converted.resize(hxData.size());
+                HiddenTensorReorder(hxData, hxData_converted, converted_seq_order, hid, true);
+            }
+
             auto packed_res = packed_ref.bwd(x_converted_desc,
                                              dy_tensor_converted.desc,
                                              dy_tensor_converted.data,
                                              dhyData_converted,
                                              dcyData_converted,
+                                             hxData_converted,
                                              cxData_converted,
                                              weiData,
                                              reserveSpace,
@@ -892,6 +924,7 @@ struct cpu_rnn_universal_ref : rnn_ref<T>
                                              nodcx,
                                              nodhy,
                                              nodcy,
+                                             nohx,
                                              nocx);
             std::vector<int> reverse_order = GetReverseOrderIndex(converted_seq_order);
 
@@ -1124,6 +1157,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                          dOutput.data,
                                                          dyHiddenState.data,
                                                          dyCellState.data,
+                                                         xHiddenState.data,
                                                          xCellState.data,
                                                          weights,
                                                          reserve_space,
@@ -1132,6 +1166,7 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                          nodcx,
                                                          nodhy,
                                                          nodcy,
+                                                         nohx,
                                                          nocx);
 
         auto wrw_res = refMethod.wrw(input.desc,
@@ -1629,7 +1664,7 @@ struct rnn_seq_api_test_driver : test_driver
                                       &dropoutDesc,
                                       miopenRNNInputMode_t(inputMode),
                                       miopenRNNDirectionMode_t(dirMode),
-                                      miopenLSTM,
+                                      miopenRNNMode_t(rnnMode),
                                       miopenRNNBiasMode_t(biasMode),
                                       miopenRNNAlgo_t(algoMode),
                                       type);
@@ -1641,7 +1676,7 @@ struct rnn_seq_api_test_driver : test_driver
                                    numLayers,
                                    miopenRNNInputMode_t(inputMode),
                                    miopenRNNDirectionMode_t(dirMode),
-                                   miopenLSTM,
+                                   miopenRNNMode_t(rnnMode),
                                    miopenRNNBiasMode_t(biasMode),
                                    miopenRNNAlgo_t(algoMode),
                                    type);

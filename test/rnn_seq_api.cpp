@@ -41,7 +41,7 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->inputMode, "in-mode", this->generate_data(modes));
         this->add(this->biasMode, "bias-mode", this->generate_data({1}));
         this->add(this->dirMode, "dir-mode", this->generate_data(modes));
-        this->add(this->rnnMode, "rnn-mode", this->generate_data({2}));
+        this->add(this->rnnMode, "rnn-mode", this->generate_data({2, 1, 3},2));
         this->add(this->algoMode, "algo-mode", this->generate_data({0}));
         this->add(this->numLayers, "num-layers", this->generate_data({1, 3}, 3));
         this->add(this->io_layout, "io_layout", this->generate_data({2, 1, 3}, 3));
@@ -57,13 +57,13 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
                       {},
                   }));
 
-        this->add(this->nohx, "nohx", this->generate_data({false}));
-        this->add(this->nocx, "nocx", this->generate_data({false}));
-        this->add(this->nohy, "nohy", this->generate_data({false}));
-        this->add(this->nocy, "nocy", this->generate_data({false}));
+        this->add(this->nohx, "nohx", this->generate_data({false, true}));
+        this->add(this->nocx, "nocx", this->generate_data({false, true}));
+        this->add(this->nohy, "nohy", this->generate_data({false, true}));
+        this->add(this->nocy, "nocy", this->generate_data({false, true}));
     }
     
-    rnn_seq_driver(bool t) : rnn_seq_api_test_driver<T>(){}
+    rnn_seq_driver(bool ) : rnn_seq_api_test_driver<T>(){}
     bool is_skip_comb() {
         if(!this->seqLenArray.empty())
         {
@@ -88,6 +88,10 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
                                                     this->seqLenArray.end(),
                                                     std::greater<int>());
         }
+
+        if((this->rnnMode != 2) && (!this->nocx || !this->nocy))
+            return false;
+
         return is_packed_layout_correct;
     }
 
