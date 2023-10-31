@@ -78,7 +78,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat8:
         FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, "
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
-                  "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
+                  "data type not supported by conv_igemm_dynamic_xdlops_float test";
 
     default: params = Conv2dFloat::GetParam();
     }
@@ -115,7 +115,7 @@ TEST_P(Conv2dFloat, FloatTest)
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
-        Run2dDriver(miopenHalf);
+        Run2dDriver(miopenFloat);
     }
     else
     {
