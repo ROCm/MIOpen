@@ -1578,6 +1578,10 @@ struct rnn_seq_api_test_driver : test_driver
                             padding_val);
                 seqLenArray = new_seqLenArray;
             }
+            size_t seq_max_element = *std::max_element(seqLenArray.begin(), seqLenArray.end());
+
+            if(seqLength < seq_max_element)
+                MIOPEN_THROW("Incorrect input, seq_lens elements should be smaller or equal to seqLength\n");
         }
         else {
             printf("Empty batch sequence. Filling uniformly with max_seqLength:%d\n ", seqLength);

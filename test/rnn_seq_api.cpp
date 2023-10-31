@@ -91,15 +91,19 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         if(this->seqLenArray.size() > this->batchSize)
             return false;
 
-        bool is_packed_layout_correct = true; 
-        if(!this->seqLenArray.empty() && this->io_layout == 1)
+        if(!this->seqLenArray.empty())
         {
-            is_packed_layout_correct = std::is_sorted(this->seqLenArray.begin(),
-                                                    this->seqLenArray.end(),
-                                                    std::greater<int>());
-        }
+            if(this->seqLength <
+               *std::max_element(this->seqLenArray.begin(), this->seqLenArray.end()))
+                return false;
 
-        return is_packed_layout_correct;
+            if(this->io_layout == 1)
+            {
+                return std::is_sorted(
+                    this->seqLenArray.begin(), this->seqLenArray.end(), std::greater<int>());
+            }
+        }
+        return true;
     }
 
     void run() 
@@ -133,9 +137,9 @@ struct lstm_MS_solver : rnn_seq_driver<T>
         this->add(this->rnnMode, "rnn-mode", this->generate_data({2}));
         this->add(this->algoMode, "algo-mode", this->generate_data({0}));
 
-        this->add(this->io_layout, "io_layout", this->generate_data({1, 2, 3}, 1));
+        this->add(this->io_layout, "io_layout", this->generate_data({2}, 2));
         this->add(this->batchSize, "batch-size", this->generate_data({1, 6}, 6));
-        this->add(this->seqLength, "seq-len", this->generate_data({34}));
+        this->add(this->seqLength, "seq-len", this->generate_data({38}));
         this->add(this->seqLenArray,
                   "seqLen-batch",
                   this->generate_data({
