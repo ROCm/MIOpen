@@ -1486,7 +1486,7 @@ struct rnn_seq_api_test_driver : test_driver
 
             double operator()() const
             {
-                return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
+                return prng::gen_A_to_B(static_cast<T>(min_val), static_cast<T>(max_val));
             }
         };
 
@@ -1500,13 +1500,13 @@ struct rnn_seq_api_test_driver : test_driver
 
         auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
             for(size_t it = 0; it < dst_sz; it++)
-                dst[it] = RAN_GEN<T>(static_cast<T>(range_l), static_cast<T>(range_r));
+                dst[it] = prng::gen_A_to_B(static_cast<T>(range_l), static_cast<T>(range_r));
         };
-        srand(0);
+        prng::reset_seed();
         fill_array_via_gen(input.data, input.data.size(), 0.0, 1.0 * scale);
-        srand(0);
+        prng::reset_seed();
         fill_array_via_gen(dy.data, dy.data.size(), 0, 1.0 * bwd_scale);
-        srand(0);
+        prng::reset_seed();
 
         const auto hidden_size = hx.desc.GetLengths()[2];
         const double wei_range = sqrt(1. / hidden_size);
