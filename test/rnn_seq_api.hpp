@@ -45,7 +45,7 @@
 //
 #include "seq_tensor_holder.hpp"
 #include "rnn_util.hpp"
-#include "cpu_lstm.hpp"
+#include "cpu_rnn.hpp"
 ///
 
 namespace{
