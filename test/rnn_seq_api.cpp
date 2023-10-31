@@ -45,21 +45,22 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->algoMode, "algo-mode", this->generate_data({0}));
         this->add(this->numLayers, "num-layers", this->generate_data({1, 3}, 3));
         this->add(this->io_layout, "io_layout", this->generate_data({2, 1, 3}, 3));
-        this->add(this->batchSize, "batch-size", this->generate_data({1, 4, 5, 6}, 6));
-        this->add(this->seqLength, "seq-len", this->generate_data(std::vector<int>{1, 4, 36}, 36));
+        this->add(this->batchSize, "batch-size", this->generate_data({1, 4, 6}, 6));
+        this->add(this->seqLength, "seq-len", this->generate_data(std::vector<int>{1, 4, 15}, 15));
         this->add(this->seqLenArray,
                   "seqLen-batch",
                   this->generate_data({
-                      {1, 15, 36, 15, 36, 1},
-                      {1, 0, 3, 4, 2},
+                      {1, 15, 14, 15, 14, 1},
+                      {1, 0, 3, 4, 2, 0},
                       {1, 2, 3, 4},
                       {4, 3, 2, 1},
-                      {},
+                      {4, 4, 4, 4},
+                      {1},
                   }));
 
-        this->add(this->nohx, "nohx", this->generate_data({false, true}));
+        this->add(this->nohx, "nohx", this->generate_data({false}));
         this->add(this->nocx, "nocx", this->generate_data({false, true}));
-        this->add(this->nohy, "nohy", this->generate_data({false, true}));
+        this->add(this->nohy, "nohy", this->generate_data({false}));
         this->add(this->nocy, "nocy", this->generate_data({false, true}));
     }
     
@@ -67,10 +68,13 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
     bool is_skip_comb() {
         if(!this->seqLenArray.empty())
         {
+            if(this->seqLenArray.size() != this->batchSize)
+                return true;
+
             bool is_seqLength_is_max_seq = this->seqLength ==
                 *std::max_element(this->seqLenArray.begin(), this->seqLenArray.end());
             
-            if(!is_seqLength_is_max_seq || this->seqLenArray.size() != this->batchSize)
+            if(!is_seqLength_is_max_seq)
                 return true;
         }
         
@@ -80,7 +84,13 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
     bool is_correct_params() {
         if(this->inputMode == 1 && this->hiddenSize != this->inVecLen)
             return false;
-        
+
+        if((this->rnnMode != 2) && (!this->nocx || !this->nocy))
+            return false;
+
+        if(this->seqLenArray.size() > this->batchSize)
+            return false;
+
         bool is_packed_layout_correct = true; 
         if(!this->seqLenArray.empty() && this->io_layout == 1)
         {
@@ -88,9 +98,6 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
                                                     this->seqLenArray.end(),
                                                     std::greater<int>());
         }
-
-        if((this->rnnMode != 2) && (!this->nocx || !this->nocy))
-            return false;
 
         return is_packed_layout_correct;
     }

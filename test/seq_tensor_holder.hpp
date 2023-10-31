@@ -50,8 +50,8 @@ std::vector<DataT> GetReorderedVector(const std::vector<DataT>& src,
 
 struct SeqTensorOffsets
 {
-    SeqTensorOffsets(const miopen::SeqTensorDescriptor& desc)
-        : major_dim_part_sum(partSum(desc)), desc(desc)
+    SeqTensorOffsets(const miopen::SeqTensorDescriptor& sDesc)
+        : major_dim_part_sum(partSum(sDesc)), desc(sDesc)
     {
     }
 
@@ -62,8 +62,6 @@ struct SeqTensorOffsets
         size_t pos_offset = 0;
 
         const auto& lens         = desc.GetLengths();
-        const auto& sequence_len = desc.GetSequenceLengthsVector();
-        const auto& padds        = desc.GetPadding();
 
         if(desc.IsPaddedSeqLayout())
         {
@@ -112,14 +110,14 @@ struct SeqTensorOffsets
     }
 
 private:
-    std::vector<size_t> partSum(const miopen::SeqTensorDescriptor& desc) const
+    std::vector<size_t> partSum(const miopen::SeqTensorDescriptor& sDesc) const
     {
         std::vector<size_t> sum_v{};
 
-        if(!desc.IsPaddedSeqLayout())
+        if(!sDesc.IsPaddedSeqLayout())
         {
-            const auto& seq_array = desc.GetSequenceLengthsVector();
-            if(desc.GetLayoutVector()[0] == 0)
+            const auto& seq_array = sDesc.GetSequenceLengthsVector();
+            if(sDesc.GetLayoutVector()[0] == 0)
             {
                 sum_v.resize(seq_array.size() + 1);
                 sum_v[0] = 0;
@@ -127,7 +125,7 @@ private:
             }
             else
             {
-                if(!desc.IsSequenceLengthsSorted())
+                if(!sDesc.IsSequenceLengthsSorted())
                     MIOPEN_THROW(miopenStatusBadParm,
                                  "Non-sorted SeqMajor tensor is not supported");
 

@@ -150,8 +150,17 @@ struct verify_rnn_api_base
     {
         std::cout << "./bin/MIOpenDriver rnn_seq " ;
         
-        std::cout << " -m lstm"
-                  << " -F 0 ";
+        std::cout << " -F 0 "
+                  << " -m ";
+
+        switch(rnnDesc.rnnMode)
+        {
+        case miopenRNNTANH: std::cout << " tanh "; break;
+        case miopenRNNRELU: std::cout << " relu "; break;
+        case miopenLSTM: std::cout << " lstm "; break;
+        case miopenGRU: std::cout << " gru "; break;
+        default: break;
+        }
 
         auto& inLens = input.desc.GetLengths();
         auto& hLens = xHiddenState.desc.GetLengths();
@@ -229,56 +238,6 @@ struct verify_rnn_api_base
 //****************************************************
 // RNN TRAIN
 //****************************************************
-
-template <class T>
-auto train_gpu_fwd(miopen::Handle& handle,
-                   miopen::RNNDescriptor& rnnDesc,
-                   seqTensor<T>& input,
-                   seqTensor<T>& output,
-                   tensor<T>& xHiddenState,
-                   tensor<T>& xCellState, 
-                   void* x_dev,
-                   void* hx_dev,
-                   void* cx_dev,
-                   void* weights_dev,
-                   size_t weights_size,
-                   void* workSpace_dev,
-                   size_t workSpaceByteSize,
-                   void* reserveSpace_dev,
-                   size_t reserveSpaceByteSize,
-                   bool nohy,
-                   bool nocy)
-{
-
-    auto y_dev = createTensorAtGPUOrNullptr(handle, output, false);
-    auto hy_dev = createTensorAtGPUOrNullptr(handle, xHiddenState, nohy);
-    auto cy_dev = createTensorAtGPUOrNullptr(handle, xCellState, nocy);
-
-    rnnDesc.RNNForward(handle,
-                       miopenRNNFWDMode_t::miopenRNNTraining,
-                       input.desc,
-                       DataCast(x_dev),
-                       xHiddenState.desc,
-                       DataCast(hx_dev),
-                       DataCast(hy_dev.get()),
-                       xCellState.desc, // cdesc
-                       DataCast(cx_dev),
-                       DataCast(cy_dev.get()),
-                       output.desc,
-                       DataCast(y_dev.get()),
-                       DataCast(weights_dev),
-                       weights_size,
-                       DataCast(workSpace_dev),
-                       workSpaceByteSize,
-                       DataCast(reserveSpace_dev),
-                       reserveSpaceByteSize);
-
-    const auto fwd_y = readTFromGPUOrEmpty(handle, y_dev, output, false);
-    const auto fwd_hy = readTFromGPUOrEmpty(handle, hy_dev, xHiddenState, nohy);
-    const auto fwd_cy = readTFromGPUOrEmpty(handle, cy_dev, xCellState, nocy);
-
-    return std::make_tuple(fwd_y, fwd_hy, fwd_cy);
-}
 
 
 template <class T>
@@ -482,17 +441,21 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
 
         if(is_state_tensor_zip_req)
         {
-            return {
-                std::move(packed_output),
-                zipStateVectorTensor(std::move(hidden_state),
-                                     hiddenLayers,
-                                     batch_size,
-                                     xDesc.GetLengths()[0],
-                                     hidVec),
-                zipStateVectorTensor(
-                    std::move(cell_state), hiddenLayers, batch_size, xDesc.GetLengths()[0], hidVec),
-                nohy,
-                nocy};
+            return {std::move(packed_output),
+                    nohy ? std::move(hidden_state)
+                         : zipStateVectorTensor(std::move(hidden_state),
+                                                hiddenLayers,
+                                                batch_size,
+                                                xDesc.GetLengths()[0],
+                                                hidVec),
+                    nocy ? std::move(cell_state)
+                         : zipStateVectorTensor(std::move(cell_state),
+                                                hiddenLayers,
+                                                batch_size,
+                                                xDesc.GetLengths()[0],
+                                                hidVec),
+                    nohy,
+                    nocy};
         }
         else
             return {std::move(packed_output),
@@ -589,12 +552,14 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         if(is_state_tensor_zip_req)
         {
             return {std::move(packed_dInput),
-                    zipStateVectorTensor(std::move(d_hidden_state),
+                    nodhx ? std::move(d_hidden_state)
+                          : zipStateVectorTensor(std::move(d_hidden_state),
                                          hiddenLayers,
                                          batch_size,
                                          xDesc.GetLengths()[0],
                                          hidVec),
-                    zipStateVectorTensor(std::move(d_cell_state),
+                    nodcx ? std::move(d_cell_state)
+                          : zipStateVectorTensor(std::move(d_cell_state),
                                          hiddenLayers,
                                          batch_size,
                                          xDesc.GetLengths()[0],
@@ -684,9 +649,6 @@ private:
                                         size_t outBatchSize,
                                         size_t vecSize) const
     {
-        if(data.empty())
-            return {};
-
         std::vector<T> ret(nLayers * outBatchSize * vecSize, static_cast<T>(0));
         size_t copy_size = std::min(inBatchSize, outBatchSize) * vecSize;
         for(size_t i = 0; i < nLayers; i++)
@@ -1305,15 +1267,11 @@ struct verify_train_rnn : verify_rnn_api_base<T>
         
         const auto wrw_dwei = handle.Read<T>(dweights_dev, weights.size());
 
-        if(!is_padded_verification)
-        {
-
-            return result_tuple(fwd_y, fwd_hy, fwd_cy, bwd_din, bwd_dhx, bwd_dcx, wrw_dwei);
-        }
-        else {
-
-            return result_tuple(fwd_y, fwd_hy, fwd_cy, bwd_din, bwd_dhx, bwd_dcx, wrw_dwei);
-        }
+        //if(!is_padded_verification)
+        //{
+        //    MIOPEN_THROW("TODO.");
+        //    return result_tuple(fwd_y, fwd_hy, fwd_cy, bwd_din, bwd_dhx, bwd_dcx, wrw_dwei);
+        //}
         
         return result_tuple(fwd_y, fwd_hy, fwd_cy, bwd_din, bwd_dhx, bwd_dcx, wrw_dwei);
     }
@@ -1641,7 +1599,7 @@ struct rnn_seq_api_test_driver : test_driver
 
         if(useDropout != 0)
         {
-            float dropout_rate              = 0.5;
+            float dropout_rate              = 0.25;
             unsigned long long dropout_seed = 0ULL;
             miopenDropoutGetStatesSize(&handle, &statesSizeInBytes);
     
