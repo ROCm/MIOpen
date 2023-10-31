@@ -204,15 +204,16 @@ inline std::vector<int> get_gru_hidden_size() { return {67}; }
 inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
 
-    int modval = 3;
-    srand(modval);
+    static constexpr int modval = 3;
+
     int currentval = batchSize;
     std::vector<int> batchSeq;
+    batchSeq.reserve(seqLength);
     for(int i = 0; i < seqLength; i++)
     {
         if(i > 0)
         {
-            int nvalue = currentval - GET_RAND() % modval;
+            int nvalue = currentval - prng::gen_0_to_B(modval);
             currentval = (nvalue < 1) ? 1 : nvalue;
             // printf("current value: %d\n", currentval);
         }

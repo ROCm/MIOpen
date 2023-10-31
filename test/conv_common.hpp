@@ -86,7 +86,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
             (dir == miopen::conv::Direction::Forward)
                 ? miopen::conv::ProblemDescription{xDesc, wDesc, yDesc, convDesc, dir}
                 : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
-        auto ctx                    = miopen::ConvolutionContext{};
+        auto ctx                    = miopen::ExecutionContext{};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
@@ -110,7 +110,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
 
     const auto problem = miopen::conv::ProblemDescription{
         yDesc, wDesc, xDesc, convDesc, miopen::conv::Direction::BackwardWeights};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -136,7 +136,7 @@ static inline bool skip_config(miopen::Handle& handle,
     const auto conv_problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
     const auto problem = miopen::ProblemDescription{conv_problem};
-    auto ctx           = miopen::ConvolutionContext{};
+    auto ctx           = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -198,36 +198,6 @@ StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
         return default_layout;
     }
 }
-struct scalar_gen_random_float
-{
-    double min_val = 0;
-    double max_val = 1;
-
-    double operator()() const
-    {
-        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
-    }
-};
-
-struct scalar_gen_random_integer
-{
-    uint64_t min_val = 1;
-    uint64_t max_val = 16;
-
-    double operator()() const
-    {
-        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
-    }
-};
-
-struct tensor_elem_gen_one
-{
-    template <class... Ts>
-    double operator()(Ts...) const
-    {
-        return 1;
-    }
-};
 
 struct conv_stats
 {
@@ -247,12 +217,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
             ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
             : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
-        input.desc,
-        weights.desc,
-        yLayout,
-        weights.desc.GetType() == miopenInt8x4
-            ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
-            : miopen_type<Tout>{})};
+        input.desc, weights.desc, yLayout, miopen_type<Tout>{})};
 }
 
 enum class ConvApi
@@ -410,7 +375,7 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     auto rout = out;
     if(filter.mode == miopenTranspose)
     {
-        std::fill(rout.begin(), rout.end(), 0);
+        std::fill(rout.begin(), rout.end(), static_cast<Tout>(0));
         bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
         if(!gpu_ref_used)
         {
@@ -443,6 +408,119 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
         }
     }
     return rout;
+}
+
+template <typename T, typename Twei, typename Tout>
+tensor<Twei> ref_conv_wrw(const tensor<T>& input,
+                          const tensor<Twei>& weights,
+                          const tensor<Tout>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rwei = weights;
+    std::fill(rwei.begin(), rwei.end(), 0);
+    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter);
+    if(!gpu_ref_used)
+    {
+        MIOPEN_LOG_W("GPU reference skipped");
+        cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                        input,
+                                        rwei,
+                                        out,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+    }
+    return rwei;
+}
+
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
+                          const tensor<T>& weights,
+                          const tensor<T>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rinput = input;
+
+    std::fill(rinput.begin(), rinput.end(), 0);
+
+    if(filter.mode == miopenTranspose)
+    {
+        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    out,
+                                    weights,
+                                    rinput,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+        }
+    }
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                          rinput,
+                                          weights,
+                                          out,
+                                          filter.GetConvPads(),
+                                          filter.GetConvStrides(),
+                                          filter.GetConvDilations(),
+                                          filter.GetGroupCount());
+        }
+    }
+    return rinput;
+}
+
+template <typename T, typename Tout = T>
+tensor<Tout> ref_conv_wrw(const tensor<T>& input,
+                          const tensor<Tout>& weights,
+                          const tensor<T>& out,
+                          const miopen::ConvolutionDescriptor& filter)
+{
+    auto rweights = weights;
+    std::fill(rweights.begin(), rweights.end(), 0);
+
+    if(filter.mode == miopenTranspose)
+    {
+        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            out,
+                                            rweights,
+                                            input,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
+    }
+    else
+    {
+        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
+        if(!gpu_ref_used)
+        {
+            MIOPEN_LOG_W("GPU reference not run");
+            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                            input,
+                                            rweights,
+                                            out,
+                                            filter.GetConvPads(),
+                                            filter.GetConvStrides(),
+                                            filter.GetConvDilations(),
+                                            filter.GetGroupCount());
+        }
+    }
+    return rweights;
 }
 
 // Mainline convolution tests
@@ -489,8 +567,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         auto rout = ref_conv_fwd(input, weights, out, filter);
         if(filter.mode != miopenTranspose)
         {
-            bool is_int8 =
-                weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4;
+            bool is_int8   = weights.desc.GetType() == miopenInt8;
             bool is_vect_c = weights.desc.GetVectorLength() > 1;
             rout.par_for_each([&](auto... is) {
                 if(is_int8 && !is_vect_c)
@@ -691,7 +768,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             break;
         case ConvApi::Find_1_0:
         case ConvApi::Find_2_0:
-            if(weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4)
+            if(weights.desc.GetType() == miopenInt8)
             {
 
                 bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
@@ -703,10 +780,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                 in_len[1]  = ((in_len[1] + 3) / 4) * 4;
                 wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-                miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
-                                                         in_len);
-                miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
-                                                          wei_len);
+                miopen::TensorDescriptor input_vpad_desc(miopenInt8, in_len);
+                miopen::TensorDescriptor weight_vpad_desc(miopenInt8, wei_len);
 
                 auto input_vpad   = tensor<T>{in_len};
                 auto weights_vpad = tensor<T>{wei_len};
@@ -1655,8 +1730,8 @@ struct verify_forward_conv_int8 : conv_base<T>
         in_len[1]  = ((in_len[1] + 3) / 4) * 4;
         wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-        miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, in_len);
-        miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, wei_len);
+        miopen::TensorDescriptor input_vpad_desc(miopenInt8, in_len);
+        miopen::TensorDescriptor weight_vpad_desc(miopenInt8, wei_len);
 
         auto input_vpad   = tensor<T>{in_len};
         auto weights_vpad = tensor<T>{wei_len};
@@ -1963,7 +2038,7 @@ struct conv_driver : test_driver
             filter.spatialDim = get_spatial_dim();
         else
             filter.spatialDim = filter_dims.size();
-        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
+        bool is_int8 = (input.desc.GetType() == miopenInt8);
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1977,8 +2052,7 @@ struct conv_driver : test_driver
 
         if(!input_dims.empty())
         {
-            input =
-                tensor<T>{type, input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
@@ -1987,8 +2061,7 @@ struct conv_driver : test_driver
         {
             ///\todo This means input_dims ranged in NCHW way, shall we determine the tensor
             /// dimension via layout string?
-            input = tensor<T>{type,
-                              input_layout_t,
+            input = tensor<T>{input_layout_t,
                               batch_size,
                               input_channels,
                               spatial_dim_elements.at(0),
@@ -2009,7 +2082,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
@@ -2018,7 +2091,7 @@ struct conv_driver : test_driver
             }
             else
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
@@ -2029,8 +2102,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "NCHW")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     output_channels,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
@@ -2039,8 +2111,7 @@ struct conv_driver : test_driver
             }
             else if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
                                     filter_dims.at(1),
@@ -2255,19 +2326,17 @@ struct conv_driver : test_driver
                 auto output = get_output_tensor<T, Tout>(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
-
-                    return gen_float ? scalar_gen_random_float{0, 1}()
-                                     : scalar_gen_random_integer{1, v_max}();
+                    auto data_type = input.desc.GetType();
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
+                    return gen_float ? prng::gen_canonical<double>()
+                                     : static_cast<double>(prng::gen_A_to_B(1, v_max));
                 };
 
                 auto gen_sign_value = [=](auto... is) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
-
-                    return gen_float ? scalar_gen_random_float{-1, 1}()
-                                     : scalar_gen_random_integer{1, v_max}() *
+                    auto data_type = input.desc.GetType();
+                    int v_max      = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 17;
+                    return gen_float ? prng::gen_A_to_B(-1.0, 1.0)
+                                     : static_cast<double>(prng::gen_A_to_B(1, v_max)) *
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
@@ -2279,8 +2348,7 @@ struct conv_driver : test_driver
                 bool skip_backward_weights = is_int8;
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4 ||
-                   input.desc.GetType() == miopenBFloat16)
+                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenBFloat16)
                 {
                     show_command();
                     std::cout << "Direct path doesn't support Int8 or BFloat16 type." << std::endl;
@@ -2324,7 +2392,8 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
-                    // TODO: Tout here was float which should have been int32
+                    /// \todo Properly construct the `output` tensor descriptor
+                    /// and get rid of this special "int8" stuff.
                     auto output_int8 =
                         get_output_tensor<T, Tout>(filter, input, weights, out_layout);
                     const auto problem        = ConvProblemDescription{input.desc,
@@ -2341,6 +2410,9 @@ struct conv_driver : test_driver
                 }
                 else
                 {
+                    /// \todo Take into account `skip_forward`, `skip_backward_data`,
+                    /// `skip_backward_weights` and use this path to compute `total_mem` for int8
+                    /// variations.
                     const auto fwd_problem = miopen::conv::ProblemDescription{
                         input.desc,
                         weights.desc,

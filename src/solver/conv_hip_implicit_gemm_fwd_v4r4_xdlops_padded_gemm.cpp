@@ -144,7 +144,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue(const Pr
 }
 
 void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::HeuristicInit(
-    const ConvolutionContext& ctx, const ProblemDescription& problem)
+    const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm tmp;
 
@@ -666,7 +666,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
 /// Used by HeuristicInit and IsValid. Return false if a performance config is known
 /// to be sub-optimal, comparing to other performance config inside tuning range.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     // somehow, 128x128 wave-wise GEMM tend to spill register
     // TODO revisit this when 128x128 wave-wise GEMM become efficient
@@ -846,14 +846,14 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
 /// included in tuning range used by generic search. A performance config may still be valid w.r.t
 /// algorithm correctness, even when IsValid() returns false.
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
 }
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const
 {
@@ -895,7 +895,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
 ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
     config.HeuristicInit(ctx, problem);
@@ -904,7 +904,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetDefaultPerformanceConfig(
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const
 {
@@ -1033,7 +1033,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
 }
 
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS{}))
         return false;
@@ -1045,6 +1045,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!ctx.use_hip_kernels)
+        return false;
+
+    if(problem.IsTensorsCasted())
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -1062,6 +1065,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!problem.Is2d())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
@@ -1069,9 +1075,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
     // gemm size
     {
         int gemm_g       = -1;
@@ -1121,7 +1125,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem,
                                                          const AnyInvokeParams& invoke_ctx) const
 

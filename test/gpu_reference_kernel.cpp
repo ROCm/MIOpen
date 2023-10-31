@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include <functional>
+#include <numeric>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
@@ -34,9 +36,8 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <tuple> // std::ignore
 #include <type_traits>
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -71,30 +72,12 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
     return layout_string;
 }
 
-static int gen_rand_integer()
-{
-    static const bool once = []() {
-        std::srand(std::time(nullptr));
-        return true;
-    }();
-    std::ignore = once;
-    return GET_RAND();
-}
-
 struct gpu_reference_kernel_base
 {
     miopenHandle_t handle{};
-#if MIOPEN_BACKEND_OPENCL
-    cl_command_queue q{};
-#endif
 
-    gpu_reference_kernel_base()
-    {
-        miopenCreate(&handle);
-#if MIOPEN_BACKEND_OPENCL
-        miopenGetStream(handle, &q);
-#endif
-    }
+    gpu_reference_kernel_base() { miopenCreate(&handle); }
+
     ~gpu_reference_kernel_base() { miopenDestroy(handle); }
 
     static int conv_out_size(int in_size, int pad, int dilation, int ksize, int stride)
@@ -106,7 +89,8 @@ struct gpu_reference_kernel_base
 
     static std::vector<int> get_image_size() { return {9, 14}; }
 
-    static std::vector<int> get_channel_size() { return {3, 8}; }
+    // Warning: Channel size must be multiple of group size
+    static std::vector<int> get_channel_size() { return {4, 8}; }
 
     static std::vector<int> get_filter_depth() { return {1, 3}; }
 
@@ -143,13 +127,17 @@ struct gpu_reference_kernel_base
                             {
                                 for(int px : get_pad_size())
                                 {
-                                    int n  = get_batch_size()[gen_rand_integer() % 2];
-                                    int g  = get_group_size()[gen_rand_integer() % 2];
-                                    int k  = get_channel_size()[gen_rand_integer() % 2];
-                                    int sy = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int sx = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int dy = get_stride_dilation_size()[gen_rand_integer() % 2];
-                                    int dx = get_stride_dilation_size()[gen_rand_integer() % 2];
+                                    int n = get_batch_size()[prng::gen_canonical<size_t>()];
+                                    int g = get_group_size()[prng::gen_canonical<size_t>()];
+                                    int k = get_channel_size()[prng::gen_canonical<size_t>()];
+                                    int sy =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int sx =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int dy =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                                    int dx =
+                                        get_stride_dilation_size()[prng::gen_canonical<size_t>()];
                                     int ho = conv_out_size(hi, py, dy, fy, sy);
                                     int wo = conv_out_size(wi, px, dx, fx, sx);
 
@@ -181,19 +169,19 @@ struct gpu_reference_kernel_base
                     {
                         for(int px : get_pad_size())
                         {
-                            int n   = get_batch_size()[gen_rand_integer() % 2];
-                            int g   = get_group_size()[gen_rand_integer() % 2];
-                            int k   = get_channel_size()[gen_rand_integer() % 2];
-                            int di  = get_image_depth()[gen_rand_integer() % 2];
-                            int hi  = get_image_size()[gen_rand_integer() % 2];
-                            int wi  = get_image_size()[gen_rand_integer() % 2];
-                            int fz  = get_filter_depth()[gen_rand_integer() % 2];
-                            int pz  = get_pad_depth()[gen_rand_integer() % 2];
-                            int sx  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int sy  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int sz  = get_stride_depth()[gen_rand_integer() % 2];
-                            int dx  = get_stride_dilation_size()[gen_rand_integer() % 2];
-                            int dy  = get_stride_dilation_size()[gen_rand_integer() % 2];
+                            int n   = get_batch_size()[prng::gen_canonical<size_t>()];
+                            int g   = get_group_size()[prng::gen_canonical<size_t>()];
+                            int k   = get_channel_size()[prng::gen_canonical<size_t>()];
+                            int di  = get_image_depth()[prng::gen_canonical<size_t>()];
+                            int hi  = get_image_size()[prng::gen_canonical<size_t>()];
+                            int wi  = get_image_size()[prng::gen_canonical<size_t>()];
+                            int fz  = get_filter_depth()[prng::gen_canonical<size_t>()];
+                            int pz  = get_pad_depth()[prng::gen_canonical<size_t>()];
+                            int sx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int sy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int sz  = get_stride_depth()[prng::gen_canonical<size_t>()];
+                            int dx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+                            int dy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
                             int dz  = get_dilation_depth()[0];
                             int ho  = conv_out_size(hi, py, dy, fy, sy);
                             int wo  = conv_out_size(wi, px, dx, fx, sx);
@@ -231,9 +219,9 @@ struct gpu_reference_kernel_base
     }
 };
 
-#define RAND_INTEGER_MAX 5
-#define RAND_INTEGER_MIN (-4)
-#define MAX_INTEGER_INTERVAL 4.0
+static constexpr int RAND_INTEGER_MAX       = 5;
+static constexpr int RAND_INTEGER_MIN       = -4;
+static constexpr float MAX_INTEGER_INTERVAL = 4.f;
 
 /*
  * for half, if we use integer, half can express -2048 ~ 2048 without data-loss.
@@ -247,8 +235,8 @@ template <typename T>
 void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
 {
     // use integer to random.
-    for(int i = 0; i < t.data.size(); i++)
-        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+    for(size_t i = 0; i < t.data.size(); i++)
+        t[i] = static_cast<T>(prng::gen_A_to_B(min, max));
 }
 
 template <typename T>
@@ -309,11 +297,24 @@ static std::string miopen_type_to_string(miopenDataType_t type)
         return "int32";
     if(type == miopenInt8)
         return "int8";
-    if(type == miopenInt8x4)
-        return "int8x4";
     if(type == miopenBFloat16)
         return "bf16";
     return "n/a";
+}
+
+/// input: a vector of lengths of dims in a tensor
+/// multiply each element with a random constant integer
+void pad_tensor_strides(std::vector<int>& strides)
+{
+    constexpr int min_stride_multiplier = 1;
+    constexpr int max_stride_multiplier = 5;
+
+    auto c = prng::gen_A_to_B(min_stride_multiplier, max_stride_multiplier);
+    for(auto& v : strides)
+    {
+        // cppcheck-suppress useStlAlgorithm
+        v = v * c;
+    }
 }
 
 template <miopen::conv::Direction direction,
@@ -347,11 +348,6 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             int ho          = conv_out_size(hi, py, dy, fy, sy);
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int c_per_group = c / g;
-            int k_per_group = k / g;
-
-            int in_sz  = g * n * c_per_group * hi * wi;
-            int wei_sz = g * k_per_group * c_per_group * fy * fx;
-            int out_sz = g * n * k_per_group * ho * wo;
 
             std::vector<int> in_len({n, c, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fy, fx});
@@ -368,9 +364,18 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
             miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
+            pad_tensor_strides(in_strides);
+            pad_tensor_strides(wei_strides);
+            pad_tensor_strides(out_strides);
+
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
+
+            auto in_sz  = in.data.size();
+            auto wei_sz = wei.data.size();
+            auto out_sz = out.data.size();
+
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -425,6 +430,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(out);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               in_dev,
@@ -453,6 +460,18 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
+                /// \anchor copy_non_packed_output_before_convolution
+                /// \note Output is a non-packed tensor, which means there are
+                /// elements that convolution will not update. In order to verify
+                /// the convolution result, the GPU buffer should have the same
+                /// data as the CPU in both update and not-updated elements.
+                /// Therefore, we copy the output to the GPU buffer after
+                /// initializing it with random values.
+                ///
+                EXPECT(hipMemcpy(out_dev,
+                                 out.data.data(),
+                                 sizeof(Tout) * out_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
@@ -478,23 +497,11 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<Tout> out_host(out_len, out_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             out_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(Tout) * out_sz,
-                                             out_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
                 EXPECT(hipMemcpy(out_host.data.data(),
                                  out_dev,
                                  sizeof(Tout) * out_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
+
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(out_host, out);
             }
@@ -503,6 +510,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(in);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               out_dev,
@@ -524,9 +533,13 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT(hipMemcpy(
+                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
+                       hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
@@ -557,23 +570,11 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<TRef> in_host(in_len, in_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             in_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(TRef) * in_sz,
-                                             in_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
+
                 EXPECT(hipMemcpy(in_host.data.data(),
                                  in_dev,
                                  sizeof(TRef) * in_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(in_host, in);
@@ -582,6 +583,8 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in);
                 rand_tensor_integer(out);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(wei);
 #if MIOPEN_BACKEND_OPENCL
                 status |= clEnqueueWriteBuffer(q,
                                                in_dev,
@@ -606,9 +609,14 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT(hipMemcpy(wei_dev,
+                                 wei.data.data(),
+                                 sizeof(TRef) * wei_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
@@ -635,23 +643,11 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<TRef> wei_host(wei_len, wei_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             wei_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(TRef) * wei_sz,
-                                             wei_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
+
                 EXPECT(hipMemcpy(wei_host.data.data(),
                                  wei_dev,
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(wei_host, wei);
@@ -673,15 +669,10 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             miopenDestroyTensorDescriptor(inDesc);
             miopenDestroyTensorDescriptor(weiDesc);
             miopenDestroyTensorDescriptor(outDesc);
-#if MIOPEN_BACKEND_OPENCL
-            clReleaseMemObject(in_dev);
-            clReleaseMemObject(wei_dev);
-            clReleaseMemObject(out_dev);
-#elif MIOPEN_BACKEND_HIP
+
             hipFree(in_dev);
             hipFree(wei_dev);
             hipFree(out_dev);
-#endif
         };
 
         iterate_conv_2d(run_conv_2d);
@@ -725,11 +716,6 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int do_         = conv_out_size(di, pz, dz, fz, sz);
             int c_per_group = c / g;
-            int k_per_group = k / g;
-
-            int in_sz  = g * n * c_per_group * di * hi * wi;
-            int wei_sz = g * k_per_group * c_per_group * fz * fy * fx;
-            int out_sz = g * n * k_per_group * do_ * ho * wo;
 
             std::vector<int> in_len({n, c, di, hi, wi});
             std::vector<int> wei_len({k, c_per_group, fz, fy, fx});
@@ -746,9 +732,18 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
             miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
 
+            pad_tensor_strides(in_strides);
+            pad_tensor_strides(wei_strides);
+            pad_tensor_strides(out_strides);
+
             tensor<TRef> in(in_len, in_strides);
             tensor<TRef> wei(wei_len, wei_strides);
             tensor<Tout> out(out_len, out_strides);
+
+            auto in_sz  = in.data.size();
+            auto wei_sz = wei.data.size();
+            auto out_sz = out.data.size();
+
 #if MIOPEN_BACKEND_OPENCL
             cl_context ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
@@ -764,6 +759,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             void* in_dev;
             void* wei_dev;
             void* out_dev;
+
             EXPECT(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
             EXPECT(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
             EXPECT(hipMalloc(&out_dev, sizeof(Tout) * out_sz) == hipSuccess);
@@ -803,6 +799,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(in);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(out);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               in_dev,
@@ -827,12 +825,16 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT(hipMemcpy(out_dev,
+                                 out.data.data(),
+                                 sizeof(Tout) * out_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
 #endif
-
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
                                         wei,
@@ -857,23 +859,11 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<Tout> out_host(out_len, out_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             out_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(Tout) * out_sz,
-                                             out_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
+
                 EXPECT(hipMemcpy(out_host.data.data(),
                                  out_dev,
                                  sizeof(Tout) * out_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(out_host, out);
@@ -883,6 +873,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 // initialize data with integer
                 rand_tensor_integer(out);
                 rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(in);
 #if MIOPEN_BACKEND_OPENCL
                 status = clEnqueueWriteBuffer(q,
                                               out_dev,
@@ -904,9 +896,13 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                                nullptr);
                 EXPECT(status == CL_SUCCESS);
 #elif MIOPEN_BACKEND_HIP
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT(hipMemcpy(
+                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
+                       hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(wei_dev,
                                  wei.data.data(),
@@ -937,23 +933,11 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<TRef> in_host(in_len, in_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             in_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(TRef) * in_sz,
-                                             in_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
+
                 EXPECT(hipMemcpy(in_host.data.data(),
                                  in_dev,
                                  sizeof(TRef) * in_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(in_host, in);
@@ -962,6 +946,8 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             {
                 rand_tensor_integer(in, 3, -2);
                 rand_tensor_integer(out, 3, -2);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(wei);
 #if MIOPEN_BACKEND_OPENCL
                 status |= clEnqueueWriteBuffer(q,
                                                in_dev,
@@ -986,9 +972,14 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 EXPECT(hipMemcpy(
                            in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
                        hipSuccess);
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT(hipMemcpy(wei_dev,
+                                 wei.data.data(),
+                                 sizeof(TRef) * wei_sz,
+                                 hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT(hipMemcpy(out_dev,
                                  out.data.data(),
-                                 sizeof(TRef) * out_sz,
+                                 sizeof(Tout) * out_sz,
                                  hipMemcpyHostToDevice) == hipSuccess);
 #endif
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
@@ -1015,23 +1006,11 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                        miopenStatusSuccess);
 
                 tensor<TRef> wei_host(wei_len, wei_strides);
-#if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             wei_dev,
-                                             CL_TRUE,
-                                             0,
-                                             sizeof(TRef) * wei_sz,
-                                             wei_host.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
-                EXPECT(status == CL_SUCCESS);
-#elif MIOPEN_BACKEND_HIP
+
                 EXPECT(hipMemcpy(wei_host.data.data(),
                                  wei_dev,
                                  sizeof(TRef) * wei_sz,
                                  hipMemcpyDeviceToHost) == hipSuccess);
-#endif
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(wei_host, wei, 8.0); // max possible int
@@ -1057,15 +1036,9 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             miopenDestroyTensorDescriptor(weiDesc);
             miopenDestroyTensorDescriptor(outDesc);
 
-#if MIOPEN_BACKEND_OPENCL
-            clReleaseMemObject(in_dev);
-            clReleaseMemObject(wei_dev);
-            clReleaseMemObject(out_dev);
-#elif MIOPEN_BACKEND_HIP
             hipFree(in_dev);
             hipFree(wei_dev);
             hipFree(out_dev);
-#endif
         };
 
         iterate_conv_3d(run_conv_3d);

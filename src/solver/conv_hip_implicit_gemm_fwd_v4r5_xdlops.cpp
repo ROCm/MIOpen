@@ -154,7 +154,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ProblemDescrip
     return true;
 }
 
-void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                              const ProblemDescription& problem)
 {
     PerformanceImplicitGemmForwardV4R5Xdlops tmp;
@@ -676,7 +676,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(use_spare_set)
         return true;
@@ -855,7 +855,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
@@ -863,7 +863,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext&
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
@@ -872,7 +872,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
 
 PerformanceImplicitGemmForwardV4R5Xdlops
 ConvHipImplicitGemmForwardV4R5Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceImplicitGemmForwardV4R5Xdlops config;
     config.HeuristicInit(ctx, problem);
@@ -881,7 +881,7 @@ ConvHipImplicitGemmForwardV4R5Xdlops::GetDefaultPerformanceConfig(
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
@@ -996,7 +996,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
     return result;
 }
 
-bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS{}))
@@ -1020,6 +1020,12 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
+
     const auto y = ProblemInterpreter::GetFilterHeightY(problem);
     const auto x = ProblemInterpreter::GetFilterWidthX(problem);
 
@@ -1040,9 +1046,8 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+
     // gemm size
     {
         int gemm_g       = -1;
@@ -1065,7 +1070,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmForwardV4R5Xdlops
-ConvHipImplicitGemmForwardV4R5Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmForwardV4R5Xdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {

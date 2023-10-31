@@ -64,10 +64,15 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
-    if(!problem.IsLayoutDefault())
-    {
+
+    if(problem.HasNonPackedTensors())
         return false;
-    }
+
+    if(!problem.IsLayoutDefault())
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
 
     // clang-format off
     return problem.GetPadW() == 1

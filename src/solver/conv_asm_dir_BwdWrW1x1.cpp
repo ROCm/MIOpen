@@ -307,7 +307,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && IsFromPack<0, 1, 2, 3, 4>(data_prefetch); // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
 
@@ -362,7 +362,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ExecutionContext& ctx,
                                                       const ProblemDescription& problem)
 {
     short_store =
@@ -449,7 +449,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
@@ -459,14 +459,14 @@ ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
 }
 
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
-bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
@@ -479,9 +479,13 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!ctx.rmv.IsV2orV3())
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -490,13 +494,9 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
 
     const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
-    {
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
@@ -546,7 +546,7 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ExecutionContext&,
                                           const ProblemDescription& problem) const
 {
     if(UseSubsample(problem))
@@ -560,7 +560,7 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
         return 0;
 }
 
-ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
@@ -848,7 +848,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& ctx,
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ExecutionContext& ctx,
                                                            const ProblemDescription& problem,
                                                            const AnyInvokeParams& invoke_ctx) const
 {
