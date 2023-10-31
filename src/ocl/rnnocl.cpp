@@ -5366,14 +5366,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
         alpha0 = 1;
         alpha1 = 1;
         beta_t = 0;
-        
-        CopyTensor(handle,
-                   sp_desc,
-                   workSpace,
-                   x_desc,
-                   dx,
-                   0,
-                   0, true);
+
+        CopyTensor(handle, sp_desc, workSpace, x_desc, dx, 0, 0, true);
         profileRNNkernels(handle, 1, ctime);
         for(int gi = 1; gi < nHiddenTensorsPerLayer * bi; gi++)
         {

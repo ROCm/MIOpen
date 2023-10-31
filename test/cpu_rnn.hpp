@@ -44,10 +44,10 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
                       const std::vector<T>& cx,  // initial cell state
                       std::vector<T>& out_host,
                       const std::vector<size_t>& in_n, // input batch size
-                      int in_h,                     // input data length
-                      int seqLength_cpu,            // Number of iterations to unroll over
-                      int bidirection,              // whether using bidirectional net
-                      int biased,                   // whether using bias
+                      int in_h,                        // input data length
+                      int seqLength_cpu,               // Number of iterations to unroll over
+                      int bidirection,                 // whether using bidirectional net
+                      int biased,                      // whether using bias
                       int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
                                  // unidirection, 2 by numlayer for bidirection
                       int hy_n,  // equal to input batch size in_n[0]
@@ -86,7 +86,6 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
                      hx_is_null,
                      cx_is_null);
 }
-
 
 template <class T>
 void LSTMFwdCPUVerify(miopen::Handle& handle,
@@ -693,7 +692,7 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
 
     if(use_dropout)
     {
-        const size_t dropout_size = (numlayer - 1) * batch_n_cpu * hy_h * bi;
+        const size_t dropout_size   = (numlayer - 1) * batch_n_cpu * hy_h * bi;
         const size_t dropout_offset = numlayer * batch_n_cpu * hy_stride * 2;
         if(dropout_size > 0)
         {
@@ -1616,7 +1615,6 @@ void LSTMBwdWeightCPUVerify(bool use_dropout_cpu,
 }
 //////=========END CPU VERIFICATION FUNCTIONS=============
 
-
 /**********************************************
  * RNN TANH_RELU CPU verification functions
  * rnn_vanilla_common.hpp
@@ -1626,18 +1624,18 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
                           bool use_dropout,
                           const miopen::DropoutDescriptor& dropoutDesc,
                           const std::vector<T>& in,
-                          const std::vector<T>& wei,     // [ input_state_weight_trans
-                                                   // hidden_state_weight0_trans input1_trans
-                                                   // hidden1_trans ... output_weight;
-                                                   // bidirectional reversed weights ]
-                          std::vector<T>& hy_host, // current/final hidden state
-                          const std::vector<T>& hx,   // initial hidden state
+                          const std::vector<T>& wei, // [ input_state_weight_trans
+                                                     // hidden_state_weight0_trans input1_trans
+                                                     // hidden1_trans ... output_weight;
+                                                     // bidirectional reversed weights ]
+                          std::vector<T>& hy_host,   // current/final hidden state
+                          const std::vector<T>& hx,  // initial hidden state
                           std::vector<T>& out_host,
                           const std::vector<int>& in_n, // input batch size
-                          int in_h,               // input data length
-                          int seqLength,          // Number of iterations to unroll over
-                          int bidirection,        // whether using bidirectional net
-                          int biased,             // whether using bias
+                          int in_h,                     // input data length
+                          int seqLength,                // Number of iterations to unroll over
+                          int bidirection,              // whether using bidirectional net
+                          int biased,                   // whether using bias
                           int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
                                      // unidirection, 2 by numlayer for bidirection
                           int hy_n,  // equal to input batch size in_n[0]
@@ -2107,19 +2105,19 @@ void RNNBwdDataCPUVerify(bool use_dropout,
                          const miopen::DropoutDescriptor& dropoutDesc,
                          std::vector<T>& din_host,
                          const std::vector<T>& wei, // [ input_state_weight_trans
-                                              // hidden_state_weight0_trans input1_trans
-                                              // hidden1_trans ... output_weight;
-                                              // bidirectional reversed weights ]
-                         const std::vector<T>& dhy,  // current/final hidden state
+                                                    // hidden_state_weight0_trans input1_trans
+                                                    // hidden1_trans ... output_weight;
+                                                    // bidirectional reversed weights ]
+                         const std::vector<T>& dhy, // current/final hidden state
                          std::vector<T>& dhx_host,
-                         const std::vector<T>& , // initial hidden state
-                         const std::vector<T>& ,
+                         const std::vector<T>&, // initial hidden state
+                         const std::vector<T>&,
                          const std::vector<T>& dout,
                          const std::vector<int>& in_n, // input batch size
-                         int in_h,               // input data length
-                         int seqLength,          // Number of iterations to unroll over
-                         int bidirection,        // whether using bidirectional net
-                         int,                    // whether using bias
+                         int in_h,                     // input data length
+                         int seqLength,                // Number of iterations to unroll over
+                         int bidirection,              // whether using bidirectional net
+                         int,                          // whether using bias
                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                     // for unidirection, 2 by numlayer for bidirection
                          int hy_n,  // equal to input batch size in_n[0]
@@ -2446,20 +2444,20 @@ void RNNBwdWeightCPUVerify(bool use_dropout,
                                                       // input1_trans hidden1_trans ...
                                                       // output_weight; bidirectional
                                                       // reversed weights ]
-                           const std::vector<T>& hx,        // initial hidden state
+                           const std::vector<T>& hx,  // initial hidden state
                            const std::vector<T>& dout,
                            const std::vector<int>& in_n, // input batch size
-                           int in_h,               // input data length
-                           int seqLength,          // Number of iterations to unroll over
-                           bool bidirection,       // whether using bidirectional net
-                           bool biased,            // whether using bias
-                           int hy_d,               // 1 by numlayer (number of stacks of hidden
-                                                   // layers) for unidirection, 2 by numlayer for
-                                                   // bidirection
-                           int hy_n,               // equal to input batch size in_n[0]
-                           int hy_h,               // hidden state number
-                           int out_h,              // 1 by hy_h related function for unidirection, 2
-                                                   // by hy_h related function for bidirection
+                           int in_h,                     // input data length
+                           int seqLength,                // Number of iterations to unroll over
+                           bool bidirection,             // whether using bidirectional net
+                           bool biased,                  // whether using bias
+                           int hy_d,  // 1 by numlayer (number of stacks of hidden
+                                      // layers) for unidirection, 2 by numlayer for
+                                      // bidirection
+                           int hy_n,  // equal to input batch size in_n[0]
+                           int hy_h,  // hidden state number
+                           int out_h, // 1 by hy_h related function for unidirection, 2
+                                      // by hy_h related function for bidirection
                            int squash,
                            int inputMode,
                            const std::vector<T>& rsvspace,
@@ -2783,7 +2781,6 @@ void RNNBwdWeightCPUVerify(bool use_dropout,
 
 //////=========END RNN TANH_RELU CPU VERIFICATION FUNCTIONS=============
 
-
 /**********************************************
  * GRU CPU verification functions
  *
@@ -2795,11 +2792,11 @@ void GRUFwdCPUVerify(miopen::Handle& handle,
                      const miopen::DropoutDescriptor& dropoutDesc,
                      const std::vector<T>& in,
                      const std::vector<T>& wei, // [ input_state_weight_trans
-                                          // hidden_state_weight0_trans input1_trans
-                                          // hidden1_trans ... output_weight;
-                                          // bidirectional reversed weights ]
-                     std::vector<T>& hy,  // current/final hidden state
-                     const std::vector<T>& hx,   // initial hidden state
+                                                // hidden_state_weight0_trans input1_trans
+                                                // hidden1_trans ... output_weight;
+                                                // bidirectional reversed weights ]
+                     std::vector<T>& hy,        // current/final hidden state
+                     const std::vector<T>& hx,  // initial hidden state
                      std::vector<T>& out,
                      const std::vector<int>& in_n, // input batch size
                      int in_h,                     // input data length
@@ -3573,13 +3570,13 @@ void GRUBwdDataCPUVerify(bool use_dropout,
                          const miopen::DropoutDescriptor& dropoutDesc,
                          std::vector<T>& din,
                          const std::vector<T>& wei, // [ input_state_weight_trans
-                                              // hidden_state_weight0_trans input1_trans
-                                              // hidden1_trans ... output_weight;
-                                              // bidirectional reversed weights ]
-                         const std::vector<T>& dhy,  // current/final hidden state
+                                                    // hidden_state_weight0_trans input1_trans
+                                                    // hidden1_trans ... output_weight;
+                                                    // bidirectional reversed weights ]
+                         const std::vector<T>& dhy, // current/final hidden state
                          std::vector<T>& dhx,
                          const std::vector<T>& hx, // initial hidden state
-                         const std::vector<T>& ,
+                         const std::vector<T>&,
                          const std::vector<T>& dout,
                          const std::vector<int>& in_n, // input batch size
                          int in_h,                     // input data length
@@ -4204,7 +4201,7 @@ void GRUBwdWeightCPUVerify(bool use_dropout,
                                                          // input1_trans hidden1_trans ...
                                                          // output_weight; bidirectional
                                                          // reversed weights ]
-                           const std::vector<T>& hx,           // initial hidden state
+                           const std::vector<T>& hx,     // initial hidden state
                            const std::vector<int>& in_n, // input batch size
                            int in_h,                     // input data length
                            int seqLength,                // Number of iterations to unroll over

@@ -26,7 +26,6 @@
 
 #include "rnn_seq_api.hpp"
 
-
 template <class T>
 struct rnn_seq_driver : rnn_seq_api_test_driver<T>
 {
@@ -41,7 +40,7 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->inputMode, "in-mode", this->generate_data(modes));
         this->add(this->biasMode, "bias-mode", this->generate_data({1}));
         this->add(this->dirMode, "dir-mode", this->generate_data(modes));
-        this->add(this->rnnMode, "rnn-mode", this->generate_data({2, 1, 3},2));
+        this->add(this->rnnMode, "rnn-mode", this->generate_data({2, 1, 3}, 2));
         this->add(this->algoMode, "algo-mode", this->generate_data({0}));
         this->add(this->numLayers, "num-layers", this->generate_data({1, 3}, 3));
         this->add(this->io_layout, "io_layout", this->generate_data({2, 1, 3}, 3));
@@ -63,25 +62,28 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->nohy, "nohy", this->generate_data({false}));
         this->add(this->nocy, "nocy", this->generate_data({false, true}));
     }
-    
-    rnn_seq_driver(bool ) : rnn_seq_api_test_driver<T>(){}
-    bool is_skip_comb() {
+
+    rnn_seq_driver(bool) : rnn_seq_api_test_driver<T>() {}
+    bool is_skip_comb()
+    {
         if(!this->seqLenArray.empty())
         {
             if(this->seqLenArray.size() != this->batchSize)
                 return true;
 
-            bool is_seqLength_is_max_seq = this->seqLength ==
+            bool is_seqLength_is_max_seq =
+                this->seqLength ==
                 *std::max_element(this->seqLenArray.begin(), this->seqLenArray.end());
-            
+
             if(!is_seqLength_is_max_seq)
                 return true;
         }
-        
+
         return false;
     }
 
-    bool is_correct_params() {
+    bool is_correct_params()
+    {
         if(this->inputMode == 1 && this->hiddenSize != this->inVecLen)
             return false;
 
@@ -106,17 +108,17 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         return true;
     }
 
-    void run() 
-    { 
+    void run()
+    {
         if(!this->full_set || (is_correct_params() && !is_skip_comb()))
-                rnn_seq_api_test_driver<T>::run();
-        else {
+            rnn_seq_api_test_driver<T>::run();
+        else
+        {
             if(this->verbose)
                 std::cout << "Incompatible argument combination, test skipped: "
                           << this->get_command_args() << std::endl;
         }
     }
-
 };
 
 template <class T>
@@ -152,7 +154,6 @@ struct lstm_MS_solver : rnn_seq_driver<T>
         this->add(this->nocx, "nocx", this->generate_data(modes));
         this->add(this->nohy, "nohy", this->generate_data(modes));
         this->add(this->nocy, "nocy", this->generate_data(modes));
-
     }
 
     void run()
@@ -163,7 +164,6 @@ struct lstm_MS_solver : rnn_seq_driver<T>
         if(this->type == miopenFloat)
             rnn_seq_driver<T>::run();
     }
-
 };
 
 int main(int argc, const char* argv[])

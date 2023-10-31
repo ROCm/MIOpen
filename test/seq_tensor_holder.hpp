@@ -61,7 +61,7 @@ struct SeqTensorOffsets
 
         size_t pos_offset = 0;
 
-        const auto& lens         = desc.GetLengths();
+        const auto& lens = desc.GetLengths();
 
         if(desc.IsPaddedSeqLayout())
         {
@@ -72,7 +72,7 @@ struct SeqTensorOffsets
         }
         else
         {
-            bool is_seq_part_begin = true;
+            bool is_seq_part_begin            = true;
             size_t saved_offset_before_seqDim = 0;
             for(auto dim : desc.GetLayoutVector())
             {
@@ -90,7 +90,7 @@ struct SeqTensorOffsets
                     else // seq block end - minor dim (seq or batch)
                     {
                         const int major_dim_from_minor[] = {1, 0};
-                        const auto major_dim_pos          = pos[major_dim_from_minor[dim]];
+                        const auto major_dim_pos         = pos[major_dim_from_minor[dim]];
 
                         pos_offset *= major_dim_part_sum[major_dim_pos + 1] -
                                       major_dim_part_sum[major_dim_pos];
@@ -133,7 +133,7 @@ private:
                 sum_v[0] = 0;
                 {
                     std::vector<size_t> batch_per_seq(seq_array[0]);
-                    auto batchs_begin = batch_per_seq.begin();
+                    auto batchs_begin   = batch_per_seq.begin();
                     size_t prew_seq_len = 0;
                     for(auto seq_cnt = seq_array.size(); seq_cnt != 0; seq_cnt--)
                     {
@@ -157,17 +157,17 @@ private:
     const std::vector<size_t> major_dim_part_sum;
     const miopen::SeqTensorDescriptor& desc;
 };
-}
+} // namespace
 
 template <typename Tgpu>
 void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
-                                const miopen::SeqTensorDescriptor& dstDesc,
-                                const std::vector<int>& srcToDstSeqMaping,
-                                const std::vector<Tgpu>& srcData,
-                                std::vector<Tgpu>& dstData)
+                                   const miopen::SeqTensorDescriptor& dstDesc,
+                                   const std::vector<int>& srcToDstSeqMaping,
+                                   const std::vector<Tgpu>& srcData,
+                                   std::vector<Tgpu>& dstData)
 {
     const auto& maxDimLengths = srcDesc.GetLengths();
-    
+
     assert(maxDimLengths.size() == 3 && srcDesc.GetLayoutVector()[2] == 2);
     assert(maxDimLengths == dstDesc.GetLengths());
 
@@ -175,7 +175,7 @@ void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
     const auto& dstSeqLengths = dstDesc.GetSequenceLengthsVector();
 
     const size_t batch_size = maxDimLengths[0];
-    const size_t copy_size = maxDimLengths[2]; // IO vector size
+    const size_t copy_size  = maxDimLengths[2]; // IO vector size
 
     const SeqTensorOffsets src_offset_calc(srcDesc);
     const SeqTensorOffsets dst_offset_calc(dstDesc);
@@ -184,7 +184,7 @@ void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
     {
         const size_t src_batch_it = srcToDstSeqMaping[batch_it];
         const size_t dst_batch_it = batch_it;
-        
+
         assert(dstSeqLengths[dst_batch_it] == srcSeqLengths[src_batch_it]);
 
         for(size_t seqTime_it = 0; seqTime_it < srcSeqLengths[src_batch_it]; seqTime_it++)
@@ -202,8 +202,8 @@ void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
 
 inline miopen::SeqTensorDescriptor
 GetSeqDescriptorLayoutTransform(const miopen::SeqTensorDescriptor& desc,
-                             miopenRNNBaseLayout_t transformLayout,
-                             const std::vector<int>& transformSeqOrder)
+                                miopenRNNBaseLayout_t transformLayout,
+                                const std::vector<int>& transformSeqOrder)
 {
     const auto [layout_dims_order, layout_seq_padding] =
         miopen::RNNDescriptor::convertRNNBaseLayout(transformLayout);
@@ -224,24 +224,22 @@ template <class T>
 struct seqTensor
 {
     miopen::SeqTensorDescriptor desc;
-    
-//private:
+
+    // private:
     std::vector<T> data;
-//public:
-    
+    // public:
+
     size_t GetDataByteSize() const
     {
         return data.empty() ? desc.GetTensorRealByteSpace() : data.size() * sizeof(T);
     }
-    
-    size_t GetSize() const { 
-        return desc.GetTensorRealByteSpace() / sizeof(T);
-    }
-    
+
+    size_t GetSize() const { return desc.GetTensorRealByteSpace() / sizeof(T); }
+
     std::vector<T>& GetDataPtr() const { return data.data(); }
-    
+
     seqTensor<T> GetTensorLayoutTransform(miopenRNNBaseLayout_t transformLayout,
-                                          std::vector<int>& transformSeqOrder) const 
+                                          std::vector<int>& transformSeqOrder) const
     {
         seqTensor<T> transformed_tensor(
             GetSeqDescriptorLayoutTransform(desc, transformLayout, transformSeqOrder));
@@ -251,8 +249,8 @@ struct seqTensor
 
         return transformed_tensor;
     }
-    
-    //size_t GetNotPaddedDataCnt() { return desc.GetElementCount();}
+
+    // size_t GetNotPaddedDataCnt() { return desc.GetElementCount();}
 
     seqTensor(const miopen::SeqTensorDescriptor& tensor_desc)
         : desc(tensor_desc), data(desc.GetTensorRealByteSpace() / sizeof(T))
@@ -279,7 +277,4 @@ struct seqTensor
         : desc(t, layout, dims), data(desc.GetTensorRealByteSpace() / sizeof(T))
     {
     }
-
-    
 };
-

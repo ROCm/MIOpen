@@ -425,10 +425,10 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
     {
         batches.reserve(sequence_len[0]);
         auto block_begin = sequence_len.rbegin();
-        
+
         while(block_begin != sequence_len.rend() && *block_begin == 0)
             block_begin++;
-        
+
         auto sample_ptr = block_begin;
         auto batch_size = sequence_len.rend() - block_begin;
 

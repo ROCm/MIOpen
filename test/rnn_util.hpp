@@ -63,14 +63,14 @@ inline std::vector<int> GetSamplesIndexDescendingOrder(const std::vector<size_t>
     std::stable_sort(index_v.begin(), index_v.end(), seq_len_cmp);
 
     return index_v;
-} 
+}
 
 template <typename Tgpu>
 inline void HiddenTensorReorder(const std::vector<Tgpu>& src_array,
-                         std::vector<Tgpu>& dst_array,
-                         const std::vector<int>& batch_order,
-                         const std::vector<size_t> hid_len,
-                         bool is_dst_direct_order)
+                                std::vector<Tgpu>& dst_array,
+                                const std::vector<int>& batch_order,
+                                const std::vector<size_t> hid_len,
+                                bool is_dst_direct_order)
 {
     const size_t copy_size = hid_len[2];
 
@@ -95,7 +95,6 @@ inline void HiddenTensorReorder(const std::vector<Tgpu>& src_array,
         }
     }
 }
-
 
 inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
                                   std::vector<miopenTensorDescriptor_t>& ptd,
