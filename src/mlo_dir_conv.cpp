@@ -125,6 +125,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvHipImplicitGemmGroupFwdXdlops,
         miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops,
         miopen::solver::ConvHipImplicitGemm3DGroupBwdXdlops,
+        miopen::solver::ConvHipImplicitGemmF16F8F16FwdXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
