@@ -39,7 +39,8 @@ set(BUILD_GMOCK OFF CACHE INTERNAL "")
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG e2239ee6043f73722e7aa812a459f54a28552929)
+    GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571
+)
 
 if(WIN32)
     set(gtest_force_shared_crt ON CACHE INTERNAL "")
@@ -67,11 +68,12 @@ set(GTEST_CMAKE_CXX_FLAGS
     -Wno-comma
     -Wno-old-style-cast
     -Wno-deprecated
+    -Wno-unsafe-buffer-usage
+    -Wno-float-equal
     -Wno-ignored-attributes
     -Wno-incompatible-pointer-types
     -Wno-enum-constexpr-conversion
-    -Wno-deprecated-builtins
-    -Wno-enum-constexpr-conversion)
+    -Wno-deprecated-builtins)
 
 target_compile_options(gtest PRIVATE ${GTEST_CMAKE_CXX_FLAGS})
 target_compile_options(gtest_main PRIVATE ${GTEST_CMAKE_CXX_FLAGS})
