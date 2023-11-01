@@ -69,8 +69,8 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     const TensorDescriptor& GetMeanDesc() const { return meanDesc; }
     const TensorDescriptor& GetRstdDesc() const { return rstdDesc; }
-    const float GetEpsilon() const { return epsilon; }
-    const int32_t GetNormalizedDim() const { return normalized_dim; }
+    float GetEpsilon() const { return epsilon; }
+    int32_t GetNormalizedDim() const { return normalized_dim; }
 
     bool IsRank2Dim1() const { return (xDesc.GetLengths().size() == 2) && (normalized_dim == 1); }
 

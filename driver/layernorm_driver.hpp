@@ -400,6 +400,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward LayerNorm FAILED: " << error << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {
@@ -410,6 +411,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(meanerror) || meanerror > tolerance)
     {
         std::cout << "Forward LayerNorm mean FAILED: " << meanerror << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {
@@ -420,6 +422,7 @@ int LayerNormDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(rstderror) || rstderror > tolerance)
     {
         std::cout << "Forward LayerNorm rstd FAILED: " << rstderror << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {

@@ -130,7 +130,7 @@ struct CKArgs
 } // namespace
 
 template <typename DeviceOpType>
-int CheckCKApplicability(const miopen::norm::ProblemDescription& problem)
+bool CheckCKApplicability(const miopen::norm::ProblemDescription& problem)
 {
     const auto ln_args = CKArgs{problem};
     const auto ln_ptrs = DeviceOpType::GetInstances();
