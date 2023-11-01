@@ -8,7 +8,6 @@ def miopenCheckout()
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        //extensions: scm.extensions + [[$class: 'GitLFSPull'], [$class: 'SubmoduleOption', parentCredentials: true]],
         extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
         userRemoteConfigs: scm.userRemoteConfigs
     ])
@@ -290,15 +289,7 @@ def buildHipClangJob(Map conf=[:]){
                         sh "git lfs pull --exclude="
                     }
 
-                    try{
-                        cmake_build(conf)
-                    }
-                    catch(e){
-                        if (lfs_pull) {
-                            archiveArtifacts artifacts: "${env.WORKSPACE}/cache/miopen/**/*kdb", allowEmptyArchive: true, fingerprint: true
-                        }
-                        throw e
-                    }
+                    cmake_build(conf)
 
                     if (codecov) {
                         sh '''
@@ -626,28 +617,6 @@ pipeline {
 		      buildHipClangJobAndReboot(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
                     }
                 }
-                stage('dbsync gfx908') {
-                    agent{ label rocmnode("gfx908") }
-                    environment{
-			config_targets='test_db_sync'
-			execute_cmd='./bin/test_db_sync'
-                        setup_flags=" -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
-                    }
-                }
-                stage('dbsync gfx90a') {
-                    agent{ label rocmnode("gfx90a") }
-                    environment{
-			config_targets='test_db_sync'
-			execute_cmd='./bin/test_db_sync'
-                        setup_flags=" -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
-                    }
-                }
             }
         }
         stage("Smoke Fp32") {
@@ -943,6 +912,44 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
+                stage('dbsync gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+			config_targets='test_db_sync'
+			execute_cmd='./bin/test_db_sync'
+                        setup_flags=" -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, 
+                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                    }
+                }
+                stage('dbsync gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+			config_targets='test_db_sync'
+			execute_cmd='./bin/test_db_sync'
+                        setup_flags=" -DMIOPEN_CACHE_DIR=${env.WORKSPACE}/cache/miopen"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull: true, setup_flags: setup_flags, config_targets: config_targets, execute_cmd: execute_cmd, 
+                                                        needs_gpu:false, needs_reboot:false, build_install: "true")
+                    }
+                }
                 stage('Int8 HIP All Vega20') {
                     when {
                         beforeAgent true
