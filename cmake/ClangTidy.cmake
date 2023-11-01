@@ -93,8 +93,6 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ALL ALL)
     endif()
 
-    message(STATUS "Clang tidy checks: ${CLANG_TIDY_CHECKS}")
-
     if (${PARSE_ANALYZE_TEMPORARY_DTORS})
         set(CLANG_TIDY_ANALYZE_TEMPORARY_DTORS "-analyze-temporary-dtors")
     endif()
