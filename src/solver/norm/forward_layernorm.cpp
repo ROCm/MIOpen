@@ -27,8 +27,10 @@
 #include <miopen/norm/solvers.hpp>
 
 #include <miopen/norm/invoke_params.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -38,11 +40,23 @@ namespace solver {
 
 namespace norm {
 
+std::size_t sizeof_kernel_FLOAT(const miopen::norm::ProblemDescription& problem)
+{
+    const auto datatype = problem.GetXDesc().GetType();
+    return get_data_size(datatype);
+}
+
+std::size_t sizeof_local_memory(const miopen::norm::ProblemDescription& problem)
+{
+    std::size_t rv = 0;
+    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
+    return rv;
+}
+
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::norm::ProblemDescription& problem) const
 {
-    std::ignore = problem;
-    return true;
+    return (sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize());
 }
 
 ConvSolution LayernormForward::GetSolution(const ExecutionContext& context,
