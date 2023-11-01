@@ -64,10 +64,12 @@ struct SeqTensorOffsets
 
         if(desc.IsPaddedSeqLayout())
         {
-            for(auto dim : desc.GetLayoutVector())
-            {
-                pos_offset = (pos_offset * lens[dim]) + pos[dim];
-            }
+            pos_offset = std::accumulate(desc.GetLayoutVector().begin(),
+                                         desc.GetLayoutVector().end(),
+                                         pos_offset,
+                                         [&lens, &pos](auto&& before, auto&& dim) {
+                                             return (before * lens[dim]) + pos[dim];
+                                         });
         }
         else
         {
@@ -157,17 +159,26 @@ private:
     const miopen::SeqTensorDescriptor& desc;
 };
 
-template <typename Tgpu>
+template <typename T>
 void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
                                    const miopen::SeqTensorDescriptor& dstDesc,
                                    const std::vector<int>& srcToDstSeqMaping,
-                                   const std::vector<Tgpu>& srcData,
-                                   std::vector<Tgpu>& dstData)
+                                   const std::vector<T>& srcData,
+                                   std::vector<T>& dstData)
 {
     const auto& maxDimLengths = srcDesc.GetLengths();
 
     assert(maxDimLengths.size() == 3 && srcDesc.GetLayoutVector()[2] == 2);
     assert(maxDimLengths == dstDesc.GetLengths());
+
+    if(dstDesc.IsPaddingMarkerSpecified() && dstDesc.IsPaddedSeqLayout())
+    {
+        T paddingSymbol;
+
+        memcpy(&paddingSymbol, dstDesc.GetPaddingMarkerHolder().data(), sizeof(T));
+
+        std::fill(dstData.begin(), dstData.end(), paddingSymbol);
+    }
 
     const auto& srcSeqLengths                  = srcDesc.GetSequenceLengthsVector();
     [[maybe_unused]] const auto& dstSeqLengths = dstDesc.GetSequenceLengthsVector();

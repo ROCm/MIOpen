@@ -427,22 +427,25 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
         while(block_begin != sequence_len.rend() && *block_begin == 0)
             block_begin++;
 
-        auto sample_ptr = block_begin;
-        auto batch_size = sequence_len.rend() - block_begin;
-
-        batches.insert(batches.end(), *block_begin, batch_size);
-
-        while(sample_ptr != sequence_len.rend())
+        if(block_begin != sequence_len.rend())
         {
-            if(*sample_ptr != *block_begin)
-            {
-                batch_size           = batch_size - (sample_ptr - block_begin);
-                const auto seq_count = *sample_ptr - *block_begin;
-                batches.insert(batches.end(), seq_count, batch_size);
+            auto sample_ptr = block_begin;
+            auto batch_size = sequence_len.rend() - block_begin;
 
-                block_begin = sample_ptr;
+            batches.insert(batches.end(), *block_begin, batch_size);
+
+            while(sample_ptr != sequence_len.rend())
+            {
+                if(*sample_ptr != *block_begin)
+                {
+                    batch_size           = batch_size - (sample_ptr - block_begin);
+                    const auto seq_count = *sample_ptr - *block_begin;
+                    batches.insert(batches.end(), seq_count, batch_size);
+
+                    block_begin = sample_ptr;
+                }
+                sample_ptr++;
             }
-            sample_ptr++;
         }
     }
     return batches;
