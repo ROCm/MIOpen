@@ -692,18 +692,18 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
 
     if(use_dropout)
     {
-        const size_t dropout_size   = (numlayer - 1) * batch_n_cpu * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n_cpu * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n_cpu * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n_cpu * hy_stride * 2;
         if(dropout_size > 0)
         {
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 rsvspace.at(dropout_offset + i) = dropout_hid_state.at(i);
             }
 
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
             }
@@ -789,13 +789,13 @@ void LSTMBwdDataCPUVerify(bool use_dropout_cpu,
         dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
                                                                static_cast<unsigned char>(0));
 
-        const size_t dropout_size   = (numlayer - 1) * batch_n_cpu * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n_cpu * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n_cpu * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n_cpu * hy_stride * 2;
         if(dropout_size > 0)
         {
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
             }
@@ -2072,17 +2072,17 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
 
     if(use_dropout)
     {
-        const size_t dropout_size   = (numlayer - 1) * batch_n * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n * hy_stride * 2;
         if(dropout_size > 0)
         {
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 rsvspace.at(dropout_offset + i) = dropout_hid_state.at(i);
             }
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
             }
@@ -2171,13 +2171,13 @@ void RNNBwdDataCPUVerify(bool use_dropout,
         dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
                                                                static_cast<unsigned char>(0));
 
-        const size_t dropout_size   = (numlayer - 1) * batch_n * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n * hy_stride * 2;
         if(dropout_size > 0)
         {
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
             }
@@ -3546,18 +3546,18 @@ void GRUFwdCPUVerify(miopen::Handle& handle,
 
     if(use_dropout)
     {
-        const size_t dropout_size   = (numlayer - 1) * batch_n * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n * hy_stride * 2;
         if(dropout_size > 0)
         {
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 rsvspace.at(dropout_offset + i) = dropout_hid_state.at(i);
             }
 
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 *(p_drop_rsv + i) = dropout_reservespace_host.at(i);
             }
@@ -3641,13 +3641,13 @@ void GRUBwdDataCPUVerify(bool use_dropout,
         dropout_reservespace_host = std::vector<unsigned char>(reserve_size * (numlayer - 1),
                                                                static_cast<unsigned char>(0));
 
-        const size_t dropout_size   = (numlayer - 1) * batch_n * hy_h * bi;
-        const size_t dropout_offset = numlayer * batch_n * hy_stride * 2;
+        const size_t dropout_size   = static_cast<size_t>(numlayer - 1) * batch_n * hy_h * bi;
+        const size_t dropout_offset = static_cast<size_t>(numlayer) * batch_n * hy_stride * 2;
         if(dropout_size > 0)
         {
             auto p_drop_rsv =
                 reinterpret_cast<unsigned char*>(&rsvspace.at(dropout_offset + dropout_size));
-            for(int i = 0; i < dropout_size; i++)
+            for(size_t i = 0; i < dropout_size; i++)
             {
                 dropout_reservespace_host.at(i) = *(p_drop_rsv + i);
             }
@@ -4871,7 +4871,6 @@ void UniformRNNBwdWeightCPUVerify(bool use_dropout,
     };
 }
 
-namespace {
 inline size_t GetUniRNNCPUWorkspaceScaleSize(int rnn_mode)
 {
     switch(rnn_mode)
@@ -4896,8 +4895,6 @@ inline size_t GetUniRNNCPUHiddenTensors(int rnn_mode)
     }
 }
 
-} // namespace
-
 inline size_t UniRNNCPUReserveSpaceSize(miopenRNNMode_t rnn_mode,
                                         size_t nLayers,
                                         size_t inputTotalBatch,
@@ -4907,7 +4904,7 @@ inline size_t UniRNNCPUReserveSpaceSize(miopenRNNMode_t rnn_mode,
 {
     int workspace_scale = GetUniRNNCPUWorkspaceScaleSize(rnn_mode);
 
-    size_t reserveSpaceSize         = 2 * workspace_scale * nLayers * inputTotalBatch * outH;
+    size_t reserveSpaceSize         = 2ULL * workspace_scale * nLayers * inputTotalBatch * outH;
     size_t dropout_reserveSpaceSize = 0;
     if(use_dropout)
     {

@@ -48,8 +48,6 @@
 #include "cpu_rnn.hpp"
 ///
 
-namespace {
-
 template <class TensorT>
 miopen::Allocator::ManageDataPtr
 createTensorAtGPUOrNullptr(miopen::Handle& handle, TensorT& tensor, bool is_nullptr)
@@ -82,8 +80,6 @@ auto readTFromGPUOrEmpty(miopen::Handle& handle,
     else
         return {};
 }
-
-} // namespace
 
 //****************************************************
 // FORWARD BASE
@@ -385,7 +381,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
 
         auto batch_seq      = xDesc.GetBatchesPerSequence();
         size_t seq_len      = batch_seq.size();
-        size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0);
+        size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0ULL);
         size_t batch_size   = batch_seq.at(0);
 
         bool is_state_tensor_zip_req = (batch_size != xDesc.GetLengths()[0]);
@@ -490,7 +486,7 @@ struct cpu_rnn_packed_ref : public rnn_ref<T>
         bool is_hx_zip_req           = is_state_tensor_zip_req && !nohx;
         bool is_cx_zip_req           = is_state_tensor_zip_req && !nocx;
 
-        size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0);
+        size_t total_batchs = std::accumulate(batch_seq.begin(), batch_seq.end(), 0ULL);
 
         std::vector<int> batch_seq_downgrade(batch_seq.cbegin(), batch_seq.cend());
 
@@ -1292,13 +1288,15 @@ struct verify_inference_rnn : verify_rnn_api_base<T>
     tensor<T> dyCellState{};
     seqTensor<T> dOutput{};
 
-    constexpr auto
+    using VerificationObj = std::tuple<std::vector<T>, std::vector<T>, std::vector<T>>;
+
+    VerificationObj
     result_tuple(std::vector<T>&& fwd_y, std::vector<T>&& fwd_hy, std::vector<T>&& fwd_cy)
     {
         return std::make_tuple(fwd_y, fwd_hy, fwd_cy);
     }
 
-    auto gpu() -> decltype(result_tuple({}, {}, {})) const
+    VerificationObj gpu() const
     {
         auto&& handle = get_handle();
 
@@ -1543,7 +1541,7 @@ struct rnn_seq_api_test_driver : test_driver
                          "miopenRNNDataSeqMajorNotPadded layout\n");
         }
 
-        if(seqLenArray.size() > 0)
+        if(!seqLenArray.empty())
         {
             if(seqLenArray.size() < batchSize)
             {

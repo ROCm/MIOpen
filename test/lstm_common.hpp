@@ -35,7 +35,7 @@
 #include "verify.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
-#include "cpu_lstm.hpp"
+#include "cpu_rnn.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>

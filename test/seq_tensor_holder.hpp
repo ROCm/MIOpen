@@ -31,7 +31,6 @@
 
 #include <miopen/seq_tensor.hpp>
 
-namespace {
 template <class DataT, class IndexT>
 std::vector<DataT> GetReorderedVector(const std::vector<DataT>& src,
                                       const std::vector<IndexT>& resOrder)
@@ -157,7 +156,6 @@ private:
     const std::vector<size_t> major_dim_part_sum;
     const miopen::SeqTensorDescriptor& desc;
 };
-} // namespace
 
 template <typename Tgpu>
 void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
