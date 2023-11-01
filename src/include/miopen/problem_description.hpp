@@ -141,7 +141,7 @@ struct ProblemDescriptionCompatTemporary
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    // int GetBias() const { return bias; }
+    int GetBias() const { return bias; }
     // std::string GetInLayout() const { return in_layout; }
     // std::string GetOutLayout() const { return out_layout; }
     miopenDataType_t GetInDataType() const { return in_data_type; }
@@ -198,6 +198,7 @@ struct ProblemDescriptionCompatTemporary
     /*
      *  set bot tensor
      */
+
     void setBotDescr(const std::string& layout,
                      miopenDataType_t data_type,
                      int batch,

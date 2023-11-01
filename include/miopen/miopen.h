@@ -53,6 +53,7 @@
  * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
+ * @defgroup layernorm
  * @defgroup LRN
  * @defgroup batchnorm
  * @defgroup activation
@@ -110,6 +111,14 @@ typedef enum
     miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
     miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
+
+#ifdef MIOPEN_BETA_API
+typedef enum
+{
+    miopenF8RoundingModeStandard   = 0,
+    miopenF8RoundingModeStochastic = 1,
+} miopenF8RoundingMode_t;
+#endif
 
 /*! @brief Get character string for an error code.
  *
@@ -341,13 +350,19 @@ typedef enum
 {
     miopenHalf  = 0, /*!< 16-bit floating point (Fully supported) */
     miopenFloat = 1, /*!< 32-bit floating point (Fully supported) */
-    miopenInt32 = 2, /*!< 32-bit int point (Partially supported) */
-    miopenInt8  = 3, /*!< 8-bit int point (Partially supported) */
-    miopenInt8x4 =
-        4, /*!< Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) */
+    miopenInt32 = 2, /*!< 32-bit integer (Partially supported) */
+    miopenInt8  = 3, /*!< 8-bit integer (Partially supported) */
+    // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+#ifdef MIOPEN_BETA_API
+    miopenFloat8  = 7,
+    miopenBFloat8 = 8,
+#else
+// miopenReserved1 = 7,
+// miopenReserved2 = 8,
+#endif
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -447,7 +462,18 @@ typedef enum
     miopenLRNWithinChannel = 0, /*!< Channel independent */
     miopenLRNCrossChannel  = 1, /*!< Cross Channel */
 } miopenLRNMode_t;
-
+#ifdef MIOPEN_BETA_API
+/*! @ingroup layernorm
+ * @enum miopenLayerNormAlgorithm_t
+ * LayerNorm implementation algorithms
+ */
+typedef enum
+{
+    MIOPEN_ELEMENTWISE_AFFINE = 0, /*!< initialized to ones for weights and zeros for biases */
+    MIOPEN_WEIGHT_BIAS =
+        1, /*!< learnable weights and biases of the module of shape normalized_shape */
+} miopenLayerNormMode_t;
+#endif
 /*! @ingroup batchnorm
  * @enum miopenBatchNormMode_t
  * Batch Normalization layer mode
@@ -581,6 +607,15 @@ typedef enum
     MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
         1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
               results. 0 - disabled (default), 1 - enabled >*/
+#ifdef MIOPEN_BETA_API
+    MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE =
+        2, /*!<Specifies the rounding mode for the 8-bit floating data types. Currently, two
+              rounding modes are supported miopenF8RoundingModeStandard and
+              miopenF8RoundingModeStochastic. These are listed as part of the miopenF8RoundingMode_t
+              enum.>*/
+#else
+// miopenReserved1 = 2,
+#endif
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -698,7 +733,21 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        const int* dimsA,
                                                        const int* stridesA);
 
-/*! @brief Get size of N-dimensional tensor
+#ifdef MIOPEN_BETA_API
+/*! @brief Set the tensor cast type
+ *
+ *  For tensors where the cast_type attribute is set, the tensor elements would be converted to the
+ * target type before the target operation is applied. Currently, only supported for convolution
+ * operations targeting the FP8 datatype
+ *
+ *  @param tensorDesc Tensor descriptor type (input)
+ *  @param cast_type  MIOpen datatype (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
+                                                     miopenDataType_t cast_type);
+#endif
+
+/*! @brief Set shape of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
@@ -1678,6 +1727,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * Runs the forward convolution layer based on the selected algorithm. The function
  * miopenFindConvolutionForwardAlgorithm() must have been executed previously to
  * determine the required memory needed for the workspace and the best convolutional algorithm.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
@@ -1714,6 +1765,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 /*! @brief Calculate element-wise scale and shift of a tensor via a bias tensor
  *
  *  This function applies an element-wise bias to a data tensor from an input bias tensor.
+ *  The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ *  alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1981,6 +2034,8 @@ miopenConvolutionBackwardWeights(miopenHandle_t handle,
 /*! @brief Calculates the gradient with respect to the bias.
  *
  * Compute the convolution backwards gradient with respect to the bias tensor.
+ * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
+ * alpha = 1 and beta = 0.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -2427,6 +2482,55 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
 
 /** @} */
 // CLOSEOUT LRN DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+// LayerNorm APIs
+/** @addtogroup layernorm
+ *
+ *  @{
+ */
+/*! @brief Execute a layernorm forward layer
+ *
+ * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param biasDesc       Tensor descriptor for data input tensor bias (input)
+ * @param bias           Data tensor bias (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param normalized_dim Nomalized dimensions in the input array (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param meanDesc       Tensor descriptor for output data tensor mean (input)
+ * @param mean           Data tensor mean (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
+                                                    miopenLayerNormMode_t mode,
+                                                    const miopenTensorDescriptor_t xDesc,
+                                                    const void* x,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    const void* weight,
+                                                    const miopenTensorDescriptor_t biasDesc,
+                                                    const void* bias,
+                                                    const float epsilon,
+                                                    const int32_t normalized_dim,
+                                                    const miopenTensorDescriptor_t yDesc,
+                                                    void* y,
+                                                    const miopenTensorDescriptor_t meanDesc,
+                                                    void* mean,
+                                                    const miopenTensorDescriptor_t rstdDesc,
+                                                    void* rstd);
+
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 // Batch-Normalization APIs
 /** @addtogroup batchnorm
@@ -5126,6 +5230,12 @@ typedef enum
     miopenTensorConvolutionX      = 1,
     miopenTensorConvolutionW      = 2,
     miopenTensorConvolutionY      = 3,
+#ifdef MIOPEN_BETA_API
+    miopenTensorActivationX  = 4,
+    miopenTensorActivationY  = 5,
+    miopenTensorActivationDX = 6,
+    miopenTensorActivationDY = 7,
+#endif
 } miopenTensorArgumentId_t;
 
 /*! @enum miopenTensorArgumentId_t
@@ -5153,7 +5263,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param problem Problem to destroy
  * @return        miopenStatus_t
  */
-miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 
 /*! @brief Sets a tensor descriptor for the specified argument.
  *
@@ -5162,9 +5272,10 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
  * @param descriptor Tensor descriptor to set
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenTensorArgumentId_t id,
-                                                const miopenTensorDescriptor_t descriptor);
+MIOPEN_EXPORT miopenStatus_t
+miopenSetProblemTensorDescriptor(miopenProblem_t problem,
+                                 miopenTensorArgumentId_t id,
+                                 const miopenTensorDescriptor_t descriptor);
 
 /*! @brief The miopenFindOptions allows the user to configure how find will be used.
  */
@@ -5175,14 +5286,14 @@ MIOPEN_DECLARE_OBJECT(miopenFindOptions);
  * @param options    Pointer to options object to initialze
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
+MIOPEN_EXPORT miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
 
 /*! @brief Destroys miopenFindOptions object.
  *
  * @param options    Options object to destroy
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 /*! @brief Sets the tuning find option. Default value is zero.
  *
@@ -5190,7 +5301,7 @@ miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
  * @param value      Value of zero means no tuning, value of one means tuning enabled
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
 
 /*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
  *
@@ -5198,8 +5309,8 @@ miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
  * @param value      Specifies what order should find results have
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
-                                               miopenFindResultsOrder_t value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
+                                                             miopenFindResultsOrder_t value);
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
@@ -5208,7 +5319,8 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
  * would be ignored.
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options,
+                                                               size_t value);
 
 /*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
  *
@@ -5217,8 +5329,9 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
  * @param size       Specifies the size of the buffer passed
  * @return           miopenStatus_t
  */
-miopenStatus_t
-miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options,
+                                                                      void* buffer,
+                                                                      size_t size);
 
 /*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
  * MIOpen internally, which is not recommended.
@@ -5228,9 +5341,9 @@ miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buff
  * @param buffer     Specifies the tensor for find call
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
-                                                     miopenTensorArgumentId_t id,
-                                                     void* buffer);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                                   miopenTensorArgumentId_t id,
+                                                                   void* buffer);
 
 /*! @brief The miopenSolution object describes a prepared solution.
  */
@@ -5247,12 +5360,12 @@ MIOPEN_DECLARE_OBJECT(miopenSolution);
  * @param maxSolutions Limits the amount of results
  * @return             miopenStatus_t
  */
-miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
-                                   miopenProblem_t problem,
-                                   miopenFindOptions_t options,
-                                   miopenSolution_t* solutions,
-                                   size_t* numSolutions,
-                                   size_t maxSolutions);
+MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                                 miopenProblem_t problem,
+                                                 miopenFindOptions_t options,
+                                                 miopenSolution_t* solutions,
+                                                 size_t* numSolutions,
+                                                 size_t maxSolutions);
 
 /*! @brief Values of a tensor argument for the miopenRunSolution function.
  */
@@ -5283,19 +5396,19 @@ struct miopenTensorArgument_t
  * @param workspaceSize Size of the workspace buffer
  * @return              miopenStatus_t
  */
-miopenStatus_t miopenRunSolution(miopenHandle_t handle,
-                                 miopenSolution_t solution,
-                                 size_t nInputs,
-                                 const miopenTensorArgument_t* tensors,
-                                 void* workspace,
-                                 size_t workspaceSize);
+MIOPEN_EXPORT miopenStatus_t miopenRunSolution(miopenHandle_t handle,
+                                               miopenSolution_t solution,
+                                               size_t nInputs,
+                                               const miopenTensorArgument_t* tensors,
+                                               void* workspace,
+                                               size_t workspaceSize);
 
 /*! @brief Destroys solution object.
  *
  * @param solution   Solution to destroy
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
+MIOPEN_EXPORT miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
 
 /*! @brief Loads solution object from binary data.
  *
@@ -5304,7 +5417,9 @@ miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
  * @param size       Size of the solution blob
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size);
+MIOPEN_EXPORT miopenStatus_t miopenLoadSolution(miopenSolution_t* solution,
+                                                const char* data,
+                                                size_t size);
 
 /*! @brief Saves a solution object as binary data.
  *
@@ -5312,7 +5427,7 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, 
  * @param data       Pointer to a buffer to save soltuion to
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
+MIOPEN_EXPORT miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
 /*! @brief Reads the expected size of a solution.
  *
@@ -5320,7 +5435,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
  * @param size       Pointer to a location where to write the size of the solution blob
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
 /*! @brief Reads the amount of workspace required to exectute the solution.
  *
@@ -5328,7 +5443,8 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
  * @param workspaceSize Pointer to a location where to write the workspace size
  * @return              miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution,
+                                                            size_t* workspaceSize);
 
 /*! @brief Reads the time spent to execute the solution the last it was run.
  *
@@ -5336,7 +5452,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
  * @param time     Pointer to a location where to write the execution time
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
 
 /*! @brief Reads id of the solver referred by the solution.
  *
@@ -5344,7 +5460,8 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
  * @param solverId Pointer to a location where to write the solver id
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution,
+                                                       uint64_t* solverId);
 
 /*! @brief Gets the convolution algorithm implemented by a solver.
  *
@@ -5352,7 +5469,25 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
  * @param result   Pointer to a location where to write the algorithm
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId,
+                                                            miopenConvAlgorithm_t* result);
+
+#ifdef MIOPEN_BETA_API
+
+/*! @brief Initializes a problem object describing an activation operation.
+ * @note As of now there is no way to actually get any solution for this kind of problems
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateActivationProblem(miopenProblem_t* problem,
+                              miopenActivationDescriptor_t operatorDesc,
+                              miopenProblemDirection_t direction);
+
+#endif
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP

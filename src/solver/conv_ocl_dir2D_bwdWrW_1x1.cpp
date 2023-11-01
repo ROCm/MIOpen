@@ -39,7 +39,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_266868
@@ -58,14 +58,16 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+    if(problem.IsTensorsCasted())
+        return false;
 
     bool result = (problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1 &&
                    problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
@@ -93,7 +95,7 @@ static inline int GetNPasses(const ProblemDescription& problem)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ExecutionContext&,
                                           const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
@@ -109,7 +111,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem) const
 {
     ConvSolution result;

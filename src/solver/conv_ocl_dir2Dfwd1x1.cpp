@@ -38,7 +38,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_271887
@@ -57,14 +57,16 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!problem.IsLayoutDefault())
-    {
+    if(problem.IsTensorsCasted())
         return false;
-    }
+    if(!problem.IsLayoutDefault())
+        return false;
 
     return problem.GetDilationW() == 1 && problem.GetDilationH() == 1 &&
            problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1 &&
@@ -73,7 +75,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
            problem.GetPadW() == 0 && problem.GetPadH() == 0;
 }
 
-ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclDirectFwd1x1::GetSolution(const ExecutionContext& ctx,
                                               const ProblemDescription& problem,
                                               const LegacyPerformanceConfig& config) const
 {

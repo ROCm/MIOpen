@@ -26,16 +26,17 @@
 
 #pragma once
 
+#include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
-#include <miopen/convolution.hpp>
 #include <miopen/names.hpp>
+
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/convolution.hpp>
+
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
-#include <miopen/tensor.hpp>
-#include <miopen/problem_description_base.hpp>
-
-#include <boost/any.hpp>
 
 namespace miopen {
 
@@ -43,22 +44,6 @@ struct ExecutionContext;
 
 std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
-
-inline std::string GetDataTypeName(miopenDataType_t data_type)
-{
-    switch(data_type)
-    {
-    case miopenFloat: return "FP32";
-    case miopenHalf: return "FP16";
-    case miopenInt8: return "INT8";
-    case miopenInt8x4: return "INT8x4";
-    case miopenInt32: return "INT32";
-    case miopenBFloat16: return "BF16";
-    case miopenDouble: return "FP64";
-    }
-
-    return "Unknown(" + std::to_string(data_type) + ")";
-}
 
 template <class TElement>
 constexpr auto GetDHW(unsigned spatial_dims, const std::vector<TElement>& data)
@@ -155,9 +140,10 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription() = default;
 
-    ProblemDescription(const TensorDescriptor& in_,
+    /// \todo Get rid of the swapping of x and y.
+    ProblemDescription(const TensorDescriptor& in_, // x for Forward, y for Backward*
                        const TensorDescriptor& weights_,
-                       const TensorDescriptor& out_,
+                       const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_ = 0)
@@ -190,6 +176,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
+    std::optional<miopenDataType_t> GetInCastType() const { return in.GetCastType(); }
     unsigned GetInBatchSize_() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
     unsigned GetBatchSize_() const { return GetInBatchSize_(); } // alias of GetInBatchSize_()
     unsigned GetInChannels_() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
@@ -223,6 +210,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
+    std::optional<miopenDataType_t> GetOutCastType() const { return out.GetCastType(); }
     unsigned GetOutBatchSize_() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
     unsigned GetOutChannels_() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
     unsigned GetOutDepth_() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
@@ -255,6 +243,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
+    std::optional<miopenDataType_t> GetWeightsCastType() const { return weights.GetCastType(); }
     unsigned GetWeightsDepth_() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     unsigned GetWeightsHeight_() const
     {
@@ -343,6 +332,20 @@ struct ProblemDescription : ProblemDescriptionBase
         return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
                (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
     }
+    bool IsFp8() const
+    {
+        return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
+               GetOutDataType() == miopenFloat8;
+    }
+    bool IsBfp8() const
+    {
+        return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
+               GetOutDataType() == miopenBFloat8;
+    }
+    bool IsTensorsCasted() const
+    {
+        return GetInCastType() || GetWeightsCastType() || GetOutCastType();
+    }
 
     // To be used in Solvers that do not implement ALT FP16 kernels.
     // Those Solvers must be non-applicable for gfx90a when this function returns true.
@@ -365,16 +368,30 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsNCHWc_NCHWc() const;
     bool IsNCHWc_CHWNc() const;
 
+    bool HasNonPackedTensors() const
+    {
+        return !(in.IsPacked() && weights.IsPacked() && out.IsPacked());
+    }
+
+    bool HasMixedDataTypes() const
+    {
+        return !(GetInDataType() == GetWeightsDataType() &&
+                 GetWeightsDataType() == GetOutDataType());
+    }
+
     void HeuristicUpdateLayouts();
 
-    void BuildConfKey(std::string& conf_key) const;
+    void MakeNetworkConfig(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
+    NetworkConfig MakeNetworkConfig() const override
     {
         std::string ret;
-        BuildConfKey(ret);
+        MakeNetworkConfig(ret);
         return NetworkConfig{ret};
     }
+
+    // Todo: remove after fixing fin
+    [[deprecated]] NetworkConfig BuildConfKey() const { return MakeNetworkConfig(); }
 
     void Serialize(std::ostream& stream) const;
 

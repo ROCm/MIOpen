@@ -37,7 +37,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx,
+bool ConvMlirIgemmBwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
@@ -47,7 +47,11 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.direction.IsBackwardData())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
     // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
     // guaranteed to be slower than its xdlops alternative, therefore disabling it to
@@ -68,13 +72,13 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmBwd::GetDefaultPerformanceConfig(const ConvolutionContext&,
+ConvMlirIgemmBwd::GetDefaultPerformanceConfig(const ExecutionContext&,
                                               const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
@@ -82,14 +86,14 @@ bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
     return config.IsValid(ctx, problem);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmBwd::Search(const ConvolutionContext& ctx,
+PerformanceConvMlirIgemm ConvMlirIgemmBwd::Search(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmBwd::GetSolution(const ExecutionContext& ctx,
                                            const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {

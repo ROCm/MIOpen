@@ -165,10 +165,13 @@ public:
 } // namespace
 
 template <uint32_t Winodata, uint32_t Winofilter>
-bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
+bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(is2x3() && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3{}))
@@ -195,7 +198,7 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContex
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ConvolutionContext& ctx,
+float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
     auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -204,7 +207,7 @@ float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ConvolutionContext& ct
 
 template <uint32_t Winodata, uint32_t Winofilter>
 ConvSolution
-ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& ctx,
+ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)

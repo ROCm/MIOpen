@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required( VERSION 3.15 )
 
 if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
@@ -58,6 +58,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_testing()
 
+find_package(Threads REQUIRED)
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
@@ -68,11 +69,18 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+# Build library with Beta APIs
+add_definitions("-DMIOPEN_BETA_API=1")
+
 set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
 set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
+
+# By default build shared libraries
+option(BUILD_SHARED_LIBS "Create shared libraries" ON)
+
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -144,11 +152,10 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
-    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
-    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()

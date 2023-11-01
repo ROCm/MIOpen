@@ -40,7 +40,7 @@ namespace solver {
 // problematic configs.
 static bool WorkaroundSwdev168168() { return true; }
 
-bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
+bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53{}))
@@ -51,16 +51,19 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
     if(!problem.direction.IsBackwardWrW())
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     bool workaround = false;
 
@@ -314,7 +317,7 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
-size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext&,
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ExecutionContext&,
                                          const ProblemDescription& problem) const
 {
     int n_stacks      = std::min(problem.GetBatchSize_(), 1U);
@@ -336,7 +339,7 @@ size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext&,
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
     ConvSolution result;
