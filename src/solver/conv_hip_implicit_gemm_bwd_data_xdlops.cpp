@@ -262,6 +262,12 @@ bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
+size_t ConvHipImplicitGemmBwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                      const ProblemDescription& problem) const
+{
+    return GetWorkspaceSizeLayoutTransformConv(problem);
+}
+
 PerformanceConfigHipImplicitGemmBwdXdlops
 ConvHipImplicitGemmBwdXdlops::Search(const ExecutionContext& ctx,
                                      const ProblemDescription& problem,

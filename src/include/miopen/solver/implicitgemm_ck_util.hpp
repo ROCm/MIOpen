@@ -669,5 +669,30 @@ MakeSolutionGroupConvImplicitGemmXdlops(const ProblemDescription& problem,
     return {};
 }
 
+/// \todo move to a cpp file
+inline size_t GetWorkspaceSizeLayoutTransformConv(const ProblemDescription& problem)
+{
+    if(problem.IsLayoutNHWC())
+    {
+        return 0;
+    }
+
+    assert(problem.IsLayoutDefault());
+    // packed size in bytes
+    auto GetPackedSize = [](const TensorDescriptor& td) {
+        auto sz                         = td.GetElementSize() * GetTypeSize(td.GetType());
+        constexpr size_t alignment      = 256u;
+        constexpr size_t alignment_mask = alignment - 1;
+        static_assert(alignment_mask > 0);
+        static_assert((alignment & alignment_mask) == 0);
+        return (sz + alignment_mask) & ~(alignment_mask);
+    };
+
+    auto w_sz = GetPackedSize(problem.GetIn()) + GetPackedSize(problem.GetWeights()) +
+                GetPackedSize(problem.GetOut());
+
+    return w_sz;
+}
+
 } // namespace solver
 } // namespace miopen

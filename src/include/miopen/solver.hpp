@@ -4459,6 +4459,9 @@ struct ConvHipImplicitGemmFwdXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
@@ -4526,6 +4529,9 @@ struct ConvHipImplicitGemmBwdXdlops final
     {
         return 0.02f;
     };
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
 private:
     template <typename DataType>
@@ -4596,6 +4602,9 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
@@ -4665,6 +4674,9 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     {
         return 0.02f;
     };
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
 private:
     template <typename DataType>
@@ -4741,6 +4753,9 @@ struct ConvHipImplicitGemm3DGroupWrwXdlops final
         return 0.02f;
     };
 
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
 private:
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
@@ -4815,6 +4830,9 @@ struct ConvHipImplicitGemm3DGroupBwdXdlops final
     {
         return 0.02f;
     };
+
+    size_t GetWorkspaceSize(const ExecutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
 private:
     template <typename DataType>

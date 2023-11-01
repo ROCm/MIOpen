@@ -69,7 +69,7 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
     }
 
     auto [workspace_gpu, workspace_sz] =
-        AllocateConvTransposeWorkspace(handle, inputDesc, wDesc, outputDesc);
+        AllocateConvTransposeWorkspace(handle, solv.GetWorkspaceSize(ctx, problem));
 
     const auto invoke_params =
         miopen::conv::DataInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};

@@ -2623,26 +2623,14 @@ struct conv_bias_driver : test_driver
     }
 };
 
+/// \todo move to a utility class --amberhassaan
 inline std::pair<miopen::Allocator::ManageDataPtr, size_t>
-AllocateConvTransposeWorkspace(miopen::Handle& handle,
-                               const miopen::TensorDescriptor& x,
-                               const miopen::TensorDescriptor& w,
-                               const miopen::TensorDescriptor& y)
+AllocateConvTransposeWorkspace(miopen::Handle& handle, size_t sz)
 {
-
-    auto align = [](size_t sz) {
-        constexpr size_t alignment      = 256u;
-        constexpr size_t alignment_mask = alignment - 1;
-        static_assert(alignment_mask > 0);
-        static_assert((alignment & alignment_mask) == 0);
-        return (sz + alignment_mask) & ~(alignment_mask);
-    };
-
-    auto w_sz = align(x.GetNumBytes()) + align(w.GetNumBytes()) + align(y.GetNumBytes());
-    std::vector<std::uint8_t> w_cpu(w_sz);
-
-    auto res = std::pair(handle.Write(w_cpu), w_cpu.size());
-    assert(res.first.get());
-
-    return res;
+    if(sz == 0ull)
+    {
+        return {nullptr, sz};
+    }
+    std::vector<std::uint8_t> w_cpu(sz);
+    return {handle.Write(w_cpu), w_cpu.size()};
 }
