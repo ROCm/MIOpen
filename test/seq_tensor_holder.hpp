@@ -169,8 +169,8 @@ void TransformRNNIOLayaoutToTarget(const miopen::SeqTensorDescriptor& srcDesc,
     assert(maxDimLengths.size() == 3 && srcDesc.GetLayoutVector()[2] == 2);
     assert(maxDimLengths == dstDesc.GetLengths());
 
-    const auto& srcSeqLengths = srcDesc.GetSequenceLengthsVector();
-    const auto& dstSeqLengths = dstDesc.GetSequenceLengthsVector();
+    const auto& srcSeqLengths                  = srcDesc.GetSequenceLengthsVector();
+    [[maybe_unused]] const auto& dstSeqLengths = dstDesc.GetSequenceLengthsVector();
 
     const size_t batch_size = maxDimLengths[0];
     const size_t copy_size  = maxDimLengths[2]; // IO vector size
