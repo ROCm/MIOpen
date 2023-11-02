@@ -328,8 +328,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-        params +=
-            " -Werror" + OclKernelWarningsString();
+        params += " -Werror" + OclKernelWarningsString();
     }
 #else
     if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
