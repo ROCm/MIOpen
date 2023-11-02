@@ -32,7 +32,7 @@
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/driver_arguments.hpp>
 

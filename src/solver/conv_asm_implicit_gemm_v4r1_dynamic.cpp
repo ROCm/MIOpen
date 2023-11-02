@@ -35,6 +35,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 struct TunableImplicitGemmV4R1Dynamic
 {
@@ -290,7 +293,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -336,7 +339,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -405,13 +408,13 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
 
     if(kernel_is_1x1)
     {
-        result.invoker_factory = conv::MakeImplGemmDynamicForward1x1InvokerFactory(problem);
+        result.invoker_factory = miopen::conv::MakeImplGemmDynamicForward1x1InvokerFactory(problem);
     }
     else
     {
         int packed_value = 0;
         result.invoker_factory =
-            conv::MakeImplGemmDynamicForwardInvokerFactory<int>(problem, packed_value);
+            miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<int>(problem, packed_value);
     }
     result.construction_params.push_back(kernel);
     return result;
@@ -454,5 +457,6 @@ ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ExecutionContext& ctx,
     return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1_1x1);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

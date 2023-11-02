@@ -40,6 +40,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC>&
 GetBwdXdlopsNHWCConfigList()
@@ -388,11 +391,13 @@ GetBwdXdlopsNHWCConfigLargestTileFp32()
 {
     return {"bwd", "nhwc", miopenFloat,  0, 1, 256,  64,  16, 32, 32,  2, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
 GetBwdXdlopsNHWCConfigLargestTileFp16()
 {
     return {"bwd", "nhwc", miopenHalf,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
 GetBwdXdlopsNHWCConfigLargestTileBf16()
 {
@@ -746,6 +751,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(
         find_with_gemm_k_pad();
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
@@ -755,6 +761,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
         return true;
     return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
@@ -789,6 +796,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const ProblemDescription& problem) const
 {
@@ -900,6 +908,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetDefaultPerformanceConfig(
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
+
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsValidPerformanceConfig(
     const ExecutionContext&,
     const ProblemDescription& problem,
@@ -938,7 +947,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
 
     if(!problem.Is2d())
@@ -1164,9 +1173,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, problem, config);
+        miopen::conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, problem, config);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

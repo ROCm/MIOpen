@@ -43,13 +43,17 @@ namespace solver {
 namespace ck_utility {
 
 static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
-    const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
+    const conv::PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList()[config
                                                                                .ck_tunable_list_id];
 }
 
 } // namespace ck_utility
+
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ProblemDescription&)
 {
@@ -101,7 +105,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;
@@ -210,7 +214,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& data_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& data_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
             auto kernel0         = handle.Run(kernels[0]);
             auto kernel1         = handle.Run(kernels[1]);
@@ -270,5 +274,6 @@ ConvCkIgemmFwdV6r1DlopsNchw::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -30,7 +30,7 @@
 
 namespace miopen {
 
-miopen::ProblemDescription FusionDescription::GetConvProblem(conv::Direction dir, int bias) const
+conv::ProblemDescription FusionDescription::GetConvProblem(conv::Direction dir, int bias) const
 {
     const auto idx = [&]() {
         switch(dir)

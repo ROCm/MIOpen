@@ -27,7 +27,7 @@
 #include "test.hpp"
 #include "driver.hpp"
 
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
