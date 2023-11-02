@@ -438,7 +438,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::vector<size_t>& vgd,
                                const std::string& params,
                                std::size_t cache_index,
-                               bool is_kernel_str,
                                const std::string& kernel_src) const
 {
 
@@ -451,7 +450,6 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                            vgd,
                                            params,
                                            cache_index,
-                                           is_kernel_str,
                                            kernel_src);
     return this->Run(obj);
 }
