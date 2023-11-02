@@ -121,7 +121,6 @@ set( MIOpen_Source
     operator.cpp
     performance_config.cpp
     pooling/problem_description.cpp
-    problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
