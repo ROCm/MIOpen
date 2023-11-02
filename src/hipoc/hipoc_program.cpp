@@ -304,8 +304,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 }
 #endif // MIOPEN_USE_COMGR
 
-void HIPOCProgramImpl::BuildCodeObject(std::string params,
-                                       const std::string& kernel_src)
+void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
     std::string filename = program;
     const auto src       = [&]() -> std::string {
@@ -342,8 +341,7 @@ HIPOCProgram::HIPOCProgram(const std::string& program_name,
                            std::string params,
                            const TargetProperties& target,
                            const std::string& kernel_src)
-    : impl(std::make_shared<HIPOCProgramImpl>(
-          program_name, params, target, kernel_src))
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, params, target, kernel_src))
 {
 }
 
