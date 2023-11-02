@@ -84,6 +84,9 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
 
     bool is_correct_params()
     {
+        if(this->useDropout == 1 && (this->hiddenSize == 1 || this->batchSize == 1))
+            return false;
+
         if(this->inputMode == 1 && this->hiddenSize != this->inVecLen)
             return false;
 

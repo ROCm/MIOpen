@@ -1462,8 +1462,8 @@ struct rnn_seq_api_test_driver : test_driver
                       tensor<T>& dcy,
                       std::vector<T>& weights)
     {
-        const double scale     = 0.01;
-        const double bwd_scale = scale * 0.001;
+        const double scale     = 0.1;
+        const double bwd_scale = scale;
 
         struct scalar_gen_random_float
         {
@@ -1476,12 +1476,14 @@ struct rnn_seq_api_test_driver : test_driver
             }
         };
 
-        auto gen_positive_value = [=](auto...) { return scalar_gen_random_float{0, 1 * scale}(); };
+        auto gen_positive_value = [=](auto...) {
+            return scalar_gen_random_float{std::numeric_limits<T>::epsilon(), 1 * scale}();
+        };
 
         auto gen_positive_value_bwd = [=](auto...) {
+            double bwd_max = 1. * scale;
             double bwd_min = std::numeric_limits<T>::epsilon();
-            double bwd_max = std::min(bwd_min * 100, 1. * scale);
-            return scalar_gen_random_float{std::numeric_limits<T>::epsilon(), bwd_max}();
+            return scalar_gen_random_float{bwd_min, bwd_max}();
         };
 
         auto fill_array_via_gen = [](auto& dst, size_t dst_sz, double range_l, double range_r) {
@@ -1489,9 +1491,11 @@ struct rnn_seq_api_test_driver : test_driver
                 dst[it] = prng::gen_A_to_B(static_cast<T>(range_l), static_cast<T>(range_r));
         };
         prng::reset_seed();
-        fill_array_via_gen(input.data, input.data.size(), 0.0, 1.0 * scale);
+        fill_array_via_gen(
+            input.data, input.data.size(), std::numeric_limits<T>::epsilon(), 1. * scale);
         prng::reset_seed();
-        fill_array_via_gen(dy.data, dy.data.size(), 0, 1.0 * bwd_scale);
+        fill_array_via_gen(
+            dy.data, dy.data.size(), std::numeric_limits<T>::epsilon(), 1. * bwd_scale);
         prng::reset_seed();
 
         const auto hidden_size = hx.desc.GetLengths()[2];
@@ -1646,7 +1650,7 @@ struct rnn_seq_api_test_driver : test_driver
         // avoid BWD unexpected fails
         if(inVecLen == 1)
         {
-            tolerance = 160;
+            tolerance = 80;
         }
         else
         {
