@@ -956,11 +956,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
 
-    if(!(dyDesc.IsPacked() && wDesc.IsPacked() && dxDesc.IsPacked()))
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only fully packed tensors are supported");
-    }
-
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateTensors(tensors);
