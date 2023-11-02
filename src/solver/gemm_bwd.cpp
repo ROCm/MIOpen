@@ -49,6 +49,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_USE_GEMM
 #ifdef CPPCHECK
@@ -91,8 +94,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
         return 1.0;
 }
 
-bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
-                               const conv::ProblemDescription& problem) const
+bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc             = problem.GetIn();
@@ -134,7 +136,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
         MIOPEN_LOG_I2("GEMM not applicable for F8 on this GPU architecture");
         return false;
     }
-    return problem.GetDirection() == conv::Direction::BackwardData && problem.IsLayoutDefault() &&
+    return problem.IsDirectionBackwardData() && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(dxDesc, dyDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(dxDesc, dyDesc, wDesc) && !IsFp16Supported);
 #else
@@ -144,7 +146,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx,
 #endif
 }
 
-float GemmBwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
+float GemmBwdBase::GetWti(const ExecutionContext&, const ProblemDescription& problem) const
 {
     const auto& conv   = problem.GetConv();
     const auto& wDesc  = problem.GetWeights();
@@ -199,7 +201,7 @@ float GemmBwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
 }
 
 size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
-                                            const conv::ProblemDescription& problem) const
+                                            const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     auto& handle       = context.GetStream();
@@ -238,7 +240,7 @@ size_t GemmBwd1x1_stride2::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmBwd1x1_stride2::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
@@ -263,7 +265,7 @@ bool GemmBwd1x1_stride2::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
-                                             const conv::ProblemDescription& problem) const
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc = problem.GetIn();
@@ -310,7 +312,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workspace      = conv_params.workSpace;
             const auto& workspace_size = conv_params.workSpaceSize;
             const auto& dy             = conv_params.tensors.in;
@@ -446,13 +448,13 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
 }
 
 size_t GemmBwd1x1_stride1::GetWorkspaceSize(const ExecutionContext&,
-                                            const conv::ProblemDescription&) const
+                                            const ProblemDescription&) const
 {
     return 0;
 }
 
 bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
@@ -475,7 +477,7 @@ bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
-                                             const conv::ProblemDescription& problem) const
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto group_count = problem.GetConv().group_count;
@@ -488,7 +490,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& dy          = conv_params.tensors.in;
             const auto& w           = conv_params.tensors.w;
             const auto& dx          = conv_params.tensors.out;
@@ -622,7 +624,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 }
 
 size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
-                                     const conv::ProblemDescription& problem) const
+                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     auto& handle       = context.GetStream();
@@ -663,7 +665,7 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
 }
 
 bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
-                               const conv::ProblemDescription& problem) const
+                               const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
@@ -680,7 +682,7 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                      const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     const auto& dyDesc = problem.GetIn();
@@ -739,7 +741,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& conv_params    = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& conv_params    = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& workspace      = conv_params.workSpace;
             const auto& workspace_size = conv_params.workSpaceSize;
             const auto& dy             = conv_params.tensors.in;
@@ -883,5 +885,6 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
