@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #ifndef GUARD_MIOPEN_LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_LAYERNORM_DRIVER_HPP

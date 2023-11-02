@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #ifndef MIOPEN_LAYERNORM_HPP_
 #define MIOPEN_LAYERNORM_HPP_
