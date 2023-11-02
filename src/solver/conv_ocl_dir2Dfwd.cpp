@@ -34,6 +34,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -46,7 +49,7 @@ bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -61,7 +64,7 @@ bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
 
     // clang-format off
     // Cases when dy has negative padding are not supported (issue 918)
-    if(problem.direction.IsBackwardData()
+    if(problem.IsDirectionBackwardData()
         && (problem.GetBackwardPadW() < 0 || problem.GetBackwardPadH() < 0))
         return false;
 
@@ -105,7 +108,7 @@ bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
         /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
         /// See issue #1626.
-        && !(problem.direction.IsForward()
+        && !(problem.IsDirectionForward()
             && problem.IsFp16()
             && problem.GetKernelStrideW() == 2)
         && IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
@@ -127,7 +130,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ExecutionContext&,
     // auto pad_w = problem.GetPadW();
     // auto pad_h = problem.GetPadH();
     // auto hw_wave_sz = 64;
-    // if(!problem.direction.IsForward())
+    // if(!problem.IsDirectionForward())
     // {
     //     // backward
     //     pad_w = problem.GetBackwardPadW();
@@ -140,10 +143,10 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ExecutionContext&,
                                       config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
+    result.out_pix_tile1 = (!problem.IsDirectionForward() && problem.GetKernelStrideH() > 1)
                                ? problem.GetKernelStrideH()
                                : config.out_pix_tile1;
-    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.GetKernelStrideW() > 1)
+    result.out_pix_tile0 = (!problem.IsDirectionForward() && problem.GetKernelStrideW() > 1)
                                ? problem.GetKernelStrideW()
                                : config.out_pix_tile0;
 
@@ -245,7 +248,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ExecutionContext&,
     // e.g. mlo_in_lcl_width here represents MLO_IN_LCL_WIDTH macro in the opencl source.
     long long mlo_in_lcl_width;
     long long mlo_in_lcl_height;
-    if(problem.direction.IsForward())
+    if(problem.IsDirectionForward())
     {
         mlo_in_lcl_width  = ((mlo_in_tile0 - 1) * mlo_filter_stride0 + mlo_filter_size0);
         mlo_in_lcl_height = ((mlo_in_tile1 - 1) * mlo_filter_stride1 + mlo_filter_size1);
@@ -290,7 +293,7 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
     auto hw_wave_sz   = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         // backward
         pad_w = problem.GetBackwardPadW();
@@ -303,10 +306,10 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
                                       config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.GetKernelStrideH() > 1)
+    result.out_pix_tile1 = (!problem.IsDirectionForward() && problem.GetKernelStrideH() > 1)
                                ? problem.GetKernelStrideH()
                                : config.out_pix_tile1;
-    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.GetKernelStrideW() > 1)
+    result.out_pix_tile0 = (!problem.IsDirectionForward() && problem.GetKernelStrideW() > 1)
                                ? problem.GetKernelStrideW()
                                : config.out_pix_tile0;
 
@@ -368,7 +371,7 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
 
     kernel_params.comp_options =
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
-        std::string(" -DMLO_DIR_FORWARD=") + (problem.direction.IsForward() ? "1" : "0") +
+        std::string(" -DMLO_DIR_FORWARD=") + (problem.IsDirectionForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
         std::to_string(static_cast<long long>(problem.GetWeightsWidth_())) +
         std::string(" -DMLO_FILTER_SIZE1=") +
@@ -476,10 +479,10 @@ ConvSolution ConvOclDirectFwd::BaseGetSolution(const ExecutionContext& ctx,
     kernel_params.kernel_name = "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
-    if(problem.direction.IsForward())
-        result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    if(problem.IsDirectionForward())
+        result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
@@ -500,5 +503,6 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

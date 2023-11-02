@@ -39,6 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC>&
 GetFwdDlopsNCHWCConfigList()
@@ -455,6 +458,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(const Proble
         return false;
     }
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValidValue() const
 {
     if(IsDefaultConstructed())
@@ -464,6 +468,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValidValue() const
         return true;
     return miopen::any_of(config_list, [&](auto v) { return (*this == v); });
 }
+
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
     const ProblemDescription& problem) const
 {
@@ -533,6 +538,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
+
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
@@ -554,7 +560,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -634,9 +640,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
+        miopen::conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

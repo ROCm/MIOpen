@@ -33,7 +33,6 @@
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/ocldeviceinfo.hpp>
 #endif
-#include <miopen/conv/problem_description.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/version.h>
 

@@ -30,15 +30,15 @@
 #include <miopen/execution_context.hpp>
 
 namespace miopen {
-namespace conv {
 namespace solver {
+namespace conv {
 namespace gemm {
 
 bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
 
 } // namespace gemm
-} // namespace solver
 } // namespace conv
+} // namespace solver
 } // namespace miopen
 
 #endif

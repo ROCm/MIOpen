@@ -24,15 +24,17 @@
  *
  *******************************************************************************/
 #include "solver_wrw.hpp"
+
 struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
 {
 };
 
 TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
 {
-    miopen::solver::ConvDirectNaiveConvWrw solv{};
-    SolverWrw<miopen::solver::ConvDirectNaiveConvWrw>(solv);
+    miopen::solver::conv::ConvDirectNaiveConvWrw solv{};
+    SolverWrw(solv);
 }
+
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvWrwTest,

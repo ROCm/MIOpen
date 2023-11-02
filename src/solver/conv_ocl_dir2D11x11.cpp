@@ -35,6 +35,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
@@ -58,7 +61,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsLayoutDefault())
         return false;
 
-    return problem.direction.IsForward() && problem.GetGroupCount() == 1 &&
+    return problem.IsDirectionForward() && problem.GetGroupCount() == 1 &&
            problem.GetDilationH() == 1 && problem.GetDilationW() == 1 &&
            problem.GetWeightsHeight_() == 11 && problem.GetWeightsWidth_() == 11 &&
            problem.GetKernelStrideH() == 4 && problem.GetKernelStrideW() == 4;
@@ -68,7 +71,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const bool is_forward = problem.direction.IsForward();
+    const bool is_forward = problem.IsDirectionForward();
     // size_t localMemSize = 64 * 1024;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
@@ -342,8 +345,9 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
                 MIOPEN_THROW("Two kernels were expected by solver");
 
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& invoke_params = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors       = invoke_params.tensors;
+                const auto& invoke_params =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                const auto& tensors = invoke_params.tensors;
 
                 const auto first_pass_kernel  = handle.Run(kernels[0]);
                 const auto second_pass_kernel = handle.Run(kernels[1]);
@@ -373,9 +377,11 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ExecutionContext& ctx,
     }
     else
     {
-        result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+        result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     }
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

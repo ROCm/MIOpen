@@ -36,6 +36,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmBwdDataV4R1::PerformanceImplicitGemmBwdDataV4R1(int BlockSize_,
                                                                        int GemmMPerBlock_,
@@ -742,7 +745,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -972,9 +975,10 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ExecutionContext& ctx,
         }
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
