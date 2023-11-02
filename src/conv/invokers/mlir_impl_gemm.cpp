@@ -74,7 +74,7 @@ struct MlirConvArgs
 #endif
 
 #if MIIR_BARE_POINTER_ABI
-void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
+void ComputeMlirDimsStrides(const ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,
@@ -156,7 +156,7 @@ void InsertGToDimsStrides(const std::string& layout,
     strides.insert(strides.begin() + index, strides[index] * dims[index + 1]);
 }
 
-void ComputeMlirDimsStrides(const conv::ProblemDescription& problem,
+void ComputeMlirDimsStrides(const ProblemDescription& problem,
                             std::vector<size_t>& in_dims,
                             std::vector<size_t>& in_strides,
                             std::vector<size_t>& weights_dims,
@@ -288,9 +288,9 @@ void SetMlirConvArgsPtr(
 #endif // MIOPEN_BACKEND_HIP
 } // Anonymous namespace
 
-InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeMlirFwdInvokerFactory(const ProblemDescription& problem)
 {
-    assert((problem.direction.IsForward()));
+    assert((problem.IsDirectionForward()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
@@ -354,9 +354,9 @@ InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& probl
     };
 }
 
-InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem)
+InvokerFactory MakeMlirBwdInvokerFactory(const ProblemDescription& problem)
 {
-    assert(problem.direction.IsBackwardData());
+    assert(problem.IsDirectionBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
@@ -409,10 +409,9 @@ InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& probl
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
-                                         size_t workspace_req)
+InvokerFactory MakeMlirWrWInvokerFactory(const ProblemDescription& problem, size_t workspace_req)
 {
-    assert((problem.direction.IsBackwardWrW()));
+    assert((problem.IsDirectionBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;

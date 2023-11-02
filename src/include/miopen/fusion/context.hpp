@@ -27,7 +27,7 @@
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 
@@ -37,7 +37,7 @@ struct FusionContext : ExecutionContext
 {
     explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
 
-    ExecutionContext GetConvContext(const ProblemDescription& conv_problem) const
+    ExecutionContext GetConvContext(const conv::ProblemDescription& conv_problem) const
     {
         auto ctx = ExecutionContext{*this};
         conv_problem.SetupFloats(ctx);

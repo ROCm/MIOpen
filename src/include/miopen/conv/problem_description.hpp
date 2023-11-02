@@ -288,6 +288,9 @@ struct ProblemDescription : ProblemDescriptionBase
     const ConvolutionDescriptor& GetConv() const { return conv; }
 
     Direction GetDirection() const { return direction; }
+    bool IsDirectionForward() const { return direction == conv::Direction::Forward; }
+    bool IsDirectionBackwardData() const { return direction == conv::Direction::BackwardData; }
+    bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
     int GetBias() const { return bias; }

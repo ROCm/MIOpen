@@ -164,16 +164,17 @@ static inline int GetBestNGroupParam(const int R,
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 namespace {
-// clang-format off
-    auto PerfFieldRules()
-    {
-        return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxS::n_groups)
-        );
-    }
-// clang-format on
+
+auto PerfFieldRules()
+{
+    return seq::MakeRuleSet(std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{},
+                                            &PerformanceConfigConvBinWinogradRxS::n_groups));
+}
 
 // Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
@@ -276,7 +277,7 @@ inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(problem.direction.IsBackwardData())
+    if(problem.IsDirectionBackwardData())
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -311,7 +312,7 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ExecutionContext& 
         return;
     }
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         n_groups = GetBestNGroupParam(problem.GetInHeight_(),
                                       problem.GetInWidth_(),
@@ -660,7 +661,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
                n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(problem.GetKernelStrideW() == 2)
             return false;
@@ -701,7 +702,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& 
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(problem.GetGroupCount() == 1 && !problem.direction.IsBackwardWrW())
+        if(problem.GetGroupCount() == 1 && !problem.IsDirectionBackwardWrW())
             return false;
 #endif
     }
@@ -838,7 +839,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_postfix += "_stride1";
     }
-    else if(problem.GetKernelStrideW() == 2 && !problem.direction.IsBackwardData())
+    else if(problem.GetKernelStrideW() == 2 && !problem.IsDirectionBackwardData())
     {
         kernel_postfix += "_stride2";
     }
@@ -879,8 +880,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
     MemLayout_t d_layout, o_layout, f_layout;
 
-    const bool is_forward = problem.direction.IsForward();
-    const bool is_backWrW = problem.direction.IsBackwardWrW();
+    const bool is_forward = problem.IsDirectionForward();
+    const bool is_backWrW = problem.IsDirectionBackwardWrW();
     const int group_cnt   = problem.GetGroupCount();
 
     if(!is_backWrW)
@@ -957,14 +958,14 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
             const auto k = handle.Run(kernels[0]);
             const auto data_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.in
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.x;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.in
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.x;
             const auto filter_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.w
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dy;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.w
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dy;
             const auto out_tensors =
-                !is_backWrW ? primitive_params.CastTo<conv::DataInvokeParams>().tensors.out
-                            : primitive_params.CastTo<conv::WrWInvokeParams>().tensors.dw;
+                !is_backWrW ? primitive_params.CastTo<miopen::conv::DataInvokeParams>().tensors.out
+                            : primitive_params.CastTo<miopen::conv::WrWInvokeParams>().tensors.dw;
 
             // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
@@ -1098,5 +1099,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ExecutionContext& ctx,
 template struct ConvBinWinoRxS<2, 3>;
 template struct ConvBinWinoRxS<3, 2>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

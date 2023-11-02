@@ -226,7 +226,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     std::string conv_compiler_options;
 
 private:
-    ProblemDescription GetConvProblem();
+    conv::ProblemDescription GetConvProblem();
 };
 
 namespace fusion {

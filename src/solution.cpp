@@ -179,13 +179,12 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ExecutionContext{&handle};
+    auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
-        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
+        conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());

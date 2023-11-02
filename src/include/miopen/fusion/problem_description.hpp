@@ -28,6 +28,7 @@
 
 #include <miopen/fusion_plan.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/problem_description_base.hpp>
 
 namespace miopen {
@@ -73,12 +74,12 @@ struct FusionDescription : ProblemDescriptionBase
     static void Visit(Self&& self, F f)
     {
         auto conv_prob = self.GetConvProblem(conv::Direction::Forward);
-        ProblemDescription::Visit(conv_prob, f);
+        conv::ProblemDescription::Visit(conv_prob, f);
     }
 #endif
 
     // This and the following method should be moved to the Ops once the return type can be unified
-    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
+    conv::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -86,12 +87,12 @@ struct FusionDescription : ProblemDescriptionBase
         {
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
-            return miopen::conv::ProblemDescription{conv_op.input_desc,
-                                                    conv_op.filter_desc,
-                                                    out_desc,
-                                                    conv_op.base_desc /* conv desc */,
-                                                    dir,
-                                                    bias};
+            return conv::ProblemDescription{conv_op.input_desc,
+                                            conv_op.filter_desc,
+                                            out_desc,
+                                            conv_op.base_desc /* conv desc */,
+                                            dir,
+                                            bias};
         }
         else
         {
@@ -99,7 +100,7 @@ struct FusionDescription : ProblemDescriptionBase
         }
     }
 
-    miopen::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
+    conv::ProblemDescription GetConvProblem(conv::Direction dir, int bias = 0) const;
 
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
