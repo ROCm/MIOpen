@@ -692,7 +692,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
             }
@@ -890,7 +890,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
                 stage('Bf16 Hip gfx94X') {
@@ -903,7 +903,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
             }
@@ -967,7 +967,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_reboot:false)
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {
@@ -1029,7 +1029,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test)
+                        buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
                     }
                 }
                 stage('Fp16 Hip Install All Vega20') {
@@ -1107,7 +1107,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_reboot:false)
                     }
                 }
             }
