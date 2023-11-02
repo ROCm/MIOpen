@@ -285,7 +285,7 @@ endif()
 
 #Don't run db verification by default
 if(NOT MIOPEN_TEST_DBSYNC)
-    list(APPEND SKIP_TESTS test_db_sync)
+    list(APPEND SKIP_TESTS db_sync)
 endif()
 
 # The usage is non-trivial, see function add_test_command.
