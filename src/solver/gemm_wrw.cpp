@@ -3,7 +3,6 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_v2.hpp>
-#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 
@@ -65,8 +64,6 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
-        return false;
     const auto& dyDesc             = problem.GetIn();
     const auto& dwDesc             = problem.GetWeights();
     const auto& xDesc              = problem.GetOut();

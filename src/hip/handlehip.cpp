@@ -30,7 +30,6 @@
 #include <miopen/binary_cache.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>

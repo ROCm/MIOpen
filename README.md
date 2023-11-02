@@ -32,9 +32,6 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   * HIP - 
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
-  * This is optional on the HIP backend, and required on the OpenCL backend.
-  * Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`, which is enabled by default when OpenCL backend is chosen.
 * [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) 
@@ -100,8 +97,6 @@ cmake -P install_deps.cmake --minimum --prefix /root/MIOpen/install_dir
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
 * MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can install rocBLAS minimum release by using `apt-get install rocblas`. To disable using rocBLAS set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is *not* available for the OpenCL backend.
-
-* MIOpen's OpenCL backend uses [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) by default. Users can install MIOpenGEMM minimum release by using `apt-get install miopengemm`.
 
 ## Building MIOpen from source
 

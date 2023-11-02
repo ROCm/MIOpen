@@ -66,10 +66,6 @@
 namespace miopen {
 
 struct HandleImpl;
-#if MIOPEN_USE_MIOPENGEMM
-struct GemmGeometry;
-using GemmKey = std::pair<std::string, std::string>;
-#endif
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
@@ -225,9 +221,6 @@ public:
 
     std::unique_ptr<HandleImpl> impl;
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
-#if MIOPEN_USE_MIOPENGEMM
-    std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
-#endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
                            const std::vector<solver::KernelInfo>& kernels) const;

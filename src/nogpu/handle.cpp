@@ -30,7 +30,6 @@
 #include <miopen/binary_cache.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/gemm_geometry.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
@@ -43,9 +42,7 @@
 #endif
 
 #include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
 #include <miopen/load_file.hpp>
-#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -56,6 +53,7 @@
 #include <chrono>
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}

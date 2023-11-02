@@ -2830,7 +2830,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const ProblemDescription&) const override
     {
         return 0.01f;
@@ -2848,7 +2848,7 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const ProblemDescription&) const override
     {
         return 0.01f;
@@ -2866,7 +2866,7 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
     bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
+    /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const ProblemDescription&) const override
     {
         return 0.01f;
@@ -3114,8 +3114,6 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
 private:
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
-    bool IsApplicableBeforeWorkaround(const ExecutionContext&,
-                                      const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 

@@ -237,7 +237,6 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp

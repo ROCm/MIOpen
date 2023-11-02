@@ -39,10 +39,6 @@
 #include <miopen/ocldeviceinfo.hpp>
 #include <miopen/timer.hpp>
 
-#if MIOPEN_USE_MIOPENGEMM
-#include <miopen/gemm_geometry.hpp>
-#endif
-
 #include <boost/filesystem.hpp>
 
 #include <string>
