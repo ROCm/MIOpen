@@ -49,6 +49,7 @@
 #include <rocblas.h>
 #else
 #include <rocblas/rocblas.h>
+/// rocblas_gemm_ex3 supports F8 datatypes.
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
 #endif
 #include <miopen/perf_field.hpp>
@@ -114,11 +115,15 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 
 auto rocBlasDataType(miopenDataType_t data_type)
 {
+    /// \todo Not all supported data types are handled here.
+    /// This is fine so far because this function is used only with FP16/F8.
+#if USE_ROCBLAS_GEMM_EX3
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
-    else if(data_type == miopenBFloat8)
+    if(data_type == miopenBFloat8)
         return rocblas_datatype::rocblas_datatype_bf8_r;
-    else if(data_type == miopenHalf)
+#endif
+    if(data_type == miopenHalf)
         return rocblas_datatype::rocblas_datatype_f16_r;
     MIOPEN_THROW(miopenStatusInternalError, "Invalid data type passed");
 }
@@ -172,6 +177,13 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
                          flags); // gfx90a_alt_impl));
     return rb_status;
 #pragma clang diagnostic pop
+#else
+    std::ignore      = A;
+    std::ignore      = a_offset;
+    std::ignore      = B;
+    std::ignore      = b_offset;
+    std::ignore      = C;
+    std::ignore      = c_offset;
 #endif
     MIOPEN_THROW(miopenStatusBadParm, "An appropriate version of rocBLAS is required for this op");
     std::ignore = handle;
