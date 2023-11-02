@@ -40,6 +40,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC>&
 GetFwdXdlopsNHWCConfigList()
@@ -318,11 +321,13 @@ GetFwdXdlopsNHWCConfigLargestTileFp32()
 {
     return {"fwd", "nhwc", miopenFloat,  0, 1, 256,  64,  16, 32, 32,  2, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 GetFwdXdlopsNHWCConfigLargestTileFp16()
 {
     return {"fwd", "nhwc", miopenHalf,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 2, 1}, {  1,  4,  1, 64}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 GetFwdXdlopsNHWCConfigLargestTileBf16()
 {
@@ -870,7 +875,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -918,6 +923,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 
     return true;
 }
+
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     const ExecutionContext& ctx,
     const ProblemDescription& problem,
@@ -1041,9 +1047,10 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, problem, config);
+        miopen::conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, problem, config);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

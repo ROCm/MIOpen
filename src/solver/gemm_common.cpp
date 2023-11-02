@@ -38,8 +38,8 @@
 #define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
 
 namespace miopen {
-namespace conv {
 namespace solver {
+namespace conv {
 namespace gemm {
 
 bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
@@ -54,6 +54,6 @@ bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
 }
 
 } // namespace gemm
-} // namespace solver
 } // namespace conv
+} // namespace solver
 } // namespace miopen

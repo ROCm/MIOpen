@@ -40,6 +40,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -291,7 +294,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(problem.IsTensorsCasted())
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is2d())
         return false;
@@ -340,12 +343,12 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
             /// silliness of "in tensor is out and out is in" in backward pass,
             /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
             /// output -- amberhassaan
-            return InitInvokerFactoryFwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            return InitInvokerFactoryFwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 
@@ -354,5 +357,6 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

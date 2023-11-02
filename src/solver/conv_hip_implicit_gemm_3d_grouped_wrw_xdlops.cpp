@@ -40,6 +40,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -329,7 +332,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is3d())
         return false;
@@ -365,12 +368,12 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryWrwNCHW<3, DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
+            return InitInvokerFactoryWrwNCHW<3, DeviceOpGWrwPtrs<T>, CKArgs, miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>, CKArgs, conv::WrWInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>, CKArgs, miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 
@@ -379,5 +382,6 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

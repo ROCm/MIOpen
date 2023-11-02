@@ -44,6 +44,10 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
@@ -58,14 +62,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(problem)                                                            \
-    const auto                                                                                    \
-        wino_xform_h =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 0),                                             \
-        wino_xform_w =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 1);
+#define DEFINE_GETXFORMHWSIZE(problem)                                                           \
+    const auto wino_xform_h =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 0),                                     \
+               wino_xform_w =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 1);
 
 #define DEFINE_SHADER_ALIASES(problem)               \
     const int C     = (problem).GetBatchSize_();     \
@@ -434,7 +437,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -623,7 +626,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            decltype(auto) invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors          = invoke_params.tensors;
             float total_time             = 0;
 
@@ -779,5 +782,6 @@ template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 template struct ConvWinograd3x3MultipassWrW<5, 3>;
 template struct ConvWinograd3x3MultipassWrW<5, 4>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

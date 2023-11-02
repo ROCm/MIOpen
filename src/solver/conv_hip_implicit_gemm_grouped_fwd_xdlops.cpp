@@ -39,6 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -160,6 +163,7 @@ struct CKArgs
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
+
 } // namespace
 
 template <typename DataType>
@@ -300,7 +304,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;
@@ -340,12 +344,12 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
             return InitInvokerFactoryFwdNCHW<2,
                                              DeviceOpGFwdPtrs<T>,
                                              CKArgs,
-                                             conv::DataInvokeParams>(
+                                             miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, conv::DataInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 
@@ -354,5 +358,6 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

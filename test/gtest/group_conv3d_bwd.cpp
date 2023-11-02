@@ -85,15 +85,15 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvBwdSolverTest3D, CKGroupConvBwd3D)
 {
-    SolverBwd<miopen::solver::ConvHipImplicitGemm3DGroupBwdXdlops>(input.desc,
-                                                                   in_dev.get(),
-                                                                   weights.desc,
-                                                                   wei_dev.get(),
-                                                                   output.desc,
-                                                                   out_dev.get(),
-                                                                   conv_desc,
-                                                                   conv_config,
-                                                                   test_skipped);
+    SolverBwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(input.desc,
+                                                                         in_dev.get(),
+                                                                         weights.desc,
+                                                                         wei_dev.get(),
+                                                                         output.desc,
+                                                                         out_dev.get(),
+                                                                         conv_desc,
+                                                                         conv_config,
+                                                                         test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvBwdTest,

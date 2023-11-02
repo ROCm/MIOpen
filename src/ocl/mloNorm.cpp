@@ -33,7 +33,7 @@
 
 void mlo_construct_norm::mloConstruct()
 {
-    if(_problem.direction.IsForward())
+    if(_problem.IsDirectionForward())
     {
         mloConstructFwd();
     }

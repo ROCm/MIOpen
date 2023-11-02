@@ -31,7 +31,14 @@
 #include <miopen/batched_transpose_sol.hpp>
 
 namespace miopen {
+
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
 namespace solver {
+
+struct ConvSolution;
 
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
@@ -44,7 +51,7 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& problem)
 {
     const auto args      = CKArgsType{problem};
@@ -64,7 +71,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -75,7 +82,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKApplicable(const ProblemDescriptionType& problem)
 {
     const auto args = CKArgsType{problem};
@@ -88,10 +95,8 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
-          typename ProblemDescriptionType = ProblemDescription>
-ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx,
-                                    const ProblemDescriptionType& problem,
-                                    const std::string& kernel_id)
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
+ConvSolution InitInvokerFactoryNHWC(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
@@ -128,7 +133,7 @@ ConvSolution InitInvokerFactoryNHWC([[maybe_unused]] const ExecutionContext& ctx
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
-          typename ProblemDescriptionType = ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                                    const std::string& kernel_id)
 {
