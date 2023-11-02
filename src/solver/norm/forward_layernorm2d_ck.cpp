@@ -196,7 +196,7 @@ bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_LN{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN{}))
         return false;
     if(!problem.IsRank2Dim1())
         return false;
