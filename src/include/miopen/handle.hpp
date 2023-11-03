@@ -143,7 +143,7 @@ struct Handle : miopenHandle
     {
         return LoadProgram(program_name, params, kernel_src);
     }
-#endif
+#endif // FIN_OLD_HANDLE_COMPAT
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
