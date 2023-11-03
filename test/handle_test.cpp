@@ -98,6 +98,7 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
                     {n, 1, 1},
                     "",
                     0,
+                    false,
                     Write2s(miopenHIPKernelType))(data_dev.get());
     else
         MIOPEN_THROW("Unsupported kernel type");
@@ -164,6 +165,7 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
+                        false,
                         WriteError(miopenHIPKernelType));
         }));
         try
@@ -176,6 +178,7 @@ void test_errors(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
+                        false,
                         WriteError(miopenHIPKernelType));
         }
         catch(miopen::Exception& e)
@@ -220,6 +223,7 @@ void test_warnings(kernel_type_t kern_type)
                         {1, 1, 1},
                         "",
                         0,
+                        false,
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));

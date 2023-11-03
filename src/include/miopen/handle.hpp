@@ -105,6 +105,7 @@ struct Handle : miopenHandle
                            const std::vector<size_t>& vgd,
                            const std::string& params,
                            std::size_t cache_index       = 0,
+                           bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config) const;
