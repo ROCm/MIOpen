@@ -36,8 +36,9 @@ namespace miopen {
 
 bool IsCacheDisabled();
 
-boost::filesystem::path
-GetCacheFile(const std::string& device, const std::string& name, const std::string& args);
+boost::filesystem::path GetCacheFile(const std::string& device,
+                                     const std::string& name,
+                                     const std::string& args);
 
 boost::filesystem::path GetCachePath(bool is_system);
 

@@ -145,8 +145,9 @@ KDb GetDb(const TargetProperties& target, size_t num_cu)
 }
 #endif
 
-boost::filesystem::path
-GetCacheFile(const std::string& device, const std::string& name, const std::string& args)
+boost::filesystem::path GetCacheFile(const std::string& device,
+                                     const std::string& name,
+                                     const std::string& args)
 {
     const std::string filename = name + ".o";
     return GetCachePath(false) / miopen::md5(device + ":" + args) / filename;

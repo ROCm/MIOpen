@@ -389,8 +389,10 @@ Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
                             const std::string& kernel_src) const
 {
-    auto hsaco = miopen::LoadBinary(
-        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
+    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
+                                    this->GetMaxComputeUnits(),
+                                    program_name,
+                                    params);
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -406,12 +408,16 @@ Program Handle::LoadProgram(const std::string& program_name,
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
         std::string binary;
         miopen::GetProgramBinary(p, binary);
-        miopen::SaveBinary(
-            binary, this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
+        miopen::SaveBinary(binary,
+                           this->GetTargetProperties(),
+                           this->GetMaxComputeUnits(),
+                           program_name,
+                           params);
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
         miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(path.string(), this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(
+            path.string(), this->GetTargetProperties(), program_name, params);
 #endif
         return p;
     }
