@@ -67,26 +67,13 @@ inline std::string LoadBinary(const TargetProperties& target,
 {
     return LoadBinary(target, num_cu, name, args);
 }
-#endif // FIN_OLD_BINARY_CACHE_COMPAT
+#endif
 
 void SaveBinary(const std::string& hsaco,
                 const TargetProperties& target,
                 std::size_t num_cu,
                 const std::string& name,
                 const std::string& args);
-
-#if FIN_OLD_BINARY_CACHE_COMPAT
-inline void SaveBinary(const std::string& hsaco,
-                       const TargetProperties& target,
-                       std::size_t num_cu,
-                       const std::string& name,
-                       const std::string& args,
-                       bool)
-{
-    SaveBinary(hsaco, target, num_cu, name, args);
-}
-#endif // FIN_OLD_BINARY_CACHE_COMPAT
-
 #endif
 
 } // namespace miopen
