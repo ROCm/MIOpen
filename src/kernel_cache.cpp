@@ -115,7 +115,9 @@ Kernel KernelCache::AddKernel(const Handle& h,
     }
     else
     {
-        program = h.LoadProgram(program_name, params, kernel_src);
+        bool is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
+                                        algorithm.find("GEMM") != std::string::npos;
+        program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
         program_map[std::make_pair(program_name, params)] = program;
     }
 

@@ -154,17 +154,26 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          const TargetProperties& target,
                          const std::string& program,
                          std::string params,
+                         bool is_kernel_str,
                          const std::string& kernel_src)
 {
     std::string source;
     std::string program_name;
 
-    program_name = program;
-    // For mlir build, leave both source and kernel_src to be empty
-    if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
-        source = miopen::GetKernelSrc(program_name);
+    if(is_kernel_str)
+    {
+        source       = program;
+        program_name = "(unknown)";
+    }
     else
-        source = kernel_src;
+    {
+        program_name = program;
+        // For mlir build, leave both source and kernel_src to be empty
+        if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
+            source = miopen::GetKernelSrc(program_name);
+        else
+            source = kernel_src;
+    }
 
     bool load_binary = false;
     if(miopen::EndsWith(program_name, ".s"))

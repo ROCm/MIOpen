@@ -28,6 +28,7 @@
 #include <miopen/kern_db.hpp>
 #include <miopen/temp_file.hpp>
 
+#include <miopen/md5.hpp>
 #include "test.hpp"
 #include "random.hpp"
 
@@ -137,6 +138,13 @@ TEST(TestCache, check_kern_db)
 
 TEST(TestCache, check_cache_file)
 {
-    auto p = miopen::GetCacheFile("gfx", "base", "args");
+    auto p = miopen::GetCacheFile("gfx", "base", "args", false);
     EXPECT_TRUE(p.filename().string() == "base.o");
+}
+
+TEST(TestCache, check_cache_str)
+{
+    auto p    = miopen::GetCacheFile("gfx", "base", "args", true);
+    auto name = miopen::md5("base");
+    EXPECT_TRUE(p.filename().string() == name + ".o");
 }

@@ -367,7 +367,7 @@ void BuildKernel(const std::string& program_file, const std::string& program_arg
     auto& handle =  get_handle();
     try
     {
-        auto p = handle.LoadProgram(program_file, program_args, "");
+        auto p = handle.LoadProgram(program_file, program_args, false, "");
     }
     catch(std::exception& )
     {

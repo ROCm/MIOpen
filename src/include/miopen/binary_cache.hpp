@@ -38,7 +38,8 @@ bool IsCacheDisabled();
 
 boost::filesystem::path GetCacheFile(const std::string& device,
                                      const std::string& name,
-                                     const std::string& args);
+                                     const std::string& args,
+                                     bool is_kernel_str);
 
 boost::filesystem::path GetCachePath(bool is_system);
 
@@ -46,22 +47,26 @@ boost::filesystem::path GetCachePath(bool is_system);
 boost::filesystem::path LoadBinary(const TargetProperties& target,
                                    std::size_t num_cu,
                                    const std::string& name,
-                                   const std::string& args);
+                                   const std::string& args,
+                                   bool is_kernel_str = false);
 void SaveBinary(const boost::filesystem::path& binary_path,
                 const TargetProperties& target,
                 const std::string& name,
-                const std::string& args);
+                const std::string& args,
+                bool is_kernel_str = false);
 #else
 std::string LoadBinary(const TargetProperties& target,
                        std::size_t num_cu,
                        const std::string& name,
-                       const std::string& args);
+                       const std::string& args,
+                       bool is_kernel_str = false);
 
 void SaveBinary(const std::string& hsaco,
                 const TargetProperties& target,
                 std::size_t num_cu,
                 const std::string& name,
-                const std::string& args);
+                const std::string& args,
+                bool is_kernel_str = false);
 #endif
 
 } // namespace miopen

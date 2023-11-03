@@ -70,7 +70,7 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "");
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
                     });
     // clang-format on
     ct.Log("PrecompileKernels");
