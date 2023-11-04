@@ -27,7 +27,7 @@
 #include <miopen/norm/solvers.hpp>
 #include <miopen/norm/invoke_params.hpp>
 #include <miopen/layernorm.hpp>
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/normalization.hpp>
 #endif
@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)
 namespace miopen {
 namespace solver {
 namespace norm {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 
 using F16  = ck::half_t;
 using F32  = float;
@@ -195,7 +195,7 @@ bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN{}))
         return false;
     if(!problem.IsRank2Dim1())
@@ -227,7 +227,7 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
 {
-#if MIOPEN_BACKEND_HIP || MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetXDesc().GetType())
     {
     case miopenHalf:
