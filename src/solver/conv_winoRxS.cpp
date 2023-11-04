@@ -66,6 +66,8 @@
 /// we can disable Winograd without any performance implications.
 #define WORKAROUND_ISSUE_2493 1
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
@@ -680,8 +682,11 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         // clang-format on
 
 #if WORKAROUND_ISSUE_2493
-    if(ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss() > 0.995)
-        return false;
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}))
+    {
+        if(ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss() > 0.995)
+            return false;
+    }
 #endif
 
     const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
