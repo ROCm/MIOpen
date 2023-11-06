@@ -131,16 +131,19 @@ static inline void ValidateGroupCount(const TensorDescriptor& x,
         MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
 }
 
-static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize) {
-  if (!workSpace && workSpaceSize != 0) {
-    std::abort(); // TODO(Amber): remove
-    MIOPEN_THROW(miopenStatusBadParm, "workspace size is > 0 but ptr is null");
-  }
-  if (workSpace && workSpaceSize == 0) {
-    std::abort(); // TODO(Amber): remove
-    MIOPEN_THROW(miopenStatusBadParm, "workspace size is 0 but ptr is non-null");
-  }
-  /// \todo could add a check here that workSpace points to GPU memory
+static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize)
+{
+    if(!workSpace && workSpaceSize != 0)
+    {
+        std::abort(); // TODO(Amber): remove
+        MIOPEN_THROW(miopenStatusBadParm, "workspace size is > 0 but ptr is null");
+    }
+    if(workSpace && workSpaceSize == 0)
+    {
+        std::abort(); // TODO(Amber): remove
+        MIOPEN_THROW(miopenStatusBadParm, "workspace size is 0 but ptr is non-null");
+    }
+    /// \todo could add a check here that workSpace points to GPU memory
 }
 
 static Invoker PrepareInvoker(ExecutionContext ctx,
