@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,24 @@
  *
  *******************************************************************************/
 
-#pragma once
+#include <miopen/fusion/problem_description.hpp>
 
-#include <string>
+#include <miopen/fusion/utils.hpp>
 
 namespace miopen {
 
-struct NetworkConfig
+miopen::ProblemDescription FusionDescription::GetConvProblem(conv::Direction dir, int bias) const
 {
-    NetworkConfig() = default;
-    explicit NetworkConfig(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
-
-private:
-    std::string value;
-};
-
-struct AlgorithmName
-{
-    AlgorithmName() = default;
-    explicit AlgorithmName(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
-
-    bool operator<(const AlgorithmName& r) const { return (value < r.value); }
-
-private:
-    std::string value;
-};
+    const auto idx = [&]() {
+        switch(dir)
+        {
+        case conv::Direction::Forward:
+            return solver::fusion::GetOpIdx(fusion_plan_desc->op_map, miopenFusionOpConvForward);
+        case conv::Direction::BackwardData: MIOPEN_THROW(miopenStatusNotImplemented);
+        case conv::Direction::BackwardWeights: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+    return GetConvProblem(idx, dir, bias);
+}
 
 } // namespace miopen

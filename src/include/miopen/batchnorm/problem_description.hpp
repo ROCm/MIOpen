@@ -176,7 +176,7 @@ struct ProblemDescription : ProblemDescriptionBase
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;

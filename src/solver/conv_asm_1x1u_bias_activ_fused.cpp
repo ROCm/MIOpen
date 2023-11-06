@@ -256,9 +256,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     if(conv_problem.GetDilationH() != 1)
         return false;
 
-    if(conv_problem.IsTensorsCasted())
-        return false;
-
     // Check if the conovlution part is applicable
     return sol.IsApplicable(conv_ctx, conv_problem);
 }
