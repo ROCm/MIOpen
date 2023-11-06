@@ -4891,6 +4891,81 @@ private:
 };
 
 
+struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops()
+        : PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ProblemDescription&);
+    bool IsValidValue() const;
+    bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& other) const;
+
+private:
+    template <typename DataType, typename OutComputeType, typename WeiComputeType>
+    void Init(const ProblemDescription&);
+    template <typename DataType, typename OutComputeType, typename WeiComputeType>
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemmF16F8F16BwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmF16F8F16BwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
+    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsValidPerformanceConfig(
+        const ExecutionContext&,
+        const ProblemDescription&,
+        const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
+    Search(const ExecutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ExecutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ExecutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+private:
+    template <typename DataType, typename OutComputeType, typename WeiComputeType>
+    bool CheckCKApplicability(const ProblemDescription&) const;
+};
+
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic
 {

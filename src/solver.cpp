@@ -571,8 +571,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
+    //RegisterWithSolver(
+    //    registry, ++id, ConvHipImplicitGemmF16F8F16FwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmF16F8F16FwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+        registry, ++id, ConvHipImplicitGemmF16F8F16BwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
