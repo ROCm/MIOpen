@@ -850,7 +850,6 @@ if(NOT WIN32)
     if(rocTracer)
         MESSAGE(STATUS "rocTracer: " ${rocTracer})
         target_link_libraries(MIOpen PRIVATE roctx64)
-        list(APPEND PACKAGE_DEPENDS PACKAGE roctracer)
     endif()
 endif()
 
