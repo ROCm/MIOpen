@@ -682,7 +682,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         // clang-format on
 
 #if WORKAROUND_ISSUE_2493
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}) && !miopen::debug::IsWarmupOngoing)
     {
         if(ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss() > 0.995)
             return false;
