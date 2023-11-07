@@ -36,26 +36,19 @@ namespace solver {
 
 std::size_t GetTuningIterationsMax()
 {
-    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
+    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{});
 }
 
 std::chrono::milliseconds GetTuningTimeMax()
 {
-    static const auto fallback =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
     static const auto res =
-        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
+        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{})};
     return res;
 }
 
 std::size_t GetTuningThreadsMax()
 {
-#if MIOPEN_USE_COMGR
-    const auto def_max = 1; // COMGR is not parallelizable
-#else
-    const int def_max = std::thread::hardware_concurrency() / 2;
-#endif
-    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);
+    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{});
 }
 
 } // namespace solver

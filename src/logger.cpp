@@ -41,27 +41,27 @@ namespace miopen {
 
 /// Enable logging of the most important function calls.
 /// Name of envvar in a bit inadequate due to historical reasons.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING, bool, false)
 
 /// Prints driver command lines into log.
 /// Works from any application which uses the library.
 /// Allows to reproduce library use cases using the driver instead of the actual application.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD, bool, false)
 
 /// Prefix each log line with information which allows the user
 /// to uniquiely identify log records printed from different processes
 /// or threads. Useful for debugging multi-process/multi-threaded apps.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_MPMT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_MPMT, bool, false)
 
 /// Add timestamps to each log line.
 /// Not useful  with multi-process/multi-threaded apps.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME, bool, false)
 
 /// See LoggingLevel in the header.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL, uint64_t, LoggingLevel::Default)
 
 /// Enable logging of function calls to ROCTX api.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ROCTX)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ROCTX, bool, false)
 
 namespace debug {
 
@@ -70,7 +70,7 @@ bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-v
 } // namespace debug
 
 /// Disable logging quieting.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE, bool, false)
 
 namespace {
 

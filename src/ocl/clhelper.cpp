@@ -45,7 +45,7 @@
 #include <string>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP, bool, false)
 
 namespace miopen {
 

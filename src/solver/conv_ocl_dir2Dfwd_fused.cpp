@@ -36,7 +36,7 @@
 #include <miopen/fusion/utils.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD, bool, true)
 
 namespace miopen {
 namespace solver {

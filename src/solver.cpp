@@ -43,7 +43,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, bool, false)
 
 namespace miopen {
 namespace solver {
@@ -66,7 +66,6 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 
     // clang-format off
     par_for_strided(kernels.size(),
-                    // max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];

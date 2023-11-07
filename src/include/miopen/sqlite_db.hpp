@@ -59,7 +59,7 @@ class path;
 } // namespace boost
 
 namespace miopen {
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_SQL_WAL, bool, false)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_PERFDB_OVERRIDE)
 
 constexpr bool InMemDb = MIOPEN_EMBED_DB;
@@ -444,7 +444,7 @@ public:
             return boost::none;
 
         const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
-        if(pdb_ovr != nullptr)
+        if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
             DbRecord ovr_rec;

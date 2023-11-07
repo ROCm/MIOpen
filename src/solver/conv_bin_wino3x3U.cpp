@@ -35,7 +35,7 @@
 
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3, bool, true)
 
 namespace miopen {
 namespace solver {

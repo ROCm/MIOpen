@@ -46,7 +46,7 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE, bool, false)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
 
 static boost::filesystem::path ComputeSysCachePath()
@@ -66,7 +66,7 @@ static boost::filesystem::path ComputeUserCachePath()
     /// If MIOPEN_CUSTOM_CACHE_DIR is set in the environment, then
     /// use exactly that path.
     const auto custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
-    if(custom != nullptr && strlen(custom) > 0)
+    if(!custom.empty() && strlen(custom) > 0)
     {
         p = ExpandUser(custom);
     }

@@ -46,7 +46,7 @@
 
 using half_float::half;
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS, bool, true)
 
 namespace miopen {
 namespace solver {

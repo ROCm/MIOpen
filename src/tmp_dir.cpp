@@ -30,7 +30,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SAVE_TEMP_DIR)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SAVE_TEMP_DIR, bool, false)
 
 namespace miopen {
 

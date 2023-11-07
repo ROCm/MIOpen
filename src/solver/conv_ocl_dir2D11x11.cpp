@@ -31,7 +31,7 @@
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11, bool, true)
 
 namespace miopen {
 namespace solver {

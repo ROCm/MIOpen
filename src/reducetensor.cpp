@@ -47,7 +47,7 @@
 #include <../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp>
 #include <../composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DYNAMIC_REDUCTION, bool, true);
 
 #define WORKAROUND_MIOPEN_ISSUE_557 1
 

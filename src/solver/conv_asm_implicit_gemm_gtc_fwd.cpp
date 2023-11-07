@@ -33,7 +33,7 @@
 
 #define WORKAROUND_SWDEV_306318 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS, bool, true)
 
 namespace miopen {
 namespace solver {
@@ -1541,7 +1541,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
 #if WORKAROUND_SWDEV_306318
     if((problem.GetWeightsHeight_() == 1) && (problem.GetWeightsWidth_() == 1) &&
        (problem.GetInChannels_() % 8 != 0))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
+        if(miopen::IsDefault(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}) || !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
             return false;
 #endif
 

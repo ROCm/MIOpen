@@ -66,7 +66,7 @@ boost::filesystem::path GetLibPath()
 std::string GetSystemDbPath()
 {
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
-    if(p == nullptr)
+    if(p.empty())
 #if MIOPEN_BUILD_DEV
         return "${MIOPEN_SYSTEM_DB_PATH}";
 #else
@@ -86,7 +86,7 @@ boost::filesystem::path PrepareUserDbPath()
     /// If MIOPEN_USER_DB_PATH is set in the environment, then assume that the user wants
     /// the library to use exactly that path.
     const auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
-    if(p != nullptr)
+    if(!p.empty())
         return ExpandUser(p);
     /// \anchor nfs-detection
     /// Otherwise, check if the user-db-path denotes a network filesystem. If this is the case, then

@@ -124,8 +124,8 @@ Kernel KernelCache::AddKernel(const Handle& h,
     }
 
     Kernel kernel{};
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
+    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(!arch.empty())
     {
         kernel = Kernel{program, kernel_name};
     }

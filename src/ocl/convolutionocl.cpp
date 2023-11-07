@@ -58,12 +58,12 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING, bool true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY, bool, false)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK, bool, false)
 
 static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
                                               const TensorDescriptor& w,
@@ -387,13 +387,12 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
-        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
-        DumpTensorToFileFromDevice(handle, tensors.yDesc, tensors.y, file_name_str + "_y.bin");
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.yDesc, tensors.y, file_name + "_y.bin");
     }
 }
 
@@ -913,13 +912,12 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
-        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
-        DumpTensorToFileFromDevice(handle, tensors.dxDesc, tensors.dx, file_name_str + "_dx.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dxDesc, tensors.dx, file_name + "_dx.bin");
     }
 }
 
@@ -1115,13 +1113,12 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
-    if(flag && static_cast<bool>(file_name))
+    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && !file_name.empty())
     {
-        std::string file_name_str = file_name;
-        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
-        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
-        DumpTensorToFileFromDevice(handle, tensors.dwDesc, tensors.dw, file_name_str + "_dw.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dwDesc, tensors.dw, file_name + "_dw.bin");
     }
 }
 

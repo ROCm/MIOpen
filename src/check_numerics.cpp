@@ -33,7 +33,7 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_CHECK_NUMERICS, uint64_t, 0)
 
 bool CheckNumericsEnabled(const int bitMask)
 {

@@ -43,7 +43,7 @@
 
 #include <tuple>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1, bool, true)
 
 #define IS3X2 (Winodata == 3 && Winofilter == 2)
 

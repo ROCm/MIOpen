@@ -32,7 +32,7 @@
 #include <cstddef>
 #include <numeric>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1, bool, true)
 
 namespace miopen {
 namespace solver {
@@ -731,7 +731,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_229277_227616_229195
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
+    if(miopen::IsDefault(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}) || !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
 #endif
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

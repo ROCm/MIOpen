@@ -41,7 +41,7 @@
 #include <functional>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DISABLE_FIND_DB, bool, false)
 
 namespace miopen {
 

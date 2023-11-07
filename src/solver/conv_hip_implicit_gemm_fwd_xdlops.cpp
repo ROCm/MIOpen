@@ -36,7 +36,7 @@
 #endif
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS, bool, true)
 
 namespace miopen {
 namespace solver {

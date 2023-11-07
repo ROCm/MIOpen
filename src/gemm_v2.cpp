@@ -246,7 +246,7 @@ rocblas_status miopen_rocblas_gemm_strided_batched_ex3(const miopen::Handle& han
 
 #endif // MIOPEN_USE_ROCBLAS
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND, uint64_t, 0)
 
 namespace miopen {
 

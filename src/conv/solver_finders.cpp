@@ -36,11 +36,11 @@ namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT, bool, true)
 
 namespace conv {
 namespace {
@@ -209,8 +209,8 @@ static void EvaluateInvokers(Handle& handle,
                              const AnyInvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
+    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(!arch.empty())
         return;
 
     auto selected     = miopen::solver::ConvSolution{miopenStatusUnknownError};

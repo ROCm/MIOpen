@@ -119,7 +119,7 @@ bool IsOutputInt32(const ProblemDescription& problem)
            problem.GetOutDataType() == miopenInt32;
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS, bool, false);
 
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {

@@ -36,7 +36,7 @@
 #include <numeric>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_RNNFWD_exp, bool, true)
 
 namespace miopen {
 

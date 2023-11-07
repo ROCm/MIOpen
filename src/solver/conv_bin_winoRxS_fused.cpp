@@ -36,8 +36,8 @@
 
 #include <boost/any.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS, bool, true)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -122,7 +122,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     // clang-format off
     return conv_problem.GetKernelStrideH() == conv_problem.GetKernelStrideW()
         && conv_problem.GetDilationH() == 1
-        && conv_problem.GetDilationW() == 1 
+        && conv_problem.GetDilationW() == 1
         && (static_cast<uint64_t>(C) * x * y) <= std::pow(2, 28)
         && (static_cast<uint64_t>(K) * x * y) <= std::pow(2, 28)
         && (static_cast<uint64_t>(K) * OH * OW) <= std::pow(2, 28)
@@ -134,10 +134,10 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
         && OH <= std::pow(2, 16)
         && OW <= std::pow(2, 16)
         && H <= std::pow(2, 16)
-        && W <= std::pow(2, 16) 
-        && C <= std::pow(2, 16) 
-        && K <= std::pow(2, 16) 
-        && N <= std::pow(2, 16) 
+        && W <= std::pow(2, 16)
+        && C <= std::pow(2, 16)
+        && K <= std::pow(2, 16)
+        && N <= std::pow(2, 16)
         && group_count == 1;
     // clang-format on
 }

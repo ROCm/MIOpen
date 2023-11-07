@@ -35,7 +35,7 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS, bool, true)
 
 namespace miopen {
 namespace solver {

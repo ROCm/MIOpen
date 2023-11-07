@@ -32,7 +32,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1, bool, true)
 
 namespace miopen {
 namespace solver {

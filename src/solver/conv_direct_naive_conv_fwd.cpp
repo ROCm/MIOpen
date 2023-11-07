@@ -28,7 +28,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD, bool, true)
 
 namespace miopen {
 namespace solver {

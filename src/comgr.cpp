@@ -61,27 +61,27 @@
 /// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS, bool, false)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES, bool, false)
 
 /// 0: Off.
 /// 1: Logs each option on a separate line.
 /// 2: Logs all options altogether, on single line.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS, uint64_t, 0)
 
 /// Integer, set to max number of first characters
 /// you would like to log onto console.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT, uint64_t, 0)
 
 /// \todo Temporary for debugging:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
 /// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN, bool, false)
 
 /// \todo see issue #1222, PR #1316
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED, bool, false)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP, bool, false)
 
 #ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
 #define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
@@ -137,7 +137,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 /// have wavesize != 64 (currently gfx10 with default build settings).
 #define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE, bool, true)
 
 #define COMPILER_LC 1
 
@@ -477,7 +477,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{}, 0);
+    static const auto control = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS{});
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -626,7 +626,7 @@ public:
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+        const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{});
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -764,9 +764,7 @@ static void SetIsaName(const ActionInfo& action,
 
 static std::string GetDebugCompilerOptionsInsert()
 {
-    const char* p = miopen::GetStringEnv(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT{});
-    if(p == nullptr)
-        p = "";
+    const auto p = miopen::GetStringEnv(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT{});
     return {p};
 }
 
@@ -1245,7 +1243,7 @@ private:
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{});
             if(show_first > 0)
             {
                 const auto text_length =

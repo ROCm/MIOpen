@@ -68,10 +68,9 @@ const char* ToCString(const FindEnforceAction mode)
 
 FindEnforceAction GetFindEnforceActionImpl()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
-    if(p_asciz == nullptr)
+    const auto str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
+    if(str.empty())
         return FindEnforceAction::Default_;
-    std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NONE")
@@ -87,7 +86,7 @@ FindEnforceAction GetFindEnforceActionImpl()
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
+    const auto val = static_cast<FindEnforceAction>(stoul(str));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_ENFORCE, using default.");
@@ -103,11 +102,11 @@ FindEnforceAction GetFindEnforceAction()
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    const auto slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
     std::vector<solver::Id> res;
-    if(p_asciz != nullptr && strlen(p_asciz) > 0)
+    if(!slv_str.empty)
     {
-        const auto solver_list = miopen::SplitDelim(std::string(p_asciz), ';');
+        const auto solver_list = miopen::SplitDelim(slv_str, ';');
         for(const auto& kinder : solver_list)
         {
             auto numeric_id = std::strtoul(kinder.c_str(), nullptr, 10);
@@ -181,10 +180,9 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 
 FindMode::Values GetFindModeValueImpl2()
 {
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
-    if(p_asciz == nullptr)
+    const auto str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    if(str.empty())
         return FindMode::Values::Default_;
-    std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NORMAL")
@@ -198,7 +196,7 @@ FindMode::Values GetFindModeValueImpl2()
     else
     { // Nop. Fall down & try numerics.
     }
-    const auto val = static_cast<FindMode::Values>(miopen::Value(MIOPEN_FIND_MODE{}));
+    const auto val = static_cast<FindMode::Values>(stoul(str));
     if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
         return val;
     MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");

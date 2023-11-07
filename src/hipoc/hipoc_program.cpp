@@ -53,12 +53,12 @@
 ///     "-Xclang -target-feature -Xclang +code-object-v3"
 /// 3 - "-mnocode-object-v3" / "-mcode-object-v3"
 /// 4 - "-mcode-object-version=2/3/4"
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, uint64_t, 0)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION, uint64_t, 0)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_USE_HIPRTC)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP, bool, false)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_USE_HIPRTC, bool, true)
 
 #define MIOPEN_WORKAROUND_ISSUE_1359 1
 
@@ -190,8 +190,8 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    if(nullptr !=
-       miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{})) /// \todo Finish off this spaghetti eventually.
+    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(!arch.empty())
         return;
     module = CreateModuleInMem(blob);
 }
@@ -210,8 +210,8 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
     }
     else
     {
-        const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-        if(arch == nullptr)
+        const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        if(arch.empty())
         {
             module = CreateModule(hsaco_file);
         }

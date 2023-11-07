@@ -71,7 +71,7 @@ static std::string CleanupPath(const char* p);
 std::string GetGcnAssemblerPathImpl()
 {
     const auto asm_path_env_p = miopen::GetStringEnv(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH{});
-    if(asm_path_env_p != nullptr)
+    if(!asm_path_env_p.empty())
     {
         return CleanupPath(asm_path_env_p);
     }
