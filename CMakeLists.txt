@@ -357,6 +357,7 @@ if(MIOPEN_USE_MLIR)
     math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
 # Online assembler
 find_program(MIOPEN_AMDGCN_ASSEMBLER
@@ -377,6 +378,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, amd_comgr")
 endif()
 
 if(MIOPEN_USE_HIPRTC)
@@ -418,7 +420,10 @@ else()
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
-set(MIOPEN_PACKAGE_REQS "hip-rocclr")
+# PR-2391 Add the ability to log function calls to roctx.
+# This allows attached profilers to see which MIOpen calls are being called by application and which kernels are being invoked by MIOpen.
+# Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
+set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")

@@ -846,7 +846,12 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 if(NOT WIN32)
-    target_link_libraries(MIOpen PRIVATE roctx64)
+    find_library(rocTracer roctx64)
+    if(rocTracer)
+        MESSAGE(STATUS "rocTracer: " ${rocTracer})
+        target_link_libraries(MIOpen PRIVATE roctx64)
+        list(APPEND PACKAGE_DEPENDS PACKAGE roctracer)
+    endif()
 endif()
 
 ############################################################
