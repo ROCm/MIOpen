@@ -150,15 +150,6 @@ struct EnvVar {
     }\
   };
 
-#define MIOPEN_DECLARE_ENV_VAR(name) \
-  struct name { \
-    using value_type = std::string; \
-    static internal::EnvVar<value_type>& Ref() { \
-      static internal::EnvVar<value_type> var{#name, std::string()}; \
-      return var;\
-    }\
-  };
-
 /// \todo the following functions should be renamed to either include the word Env
 /// or put inside a namespace 'env'. Right now we have a function named Value()
 /// that returns env var value as only 64-bit ints

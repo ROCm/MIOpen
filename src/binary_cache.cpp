@@ -47,7 +47,7 @@
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DISABLE_CACHE, bool, false)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_CUSTOM_CACHE_DIR, std::string, "")
 
 static boost::filesystem::path ComputeSysCachePath()
 {

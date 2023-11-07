@@ -30,7 +30,7 @@
 
 namespace miopen {
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH, std::string, "")
 
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
