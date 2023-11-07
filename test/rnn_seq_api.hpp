@@ -1546,7 +1546,7 @@ struct rnn_seq_api_test_driver : test_driver
                        batchSize,
                        padding_val);
 
-                std::vector<int> new_seqLenArray(seqLength);
+                std::vector<int> new_seqLenArray(batchSize);
 
                 std::copy_n(seqLenArray.begin(), seqLenArray.size(), new_seqLenArray.begin());
                 std::fill_n(new_seqLenArray.begin() + seqLenArray.size(),

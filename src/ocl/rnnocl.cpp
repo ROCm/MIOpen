@@ -558,6 +558,26 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
             const std::vector<size_t> hcy_dst_stride{
                 static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
 
+            if(in_n.at(0) < max_batch)
+            {
+                float beta = 0.;
+                const std::vector<size_t> zero_set_size{1,
+                                                        static_cast<size_t>(max_batch - in_n.at(0)),
+                                                        static_cast<size_t>(hidden_size)};
+                auto set_batch_offset = in_n.at(0) * hidden_size;
+
+                auto set_desc =
+                    miopen::TensorDescriptor(wDesc.GetType(), zero_set_size, hcy_dst_stride);
+                if(hy != nullptr)
+                {
+                    SetTensor(handle, set_desc, hy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+                if(cy != nullptr)
+                {
+                    SetTensor(handle, set_desc, cy, &beta, hcy_layer_offset + set_batch_offset);
+                }
+            }
+
             for(int time_i = seq_len - 1; time_i >= 0; time_i--)
             {
                 auto copy_batch = (time_i == seq_len - 1) ? in_n.at(time_i)
