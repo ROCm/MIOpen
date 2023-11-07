@@ -36,20 +36,17 @@ namespace norm {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dims         = xDesc.GetLengths();
-    size_t grid_size  = 1;
     size_t outer_size = 1;
     size_t inner_size = 1;
     size_t i          = 0;
     for(; i < normalized_dim; i++)
     {
         outer_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     for(; i < dims.size(); i++)
     {
         inner_size *= dims[i];
-        grid_size *= dims[i];
     }
 
     auto dtype = xDesc.GetType();
@@ -58,11 +55,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "dtype" << dtype;
     ss << "normalized_dim" << normalized_dim;
-    ss << "grid_size" << grid_size;
     ss << "outer_size" << outer_size;
     ss << "inner_size" << inner_size;
-    ss << "mode" << mode;
-    ss << "epsilon" << epsilon;
 
     return NetworkConfig{ss.str()};
 }
