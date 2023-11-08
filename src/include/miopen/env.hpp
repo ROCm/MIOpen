@@ -121,22 +121,7 @@ public:
         if(vp != nullptr) // a value was provided
         {
             is_default = false;
-            if constexpr(std::is_same_v<T, bool>)
-            {
-                value = ParseEnvVal<bool>::go(vp);
-            }
-            else if constexpr(std::is_same_v<T, uint64_t>)
-            {
-                value = ParseEnvVal<uint64_t>::go(vp);
-            }
-            else if constexpr(std::is_same_v<T, std::string>)
-            {
-                value = ParseEnvVal<std::string>::go(vp);
-            }
-            else
-            {
-                value = ParseEnvVal<T>::go(vp); // should cause compile error
-            }
+            value      = ParseEnvVal<T>::go(vp);
         }
         else // no value provided, use default value
         {
@@ -165,7 +150,7 @@ public:
 /// that returns env var value as only 64-bit ints
 
 template <class EnvVar>
-inline std::string GetStringEnv(EnvVar)
+inline const std::string& GetStringEnv(EnvVar)
 {
     static_assert(std::is_same_v<typename EnvVar::value_type, std::string>);
     return EnvVar::Ref().GetValue();
