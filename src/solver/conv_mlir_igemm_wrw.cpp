@@ -37,6 +37,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -46,9 +49,11 @@ bool ConvMlirIgemmWrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
@@ -116,7 +121,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ExecutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, 0);
+    result.invoker_factory = miopen::conv::MakeMlirWrWInvokerFactory(problem, 0);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
@@ -127,5 +132,6 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ExecutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

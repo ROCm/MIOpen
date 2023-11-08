@@ -26,7 +26,7 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-include (GenerateExportHeader)
+include(ExportHeader)
 if(MIOPEN_ENABLE_SQLITE)
     add_subdirectory(sqlite)
 endif()
@@ -136,7 +136,6 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
-    problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
@@ -718,10 +717,8 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
-generate_export_header(MIOpen
-    EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
-)
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+miopen_generate_export_header(MIOpen)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
         find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
@@ -802,13 +799,6 @@ if(rocMLIR_FOUND)
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
-
-if(WIN32 AND NOT MSVC)
-    if(BUILD_DEV)
-        target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
-    endif()
-    target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
-endif()
 
 target_internal_library(MIOpen
     Boost::filesystem
@@ -916,7 +906,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
     file(GLOB PERF_DB_FILES kernels/*.db)
+    file(GLOB KERN_DB_FILES kernels/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
+    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES
