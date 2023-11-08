@@ -133,16 +133,13 @@ static inline void ValidateGroupCount(const TensorDescriptor& x,
 
 static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize)
 {
-    if(!workSpace && workSpaceSize != 0)
-    {
-        std::abort(); // TODO(Amber): remove
-        MIOPEN_THROW(miopenStatusBadParm, "workspace size is > 0 but ptr is null");
-    }
-    if(workSpace && workSpaceSize == 0)
-    {
-        std::abort(); // TODO(Amber): remove
-        MIOPEN_THROW(miopenStatusBadParm, "workspace size is 0 but ptr is non-null");
-    }
+
+    bool x = (workSpace != nullptr);
+    bool y = (workSpaceSize != 0);
+
+    assert(((x && y) || (!x && !y)) && "workspace pointer and size don't match. Either both should "
+                                       "be zero or both should be non-zero");
+
     /// \todo could add a check here that workSpace points to GPU memory
 }
 
@@ -272,8 +269,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  size_t workSpaceSize,
                                                  bool exhaustiveSearch) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     if(x == nullptr || w == nullptr || y == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -507,8 +504,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                Data_t workSpace,
                                                size_t workSpaceSize) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateTensors(tensors);
@@ -823,8 +820,8 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
                                                         const std::size_t workSpaceSize,
                                                         const solver::Id solver_id) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
 
     ValidateTensors(tensors);
@@ -858,8 +855,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                      size_t workSpaceSize,
                                                      bool exhaustiveSearch) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     if(dx == nullptr || w == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -956,8 +953,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                                                     Data_t workSpace,
                                                     size_t workSpaceSize) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
 
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
@@ -1024,8 +1021,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
                                                          std::size_t workSpaceSize,
                                                          solver::Id solver_id) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateTensors(tensors);
@@ -1065,8 +1062,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         size_t workSpaceSize,
                                                         bool exhaustiveSearch) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("requestAlgoCount = " << requestAlgoCount << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     if(x == nullptr || dw == nullptr || dy == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
     if(returnedAlgoCount == nullptr)
@@ -1161,8 +1158,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
                                                        Data_t workSpace,
                                                        size_t workSpaceSize) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("algo = " << algo << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
@@ -1225,8 +1222,8 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
                                                     std::size_t workSpaceSize,
                                                     solver::Id solver_id) const
 {
-    ValidateWorkspace(workSpace, workSpaceSize);
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString() << ", workspace = " << workSpaceSize);
+    ValidateWorkspace(workSpace, workSpaceSize);
     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateTensors(tensors);
 
