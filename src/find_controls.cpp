@@ -68,7 +68,7 @@ const char* ToCString(const FindEnforceAction mode)
 
 FindEnforceAction GetFindEnforceActionImpl()
 {
-    const auto str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
+    auto str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
     if(str.empty())
         return FindEnforceAction::Default_;
     for(auto& c : str)
@@ -104,7 +104,7 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
     const auto slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
     std::vector<solver::Id> res;
-    if(!slv_str.empty)
+    if(!slv_str.empty())
     {
         const auto solver_list = miopen::SplitDelim(slv_str, ';');
         for(const auto& kinder : solver_list)
@@ -180,7 +180,7 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 
 FindMode::Values GetFindModeValueImpl2()
 {
-    const auto str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    auto str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
     if(str.empty())
         return FindMode::Values::Default_;
     for(auto& c : str)

@@ -31,6 +31,8 @@
 #include <string>
 #include <vector>
 
+#include <miopen/errors.hpp>
+
 namespace miopen {
 
 namespace internal {
@@ -40,7 +42,7 @@ struct ParseEnvVal{};
 
 template <>
 struct ParseEnvVal<bool> {
-  bool go(const char* vp) {
+  static bool go(const char* vp) {
     std::string value_env_str{vp};
 
     for(auto& c : value_env_str)
@@ -80,21 +82,25 @@ struct ParseEnvVal<bool> {
 
 template <>
 struct ParseEnvVal<uint64_t> {
-  uint64_t go(const char* vp) {
+  static uint64_t go(const char* vp) {
     return std::strtoull(vp, nullptr, 0);
   }
 };
 
 template <>
 struct ParseEnvVal<std::string> {
-  std::string go(const char* vp) {
+  static std::string go(const char* vp) {
     return std::string{vp};
   }
 };
 
 template <typename T>
 struct EnvVar {
+  private:
+    T value{};
+    bool is_default = true;
 
+  public:
   const T& GetValue() const {
     return value;
   }
@@ -129,10 +135,7 @@ struct EnvVar {
     {
       value = def_val;
     }
-
-  private:
-    T value{};
-    bool is_default = true;
+  }
 };
 
 
@@ -144,8 +147,8 @@ struct EnvVar {
 #define MIOPEN_DECLARE_ENV_VAR(name, type, default_val) \
   struct name { \
     using value_type = type; \
-    static internal::EnvVar<type>& Ref() { \
-      static internal::EnvVar<type> var{#name, default_val}; \
+    static miopen::internal::EnvVar<type>& Ref() { \
+      static miopen::internal::EnvVar<type> var{#name, default_val}; \
       return var;\
     }\
   };
@@ -157,28 +160,28 @@ struct EnvVar {
 template <class EnvVar>
 inline std::string GetStringEnv(EnvVar)
 {
-    static_assert(std::is_same_v<EnvVar::value_type, std::string>);
+    static_assert(std::is_same_v<typename EnvVar::value_type, std::string>);
     return EnvVar::Ref().GetValue();
 }
 
 template <class EnvVar>
 inline bool IsEnabled(EnvVar)
 {
-    static_assert(std::is_same_v<EnvVar::value_type, bool>);
+    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
     return EnvVar::Ref().GetValue();
 }
 
 template <class EnvVar>
 inline bool IsDisabled(EnvVar)
 {
-    static_assert(std::is_same_v<EnvVar::value_type, bool>);
+    static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
     return !EnvVar::Ref().GetValue();
 }
 
 template <class EnvVar>
 inline uint64_t Value(EnvVar)
 {
-    static_assert(std::is_same_v<EnvVar::value_type, uint64_t>);
+    static_assert(std::is_same_v<typename EnvVar::value_type, uint64_t>);
     return EnvVar::Ref().GetValue();
 }
 
@@ -192,7 +195,7 @@ inline bool IsDefault(EnvVar)
 template <typename EnvVar, typename ValueType>
 void UpdateEnvVar(EnvVar, const ValueType& val)
 {
-    static_assert(std::is_same_v<EnvVar::value_type, ValueType>);
+    static_assert(std::is_same_v<typename EnvVar::value_type, ValueType>);
     EnvVar::Ref().UpdateValue(val);
 }
 
