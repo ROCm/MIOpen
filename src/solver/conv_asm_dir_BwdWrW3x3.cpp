@@ -47,6 +47,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 inline static bool Inc_1_2_4_8(int& v)
 {
@@ -141,7 +144,7 @@ static bool IsReverseInOutAllowed(const ProblemDescription& problem)
     return problem.GetKernelStrideW() == 1 && problem.GetKernelStrideH() == 1;
 }
 
-inline int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
+static int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
@@ -360,7 +363,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -375,10 +380,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.IsTensorsCasted())
         return false;
 #if WORKAROUND_ISSUE_532
@@ -549,7 +551,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k              = handle.Run(kernels[0]);
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             int unused                = 0;
             int* return_addr          = nullptr;
             const auto& x             = invoke_params.tensors.x;
@@ -569,5 +571,6 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ExecutionContext
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

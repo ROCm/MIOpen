@@ -36,13 +36,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 // 3 possible configs:
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,    4,  64},
 //{  16, 128,  16,   2,   4,   4,   4,   4,   4,   4,  16,   1,  16,   1,   16,  16},
 //{   8,  32,   4,   2,   2,   2,   2,   4,   4,   2,   4,   2,   8,   1,    4,  16}
 
-static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDescription& problem,
+static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const ProblemDescription& problem,
                                                            const int& GemmKPerBlock)
 {
     int n            = problem.GetInBatchSize_();
@@ -69,7 +72,7 @@ static inline int GetImplicitGemmWrwV4R1DynamicGemmkGroups(const conv::ProblemDe
 }
 
 static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
-                                               const conv::ProblemDescription& problem,
+                                               const ProblemDescription& problem,
                                                ConstData_t src,
                                                ConstData_t dst,
                                                Data_t wei,
@@ -309,13 +312,16 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
         if(!ctx.use_hip_kernels)
             return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     if(!problem.Is2d())
         return false;
 
     if(!problem.IsFp32())
+        return false;
+
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -328,9 +334,7 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -411,7 +415,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
 
     result.invoker_factory = [problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::WrWInvokeParams>();
+            decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             MIOPEN_LOG_I("wrw workspace size: " << data_ctx.workSpaceSize);
             const auto& workSpace = data_ctx.workSpace;
@@ -434,5 +438,6 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

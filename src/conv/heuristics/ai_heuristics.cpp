@@ -120,9 +120,9 @@ public:
     {
     }
     virtual ~Model()                                                   = default;
-    virtual bool IsProblemSupported(const ProblemDescription& problem,
+    virtual bool IsProblemSupported(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx) const = 0;
-    std::vector<float> Forward(const ProblemDescription& problem) const
+    std::vector<float> Forward(const conv::ProblemDescription& problem) const
     {
         std::vector<float> features       = ToFeatures(problem);
         std::vector<fdeep::tensor> output = model.predict({fdeep::tensor(input_shape, features)});
@@ -142,14 +142,14 @@ protected:
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
         return file_path;
     }
-    virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
+    virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
 
-class Gfx908Model : public Model
+class Gfx908Model final : public Model
 {
 public:
     Gfx908Model() : Model("gfx908") {}
-    bool IsProblemSupported(const ProblemDescription& problem,
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
                             const ExecutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
@@ -216,7 +216,7 @@ public:
     }
 
 protected:
-    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
@@ -255,9 +255,108 @@ protected:
     }
 };
 
-std::unique_ptr<Model> GetModel(const std::string&) { return std::make_unique<Gfx908Model>(); }
+class Gfx90aModel final : public Model
+{
+public:
+    Gfx90aModel() : Model("gfx90a") {}
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
+                            const ExecutionContext& ctx) const override
+    {
+        // check if problem is of the kind TunaNet was trained to handle
+        if(!problem.Is2d())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
+            return false;
+        }
+        if(problem.GetInLayout() != "NCHW")
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
+            return false;
+        }
+        if(problem.GetKernelStrideH() != problem.GetKernelStrideW())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Stride must be equal along all axes");
+            return false;
+        }
+        if(problem.GetDilationH() != problem.GetDilationW())
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Dilation must be 1");
+            return false;
+        }
+        if(problem.GetBias() != 0)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Bias must be 0");
+            return false;
+        }
+        const auto data_type = problem.GetInDataType();
+        if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: Unsupported data type");
+            return false;
+        }
 
-std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
+        // check if the context is s.t. no solver TunaNet may predict would be applicable
+        size_t applicable_solvers = 0;
+        for(const auto& solver_name : metadata.solver_map)
+        {
+            auto solver_id = solver::Id{solver_name.second};
+            auto solver    = solver_id.GetSolver();
+            if(solver.IsApplicable(ctx, problem))
+            {
+                applicable_solvers++;
+                break;
+            }
+        }
+        if(applicable_solvers == 0)
+        {
+            MIOPEN_LOG_I2("TunaNet Inapplicable: No solver that TunaNet may predict applies");
+            return false;
+        }
+        MIOPEN_LOG_I2("TunaNet Applicable");
+        return true;
+    }
+
+protected:
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
+    {
+        const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
+        std::vector<float> features = {
+            static_cast<float>(isFwd ? problem.GetInChannels_() : problem.GetOutChannels_()),
+            static_cast<float>(isFwd ? problem.GetInHeight_() : problem.GetOutHeight_()),
+            static_cast<float>(isFwd ? problem.GetInWidth_() : problem.GetOutWidth_()),
+            static_cast<float>(isFwd ? problem.GetOutChannels_() : problem.GetInChannels_()),
+            static_cast<float>(isFwd ? problem.GetOutHeight_() : problem.GetInHeight_()),
+            static_cast<float>(isFwd ? problem.GetOutWidth_() : problem.GetInWidth_()),
+            static_cast<float>(problem.GetWeightsHeight_()),
+            static_cast<float>(problem.GetWeightsWidth_()),
+            static_cast<float>(problem.GetPadH()),
+            static_cast<float>(problem.GetPadW()),
+            static_cast<float>(problem.GetKernelStrideH()),
+            static_cast<float>(problem.GetKernelStrideW()),
+            static_cast<float>(problem.GetDilationH()),
+            static_cast<float>(problem.GetDilationW()),
+            static_cast<float>(problem.GetOutBatchSize_()),
+            static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
+            static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
+            static_cast<float>(problem.GetGroupCount())};
+
+        // normalize
+        for(size_t i = 0; i < features.size(); ++i)
+            features[i] = (features[i] - metadata.features_mean[i]) / metadata.features_std[i];
+
+        return features;
+    }
+};
+
+std::unique_ptr<Model> GetModel(const std::string& device)
+{
+    if(device == "gfx90a")
+        return std::make_unique<Gfx90aModel>();
+    else
+        return std::make_unique<Gfx908Model>();
+}
+
+std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx,
                                     const std::string& device)
 {
@@ -267,10 +366,10 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
 
     std::string est_name = ":memory:" + device;
     auto& db             = AnyRamDb::GetCached(est_name);
-    auto db_res          = db.FindRecord(static_cast<const conv::ProblemDescription&>(problem));
+    auto db_res          = db.FindRecord(problem);
     if(db_res)
     {
-        MIOPEN_LOG_I2("Cached heuristic result found");
+        MIOPEN_LOG_I2("Cached heuristic (TunaNet) result found");
         std::vector<uint64_t> db_sol(db_res->size());
         // cast returned record to solver ids
         std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) {
@@ -286,7 +385,7 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
         return db_sol;
     }
 
-    MIOPEN_LOG_I2("Evaluating Heuristic");
+    MIOPEN_LOG_I2("Evaluating TunaNet");
 
     std::vector<float> res = model->Forward(problem);
     std::vector<std::pair<int, float>> sort_res(res.size());
@@ -316,13 +415,13 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
         sol.push_back(sol_id.Value());
         any_sol.push_back(sol_id.Value());
     }
-    db.StoreRecord(static_cast<const conv::ProblemDescription&>(problem), any_sol);
+    db.StoreRecord(problem, any_sol);
     if(miopen::IsLogging(LoggingLevel::Info2))
     {
         std::stringstream ss;
         for(auto& id : sol)
             ss << solver::Id{id}.ToString() << " ID:" << id << ", ";
-        MIOPEN_LOG_I2("Heuristic Result: " << ss.str());
+        MIOPEN_LOG_I2("TunaNet Result: " << ss.str());
     }
     return sol;
 }
