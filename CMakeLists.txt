@@ -423,7 +423,9 @@ set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix
 # PR-2391 Add the ability to log function calls to roctx.
 # This allows attached profilers to see which MIOpen calls are being called by application and which kernels are being invoked by MIOpen.
 # Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
-set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
+if(NOT WIN32)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
+endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
