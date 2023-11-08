@@ -52,6 +52,22 @@
 // we will keep ConvBinWinoRxS<2,3> for group convolutions only.
 #define WORKAROUND_ISSUE_1681 0
 
+/// \anchor disable_winograd_with_huge_granularity_loss
+/// This is to exclude Winograd from PyTorch correctness tests.
+/// These tests are written in incorrect manner.
+/// They are very sensitive to the values in the output tensors,
+/// but do not provide inputs that guarantee minimal deviation
+/// (a numerical difference between kernel output and theoretically
+/// "ideal" output). This is especially important for Winograd.
+/// As a result, the PyTorch correctness tests often produce false
+/// failures when Winograd algorithm is used. As PyTorch correctness
+/// tests use very small convolutions and Winograd algorithm is
+/// ineffective with such small configs due to huge granularity loss,
+/// we can disable Winograd without any performance implications.
+#define WORKAROUND_ISSUE_2493 1
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493, bool, true)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3, bool, true)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS, std::string, "")
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1, bool, true)
@@ -71,6 +87,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS, std::string
 /// models for other solvers, OR when GEMM WTI model is improved.
 /// --atamazov 2020-11-07.
 #define WTI_MODEL_ALLOW_ANY_RS 1
+#define WTI_MODEL_ALLOW_ANY_CK 1
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -433,6 +450,7 @@ class ShaderModel : public UnifiedDescriptionConv2d
     bool is_2x3;
 
     bool out_of_model_scope; // Shader model produces unreliable results.
+    double granularity_loss;
 
 public:
     ShaderModel(const ExecutionContext& ctx,
@@ -448,19 +466,21 @@ public:
           is_2x3{IS2X3},
           out_of_model_scope
     {
-        !(problem.GetGroupCount() == 1) || //
-            !(U == 1) ||                   //
-            !(V == 1) ||                   //
-            !(input_stride_h == 1) ||      //
-            !(input_stride_w == 1) ||      //
-            !(filter_stride_h == 1) ||     //
-            !(filter_stride_w == 1) ||     //
+        !(problem.GetGroupCount() == 1) //
+            || !(U == 1)                //
+            || !(V == 1)                //
+            || !(input_stride_h == 1)   //
+            || !(input_stride_w == 1)   //
+            || !(filter_stride_h == 1)  //
+            || !(filter_stride_w == 1)  //
 #if !WTI_MODEL_ALLOW_ANY_RS
-            !(R <= 5) || //
-            !(S <= 5) || //
+            || !(R <= 5) //
+            || !(S <= 5) //
 #endif
-            !(C >= 16) || //
-            !(K >= 16)
+#if !WTI_MODEL_ALLOW_ANY_CK
+            || !(C >= 16) //
+            || !(K >= 16)
+#endif
     }
     {
         /// \todo add G to UnifiedDescriptionConv2d
@@ -513,13 +533,6 @@ public:
         R_loops = Rg / Tr;
         C_loops = Cg / C_factor;
 
-        if(G == 1)
-        {
-            n_groups       = n_CU;
-            n_works_per_CU = Ceil(n_works, n_CU);
-            return;
-        }
-
         const auto NKWH_w = K_factor * NHW_tiles_factor * Toh * Tow;
         const auto grid_g = static_cast<double>(NKWH_w * Cg * Rg * Sg) / 1e6;
 
@@ -531,15 +544,23 @@ public:
                 return 1. - dc_macs / macs_g;
             };
 
+        if(G == 1)
+        {
+            n_groups         = n_CU;
+            n_works_per_CU   = Ceil(n_works, n_CU);
+            granularity_loss = compute_granularity_loss(n_groups);
+            return;
+        }
+
         n_groups         = 1;
-        double best_loss = compute_granularity_loss(n_groups);
+        granularity_loss = compute_granularity_loss(n_groups);
         for(auto i = n_groups + 1; i < n_CU; ++i)
         {
             auto loss = compute_granularity_loss(i);
-            if(loss < best_loss)
+            if(loss < granularity_loss)
             {
-                n_groups  = i;
-                best_loss = loss;
+                n_groups         = i;
+                granularity_loss = loss;
             }
         }
 
@@ -606,6 +627,8 @@ public:
 
         return WTI_predicted;
     }
+
+    double GetGranularityLoss() const { return granularity_loss; }
 };
 
 template <int Winodata, int Winofilter>
@@ -656,7 +679,15 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         && problem.GetBias() == 0
         && problem.GetInLayout() == "NCHW"))
         return false;
-    // clang-format on
+        // clang-format on
+
+#if WORKAROUND_ISSUE_2493
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}))
+    {
+        if(ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss() > 0.995)
+            return false;
+    }
+#endif
 
     const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount(),
                n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
