@@ -34,22 +34,15 @@
 namespace miopen {
 namespace solver {
 
-std::size_t GetTuningIterationsMax()
-{
-    return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{});
-}
+std::size_t GetTuningIterationsMax() { return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}); }
 
 std::chrono::milliseconds GetTuningTimeMax()
 {
-    static const auto res =
-        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{})};
+    static const auto res = std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{})};
     return res;
 }
 
-std::size_t GetTuningThreadsMax()
-{
-    return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{});
-}
+std::size_t GetTuningThreadsMax() { return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}); }
 
 } // namespace solver
 } // namespace miopen

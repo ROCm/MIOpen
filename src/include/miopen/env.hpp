@@ -38,120 +38,126 @@ namespace miopen {
 namespace internal {
 
 template <typename T>
-struct ParseEnvVal{};
+struct ParseEnvVal
+{
+};
 
 template <>
-struct ParseEnvVal<bool> {
-  static bool go(const char* vp) {
-    std::string value_env_str{vp};
-
-    for(auto& c : value_env_str)
+struct ParseEnvVal<bool>
+{
+    static bool go(const char* vp)
     {
-        if(std::isalpha(c) != 0)
+        std::string value_env_str{vp};
+
+        for(auto& c : value_env_str)
         {
-            c = std::tolower(static_cast<unsigned char>(c));
+            if(std::isalpha(c) != 0)
+            {
+                c = std::tolower(static_cast<unsigned char>(c));
+            }
         }
-    }
 
-    if (std::strcmp(value_env_str.c_str(), "disable") == 0 ||
-        std::strcmp(value_env_str.c_str(), "disabled") == 0 ||
-        std::strcmp(value_env_str.c_str(), "0") == 0 ||
-        std::strcmp(value_env_str.c_str(), "no") == 0 ||
-        std::strcmp(value_env_str.c_str(), "off") == 0 ||
-        std::strcmp(value_env_str.c_str(), "false") == 0)
-    {
-      return false;
-    }
-    else if (std::strcmp(value_env_str.c_str(), "enable") == 0 ||
-             std::strcmp(value_env_str.c_str(), "enabled") == 0 ||
-             std::strcmp(value_env_str.c_str(), "1") == 0 ||
-             std::strcmp(value_env_str.c_str(), "yes") == 0 ||
-             std::strcmp(value_env_str.c_str(), "on") == 0 ||
-             std::strcmp(value_env_str.c_str(), "true") == 0)
-    {
-      return true;
-    }
-    else
-    {
-      MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable");
-    }
+        if(std::strcmp(value_env_str.c_str(), "disable") == 0 ||
+           std::strcmp(value_env_str.c_str(), "disabled") == 0 ||
+           std::strcmp(value_env_str.c_str(), "0") == 0 ||
+           std::strcmp(value_env_str.c_str(), "no") == 0 ||
+           std::strcmp(value_env_str.c_str(), "off") == 0 ||
+           std::strcmp(value_env_str.c_str(), "false") == 0)
+        {
+            return false;
+        }
+        else if(std::strcmp(value_env_str.c_str(), "enable") == 0 ||
+                std::strcmp(value_env_str.c_str(), "enabled") == 0 ||
+                std::strcmp(value_env_str.c_str(), "1") == 0 ||
+                std::strcmp(value_env_str.c_str(), "yes") == 0 ||
+                std::strcmp(value_env_str.c_str(), "on") == 0 ||
+                std::strcmp(value_env_str.c_str(), "true") == 0)
+        {
+            return true;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable");
+        }
 
-    return false; // shouldn't reach here
-  }
+        return false; // shouldn't reach here
+    }
 };
 
 template <>
-struct ParseEnvVal<uint64_t> {
-  static uint64_t go(const char* vp) {
-    return std::strtoull(vp, nullptr, 0);
-  }
+struct ParseEnvVal<uint64_t>
+{
+    static uint64_t go(const char* vp) { return std::strtoull(vp, nullptr, 0); }
 };
 
 template <>
-struct ParseEnvVal<std::string> {
-  static std::string go(const char* vp) {
-    return std::string{vp};
-  }
+struct ParseEnvVal<std::string>
+{
+    static std::string go(const char* vp) { return std::string{vp}; }
 };
 
 template <typename T>
-struct EnvVar {
-  private:
+struct EnvVar
+{
+private:
     T value{};
     bool is_default = true;
 
-  public:
-  const T& GetValue() const {
-    return value;
-  }
+public:
+    const T& GetValue() const { return value; }
 
-  const bool IsDefault() const {
-    return is_default;
-  }
+    const bool IsDefault() const { return is_default; }
 
-  void UpdateValue(const T& val) {
-    is_default = false;
-    value = val;
-  }
-
-  explicit EnvVar(const char* const name, const T& def_val) {
-    const char* vp = std::getenv(name);
-    if (vp) // a value was provided
+    void UpdateValue(const T& val)
     {
-      is_default = false;
-      if constexpr (std::is_same_v<T, bool>)
-      {
-        value = ParseEnvVal<bool>::go(vp);
-      }
-      else if constexpr (std::is_same_v<T, uint64_t>) {
-        value = ParseEnvVal<uint64_t>::go(vp);
-      } else if constexpr (std::is_same_v<T, std::string>) {
-        value = ParseEnvVal<std::string>::go(vp);
-      } else {
-        value = ParseEnvVal<T>::go(vp); // should cause compile error
-      }
+        is_default = false;
+        value      = val;
     }
-    else  // no value provided, use default value
+
+    explicit EnvVar(const char* const name, const T& def_val)
     {
-      value = def_val;
+        const char* vp = std::getenv(name);
+        if(vp) // a value was provided
+        {
+            is_default = false;
+            if constexpr(std::is_same_v<T, bool>)
+            {
+                value = ParseEnvVal<bool>::go(vp);
+            }
+            else if constexpr(std::is_same_v<T, uint64_t>)
+            {
+                value = ParseEnvVal<uint64_t>::go(vp);
+            }
+            else if constexpr(std::is_same_v<T, std::string>)
+            {
+                value = ParseEnvVal<std::string>::go(vp);
+            }
+            else
+            {
+                value = ParseEnvVal<T>::go(vp); // should cause compile error
+            }
+        }
+        else // no value provided, use default value
+        {
+            value = def_val;
+        }
     }
-  }
 };
 
-
-}// end namespace internal
-
+} // end namespace internal
 
 // static inside function hides the variable and provides
 // thread-safety/locking
-#define MIOPEN_DECLARE_ENV_VAR(name, type, default_val) \
-  struct name { \
-    using value_type = type; \
-    static miopen::internal::EnvVar<type>& Ref() { \
-      static miopen::internal::EnvVar<type> var{#name, default_val}; \
-      return var;\
-    }\
-  };
+#define MIOPEN_DECLARE_ENV_VAR(name, type, default_val)                    \
+    struct name                                                            \
+    {                                                                      \
+        using value_type = type;                                           \
+        static miopen::internal::EnvVar<type>& Ref()                       \
+        {                                                                  \
+            static miopen::internal::EnvVar<type> var{#name, default_val}; \
+            return var;                                                    \
+        }                                                                  \
+    };
 
 /// \todo the following functions should be renamed to either include the word Env
 /// or put inside a namespace 'env'. Right now we have a function named Value()

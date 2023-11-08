@@ -107,7 +107,7 @@ struct ConvolutionAttribute
         {
             if(!miopen::IsDefault(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}))
                 return static_cast<miopenF8RoundingMode_t>(
-                        miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}));
+                    miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE{}));
             return rounding_mode;
         }
 
