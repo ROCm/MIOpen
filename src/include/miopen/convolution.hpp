@@ -49,7 +49,7 @@
 #include <random>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, uint64_t, 0)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC, uint64_t, 0)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC, bool, false)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE, uint64_t, 0)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED, uint64_t, 0)
 
@@ -131,7 +131,7 @@ struct ConvolutionAttribute
         inline int Get() const
         {
             if(!miopen::IsDefault(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
-                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+                return miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
             return value;
         }
         operator bool() const
