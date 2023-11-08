@@ -131,7 +131,8 @@ struct ConvolutionAttribute
         inline int Get() const
         {
             if(!miopen::IsDefault(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
-                return miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+                return static_cast<int>(
+                    miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}));
             return value;
         }
         operator bool() const

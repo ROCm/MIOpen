@@ -106,7 +106,7 @@ private:
 public:
     const T& GetValue() const { return value; }
 
-    const bool IsDefault() const { return is_default; }
+    bool IsDefault() const { return is_default; }
 
     void UpdateValue(const T& val)
     {
@@ -116,8 +116,9 @@ public:
 
     explicit EnvVar(const char* const name, const T& def_val)
     {
+        // NOLINTNEXTLINE (concurrency-mt-unsafe)
         const char* vp = std::getenv(name);
-        if(vp) // a value was provided
+        if(vp != nullptr) // a value was provided
         {
             is_default = false;
             if constexpr(std::is_same_v<T, bool>)
