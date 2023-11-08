@@ -78,9 +78,9 @@ miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int f
 
 #define WORKAROUND_ISSUE_2176 1 // https://github.com/AMDComputeLibraries/MLOpen/issues/2176
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M, bool, false)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_USE_GPU_REFERENCE, bool, true)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE, uint64_t, 0)
 
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
