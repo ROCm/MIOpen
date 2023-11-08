@@ -756,12 +756,12 @@ GetPerfConfFromEnv(const ExecutionContext& ctx)
     if(IS2X3)
     {
         s  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS";
     }
     else if(IS3X2)
     {
         s  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
-        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
+        env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS";
     }
 
     if(s.empty())
