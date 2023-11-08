@@ -140,9 +140,10 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription() = default;
 
-    ProblemDescription(const TensorDescriptor& in_,
+    /// \todo Get rid of the swapping of x and y.
+    ProblemDescription(const TensorDescriptor& in_, // x for Forward, y for Backward*
                        const TensorDescriptor& weights_,
-                       const TensorDescriptor& out_,
+                       const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_ = 0)

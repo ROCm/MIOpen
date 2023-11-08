@@ -50,7 +50,6 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble: return true;
     }
@@ -501,8 +500,6 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
 
 } // namespace miopen
 
-// TODO(paul): Remove
-MIOPEN_EXPORT
 int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc, std::initializer_list<int> indices)
 {
     return miopen::deref(tensorDesc).GetIndex(indices);
