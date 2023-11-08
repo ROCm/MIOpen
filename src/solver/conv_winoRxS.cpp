@@ -685,9 +685,10 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!miopen::IsDisabled(MIOPEN_DEBUG_WORKAROUND_ISSUE_2493{}) && !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
-        if(ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss() >
-           (1.0 - 1.0 / max_perf_drop_due_to_granularity))
+        const auto gl = ShaderModel(ctx, problem, Winodata, Winofilter).GetGranularityLoss();
+        if(gl > (1.0 - 1.0 / max_perf_drop_due_to_granularity))
         {
+            MIOPEN_LOG_I("granularity_loss =" << gl);
             return false;
         }
     }
