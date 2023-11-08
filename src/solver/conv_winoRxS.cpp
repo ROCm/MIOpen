@@ -750,7 +750,7 @@ static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
 GetPerfConfFromEnv(const ExecutionContext& ctx)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
-    const std::string& s;
+    const std::string s;
     const char* env_name;
 
     if(IS2X3)
