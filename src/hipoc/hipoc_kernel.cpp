@@ -79,7 +79,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
         stop  = make_hip_event();
     }
 
-    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(!arch.empty())
     {
         MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");

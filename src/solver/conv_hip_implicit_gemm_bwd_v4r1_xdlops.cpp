@@ -916,7 +916,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
     {
-        const auto s =
+        const auto& s =
             miopen::GetStringEnv(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS{});
         if(!s.empty()) // else nothing to parse.
         {

@@ -387,7 +387,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
@@ -912,7 +912,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
@@ -1113,7 +1113,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const auto file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");

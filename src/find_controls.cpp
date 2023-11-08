@@ -102,7 +102,7 @@ FindEnforceAction GetFindEnforceAction()
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
-    const auto slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    const auto& slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
     std::vector<solver::Id> res;
     if(!slv_str.empty())
     {

@@ -190,7 +190,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(!arch.empty())
         return;
     module = CreateModuleInMem(blob);
@@ -210,7 +210,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
     }
     else
     {
-        const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
         if(arch.empty())
         {
             module = CreateModule(hsaco_file);

@@ -65,7 +65,7 @@ static boost::filesystem::path ComputeUserCachePath()
     boost::filesystem::path p;
     /// If MIOPEN_CUSTOM_CACHE_DIR is set in the environment, then
     /// use exactly that path.
-    const auto custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
+    const auto& custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
     if(!custom.empty())
     {
         p = ExpandUser(custom);

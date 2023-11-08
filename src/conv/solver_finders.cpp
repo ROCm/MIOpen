@@ -209,7 +209,7 @@ static void EvaluateInvokers(Handle& handle,
                              const AnyInvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-    const auto arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(!arch.empty())
         return;
 

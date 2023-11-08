@@ -443,7 +443,7 @@ public:
         if(dbInvalid)
             return boost::none;
 
-        const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
+        const auto& pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
         if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
