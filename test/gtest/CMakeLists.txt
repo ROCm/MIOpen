@@ -1,4 +1,5 @@
-include(gtest) #include gtest.cmake
+find_package(GTest)
+
 enable_testing()
 
 find_package(rocblas)
