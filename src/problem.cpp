@@ -26,6 +26,7 @@
 
 #include <miopen/problem.hpp>
 
+#include <miopen/activ/problem_description.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
@@ -44,13 +45,18 @@
 #include <boost/hof/match.hpp>
 
 namespace miopen::debug {
-// Todo: This should be updated when a separate driver command is implemented
+/// \todo: This should be updated when a separate driver command is implemented
 void LogCmdFindConvolution(const miopen::TensorDescriptor& x,
                            const miopen::TensorDescriptor& w,
                            const miopen::ConvolutionDescriptor& conv,
                            const miopen::TensorDescriptor& y,
                            miopenProblemDirection_t dir,
                            std::optional<uint64_t> solver_id);
+
+/// \todo: This should be updated when a separate driver command is implemented
+void LogCmdActivation(const miopen::TensorDescriptor& x_desc,
+                      const miopen::ActivationDescriptor& activ_desc,
+                      bool fwd);
 } // namespace miopen::debug
 
 namespace miopen {
@@ -134,9 +140,13 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
         owned_buffers.emplace_back(std::move(buffer));
     }
 
-    const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
-    });
+    const auto find = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) {
+            return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+        },
+        [&](const ActivationDescriptor& /*op_desc*/) -> std::vector<Solution> {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        });
 
     auto ret = boost::apply_visitor(find, operator_descriptor);
 
@@ -167,6 +177,15 @@ Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
     return found->second;
 }
 
+const TensorDescriptor& Problem::GetTensorDescriptor(miopenTensorArgumentId_t name,
+                                                     const TensorDescriptor& default_value) const
+{
+    const auto found = tensor_descriptors.find(name);
+    if(found == tensor_descriptors.end())
+        return default_value;
+    return found->second;
+}
+
 Problem Problem::MakeTransposed() const
 {
     auto transposed = Problem{};
@@ -191,7 +210,8 @@ Problem Problem::MakeTransposed() const
         transposed.tensor_descriptors.emplace(descriptor.first, descriptor.second);
 
     const auto transpose_tensors = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(transpose_tensors, operator_descriptor);
 
@@ -219,6 +239,27 @@ conv::ProblemDescription Problem::AsConvolution() const
     return conv_dir == conv::Direction::Forward
                ? conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv_dir)
                : conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, conv_dir);
+}
+
+activ::ProblemDescription Problem::AsActivation() const
+{
+    const auto& activ_desc = boost::get<ActivationDescriptor>(operator_descriptor);
+
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
+    const auto& y_desc = GetTensorDescriptor(miopenTensorActivationY, x_desc);
+
+    if(direction == miopenProblemDirectionForward)
+    {
+        return {activ_desc, x_desc, y_desc};
+    }
+    else
+    {
+        const auto& dx_desc = GetTensorDescriptor(miopenTensorActivationDX, x_desc);
+        const auto& dy_desc = GetTensorDescriptor(miopenTensorActivationDY, dx_desc);
+
+        return {activ_desc, x_desc, y_desc, dx_desc, dy_desc};
+    }
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
@@ -345,9 +386,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto legacy_problem = ProblemDescription{conv_problem};
-    const auto netcfg         = conv_problem.MakeNetworkConfig();
-    auto conv_ctx             = ExecutionContext{&handle};
+    const auto netcfg = conv_problem.MakeNetworkConfig();
+    auto conv_ctx     = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
@@ -362,7 +402,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetPerfConfig(
-            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, legacy_problem, db));
+            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_problem, db));
         solution.SetProblem(*this);
         MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
                                         << solution.GetWorkspaceSize() << ", "
@@ -396,8 +436,9 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 
 void Problem::LogDriverCommand() const
 {
-    const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+    const auto log_function =
+        boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
+                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); });
 
     boost::apply_visitor(log_function, operator_descriptor);
 }
@@ -411,6 +452,13 @@ void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
     miopen::debug::LogCmdFindConvolution(x_desc, w_desc, conv_desc, y_desc, direction, 0);
+}
+
+void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
+{
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
+    miopen::debug::LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)

@@ -36,6 +36,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
@@ -45,6 +48,8 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.use_asm_kernels)
         return false;
     if(!problem.Is2d())
+        return false;
+    if(problem.HasNonPackedTensors())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
@@ -64,18 +69,11 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #endif
     if(!device_is_gfx8_9_no_xnack)
-    {
         return false;
-    }
-    if(!problem.direction.IsForward())
-    {
+    if(!problem.IsDirectionForward())
         return false;
-    }
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.IsTensorsCasted())
         return false;
 
@@ -152,9 +150,11 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
     construction_params.kernel_name = "miopenConv5x10u2v2f1";
 
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

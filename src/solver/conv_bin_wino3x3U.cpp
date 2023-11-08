@@ -39,6 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
@@ -47,7 +50,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!(ctx.rmv.IsV2orV3() && ctx.use_asm_kernels))
         return false;
@@ -64,10 +67,12 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
-    if(!problem.IsLayoutDefault())
-    {
+
+    if(problem.HasNonPackedTensors())
         return false;
-    }
+
+    if(!problem.IsLayoutDefault())
+        return false;
 
     if(problem.IsTensorsCasted())
         return false;
@@ -137,7 +142,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    const auto is_forward = problem.direction.IsForward();
+    const auto is_forward = problem.IsDirectionForward();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         constexpr int F_REVERSE_R = 1 << 0;
@@ -166,7 +171,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
-            const auto& fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,
@@ -186,5 +191,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -53,6 +53,9 @@ MIOPEN_DECLARE_ENV_VAR(
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm()
@@ -1027,7 +1030,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -1059,10 +1062,13 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
@@ -1072,9 +1078,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
     // gemm size
     {
         int gemm_g       = -1;
@@ -1132,5 +1136,6 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ExecutionContext&
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

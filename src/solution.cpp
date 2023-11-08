@@ -58,9 +58,11 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
 
-    const auto run = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        RunImpl(handle, inputs, workspace, workspace_size, op_desc);
-    });
+    const auto run = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) {
+            RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+        },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(run, problem.GetOperatorDescriptor());
 }
@@ -68,7 +70,8 @@ void Solution::Run(Handle& handle,
 void Solution::LogDriverCommand() const
 {
     const auto log_function = boost::hof::match(
-        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); });
+        [&](const ConvolutionDescriptor& op_desc) { return LogDriverCommand(op_desc); },
+        [&](const ActivationDescriptor& /*op_desc*/) { MIOPEN_THROW(miopenStatusNotImplemented); });
 
     boost::apply_visitor(log_function, problem.GetOperatorDescriptor());
 }
@@ -176,13 +179,12 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    const auto legacy_problem = ProblemDescription{conv_problem};
-    auto conv_ctx             = ExecutionContext{&handle};
+    auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
-        conv_ctx, legacy_problem, db, invoke_ctx, perf_cfg.value_or(""));
+        conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
