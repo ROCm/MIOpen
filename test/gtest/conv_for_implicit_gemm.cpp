@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#include "../conv_2d.hpp"
+#include "conv_2d.hpp"
 #include "get_handle.hpp"
 
 
@@ -113,11 +113,6 @@ void Run2dDriver(miopenDataType_t prec)
 }
 
 
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// How I should write devName for 
-// https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/test/CMakeLists.txt#L845
-
-
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
@@ -127,36 +122,9 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-// miopen
-
-
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// How I should write Envvar Values 
-// https://github.com/ROCmSoftwarePlatform/MIOpen/blob/develop/test/CMakeLists.txt#L845
-
 
 TEST_P(ConfigWithBF16, BF16Test)
 {
-
-// #if MIOPEN_BACKEND_OPENCL
-
-//     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-// #else // MIOPEN_BACKEND_HIP
-//     const auto& handle = get_handle();
-    
-//     if(IsTestSupportedForDevice(handle) &&
-//        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
-//        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--bf16"))
-//     {
-//         Run2dDriver(miopenBFloat16);
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// #endif
-
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") 
     && miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
@@ -171,25 +139,6 @@ TEST_P(ConfigWithBF16, BF16Test)
 
 TEST_P(ConfigWithHalf, HalfTest)
 {
-// #if MIOPEN_BACKEND_OPENCL
-
-//     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
-
-// #else // MIOPEN_BACKEND_HIP
-//     const auto& handle = get_handle();
-    
-//     if(IsTestSupportedForDevice(handle) &&
-//        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
-//        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--half"))
-//     {
-//         Run2dDriver(miopenHalf);
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// #endif
-
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") 
     && miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
@@ -322,11 +271,9 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 192 32 3 3 " + psd5 + grep},
         TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 192 32 3 3 " + psd5 + grep}
     };
+
+    return test_cases ;
 }
-
-
-
-
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
                              ConfigWithBF16, 
