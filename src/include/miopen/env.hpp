@@ -57,21 +57,21 @@ struct ParseEnvVal<bool>
             }
         }
 
-        if(std::strcmp(value_env_str.c_str(), "disable") == 0 ||
-           std::strcmp(value_env_str.c_str(), "disabled") == 0 ||
-           std::strcmp(value_env_str.c_str(), "0") == 0 ||
-           std::strcmp(value_env_str.c_str(), "no") == 0 ||
-           std::strcmp(value_env_str.c_str(), "off") == 0 ||
-           std::strcmp(value_env_str.c_str(), "false") == 0)
+        if(value_env_str.compare("disable") == 0 ||
+           value_env_str.compare("disabled") == 0 ||
+           value_env_str.compare("0") == 0 ||
+           value_env_str.compare("no") == 0 ||
+           value_env_str.compare("off") == 0 ||
+           value_env_str.compare("false") == 0)
         {
             return false;
         }
-        else if(std::strcmp(value_env_str.c_str(), "enable") == 0 ||
-                std::strcmp(value_env_str.c_str(), "enabled") == 0 ||
-                std::strcmp(value_env_str.c_str(), "1") == 0 ||
-                std::strcmp(value_env_str.c_str(), "yes") == 0 ||
-                std::strcmp(value_env_str.c_str(), "on") == 0 ||
-                std::strcmp(value_env_str.c_str(), "true") == 0)
+        else if(value_env_str.compare("enable") == 0 ||
+                value_env_str.compare("enabled") == 0 ||
+                value_env_str.compare("1") == 0 ||
+                value_env_str.compare("yes") == 0 ||
+                value_env_str.compare("on") == 0 ||
+                value_env_str.compare("true") == 0)
         {
             return true;
         }
