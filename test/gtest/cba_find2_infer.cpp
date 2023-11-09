@@ -142,14 +142,25 @@ TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
 }
 
 #if MIOPEN_BACKEND_HIP
-TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivAsm1x1UFind2Float_testFind)
+TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testFind)
 {
     setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
     setEnvironmentVariable("MIOPEN_DEBUG_TUNING_ITERATIONS_MAX", "5");
-    const auto options = miopen::FindOptions{};
-    auto solutions     = fused_problem.FindSolutions(get_handle(), options, 1);
-    RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
-        fused_problem, invoke_params, conv_config, test_skipped);
+    std::vector<miopen::Solution> solutions;
+
+    ASSERT_NO_THROW(solutions = fused_problem.FindSolutions(get_handle(), {}, 10));
+
+    auto tensors = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{
+        {miopenTensorConvolutionX, in_dev.get()},
+        {miopenTensorConvolutionW, wei_dev.get()},
+        {miopenTensorActivationY, out_dev.get()},
+    };
+
+    for(auto& solution : solutions)
+    {
+        ASSERT_NO_THROW(solution.Run(get_handle(), tensors, nullptr, 0));
+        ValidateResult();
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,

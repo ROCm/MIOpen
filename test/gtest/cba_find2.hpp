@@ -111,22 +111,22 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped)
+        if(test_skipped || checks_ran)
             return;
-        conv_stats stats;
-        cfsb::TearDownConv();
-        // cpu_bias_forward(cfsb::ref_out, bias);
+        ValidateResult();
+    }
 
-        activationHostInfer(activ_mode,
-                            activ_gamma,
-                            activ_beta,
-                            activ_alpha,
-                            cfsb::ref_out.data,
-                            cfsb::ref_out.data);
+    void ValidateResult()
+    {
+        checks_ran = true;
+        CalculateCPUValuesIfNeeded();
         cfsb::ThresholdChecks();
     }
 
 private:
+    bool cpu_values_calculated = false;
+    bool checks_ran            = false;
+
     [[nodiscard]] miopen::Problem MakeConvProblem() const
     {
         auto problem = miopen::Problem{};
@@ -166,5 +166,22 @@ private:
                 MIOPEN_THROW(miopenStatusInternalError);
             },
             params);
+    }
+
+    void CalculateCPUValuesIfNeeded()
+    {
+        if(cpu_values_calculated)
+            return;
+
+        cpu_values_calculated = true;
+        cfsb::TearDownConv();
+        // cpu_bias_forward(cfsb::ref_out, bias);
+
+        activationHostInfer(activ_mode,
+                            activ_gamma,
+                            activ_beta,
+                            activ_alpha,
+                            cfsb::ref_out.data,
+                            cfsb::ref_out.data);
     }
 };
