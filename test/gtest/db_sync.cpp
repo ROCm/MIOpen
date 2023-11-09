@@ -44,9 +44,9 @@
 #include <exception>
 #include <unordered_set>
 
-#define WORKAROUND_ISSUE_1987 1
+#define WORKAROUND_ISSUE_1987 0 // Allows testing FDB on gfx1030 (legacy fdb).
 #define WORKAROUND_ISSUE_2493 1
-#define SKIP_KDB_PDB_TESTING 1 // Allows testing FDB on gfx1030.
+#define SKIP_KDB_PDB_TESTING 0 // Allows testing FDB on gfx1030.
 
 struct KDBKey
 {
