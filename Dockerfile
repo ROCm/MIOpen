@@ -41,6 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     doxygen \
     gdb \
     git \
+    git-lfs \
     lbzip2 \
     lcov \
     libncurses5-dev \

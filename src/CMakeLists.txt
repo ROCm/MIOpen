@@ -136,7 +136,6 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
-    problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
@@ -907,7 +906,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
     file(GLOB PERF_DB_FILES kernels/*.db)
+    file(GLOB KERN_DB_FILES kernels/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
+    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES

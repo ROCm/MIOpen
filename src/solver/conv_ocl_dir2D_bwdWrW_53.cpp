@@ -34,6 +34,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 // Once the compiler fix (SWDEV-168168) is available, that version of compiler needs to be
 // checked to skip workarounds. Till then, true is returned in all cases so as to skip
@@ -60,7 +63,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
 
     if(problem.IsTensorsCasted())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -501,8 +504,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
     int n_input_channels_per_group  = problem.GetOutChannels_() / problem.GetGroupCount();
     int n_output_channels_per_group = problem.GetInChannels_() / problem.GetGroupCount();
 
-    if(!problem.direction.IsBackwardWrW())
-        MIOPEN_THROW("!problem.direction.IsBackwardWrW()");
+    if(!problem.IsDirectionBackwardWrW())
+        MIOPEN_THROW("!problem.IsDirectionBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
@@ -647,9 +650,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ExecutionContext& ctx,
 
     const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
-    result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
+    result.invoker_factory = miopen::conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen
