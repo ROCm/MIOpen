@@ -39,11 +39,13 @@ MIOPEN_DECLARE_ENV_VAR(
     uint64_t,
     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count())
 #if MIOPEN_USE_COMGR
-const auto def_max = 1; // COMGR is not parallelizable
+// COMGR is not parallelizable
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL, uint64_t, 1)
 #else
-const int def_max = std::thread::hardware_concurrency() / 2;
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL,
+                       uint64_t,
+                       std::thread::hardware_concurrency() / 2)
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL, uint64_t, def_max)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY, bool, false)
 
 } // namespace solver
