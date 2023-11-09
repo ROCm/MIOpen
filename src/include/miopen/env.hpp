@@ -101,17 +101,17 @@ struct EnvVar
 {
 private:
     T value{};
-    bool is_default = true;
+    bool is_unset = true;
 
 public:
     const T& GetValue() const { return value; }
 
-    bool IsDefault() const { return is_default; }
+    bool IsUnset() const { return is_unset; }
 
     void UpdateValue(const T& val)
     {
-        is_default = false;
-        value      = val;
+        is_unset = false;
+        value    = val;
     }
 
     explicit EnvVar(const char* const name, const T& def_val)
@@ -120,8 +120,8 @@ public:
         const char* vp = std::getenv(name);
         if(vp != nullptr) // a value was provided
         {
-            is_default = false;
-            value      = ParseEnvVal<T>::go(vp);
+            is_unset = false;
+            value    = ParseEnvVal<T>::go(vp);
         }
         else // no value provided, use default value
         {
@@ -145,6 +145,15 @@ public:
         }                                                                  \
     };
 
+#define MIOPEN_DECLARE_ENV_VAR_BOOL(name)      \
+    MIOPEN_DECLARE_ENV_VAR(#name, bool, false)
+
+#define MIOPEN_DECLARE_ENV_VAR_UINT64(name)    \
+    MIOPEN_DECLARE_ENV_VAR(#name, uint64_t, 0)
+
+#define MIOPEN_DECLARE_ENV_VAR_STR(name)           \
+    MIOPEN_DECLARE_ENV_VAR(#name, std::string, "")
+
 /// \todo the following functions should be renamed to either include the word Env
 /// or put inside a namespace 'env'. Right now we have a function named Value()
 /// that returns env var value as only 64-bit ints
@@ -160,14 +169,14 @@ template <class EnvVar>
 inline bool IsEnabled(EnvVar)
 {
     static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
-    return EnvVar::Ref().GetValue();
+    return !EnvVar::Ref().IsUnset() && EnvVar::Ref().GetValue();
 }
 
 template <class EnvVar>
 inline bool IsDisabled(EnvVar)
 {
     static_assert(std::is_same_v<typename EnvVar::value_type, bool>);
-    return !EnvVar::Ref().GetValue();
+    return !EnvVar::Ref().IsUnset() && !EnvVar::Ref().GetValue();
 }
 
 template <class EnvVar>
@@ -178,9 +187,9 @@ inline uint64_t Value(EnvVar)
 }
 
 template <class EnvVar>
-inline bool IsDefault(EnvVar)
+inline bool IsUnset(EnvVar)
 {
-    return EnvVar::Ref().IsDefault();
+    return EnvVar::Ref().IsUnset();
 }
 
 /// updates the cached value of an environment variable

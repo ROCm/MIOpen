@@ -51,7 +51,7 @@
 
 #if WORKAROUND_SWDEV_257202
 // Workaround, solver disabled by default.
-#define IS_DISABLED(expr) miopen::IsDefault(expr) || !miopen::IsEnabled(expr)
+#define IS_DISABLED(expr) !miopen::IsEnabled(expr)
 #else
 // Normal behavior (solver enabled by default).
 #define IS_DISABLED(expr) miopen::IsDisabled(expr)

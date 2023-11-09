@@ -396,16 +396,13 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     if(problem.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
-            if(miopen::IsDefault(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}) ||
-               !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
                 return false;
         if(wino_data_tile == 3 && wino_filter_tile == 5)
-            if(miopen::IsDefault(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}) ||
-               !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
                 return false;
         if(wino_data_tile == 3 && wino_filter_tile == 6)
-            if(miopen::IsDefault(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}) ||
-               !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
+            if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
                 return false;
     }
     else

@@ -47,8 +47,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_271887
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
-        if(miopen::IsDefault(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}) ||
-           !miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
             return false;
 #endif
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

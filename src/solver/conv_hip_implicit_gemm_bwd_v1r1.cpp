@@ -663,8 +663,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
-        if(miopen::IsDefault(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}) ||
-           !miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
             return false;
 #endif
 

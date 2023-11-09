@@ -201,8 +201,7 @@ bool IsHipKernelsEnabled()
 #if MIOPEN_USE_HIP_KERNELS
     return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
 #else
-    return !miopen::IsDefault(MIOPEN_DEBUG_HIP_KERNELS{}) &&
-           miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+    return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
 #endif
 }
 
