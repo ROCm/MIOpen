@@ -33,7 +33,7 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/fusion/solvers.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED)
 
 namespace miopen {
 

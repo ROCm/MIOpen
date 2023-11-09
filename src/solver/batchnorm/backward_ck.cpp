@@ -33,7 +33,7 @@
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_BN_BACK, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_BACK)
 
 namespace miopen {
 namespace solver {

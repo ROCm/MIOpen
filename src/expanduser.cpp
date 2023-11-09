@@ -81,7 +81,7 @@
 #endif
 #endif // __linux__
 
-MIOPEN_DECLARE_ENV_VAR(HOME, std::string, "")
+MIOPEN_DECLARE_ENV_VAR_STR(HOME)
 
 namespace miopen {
 

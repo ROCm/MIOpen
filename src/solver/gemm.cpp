@@ -41,7 +41,7 @@
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 /// MIOpenGEMM issues with ROCm 3.7, most likely related to the
 /// issues in the OpenCL compiler. Not reproducible in ROCm 4.0.

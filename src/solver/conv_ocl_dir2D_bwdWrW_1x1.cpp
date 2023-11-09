@@ -30,7 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/visit_float.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 #define TWO_PASSES 1
 

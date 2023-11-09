@@ -33,7 +33,7 @@
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_forward.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING)
 
 namespace miopen {
 namespace solver {

@@ -32,7 +32,7 @@
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 
 namespace miopen {
 namespace solver {

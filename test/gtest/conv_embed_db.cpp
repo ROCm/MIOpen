@@ -32,7 +32,7 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_TEST_FLOAT_ARG, std::string, "")
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 static bool IsTestRunWith(const char* float_arg)
 {

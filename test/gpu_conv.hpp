@@ -42,7 +42,7 @@ extern bool LoggingQuiet;        // NOLINT (cppcoreguidelines-avoid-non-const-gl
 } // namespace debug
 } // namespace miopen
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF, bool, false)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)
 
 struct AutoPrepareForGpuReference
 {

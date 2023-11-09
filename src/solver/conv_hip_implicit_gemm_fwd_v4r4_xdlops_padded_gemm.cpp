@@ -41,7 +41,7 @@
 /// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
 #define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS (HIP_PACKAGE_VERSION_FLAT <= 3007999999ULL)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS, bool, true)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS)
 
 /* this fix is for fp16 xdlops vectorizable kernels due to followings, we may revisit this fix after
   compiler fix:

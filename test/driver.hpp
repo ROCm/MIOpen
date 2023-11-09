@@ -100,7 +100,7 @@ auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
     return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_VERIFY_CACHE_PATH, std::string, "")
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_VERIFY_CACHE_PATH)
 
 struct test_driver
 {

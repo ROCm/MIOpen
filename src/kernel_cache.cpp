@@ -48,7 +48,7 @@
 #include <iostream>
 #include <iterator>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH, std::string, "")
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 

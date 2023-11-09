@@ -60,7 +60,7 @@ bool ValidateGcnAssembler() { return true; }
 /// \todo Try to assemble AMD GCN source?
 #define WORKAROUND_SWDEV_233338 1
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH, std::string, "")
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
 static const char option_no_co_v3[] = "-mno-code-object-v3";
 

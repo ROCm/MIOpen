@@ -46,7 +46,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL,
                        uint64_t,
                        std::thread::hardware_concurrency() / 2)
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY, bool, false)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
 
 } // namespace solver
 } // namespace miopen

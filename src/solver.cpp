@@ -43,7 +43,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, bool, false)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace solver {
