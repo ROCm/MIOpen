@@ -35,27 +35,28 @@ struct ConvFwdFp8Naive : ConvFwdSolverTest<float8, float, true>
 
 TEST_P(ConvFwdFp8, DISABLED_GemmFwdRest)
 {
-    miopen::solver::GemmFwdRest solv{};
+    miopen::solver::conv::GemmFwdRest solv{};
     SolverFwd(solv);
 }
 
 TEST_P(ConvFwdFp8, DISABLED_GemmFwd1x1_0_2)
 {
-    miopen::solver::GemmFwd1x1_0_2 solv{};
+    miopen::solver::conv::GemmFwd1x1_0_2 solv{};
     SolverFwd(solv);
 }
 
 TEST_P(ConvFwdFp8, DISABLED_Gemm1x1x0x1)
 {
-    miopen::solver::GemmFwd1x1_0_1 solv{};
+    miopen::solver::conv::GemmFwd1x1_0_1 solv{};
     SolverFwd(solv);
 }
 
 TEST_P(ConvFwdFp8Naive, DISABLED_Fwd)
 {
-    miopen::solver::ConvDirectNaiveConvFwd solv{};
-    SolverFwd<miopen::solver::ConvDirectNaiveConvFwd>(solv);
+    miopen::solver::conv::ConvDirectNaiveConvFwd solv{};
+    SolverFwd(solv);
 }
+
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdFp8,
                          testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),

@@ -120,9 +120,9 @@ public:
     {
     }
     virtual ~Model()                                                   = default;
-    virtual bool IsProblemSupported(const ProblemDescription& problem,
+    virtual bool IsProblemSupported(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx) const = 0;
-    std::vector<float> Forward(const ProblemDescription& problem) const
+    std::vector<float> Forward(const conv::ProblemDescription& problem) const
     {
         std::vector<float> features       = ToFeatures(problem);
         std::vector<fdeep::tensor> output = model.predict({fdeep::tensor(input_shape, features)});
@@ -142,14 +142,14 @@ protected:
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
         return file_path;
     }
-    virtual std::vector<float> ToFeatures(const ProblemDescription& problem) const = 0;
+    virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
 
 class Gfx908Model final : public Model
 {
 public:
     Gfx908Model() : Model("gfx908") {}
-    bool IsProblemSupported(const ProblemDescription& problem,
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
                             const ExecutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
@@ -216,7 +216,7 @@ public:
     }
 
 protected:
-    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
@@ -259,7 +259,7 @@ class Gfx90aModel final : public Model
 {
 public:
     Gfx90aModel() : Model("gfx90a") {}
-    bool IsProblemSupported(const ProblemDescription& problem,
+    bool IsProblemSupported(const conv::ProblemDescription& problem,
                             const ExecutionContext& ctx) const override
     {
         // check if problem is of the kind TunaNet was trained to handle
@@ -317,7 +317,7 @@ public:
     }
 
 protected:
-    std::vector<float> ToFeatures(const ProblemDescription& problem) const override
+    std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const override
     {
         const bool isFwd            = problem.GetDirection() == conv::Direction::Forward;
         std::vector<float> features = {
@@ -356,7 +356,7 @@ std::unique_ptr<Model> GetModel(const std::string& device)
         return std::make_unique<Gfx908Model>();
 }
 
-std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
+std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx,
                                     const std::string& device)
 {
@@ -366,7 +366,7 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
 
     std::string est_name = ":memory:" + device;
     auto& db             = AnyRamDb::GetCached(est_name);
-    auto db_res          = db.FindRecord(static_cast<const conv::ProblemDescription&>(problem));
+    auto db_res          = db.FindRecord(problem);
     if(db_res)
     {
         MIOPEN_LOG_I2("Cached heuristic (TunaNet) result found");
@@ -415,7 +415,7 @@ std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
         sol.push_back(sol_id.Value());
         any_sol.push_back(sol_id.Value());
     }
-    db.StoreRecord(static_cast<const conv::ProblemDescription&>(problem), any_sol);
+    db.StoreRecord(problem, any_sol);
     if(miopen::IsLogging(LoggingLevel::Info2))
     {
         std::stringstream ss;

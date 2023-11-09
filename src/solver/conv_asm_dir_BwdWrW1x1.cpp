@@ -43,6 +43,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static inline bool UseSubsample(const ProblemDescription& problem)
 {
@@ -310,7 +313,6 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ExecutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
-
     if(!IsValidValue())
         return false;
     if(!((chunk_size * c_per_gpr) >= 16 && ((chunk_size == 1 || c_per_gpr * chunk_size <= 16))))
@@ -477,7 +479,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -800,14 +802,15 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto ss_kernel      = handle.Run(kernels[0]);
-                const auto main_kernel    = handle.Run(kernels[1]);
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& x             = invoke_params.tensors.x;
-                const auto& dy            = invoke_params.tensors.dy;
-                const auto& dw            = invoke_params.tensors.dw;
-                const auto& workSpace     = invoke_params.workSpace;
-                auto elapsed              = 0.f;
+                const auto ss_kernel   = handle.Run(kernels[0]);
+                const auto main_kernel = handle.Run(kernels[1]);
+                const auto& invoke_params =
+                    primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& x         = invoke_params.tensors.x;
+                const auto& dy        = invoke_params.tensors.dy;
+                const auto& dw        = invoke_params.tensors.dw;
+                const auto& workSpace = invoke_params.workSpace;
+                auto elapsed          = 0.f;
 
                 if(invoke_params.type != InvokeType::AutoTune)
                 {
@@ -833,13 +836,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                const auto main_kernel    = handle.Run(kernels[0]);
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& x             = invoke_params.tensors.x;
-                const auto& dy            = invoke_params.tensors.dy;
-                const auto& dw            = invoke_params.tensors.dw;
-                int unused                = 0;
-                int* return_addr          = nullptr;
+                const auto main_kernel = handle.Run(kernels[0]);
+                const auto& invoke_params =
+                    primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& x    = invoke_params.tensors.x;
+                const auto& dy   = invoke_params.tensors.dy;
+                const auto& dw   = invoke_params.tensors.dw;
+                int unused       = 0;
+                int* return_addr = nullptr;
                 main_kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
             };
         };
@@ -855,5 +859,6 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ExecutionContex
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
