@@ -146,13 +146,13 @@ public:
     };
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name)      \
-    MIOPEN_DECLARE_ENV_VAR_BOOL(#name)
+    MIOPEN_DECLARE_ENV_VAR(name, bool, false)
 
 #define MIOPEN_DECLARE_ENV_VAR_UINT64(name)    \
-    MIOPEN_DECLARE_ENV_VAR(#name, uint64_t, 0)
+    MIOPEN_DECLARE_ENV_VAR(name, uint64_t, 0)
 
 #define MIOPEN_DECLARE_ENV_VAR_STR(name)           \
-    MIOPEN_DECLARE_ENV_VAR_STR(#name)
+    MIOPEN_DECLARE_ENV_VAR(name, std::string, "")
 
 /// \todo the following functions should be renamed to either include the word Env
 /// or put inside a namespace 'env'. Right now we have a function named Value()
