@@ -67,11 +67,11 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
 /// 0: Off.
 /// 1: Logs each option on a separate line.
 /// 2: Logs all options altogether, on single line.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_OPTIONS, uint64_t, 0)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 
 /// Integer, set to max number of first characters
 /// you would like to log onto console.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT, uint64_t, 0)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
 
 /// \todo Temporary for debugging:
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)

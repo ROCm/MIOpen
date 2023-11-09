@@ -80,7 +80,7 @@ miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int f
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_SUBNORM_PERCENTAGE, uint64_t, 0)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
