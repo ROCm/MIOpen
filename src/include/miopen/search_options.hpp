@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/common.hpp>
 #include <miopen/object.hpp>
 
 #include <limits>

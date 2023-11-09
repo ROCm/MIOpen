@@ -74,6 +74,8 @@ struct Solution : miopenSolution
             if(argument.descriptor != nullptr)
                 descriptor = miopen::deref(*argument.descriptor);
         }
+
+        inline RunInput(Data_t buffer_) : buffer(buffer_) {}
     };
 
     float GetTime() const { return time; }

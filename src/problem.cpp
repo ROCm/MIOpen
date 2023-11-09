@@ -698,6 +698,8 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
 FusionPlanDescriptor FusedProblem::AsFusionPlan() const
 {
     FusionPlanDescriptor plan;
+    plan.input_desc  = GetInput();
+    plan.output_desc = GetOutput();
     for(const auto& problem : problems)
         AddProblemToPlan(plan, problem);
     return plan;

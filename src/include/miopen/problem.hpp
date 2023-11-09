@@ -177,6 +177,9 @@ struct FusedProblem
         return problems.back().GetOutputId();
     }
 
+    [[nodiscard]] const TensorDescriptor& GetInput() const { return problems.front().GetInput(); }
+    [[nodiscard]] const TensorDescriptor& GetOutput() const { return problems.back().GetOutput(); }
+
     [[nodiscard]] FusionPlanDescriptor AsFusionPlan() const;
 
     friend void to_json(nlohmann::json& j, const FusedProblem& problem);

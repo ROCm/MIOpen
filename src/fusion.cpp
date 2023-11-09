@@ -794,9 +794,10 @@ FindFusion(const ExecutionContext& ctx,
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
+            auto fusion_ctx = FusionContext(ctx.GetStream());
             FindCore(invoke_params(),
                      record,
-                     ctx,
+                     fusion_ctx,
                      fusion_problem,
                      FusionFindParameters{},
                      GetFusionSolverFinders());
