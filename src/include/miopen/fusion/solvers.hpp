@@ -318,6 +318,85 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
                              const FusionDescription& problem) const override;
 };
 
+// ==============start GEMM ========================
+struct PerformanceConfigCKGEMMAddActiv : PerfConfigBase<PerformanceConfigCKGEMMAddActiv>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigCKGEMMAddActiv(int idx, std::string kernl_id) : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigCKGEMMAddActiv() : PerformanceConfigCKGEMMAddActiv(0, "") {}
+    PerformanceConfigCKGEMMAddActiv(bool) : PerformanceConfigCKGEMMAddActiv(0, "") {}
+    void HeuristicInit(const FusionDescription& fdesc_problem);
+    bool SetNextValue(const FusionDescription& fdesc_problem);
+    bool IsValidValue() const;
+    bool IsValid(const FusionContext&, const FusionDescription& fdesc_problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigCKGEMMAddActiv& other) const;
+
+private:
+    template <typename ADataType,
+              typename BDataType,
+              typename AccDataType,
+              typename D0DataType,
+              typename EDataType,
+              typename ALayout,
+              typename BLayout,
+              typename D0Layout,
+              typename ELayout>
+    void Init(const GemmAddProblemDescription&);
+    template <typename ADataType,
+              typename BDataType,
+              typename AccDataType,
+              typename D0DataType,
+              typename EDataType,
+              typename ALayout,
+              typename BLayout,
+              typename D0Layout,
+              typename ELayout>
+    bool CheckIsSupportCKArgs(const GemmAddProblemDescription&) const;
+};
+
+struct CKGEMMAddActiv final : FusionTunableSolver<PerformanceConfigCKGEMMAddActiv>
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<CKGEMMAddActiv>(); }
+
+    PerformanceConfigCKGEMMAddActiv
+    GetDefaultPerformanceConfig(const FusionContext& ctx,
+                                const FusionDescription& fdesc_problem) const override;
+    bool IsValidPerformanceConfig(const FusionContext& ctx,
+                                  const FusionDescription& fdesc_problem,
+                                  const PerformanceConfigCKGEMMAddActiv& config) const override;
+    PerformanceConfigCKGEMMAddActiv Search(const FusionContext& ctx,
+                                           const FusionDescription& fdesc_problem,
+                                           const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx,
+                      const FusionDescription& fdesc_problem) const override;
+    ConvSolution GetSolution(const FusionContext& ctx,
+                             const FusionDescription& fdesc_problem,
+                             const PerformanceConfigCKGEMMAddActiv& config) const override;
+
+private:
+    template <typename ADataType,
+              typename BDataType,
+              typename AccDataType,
+              typename D0DataType,
+              typename EDataType,
+              typename ALayout,
+              typename BLayout,
+              typename D0Layout,
+              typename ELayout>
+    bool CheckCKApplicability(const GemmAddProblemDescription&) const;
+};
+// ==============end GEMM ========================
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

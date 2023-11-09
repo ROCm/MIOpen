@@ -309,6 +309,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
             case miopenActivationPOWER:
             case miopenActivationCLIPPEDRELU:
             case miopenActivationELU:
+            case miopenActivationFGELU:
             default: return IDENTITY;
             };
         }

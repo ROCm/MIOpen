@@ -656,6 +656,55 @@ BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc
 }
 
 // end BN backwards training ---------------------------
+miopenStatus_t GemmForwardInferenceOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
+{
+    return miopen::try_(
+        [&]() { output_desc = gemm_descriptor.GetOutputTensor(input_desc, B_desc); });
+}
+
+miopenStatus_t GemmForwardInferenceOpDescriptor::SetArgs(OperatorArgs& args,
+                                                         ConstData_t B_data,
+                                                         ConstData_t C_data)
+{
+    auto op_args = std::make_unique<fusion::GemmOpInvokeParam>(B_data, C_data);
+    args.SetArg(GetIdx(), std::move(op_args));
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t
+GemmForwardInferenceOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
+{
+    miopen::gemm::ProblemDescription gemm_problem =
+        miopen::gemm::ProblemDescription{gemm_descriptor, input_desc, B_desc, C_desc};
+
+    NetworkConfig nconfig = gemm_problem.MakeNetworkConfig();
+    network_config << nconfig.ToString();
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t MatrixAddOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
+{
+    output_desc = E_desc;
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t
+MatrixAddOpDescriptor::SetArgs(OperatorArgs& args, ConstData_t d_data, ConstData_t e_data)
+{
+    auto op_args = std::make_unique<fusion::MatrixAddOpInvokeParam>(d_data, e_data);
+    args.SetArg(GetIdx(), std::move(op_args));
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t MatrixAddOpDescriptor::GetNetworkConfig(std::ostringstream& network_config)
+{
+    miopen::matrixAdd::ProblemDescription mat_add_problem =
+        miopen::matrixAdd::ProblemDescription{matrix_add_descriptor, input_desc, D_desc, E_desc};
+
+    NetworkConfig nconfig = mat_add_problem.MakeNetworkConfig();
+    network_config << nconfig.ToString();
+    return miopenStatusSuccess;
+}
 
 // Bias forward
 miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const

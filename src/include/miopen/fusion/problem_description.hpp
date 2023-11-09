@@ -29,6 +29,7 @@
 #include <miopen/fusion_plan.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/matrixOps/problem_description.hpp>
 #include <miopen/problem_description_base.hpp>
 
 namespace miopen {
@@ -151,6 +152,43 @@ struct FusionDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusNotImplemented);
     }
 
+    miopen::gemm::ProblemDescription GetGemmProblem(size_t gemm_idx,
+                                                    miopen::gemm::Direction dir) const
+    {
+        if(dir != miopen::gemm::Direction::ForwardInference)
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+        const auto& gemm_op =
+            dynamic_cast<GemmForwardInferenceOpDescriptor&>(*fusion_plan_desc->op_map[gemm_idx]);
+        TensorDescriptor out_desc;
+        gemm_op.GetOutputDesc(out_desc);
+
+        return miopen::gemm::ProblemDescription{gemm_op.gemm_descriptor,
+                                                gemm_op.input_desc, // A
+                                                gemm_op.B_desc,     // B
+                                                out_desc};          // C
+    }
+
+    miopen::matrixAdd::ProblemDescription
+    GetMatrixAddProblem(size_t mat_add_idx, miopen::matrixAdd::Direction dir) const
+    {
+        if(dir != miopen::matrixAdd::Direction::ForwardInference)
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+        assert(fusion_plan_desc->op_map.size() > mat_add_idx);
+        const auto& mat_add_op =
+            dynamic_cast<MatrixAddOpDescriptor&>(*fusion_plan_desc->op_map[mat_add_idx]);
+        TensorDescriptor out_desc;
+        mat_add_op.GetOutputDesc(out_desc);
+
+        return miopen::matrixAdd::ProblemDescription{mat_add_op.matrix_add_descriptor,
+                                                     mat_add_op.input_desc, // C
+                                                     mat_add_op.D_desc,     // D
+                                                     out_desc};             // E
+    }
+
 private:
     void GetNetworkConfig(std::ostringstream& net_config) const
     {
@@ -177,6 +215,18 @@ private:
             {
                 const auto prob =
                     GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpGEMM)
+            {
+                const auto prob =
+                    GetGemmProblem(op->GetIdx(), miopen::gemm::Direction::ForwardInference);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpMatricxAdd)
+            {
+                const auto prob = GetMatrixAddProblem(
+                    op->GetIdx(), miopen::matrixAdd::Direction::ForwardInference);
                 net_config << prob.MakeNetworkConfig().ToString();
             }
             else

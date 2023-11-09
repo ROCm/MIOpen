@@ -68,7 +68,9 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
     case miopenTensorCHWNc4:
     case miopenTensorCHWNc8:
     case miopenTensorNCDHW:
-    case miopenTensorNDHWC: return true;
+    case miopenTensorNDHWC:
+    case miopenTensorRowMajor:
+    case miopenTensorColumnMajor: return true;
     }
     return false;
 }
@@ -362,6 +364,8 @@ std::string TensorDescriptor::GetLayout_str() const
     case miopenTensorCHWNc8: return "CHWNc";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
+    case miopenTensorRowMajor: return "Row";
+    case miopenTensorColumnMajor: return "Col";
     }
     MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
 }
