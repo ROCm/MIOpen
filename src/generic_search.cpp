@@ -36,19 +36,18 @@ namespace solver {
 
 std::size_t GetTuningIterationsMax()
 {
-    return !isUnset(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}) ?
-            Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}) :
-            std::numeric_limits<std::size_t>::max();
+    return !IsUnset(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{})
+               ? Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{})
+               : std::numeric_limits<std::size_t>::max();
 }
 
 std::chrono::milliseconds GetTuningTimeMax()
 {
     static const auto fallback =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
-    static const auto res =
-        !IsUnset(MIOPEN_TUNING_TIME_MS_MAX{}) ?
-            std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{})} :
-            std::chrono::milliseconds{fallback.count()};
+    static const auto res = !IsUnset(MIOPEN_TUNING_TIME_MS_MAX{})
+                                ? std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{})}
+                                : std::chrono::milliseconds{fallback.count()};
     return res;
 }
 
@@ -59,9 +58,8 @@ std::size_t GetTuningThreadsMax()
 #else
     const int def_max = std::thread::hardware_concurrency() / 2;
 #endif
-    return !IsUnset(MIOPEN_COMPILE_PARALLEL_LEVEL{}) ?
-        Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}) :
-        def_max;
+    return !IsUnset(MIOPEN_COMPILE_PARALLEL_LEVEL{}) ? Value(MIOPEN_COMPILE_PARALLEL_LEVEL{})
+                                                     : def_max;
 }
 
 } // namespace solver
