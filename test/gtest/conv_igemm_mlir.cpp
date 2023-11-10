@@ -120,8 +120,8 @@ TEST_P(ConfigWithFloat, FloatTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) &&
-       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && GetFloatArg() == "--float")
+       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) && miopen::IsEnabled(MIOPEN_TEST_ALL{}) &&
+       GetFloatArg() == "--float")
     {
         Run2dDriver(miopenFloat);
     }
@@ -142,8 +142,8 @@ TEST_P(ConfigWithHalf, HalfTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) &&
-       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && GetFloatArg() == "--half")
+       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) && miopen::IsEnabled(MIOPEN_TEST_ALL{}) &&
+       GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }
@@ -164,8 +164,8 @@ TEST_P(ConfigWithInt8, Int8Test)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
-       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) &&
-       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && GetFloatArg() == "--int8")
+       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) && miopen::IsEnabled(MIOPEN_TEST_ALL{}) &&
+       GetFloatArg() == "--int8")
     {
         Run2dDriver(miopenInt8);
     }
