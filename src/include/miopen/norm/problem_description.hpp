@@ -73,7 +73,7 @@ struct ProblemDescription : ProblemDescriptionBase
     int32_t GetNormalizedDim() const { return normalized_dim; }
 
     bool IsRank2Dim1() const { return (xDesc.GetLengths().size() == 2) && (normalized_dim == 1); }
-
+    bool IsRank4Dim1() const { return (xDesc.GetLengths().size() == 4) && (normalized_dim == 1); }
     bool IsLargeSize() const
     {
         auto dims = xDesc.GetLengths();

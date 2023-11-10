@@ -242,6 +242,7 @@ set( MIOpen_Source
     solver/gemm_wrw.cpp
     solver/norm/forward_layernorm.cpp
     solver/norm/forward_layernorm2d_ck.cpp
+    solver/norm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp

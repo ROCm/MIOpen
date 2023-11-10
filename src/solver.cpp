@@ -573,6 +573,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
