@@ -46,24 +46,24 @@ using BF16 = ushort;
 template <typename XDataType,
           typename GammaDataType,
           typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
+          typename YDataType,
+          typename SaveMeanInvStdDataType>
 using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
     XDataType,
     GammaDataType,
     BetaDataType,
-    ComputeDataType,
     YDataType,
+    SaveMeanInvStdDataType,
     ck::tensor_operation::element_wise::PassThrough,
-    2,
-    1>;
+    4,
+    3>;
 template <typename XDataType,
           typename GammaDataType,
           typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
+          typename YDataType,
+          typename SaveMeanInvStdDataType>
 using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    DeviceOp<XDataType, GammaDataType, BetaDataType, ComputeDataType, YDataType>>;
+    DeviceOp<XDataType, GammaDataType, BetaDataType, YDataType, SaveMeanInvStdDataType>>;
 
 namespace {
 struct CKArgs
@@ -73,19 +73,19 @@ struct CKArgs
         auto length = problem.GetXDesc().GetLengths();
 
         N = length[0];
-        C = length[1];
-        H = length[2];
-        W = length[3];
+        H = length[1];
+        W = length[2];
+        C = length[3];
 
-        N_stride = C * H * W;
-        C_stride = H * W;
-        H_stride = W;
-        W_stride = 1;
+        N_stride = H * W * C;
+        H_stride = W * C;
+        W_stride = C;
+        C_stride = 1;
 
-        xyLengths    = {N, C, H, W};
-        xyStrides    = {N_stride, C_stride, H_stride, W_stride};
-        gammaStrides = {0, C_stride, H_stride, W_stride};
-        betaStrides  = {0, C_stride, H_stride, W_stride};
+        xyLengths    = {N, H, W, C};
+        xyStrides    = {N_stride, H_stride, W_stride, C_stride};
+        gammaStrides = {0, H_stride, W_stride, C_stride};
+        betaStrides  = {0, H_stride, W_stride, C_stride};
         meanStrides  = {1};
         rstdStrides  = {1};
         epsilon      = problem.GetEpsilon();
@@ -105,12 +105,12 @@ struct CKArgs
                     Data_t rstd) const
     {
         return ln_ptr->MakeArgumentPointer(xyLengths,
-                                           xyStrides,
-                                           gammaStrides,
+			                   xyStrides,
+					   gammaStrides,
                                            betaStrides,
                                            xyStrides,
-                                           meanStrides,
-                                           rstdStrides,
+					   meanStrides,
+					   rstdStrides,
                                            {1, 2, 3},
                                            epsilon,
                                            x,
@@ -231,7 +231,7 @@ bool Layernorm4DCKForward::IsApplicable(
     switch(problem.GetXDesc().GetType())
     {
     case miopenHalf:
-        return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>>(problem);
+        return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>>(problem);
     case miopenFloat:
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenDouble:
@@ -254,7 +254,7 @@ ConvSolution Layernorm4DCKForward::GetSolution(
     switch(problem.GetXDesc().GetType())
     {
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>,
+        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>,
                                   CKArgs,
                                   miopen::norm::InvokeParams>(context, problem);
     case miopenFloat:
