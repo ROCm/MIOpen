@@ -66,9 +66,8 @@ struct Layernorm4DCKForward final : NormalizationSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::norm::ProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::norm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::norm::ProblemDescription& problem) const override;
 };
 
 } // namespace norm

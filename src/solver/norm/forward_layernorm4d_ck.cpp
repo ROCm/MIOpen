@@ -96,8 +96,13 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename LNPtr>
-    auto MakeArgPtr(
-        const LNPtr& ln_ptr, ConstData_t x, ConstData_t weight, ConstData_t bias, Data_t y, Data_t mean, Data_t rstd) const
+    auto MakeArgPtr(const LNPtr& ln_ptr,
+                    ConstData_t x,
+                    ConstData_t weight,
+                    ConstData_t bias,
+                    Data_t y,
+                    Data_t mean,
+                    Data_t rstd) const
     {
         return ln_ptr->MakeArgumentPointer(xyLengths,
                                            xyStrides,
@@ -186,9 +191,14 @@ ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context
             return [ck_args = std::move(ck_args), sh_ln_ptr = std::move(sh_ln_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(
-                    sh_ln_ptr, data_ctx.x, data_ctx.weight, data_ctx.bias, data_ctx.y, data_ctx.mean, data_ctx.rstd);
-                auto invoker_ptr = sh_ln_ptr->MakeInvokerPointer();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_ln_ptr,
+                                                       data_ctx.x,
+                                                       data_ctx.weight,
+                                                       data_ctx.bias,
+                                                       data_ctx.y,
+                                                       data_ctx.mean,
+                                                       data_ctx.rstd);
+                auto invoker_ptr     = sh_ln_ptr->MakeInvokerPointer();
 
                 const auto enable_profiling = handle.IsProfilingEnabled();
                 float elapsed_time =
@@ -268,4 +278,3 @@ ConvSolution Layernorm4DCKForward::GetSolution(
 } // namespace norm
 } // namespace solver
 } // namespace miopen
-
