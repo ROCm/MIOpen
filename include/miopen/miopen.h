@@ -5263,7 +5263,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param problem Problem to destroy
  * @return        miopenStatus_t
  */
-miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 
 /*! @brief Sets a tensor descriptor for the specified argument.
  *
@@ -5272,9 +5272,10 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
  * @param descriptor Tensor descriptor to set
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenTensorArgumentId_t id,
-                                                const miopenTensorDescriptor_t descriptor);
+MIOPEN_EXPORT miopenStatus_t
+miopenSetProblemTensorDescriptor(miopenProblem_t problem,
+                                 miopenTensorArgumentId_t id,
+                                 const miopenTensorDescriptor_t descriptor);
 
 /*! @brief The miopenFindOptions allows the user to configure how find will be used.
  */
@@ -5285,14 +5286,14 @@ MIOPEN_DECLARE_OBJECT(miopenFindOptions);
  * @param options    Pointer to options object to initialze
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
+MIOPEN_EXPORT miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
 
 /*! @brief Destroys miopenFindOptions object.
  *
  * @param options    Options object to destroy
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 /*! @brief Sets the tuning find option. Default value is zero.
  *
@@ -5300,7 +5301,7 @@ miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
  * @param value      Value of zero means no tuning, value of one means tuning enabled
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
 
 /*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
  *
@@ -5308,8 +5309,8 @@ miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
  * @param value      Specifies what order should find results have
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
-                                               miopenFindResultsOrder_t value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
+                                                             miopenFindResultsOrder_t value);
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
@@ -5318,7 +5319,8 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
  * would be ignored.
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options,
+                                                               size_t value);
 
 /*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
  *
@@ -5327,8 +5329,9 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
  * @param size       Specifies the size of the buffer passed
  * @return           miopenStatus_t
  */
-miopenStatus_t
-miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options,
+                                                                      void* buffer,
+                                                                      size_t size);
 
 /*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
  * MIOpen internally, which is not recommended.
@@ -5338,9 +5341,9 @@ miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buff
  * @param buffer     Specifies the tensor for find call
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
-                                                     miopenTensorArgumentId_t id,
-                                                     void* buffer);
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                                   miopenTensorArgumentId_t id,
+                                                                   void* buffer);
 
 /*! @brief The miopenSolution object describes a prepared solution.
  */
@@ -5357,12 +5360,12 @@ MIOPEN_DECLARE_OBJECT(miopenSolution);
  * @param maxSolutions Limits the amount of results
  * @return             miopenStatus_t
  */
-miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
-                                   miopenProblem_t problem,
-                                   miopenFindOptions_t options,
-                                   miopenSolution_t* solutions,
-                                   size_t* numSolutions,
-                                   size_t maxSolutions);
+MIOPEN_EXPORT miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                                 miopenProblem_t problem,
+                                                 miopenFindOptions_t options,
+                                                 miopenSolution_t* solutions,
+                                                 size_t* numSolutions,
+                                                 size_t maxSolutions);
 
 /*! @brief Values of a tensor argument for the miopenRunSolution function.
  */
@@ -5393,19 +5396,19 @@ struct miopenTensorArgument_t
  * @param workspaceSize Size of the workspace buffer
  * @return              miopenStatus_t
  */
-miopenStatus_t miopenRunSolution(miopenHandle_t handle,
-                                 miopenSolution_t solution,
-                                 size_t nInputs,
-                                 const miopenTensorArgument_t* tensors,
-                                 void* workspace,
-                                 size_t workspaceSize);
+MIOPEN_EXPORT miopenStatus_t miopenRunSolution(miopenHandle_t handle,
+                                               miopenSolution_t solution,
+                                               size_t nInputs,
+                                               const miopenTensorArgument_t* tensors,
+                                               void* workspace,
+                                               size_t workspaceSize);
 
 /*! @brief Destroys solution object.
  *
  * @param solution   Solution to destroy
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
+MIOPEN_EXPORT miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
 
 /*! @brief Loads solution object from binary data.
  *
@@ -5414,7 +5417,9 @@ miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
  * @param size       Size of the solution blob
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size);
+MIOPEN_EXPORT miopenStatus_t miopenLoadSolution(miopenSolution_t* solution,
+                                                const char* data,
+                                                size_t size);
 
 /*! @brief Saves a solution object as binary data.
  *
@@ -5422,7 +5427,7 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, 
  * @param data       Pointer to a buffer to save soltuion to
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
+MIOPEN_EXPORT miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
 /*! @brief Reads the expected size of a solution.
  *
@@ -5430,7 +5435,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
  * @param size       Pointer to a location where to write the size of the solution blob
  * @return           miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
 /*! @brief Reads the amount of workspace required to exectute the solution.
  *
@@ -5438,7 +5443,8 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
  * @param workspaceSize Pointer to a location where to write the workspace size
  * @return              miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution,
+                                                            size_t* workspaceSize);
 
 /*! @brief Reads the time spent to execute the solution the last it was run.
  *
@@ -5446,7 +5452,7 @@ miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t*
  * @param time     Pointer to a location where to write the execution time
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
 
 /*! @brief Reads id of the solver referred by the solution.
  *
@@ -5454,7 +5460,8 @@ miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
  * @param solverId Pointer to a location where to write the solver id
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* solverId);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution,
+                                                       uint64_t* solverId);
 
 /*! @brief Gets the convolution algorithm implemented by a solver.
  *
@@ -5462,12 +5469,13 @@ miopenStatus_t miopenGetSolutionSolverId(miopenSolution_t solution, uint64_t* so
  * @param result   Pointer to a location where to write the algorithm
  * @return         miopenStatus_t
  */
-miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId, miopenConvAlgorithm_t* result);
+MIOPEN_EXPORT miopenStatus_t miopenGetSolverIdConvAlgorithm(uint64_t solverId,
+                                                            miopenConvAlgorithm_t* result);
 
 #ifdef MIOPEN_BETA_API
 
 /*! @brief Initializes a problem object describing an activation operation.
- * @note As of now there is no way to actually get any solution for this kind of problems
+ * @note As of now there is no way to actually get any solution for this kind of problems.
  *
  * @param problem      Pointer to the problem to initialize
  * @param operatorDesc Descriptor of the operator to be used
@@ -5478,6 +5486,27 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationProblem(miopenProblem_t* problem,
                               miopenActivationDescriptor_t operatorDesc,
                               miopenProblemDirection_t direction);
+
+/*! @brief Fuse two problems into a single one. Problems can be either regular, or fused. No
+ * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
+ * needed anymore.
+ * @example
+ * miopenProblem_t problem = makeSomeProblem1();
+ * miopenProblem_t problem2 = makeSomeProblem2();
+ * miopenProblem_t problem3 = makeSomeProblem3();
+ * miopenFuseProblems(problem, problem2);
+ * // Now problem contains {problem1, problem2}
+ * miopenFuseProblems(problem, problem3);
+ * // Now problem contains {problem1, problem2, problem3}
+ * miopenDestroyProblem(problem2);
+ * miopenDestroyProblem(problem3);
+ * @note As of now there is no way to actually get any solution for this kind of problems.
+ *
+ * @param problem1     The first problem to fuse. The result would be stored here.
+ * @param problem2     The second problem to fuse.
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2);
 
 #endif
 

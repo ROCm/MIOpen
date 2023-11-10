@@ -253,6 +253,7 @@ def buildHipClangJob(Map conf=[:]){
 
         def codecov = conf.get("codecov", false)
         def needs_gpu = conf.get("needs_gpu", true)
+        def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
         gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
@@ -286,6 +287,10 @@ def buildHipClangJob(Map conf=[:]){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 150, unit:'MINUTES')
                 {
+                    if (lfs_pull) {
+                        sh "git lfs pull --exclude="
+                    }
+
                     cmake_build(conf)
 
                     if (codecov) {
@@ -569,11 +574,15 @@ pipeline {
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
-                        fin_build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, 
-                                                    build_install: "true", build_fin: "ON", fin_build_cmd: fin_build_cmd)
+                        buildHipClangJobAndReboot(setup_cmd:     setup_cmd, 
+                                                  build_cmd:     build_cmd, 
+                                                  build_install: "true", 
+                                                  build_fin:     "ON", 
+                                                  fin_build_cmd: build_cmd,
+                                                  needs_gpu:     false, 
+                                                  needs_reboot:  false) 
                     }
                 }
                 stage('Clang Format') {
@@ -590,7 +599,11 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
+                        buildHipClangJobAndReboot(setup_cmd:    "", 
+                                                  build_cmd:    "", 
+                                                  execute_cmd:  execute_cmd, 
+                                                  needs_gpu:    false, 
+                                                  needs_reboot: false)
                     }
                 }
                 stage('Fin Clang Format') {
@@ -607,39 +620,36 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
+                        buildHipClangJobAndReboot(setup_cmd:    "", 
+                                                  build_cmd:    "", 
+                                                  execute_cmd:  execute_cmd, 
+                                                  needs_gpu:    false, 
+                                                  needs_reboot: false)
                     }
                 }
                 stage('Fin Tests') {
                     agent{ label rocmnode("nogpu") }
-                    environment{
-                        fin_build_cmd="make -j\$(nproc) fin_check"
-                    }
+                    environment{}
                     steps{
-                        buildHipClangJobAndReboot(build_fin: "ON", fin_build_cmd: fin_build_cmd, needs_gpu:false, needs_reboot:false, build_install: "true")
-                    }
-                }
-                stage('Perf DB Validity Test') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU" //-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
-                    }
-                    steps{
-                        CheckPerfDbValid(setup_flags: fin_flags, config_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
+                        buildHipClangJobAndReboot(config_targets: "all",
+                                                  build_install:  "true", 
+                                                  build_fin:      "ON",
+                                                  fin_build_cmd:  "make -j\$(nproc) fin_check", 
+                                                  needs_gpu:      false, 
+                                                  needs_reboot:   false) 
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NOGPU }
-                    }
                     agent{ label rocmnode("nogpu") }
-                    environment{
-                        HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
-                        build_cmd = "make -j\$(nproc)"
-                    }
+                    environment{}
                     steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
+                        buildHipClangJobAndReboot(build_type:     "debug",
+                                                  setup_flags:    "-DMIOPEN_BACKEND=HIPNOGPU", 
+                                                  config_targets: "all", 
+                                                  build_install:  "true",
+                                                  build_fin:      "ON", 
+                                                  needs_gpu:      false, 
+                                                  needs_reboot:   false)
                     }
                 }
             }
@@ -937,6 +947,46 @@ pipeline {
                 Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
+                stage('dbsync gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    environment{}
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull:       true, 
+                                                  setup_flags:    "-DMIOPEN_TEST_DBSYNC=1", 
+                                                  config_targets: "test_db_sync", 
+                                                  execute_cmd:    "./bin/test_db_sync",
+                                                  needs_gpu:      false, 
+                                                  needs_reboot:   false, 
+                                                  build_install:  "true")
+                    }
+                }
+                stage('dbsync gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{}
+                    steps{
+                        buildHipClangJobAndReboot(lfs_pull:       true, 
+                                                  setup_flags:    "-DMIOPEN_TEST_DBSYNC=1", 
+                                                  config_targets: "test_db_sync", 
+                                                  execute_cmd:    "./bin/test_db_sync",
+                                                  needs_gpu:      false, 
+                                                  needs_reboot:   false, 
+                                                  build_install:  "true")
+                    }
+                }
                 stage('Int8 HIP All Vega20') {
                     when {
                         beforeAgent true
