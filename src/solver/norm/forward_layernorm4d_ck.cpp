@@ -105,12 +105,12 @@ struct CKArgs
                     Data_t rstd) const
     {
         return ln_ptr->MakeArgumentPointer(xyLengths,
-			                   xyStrides,
-					   gammaStrides,
+                                           xyStrides,
+                                           gammaStrides,
                                            betaStrides,
                                            xyStrides,
-					   meanStrides,
-					   rstdStrides,
+                                           meanStrides,
+                                           rstdStrides,
                                            {1, 2, 3},
                                            epsilon,
                                            x,
