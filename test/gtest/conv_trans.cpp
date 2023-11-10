@@ -30,6 +30,8 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
     std::stringstream ss(param);
@@ -95,7 +97,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 TEST_P(ConfigWithFloat, FloatTest)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL"))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(MIOPEN_TEST_ALL{}))
     {
         Run2dDriver(miopenFloat);
     }

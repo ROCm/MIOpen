@@ -33,6 +33,8 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 static bool IsTestRunWith(const char* float_arg)
 {
@@ -110,8 +112,8 @@ TEST_P(ConfigWithInt8, Int8Test)
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_COMPOSABLEKERNEL") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && IsTestRunWith("--int8"))
+       miopen::IsEnabled(MIOPEN_TEST_COMPOSABLEKERNEL{}) &&
+       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }

@@ -7,16 +7,20 @@
 #include "conv_2d.hpp"
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    const auto tmp = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
     if(tmp.empty())
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 };
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -89,8 +93,8 @@ TEST_P(ConfigWithHalf, HalfTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--half")
+       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) &&
+       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }
@@ -111,8 +115,8 @@ TEST_P(ConfigWithInt8, Int8Test)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--int8")
+       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) &&
+       miopen::IsEnabled(MIOPEN_TEST_ALL{}) && GetFloatArg() == "--int8")
     {
         Run2dDriver(miopenInt8);
     }
