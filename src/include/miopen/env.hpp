@@ -57,15 +57,13 @@ struct ParseEnvVal<bool>
             }
         }
 
-        if(value_env_str.compare("disable") == 0 || value_env_str.compare("disabled") == 0 ||
-           value_env_str.compare("0") == 0 || value_env_str.compare("no") == 0 ||
-           value_env_str.compare("off") == 0 || value_env_str.compare("false") == 0)
+        if(value_env_str == "disable" || value_env_str == "disabled" || value_env_str == "0" ||
+           value_env_str == "no" || value_env_str == "off" || value_env_str == "false")
         {
             return false;
         }
-        else if(value_env_str.compare("enable") == 0 || value_env_str.compare("enabled") == 0 ||
-                value_env_str.compare("1") == 0 || value_env_str.compare("yes") == 0 ||
-                value_env_str.compare("on") == 0 || value_env_str.compare("true") == 0)
+        else if(value_env_str == "enable" || value_env_str == "enabled" || value_env_str == "1" ||
+                value_env_str == "yes" || value_env_str == "on" || value_env_str == "true")
         {
             return true;
         }
