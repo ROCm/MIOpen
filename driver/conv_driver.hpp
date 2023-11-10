@@ -57,6 +57,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
+#include <miopen/execution_context.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -100,8 +101,10 @@ struct AutoMiopenWarmupMode
     {
         debug_logging_quiet_prev          = miopen::debug::LoggingQuiet;
         debug_find_enforce_disable_prev   = miopen::debug::FindEnforceDisable;
+        debug_is_warmup_ongoing_prev      = miopen::debug::IsWarmupOngoing;
         miopen::debug::LoggingQuiet       = true;
         miopen::debug::FindEnforceDisable = true;
+        miopen::debug::IsWarmupOngoing    = true;
     }
     AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
     AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
@@ -111,11 +114,13 @@ struct AutoMiopenWarmupMode
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
+        miopen::debug::IsWarmupOngoing    = debug_is_warmup_ongoing_prev;
     }
 
 private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
+    bool debug_is_warmup_ongoing_prev;
 };
 
 struct AutoPrepareForGpuReference
