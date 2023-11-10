@@ -34,13 +34,21 @@
 #include <miopen/find_db.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/any_solver.hpp>
 #include <miopen/mt_queue.hpp>
 
+#include <cstdlib>
 #include <regex>
 #include <exception>
 #include <unordered_set>
+
+#define WORKAROUND_ISSUE_2493 1
+
+#define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
+#define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
+#define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
 struct KDBKey
 {
@@ -63,6 +71,50 @@ struct std::hash<KDBKey>
         return ((hash<string>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
     }
 };
+
+#if WORKAROUND_ISSUE_2493
+static void SetEnvironmentVariable(const std::string& name, const std::string& value)
+{
+#ifdef _WIN32
+    const auto ret = _putenv_s(env_var.c_str(), value.c_str());
+#else
+    const auto ret = setenv(name.c_str(), value.c_str(), 1);
+#endif
+    ASSERT_TRUE(ret == 0);
+}
+#endif // WORKAROUND_ISSUE_2493
+
+#if WORKAROUND_ISSUE_1987
+/// \todo Copied from src/db_record.cpp
+/// Transform find-db (v.1.0) ID:VALUES to the current format.
+/// Implementation is intentionally straightforward.
+/// Do not include the 1st value from VALUES (solver name) into transformed VALUES.
+/// Ignore FdbKCache_Key pair (last two values).
+/// Append id (algorithm) to VALUES.
+/// Use solver name as ID.
+static bool TransformFindDbItem10to20(std::string& id, std::string& values)
+{
+    MIOPEN_LOG_T("Legacy find-db item: " << id << ':' << values);
+    std::size_t pos = values.find(',');
+    if(pos == std::string::npos)
+        return false;
+    const auto solver = values.substr(0, pos);
+
+    const auto time_workspace_pos = pos + 1;
+    pos                           = values.find(',', time_workspace_pos);
+    if(pos == std::string::npos)
+        return false;
+    pos = values.find(',', pos + 1);
+    if(pos == std::string::npos)
+        return false;
+    const auto time_workspace = values.substr(time_workspace_pos, pos - time_workspace_pos);
+
+    values = time_workspace + ',' + id;
+    id     = solver;
+    MIOPEN_LOG_T("Transformed find-db item: " << id << ':' << values);
+    return true;
+}
+#endif
 
 namespace miopen {
 conv::Direction GetDirectionFromString(const std::string& direction)
@@ -254,8 +306,19 @@ void ParseFDBbVal(const std::string& val, std::vector<FDBVal>& fdb_vals)
     {
         const auto id_size = id_val.find(':');
         ASSERT_TRUE(id_size != std::string::npos) << "Ill formed value: " << id_val;
-        auto id        = id_val.substr(0, id_size);
-        auto values    = id_val.substr(id_size + 1);
+        auto id     = id_val.substr(0, id_size);
+        auto values = id_val.substr(id_size + 1);
+#if WORKAROUND_ISSUE_1987
+        /// \todo Copied from src/db_record.cpp
+        /// Detect legacy find-db item (v.1.0 ID:VALUES) and transform it to the current format.
+        /// For now, *only* legacy find-db record use convolution algorithm as ID, so if ID is
+        /// a valid algorithm, then we can safely assume that the item is in legacy format.
+        if(IsValidConvolutionDirAlgo(id))
+        {
+            ASSERT_TRUE(TransformFindDbItem10to20(id, values))
+                << "Ill-formed legacy find-db item: " << values;
+        }
+#endif
         const auto tmp = FDBVal{id, values};
         fdb_vals.emplace_back(tmp);
     }
@@ -369,17 +432,20 @@ void SetupPaths(boost::filesystem::path& fdb_file_path,
         << "Db file does not exist" << fdb_file_path;
     ASSERT_TRUE(boost::filesystem::exists(pdb_file_path))
         << "Db file does not exist" << pdb_file_path;
-    ASSERT_TRUE(boost::filesystem::exists(kdb_file_path))
+    ASSERT_TRUE(SKIP_KDB_PDB_TESTING || boost::filesystem::exists(kdb_file_path))
         << "Db file does not exist" << kdb_file_path;
 }
 
 TEST(DBSync, KDBTargetID)
 {
     boost::filesystem::path fdb_file_path, pdb_file_path, kdb_file_path;
+#if WORKAROUND_ISSUE_2493
+    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2493", "0");
+#endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;
     std::ignore = pdb_file_path;
-    EXPECT_FALSE(miopen::CheckKDBForTargetID(kdb_file_path));
+    EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
 }
 
 bool LogBuildMessage()
@@ -539,6 +605,7 @@ void CheckFDBEntry(size_t thread_index,
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, _ctx.GetStream());
     std::unordered_set<KDBKey> checked_kdbs;
     const auto data_size = data.size();
+    auto failures        = 0;
     for(auto kidx = thread_index; kidx < data_size; kidx += total_threads)
     {
         const auto& kinder = data.at(kidx);
@@ -550,6 +617,7 @@ void CheckFDBEntry(size_t thread_index,
         problem.Serialize(ss);
         // moment of truth
         EXPECT_TRUE(ss.str() == kinder.first)
+            << '[' << (++failures) << "] " //
             << "Failed to parse FDB key:" << kidx << ":Parsed Key: " << ss.str();
 
         std::vector<miopen::FDBVal> fdb_vals;
@@ -562,6 +630,23 @@ void CheckFDBEntry(size_t thread_index,
         for(const auto& val : fdb_vals)
         {
             miopen::solver::Id id{val.solver_id};
+            EXPECT_TRUE(id.IsValid())
+                << '[' << (++failures) << "] " //
+                << "Solver " << id.Value() << "/" << id.ToString() << ", val.solver_id "
+                << val.solver_id << ", val.vals " << val.vals;
+
+#if SKIP_CONVOCLDIRECTFWDFUSED
+            /// \todo Workaround: solv.IsApplicable() asserts with ConvOclDirectFwdFused
+            /// on gfx1030. AnySolver instance is empty (nullptr) due to some unknown reason.
+            if(val.solver_id == "ConvOclDirectFwdFused")
+            {
+                MIOPEN_LOG_I("Skipping: val.solver_id " << val.solver_id << ", val.vals "
+                                                        << val.vals);
+                ++fdb_idx;
+                continue;
+            }
+#endif
+
             const auto solv = id.GetSolver();
             // Skip MLIR
             if(miopen::StartsWith(id.ToString(), "ConvMlir"))
@@ -570,7 +655,8 @@ void CheckFDBEntry(size_t thread_index,
                 ++fdb_idx;
                 continue;
             }
-            EXPECT_TRUE(solv.IsApplicable(ctx, problem))
+            EXPECT_TRUE(solv.IsApplicable(ctx, problem)) //
+                << '[' << (++failures) << "] "           //
                 << "Solver is not applicable fdb-key:" << kinder.first
                 << " Solver: " << id.ToString();
             miopen::solver::ConvSolution sol;
@@ -578,16 +664,18 @@ void CheckFDBEntry(size_t thread_index,
             {
                 const auto pdb_entry_exists = pdb_vals.find(val.solver_id) != pdb_vals.end();
                 // TODO: Print the SQL query
-                EXPECT_TRUE(pdb_entry_exists)
+                EXPECT_TRUE(SKIP_KDB_PDB_TESTING || pdb_entry_exists)
+                    << '[' << (++failures) << "] " //
                     << "PDB entry does not exist for tunable fdb-key:" << kinder.first << ": solver"
                     << val.solver_id << " pdb-select-query: " << pdb_select_query;
                 auto db               = miopen::GetDb(ctx);
                 std::string pdb_entry = "";
-                if(pdb_entry_exists)
+                if(!SKIP_KDB_PDB_TESTING && pdb_entry_exists)
                 {
                     pdb_entry = pdb_vals.at(val.solver_id);
                     bool res  = solv.TestPerfCfgParams(ctx, problem, pdb_vals.at(val.solver_id));
                     EXPECT_TRUE(res)
+                        << '[' << (++failures) << "] " //
                         << "Invalid perf config found fdb-key:" << kinder.first
                         << " Solver: " << solv.GetSolverDbId() << ":" << pdb_vals.at(val.solver_id)
                         << " pdb-select-query: " << pdb_select_query;
@@ -603,9 +691,10 @@ void CheckFDBEntry(size_t thread_index,
                 }
                 // TODO Generate the Select query for pdb
                 EXPECT_TRUE(sol.Succeeded())
+                    << '[' << (++failures) << "] " //
                     << "Invalid solution fdb-key:" << kinder.first << " Solver: " << id.ToString()
                     << " pdb-val:" << pdb_entry;
-                if(fdb_idx == 0)
+                if(!SKIP_KDB_PDB_TESTING && fdb_idx == 0)
                 {
                     for(const auto& kern : sol.construction_params)
                     {
@@ -630,6 +719,7 @@ void CheckFDBEntry(size_t thread_index,
                             found = checked_kdbs.count(KDBKey{program_file, compile_options}) > 0;
                         if(!found)
                             EXPECT_TRUE(found)
+                                << '[' << (++failures) << "] " //
                                 << "KDB entry not found for  fdb-key:" << kinder.first
                                 << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry
                                 << " filename: " << program_file << " compile args: "
@@ -642,6 +732,7 @@ void CheckFDBEntry(size_t thread_index,
             }
             else
                 EXPECT_TRUE(pdb_vals.find(val.solver_id) == pdb_vals.end())
+                    << '[' << (++failures) << "] " //
                     << "Non-Tunable solver found in PDB" << solv.GetSolverDbId();
             ++fdb_idx;
         }
@@ -688,8 +779,10 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     std::cout << "Handle CU count: " << handle.GetMaxComputeUnits()
               << " Parameter Value: " << num_cu << std::endl;
+#if !SKIP_KDB_PDB_TESTING
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
+#endif
     const auto& find_db = miopen::ReadonlyRamDb::GetCached(fdb_file_path.string(), true);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
@@ -736,5 +829,6 @@ TEST_P(DBSync, StaticFDBSync)
 INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
                          DBSync,
                          testing::Values(std::make_pair("gfx90a", 104),
+                                         std::make_pair("gfx1030", 36),
                                          std::make_pair("gfx90a", 110),
                                          std::make_pair("gfx908", 120)));
