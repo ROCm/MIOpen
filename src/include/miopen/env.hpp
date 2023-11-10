@@ -76,6 +76,8 @@ struct ParseEnvVal<bool>
     }
 };
 
+// Supports hexadecimals (with leading "0x"), octals (if prefix is "0") and decimals (default).
+// Returns 0 if environment variable is in wrong format (strtoull fails to parse the string).
 template <>
 struct ParseEnvVal<uint64_t>
 {
