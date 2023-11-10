@@ -1,2 +1,1 @@
-# RadeonOpenCompute/rocm-cmake@cdd0f632b3a65bd4411593bb827eb664e25c80bc --build
 nlohmann/json@v3.11.2

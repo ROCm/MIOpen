@@ -283,14 +283,19 @@ enable_cppcheck(
     SUPPRESS
         ConfigurationNotChecked
         constStatement
+        constVariable
+        duplicateBreak
         duplicateCondition
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
         shadowVariable
+        unreadVariable
+        uselessCallsSubstr
         unusedFunction
         unusedPrivateFunction
         unusedStructMember
+        useStlAlgorithm
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl

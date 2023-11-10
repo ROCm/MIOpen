@@ -69,7 +69,7 @@ const int INVOKE_LIMIT = 4;
 
 class BaseFin
 {
-public:
+    public:
     BaseFin() {}
     virtual ~BaseFin() {}
     void Usage();
@@ -191,7 +191,7 @@ public:
     void SolutionHasProgram(const miopen::Handle& handle,
                             const miopen::solver::ConvSolution& solution)
     {
-        for(auto& kern : solution.construction_params) // cppcheck-suppress constVariable
+        for(auto& kern : solution.construction_params)
         {
             std::string kernel_file = kern.kernel_file;
             std::string comp_opts   = kern.comp_options;
@@ -270,7 +270,7 @@ public:
         return kernel_time;
     }
 
-protected:
+    protected:
     template <typename Tgpu>
     void InitDataType();
     miopenDataType_t data_type = miopenFloat; // the datatype passed in through the command line
@@ -296,7 +296,7 @@ template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
     os << "{ size: " << vs.size() << ", entries: ";
-    for(const auto& v : vs)
+    for(auto& v : vs)
         os << v << " ";
     os << "}";
     return os;
