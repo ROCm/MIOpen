@@ -367,27 +367,29 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
-                                                   int value,
+                                                   std::string value,
                                                    const ProblemDescription& problem)
 {
+    int val = stoi(value);
     switch(index)
     {
-    case 0: read_size = value; break;
-    case 1: k_mult = value; break;
-    case 2: chunks_per_wave = value; break;
-    case 3: chunk_size = value; break;
-    case 4: n_mult = value; break;
-    case 5: c_mult = value; break;
-    case 6: waves_c_in_group = value; break;
-    case 7: waves_k_in_group = value; break;
+    case 0: read_size = val; break;
+    case 1: k_mult = val; break;
+    case 2: chunks_per_wave = val; break;
+    case 3: chunk_size = val; break;
+    case 4: n_mult = val; break;
+    case 5: c_mult = val; break;
+    case 6: waves_c_in_group = val; break;
+    case 7: waves_k_in_group = val; break;
     default: return false;
     }
     // this function may leave PerformanceConfigConvAsm1x1U in a partially valid or invalid state
     return this->IsPartiallyValid(problem, index + 1);
 }
 
-static bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem)
+bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
@@ -395,6 +397,9 @@ static bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescript
     if(problem.GetKernelStrideH() != 1)
         return false;
     return true;
+#else
+    return false;
+#endif
 }
 
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
@@ -423,7 +428,7 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionCon
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
     std::vector<float> features     = TransformFeatures(problem, n);
-    if(ai::tuning::ModelSetParams(arch, solver, features, [&](int idx, int value) {
+    if(ai::tuning::ModelSetParams(arch, solver, features, true, [&](int idx, std::string value) {
            return this->ModelApplyToken(idx, value, problem);
        }))
     {
@@ -485,7 +490,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
     if(problem.GetInDataType() == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+
     if(IsModelApplicable(ctx, problem))
     {
         bool valid = false;
@@ -493,9 +498,6 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
         if(valid)
             return;
     }
-#else
-    std::ignore = ctx;
-#endif
     StaticHeuristic(problem);
     MIOPEN_LOG_I(ToString());
 }

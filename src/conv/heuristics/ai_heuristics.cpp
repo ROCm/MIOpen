@@ -436,7 +436,7 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
     num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
-    tuning_decodings = metadata["decodings"]["tunings"].get<std::unordered_map<std::string, int>>();
+    tuning_decodings = metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
 
 class Model
@@ -450,10 +450,15 @@ public:
     {
     }
     virtual ~Model() = default;
-    fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim) const
+    fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim, bool transform) const
     {
-        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
-        return encoder.predict({input_tensor});
+        if(transform)
+        {
+            fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, dim), features);
+            return encoder.predict({input_tensor});
+        }
+            fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(dim, 1), features);
+            return encoder.predict({input_tensor});
     }
     fdeep::tensors Decode(const float prev_token, const fdeep::tensors& context) const
     {
@@ -509,11 +514,17 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     const std::vector<float>& features,
-                    std::function<bool(int, int)> validator)
+                    bool transform_features,
+                    std::function<bool(std::size_t, std::string)> validator)
 {
     auto model             = GetModel(arch, solver);
-    int dim                = std::sqrt(features.size());
-    fdeep::tensors context = model->Encode(features, dim);
+    int dim = 0;
+    if(transform_features)
+        dim                = std::sqrt(features.size());
+    else
+        dim = features.size();
+    auto start = std::chrono::high_resolution_clock::now();
+    fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
     for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
     {
@@ -529,9 +540,9 @@ bool ModelSetParams(const std::string& arch,
         {
             int token = pq.top().second;
             // convert index to token value
-            int value = model->metadata.tuning_decodings[std::to_string(token)];
+            std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
-            if(value < 0)
+            if(value == "-1")
                 return false;
             if(validator(i, value))
             {
@@ -543,6 +554,9 @@ bool ModelSetParams(const std::string& arch,
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Time taken by Model: " << duration.count() << " mircoseconds" << std::endl;
     return true;
 }
 

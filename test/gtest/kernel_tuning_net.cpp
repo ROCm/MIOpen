@@ -6,7 +6,6 @@
 
 struct KernelTuningNetTestCase : AIModelTestCase
 {
-    bool expected_valid;
     std::string expected_config;
 };
 
@@ -16,15 +15,7 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNCHW},
-             true,
-             "1,16,1,64,2,2,1,4"},
-
-            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-              miopen::conv::Direction::Forward,
-              miopenFloat,
-              miopenTensorNCHW},
-             false,
-             ""}};
+             "1,16,1,64,2,2,1,4"}};
 }
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
@@ -33,9 +24,26 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
-             true,
              "2,8,4,16,1,4,1,4"}};
 }
+
+std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsFloatTestCases()
+{
+    return {{{{128, 64, 209, 209, 128, 3, 3, 0, 0, 2, 2, 1, 1, miopenConvolution},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNHWC},
+             "DeviceGroupedConvFwdMultipleD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, 4, 4, 1, 1>"}};
+}
+
+// std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsHalfTestCases()
+// {
+//     return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+//               miopen::conv::Direction::Forward,
+//               miopenHalf,
+//               miopenTensorNHWC},
+//              "2,8,4,16,1,4,1,4"}};
+// }
 
 template <typename G>
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
@@ -62,15 +70,12 @@ protected:
                                                          input_tensor.desc,
                                                          conv_desc,
                                                          test_case.direction);
-
-        expected_valid = test_case.expected_valid;
         expected       = test_case.expected_config;
 #else
         GTEST_SKIP();
 #endif
     }
     miopen::ProblemDescription problem;
-    bool expected_valid;
     std::string expected;
 };
 
@@ -84,28 +89,20 @@ struct KernelTuningNetTestHalf : KernelTuningNetTest<half_float::half>
 
 template <typename T>
 void TestParameterPredictionModel(miopen::ProblemDescription problem,
-                                  bool expected_valid,
                                   std::string expected)
 {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     auto&& handle = get_handle();
-    if(handle.GetDeviceName() != "gfx908")
-        GTEST_SKIP();
     miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
     T perf_config;
-    bool valid = false;
-    perf_config.RunParmeterPredictionModel(ctx, problem, valid);
-    ASSERT_EQ(valid, expected_valid)
-        << "Expected parameters to be "
-        << (expected_valid ? std::string("valid") : std::string("invalid")) << " but were "
-        << (valid ? std::string("valid") : std::string("invalid"));
-    if(expected_valid)
-    {
-        EXPECT_EQ(perf_config.ToString(), expected)
-            << "Expected parameters: " << expected
-            << "\nPredicted parameters: " << perf_config.ToString();
-    }
+    if(!perf_config.IsModelApplicable(ctx, problem))
+        GTEST_SKIP();
+    perf_config.HeuristicInit(ctx, problem);
+
+    EXPECT_EQ(perf_config.ToString(), expected)
+        << "Expected parameters: " << expected
+        << "\nPredicted parameters: " << perf_config.ToString();
 #else
     std::ignore = problem;
     std::ignore = expected_valid;
@@ -117,14 +114,26 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
 TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
 {
     TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
-        problem, expected_valid, expected);
+        problem, expected);
 }
 
 TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
 {
     TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
-        problem, expected_valid, expected);
+        problem, expected);
 }
+
+TEST_P(KernelTuningNetTestFloat, GetConvHipIgemmGroupFwdXdlopsParameterPredictionModelFloat)
+{
+    TestParameterPredictionModel<miopen::solver::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
+        problem, expected);
+}
+
+// TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
+// {
+//     TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
+//         problem, expected_valid, expected);
+// }
 
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelFloatTest,
                          KernelTuningNetTestFloat,
@@ -133,3 +142,11 @@ INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelFloatTest,
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelHalfTest,
                          KernelTuningNetTestHalf,
                          testing::ValuesIn(GetConvAsm1x1UHalfTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(GetConvHipIgemmGroupFwdXdlopsParameterPredictionModelFloatTest,
+                         KernelTuningNetTestFloat,
+                         testing::ValuesIn(GetConvHipIgemmGroupFwdXdlopsFloatTestCases()));
+
+// INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelHalfTest,
+//                          KernelTuningNetTestHalf,
+//                          testing::ValuesIn(GetConvAsm1x1UHalfTestCases()));

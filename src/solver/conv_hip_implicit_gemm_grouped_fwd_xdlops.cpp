@@ -33,9 +33,12 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <nlohmann/json_fwd.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -163,7 +166,7 @@ struct CKArgs
 } // namespace
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem) //should be parameterized with execution context
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
     index         = 0;
@@ -185,23 +188,148 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
+std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
+{
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(kernel.substr(kernel.find('<') + 1, kernel.find('>') - kernel.find('<') - 1));
+    while (std::getline(tokenStream, token, ',')) {
+        token.erase(remove_if(token.begin(), token.end(), isspace), token.end()); // strip whitespace
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs(void)
+{
+    for (int i=0; i < valid_kernels.size(); i++)
+    {
+        if(valid_kernels[i].find("DeviceGroupedConvFwdMultipleD_Xdl_CShuffle") != std::string::npos)
+        {
+            heuristic_indexes.push_back(i);
+            heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
+        }
+    }
+}
+
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, std::string value)
+{
+    
+    std::vector<int> new_heuristic_indexes;
+    new_heuristic_indexes.reserve(heuristic_indexes.size());
+    if(idx >= 5)
+        idx += 2; //skip MPerXDL and NPerXDL as they are constant
+    for (int i=0; i < heuristic_indexes.size(); i++)
+    {
+        if(heuristic_kernels[heuristic_indexes[i]][idx] == value){
+            new_heuristic_indexes.push_back(heuristic_indexes[i]);
+        }
+    }
+    if(new_heuristic_indexes.empty())
+        return false;
+    heuristic_indexes = new_heuristic_indexes;
+    return true;
+}
+
+static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
+{
+    std::size_t n = 18;
+    std::vector<float> features(n, 0.0f);
+    features[0] = problem.GetInDataType() == miopenFloat ? 2 : 1;
+    features[1] = problem.GetInChannels_();
+    features[2] = problem.GetInHeight_();
+    features[3] = problem.GetInWidth_();
+    features[4] = problem.GetOutChannels_();
+    features[5] = problem.GetOutHeight_();
+    features[6] = problem.GetOutWidth_();
+    features[7] = problem.GetWeightsHeight_();
+    features[8] = problem.GetWeightsWidth_();
+    features[9] = problem.GetPadH();
+    features[10] = problem.GetPadW();
+    features[11] = problem.GetKernelStrideH();
+    features[12] = problem.GetKernelStrideW();
+    features[13] = problem.GetDilationH();
+    features[14] = problem.GetDilationW();
+    features[15] = problem.GetBatchSize_();
+    features[16] = problem.GetGroupCount();
+    features[17] = num_cu;
+    return features;
+}
+
+template <typename DataType>
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
+    const ExecutionContext& ctx, const ProblemDescription& problem)
+{
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem); //filter valid_kernel ID's
+    InitHeuristicKernelIDs();
+    // static const std::size_t n      = 8;
+    static const std::string& arch  = ctx.GetStream().GetDeviceName();
+    static const std::string solver = "ConvHipIgemmGroupFwdXdlops";
+    std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits());
+    if(ai::tuning::ModelSetParams(arch, solver, features, false, [&](int idx, std::string value) {
+           return this->ModelApplyToken(idx, value);
+        }))
+    {
+        if(heuristic_indexes.size() == 1)
+        {
+            index = heuristic_indexes[0];
+            kernel_id = valid_kernels[index];
+        }
+        else
+        {
+            MIOPEN_LOG_E("Heuristic_indexes has more than 1 viable kernel_id, which should not be possible");
+            assert(false);
+        }
+        MIOPEN_LOG_I("Params set by AI: " << ToString());
+    }
+    else
+    {
+        index         = 0;
+        kernel_id     = valid_kernels[index];
+    }
+}
+
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+{
+    if(ctx.GetStream().GetDeviceName() != "gfx90a")
+        return false;
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
+        return false;
+    if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR{}))
+        return false;
+    return true;
+}
+
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
+    [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)
 {
+    //these seem redundant
     index     = 0;
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
+
+    if(IsModelApplicable(ctx, problem))
     {
-    case miopenHalf: Init<ck::half_t>(problem); break;
-    case miopenFloat: Init<float>(problem); break;
-    case miopenInt8: Init<int8_t>(problem); break;
-    case miopenInt32:
-    case miopenBFloat16:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenDouble: break;
+        if(problem.GetInDataType() == miopenFloat)
+            RunParameterPredictionModel<float>(ctx, problem);
+        else
+            RunParameterPredictionModel<ck::half_t>(ctx, problem);
+    }
+    else
+    {
+        switch(problem.GetInDataType())
+        {
+            case miopenHalf: Init<ck::half_t>(problem); break;
+            case miopenFloat: Init<float>(problem); break;
+            case miopenInt8: Init<int8_t>(problem); break;
+            case miopenInt32:
+            case miopenBFloat16:
+            case miopenFloat8:
+            case miopenBFloat8:
+            case miopenDouble: break;
+        }
     }
 #endif
 }
@@ -210,7 +338,17 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
 {
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        switch(problem.GetInDataType())
+        {
+            case miopenHalf: Init<ck::half_t>(problem); break;
+            case miopenFloat: Init<float>(problem); break;
+            case miopenInt8: Init<int8_t>(problem); break;
+            case miopenInt32:
+            case miopenBFloat16:
+            case miopenFloat8:
+            case miopenBFloat8:
+            case miopenDouble: break;
+        }
         assert(!valid_kernels.empty());
         return true;
     }
@@ -256,10 +394,10 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemmGroupFwdXdlops
 ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 

@@ -364,11 +364,7 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 
     void StaticHeuristic(const ProblemDescription& problem);
     void HeuristicInit(const ExecutionContext&, const ProblemDescription&);
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    void
-    RunParmeterPredictionModel(const ExecutionContext&, const ProblemDescription&, bool& valid);
-    bool ModelApplyToken(int index, int value, const ProblemDescription&);
-#endif
+    bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const;
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
@@ -388,6 +384,9 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
+    void
+    RunParmeterPredictionModel(const ExecutionContext&, const ProblemDescription&, bool& valid);
+    bool ModelApplyToken(int index, std::string value, const ProblemDescription&);
 #endif
     bool IsValidImpl(const ProblemDescription& problem, int sequence_length) const;
     bool IsValidValueImpl(int sequence_length) const;
@@ -4550,7 +4549,7 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
         : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const ProblemDescription&);
+    void HeuristicInit(const ExecutionContext&, const ProblemDescription&);
     bool SetNextValue(const ProblemDescription&);
     bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
@@ -4559,12 +4558,18 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     }
     bool IsValid(const ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
-
+    bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const;
 private:
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     void Init(const ProblemDescription&);
     template <typename DataType>
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    template <typename DataType>
+    void RunParameterPredictionModel(const ExecutionContext& ctx, const ProblemDescription& problem);
+    void InitHeuristicKernelIDs();
+    bool ModelApplyToken(int idx, std::string value);
 };
 
 struct ConvHipImplicitGemmGroupFwdXdlops final
