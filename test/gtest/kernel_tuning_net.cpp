@@ -40,13 +40,10 @@ protected:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
         auto test_case           = GetParam();
         miopen::TensorDescriptor input_tensor_desc   = miopen::TensorDescriptor(test_case.data_type, test_case.layout, test_case.conv.GetInput());
-        std::cout << input_tensor_desc.ToString() << std::endl;
         miopen::TensorDescriptor weights_tensor_desc = miopen::TensorDescriptor(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
-        std::cout << weights_tensor_desc.ToString() << std::endl;
         auto conv_desc           = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor_desc, weights_tensor_desc, test_case.data_type);
-        std::cout << output_desc.ToString() << std::endl;
         problem = (test_case.direction == miopen::conv::Direction::Forward)
                       ? miopen::conv::ProblemDescription(input_tensor_desc,
                                                          weights_tensor_desc,
@@ -104,7 +101,7 @@ TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
         problem, expected);
 }
 
-TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops, GetConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
+TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops, ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel<miopen::solver::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
         problem, expected);
@@ -114,6 +111,6 @@ INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,
                          KernelTuningNetTestConvAsm1x1U,
                          testing::ValuesIn(GetConvAsm1x1UTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(GetConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
+INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupFwdXdlopsTestCases()));
