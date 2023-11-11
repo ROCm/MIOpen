@@ -29,6 +29,7 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "workspace.hpp"
 #include "rnn_util.hpp"
 #include "random.hpp"
 #include <array>
@@ -633,8 +634,8 @@ struct verify_ctcloss
                                                                    inputLengths.data(),
                                                                    miopenCTCLossAlgo_t(0));
 
-        auto workSpace     = tensor<T>{workSpaceSize / sizeof(T)};
-        auto workSpace_dev = handle.Write(workSpace.data);
+        Workspace wspace{};
+        wspace.resize(workSpaceSize);
 
         auto losses_gpu = losses;
         auto grads_gpu  = grads;
@@ -653,8 +654,8 @@ struct verify_ctcloss
                             grads.desc,
                             grads_dev.get(),
                             miopenCTCLossAlgo_t(0),
-                            workSpace_dev.get(),
-                            workSpaceSize);
+                            wspace.ptr(),
+                            wspace.size());
 
         losses_gpu.data = handle.Read<T>(losses_dev, losses_gpu.data.size());
         grads_gpu.data  = handle.Read<T>(grads_dev, grads_gpu.data.size());

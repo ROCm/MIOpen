@@ -27,6 +27,7 @@
 #include "driver.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "workspace.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "random.hpp"
@@ -60,7 +61,7 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices( // NOLINT (hicpp-member-init)
+    verify_reduce_with_indices(
         const miopen::ReduceTensorDescriptor& reduce_,
         const tensor<T>& input_,
         const tensor<T>& output_,
@@ -68,20 +69,20 @@ struct verify_reduce_with_indices
         const tensor<int>& indices_,
         float alpha_,
         float beta_)
+      : 
+        reduce(reduce_),
+        input(input_),
+        output(output_),
+        workspace(workspace_),
+        indices(indices_),
+        alpha(alpha_),
+        beta(beta_),
+        reduceOp(reduce.reduceTensorOp_)
+        compTypeVal(reduce.reduceTensorCompType_),
+        nanOpt     (reduce.reduceTensorNanOpt_),
+        indicesOpt (reduce.reduceTensorIndices_),
+        indicesType(reduce.reduceTensorIndicesType_)
     {
-        reduce    = reduce_;
-        input     = input_;
-        output    = output_;
-        workspace = workspace_;
-        indices   = indices_;
-        alpha     = alpha_;
-        beta      = beta_;
-
-        reduceOp    = reduce.reduceTensorOp_;
-        compTypeVal = reduce.reduceTensorCompType_;
-        nanOpt      = reduce.reduceTensorNanOpt_;
-        indicesOpt  = reduce.reduceTensorIndices_;
-        indicesType = reduce.reduceTensorIndicesType_;
     }
 
     tensor<float> cpu() const
@@ -339,10 +340,11 @@ struct verify_reduce_with_indices
         auto res         = output;
         auto res_indices = indices;
 
-        auto indices_dev = handle.Write(indices.data);
+        Workspace idxspace{};
+        idxspace.Write(indices.data);
 
-        std::size_t ws_sizeInBytes      = workspace.desc.GetElementSize() * sizeof(T);
-        std::size_t indices_sizeInBytes = indices.desc.GetElementSize() * sizeof(int);
+        Workspace wspace{};
+        wspace.Write(workspace.data);
 
         const double alpha64 = alpha;
         const double beta64  = beta;
@@ -356,13 +358,11 @@ struct verify_reduce_with_indices
 
         if(ws_sizeInBytes > 0)
         {
-            auto workspace_dev = handle.Write(workspace.data);
-
             reduce.ReduceTensor(get_handle(),
                                 indices_dev.get(),
                                 indices_sizeInBytes,
-                                workspace_dev.get(),
-                                ws_sizeInBytes,
+                                wspace.ptr(),
+                                wspace.size(),
                                 alphaPtr,
                                 input.desc,
                                 input_dev.get(),
@@ -373,8 +373,8 @@ struct verify_reduce_with_indices
         else
         {
             reduce.ReduceTensor(get_handle(),
-                                indices_dev.get(),
-                                indices_sizeInBytes,
+                                idxspace.ptr(),
+                                idxspace.size(),
                                 nullptr,
                                 0,
                                 alphaPtr,
@@ -386,7 +386,7 @@ struct verify_reduce_with_indices
         };
 
         res.data         = handle.Read<T>(output_dev, res.data.size());
-        res_indices.data = handle.Read<int>(indices_dev, res_indices.data.size());
+        res_indices.data = idxspace.Read<decltype(res_indices.data)>();
 
         return (std::make_tuple(res, res_indices));
     }
@@ -639,7 +639,8 @@ struct verify_reduce_no_indices
         // replicate
         auto res = output;
 
-        std::size_t ws_sizeInBytes = workspace.desc.GetElementSize() * sizeof(T);
+        Workspace wspace{};
+        wspace.Write(workspace.data);
 
         const double alpha64 = alpha;
         const double beta64  = beta;
@@ -653,13 +654,11 @@ struct verify_reduce_no_indices
 
         if(ws_sizeInBytes > 0)
         {
-            auto workspace_dev = handle.Write(workspace.data);
-
             reduce.ReduceTensor(get_handle(),
                                 nullptr,
                                 0,
-                                workspace_dev.get(),
-                                ws_sizeInBytes,
+                                wspace.ptr(),
+                                wspace.size(),
                                 alphaPtr,
                                 input.desc,
                                 input_dev.get(),

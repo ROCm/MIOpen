@@ -1,0 +1,149 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#pragma once
+
+#include <hip/hip_runtime.h>
+
+#include "get_handle.hpp"
+
+class Workspace {
+
+  // RAII class for hip allocations
+  class GPUBuffer {
+  public:
+    GPUBuffer() = default;
+
+    explicit GPUBuffer(size_t num_bytes) {
+      assert(num_bytes > 0);
+      auto s = hipMalloc(&buf_, num_bytes);
+      if (s != hipSuccess || !buf_) {
+        std::abort();
+      }
+    }
+
+    ~GPUBuffer() {
+      auto s = hipFree(buf_);
+      buf_ = nullptr;
+      if (s != hipSuccess) {
+        std::abort();
+      }
+    }
+
+    void* ptr() { return buf_; }
+    void* ptr() const { return buf_; }
+
+    GPUBuffer(const GPUBuffer&) = delete;
+    GPUBuffer& operator = (const GPUBuffer&) = delete;
+
+    GPUBuffer(GPUBuffer&& that): 
+      buf_(std::move(that.buf_)) {
+        that.buf_ = nullptr; // take over ownership
+      }
+
+    GPUBuffer& operator = (GPUBuffer&& that) {
+      std::swap(this->buf_, that.buf_);
+      return *this;
+    }
+
+  private:
+    void* buf_ = nullptr;
+  }; 
+
+public:
+  Workspace() = default;
+  
+  Workspace(const Workspace&) = delete;
+  Workspace& operator = (const Workspace&) = delete;
+  Workspace(Workspace&&) = default;
+  Workspace& operator = (Workspace&&) = default;
+
+  size_t size() const { return sz_; }
+
+  void resize(size_t sz_in_bytes) {
+    sz_ = sz_in_bytes;
+    AdjustToSize();
+  }
+
+
+  // for use in miopen .*GetWorkSpaceSize() methods where a pointer to size_t is
+  // passed to capture the size. Must call AdjustToSize() after calling such a method
+  size_t* SizePtr() { return &sz_; }
+
+#if 0
+  auto ptr() const { return data_.get(); }
+  auto ptr() { return data_.get(); }
+  void AdjustToSize() {
+    if (sz_ == 0) {
+      data_.reset();
+    } else {
+      data_ = handle_.Create(sz_);
+    }
+  }
+#else
+  auto ptr() const { return gpu_buf_.ptr(); }
+
+  auto ptr() { return gpu_buf_.ptr(); }
+
+  void AdjustToSize() {
+    if (sz_ != 0) {
+      gpu_buf_ = GPUBuffer(sz_);
+    } else {
+      gpu_buf_ = GPUBuffer();
+    }
+  }
+#endif
+
+  template <typename V>
+  void Write(const V& vec) {
+    using T = typename V::value_type;
+    auto bytes = vec.size() * sizeof(T);
+    resize(bytes);
+    auto s = hipMemcpyHostToDevice(this->ptr(), &vec[0], bytes);
+    if(s != hipSuccess) {
+      abort();
+    }
+  }
+
+  template <typename V>
+  V Read() const {
+    using T = typename V::value_type;
+    size_t num_elem = size() / sizeof(T);
+    V ret(num_elem);
+    auto s = hipMemcpyDeviceToHost(&ret[0], ptr(), size());
+    if (s != hipSuccess) {
+      abort();
+    }
+    return ret;
+  }
+
+private:
+  // miopen::Handle& handle_;
+  // miopen::Allocator::ManageDataPtr data_{};
+  GPUBuffer gpu_buf_{};
+  size_t sz_{};
+
+
+};
