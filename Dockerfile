@@ -96,11 +96,17 @@ RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/b
     cd /tmp/ccache-${CCACHE_COMMIT}/build && \
     cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 
+
+# purge existing composable kernel installed with ROCm
+# hence cannot use autoremove since it will remove more components
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
+    composablekernel-dev
 ARG COMPILER_LAUNCHER=""
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        sudo rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        sudo rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 
