@@ -223,7 +223,7 @@ private:
                     GetGemmProblem(op->GetIdx(), miopen::gemm::Direction::ForwardInference);
                 net_config << prob.MakeNetworkConfig().ToString();
             }
-            else if(op->kind() == miopenFusionOpMatricxAdd)
+            else if(op->kind() == miopenFusionOpMatrixAdd)
             {
                 const auto prob = GetMatrixAddProblem(
                     op->GetIdx(), miopen::matrixAdd::Direction::ForwardInference);

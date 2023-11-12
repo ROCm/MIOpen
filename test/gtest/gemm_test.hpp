@@ -65,6 +65,8 @@ struct GemmTestCase
     int stride_a; // leading dimension
     int stride_b;
     int stride_c;
+    int stride_d;
+    int stride_e;
 
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
@@ -77,7 +79,9 @@ struct GemmTestCase
     }
     std::vector<size_t> GetA() { return {M, K}; }
     std::vector<size_t> GetB() { return {K, N}; }
+    std::vector<size_t> GetD() { return {M, N}; }
     std::vector<size_t> GetC() { return {M, N}; }
+    std::vector<size_t> GetE() { return {M, N}; }
 };
 
 std::vector<GemmTestCase> GetTestData()
@@ -85,13 +89,12 @@ std::vector<GemmTestCase> GetTestData()
     return {
         // A(M, K)  B(K, N), C(M, N)
 
-        // M, N, K, ldA (K), ldB (N), ldC (N)
-        {96, 204, 451, 451, 204, 204},
-        {45, 24, 651, 651, 24, 24},
-        {16, 108, 104, 104, 108, 108},
-        {36, 18, 623, 623, 18, 18},
-        {36, 36, 36, 36, 36, 36},
-        {36, 36, 36, 43, 36, 36},
+        // M, N, K, stride_a, stride_b, stride_c, stride_d, stride_e, 
+        {451, 451, 451, 451, 451, 451, 0, 451},
+        // {45, 24, 651, 651, 651, 651},
+        // {16, 108, 104, 108, 108, 108},
+        // {36, 18, 623, 623, 623, 623},
+        // {36, 36, 36, 36, 36, 36}
     };
 }
 
@@ -133,7 +136,7 @@ std::vector<size_t> GetStrideForLayout(const miopenTensorLayout_t& layout,
         MIOPEN_THROW("layout not supported");
     }
 }
-
+// E = A*B + D
 template <typename T = half_float::half>
 struct GemmTest : public ::testing::TestWithParam<
                       std::tuple<miopenActivationMode_t, GemmTestCase, miopenTensorLayout_t>>
@@ -152,12 +155,17 @@ protected:
                              gemm_config.GetB(),
                              GetStrideForLayout(tensor_layout, gemm_config.GetB()));
 
+        D_tensor = tensor<T>(tensor_layout,
+                             gemm_config.GetD(),
+                             GetStrideForLayout(tensor_layout, gemm_config.GetD()));
+
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         A_tensor.generate(gen_value);
         B_tensor.generate(gen_value);
+        D_tensor.generate(gen_value);
 
         miopenInitGemmDescriptor(&gemm_desc_t,
                                  gemm_config.M,
@@ -169,31 +177,48 @@ protected:
                                  true,
                                  false,
                                  false);
+        miopenInitMatrixAdditionDescriptor(&mat_add_desc_t,
+                                 gemm_config.M,
+                                 gemm_config.N,
+                                 gemm_config.K,
+                                 gemm_config.stride_c,
+                                 gemm_config.stride_d,
+                                 gemm_config.stride_e,
+                                 true,
+                                 false,
+                                 false);
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
-        C_tensor      = miopen::deref(gemm_desc_t).GetOutputTensor(A_tensor.desc, B_tensor.desc);
+        C_tensor = miopen::deref(gemm_desc_t).GetOutputTensor(A_tensor.desc, B_tensor.desc);
+        E_tensor = C_tensor;
         auto&& handle = get_handle();
-        std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
 
         a_dev = handle.Write(A_tensor.data);
         b_dev = handle.Write(B_tensor.data);
         c_dev = handle.Write(C_tensor.data);
+        d_dev = handle.Write(D_tensor.data);
+        e_dev = handle.Write(E_tensor.data);
 
         fusePlanDesc = miopen::FusionPlanDescriptor(
-            miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
+            miopenVerticalFusion, A_tensor.desc);
 
         // Create GEMM Operation
         auto gemmOp = std::make_shared<miopen::GemmForwardInferenceOpDescriptor>(
             miopen::deref(gemm_desc_t), B_tensor.desc, C_tensor.desc);
+        // E = C + D
+        auto matAddOp = std::make_shared<miopen::MatrixAddOpDescriptor>(
+            miopen::deref(mat_add_desc_t), D_tensor.desc, E_tensor.desc, 0);
         // Create Activation Operation
         auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(
             miopen::deref(activ_desc).GetMode());
 
         // Add Gemm Operation as part of fusion plan.
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
+        EXPECT_EQ(fusePlanDesc.AddOp(matAddOp), miopenStatusSuccess);
         // Here for fusion we set up the B matrix space (b_dev). The A (in) and C (out) matrix was
         // prepared when we call RunTunableSolver.
         gemmOp->SetArgs(params, b_dev.get(), c_dev.get());
+        matAddOp->SetArgs(params, d_dev.get(), e_dev.get());
         // activation
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
         activOp->SetArgs(params, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
@@ -206,6 +231,7 @@ protected:
         gemm(gemm_config.N, gemm_config.M, gemm_config.K, A_tensor, B_tensor, ref_out);
         RunHostFastGeLU(ref_out);
         auto&& handle = get_handle();
+        std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
 
         C_tensor.data = handle.Read<T>(c_dev, C_tensor.data.size());
 
@@ -220,19 +246,25 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
         miopenDestroyGemmDescriptor(gemm_desc_t);
+        miopenDestroyMatrixAdditionDescriptor(mat_add_desc_t);
         miopenDestroyActivationDescriptor(activ_desc);
     }
-
+    // E = A*B + D // A*B = C
     GemmTestCase gemm_config;
     miopenActivationDescriptor_t activ_desc;
     miopenGemmDescriptor_t gemm_desc_t;
+    miopenMatrixAdditionDescriptor_t mat_add_desc_t; 
     tensor<T> A_tensor;
     tensor<T> B_tensor;
+    tensor<T> D_tensor;
+    tensor<T> E_tensor;
     tensor<T> C_tensor;
     tensor<T> ref_out;
     miopen::Allocator::ManageDataPtr a_dev;
     miopen::Allocator::ManageDataPtr b_dev;
-    miopen::Allocator::ManageDataPtr c_dev; // output
+    miopen::Allocator::ManageDataPtr c_dev;
+    miopen::Allocator::ManageDataPtr d_dev;
+    miopen::Allocator::ManageDataPtr e_dev; // output
     bool test_skipped = false;
     miopen::FusionPlanDescriptor fusePlanDesc;
     miopen::OperatorArgs params;

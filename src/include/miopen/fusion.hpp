@@ -266,7 +266,7 @@ struct MatrixAddOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t SetArgs(OperatorArgs& args, ConstData_t d_data, ConstData_t e_data);
     miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
-    miopenFusionOp_t kind() const override { return miopenFusionOpMatricxAdd; };
+    miopenFusionOp_t kind() const override { return miopenFusionOpMatrixAdd; };
 
     matrixOps::MatrixAdditionDescriptor matrix_add_descriptor;
     TensorDescriptor D_desc;

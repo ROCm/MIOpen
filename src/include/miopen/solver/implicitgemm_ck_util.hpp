@@ -113,12 +113,21 @@ ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-
                 const auto enable_profiling = handle.IsProfilingEnabled();
-                float elapsed_time =
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                float elapsed_time = 0.0;
+                if constexpr (std::is_same_v<CastType, conv::DataInvokeParams>
+                           || std::is_same_v<CastType, conv::WrWInvokeParams>) {
+                    auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                    auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                    elapsed_time =
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                }
+                else {
+                    auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
+                    auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                    elapsed_time =
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+                }
                 if(enable_profiling)
                 {
                     handle.ResetKernelTime();
