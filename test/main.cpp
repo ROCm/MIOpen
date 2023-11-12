@@ -32,11 +32,7 @@
 #include <miopen/tensor_extra.hpp>
 #include <vector>
 
-#ifdef __MINGW32__
-#include <mingw.thread.h>
-#else
 #include <thread>
-#endif
 
 struct handle_fixture
 {
