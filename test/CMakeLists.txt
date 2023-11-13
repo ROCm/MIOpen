@@ -50,7 +50,6 @@ endif()
     configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
  endforeach()
 
-include(CTest)
 include(CheckCXXCompilerFlag)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
