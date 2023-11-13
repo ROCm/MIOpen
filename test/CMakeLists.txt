@@ -293,14 +293,7 @@ function(add_test_command NAME EXE)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
-        set(WINPATH)
-        foreach(PATH ${CMAKE_FIND_ROOT_PATH})
-            list(APPEND WINPATH ${PATH}/bin)
-        endforeach()
-        file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd"
-            CONTENT "set PATH=${WINPATH};%PATH%
-                    %1 ${ARGN}")
-        add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
+        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${EXE}> ${ARGN})
     else()
         if(MIOPEN_TEST_GDB)
             file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
