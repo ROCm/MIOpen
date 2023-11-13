@@ -688,7 +688,6 @@ enable_clang_tidy(
         "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
-
 )
 include(CppCheck)
 enable_cppcheck(
@@ -787,5 +786,5 @@ add_subdirectory(test)
 add_subdirectory(speedtests)
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
-add_subdirectory(fin)
+    add_subdirectory(fin)
 endif()
