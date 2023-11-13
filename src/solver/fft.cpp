@@ -37,6 +37,9 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
@@ -112,15 +115,13 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
     std::ignore = ctx;
 
     // disable running any FFT based convolutions by checking this env variable
-    if(problem.direction.IsBackwardWrW() || !problem.IsFp32())
+    if(problem.IsDirectionBackwardWrW() || !problem.IsFp32())
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
-    const auto is_fwd    = problem.direction.IsForward();
+    const auto is_fwd    = problem.IsDirectionForward();
     decltype(auto) conv  = problem.GetConv();
     decltype(auto) xDesc = is_fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = is_fwd ? problem.GetOut() : problem.GetIn();
@@ -160,7 +161,7 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
 
 size_t fft::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
-    const auto fwd       = problem.direction.IsForward();
+    const auto fwd       = problem.IsDirectionForward();
     decltype(auto) xDesc = fwd ? problem.GetIn() : problem.GetOut();
     decltype(auto) yDesc = fwd ? problem.GetOut() : problem.GetIn();
     decltype(auto) wDesc = problem.GetWeights();
@@ -366,7 +367,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (sizeof(float) * 2 * 2));
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
     {
         parms += " -DCFF_BACKWARD";
     }
@@ -424,7 +425,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
         const int padding = FFTConvParams::TransposePadding;
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& params  = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors = params.tensors;
 
             if(params.workSpaceSize < workSpaceSize)
@@ -484,5 +485,6 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     return sol;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

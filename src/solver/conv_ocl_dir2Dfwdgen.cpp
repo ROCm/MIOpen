@@ -33,6 +33,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
@@ -45,18 +48,16 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.GetGroupCount() > 1)
         return false;
 
@@ -86,7 +87,7 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
             return false;
     }
 
-    return problem.direction.IsForward()
+    return problem.IsDirectionForward()
         && problem.GetKernelStrideW() == problem.GetKernelStrideH()
         && problem.GetPadW() == problem.GetPadH()
         && problem.GetDilationW() == 1
@@ -311,8 +312,10 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
 
     ConvSolution result;
     result.construction_params.push_back(construction_params);
-    result.invoker_factory = &conv::MakeGenericXWYPadInvoker;
+    result.invoker_factory = &miopen::conv::MakeGenericXWYPadInvoker;
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen
