@@ -51,14 +51,10 @@
 #include <unordered_map>
 
 #if MIOPEN_USE_ROCBLAS
-#if defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT < 5007000000ULL)
-#define ROCBLAS_BETA_FEATURES_API 0
-#else
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#endif
 #include <miopen/manage_ptr.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
