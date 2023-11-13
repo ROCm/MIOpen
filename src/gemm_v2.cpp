@@ -54,7 +54,11 @@
 #else
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
+#ifdef _WIN32
+#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#else
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#endif
 #endif
 #include <miopen/perf_field.hpp>
 #endif
