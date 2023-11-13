@@ -33,6 +33,9 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) const
 {
@@ -89,7 +92,7 @@ bool PerformanceImplicitGemm::IsValid(const ExecutionContext& ctx,
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;
@@ -551,5 +554,6 @@ PerformanceImplicitGemm::PerformanceImplicitGemm(int BPerBlock_,
 {
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

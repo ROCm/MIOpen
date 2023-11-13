@@ -36,6 +36,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvMlirIgemmBwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -45,7 +48,7 @@ bool ConvMlirIgemmBwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -123,7 +126,7 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ExecutionContext& ctx,
         result.construction_params.push_back(construction_parameters);
     }
 
-    result.invoker_factory = conv::MakeMlirBwdInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeMlirBwdInvokerFactory(problem);
     return result;
 #else
     std::ignore = ctx;
@@ -133,5 +136,6 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ExecutionContext& ctx,
 #endif
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
