@@ -765,6 +765,18 @@ enable_cppcheck(
         knownConditionTrueFalse
         shadowFunction
         moduloofone
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 6.0 &&
+        # Ubuntu 22.04 && cppcheck 2.12.1 update
+        ###################################################################
+        duplInheritedMember
+        constParameterReference
+        constParameterPointer
+        constVariableReference
+        constVariablePointer
+        useStlAlgorithm
+        uselessOverride
+        unusedScopedObject   
     FORCE
     SOURCES
         addkernels/
