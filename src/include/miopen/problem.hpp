@@ -199,8 +199,10 @@ struct ProblemContainer : miopenProblem
     boost::variant<Problem, FusedProblem> item;
 
     ProblemContainer() = default;
-    ProblemContainer(boost::variant<Problem, FusedProblem> item_)
-        : item(std::move(item_)) {} // NOLINT(*-explicit-constructor)
+    ProblemContainer(boost::variant<Problem, FusedProblem> item_) // NOLINT(*-explicit-constructor)
+        : item(std::move(item_))
+    {
+    }
 
     friend void to_json(nlohmann::json& j, const ProblemContainer& problem);
     friend void from_json(const nlohmann::json& j, ProblemContainer& problem);
