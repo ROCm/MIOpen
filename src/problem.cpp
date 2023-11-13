@@ -692,7 +692,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
             problem.operator_descriptor);
     }
 
-    return fusion::FusionInvokeParams(operator_args, in_desc, in, out_desc, out, gfx90aaltimpl);
+    return {operator_args, in_desc, in, out_desc, out, gfx90aaltimpl};
 }
 
 FusionPlanDescriptor FusedProblem::AsFusionPlan() const
