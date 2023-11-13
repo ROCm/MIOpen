@@ -41,7 +41,7 @@ get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
-if(_GENERATOR_IS_MULTI_CONFIG)
+if(MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     if (NOT CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING
             "Available build types (configurations) on multi-config generators")

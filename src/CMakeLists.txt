@@ -59,7 +59,7 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINAR
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-if(NOT _GENERATOR_IS_MULTI_CONFIG)
+if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 endif()
 
