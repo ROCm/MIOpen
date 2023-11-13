@@ -39,7 +39,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    const auto s_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    const auto& s_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
     return (!s_envVar.empty() && std::strcmp(s_envVar.c_str(), float_arg) == 0);
 }
 

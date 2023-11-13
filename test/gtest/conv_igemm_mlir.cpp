@@ -40,7 +40,7 @@ using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
 {
-    const auto tmp = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    const auto& tmp = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
     if(tmp.empty())
     {
         return "";
@@ -221,13 +221,13 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1" + layout},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     TestCase{igemm_bwd, precision + flags_bwd + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
-    
+
     TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1"},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},    
+    TestCase{igemm_wrw, precision + flags_wrw + " --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1" + layout},
     TestCase{igemm_wrw, precision + flags_wrw + " --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1" + groupCount_32}
         // clang-format on
