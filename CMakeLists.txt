@@ -770,6 +770,7 @@ enable_cppcheck(
         # Ubuntu 22.04 && cppcheck 2.12.1 update
         ###################################################################
         duplInheritedMember
+        constParameterCallback
         constParameterReference
         constParameterPointer
         constVariableReference
