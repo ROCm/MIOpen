@@ -43,6 +43,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER)
 
+namespace miopen {
+namespace debug {
+
+bool IsWarmupOngoing = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
+} // namespace miopen
+
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 {
     switch(rmv.getValue())
