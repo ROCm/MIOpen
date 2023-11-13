@@ -629,7 +629,6 @@ pipeline {
                 }
                 stage('Fin Tests') {
                     agent{ label rocmnode("nogpu") }
-                    environment{}
                     steps{
                         buildHipClangJobAndReboot(config_targets: "all",
                                                   build_install:  "true", 
@@ -641,7 +640,6 @@ pipeline {
                 }
                 stage('HipNoGPU Debug Build Test') {
                     agent{ label rocmnode("nogpu") }
-                    environment{}
                     steps{
                         buildHipClangJobAndReboot(build_type:     "debug",
                                                   setup_flags:    "-DMIOPEN_BACKEND=HIPNOGPU", 
@@ -956,7 +954,6 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
-                    environment{}
                     steps{
                         buildHipClangJobAndReboot(lfs_pull:       true, 
                                                   setup_flags:    "-DMIOPEN_TEST_DBSYNC=1", 
@@ -976,7 +973,6 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
-                    environment{}
                     steps{
                         buildHipClangJobAndReboot(lfs_pull:       true, 
                                                   setup_flags:    "-DMIOPEN_TEST_DBSYNC=1", 
