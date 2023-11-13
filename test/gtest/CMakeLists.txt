@@ -1,8 +1,4 @@
-include(googletest) #include googletest.cmake
-include(GoogleTest)
-
-#add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
-#add_custom_target(tests)
+include(gtest) #include gtest.cmake
 
 find_package(rocblas)
 
