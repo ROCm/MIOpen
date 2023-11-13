@@ -1043,6 +1043,10 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
+/// No assumption that HIP kernels are launched with uniform block size for backward compatibility
+/// SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
+/// Do not use on Windows. Compiler error message: unknown command line option
+#define WORKAROUND_SWDEV_413293 !_WIN32 && (HIP_PACKAGE_VERSION_FLAT >= 5007023302ULL)
 
 namespace hiprtc {
 

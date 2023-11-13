@@ -39,7 +39,7 @@ set(__default_cxx_compile_options
     -Wsequence-point
     -Wswitch
     -Wtrigraphs
-    -Wno-undef
+    -Wundef
     -Wuninitialized
     -Wunreachable-code
     -Wunused
