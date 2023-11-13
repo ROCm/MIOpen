@@ -30,12 +30,20 @@
 
 #include "float_types.h"
 
+#if MIOPEN_USE_BFP16 == 1
+#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
+#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
+#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
+#define CVT_FP32_2ACCUM(x) (x)
+#endif
+
 extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
                                                   FLOAT* __restrict__ y,
                                                   const FLOAT* __restrict__ weight,
                                                   const FLOAT* __restrict__ bias,
-                                                  FLOAT* __restrict__ mean,
-                                                  FLOAT* __restrict__ rstd,
+                                                  FLOAT_ACCUM* __restrict__ mean,
+                                                  FLOAT_ACCUM* __restrict__ rstd,
                                                   float eps,
                                                   uint64_t inner_size,
                                                   bool mode)
@@ -94,9 +102,9 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = CVT_ACCUM2FLOAT(pmean);
+            mean[gid] = pmean;
         if(rstd)
-            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
+            rstd[gid] = prstd;
     }
 
     // forward calculation

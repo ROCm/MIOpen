@@ -214,6 +214,11 @@ ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context
 }
 #endif
 
+bool IsRank4Dim1(const miopen::norm::ProblemDescription& problem)
+{
+    return (problem.GetXDesc().GetLengths().size() == 4) && (problem.GetNormalizedDim() == 1);
+}
+
 bool Layernorm4DCKForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
@@ -221,7 +226,13 @@ bool Layernorm4DCKForward::IsApplicable(
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN{}))
         return false;
-    if(!problem.IsRank4Dim1())
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsSameLength())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!IsRank4Dim1(problem))
         return false;
     if(!problem.IsLargeSize())
         return false;
@@ -234,8 +245,8 @@ bool Layernorm4DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>>(problem);
     case miopenFloat:
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
+    case miopenBFloat16: return false;
     case miopenDouble:
-    case miopenBFloat16:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:

@@ -45,15 +45,13 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
-    size_t i          = 0;
-    for(; i < normalized_dim; i++)
-    {
-        outer_size *= dims[i];
-    }
 
-    for(; i < dims.size(); i++)
+    for(size_t i = 0ULL; i < dims.size(); ++i)
     {
-        inner_size *= dims[i];
+        if(i < normalized_dim)
+            outer_size *= dims[i];
+        else
+            inner_size *= dims[i];
     }
 
     int32_t ret = 0;
@@ -62,7 +60,7 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     {
         Tcheck pmean = 0.0f;
         Tcheck pvar  = 0.0f;
-        for(i = 0; i < inner_size; i++)
+        for(int32_t i = 0; i < inner_size; i++)
         {
             Tcheck tmp = static_cast<Tcheck>(input[o * inner_size + i]);
             pmean += tmp;
@@ -76,7 +74,7 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
         meanhost[o] = pmean;
         rstdhost[o] = prstd;
 
-        for(i = 0; i < inner_size; i++)
+        for(int32_t i = 0; i < inner_size; i++)
         {
             Tcheck pweight = mode ? static_cast<Tcheck>(weight[i]) : 1;
             Tcheck pbias   = mode ? static_cast<Tcheck>(bias[i]) : 0;

@@ -50,37 +50,6 @@ miopenStatus_t LayerNormForward(Handle& handle,
                                 float epsilon,
                                 int32_t normalized_dim)
 {
-    if(x == nullptr || y == nullptr)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Null pointer for tensor.");
-    }
-
-    if(xDesc.GetType() != yDesc.GetType())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
-    }
-
-    if(xDesc.GetLengths() != yDesc.GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "LayerNormForward: Tensor dimension lengths do not match.");
-    }
-
-    if((normalized_dim < 0) || (normalized_dim > xDesc.GetLengths().size()))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "LayerNormForward: normalized dim is greater than 0 and less than or equal "
-                     "Tensor dimension length.");
-    }
-
-    bool is_all_packed = xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() &&
-                         yDesc.IsPacked() && meanDesc.IsPacked() && rstdDesc.IsPacked();
-
-    if(!is_all_packed)
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
-    }
-
     const auto problem = norm::ProblemDescription{
         mode, xDesc, weightDesc, biasDesc, yDesc, meanDesc, rstdDesc, epsilon, normalized_dim};
 

@@ -72,8 +72,47 @@ struct ProblemDescription : ProblemDescriptionBase
     float GetEpsilon() const { return epsilon; }
     int32_t GetNormalizedDim() const { return normalized_dim; }
 
-    bool IsRank2Dim1() const { return (xDesc.GetLengths().size() == 2) && (normalized_dim == 1); }
-    bool IsRank4Dim1() const { return (xDesc.GetLengths().size() == 4) && (normalized_dim == 1); }
+    bool IsSameType() const
+    {
+        if(xDesc.GetType() != yDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Tensor types do not match.");
+        }
+        return true;
+    }
+
+    bool IsSameLength() const
+    {
+        if(xDesc.GetLengths() != yDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LayerNormForward: Tensor dimension lengths do not match.");
+        }
+        return true;
+    }
+
+    bool IsRightNormDim() const
+    {
+        if((normalized_dim < 0) || (normalized_dim > xDesc.GetLengths().size()))
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "LayerNormForward: normalized dim is greater than 0 and less than or equal "
+                "Tensor dimension length.");
+        }
+        return true;
+    }
+
+    bool IsAllPacked() const
+    {
+        if(!(xDesc.IsPacked() && weightDesc.IsPacked() && biasDesc.IsPacked() && yDesc.IsPacked() &&
+             meanDesc.IsPacked() && rstdDesc.IsPacked()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "LayerNormForward: Unpacked tensors not supported.");
+        }
+        return true;
+    }
+
     bool IsLargeSize() const
     {
         auto dims = xDesc.GetLengths();

@@ -46,24 +46,24 @@ using BF16 = ushort;
 template <typename XDataType,
           typename GammaDataType,
           typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
+          typename YDataType,
+          typename SaveMeanInvStdDataType>
 using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
     XDataType,
     GammaDataType,
     BetaDataType,
-    ComputeDataType,
     YDataType,
+    SaveMeanInvStdDataType,
     ck::tensor_operation::element_wise::PassThrough,
     2,
     1>;
 template <typename XDataType,
           typename GammaDataType,
           typename BetaDataType,
-          typename ComputeDataType,
-          typename YDataType>
+          typename YDataType,
+          typename SaveMeanInvStdDataType>
 using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    DeviceOp<XDataType, GammaDataType, BetaDataType, ComputeDataType, YDataType>>;
+    DeviceOp<XDataType, GammaDataType, BetaDataType, YDataType, SaveMeanInvStdDataType>>;
 
 namespace {
 struct CKArgs
@@ -206,6 +206,11 @@ ConvSolution MakeInvokerFactory([[maybe_unused]] const ExecutionContext& context
 }
 #endif
 
+bool IsRank2Dim1(const miopen::norm::ProblemDescription& problem)
+{
+    return (problem.GetXDesc().GetLengths().size() == 2) && (problem.GetNormalizedDim() == 1);
+}
+
 bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::norm::ProblemDescription& problem) const
@@ -213,7 +218,13 @@ bool Layernorm2DCKForward::IsApplicable(
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN{}))
         return false;
-    if(!problem.IsRank2Dim1())
+    if(!problem.IsSameType())
+        return false;
+    if(!problem.IsSameLength())
+        return false;
+    if(!problem.IsAllPacked())
+        return false;
+    if(!IsRank2Dim1(problem))
         return false;
     if(!problem.IsLargeSize())
         return false;
@@ -223,11 +234,11 @@ bool Layernorm2DCKForward::IsApplicable(
     switch(problem.GetXDesc().GetType())
     {
     case miopenHalf:
-        return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>>(problem);
+        return CheckCKApplicability<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>>(problem);
     case miopenFloat:
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
+    case miopenBFloat16: return false;
     case miopenDouble:
-    case miopenBFloat16:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -246,7 +257,7 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     switch(problem.GetXDesc().GetType())
     {
     case miopenHalf:
-        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F32, F16>,
+        return MakeInvokerFactory<DeviceOpLnFwdPtrs<F16, F16, F16, F16, F32>,
                                   CKArgs,
                                   miopen::norm::InvokeParams>(context, problem);
     case miopenFloat:

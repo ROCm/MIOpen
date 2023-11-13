@@ -38,15 +38,13 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto dims         = xDesc.GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
-    size_t i          = 0;
-    for(; i < normalized_dim; i++)
-    {
-        outer_size *= dims[i];
-    }
 
-    for(; i < dims.size(); i++)
+    for(size_t i = 0ULL; i < dims.size(); ++i)
     {
-        inner_size *= dims[i];
+        if(i < normalized_dim)
+            outer_size *= dims[i];
+        else
+            inner_size *= dims[i];
     }
 
     auto dtype = xDesc.GetType();
