@@ -518,6 +518,35 @@ void from_json(const nlohmann::json& json, FusedProblem& problem)
     json.at("problems").get_to(problem.problems);
 }
 
+void to_json(nlohmann::json& json, const ProblemContainer& problem)
+{
+    json = nlohmann::json{
+        {"problem_type", problem.item.which()},
+    };
+
+    auto operator_serialization = [&](auto&& op) { json["value"] = op; };
+    boost::apply_visitor(operator_serialization, problem.item);
+}
+
+namespace detail {
+template <class Problem>
+struct ProblemDeserializer
+{
+    const nlohmann::json* json;
+    ProblemContainer::Item* problem;
+
+    void operator()() const { *problem = json->get<Problem>(); }
+};
+} // namespace detail
+
+void from_json(const nlohmann::json& json, ProblemContainer& problem)
+{
+    const auto type = json.at("problem_type").get<int>();
+    auto value      = json.at("value");
+
+    VisitType<detail::ProblemDeserializer, ProblemContainer::Item>(type, &value, &problem.item);
+}
+
 void Problem::CalculateOutput()
 {
     if(!HasInput())

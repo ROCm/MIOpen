@@ -196,10 +196,11 @@ private:
 
 struct ProblemContainer : miopenProblem
 {
-    boost::variant<Problem, FusedProblem> item;
+    using Item = boost::variant<Problem, FusedProblem>;
+    Item item;
 
     ProblemContainer() = default;
-    ProblemContainer(boost::variant<Problem, FusedProblem> item_) // NOLINT(*-explicit-constructor)
+    ProblemContainer(Item item_) // NOLINT(*-explicit-constructor)
         : item(std::move(item_))
     {
     }
