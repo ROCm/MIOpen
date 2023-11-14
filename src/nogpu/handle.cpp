@@ -173,10 +173,8 @@ Program Handle::LoadProgram(const std::string& program_name,
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco       = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();

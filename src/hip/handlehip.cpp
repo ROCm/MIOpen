@@ -507,10 +507,8 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(!miopen::EndsWith(program_name, ".mlir"))
         params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params);
+    auto hsaco = miopen::LoadBinary(
+        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     if(hsaco.empty())
     {
         const auto arch_target_id = miopen::SplitDelim(arch_name, ':');
@@ -530,8 +528,7 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{
-            program_name, params, this->GetTargetProperties(), kernel_src};
+        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", program_name);
 
 // Save to cache

@@ -87,8 +87,15 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
     if(kern_type == miopenOpenCLKernelType)
-        h.AddKernel("NoAlgo", "", "test_ocl.cl", "write", {n, 1, 1}, {n, 1, 1}, "", 0, Write2s(miopenOpenCLKernelType))(
-            data_dev.get());
+        h.AddKernel("NoAlgo",
+                    "",
+                    "test_ocl.cl",
+                    "write",
+                    {n, 1, 1},
+                    {n, 1, 1},
+                    "",
+                    0,
+                    Write2s(miopenOpenCLKernelType))(data_dev.get());
     else if(kern_type == miopenHIPKernelType)
         h.AddKernel("NoAlgo",
                     "",
@@ -142,11 +149,27 @@ void test_errors(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
     {
         EXPECT(throws([&] {
-            h.AddKernel("NoAlgo", "", "error_ocl.cl", "write", {1, 1, 1}, {1, 1, 1}, "", 0, WriteError(kern_type));
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }));
         try
         {
-            h.AddKernel("NoAlgo", "", "error_ocl.cl", "write", {1, 1, 1}, {1, 1, 1}, "", 0, WriteError(kern_type));
+            h.AddKernel("NoAlgo",
+                        "",
+                        "error_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteError(kern_type));
         }
         catch(miopen::Exception& e)
         {
@@ -207,7 +230,15 @@ void test_warnings(kernel_type_t kern_type)
 #if MIOPEN_BUILD_DEV
     if(kern_type == miopenOpenCLKernelType)
         EXPECT(throws([&] {
-            h.AddKernel("NoAlgo", "", "nop_ocl.cl", "write", {1, 1, 1}, {1, 1, 1}, "", 0, WriteNop(kern_type));
+            h.AddKernel("NoAlgo",
+                        "",
+                        "nop_ocl.cl",
+                        "write",
+                        {1, 1, 1},
+                        {1, 1, 1},
+                        "",
+                        0,
+                        WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
     else if(kern_type == miopenHIPKernelType)
