@@ -52,7 +52,6 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
-
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 #Copy header to Build Dir for generating backward compatibility
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
@@ -64,16 +63,11 @@ message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
 
-
 function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
-        if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
-        else()
-            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
-        endif()
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
@@ -626,7 +620,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                    COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -692,23 +686,13 @@ endif()
 
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
-    set(PASS_ARGS debug optimized)
-    set(DEPS)
-    foreach(DEP ${ARGN})
-        if(DEP IN_LIST PASS_ARGS)
-            list(APPEND DEPS ${DEP})
-        else()
-            list(APPEND DEPS $<BUILD_INTERFACE:${DEP}>)
-        endif()
-    endforeach()
-    target_link_libraries(${TARGET} INTERFACE ${DEPS})
+    target_link_libraries(${TARGET} INTERFACE $<BUILD_INTERFACE:${ARGN}>)
 endfunction()
 
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
-set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
@@ -840,7 +824,7 @@ endif()
 if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
     if(LIBRT)
-        MESSAGE(STATUS "Librt: " ${LIBRT})
+        message(STATUS "Librt: " ${LIBRT})
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
