@@ -1,4 +1,9 @@
-include(gtest) #include gtest.cmake
+find_package(GTest CONFIG REQUIRED)
+if(GTest_FOUND)
+  MESSAGE(STATUS "GoogleTest: " ${GTest})
+  enable_testing()
+  include(GoogleTest)
+endif()
 
 find_package(rocblas)
 
@@ -23,7 +28,7 @@ function(add_gtest TEST_NAME)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
     endif()
-    target_link_libraries(test_${TEST_NAME} gtest gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
+    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(test_${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
     endif()
