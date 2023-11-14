@@ -31,7 +31,6 @@
 
 namespace miopen {
 
-const std::string& MiopengemmWarningsString();
 const std::string& OclKernelWarningsString();
 const std::string& HipKernelWarningsString();
 
