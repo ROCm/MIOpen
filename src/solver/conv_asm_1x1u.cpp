@@ -387,10 +387,11 @@ bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
     return this->IsPartiallyValid(problem, index + 1);
 }
 
-bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
@@ -489,7 +490,6 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
 {
     if(problem.GetInDataType() == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
-
 
     if(IsModelApplicable(ctx, problem))
     {

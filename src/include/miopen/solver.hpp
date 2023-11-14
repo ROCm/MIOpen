@@ -4559,6 +4559,7 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     bool IsValid(const ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
     bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const;
+
 private:
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
@@ -4567,7 +4568,8 @@ private:
     template <typename DataType>
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
     template <typename DataType>
-    void RunParameterPredictionModel(const ExecutionContext& ctx, const ProblemDescription& problem);
+    void RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const ProblemDescription& problem);
     void InitHeuristicKernelIDs();
     bool ModelApplyToken(int idx, std::string value);
 };
