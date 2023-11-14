@@ -1,8 +1,10 @@
-find_package(GTest CONFIG REQUIRED)
+find_package(GTest CONFIG)
 if(GTest_FOUND)
   MESSAGE(STATUS "GoogleTest: " ${GTest})
-  enable_testing()
   include(GoogleTest)
+else()
+  message(WARNING "GoogleTest is not found! Skip GTests ... try install GTest or MIOpen dependencies.")
+  return()
 endif()
 
 find_package(rocblas)
