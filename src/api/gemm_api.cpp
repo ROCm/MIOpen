@@ -57,17 +57,17 @@ extern "C" miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gem
     return miopen::try_([&] { miopen_destroy_object(gemmDesc); });
 }
 
-
-extern "C" miopenStatus_t miopenInitMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t* MatrixAdditionDesc,
-                                                   long long int m_,
-                                                   long long int n_,
-                                                   long long int k_,
-                                                   long long int strideC_,
-                                                   long long int strideD_,
-                                                   long long int strideE_,
-                                                   bool isColMajor_,
-                                                   bool transA_,
-                                                   bool transB_)
+extern "C" miopenStatus_t
+miopenInitMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t* MatrixAdditionDesc,
+                                   long long int m_,
+                                   long long int n_,
+                                   long long int k_,
+                                   long long int strideC_,
+                                   long long int strideD_,
+                                   long long int strideE_,
+                                   bool isColMajor_,
+                                   bool transA_,
+                                   bool transB_)
 {
     MIOPEN_LOG_FUNCTION(m_, n_, k_, strideC_, strideD_, strideE_, isColMajor_, transA_, transB_);
     return miopen::try_([&] {
@@ -76,10 +76,10 @@ extern "C" miopenStatus_t miopenInitMatrixAdditionDescriptor(miopenMatrixAdditio
     });
 }
 
-extern "C" miopenStatus_t miopenDestroyMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t MatrixAdditionDesc)
+extern "C" miopenStatus_t
+miopenDestroyMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t MatrixAdditionDesc)
 {
 
     MIOPEN_LOG_FUNCTION(MatrixAdditionDesc);
     return miopen::try_([&] { miopen_destroy_object(MatrixAdditionDesc); });
 }
-

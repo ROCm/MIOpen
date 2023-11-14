@@ -85,6 +85,20 @@ using DeviceOpGemmAddActivPtrs =
                                                           BElementOp,
                                                           CDEElementOp>>;
 
+template <typename T>
+std::vector<T> convertToVector(const void* data, size_t length)
+{
+    const T* typedData = static_cast<const T*>(data);
+    std::vector<T> result(typedData, typedData + length);
+    for(int i = 0; i < result.size(); ++i)
+    {
+        float val = result[i];
+        std::cout << val << ",";
+    }
+    std::cout << "\n";
+    return result;
+}
+
 struct CKArgsGemmAddActiv
 {
     CKArgsGemmAddActiv(const GemmAddProblemDescription& problems)
@@ -111,28 +125,31 @@ struct CKArgsGemmAddActiv
     {
         const auto& b_buf =
             dynamic_cast<miopen::fusion::GemmOpInvokeParam&>(*invoke_ctx.op_args.params[0]).b_data;
-        
+
         const auto& d_buf =
-            dynamic_cast<miopen::fusion::MatrixAddOpInvokeParam&>(*invoke_ctx.op_args.params[0]).d_data;
+            dynamic_cast<miopen::fusion::MatrixAddOpInvokeParam&>(*invoke_ctx.op_args.params[1])
+                .d_data;
 
         const auto& e_buf =
-            dynamic_cast<miopen::fusion::MatrixAddOpInvokeParam&>(*invoke_ctx.op_args.params[0]).e_data;
+            dynamic_cast<miopen::fusion::MatrixAddOpInvokeParam&>(*invoke_ctx.op_args.params[1])
+                .e_data;
 
-        return invoker_ptr->MakeArgumentPointer(invoke_ctx.in,
-                                                b_buf,
-                                                std::array<const void*, 1>{d_buf},
-                                                const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-                                                    static_cast<const void*>(e_buf)),
-                                                M,
-                                                N,
-                                                K,
-                                                stride_a,
-                                                stride_b,
-                                                std::array<ck::index_t, 1>{stride_d0},
-                                                stride_e,
-                                                a_element_op,
-                                                b_element_op,
-                                                cde_element_op);
+        return invoker_ptr->MakeArgumentPointer(
+            invoke_ctx.in,
+            b_buf,
+            std::array<const void*, 1>{d_buf},
+            const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+                static_cast<const void*>(e_buf)),
+            M,
+            N,
+            K,
+            stride_a,
+            stride_b,
+            std::array<ck::index_t, 1>{stride_d0},
+            stride_e,
+            a_element_op,
+            b_element_op,
+            cde_element_op);
     }
     template <typename InvokerPtr>
     auto MakeArgPtr(const InvokerPtr& invoker_ptr) const
@@ -157,7 +174,7 @@ struct CKArgsGemmAddActiv
     bool IsSupportedBy(const GemmAddActivPtr& invoker_ptr) const
     {
         auto arg_ptr = MakeArgPtr(invoker_ptr);
-        bool ret = invoker_ptr->IsSupportedArgument(arg_ptr.get());
+        bool ret     = invoker_ptr->IsSupportedArgument(arg_ptr.get());
         return ret;
     }
 
@@ -262,7 +279,8 @@ void PerformanceConfigCKGEMMAddActiv::HeuristicInit(
     case miopenInt8:
     case miopenHalf:
     case miopenFloat:
-        Init<ck::half_t, ck::half_t, float, ck::half_t, ck::half_t, Row, Row, Row, Row>(gemm_add_problem);
+        Init<ck::half_t, ck::half_t, float, ck::half_t, ck::half_t, Row, Row, Row, Row>(
+            gemm_add_problem);
         break;
     case miopenFloat8:
     case miopenBFloat8:
@@ -306,8 +324,15 @@ bool PerformanceConfigCKGEMMAddActiv::IsValid(
     {
     case miopenHalf:
     case miopenFloat:
-        return CheckIsSupportCKArgs<ck::half_t, ck::half_t, float, ck::half_t, ck::half_t, Row, Row, Row, Row>(
-            gemm_add_problem);
+        return CheckIsSupportCKArgs<ck::half_t,
+                                    ck::half_t,
+                                    float,
+                                    ck::half_t,
+                                    ck::half_t,
+                                    Row,
+                                    Row,
+                                    Row,
+                                    Row>(gemm_add_problem);
     case miopenInt8:
     case miopenInt32:
     case miopenBFloat16:
@@ -389,8 +414,15 @@ bool CKGEMMAddActiv::IsApplicable([[maybe_unused]] const FusionContext& ctx,
     {
     case miopenHalf:
     case miopenFloat:
-        return CheckCKApplicability<ck::half_t, ck::half_t, float, ck::half_t, ck::half_t, Row, Row, Row, Row>(
-            {gemm_problem, matrix_problem});
+        return CheckCKApplicability<ck::half_t,
+                                    ck::half_t,
+                                    float,
+                                    ck::half_t,
+                                    ck::half_t,
+                                    Row,
+                                    Row,
+                                    Row,
+                                    Row>({gemm_problem, matrix_problem});
     case miopenInt32:
     case miopenInt8:
     case miopenBFloat16:
@@ -416,10 +448,19 @@ CKGEMMAddActiv::GetSolution([[maybe_unused]] const FusionContext&,
     {
     case miopenHalf:
     case miopenFloat:
-        return MakeInvokerFactory<
-                DeviceOpGemmAddActivPtrs<ck::half_t, ck::half_t, float, ck::half_t, ck::half_t, Row, Row, Row, Row>,
-                CKArgsGemmAddActiv, miopen::fusion::FusionInvokeParams, GemmAddProblemDescription>(
-                {gemm_problem, matrix_problem}, config.kernel_id);
+        return MakeInvokerFactory<DeviceOpGemmAddActivPtrs<ck::half_t,
+                                                           ck::half_t,
+                                                           float,
+                                                           ck::half_t,
+                                                           ck::half_t,
+                                                           Row,
+                                                           Row,
+                                                           Row,
+                                                           Row>,
+                                  CKArgsGemmAddActiv,
+                                  miopen::fusion::FusionInvokeParams,
+                                  GemmAddProblemDescription>({gemm_problem, matrix_problem},
+                                                             config.kernel_id);
     case miopenInt32:
     case miopenInt8:
     case miopenBFloat16:

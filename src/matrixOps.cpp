@@ -47,9 +47,9 @@ GemmDescriptor::GemmDescriptor()
 GemmDescriptor::GemmDescriptor(long long int m_,
                                long long int n_,
                                long long int k_,
-                               long long int  strideA_,
-                               long long int  strideB_,
-                               long long int  strideC_,
+                               long long int strideA_,
+                               long long int strideB_,
+                               long long int strideC_,
                                bool isColMajor_ = true,
                                bool transA_     = false,
                                bool transB_     = false)
@@ -108,15 +108,15 @@ TensorDescriptor GemmDescriptor::GetOutputTensor(const TensorDescriptor& ADesc,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Matrix cannot be multiplied because of dimension issue");
     }
-    return {ADesc.GetType(), miopenTensorRowMajor, {a_lens[0], b_lens[1]}, {1, a_lens[0]}};
+    return {ADesc.GetType(), miopenTensorRowMajor, {a_lens[0], b_lens[1]}, {b_lens[1], 1}};
 }
 
 MatrixAdditionDescriptor::MatrixAdditionDescriptor(long long int m_,
                                                    long long int n_,
                                                    long long int k_,
-                                                   long long int  strideC_,
-                                                   long long int  strideD_,
-                                                   long long int  strideE_,
+                                                   long long int strideC_,
+                                                   long long int strideD_,
+                                                   long long int strideE_,
                                                    bool isColMajor_ = true,
                                                    bool transC_     = false,
                                                    bool transD_     = false)
@@ -146,8 +146,7 @@ long long int MatrixAdditionDescriptor::GetK() const { return this->k_val; }
 
 void MatrixAdditionDescriptor::SetIsColMajor(bool icm) { this->isColMajor = icm; }
 
-std::ostream& operator<<(std::ostream& stream,
-                         const MatrixAdditionDescriptor& mat_add_desc)
+std::ostream& operator<<(std::ostream& stream, const MatrixAdditionDescriptor& mat_add_desc)
 {
     return stream << "{"
                   << "isColMajor " << mat_add_desc.isColMajor << ", "

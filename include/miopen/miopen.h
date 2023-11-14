@@ -2870,19 +2870,20 @@ MIOPEN_EXPORT miopenStatus_t miopenInitGemmDescriptor(miopenGemmDescriptor_t* ge
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenInitMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t* gemmDesc,
+                                   long long int m_,
+                                   long long int n_,
+                                   long long int k_,
+                                   long long int strideC_,
+                                   long long int strideD_,
+                                   long long int strideE_,
+                                   bool isColMajor_,
+                                   bool transA_,
+                                   bool transB_);
 
-MIOPEN_EXPORT miopenStatus_t miopenInitMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t* gemmDesc,
-                                                      long long int m_,
-                                                      long long int n_,
-                                                      long long int k_,
-                                                      long long int strideC_,
-                                                      long long int strideD_,
-                                                      long long int strideE_,
-                                                      bool isColMajor_,
-                                                      bool transA_,
-                                                      bool transB_);
-
-MIOPEN_EXPORT miopenStatus_t miopenDestroyMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t gemmDesc);
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyMatrixAdditionDescriptor(miopenMatrixAdditionDescriptor_t gemmDesc);
 
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP

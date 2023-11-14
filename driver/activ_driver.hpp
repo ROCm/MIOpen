@@ -278,8 +278,8 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             // 0.5*x*(1+tanh(sqrt(2/pi)*(x+0.044715*x^3)))
             // pi =  std::atan(1)*4
             in[i] = 0.5 * i *
-                       (1 + tanh(sqrt(2 / (std::atan(1) * 4)) * (i + 0.044715 * std::pow(i, 3))));
-        break;
+                    (1 + tanh(sqrt(2 / (std::atan(1) * 4)) * (i + 0.044715 * std::pow(i, 3))));
+            break;
         }
     }
 
