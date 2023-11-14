@@ -500,4 +500,58 @@ void from_json(const nlohmann::json& json, Problem& problem)
         primitive, &operator_json, &problem.operator_descriptor);
 }
 
+void Problem::CalculateOutput()
+{
+    if(!HasInput())
+        return;
+
+    boost::apply_visitor(boost::hof::match(
+                             [&](const ConvolutionDescriptor& conv) {
+                                 const auto& in = GetInput();
+                                 conv.GetForwardOutputTensor(
+                                     in,
+                                     GetTensorDescriptorChecked(miopenTensorConvolutionW,
+                                                                "miopenTensorConvolutionW"),
+                                     in.GetType());
+                             },
+                             [&](const ActivationDescriptor&) {
+                                 RegisterTensorDescriptor(GetOutputId(), GetInput());
+                             }),
+                         operator_descriptor);
+}
+
+miopenTensorArgumentId_t Problem::GetInputId() const
+{
+    return boost::apply_visitor(
+        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
+                          [](const ActivationDescriptor&) { return miopenTensorActivationX; }),
+        operator_descriptor);
+}
+
+miopenTensorArgumentId_t Problem::GetOutputId() const
+{
+    return boost::apply_visitor(
+        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
+                          [](const ActivationDescriptor&) { return miopenTensorActivationY; }),
+        operator_descriptor);
+}
+
+void FusedProblem::PropagateDescriptors()
+{
+    for(auto i = 0; i < problems.size(); ++i)
+    {
+        auto& cur = problems[i];
+
+        if(i > 0 && !cur.HasInput())
+        {
+            auto& prev = problems[i - 1];
+            if(prev.HasOutput())
+                cur.RegisterTensorDescriptor(cur.GetInputId(), prev.GetOutput());
+        }
+
+        if(cur.HasInput() && !cur.HasOutput())
+            cur.CalculateOutput();
+    }
+}
+
 } // namespace miopen
