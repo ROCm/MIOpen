@@ -1,4 +1,4 @@
-include(gtest) #include gtest.cmake
+find_package(GTest CONFIG REQUIRED)
 
 find_package(rocblas)
 
@@ -19,7 +19,7 @@ function(add_gtest TEST_NAME)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
     endif()
-    target_link_libraries(test_${TEST_NAME} gtest gtest_main MIOpen MIOpenCore hip::host nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
+    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen MIOpenCore hip::host nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
     if(rocBLAS_FOUND)
       target_link_libraries(test_${TEST_NAME} PRIVATE roc::rocblas)
     endif()
