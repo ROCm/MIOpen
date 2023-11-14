@@ -3,7 +3,7 @@ if(GTest_FOUND)
   MESSAGE(STATUS "GoogleTest: " ${GTest})
   include(GoogleTest)
 else()
-  message(WARNING "GoogleTest is not found! Skip GTests ... try install GTest or MIOpen dependencies.")
+  message(WARNING "GoogleTest is not found! Skip GTests ... try install GTest or preferably follow instructions to install MIOpen dependencies.")
   return()
 endif()
 
