@@ -103,7 +103,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
-        conv/solver_finders.cpp
+    conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -120,7 +120,7 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
-        fusion/problem_description.cpp
+    fusion/problem_description.cpp
     generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
@@ -845,12 +845,8 @@ if(NOT WIN32 AND NOT APPLE)
     endif()
 endif()
 
-if(NOT WIN32)
-    find_library(rocTracer roctx64)
-    if(rocTracer)
-        MESSAGE(STATUS "rocTracer: " ${rocTracer})
-        target_link_libraries(MIOpen PRIVATE roctx64)
-    endif()
+if(MIOPEN_USE_ROCTRACER)
+    target_link_libraries(MIOpen PRIVATE roctx64)
 endif()
 
 ############################################################

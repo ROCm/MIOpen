@@ -39,7 +39,9 @@
 #include <miopen/config.h>
 
 #ifndef _WIN32
+#if MIOPEN_USE_ROCTRACER
 #include <roctracer/roctx.h>
+#endif
 #endif
 
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
@@ -224,7 +226,9 @@ std::string LoggingPrefix();
 bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
+#if MIOPEN_USE_ROCTRACER
 bool IsLoggingToRoctx();
+#endif
 
 namespace logger {
 
@@ -307,6 +311,7 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
         miopen::LogParam(miopen_log_func_ostream, #param, param, false) << " | "; \
     } while(false);
 
+#if MIOPEN_USE_ROCTRACER
 #define MIOPEN_LOG_FUNCTION(...)                                                        \
     miopen::LogScopeRoctx logtx;                                                        \
     do                                                                                  \
@@ -330,6 +335,22 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
             logtx.logRange(miopen_log_func_ss.str());                                   \
         }                                                                               \
     } while(false)
+#else
+#define MIOPEN_LOG_FUNCTION(...)                                                        \
+    do                                                                                  \
+        if(miopen::IsLoggingFunctionCalls())                                            \
+        {                                                                               \
+            std::ostringstream miopen_log_func_ss;                                      \
+            miopen_log_func_ss << miopen::LoggingPrefix() << __PRETTY_FUNCTION__ << "{" \
+                               << std::endl;                                            \
+            std::cerr << miopen_log_func_ss.str();                                      \
+            MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__)                  \
+            std::ostringstream().swap(miopen_log_func_ss);                              \
+            miopen_log_func_ss << miopen::LoggingPrefix() << "}" << std::endl;          \
+            std::cerr << miopen_log_func_ss.str();                                      \
+        }                                                                               \
+    while(false)
+#endif
 #else
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
@@ -413,6 +434,7 @@ private:
 #endif
 
 #ifndef _WIN32
+#if MIOPEN_USE_ROCTRACER
 class LogScopeRoctx
 {
 public:
@@ -437,6 +459,7 @@ public:
 private:
     bool m_active{false};
 };
+#endif
 #endif
 
 } // namespace miopen
