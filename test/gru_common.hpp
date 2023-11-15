@@ -1982,7 +1982,6 @@ struct verify_forward_infer_gru
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
 
-        std::vector<T> workSpace(workspace_size / sizeof(T));
 
         auto input_dev = handle.Write(input);
 
@@ -1995,7 +1994,9 @@ struct verify_forward_infer_gru
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-        auto workSpace_dev = handle.Write(workSpace);
+
+        Workspace wspace{};
+        wspace.resize(workspace_size);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -2028,8 +2029,8 @@ struct verify_forward_infer_gru
                                   ((nohy) ? nullptr : hy_dev.get()),
                                   &hiddenDesc,
                                   nullptr,
-                                  workSpace_dev.get(),
-                                  workspace_size);
+                                  wspace.ptr(),
+                                  wspace.size());
 
 #if(MIO_GRU_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -2267,11 +2268,13 @@ struct verify_forward_train_gru
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+        Workspace wspace{};
+        wspace.resize(workspace_size);
+
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-
-        std::vector<T> workSpace(workspace_size / sizeof(T));
-        std::vector<T> reserveSpace((reserveSpaceSize + sizeof(T) - 1) / sizeof(T));
+        Workspace rspace{};
+        rspace.resize(reserveSpaceSize);
 
         auto input_dev = handle.Write(input);
 
@@ -2284,9 +2287,6 @@ struct verify_forward_train_gru
         auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
-
-        auto workSpace_dev    = handle.Write(workSpace);
-        auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -2319,10 +2319,10 @@ struct verify_forward_train_gru
                                  ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
                                  nullptr,
-                                 workSpace_dev.get(),
-                                 workspace_size,
-                                 reserveSpace_dev.get(),
-                                 reserveSpaceSize);
+                                 wspace.ptr(),
+                                 wspace.size(),
+                                 rspace.ptr(),
+                                 rspace.size());
 
 #if(MIO_GRU_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -2335,7 +2335,7 @@ struct verify_forward_train_gru
         auto retSet = std::make_tuple(
             handle.Read<T>(output_dev, output.size()),
             (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-            handle.Read<T>(reserveSpace_dev, (reserveSpaceSize + sizeof(T) - 1) / sizeof(T)));
+            rspace.Read<std::vector<T>>());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
