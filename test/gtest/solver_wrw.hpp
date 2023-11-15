@@ -53,15 +53,15 @@ struct ConvWrwSolverTest
 
         const auto tensors = miopen::ConvWrwTensors{
             output.desc, out_dev.get(), input.desc, in_dev.get(), weights.desc, wei_dev.get()};
-        const auto problem = miopen::ProblemDescription(
-            miopen::conv::ProblemDescription{output.desc,
+        const auto problem =
+            miopen::conv::ProblemDescription(output.desc,
                                              weights.desc,
                                              input.desc,
                                              conv_desc,
-                                             miopen::conv::Direction::BackwardWeights});
+                                             miopen::conv::Direction::BackwardWeights);
         const miopen::ExecutionContext ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
-            problem.conv_problem.SetupFloats(tmp);
+            problem.SetupFloats(tmp);
             return tmp;
         }();
 

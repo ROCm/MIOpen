@@ -70,7 +70,7 @@ public:
     size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
-std::vector<uint64_t> PredictSolver(const ProblemDescription& problem,
+std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx,
                                     const std::string& device);
 } // namespace immed_mode

@@ -44,9 +44,7 @@ if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
 endif()
 
 # Default installation path
-if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
-else()
+if(NOT WIN32)
     set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
@@ -56,8 +54,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-enable_testing()
+include(CTest)
 
+find_package(Threads REQUIRED)
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
@@ -123,12 +122,6 @@ if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
-endif()
-
-if(WIN32 AND CMAKE_CROSSCOMPILING)
-    set(WINE_CMD "wine")
-else()
-    set(WINE_CMD)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
@@ -695,7 +688,6 @@ enable_clang_tidy(
         "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
-
 )
 include(CppCheck)
 enable_cppcheck(
@@ -790,9 +782,13 @@ add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
 endif()
-add_subdirectory(test)
-add_subdirectory(speedtests)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+    add_subdirectory(speedtests)
+endif()
+
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
-add_subdirectory(fin)
+    add_subdirectory(fin)
 endif()

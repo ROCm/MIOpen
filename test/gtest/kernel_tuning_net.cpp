@@ -63,12 +63,12 @@ protected:
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     std::string expected;
 };
 
 template <typename T>
-void TestParameterPredictionModel(miopen::ProblemDescription problem, std::string expected)
+void TestParameterPredictionModel(miopen::conv::ProblemDescription problem, std::string expected)
 {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     auto&& handle = get_handle();
@@ -99,13 +99,13 @@ struct KernelTuningNetTestConvHipIgemmGroupFwdXdlops : KernelTuningNetTest
 
 TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(problem, expected);
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(problem, expected);
 }
 
 TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
         problem, expected);
 }
 
