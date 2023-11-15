@@ -80,11 +80,8 @@ struct ConvBwdSolverTest
             wspace.resize(cur_sol_ws);
         }
 
-        const auto invoke_params =
-            miopen::conv::DataInvokeParams{tensors,
-                                           wspace.ptr(),
-                                           wspace.size(),
-                                           conv_desc.attribute.gfx90aFp16alt.GetBwd()};
+        const auto invoke_params = miopen::conv::DataInvokeParams{
+            tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetBwd()};
 
         auto sol = GetSolution(solv, ctx, problem);
         ASSERT_TRUE(sol.Succeeded());

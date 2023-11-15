@@ -1727,7 +1727,6 @@ struct verify_forward_train_rnn
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
@@ -1768,10 +1767,9 @@ struct verify_forward_train_rnn
         }
 #endif
 
-        auto retSet = std::make_tuple(
-            handle.Read<T>(output_dev, output.size()),
-            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-            rspace.Read<std::vector<T>>());
+        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                      (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                                      rspace.Read<std::vector<T>>());
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -2010,7 +2008,7 @@ struct verify_backward_data_rnn
         // auto dhyin_dev        = handle.Write(dhy);
         Workspace rspace{};
         rspace.Write(reserveSpace);
-        auto weights_dev      = handle.Write(weights);
+        auto weights_dev = handle.Write(weights);
         // auto hx_dev           = handle.Write(initHidden);
 
         std::vector<int> hlens(3, 0);

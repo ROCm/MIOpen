@@ -81,11 +81,8 @@ struct ConvFwdSolverTest
             wspace.resize(cur_sol_ws);
         }
 
-        const auto invoke_params =
-            miopen::conv::DataInvokeParams{tensors,
-                                           wspace.ptr(),
-                                           wspace.size(),
-                                           this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
+        const auto invoke_params = miopen::conv::DataInvokeParams{
+            tensors, wspace.ptr(), wspace.size(), this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
 
         // auto sol = solv.GetSolution(ctx, problem);
         // This is complicated due to the split between tunable and non-tunable solvers

@@ -61,27 +61,25 @@ struct verify_reduce_with_indices
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    verify_reduce_with_indices(
-        const miopen::ReduceTensorDescriptor& reduce_,
-        const tensor<T>& input_,
-        const tensor<T>& output_,
-        const tensor<T>& workspace_,
-        const tensor<int>& indices_,
-        float alpha_,
-        float beta_)
-      : 
-        reduce(reduce_),
-        input(input_),
-        output(output_),
-        workspace(workspace_),
-        indices(indices_),
-        alpha(alpha_),
-        beta(beta_),
-        reduceOp(reduce.reduceTensorOp_),
-        compTypeVal(reduce.reduceTensorCompType_),
-        nanOpt     (reduce.reduceTensorNanOpt_),
-        indicesOpt (reduce.reduceTensorIndices_),
-        indicesType(reduce.reduceTensorIndicesType_)
+    verify_reduce_with_indices(const miopen::ReduceTensorDescriptor& reduce_,
+                               const tensor<T>& input_,
+                               const tensor<T>& output_,
+                               const tensor<T>& workspace_,
+                               const tensor<int>& indices_,
+                               float alpha_,
+                               float beta_)
+        : reduce(reduce_),
+          input(input_),
+          output(output_),
+          workspace(workspace_),
+          indices(indices_),
+          alpha(alpha_),
+          beta(beta_),
+          reduceOp(reduce.reduceTensorOp_),
+          compTypeVal(reduce.reduceTensorCompType_),
+          nanOpt(reduce.reduceTensorNanOpt_),
+          indicesOpt(reduce.reduceTensorIndices_),
+          indicesType(reduce.reduceTensorIndicesType_)
     {
     }
 

@@ -29,68 +29,75 @@
 
 #include "get_handle.hpp"
 
-class Workspace {
+class Workspace
+{
 
-  // RAII class for hip allocations
-  class GPUBuffer {
-  public:
-    GPUBuffer() = default;
+    // RAII class for hip allocations
+    class GPUBuffer
+    {
+    public:
+        GPUBuffer() = default;
 
-    explicit GPUBuffer(size_t num_bytes) {
-      assert(num_bytes > 0);
-      auto s = hipMalloc(&buf_, num_bytes);
-      if (s != hipSuccess || !buf_) {
-        std::abort();
-      }
-    }
+        explicit GPUBuffer(size_t num_bytes)
+        {
+            assert(num_bytes > 0);
+            auto s = hipMalloc(&buf_, num_bytes);
+            if(s != hipSuccess || !buf_)
+            {
+                std::abort();
+            }
+        }
 
-    ~GPUBuffer() {
-      auto s = hipFree(buf_);
-      buf_ = nullptr;
-      if (s != hipSuccess) {
-        std::abort();
-      }
-    }
+        ~GPUBuffer()
+        {
+            auto s = hipFree(buf_);
+            buf_   = nullptr;
+            if(s != hipSuccess)
+            {
+                std::abort();
+            }
+        }
 
-    void* ptr() { return buf_; }
-    void* ptr() const { return buf_; }
+        void* ptr() { return buf_; }
+        void* ptr() const { return buf_; }
 
-    GPUBuffer(const GPUBuffer&) = delete;
-    GPUBuffer& operator = (const GPUBuffer&) = delete;
+        GPUBuffer(const GPUBuffer&) = delete;
+        GPUBuffer& operator=(const GPUBuffer&) = delete;
 
-    GPUBuffer(GPUBuffer&& that): 
-      buf_(std::move(that.buf_)) {
-        that.buf_ = nullptr; // take over ownership
-      }
+        GPUBuffer(GPUBuffer&& that) : buf_(std::move(that.buf_))
+        {
+            that.buf_ = nullptr; // take over ownership
+        }
 
-    GPUBuffer& operator = (GPUBuffer&& that) {
-      std::swap(this->buf_, that.buf_);
-      return *this;
-    }
+        GPUBuffer& operator=(GPUBuffer&& that)
+        {
+            std::swap(this->buf_, that.buf_);
+            return *this;
+        }
 
-  private:
-    void* buf_ = nullptr;
-  }; 
+    private:
+        void* buf_ = nullptr;
+    };
 
 public:
-  Workspace() = default;
-  
-  Workspace(const Workspace&) = delete;
-  Workspace& operator = (const Workspace&) = delete;
-  Workspace(Workspace&&) = default;
-  Workspace& operator = (Workspace&&) = default;
+    Workspace() = default;
 
-  size_t size() const { return sz_; }
+    Workspace(const Workspace&) = delete;
+    Workspace& operator=(const Workspace&) = delete;
+    Workspace(Workspace&&)                 = default;
+    Workspace& operator=(Workspace&&) = default;
 
-  void resize(size_t sz_in_bytes) {
-    sz_ = sz_in_bytes;
-    AdjustToSize();
-  }
+    size_t size() const { return sz_; }
 
+    void resize(size_t sz_in_bytes)
+    {
+        sz_ = sz_in_bytes;
+        AdjustToSize();
+    }
 
-  // for use in miopen .*GetWorkSpaceSize() methods where a pointer to size_t is
-  // passed to capture the size. Must call AdjustToSize() after calling such a method
-  size_t* SizePtr() { return &sz_; }
+    // for use in miopen .*GetWorkSpaceSize() methods where a pointer to size_t is
+    // passed to capture the size. Must call AdjustToSize() after calling such a method
+    size_t* SizePtr() { return &sz_; }
 
 #if 0
   auto ptr() const { return data_.get(); }
@@ -103,48 +110,52 @@ public:
     }
   }
 #else
-  auto ptr() const { return gpu_buf_.ptr(); }
+    auto ptr() const { return gpu_buf_.ptr(); }
 
-  auto ptr() { return gpu_buf_.ptr(); }
+    auto ptr() { return gpu_buf_.ptr(); }
 
-  void AdjustToSize() {
-    if (sz_ != 0) {
-      gpu_buf_ = GPUBuffer(sz_);
-    } else {
-      gpu_buf_ = GPUBuffer();
+    void AdjustToSize()
+    {
+        if(sz_ != 0)
+        {
+            gpu_buf_ = GPUBuffer(sz_);
+        }
+        else
+        {
+            gpu_buf_ = GPUBuffer();
+        }
     }
-  }
 #endif
 
-  template <typename V>
-  void Write(const V& vec) {
-    using T = typename V::value_type;
-    resize(vec.size() * sizeof(T));
-    auto s = hipMemcpy(this->ptr(), &vec[0], size(),
-        hipMemcpyHostToDevice);
-    if(s != hipSuccess) {
-      abort();
+    template <typename V>
+    void Write(const V& vec)
+    {
+        using T = typename V::value_type;
+        resize(vec.size() * sizeof(T));
+        auto s = hipMemcpy(this->ptr(), &vec[0], size(), hipMemcpyHostToDevice);
+        if(s != hipSuccess)
+        {
+            abort();
+        }
     }
-  }
 
-  template <typename V>
-  V Read() const {
-    using T = typename V::value_type;
-    size_t num_elem = size() / sizeof(T);
-    V ret(num_elem);
-    auto s = hipMemcpy(&ret[0], ptr(), size(),
-        hipMemcpyDeviceToHost);
-    if (s != hipSuccess) {
-      abort();
+    template <typename V>
+    V Read() const
+    {
+        using T         = typename V::value_type;
+        size_t num_elem = size() / sizeof(T);
+        V ret(num_elem);
+        auto s = hipMemcpy(&ret[0], ptr(), size(), hipMemcpyDeviceToHost);
+        if(s != hipSuccess)
+        {
+            abort();
+        }
+        return ret;
     }
-    return ret;
-  }
 
 private:
-  // miopen::Handle& handle_;
-  // miopen::Allocator::ManageDataPtr data_{};
-  GPUBuffer gpu_buf_{};
-  size_t sz_{};
-
-
+    // miopen::Handle& handle_;
+    // miopen::Allocator::ManageDataPtr data_{};
+    GPUBuffer gpu_buf_{};
+    size_t sz_{};
 };

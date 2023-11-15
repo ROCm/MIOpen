@@ -1964,7 +1964,7 @@ struct verify_forward_infer_gru
 #endif
         auto&& handle = get_handle();
 
-        size_t out_sz        = 0;
+        size_t out_sz         = 0;
         size_t workspace_size = 0;
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
@@ -2250,7 +2250,7 @@ struct verify_forward_train_gru
         auto&& handle = get_handle();
 
         size_t out_sz           = 0;
-        size_t workspace_size    = 0;
+        size_t workspace_size   = 0;
         size_t reserveSpaceSize = 0;
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
@@ -2563,7 +2563,7 @@ struct verify_backward_data_gru
 
         auto&& handle = get_handle();
 
-        size_t out_sz        = 0;
+        size_t out_sz = 0;
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
@@ -2584,9 +2584,9 @@ struct verify_backward_data_gru
         wspace.resize(workspace_size);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        auto yin_dev          = handle.Write(yin);
-        auto dyin_dev         = handle.Write(dy);
-        auto weights_dev      = handle.Write(weights);
+        auto yin_dev     = handle.Write(yin);
+        auto dyin_dev    = handle.Write(dy);
+        auto weights_dev = handle.Write(weights);
 
         Workspace rspace{};
         rspace.Write(reserveSpace);

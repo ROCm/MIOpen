@@ -324,9 +324,9 @@ protected:
             Workspace wspace{};
             wspace.resize(workspace_size);
 
-            EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenRunSolution(
-                             handle, solution, 3, arguments, wspace.ptr(), wspace.size()));
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenRunSolution(handle, solution, 3, arguments, wspace.ptr(), wspace.size()));
         }
 
         const auto& solution_deref = miopen::deref(solutions.front());
@@ -1211,7 +1211,7 @@ struct verify_backward_conv : conv_base<T>
 
                 if(selected.workspace_size > 0)
                 {
-                  wspace.resize(selected.workspace_size);
+                    wspace.resize(selected.workspace_size);
                 }
 
                 filter.ConvolutionBackwardImmediate(handle,

@@ -146,9 +146,9 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
 {
     auto device = Device(handle);
 
-    auto d_input     = device.Malloc(input_bytes);
-    auto d_filter    = device.Malloc(filter_bytes);
-    auto d_output    = device.Malloc(output_bytes);
+    auto d_input  = device.Malloc(input_bytes);
+    auto d_filter = device.Malloc(filter_bytes);
+    auto d_output = device.Malloc(output_bytes);
 
     std::fill_n(h_input.begin(), h_input.size(), 1.f);
     ASSERT_TRUE(d_input.CopyToDevice(h_input.data(), input_bytes));

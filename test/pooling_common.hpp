@@ -200,8 +200,8 @@ struct verify_forward_pooling
         auto out      = get_output_tensor(filter, input);
         indices.resize(out.data.size(), 0);
 
-        auto in_dev        = handle.Write(input.data);
-        auto out_dev       = handle.Create<T>(out.data.size());
+        auto in_dev  = handle.Write(input.data);
+        auto out_dev = handle.Create<T>(out.data.size());
         Workspace wspace{};
         wspace.Write(indices);
 
@@ -217,7 +217,7 @@ struct verify_forward_pooling
                        wspace.ptr(),
                        wspace.size());
 
-        indices = wspace.Read<std::vector<Index>>();
+        indices  = wspace.Read<std::vector<Index>>();
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }

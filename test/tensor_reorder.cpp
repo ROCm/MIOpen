@@ -355,13 +355,13 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
     void run()
     {
         auto run_reorder = [](uint32_t dim_0,
-                                  uint32_t dim_1,
-                                  uint32_t dim_2,
-                                  uint32_t dim_3,
-                                  uint32_t order_0,
-                                  uint32_t order_1,
-                                  uint32_t order_2,
-                                  uint32_t order_3) {
+                              uint32_t dim_1,
+                              uint32_t dim_2,
+                              uint32_t dim_3,
+                              uint32_t order_0,
+                              uint32_t order_1,
+                              uint32_t order_2,
+                              uint32_t order_3) {
             int tensor_sz = dim_0 * dim_1 * dim_2 * dim_3;
             std::vector<int> tensor_len({static_cast<int>(dim_0),
                                          static_cast<int>(dim_1),
@@ -399,14 +399,13 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                                            order_3);
             EXPECT(reorder_sol != nullptr);
             size_t workspace_size = reorder_sol->IsSkippable() ? sizeof(T) * tensor_sz
-                                                          : reorder_sol->GetOutputTensorSize();
+                                                               : reorder_sol->GetOutputTensorSize();
             Workspace wspace{};
             wspace.resize(workspace_size);
 
             auto src_dev = handle.Write(t_src.data);
 
-            const auto invoke_param = reorder_invoke_param{
-                src_dev.get(), wspace.ptr()};
+            const auto invoke_param         = reorder_invoke_param{src_dev.get(), wspace.ptr()};
             std::vector<OpKernelArg> opArgs = reorder_sol->GetKernelArg();
             boost::optional<miopen::InvokerFactory> invoker_factory(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
@@ -422,8 +421,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                 });
             std::vector<miopen::solver::KernelInfo> construction_params{
                 reorder_sol->GetKernelInfo()};
-            const auto invoker =
-                handle.PrepareInvoker(*invoker_factory, construction_params);
+            const auto invoker = handle.PrepareInvoker(*invoker_factory, construction_params);
             // run gpu
             invoker(handle, invoke_param);
             // run cpu

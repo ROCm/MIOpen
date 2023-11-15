@@ -214,9 +214,9 @@ private:
                 Workspace wspace{};
                 wspace.resize(workspace_size);
 
-                EXPECT_EQUAL(miopenSetFindOptionPreallocatedWorkspace(
-                                 options, wspace.ptr(), wspace.size()), 
-                             miopenStatusSuccess);
+                EXPECT_EQUAL(
+                    miopenSetFindOptionPreallocatedWorkspace(options, wspace.ptr(), wspace.size()),
+                    miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedTensor(
                                  options, miopenTensorConvolutionX, x_dev.get()),
@@ -329,10 +329,9 @@ private:
                 arguments[i].buffer     = buffers[i];
             }
 
-            EXPECT_EQUAL(
-                miopenRunSolution(
-                    handle, solution, 3, arguments.get(), wspace.ptr(), wspace.size()),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenRunSolution(
+                             handle, solution, 3, arguments.get(), wspace.ptr(), wspace.size()),
+                         miopenStatusSuccess);
         };
 
         // Without descriptors

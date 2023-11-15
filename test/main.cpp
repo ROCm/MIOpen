@@ -44,10 +44,7 @@ struct handle_fixture
 {
     miopenHandle_t handle{};
 
-    handle_fixture()
-    {
-        miopenCreate(&handle);
-    }
+    handle_fixture() { miopenCreate(&handle); }
 
     ~handle_fixture() { miopenDestroy(handle); }
 };
@@ -167,7 +164,6 @@ struct conv_forward : output_tensor_fixture
     {
         float alpha = 1, beta = 0;
 
-
         int n, h, c, w;
         STATUS(miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
         size_t sz_in = static_cast<size_t>(n) * c * h * w;
@@ -200,7 +196,7 @@ struct conv_forward : output_tensor_fixture
 
         auto& mhand = get_handle();
 
-        auto in_dev = mhand.Write(in);
+        auto in_dev  = mhand.Write(in);
         auto wei_dev = mhand.Write(wei);
         auto out_dev = mhand.Write(out);
 
@@ -271,7 +267,6 @@ struct conv_forward : output_tensor_fixture
         {
             CHECK(time == 0.0);
         }
-
     }
 };
 

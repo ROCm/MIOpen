@@ -534,7 +534,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
 
         auto&& handle = get_handle();
 
-        size_t out_sz        = 0;
+        size_t out_sz = 0;
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
@@ -865,8 +865,9 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             ChangeDataPadding(*packed_output, output, batch_seq, batch_seq[0], out_h, true);
         }
 
-        if (reserveSpace.size() != RSVcpu.size()) {
-          std::abort();
+        if(reserveSpace.size() != RSVcpu.size())
+        {
+            std::abort();
         }
         std::copy(reserveSpace.begin(), reserveSpace.end(), RSVcpu.begin());
 
@@ -915,7 +916,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         std::fill(output.begin(), output.end(), static_cast<T>(0));
         auto output_dev = handle.Write(output);
 
-        size_t workspace_size    = 0;
+        size_t workspace_size   = 0;
         size_t reserveSpaceSize = 0;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
         miopenGetRNNTrainingReserveSize(
@@ -1213,7 +1214,6 @@ verify_backward_data_lstm<T>::gpu() const
 
     auto&& handle = get_handle();
 
-
     std::vector<miopen::TensorDescriptor> inputCPPDescs;
     std::vector<miopenTensorDescriptor_t> inputDescs;
     createTensorDescArray(
@@ -1235,15 +1235,16 @@ verify_backward_data_lstm<T>::gpu() const
     size_t reserveSpaceSize = 0;
     miopenGetRNNTrainingReserveSize(
         &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-    if (reserveSpaceSize != (RSVgpu.size() * sizeof(T))) {
-      std::abort();
+    if(reserveSpaceSize != (RSVgpu.size() * sizeof(T)))
+    {
+        std::abort();
     }
     Workspace rspace{};
     rspace.Write(RSVgpu);
 
-    auto yin_dev          = handle.Write(yin);
-    auto dyin_dev         = handle.Write(dy);
-    auto weights_dev      = handle.Write(weights);
+    auto yin_dev     = handle.Write(yin);
+    auto dyin_dev    = handle.Write(dy);
+    auto weights_dev = handle.Write(weights);
 
     std::vector<int> hlens(3, 0);
     hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
