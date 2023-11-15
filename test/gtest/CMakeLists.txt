@@ -1,4 +1,6 @@
-find_package(GTest CONFIG REQUIRED)
+if(NOT WIN32)
+    find_package(GTest REQUIRED)
+endif()
 
 find_package(rocblas)
 
