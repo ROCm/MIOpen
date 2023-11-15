@@ -99,14 +99,15 @@ struct KernelTuningNetTestConvHipIgemmGroupFwdXdlops : KernelTuningNetTest
 
 TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(problem, expected);
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(problem,
+                                                                                     expected);
 }
 
 TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(
-        problem, expected);
+    TestParameterPredictionModel<
+        miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>(problem, expected);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,

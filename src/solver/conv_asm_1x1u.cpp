@@ -367,7 +367,6 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     }
     return true;
 }
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 
 bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
                                                    std::string value,
@@ -440,7 +439,6 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionCon
         valid = true;
     }
 }
-#endif
 
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {

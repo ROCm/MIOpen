@@ -370,7 +370,8 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
 
     void StaticHeuristic(const miopen::conv::ProblemDescription& problem);
     void HeuristicInit(const ExecutionContext&, const miopen::conv::ProblemDescription&);
-    bool IsModelApplicable(const ExecutionContext& ctx, const miopen::conv::ProblemDescription& problem) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
     bool IsValidValue() const { return IsValidValueImpl(8); }
     bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -394,8 +395,9 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
-    void
-    RunParmeterPredictionModel(const ExecutionContext&, const miopen::conv::ProblemDescription&, bool& valid);
+    void RunParmeterPredictionModel(const ExecutionContext&,
+                                    const miopen::conv::ProblemDescription&,
+                                    bool& valid);
     bool ModelApplyToken(int index, std::string value, const miopen::conv::ProblemDescription&);
 #endif
     bool IsValidImpl(const miopen::conv::ProblemDescription& problem, int sequence_length) const;
@@ -4495,7 +4497,8 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     }
     bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
-    bool IsModelApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const;
+    bool IsModelApplicable(const ExecutionContext& ctx,
+                           const miopen::conv::ProblemDescription& problem) const;
 
 private:
     std::vector<int> heuristic_indexes;

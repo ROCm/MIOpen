@@ -228,11 +228,11 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, st
     if(idx >= 5)
         idx += 2; // skip MPerXDL and NPerXDL as they are constant
 
-    for(int i = 0; i < heuristic_indexes.size(); i++)
+    for(int heuristic_index : heuristic_indexes)
     {
-        if(heuristic_kernels[heuristic_indexes[i]][idx] == value)
+        if(heuristic_kernels[heuristic_index][idx] == value)
         {
-            new_heuristic_indexes.push_back(heuristic_indexes[i]);
+            new_heuristic_indexes.push_back(heuristic_index);
         }
     }
     if(new_heuristic_indexes.empty())
