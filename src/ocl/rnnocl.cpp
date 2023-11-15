@@ -5134,7 +5134,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 
     auto rnn_data_type = dhxDesc.GetType();
 
-    std::vector<int> batches;
+    std::vector<int> fbatches;
     int input_size   = dxDesc[0].GetLengths()[1];
     int max_batch    = dhxDesc.GetLengths()[1];
     int hidden_size  = dhxDesc.GetLengths()[2];
@@ -5166,39 +5166,39 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         }
         else
         {
-            if(batchval > batches.back() || batchval < 0)
+            if(batchval > fbatches.back() || batchval < 0)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Incorrect input batch size at time " + std::to_string(i) +
                                  "! Batch size must not ascend!");
             }
         }
-        batches.push_back(batchval);
+        fbatches.push_back(batchval);
         total_batches += dxDesc[i].GetLengths()[0];
     }
 
     int total_batch_size = 0;
     // accumulated batches per time
-    std::vector<int> bacc_per_time(seqLen + 1);
+    std::vector<int> fbacc_per_time(seqLen + 1);
     std::vector<int> rbacc_per_time(seqLen + 1);
 
     for(int i = 0; i < seqLen; i++)
     {
-        bacc_per_time[i] = total_batch_size;
-        total_batch_size += batches[i];
+        fbacc_per_time[i] = total_batch_size;
+        total_batch_size += fbatches[i];
     }
 
     int rtotal_batch_size = total_batch_size;
     std::vector<int> rbatches;
     for(int i = seqLen - 1; i >= 0; i--)
     {
+        rtotal_batch_size -= fbatches[i];
         rbacc_per_time[seqLen - 1 - i] = rtotal_batch_size;
-        rtotal_batch_size -= batches[i];
-        rbatches.push_back(batches[i]);
+        rbatches.push_back(fbatches[i]);
     }
 
-    bacc_per_time[seqLen] = total_batch_size;
-    rbacc_per_time[0]     = total_batch_size;
+    fbacc_per_time[seqLen] = total_batch_size;
+    rbacc_per_time[seqLen] = 0;
 
     if(out_vec_size != (bi * hidden_size))
     {
@@ -5231,9 +5231,11 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 
     ReluReserveBufferOffsets RBuff(input_size, hidden_size, nLayers, total_batches, max_batch, bi);
 
-    auto get_HxBuff_offset = [&bi, hidden_size, max_batch](int layer_id, int reverse) {
-        return (static_cast<size_t>(hidden_size) * max_batch) * (bi * layer_id + reverse);
-    };
+    auto get_HxBuff_offset =
+        [&bi, hidden_size, max_batch](int layer_id, int batch_id, int reverse) {
+            return (static_cast<size_t>(hidden_size) * (max_batch)) * (bi * layer_id + reverse) +
+                   hidden_size * batch_id;
+        };
 
     auto propagate_output =
         [&RBuff, out_vec_size, &handle, &rnn_data_type, workSpace, dy, &WeiBuf, w](int numLayers,
@@ -5312,9 +5314,9 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
 
     auto propagate_hidden_output = [&RBuff,
                                     &handle,
-                                    &batches,
+                                    &fbatches,
                                     &rbatches,
-                                    &bacc_per_time,
+                                    &fbacc_per_time,
                                     &rbacc_per_time,
                                     &rnn_data_type,
                                     dhy,
@@ -5323,25 +5325,25 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         if(dhy == nullptr)
             return;
 
-        std::vector<int>& use_batches = direction == rnn_direction::Forward ? batches : rbatches;
+        auto& batches = direction == rnn_direction::Forward ? fbatches : rbatches;
 
         float alpha0 = 1;
         float alpha1 = 1;
         float beta_t = 0;
 
-        std::vector<int> hx_stride{use_batches.at(0) * RBuff.hidden_size, RBuff.hidden_size, 1};
+        std::vector<int> hx_stride{batches.at(0) * RBuff.hidden_size, RBuff.hidden_size, 1};
         std::vector<int> reserve_stride{
             static_cast<int>(RBuff.layer_stride()), RBuff.gemm_write_size(), 1};
 
-        std::vector<int> hx_size{1, use_batches.at(time), RBuff.hidden_size};
-        std::vector<int> reserve_size{1, use_batches.at(time), RBuff.hidden_size};
+        std::vector<int> hx_size{1, batches.at(time), RBuff.hidden_size};
+        std::vector<int> reserve_size{1, batches.at(time), RBuff.hidden_size};
 
         auto hx_desc = miopen::TensorDescriptor(rnn_data_type, hx_size, hx_stride);
 
         auto workspace_desc = miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
 
-        int accumulated_batches =
-            direction == rnn_direction::Forward ? bacc_per_time[time] : rbacc_per_time[time + 1];
+        auto& bacc_per_time = direction == rnn_direction::Forward ? fbacc_per_time : rbacc_per_time;
+
         OpTensor(handle,
                  miopenTensorOpAdd,
                  &alpha0,
@@ -5353,16 +5355,16 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                  &beta_t,
                  workspace_desc,
                  workSpace,
-                 get_HxBuff_offset(layer, direction),
-                 RBuff.gemm_write_offset(layer, accumulated_batches, direction),
-                 RBuff.gemm_write_offset(layer, accumulated_batches, direction));
+                 get_HxBuff_offset(layer, 0, direction),
+                 RBuff.gemm_write_offset(layer, bacc_per_time[time], direction),
+                 RBuff.gemm_write_offset(layer, bacc_per_time[time], direction));
     };
 
     auto propagate_hidden_prev = [&RBuff,
                                   &handle,
-                                  &batches,
+                                  &fbatches,
                                   &rbatches,
-                                  &bacc_per_time,
+                                  &fbacc_per_time,
                                   &rbacc_per_time,
                                   &rnn_data_type,
                                   dhy,
@@ -5371,17 +5373,18 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   WeiBuf,
                                   w](int layer, int time, int direction) {
         if(direction == rnn_direction::Forward && dhy != nullptr &&
-           batches.at(time) > batches.at(time + 1))
+           fbatches.at(time) > fbatches.at(time + 1))
         {
-            std::vector<int> hx_stride{batches.at(0) * RBuff.hidden_size, RBuff.hidden_size, 1};
+            std::vector<int> hx_stride{fbatches.at(0) * RBuff.hidden_size, RBuff.hidden_size, 1};
 
             std::vector<int> reserve_stride{
                 static_cast<int>(RBuff.layer_stride()), RBuff.gemm_write_size(), 1};
 
-            std::vector<int> hx_size{1, batches.at(time) - batches.at(time + 1), RBuff.hidden_size};
+            std::vector<int> hx_size{
+                1, fbatches.at(time) - fbatches.at(time + 1), RBuff.hidden_size};
 
             std::vector<int> reserve_size{
-                1, batches.at(time) - batches.at(time + 1), RBuff.hidden_size};
+                1, fbatches.at(time) - fbatches.at(time + 1), RBuff.hidden_size};
 
             float alpha0 = 1;
             float alpha1 = 1;
@@ -5391,40 +5394,35 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
             auto reserve_desc =
                 miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
 
-            OpTensor(
-                handle,
-                miopenTensorOpAdd,
-                &alpha0,
-                hx_desc,
-                dhy,
-                &alpha1,
-                reserve_desc,
-                workSpace,
-                &beta_t,
-                reserve_desc,
-                workSpace,
-                (get_HxBuff_offset(layer, direction) + batches.at(time + 1) * RBuff.hidden_size),
-                RBuff.gemm_write_offset(
-                    layer, bacc_per_time[time] + batches.at(time + 1), direction),
-                RBuff.gemm_write_offset(
-                    layer, bacc_per_time[time] + batches.at(time + 1), direction));
+            OpTensor(handle,
+                     miopenTensorOpAdd,
+                     &alpha0,
+                     hx_desc,
+                     dhy,
+                     &alpha1,
+                     reserve_desc,
+                     workSpace,
+                     &beta_t,
+                     reserve_desc,
+                     workSpace,
+                     get_HxBuff_offset(layer, fbatches.at(time + 1), direction),
+                     RBuff.gemm_write_offset(
+                         layer, fbacc_per_time[time] + fbatches.at(time + 1), direction),
+                     RBuff.gemm_write_offset(
+                         layer, fbacc_per_time[time] + fbatches.at(time + 1), direction));
         }
 
-        int use_batch = direction == rnn_direction::Forward ? batches[time + 1] : rbatches[time];
+        int used_batch = direction == rnn_direction::Forward ? fbatches[time + 1] : rbatches[time];
 
-        if(use_batch <= 0)
+        if(used_batch <= 0)
             return;
 
-        int pre_batch = direction == rnn_direction::Forward ? bacc_per_time[time + 1]
-                                                            : rbacc_per_time[time + 2];
-
-        int accumulated_batches =
-            direction == rnn_direction::Forward ? bacc_per_time[time] : rbacc_per_time[time + 1];
+        auto& bacc_per_time = direction == rnn_direction::Forward ? fbacc_per_time : rbacc_per_time;
 
         miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                           false,
                                                           false,
-                                                          use_batch,
+                                                          used_batch,
                                                           RBuff.hidden_size,
                                                           RBuff.hidden_size,
                                                           RBuff.gemm_write_size(),
@@ -5443,11 +5441,11 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
             CallGemm(handle,
                      gemm_desc,
                      workSpace,
-                     RBuff.gemm_write_offset(layer, pre_batch, direction),
+                     RBuff.gemm_write_offset(layer, bacc_per_time[time + 1], direction),
                      w,
                      WeiBuf.hidden_weight_offset(layer, direction),
                      workSpace,
-                     RBuff.gemm_write_offset(layer, accumulated_batches, direction),
+                     RBuff.gemm_write_offset(layer, bacc_per_time[time], direction),
                      GemmBackend_t::miopengemm);
 
         if(gemm_status != miopenStatusSuccess)
@@ -5467,9 +5465,9 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   &RBuff,
                                   &handle,
                                   seqLen,
-                                  &batches,
+                                  &fbatches,
                                   &rbatches,
-                                  &bacc_per_time,
+                                  &fbacc_per_time,
                                   &rbacc_per_time,
                                   &rnn_data_type,
                                   workSpace,
@@ -5478,7 +5476,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                                   propagate_hidden_output,
                                   propagate_hidden_prev](int layer, int time, int direction) {
         std::vector<int> hx_stride{
-            batches.at(0) * RBuff.gemm_write_size(), RBuff.gemm_write_size(), 1};
+            fbatches.at(0) * RBuff.gemm_write_size(), RBuff.gemm_write_size(), 1};
         std::vector<int> reserve_stride{
             RBuff.batches_per_layer * RBuff.gemm_write_size(), RBuff.gemm_write_size(), 1};
 
@@ -5491,12 +5489,11 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
             propagate_hidden_prev(layer, time, direction);
         }
 
-        auto& use_batches = direction == rnn_direction::Forward ? batches : rbatches;
+        auto& batches = direction == rnn_direction::Forward ? fbatches : rbatches;
 
-        int batch_offset =
-            direction == rnn_direction::Forward ? bacc_per_time[time] : rbacc_per_time[time + 1];
+        auto& bacc_per_time = direction == rnn_direction::Forward ? fbacc_per_time : rbacc_per_time;
 
-        std::vector<int> reserve_size{1, use_batches.at(time), RBuff.hidden_size};
+        std::vector<int> reserve_size{1, batches.at(time), RBuff.hidden_size};
         auto reserve_desc = miopen::TensorDescriptor(rnn_data_type, reserve_size, reserve_stride);
 
         float alpha = 1, beta = 0;
@@ -5512,19 +5509,19 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                            &beta,
                            reserve_desc,
                            workSpace,
-                           RBuff.hidden_offset(layer,     batch_offset, direction),
-                           RBuff.gemm_write_offset(layer, batch_offset, direction),
-                           RBuff.gemm_write_offset(layer, batch_offset, direction),
-                           RBuff.gemm_write_offset(layer, batch_offset, direction));
+                           RBuff.hidden_offset(layer, bacc_per_time[time], direction),
+                           RBuff.gemm_write_offset(layer, bacc_per_time[time], direction),
+                           RBuff.gemm_write_offset(layer, bacc_per_time[time], direction),
+                           RBuff.gemm_write_offset(layer, bacc_per_time[time], direction));
     };
 
     auto propagate_hidden = [*this,
                              &RBuff,
                              &handle,
                              seqLen,
-                             &batches,
+                             &fbatches,
                              &rbatches,
-                             &bacc_per_time,
+                             &fbacc_per_time,
                              &rbacc_per_time,
                              &rnn_data_type,
                              workSpace,
@@ -5540,73 +5537,90 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
         }
     };
 
-    auto propagate_dhx_prev =
-        [&RBuff, &WeiBuf, &rnn_data_type, batches, &handle, w, dhx, &get_HxBuff_offset, workSpace](
-            int layer, int cur_time, int cur_batch, int use_batch, int direction) {
-            if(batches.at(cur_time) <= use_batch)
-                return;
+    auto propagate_dhx_prev = [&RBuff,
+                               &WeiBuf,
+                               &rnn_data_type,
+                               &fbatches,
+                               &rbatches,
+                               &fbacc_per_time,
+                               &rbacc_per_time,
+                               &handle,
+                               w,
+                               dhx,
+                               &get_HxBuff_offset,
+                               workSpace](int layer, int time, int direction) {
+        auto& batches = direction == rnn_direction::Forward ? fbatches : rbatches;
 
-            miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                              false,
-                                                              false,
-                                                              (batches.at(cur_time) - use_batch),
-                                                              RBuff.hidden_size,
-                                                              RBuff.hidden_size,
-                                                              RBuff.gemm_write_size(),
-                                                              RBuff.hidden_size,
-                                                              RBuff.hidden_size,
-                                                              1, // batch count
-                                                              0, // Stride A
-                                                              0, // Stride B
-                                                              0, // Stride C
-                                                              1, // alpha
-                                                              1, // beta
-                                                              rnn_data_type,
-                                                              false};
+        auto& bacc_per_time = direction == rnn_direction::Forward ? fbacc_per_time : rbacc_per_time;
 
-            int hx_shift = get_HxBuff_offset(layer, direction) + use_batch * RBuff.hidden_size;
-            miopenStatus_t gemm_status =
-                CallGemm(handle,
-                         gemm_desc,
-                         workSpace,
-                         RBuff.gemm_write_offset(layer, cur_batch + use_batch, direction),
-                         w,
-                         WeiBuf.hidden_weight_offset(layer, direction),
-                         dhx,
-                         hx_shift,
-                         GemmBackend_t::miopengemm);
+        int batch_size = time == 0 ? batches.at(time) : batches.at(time) - batches.at(time - 1);
 
-            if(gemm_status != miopenStatusSuccess)
-            {
-                if(gemm_status == miopenStatusNotImplemented)
-                {
-                    MIOPEN_LOG_E("GEMM not implemented");
-                }
-                else
-                {
-                    MIOPEN_LOG_E("GEMM failed");
-                }
-            }
-        };
+        if(batch_size <= 0)
+            return;
 
-    auto propagate_dhx = [*this, seqLen, &RBuff, &batches, &rbatches, &bacc_per_time, &rbacc_per_time, &propagate_dhx_prev](int layer) {
+        miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                          false,
+                                                          false,
+                                                          batch_size,
+                                                          RBuff.hidden_size,
+                                                          RBuff.hidden_size,
+                                                          RBuff.gemm_write_size(),
+                                                          RBuff.hidden_size,
+                                                          RBuff.hidden_size,
+                                                          1, // batch count
+                                                          0, // Stride A
+                                                          0, // Stride B
+                                                          0, // Stride C
+                                                          1, // alpha
+                                                          1, // beta
+                                                          rnn_data_type,
+                                                          false};
 
-        for(int ti = 0; ti < seqLen; ti++)
+        int use_batch = time == 0 ? 0 : batches.at(time - 1);
+
+        int write_offset =
+            time == 0 ? bacc_per_time[time] : bacc_per_time[time] + batches.at(time - 1);
+
+        miopenStatus_t gemm_status =
+            CallGemm(handle,
+                     gemm_desc,
+                     workSpace,
+                     RBuff.gemm_write_offset(layer, write_offset, direction),
+                     w,
+                     WeiBuf.hidden_weight_offset(layer, direction),
+                     dhx,
+                     get_HxBuff_offset(layer, use_batch, direction),
+                     GemmBackend_t::miopengemm);
+
+        if(gemm_status != miopenStatusSuccess)
         {
-            int use_time  = ti > 0 ? ti - 1 : 0;
-            int use_batch = ti > 0 ? batches.at(use_time) : 0;
-            propagate_dhx_prev(layer, ti, bacc_per_time[ti], use_batch, rnn_direction::Forward);
-
-            if(dirMode != 0u)
+            if(gemm_status == miopenStatusNotImplemented)
             {
-                int reverse_use_time  = ti > 0 ? seqLen - ti : 0;
-                int reverse_use_batch = ti > 0 ? rbatches.at(ti - 1 ) : 0;
-                propagate_dhx_prev(layer,
-                                   seqLen - 1 - ti,
-                                   rbacc_per_time[ti + 1],
-                                   reverse_use_batch,
-                                   rnn_direction::Backward);
+                MIOPEN_LOG_E("GEMM not implemented");
             }
+            else
+            {
+                MIOPEN_LOG_E("GEMM failed");
+            }
+        }
+    };
+
+    auto propagate_dhx = [*this,
+                          seqLen,
+                          &RBuff,
+                          &fbatches,
+                          &rbatches,
+                          &fbacc_per_time,
+                          &rbacc_per_time,
+                          &propagate_dhx_prev](int layer) {
+        for(int time = 0; time < seqLen; ti++)
+        {
+            propagate_dhx_prev(layer, time, rnn_direction::Forward);
+
+            if(dirMode == 0u)
+                continue;
+
+            propagate_dhx_prev(layer, time, rnn_direction::Backward);
         }
     };
 
