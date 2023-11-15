@@ -119,9 +119,9 @@ public:
   template <typename V>
   void Write(const V& vec) {
     using T = typename V::value_type;
-    auto bytes = vec.size() * sizeof(T);
-    resize(bytes);
-    auto s = hipMemcpyHostToDevice(this->ptr(), &vec[0], bytes);
+    resize(vec.size() * sizeof(T));
+    auto s = hipMemcpy(this->ptr(), &vec[0], size(),
+        hipMemcpyHostToDevice);
     if(s != hipSuccess) {
       abort();
     }
@@ -132,7 +132,8 @@ public:
     using T = typename V::value_type;
     size_t num_elem = size() / sizeof(T);
     V ret(num_elem);
-    auto s = hipMemcpyDeviceToHost(&ret[0], ptr(), size());
+    auto s = hipMemcpy(&ret[0], ptr(), size(),
+        hipMemcpyDeviceToHost);
     if (s != hipSuccess) {
       abort();
     }

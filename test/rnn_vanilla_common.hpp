@@ -1712,8 +1712,8 @@ struct verify_forward_train_rnn
 
         Workspace wspace{};
         wspace.resize(workSpaceSize);
-        Workspace reserveSpace{};
-        reserveSpace.resize(reserveSpaceSize);
+        Workspace rspace{};
+        rspace.resize(reserveSpaceSize);
 
         auto input_dev = handle.Write(input);
 
@@ -1727,7 +1727,6 @@ struct verify_forward_train_rnn
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-        auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
@@ -1758,8 +1757,8 @@ struct verify_forward_train_rnn
                                  nullptr,
                                  wspace.ptr(),
                                  wspace.size(),
-                                 reserveSpace.ptr(),
-                                 reserveSpace.size());
+                                 rspace.ptr(),
+                                 rspace.size());
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1772,7 +1771,7 @@ struct verify_forward_train_rnn
         auto retSet = std::make_tuple(
             handle.Read<T>(output_dev, output.size()),
             (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-            handle.Read<T>(reserveSpace_dev, (reserveSpaceSize + sizeof(T) - 1) / sizeof(T)));
+            rspace.Read<std::vector<T>>());
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -2259,7 +2258,7 @@ struct verify_backward_weights_rnn
                               miopen::deref(rnnDesc).dataType);
 
         Workspace wspace{};
-        wpace.Write(workSpace);
+        wspace.Write(workSpace);
         Workspace rspace{};
         rspace.Write(reserveSpace);
 

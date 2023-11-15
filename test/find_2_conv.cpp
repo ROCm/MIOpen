@@ -312,8 +312,6 @@ private:
     {
         std::cerr << "Running a solution..." << std::endl;
 
-        auto& handle_deref = get_handle();
-
         std::size_t workspace_size;
         EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
                      miopenStatusSuccess);

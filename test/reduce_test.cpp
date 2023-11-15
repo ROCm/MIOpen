@@ -77,7 +77,7 @@ struct verify_reduce_with_indices
         indices(indices_),
         alpha(alpha_),
         beta(beta_),
-        reduceOp(reduce.reduceTensorOp_)
+        reduceOp(reduce.reduceTensorOp_),
         compTypeVal(reduce.reduceTensorCompType_),
         nanOpt     (reduce.reduceTensorNanOpt_),
         indicesOpt (reduce.reduceTensorIndices_),
@@ -356,11 +356,11 @@ struct verify_reduce_with_indices
                                          ? static_cast<const void*>(&beta64)
                                          : static_cast<const void*>(&beta);
 
-        if(ws_sizeInBytes > 0)
+        if(wspace.size() > 0)
         {
             reduce.ReduceTensor(get_handle(),
-                                indices_dev.get(),
-                                indices_sizeInBytes,
+                                idxspace.ptr(),
+                                idxspace.size(),
                                 wspace.ptr(),
                                 wspace.size(),
                                 alphaPtr,
@@ -652,7 +652,7 @@ struct verify_reduce_no_indices
                                          ? static_cast<const void*>(&beta64)
                                          : static_cast<const void*>(&beta);
 
-        if(ws_sizeInBytes > 0)
+        if(wspace.size() > 0)
         {
             reduce.ReduceTensor(get_handle(),
                                 nullptr,

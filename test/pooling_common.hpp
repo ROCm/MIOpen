@@ -217,7 +217,7 @@ struct verify_forward_pooling
                        wspace.ptr(),
                        wspace.size());
 
-        indices = wspace.Read<decltype(indices)>();
+        indices = wspace.Read<std::vector<Index>>();
         out.data = handle.Read<T>(out_dev, out.data.size());
         return out;
     }
@@ -424,7 +424,7 @@ struct verify_backward_pooling
                         // dx
                         dinput.desc,
                         din_dev.get(),
-                        wspace.prt());
+                        wspace.ptr());
 
         dinput.data = handle.Read<T>(din_dev, dinput.data.size());
         return dinput;

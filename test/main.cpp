@@ -23,8 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "get_handle.hpp"
 #include "test.hpp"
 #include "random.hpp"
+#include "workspace.hpp"
 #include <array>
 #include <iterator>
 #include <memory>
@@ -41,16 +43,10 @@
 struct handle_fixture
 {
     miopenHandle_t handle{};
-#if MIOPEN_BACKEND_OPENCL
-    cl_command_queue q{};
-#endif
 
     handle_fixture()
     {
         miopenCreate(&handle);
-#if MIOPEN_BACKEND_OPENCL
-        miopenGetStream(handle, &q);
-#endif
     }
 
     ~handle_fixture() { miopenDestroy(handle); }
@@ -171,7 +167,6 @@ struct conv_forward : output_tensor_fixture
     {
         float alpha = 1, beta = 0;
 
-        // Setup OpenCL buffers
 
         int n, h, c, w;
         STATUS(miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
@@ -186,15 +181,13 @@ struct conv_forward : output_tensor_fixture
         size_t sz_fwd_workspace;
         STATUS(miopenConvolutionForwardGetWorkSpaceSize(
             handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
-        // OCL fails to allocate zero workspace. Let's allocate small workspace instead to simplify
-        // subsequent code.
-        if(sz_fwd_workspace == 0)
-            sz_fwd_workspace = 256;
+
+        Workspace wspace{};
+        wspace.resize(sz_fwd_workspace);
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);
         std::vector<float> out(sz_out);
-        std::vector<float> fwd_workspace(sz_fwd_workspace / 4);
 
         for(size_t i = 0; i < sz_in; i++)
         {
@@ -205,60 +198,16 @@ struct conv_forward : output_tensor_fixture
             wei[i] = prng::gen_A_to_B(-0.5f, 0.5f) * 0.001f;
         }
 
-#if MIOPEN_BACKEND_OPENCL
+        auto& mhand = get_handle();
 
-        cl_context ctx;
-        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+        auto in_dev = mhand.Write(in);
+        auto wei_dev = mhand.Write(wei);
+        auto out_dev = mhand.Write(out);
 
-        cl_int status  = CL_SUCCESS;
-        cl_mem in_dev  = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_in, nullptr, &status);
-        cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_wei, nullptr, nullptr);
-        cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sz_out, nullptr, nullptr);
-        cl_mem fwd_workspace_dev =
-            clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, nullptr, nullptr);
-
-        status =
-            clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, nullptr, nullptr);
-        status |= clEnqueueWriteBuffer(
-            q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, nullptr, nullptr);
-        status |= clEnqueueWriteBuffer(
-            q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, nullptr, nullptr);
-        status |= clEnqueueWriteBuffer(q,
-                                       fwd_workspace_dev,
-                                       CL_TRUE,
-                                       0,
-                                       sz_fwd_workspace,
-                                       fwd_workspace.data(),
-                                       0,
-                                       nullptr,
-                                       nullptr);
-        EXPECT(status == CL_SUCCESS);
-
-#elif MIOPEN_BACKEND_HIP
-
-        void* in_dev;
-        void* wei_dev;
-        void* out_dev;
-        void* fwd_workspace_dev;
-
-        EXPECT(hipMalloc(&in_dev, 4 * sz_in) == hipSuccess);
-        EXPECT(hipMalloc(&wei_dev, 4 * sz_wei) == hipSuccess);
-        EXPECT(hipMalloc(&out_dev, 4 * sz_out) == hipSuccess);
-        EXPECT(hipMalloc(&fwd_workspace_dev, sz_fwd_workspace) == hipSuccess);
-
-        EXPECT(hipMemcpy(in_dev, in.data(), 4 * sz_in, hipMemcpyHostToDevice) == hipSuccess);
-        EXPECT(hipMemcpy(wei_dev, wei.data(), 4 * sz_wei, hipMemcpyHostToDevice) == hipSuccess);
-        EXPECT(hipMemcpy(out_dev, out.data(), 4 * sz_out, hipMemcpyHostToDevice) == hipSuccess);
-        EXPECT(hipMemcpy(fwd_workspace_dev,
-                         fwd_workspace.data(),
-                         sz_fwd_workspace,
-                         hipMemcpyHostToDevice) == hipSuccess);
-
-#endif
         int value = 10;
-        STATUS(miopenSetTensor(handle, inputTensor, in_dev, &value));
+        STATUS(miopenSetTensor(handle, inputTensor, in_dev.get(), &value));
 
-        STATUS(miopenScaleTensor(handle, inputTensor, in_dev, &alpha));
+        STATUS(miopenScaleTensor(handle, inputTensor, in_dev.get(), &alpha));
 
         float time;
 
@@ -280,32 +229,32 @@ struct conv_forward : output_tensor_fixture
             STATUS(miopenFindConvolutionForwardAlgorithm(
                 used_handle,
                 inputTensor,
-                in_dev,
+                in_dev.get(),
                 convFilter,
-                wei_dev,
+                wei_dev.get(),
                 convDesc,
                 outputTensor,
-                out_dev,
+                out_dev.get(),
                 1,
                 &ret_algo_count,
                 &perf,
-                fwd_workspace_dev,
-                sz_fwd_workspace,
+                wspace.ptr(),
+                wspace.size(),
                 0)); // MD: Not performing exhaustiveSearch by default for now
 
             STATUS(miopenConvolutionForward(used_handle,
                                             &alpha,
                                             inputTensor,
-                                            in_dev,
+                                            in_dev.get(),
                                             convFilter,
-                                            wei_dev,
+                                            wei_dev.get(),
                                             convDesc,
                                             perf.fwd_algo,
                                             &beta,
                                             outputTensor,
-                                            out_dev,
-                                            fwd_workspace_dev,
-                                            sz_fwd_workspace));
+                                            out_dev.get(),
+                                            wspace.ptr(),
+                                            wspace.size()));
 
             STATUS(miopenGetKernelTime(used_handle, &time));
 
@@ -323,19 +272,6 @@ struct conv_forward : output_tensor_fixture
             CHECK(time == 0.0);
         }
 
-// Potential memory leak free memory at end of function
-#if MIOPEN_BACKEND_OPENCL
-        clReleaseMemObject(in_dev);
-        clReleaseMemObject(wei_dev);
-        clReleaseMemObject(out_dev);
-        clReleaseMemObject(fwd_workspace_dev);
-
-#elif MIOPEN_BACKEND_HIP
-        hipFree(in_dev);
-        hipFree(wei_dev);
-        hipFree(out_dev);
-        hipFree(fwd_workspace_dev);
-#endif
     }
 };
 
