@@ -916,7 +916,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         std::fill(output.begin(), output.end(), static_cast<T>(0));
         auto output_dev = handle.Write(output);
 
-        size_t workspace_size   = 0;
+        size_t workspace_size = 0;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
         Workspace wspace{};
         wspace.resize(workspace_size);

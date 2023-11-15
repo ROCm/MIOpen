@@ -1984,7 +1984,6 @@ struct verify_forward_infer_gru
         Workspace wspace{};
         wspace.resize(workspace_size);
 
-
         auto input_dev = handle.Write(input);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
@@ -1995,8 +1994,6 @@ struct verify_forward_infer_gru
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
-
-
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -2334,10 +2331,9 @@ struct verify_forward_train_gru
         }
 #endif
 
-        auto retSet = std::make_tuple(
-            handle.Read<T>(output_dev, output.size()),
-            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
-            rspace.Read<std::vector<T>>());
+        auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                      (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                                      rspace.Read<std::vector<T>>());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
