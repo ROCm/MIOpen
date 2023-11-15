@@ -1235,7 +1235,7 @@ verify_backward_data_lstm<T>::gpu() const
     size_t reserveSpaceSize = 0;
     miopenGetRNNTrainingReserveSize(
         &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-    if (reserveSpaceSize != RSVgpu.size()) {
+    if (reserveSpaceSize != (RSVgpu.size() * sizeof(T))) {
       std::abort();
     }
     Workspace rspace{};
