@@ -23,30 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "layernorm.hpp"
 
-std::string GetFloatArg()
-{
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp.front();
-}
+#pragma once
 
-struct LayerNormTestFloat : LayerNormTest<float>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
+
+namespace miopen {
+namespace norm {
+
+struct InvokeParams : public miopen::InvokeParams
 {
+    InvokeParams() = default;
+
+    const TensorDescriptor* xDesc = nullptr;
+
+    ConstData_t x              = nullptr;
+    ConstData_t weight         = nullptr;
+    ConstData_t bias           = nullptr;
+    Data_t y                   = nullptr;
+    Data_t mean                = nullptr;
+    Data_t rstd                = nullptr;
+    float epsilon              = 0;
+    int32_t normalized_dim     = 0;
+    miopenLayerNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
-{
-    if(!(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL")) && (GetFloatArg() != "--float"))
-    {
-        GTEST_SKIP();
-    }
-};
+} // namespace norm
 
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+} // namespace miopen
