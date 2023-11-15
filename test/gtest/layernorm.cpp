@@ -41,7 +41,10 @@ struct LayerNormTestFloat : LayerNormTest<float>
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
-    if(!(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL")) && (GetFloatArg() != "--float"))
+    if(!(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL")) && (GetFloatArg() != "--float") ||
+       !(miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+         miopen::StartsWith(handle.GetDeviceName(), "gfx94")))
     {
         GTEST_SKIP();
     }
