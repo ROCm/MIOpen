@@ -464,8 +464,8 @@ typedef enum
 } miopenLRNMode_t;
 #ifdef MIOPEN_BETA_API
 /*! @ingroup layernorm
- * @enum miopenLayerNormAlgorithm_t
- * LayerNorm implementation algorithms
+ * @enum miopenLayerNormMode_t
+ * LayerNorm mode
  */
 typedef enum
 {
@@ -2490,8 +2490,6 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  *  @{
  */
 /*! @brief Execute a layernorm forward layer
- *
- * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
  * @param mode           LayerNorm mode (input)

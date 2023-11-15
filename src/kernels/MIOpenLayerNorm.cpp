@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
-
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -32,17 +30,20 @@
 
 #include "float_types.h"
 
-//#if MIOPEN_USE_BFP16 == 1
-//#undef FLOAT
-//#define FLOAT hip_bfloat16
-//#endif
+#if MIOPEN_USE_BFP16 == 1
+#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
+#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
+#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
+#define CVT_FP32_2ACCUM(x) (x)
+#endif
 
 extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
                                                   FLOAT* __restrict__ y,
                                                   const FLOAT* __restrict__ weight,
                                                   const FLOAT* __restrict__ bias,
-                                                  FLOAT* __restrict__ mean,
-                                                  FLOAT* __restrict__ rstd,
+                                                  FLOAT_ACCUM* __restrict__ mean,
+                                                  FLOAT_ACCUM* __restrict__ rstd,
                                                   float eps,
                                                   uint64_t inner_size,
                                                   bool mode)
@@ -67,15 +68,15 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
 
-    FLOAT_ACCUM pmean = CVT_FLOAT2ACCUM(0);
-    FLOAT_ACCUM pvar  = CVT_FLOAT2ACCUM(0);
+    FLOAT_ACCUM pmean = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM pvar  = static_cast<FLOAT_ACCUM>(0);
     __shared__ FLOAT_ACCUM ltmp1[LOCAL_SIZE];
     __shared__ FLOAT_ACCUM ltmp2[LOCAL_SIZE];
 
     // reduce sum for mean and var
     for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
     {
-        uint64_t x_idx = gid * inner_size + i;
+        size_t x_idx = gid * inner_size + i;
 
         FLOAT_ACCUM tmp = CVT_FLOAT2ACCUM(x[x_idx]);
         pmean += tmp;
@@ -85,7 +86,7 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
     ltmp1[lid] = pmean;
     ltmp2[lid] = pvar;
     __syncthreads();
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
+    for(uint32_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
     {
         if(lid < i)
         {
@@ -101,24 +102,23 @@ extern "C" __global__ void LayernormFwdContiguous(const FLOAT* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = CVT_ACCUM2FLOAT(pmean);
+            mean[gid] = pmean;
         if(rstd)
-            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
+            rstd[gid] = prstd;
     }
 
     // forward calculation
     for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
     {
-        uint64_t idx = gid * inner_size + i;
+        size_t idx = gid * inner_size + i;
 
         FLOAT_ACCUM pweight;
         FLOAT_ACCUM pbias;
 
-        pweight = mode ? CVT_FLOAT2ACCUM(1) : CVT_FLOAT2ACCUM(weight[i]);
-        pbias   = mode ? CVT_FLOAT2ACCUM(0) : CVT_FLOAT2ACCUM(bias[i]);
+        pweight = mode ? CVT_FLOAT2ACCUM(weight[i]) : CVT_FP32_2ACCUM(1.0f);
+        pbias   = mode ? CVT_FLOAT2ACCUM(bias[i]) : static_cast<FLOAT>(0);
 
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx]) - pmean) * prstd * pweight + pbias;
         y[idx]          = CVT_ACCUM2FLOAT(val);
     }
 }
-#endif

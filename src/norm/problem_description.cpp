@@ -23,30 +23,42 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "layernorm.hpp"
 
-std::string GetFloatArg()
+#include <miopen/norm/problem_description.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
+
+namespace miopen {
+
+namespace norm {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
-    if(tmp.empty())
+    auto dims         = xDesc.GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+
+    for(size_t i = 0ULL; i < dims.size(); ++i)
     {
-        return "";
+        if(i < normalized_dim)
+            outer_size *= dims[i];
+        else
+            inner_size *= dims[i];
     }
-    return tmp.front();
+
+    auto dtype = xDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "dtype" << dtype;
+    ss << "normalized_dim" << normalized_dim;
+    ss << "outer_size" << outer_size;
+    ss << "inner_size" << inner_size;
+
+    return NetworkConfig{ss.str()};
 }
 
-struct LayerNormTestFloat : LayerNormTest<float>
-{
-};
+} // namespace norm
 
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
-{
-    if(!(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL")) && (GetFloatArg() != "--float"))
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+} // namespace miopen
