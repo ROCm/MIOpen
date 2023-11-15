@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef MIOPEN_LAYERNORM_HPP_
 #define MIOPEN_LAYERNORM_HPP_
 
@@ -35,7 +34,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t LayerNormForward(const Handle& handle,
+miopenStatus_t LayerNormForward(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& weightDesc,
@@ -54,4 +53,3 @@ miopenStatus_t LayerNormForward(const Handle& handle,
 
 } // namespace miopen
 #endif // _MIOPEN_LAYERNORM_HPP_
-#endif
