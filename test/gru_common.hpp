@@ -1981,6 +1981,8 @@ struct verify_forward_infer_gru
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+        Workspace wspace{};
+        wspace.resize(workspace_size);
 
 
         auto input_dev = handle.Write(input);
@@ -1995,8 +1997,6 @@ struct verify_forward_infer_gru
         auto hy_dev = handle.Write(hy);
 
 
-        Workspace wspace{};
-        wspace.resize(workspace_size);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
@@ -2273,6 +2273,8 @@ struct verify_forward_train_gru
 
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        reserveSpaceSize = (reserveSpaceSize + sizeof(T) - 1) & ~(sizeof(T) - 1);
+        assert(reserveSpaceSize % sizeof(T) == 0);
         Workspace rspace{};
         rspace.resize(reserveSpaceSize);
 

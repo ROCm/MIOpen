@@ -917,14 +917,15 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
         auto output_dev = handle.Write(output);
 
         size_t workspace_size   = 0;
-        size_t reserveSpaceSize = 0;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+        Workspace wspace{};
+        wspace.resize(workspace_size);
+
+        size_t reserveSpaceSize = 0;
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-
-        Workspace wspace{};
+        reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
         Workspace rspace{};
-        wspace.resize(workspace_size);
         rspace.resize(reserveSpaceSize);
 
         auto weights_dev = handle.Write(weights);
@@ -1235,6 +1236,8 @@ verify_backward_data_lstm<T>::gpu() const
     size_t reserveSpaceSize = 0;
     miopenGetRNNTrainingReserveSize(
         &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+    reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
+
     if(reserveSpaceSize != (RSVgpu.size() * sizeof(T)))
     {
         std::abort();

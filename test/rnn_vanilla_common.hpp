@@ -1707,11 +1707,13 @@ struct verify_forward_train_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        miopenGetRNNTrainingReserveSize(
-            &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-
         Workspace wspace{};
         wspace.resize(workSpaceSize);
+
+        miopenGetRNNTrainingReserveSize(
+            &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+        reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
+
         Workspace rspace{};
         rspace.resize(reserveSpaceSize);
 
