@@ -744,7 +744,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
     if(seq_len == 0)
         return;
 
-    std::vector<int> batches;
+    std::vector<int> fbatches;
     std::vector<int> rbatches;
 
     int in_vec_size  = xDesc.GetLengths()[1];
@@ -756,26 +756,26 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
 
     int total_batch_size = 0;
     // accumulated batches per time
-    std::vector<int> bacc_per_time(seq_len + 1);
+    std::vector<int> fbacc_per_time(seq_len + 1);
     std::vector<int> rbacc_per_time(seq_len + 1);
 
     for(int i = 0; i < seq_len; i++)
     {
-        bacc_per_time[i] = total_batch_size;
+        fbacc_per_time[i] = total_batch_size;
         total_batch_size += seq_array[i];
-        batches.push_back(seq_array[i]);
+        fbatches.push_back(seq_array[i]);
     }
 
     int rtotal_batch_size = total_batch_size;
     for(int i = seq_len - 1; i >= 0; i--)
     {
+        rtotal_batch_size -= fbatches[i];
         rbacc_per_time[seq_len - 1 - i] = rtotal_batch_size;
-        rtotal_batch_size -= seq_array[i];
-        rbatches.push_back(seq_array[i]);
+        rbatches.push_back(fbatches[i]);
     }
 
-    bacc_per_time[seq_len] = total_batch_size;
-    rbacc_per_time[0]      = total_batch_size;
+    fbacc_per_time[seq_len] = total_batch_size;
+    rbacc_per_time[seq_len] = 0;
 
     int bi         = dirMode != 0u ? 2 : 1;
     int wei_stride = hidden_size * bi * static_cast<int>(nHiddenTensorsPerLayer);
@@ -900,9 +900,9 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
     auto call_relu_tan_hidden_gemm = [&RBuff,
                                       &WeiBuf,
                                       &get_HxBuff_offset,
-                                      &bacc_per_time,
+                                      &fbacc_per_time,
                                       &rbacc_per_time,
-                                      &batches,
+                                      &fbatches,
                                       &rbatches,
                                       &handle,
                                       &xDesc,
@@ -913,7 +913,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
             return;
 
         const int m = direction == rnn_direction::Forward
-                          ? batches.at(time)
+                          ? fbatches.at(time)
                           : time == 0 ? rbatches.at(0) : rbatches.at(time - 1);
 
         const int n = RBuff.hidden_size, k = RBuff.hidden_size;
@@ -931,7 +931,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                 GemmDescriptor{false,
                                false,
                                true,
-                               (rbatches.at(time) - rbatches.at(time - 1)),
+                               rbatches.at(time) - rbatches.at(time - 1),
                                n,
                                k,
                                RBuff.hidden_size,
@@ -955,7 +955,7 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                          WeiBuf.hidden_weight_offset(layer, direction),
                          reserveSpace,
                          RBuff.gemm_write_offset(
-                             layer, rbacc_per_time[time + 1] + rbatches.at(time - 1), direction),
+                             layer, rbacc_per_time[time] + rbatches.at(time - 1), direction),
                          GemmBackend_t::miopengemm);
         }
 
@@ -976,17 +976,14 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                                                    1, // beta
                                                                    xDesc.GetType(),
                                                                    false};
+        auto& bacc_per_time = rnn_direction::Forward ? fbacc_per_time : rbacc_per_time;
 
-        int cur_batch = direction == rnn_direction::Forward
-                            ? time == 0 ? 0 : bacc_per_time[time - 1]
-                            : rbacc_per_time[time];
+        int cur_batch = time == 0 ? 0 : bacc_per_time[time - 1];
 
         const auto hidden_offset = (time == 0) ? get_HxBuff_offset(layer, 0, direction)
                                                : RBuff.hidden_offset(layer, cur_batch, direction);
 
-        const int accumulated_batches = direction == rnn_direction::Forward
-                                            ? time == 0 ? 0 : bacc_per_time[time]
-                                            : rbacc_per_time[time + 1];
+        const int accumulated_batches = time == 0 ? 0 : bacc_per_time[time];
 
         const auto RB_batch_save_points_off =
             RBuff.gemm_write_offset(layer, accumulated_batches, direction);
@@ -1005,59 +1002,57 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
             MIOPEN_THROW("GEMM execution failure");
     };
 
-    auto call_relu_tan_hidden_state_update =
-        [&RBuff,
-         &bacc_per_time,
-         &rbacc_per_time,
-         &batches,
-         &rbatches,
-         &handle,
-         &wDesc,
-         reserveSpace,
-         &activDesc](int layer_id, int time_id, int direction) {
-            float alpha = 1, beta = 0;
+    auto call_relu_tan_hidden_state_update = [&RBuff,
+                                              &fbacc_per_time,
+                                              &rbacc_per_time,
+                                              &fbatches,
+                                              &rbatches,
+                                              &handle,
+                                              &wDesc,
+                                              reserveSpace,
+                                              &activDesc](int layer_id, int time, int direction) {
+        float alpha = 1, beta = 0;
 
-            auto cur_size =
-                direction == rnn_direction::Forward ? batches.at(time_id) : rbatches.at(time_id);
+        auto cur_size = direction == rnn_direction::Forward ? fbatches.at(time) : rbatches.at(time);
 
-            const std::vector<size_t> tensor_size{
-                1, static_cast<size_t>(cur_size), static_cast<size_t>(RBuff.hidden_size)};
+        const std::vector<size_t> tensor_size{
+            1, static_cast<size_t>(cur_size), static_cast<size_t>(RBuff.hidden_size)};
 
-            const std::vector<size_t> tensor_stride{static_cast<size_t>(RBuff.layer_stride()),
-                                                    static_cast<size_t>(RBuff.gemm_write_stride()),
-                                                    1};
+        const std::vector<size_t> tensor_stride{static_cast<size_t>(RBuff.layer_stride()),
+                                                static_cast<size_t>(RBuff.gemm_write_stride()),
+                                                1};
 
-            auto src_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
-            auto dst_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
+        auto src_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
+        auto dst_desc = miopen::TensorDescriptor(wDesc.GetType(), tensor_size, tensor_stride);
 
-            auto cur_batch = direction == rnn_direction::Forward ? bacc_per_time[time_id]
-                                                                 : rbacc_per_time[time_id + 1];
+        auto cur_batch =
+            direction == rnn_direction::Forward ? fbacc_per_time[time] : rbacc_per_time[time];
 
-            const auto RB_layer_save_points_off =
-                RBuff.gemm_write_offset(layer_id, cur_batch, direction);
+        const auto RB_layer_save_points_off =
+            RBuff.gemm_write_offset(layer_id, cur_batch, direction);
 
-            const auto hidden_offset = RBuff.hidden_offset(layer_id, cur_batch, direction);
+        const auto hidden_offset = RBuff.hidden_offset(layer_id, cur_batch, direction);
 
-            activDesc.Forward(handle,
-                              &alpha,
-                              // input tensor descriptor
-                              src_desc,
-                              // input pointer
-                              reserveSpace,
-                              &beta,
-                              // output tensor descriptor
-                              dst_desc,
-                              // output pointer
-                              reserveSpace,
-                              // input tensor offset
-                              RB_layer_save_points_off,
-                              // output tensor offset
-                              hidden_offset);
-        };
+        activDesc.Forward(handle,
+                          &alpha,
+                          // input tensor descriptor
+                          src_desc,
+                          // input pointer
+                          reserveSpace,
+                          &beta,
+                          // output tensor descriptor
+                          dst_desc,
+                          // output pointer
+                          reserveSpace,
+                          // input tensor offset
+                          RB_layer_save_points_off,
+                          // output tensor offset
+                          hidden_offset);
+    };
 
     auto call_relu_tan_update_output = [&RBuff,
                                         &get_HxBuff_offset,
-                                        &batches,
+                                        &fbatches,
                                         &rbatches,
                                         &handle,
                                         &wDesc,
@@ -1065,16 +1060,16 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
                                         reserveSpace,
                                         hy,
                                         max_batch,
-                                        &bacc_per_time,
+                                        &fbacc_per_time,
                                         &rbacc_per_time,
                                         seq_len](int layer_id, int time, int direction) {
         if(hy == nullptr)
             return;
 
-        auto& use_batches = direction == rnn_direction::Forward ? batches : rbatches;
+        auto& batches = direction == rnn_direction::Forward ? fbatches : rbatches;
 
-        auto copy_batch = time == seq_len - 1 ? use_batches.at(time)
-                                              : use_batches.at(time) - use_batches.at(time + 1);
+        auto copy_batch = time == seq_len - 1 ? batches.at(time)
+                                              : batches.at(time) - batches.at(time + 1);
 
         if(copy_batch <= 0)
             return;
@@ -1089,13 +1084,13 @@ void RNNDescriptor::RNNForwardTrainingTanhRelu(Handle& handle,
         auto hcy_layer_offset = get_HxBuff_offset(layer_id, 0, direction);
 
         auto hcy_batch_offset =
-            time == seq_len - 1 ? 0 : use_batches.at(time + 1) * RBuff.hidden_size;
+            time == seq_len - 1 ? 0 : batches.at(time + 1) * RBuff.hidden_size;
 
         auto accumulated_batch =
-            direction == rnn_direction::Forward ? bacc_per_time[time] : rbacc_per_time[time + 1];
+            direction == rnn_direction::Forward ? fbacc_per_time[time] : rbacc_per_time[time];
 
         auto batch_id_abs =
-            time == seq_len - 1 ? accumulated_batch : accumulated_batch + use_batches.at(time + 1);
+            time == seq_len - 1 ? accumulated_batch : accumulated_batch + batches.at(time + 1);
 
         const std::vector<size_t> hcy_copy_size{
             1, static_cast<size_t>(copy_batch), static_cast<size_t>(RBuff.hidden_size)};
@@ -5613,7 +5608,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensorsRelu(
                           &fbacc_per_time,
                           &rbacc_per_time,
                           &propagate_dhx_prev](int layer) {
-        for(int time = 0; time < seqLen; ti++)
+        for(int time = 0; time < seqLen; time++)
         {
             propagate_dhx_prev(layer, time, rnn_direction::Forward);
 
