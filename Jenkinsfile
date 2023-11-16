@@ -572,11 +572,10 @@ pipeline {
                 stage('Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On -DMIOPEN_INSTALL_CXX_HEADERS=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze install"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd:     setup_cmd, 
+                        buildHipClangJobAndReboot(setup_flags:   "-DMIOPEN_BACKEND=HIP -DBUILD_DEV=On"
                                                   build_cmd:     build_cmd, 
                                                   build_install: "true", 
                                                   build_fin:     "ON", 
