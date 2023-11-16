@@ -45,7 +45,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
 namespace miopen {
 namespace solver {
 namespace ck_utility {
-    
+
 // MI100 : gfx908
 // MI200 : gfx90a
 // MI300 : gfx940, gfx941, gfx942
