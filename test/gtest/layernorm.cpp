@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include "layernorm.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -35,7 +36,7 @@ std::string GetFloatArg()
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 }
 
 struct LayerNormTestFloat : LayerNormTest<float>
