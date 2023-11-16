@@ -29,39 +29,37 @@
 
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType, typename OutComputeType, typename WeiComputeType>
-using DeviceOpF8Bwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
+template <typename DataType, typename InComputeType, typename OutComputeType>
+using DeviceOpF8Wrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
     3,
-    ck::tensor_layout::convolution::NDHWGK,
-    ck::tensor_layout::convolution::GKZYXC,
-    ck::Tuple<>,
     ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GKZYXC,
+    ck::tensor_layout::convolution::NDHWGK,
     DataType,
     DataType,
-    ck::Tuple<>,
     DataType,
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::PassThrough,
-    OutComputeType,
-    WeiComputeType>;
+    InComputeType,
+    OutComputeType>;
 
-template <typename DataType, typename OutComputeType, typename WeiComputeType>
-using DeviceOpF8BwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    DeviceOpF8Bwd<DataType, OutComputeType, WeiComputeType>>;
+template <typename DataType, typename InComputeType, typename OutComputeType>
+using DeviceOpF8WrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpF8Wrw<DataType, InComputeType, OutComputeType>>;
 
 namespace {
 
@@ -119,33 +117,31 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
-        return conv_ptr->MakeArgumentPointer(in,
-                                             w,
-                                             {},
-                                             out,
-                                             output,
-                                             out_strides,
-                                             weight,
-                                             wei_strides,
-                                             {},
-                                             {},
+        return conv_ptr->MakeArgumentPointer(x,
+                                             dw,
+                                             dy,
                                              input,
                                              in_strides,
+                                             weight,
+                                             wei_strides,
+                                             output,
+                                             out_strides,
                                              strides,
                                              dilation,
                                              lPadding,
                                              rPadding,
                                              {},
                                              {},
-                                             {});
+                                             {},
+                                             split_k);
     }
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvWrwTensors& tensors) const
     {
-        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy);
     }
 
     template <typename ConvPtr>
@@ -170,6 +166,7 @@ struct CKArgs
     int Y;
     int X;
     int Z;
+    ck::index_t split_k = 1;
     std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> output;
@@ -183,48 +180,48 @@ struct CKArgs
 };
 } // namespace
 
-template <typename DataType, typename OutComputeType, typename WeiComputeType>
-void PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::Init(const ProblemDescription& problem)
+template <typename DataType, typename InComputeType, typename OutComputeType>
+void PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::Init(const ProblemDescription& problem)
 {
     valid_kernels =
-        FillValidKernelsIDs<DeviceOpF8BwdPtrs<DataType, OutComputeType, WeiComputeType>, CKArgs>(
+        FillValidKernelsIDs<DeviceOpF8WrwPtrs<DataType, InComputeType, OutComputeType>, CKArgs>(
             problem);
     index     = 0;
     kernel_id = valid_kernels[index];
 }
 
-template <typename DataType, typename OutComputeType, typename WeiComputeType>
-bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::CheckIsSupportCKArgs(
+template <typename DataType, typename InComputeType, typename OutComputeType>
+bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpF8BwdPtrs<DataType, OutComputeType, WeiComputeType>, CKArgs>(
+    return IsCKArgsSupported<DeviceOpF8WrwPtrs<DataType, InComputeType, OutComputeType>, CKArgs>(
         problem, kernel_id);
 }
 
-template <typename DataType, typename OutComputeType, typename WeiComputeType>
-bool ConvHipImplicitGemmF16F8F16BwdXdlops::CheckCKApplicability(
+template <typename DataType, typename InComputeType, typename OutComputeType>
+bool ConvHipImplicitGemmF16F8F16WrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpF8BwdPtrs<DataType, OutComputeType, WeiComputeType>, CKArgs>(
+    return IsCKApplicable<DeviceOpF8WrwPtrs<DataType, InComputeType, OutComputeType>, CKArgs>(
         problem);
 }
 #endif
 
-void PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::HeuristicInit(
+void PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
     index     = 0;
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    const auto& x_cast_type = problem.GetIn().GetCastType();
     const auto& y_cast_type = problem.GetOut().GetCastType();
-    const auto& w_cast_type = problem.GetWeights().GetCastType();
-    if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
+    if(x_cast_type == miopenBFloat8 && y_cast_type == miopenFloat8)
         Init<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::SetNextValue(
+bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::SetNextValue(
     const ProblemDescription& problem)
 {
     if(valid_kernels.empty())
@@ -243,70 +240,68 @@ bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::SetNextValue(
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::IsValidValue() const
+bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::IsValidValue() const
 {
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::IsValid(
+bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    const auto& x_cast_type = problem.GetIn().GetCastType();
     const auto& y_cast_type = problem.GetOut().GetCastType();
-    const auto& w_cast_type = problem.GetWeights().GetCastType();
-    if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
+    if(x_cast_type == miopenBFloat8 && y_cast_type == miopenFloat8)
         return CheckIsSupportCKArgs<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
 }
 
-bool PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops::operator==(
-    const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& other) const
+bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::operator==(
+    const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& other) const
 {
     return kernel_id == other.kernel_id;
 }
 
-PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
-ConvHipImplicitGemmF16F8F16BwdXdlops::GetDefaultPerformanceConfig(
+PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
+ConvHipImplicitGemmF16F8F16WrwXdlops::GetDefaultPerformanceConfig(
     const ExecutionContext&, const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops pp;
+    PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops pp;
     pp.HeuristicInit(problem);
     return pp;
 }
 
-bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsValidPerformanceConfig(
     const ExecutionContext&,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& config) const
 {
     return config.IsValid(problem);
 }
 
-PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
-ConvHipImplicitGemmF16F8F16BwdXdlops::Search(const ExecutionContext& ctx,
+PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
+ConvHipImplicitGemmF16F8F16WrwXdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsApplicable(
+bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS{}))
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
     if(problem.HasMixedDataTypes())
         return false;
+    if(!problem.direction.IsBackwardWrW())
+        return false;
     if(!problem.IsTensorsCasted())
-        return false;
-    if(!problem.direction.IsBackwardData())
-        return false;
-    if(!problem.Is3d())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
@@ -314,49 +309,46 @@ bool ConvHipImplicitGemmF16F8F16BwdXdlops::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
+    const auto& xDesc = problem.GetIn();
     const auto& yDesc = problem.GetOut();
-    const auto& wDesc = problem.GetWeights();
-    if(yDesc.GetCastType() && wDesc.GetCastType())
+    if(xDesc.GetCastType() && yDesc.GetCastType())
     {
+        const auto x_cast_type = xDesc.GetCastType();
         const auto y_cast_type = yDesc.GetCastType();
-        const auto w_cast_type = wDesc.GetCastType();
-        if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
-        {
+        if(x_cast_type == miopenBFloat8 && y_cast_type == miopenFloat8)
             return CheckCKApplicability<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
-        }
     }
     else
     {
-        MIOPEN_LOG_I("Both the output and weights tensors need to be casted");
+        MIOPEN_LOG_I("Both the input and output tensors need to be casted");
         return false;
     }
 #endif
     return false;
 }
 
-ConvSolution ConvHipImplicitGemmF16F8F16BwdXdlops::GetSolution(
+ConvSolution ConvHipImplicitGemmF16F8F16WrwXdlops::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops& config) const
+    [[maybe_unused]] const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    const auto& xDesc = problem.GetIn();
     const auto& yDesc = problem.GetOut();
-    const auto& wDesc = problem.GetWeights();
-    if(yDesc.GetCastType() && wDesc.GetCastType())
+    if(xDesc.GetCastType() && yDesc.GetCastType())
     {
+        const auto x_cast_type = xDesc.GetCastType();
         const auto y_cast_type = yDesc.GetCastType();
-        const auto w_cast_type = wDesc.GetCastType();
-        if(y_cast_type == miopenBFloat8 && w_cast_type == miopenFloat8)
-            return MakeInvokerFactory<DeviceOpF8BwdPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
+        if(x_cast_type == miopenBFloat8 && y_cast_type == miopenFloat8)
+            return MakeInvokerFactory<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
                                       CKArgs,
-                                      conv::DataInvokeParams>(problem, config.kernel_id);
+                                      conv::WrWInvokeParams>(problem, config.kernel_id);
         else
             return {};
     }
     else
         MIOPEN_THROW(miopenStatusInternalError, "Datatype not casted");
 #endif
-
     return {};
 }
 

@@ -125,7 +125,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvHipImplicitGemmGroupFwdXdlops,
         miopen::solver::ConvHipImplicitGemm3DGroupFwdXdlops,
         miopen::solver::ConvHipImplicitGemm3DGroupBwdXdlops,
-        //miopen::solver::ConvHipImplicitGemmF16F8F16FwdXdlops,
+        miopen::solver::ConvHipImplicitGemmF16F8F16FwdXdlops,
         miopen::solver::ConvHipImplicitGemmF16F8F16BwdXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
@@ -163,6 +163,7 @@ static auto GetImplicitGemmWrWSolvers()
         miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlops,
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvHipImplicitGemm3DGroupWrwXdlops,
+        miopen::solver::ConvHipImplicitGemmF16F8F16WrwXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC>{};
 }

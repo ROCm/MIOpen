@@ -32,6 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -39,15 +40,17 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+using d_type = ck::half_t;
+using c_type = ck::f8_t;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType, typename ComputeType>
 using DeviceOpF8Fwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
-    2,
-    ck::tensor_layout::convolution::NHWGC,
-    ck::tensor_layout::convolution::GKYXC,
+    3,
+    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GKZYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK,
+    ck::tensor_layout::convolution::NDHWGK,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -58,8 +61,8 @@ using DeviceOpF8Fwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultiple
     ComputeType>;
 
 template <typename DataType, typename ComputeType>
-using DeviceOpF8FwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpF8Fwd<DataType, ComputeType>>;
+using DeviceOpF8FwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpF8Fwd<DataType, ComputeType>>;
 
 namespace {
 struct CKArgs
@@ -78,22 +81,36 @@ struct CKArgs
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
         X  = ProblemInterpreter::GetFilterWidthX(problem);
+        Di = ProblemInterpreter::GetInputDepthDi(problem);
+        Do = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        input  = {G, N, C, Hi, Wi};
-        output = {G, N, K, Ho, Wo};
-        weight = {G, K, C, Y, X};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
 
-        // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        // miopen strides to CK strides
+        auto miopen_in_strides  = problem.GetIn().GetStrides();
+        auto miopen_out_strides = problem.GetOut().GetStrides();
+        auto miopen_wei_strides = problem.GetWeights().GetStrides();
+        miopen_in_strides.insert(miopen_in_strides.begin(), C);
+        miopen_out_strides.insert(miopen_out_strides.begin(), K);
+        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
+        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
+        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
+        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
+        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+                    ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
@@ -146,20 +163,23 @@ struct CKArgs
     int K1;
     int Hi;
     int Wi;
+    int Di;
     int Ho;
     int Wo;
+    int Do;
     int Y;
     int X;
-    std::array<ck::index_t, 5> input;
-    std::array<ck::index_t, 5> in_strides;
-    std::array<ck::index_t, 5> output;
-    std::array<ck::index_t, 5> out_strides;
-    std::array<ck::index_t, 5> weight;
-    std::array<ck::index_t, 5> wei_strides;
-    std::array<ck::index_t, 2> strides;
-    std::array<ck::index_t, 2> dilation;
-    std::array<ck::index_t, 2> lPadding;
-    std::array<ck::index_t, 2> rPadding;
+    int Z;
+    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 3> strides;
+    std::array<ck::index_t, 3> dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 } // namespace
 
@@ -196,13 +216,12 @@ void PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops::HeuristicInit(
     const auto& x_cast_type = problem.GetIn().GetCastType();
     const auto& w_cast_type = problem.GetWeights().GetCastType();
     if(x_cast_type == miopenFloat8 && w_cast_type == miopenFloat8)
-        Init<ck::half_t, ck::f8_t>(problem);
-    else if(x_cast_type == miopenBFloat8 && w_cast_type == miopenBFloat8)
-        Init<ck::half_t, ck::bf8_t>(problem);
+        Init<ck::half_t, c_type>(problem);
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
     if(valid_kernels.empty())
     {
@@ -232,9 +251,7 @@ bool PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops::IsValid(
     const auto& x_cast_type = problem.GetIn().GetCastType();
     const auto& w_cast_type = problem.GetWeights().GetCastType();
     if(x_cast_type == miopenFloat8 && w_cast_type == miopenFloat8)
-        return CheckIsSupportCKArgs<ck::half_t, ck::f8_t>(problem);
-    else if(x_cast_type == miopenBFloat8 && w_cast_type == miopenBFloat8)
-        return CheckIsSupportCKArgs<ck::half_t, ck::bf8_t>(problem);
+        return CheckIsSupportCKArgs<ck::half_t, c_type>(problem);
 #endif
     return false;
 }
@@ -264,8 +281,8 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsValidPerformanceConfig(
 
 PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
 ConvHipImplicitGemmF16F8F16FwdXdlops::Search(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+                                             const ProblemDescription& problem,
+                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -285,11 +302,11 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsApplicable(
         return false;
     if(!problem.direction.IsForward())
         return false;
-    if(!problem.Is2d())
-        return false;
     if(!problem.IsLayoutNHWC())
         return false;
     if(!problem.IsFp16())
+        return false;
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
@@ -297,28 +314,14 @@ bool ConvHipImplicitGemmF16F8F16FwdXdlops::IsApplicable(
     {
         const auto x_cast_type = xDesc.GetCastType();
         const auto w_cast_type = wDesc.GetCastType();
-        if(x_cast_type != miopenFloat8 && x_cast_type != miopenBFloat8)
-        {
-            MIOPEN_LOG_W(
-                "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
-            return false;
-        }
-        if(w_cast_type != miopenFloat8 && w_cast_type != miopenBFloat8)
-        {
-            MIOPEN_LOG_W(
-                "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
-            return false;
-        }
         if(x_cast_type == miopenFloat8 && w_cast_type == miopenFloat8)
-            return CheckCKApplicability<ck::half_t, ck::f8_t>(problem);
-        else if(x_cast_type == miopenBFloat8 && w_cast_type == miopenBFloat8)
-            return CheckCKApplicability<ck::half_t, ck::bf8_t>(problem);
+            return CheckCKApplicability<ck::half_t, c_type>(problem);
     }
     else
     {
         MIOPEN_LOG_I("Both the input and weights tensors need to be casted");
         return false;
-    }      
+    }
 #endif
     return false;
 }
@@ -336,11 +339,9 @@ ConvSolution ConvHipImplicitGemmF16F8F16FwdXdlops::GetSolution(
         const auto x_cast_type = xDesc.GetCastType();
         const auto w_cast_type = wDesc.GetCastType();
         if(x_cast_type == miopenFloat8 && w_cast_type == miopenFloat8)
-            return MakeInvokerFactory<DeviceOpF8FwdPtrs<ck::half_t, ck::f8_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
-        else if(x_cast_type == miopenBFloat8 && w_cast_type == miopenBFloat8)
-            return MakeInvokerFactory<DeviceOpF8FwdPtrs<ck::half_t, ck::bf8_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
+            return MakeInvokerFactory<DeviceOpF8FwdPtrs<ck::half_t, c_type>,
+                                      CKArgs,
+                                      conv::DataInvokeParams>(problem, config.kernel_id);
     }
 #endif
     return {};
