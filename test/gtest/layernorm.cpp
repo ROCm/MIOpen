@@ -25,9 +25,12 @@
  *******************************************************************************/
 #include "layernorm.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+
 std::string GetFloatArg()
 {
-    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    const auto& tmp = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
     if(tmp.empty())
     {
         return "";
@@ -41,7 +44,7 @@ struct LayerNormTestFloat : LayerNormTest<float>
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
-    if(!(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL")) && (GetFloatArg() != "--float"))
+    if(!(miopen::IsEnabled(MIOPEN_TEST_ALL{})) || (GetFloatArg() != "--float"))
     {
         GTEST_SKIP();
     }
