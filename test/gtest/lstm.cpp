@@ -26,14 +26,17 @@
 
 #include "lstm_common.hpp"
 #include "get_handle.hpp"
-#include <boost>
+#include <gtest/gtest.h>
+#include <boost/algorithm/string.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_LSTM_ENABLED)
 
 using TestCase = std::string;
 struct LSTMTest : public testing::TestWithParam<std::vector<TestCase>>
-{};
+{
+};
 
 template <class T>
 struct lstm_driver : lstm_basic_driver<T>
@@ -80,15 +83,21 @@ struct lstm_driver : lstm_basic_driver<T>
     }
 };
 
-int RunLSTMDriver(std::string cmd)//int argc, const char* argv[])
+int RunLSTMDriver(std::string cmd)
 {
-    atd::vector<const char*> ptrs;
-    boost::split(ptrs, cmd, " ");
+    std::vector<std::string> ptrs;
+    boost::split(ptrs, cmd, boost::is_any_of(" \t"), boost::token_compress_on);
     ptrs.insert(ptrs.begin(), "test_lstm");
+    std::vector<const char*> char_ptrs;
+    for(const auto& elem : ptrs)
+    {
+        char_ptrs.push_back(elem.c_str());
+    }
+
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    test_drive<lstm_driver>(ptrs.size(), ptrs.data());
+    test_drive<lstm_driver>(char_ptrs.size(), char_ptrs.data());
 
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -96,14 +105,18 @@ int RunLSTMDriver(std::string cmd)//int argc, const char* argv[])
     std::cout << "Wall clock: RNN test pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
+
+    auto capture = testing::internal::GetCapturedStderr();
+    std::cout << capture;
+
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
-
 TEST_P(LSTMTest, test_lstm_deepbench_rnn)
 {
-    if(miopen::IsEnabled(MIOPEN_TEST_ALL{}))
+    if(miopen::IsEnabled(MIOPEN_TEST_DEEPBENCH{}))
     {
+        // clang-format off
         RunLSTMDriver("--verbose --batch-size 16 --seq-len 25 --vector-len 512 --hidden-size 512 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 25 --vector-len 512 --hidden-size 512 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
         RunLSTMDriver("--verbose --batch-size 64 --seq-len 25 --vector-len 512 --hidden-size 512 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
@@ -126,10 +139,11 @@ TEST_P(LSTMTest, test_lstm_deepbench_rnn)
         RunLSTMDriver("--verbose --batch-size 16 --seq-len 150 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 150 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
         RunLSTMDriver("--verbose --batch-size 64 --seq-len 150 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
+        // clang-format on
     }
     else
     {
-        GTEST_SKIP()
+        GTEST_SKIP();
     }
 }
 
@@ -137,6 +151,7 @@ TEST_P(LSTMTest, test_lstm_extra)
 {
     if(miopen::IsEnabled(MIOPEN_TEST_ALL{}))
     {
+        // clang-format off
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dhy");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy");
@@ -167,18 +182,24 @@ TEST_P(LSTMTest, test_lstm_extra)
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-cy --no-dcx");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx");
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx");
+        // clang-format on
     }
     else
     {
-        GTEST_SKIP()
+        GTEST_SKIP();
     }
 }
 
-int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+std::vector<std::string> GetTestCases()
+{
+    std::vector<std::string> test_cases;
+    return test_cases;
 }
 
-//const auto& handle = get_handle();
-//std::string devName = handle.getDeviceName();
-//if(miopen::StartsWith(devName,"gfx94") || miopen::StartsWith(devName, "gfx103") || miopen::StartsWith(devName, "gfx110"))
+INSTANTIATE_TEST_SUITE_P(LSTM, LSTMTest, testing::Values(GetTestCases()));
+
+int main(int argc, char** argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
