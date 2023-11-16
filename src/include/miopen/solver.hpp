@@ -5000,9 +5000,9 @@ struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops& other) const;
 
 private:
-    template <typename DataType, typename InComputeType, typename OutComputeType>
+    template <typename DataType, typename OutComputeType, typename InComputeType>
     void Init(const ProblemDescription&);
-    template <typename DataType, typename InComputeType, typename OutComputeType>
+    template <typename DataType, typename OutComputeType, typename InComputeType>
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
 };
 
@@ -5037,7 +5037,7 @@ struct ConvHipImplicitGemmF16F8F16WrwXdlops final
     };
 
 private:
-    template <typename DataType, typename InComputeType, typename OutComputeType>
+    template <typename DataType, typename OutComputeType, typename InComputeType>
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 

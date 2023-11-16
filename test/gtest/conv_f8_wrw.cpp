@@ -37,8 +37,8 @@ std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g   n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
     return {{1, 16, 16, 1, 14, 14, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
             {1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 128, 1, 28, 3, 128, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+            {1, 64, 128, 1, 28, 3, 128, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {1, 64, 64, 1, 28, 3, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
 template <typename T = float>
@@ -68,8 +68,8 @@ protected:
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         output.generate(gen_value);
         auto&& handle = get_handle();
-        input.desc.SetCastType(miopenBFloat8);
-        output.desc.SetCastType(miopenFloat8);
+        input.desc.SetCastType(miopenFloat8);
+        output.desc.SetCastType(miopenBFloat8);
 
         in_dev  = handle.Write(input.data);
         wei_dev = handle.Write(weights.data);
