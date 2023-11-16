@@ -115,8 +115,8 @@ ConvSolution MakeInvokerFactory(const ProblemDescriptionType& problem, const std
             const auto& data_ctx        = primitive_parameters.CastTo<CastType>();
             const auto enable_profiling = handle.IsProfilingEnabled();
             float elapsed_time          = 0.0;
-            if constexpr(std::is_same_v<CastType, conv::DataInvokeParams> ||
-                         std::is_same_v<CastType, conv::WrWInvokeParams>)
+            if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> ||
+                         std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
             {
                 auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
                 auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
