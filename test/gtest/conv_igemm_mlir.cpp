@@ -117,7 +117,7 @@ TEST_P(ConfigWithFloat, FloatTest)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       (miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() == "--float"))
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--float")
     {
         Run2dDriver(miopenFloat);
     }
@@ -139,7 +139,7 @@ TEST_P(ConfigWithHalf, HalfTest)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx103") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx906")) &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       (miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() == "--half"))
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }

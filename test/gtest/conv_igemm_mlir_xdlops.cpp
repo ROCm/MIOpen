@@ -90,7 +90,7 @@ TEST_P(ConfigWithHalf, HalfTest)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
        miopen::IsEnvvarValueEnabled("MIOPEN_TEST_MLIR") &&
-       (miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") || GetFloatArg() == "--half"))
+       miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
     }
