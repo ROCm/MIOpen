@@ -128,16 +128,27 @@ public:
     }
 
     template <typename V>
+    void ReadTo(V& vec) const
+    {
+        using T = typename V::value_type;
+        if(vec.size() * sizeof(T) != size())
+        {
+            std::abort();
+        }
+        auto s = hipMemcpy(&vec[0], ptr(), size(), hipMemcpyDeviceToHost);
+        if(s != hipSuccess)
+        {
+            abort();
+        }
+    }
+
+    template <typename V>
     V Read() const
     {
         using T         = typename V::value_type;
         size_t num_elem = size() / sizeof(T);
         V ret(num_elem);
-        auto s = hipMemcpy(&ret[0], ptr(), size(), hipMemcpyDeviceToHost);
-        if(s != hipSuccess)
-        {
-            abort();
-        }
+        ReadTo(ret);
         return ret;
     }
 

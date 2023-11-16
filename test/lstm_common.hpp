@@ -977,7 +977,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
             printf("GPU outdata[%d]: %f\n", i, outdata[i]);
         }
 #endif
-        RSVgpu = rspace.Read<std::vector<T>>();
+        rspace.ReadTo(RSVgpu);
 
         std::vector<T> output_gpu = handle.Read<T>(output_dev, output.size());
 
@@ -1092,8 +1092,9 @@ verify_backward_data_lstm<T>::cpu() const
         reserveSpaceSize = (reserveSpaceSize + sizeof(T) - 1) / sizeof(T);
     }
 
-    if (reserveSpaceSize != RSVcpu.size()) {
-      std::abort();
+    if(reserveSpaceSize != RSVcpu.size())
+    {
+        std::abort();
     }
     std::vector<T> reserveSpace(RSVcpu);
 
@@ -1233,12 +1234,23 @@ verify_backward_data_lstm<T>::gpu() const
 
     size_t workspace_size = 0;
     miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
+    if(workspace_size % sizeof(T) != 0)
+    {
+        std::abort();
+    }
     Workspace wspace{};
-    wspace.resize(workspace_size);
+    // Needed to zero out the workspace (happens in std::vector's constructor)
+    // or else this test fails verification when workspace is compared against the
+    // workspace returned by ::cpu method in this class
+    wspace.Write(std::vector<T>(workspace_size / sizeof(T)));
+    // wspace.resize(workspace_size);
 
     size_t reserveSpaceSize = 0;
     miopenGetRNNTrainingReserveSize(
         &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
+    /// \todo: fix miopenGetRNNTrainingReserveSize to return a multiple of
+    /// sizeof(T)
+    // Needed because reserveSpaceSize returned is not a multiple of sizeof(T).
     reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
 
     if(reserveSpaceSize != (RSVgpu.size() * sizeof(T)))
@@ -1302,7 +1314,7 @@ verify_backward_data_lstm<T>::gpu() const
                           rspace.size());
 
     assert(RSVgpu.size() * sizeof(T) == rspace.size());
-    RSVgpu = rspace.Read<std::vector<T>>();
+    rspace.ReadTo(RSVgpu);
     // TODO: remove workSpace
     auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                   (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
@@ -1831,7 +1843,7 @@ struct lstm_basic_driver : test_driver
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
-               reserveSpaceBwdData.size(),
+               rsvcpu.size(),
                workSpaceBwdData.size(),
                wei_sz);
         fflush(nullptr);
