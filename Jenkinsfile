@@ -575,7 +575,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc) -k analyze install"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags:   "-DMIOPEN_BACKEND=HIP -DBUILD_DEV=On"
+                        buildHipClangJobAndReboot(setup_flags:   "-DMIOPEN_BACKEND=HIP -DBUILD_DEV=On",
                                                   build_cmd:     build_cmd, 
                                                   build_install: "true", 
                                                   build_fin:     "ON", 
