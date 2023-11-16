@@ -413,10 +413,17 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
+if(WIN32)
+    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
+else()
+    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
+endif()
+
+file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
+
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
     set(MIOPEN_SYSTEM_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of user db files")
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
@@ -457,17 +464,9 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-if(NOT BUILD_DEV)
-    if(WIN32)
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
-    else()
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
-    endif()
-endif()
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
-file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)

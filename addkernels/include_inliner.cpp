@@ -29,12 +29,12 @@
 #include <sstream>
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 #endif
 #ifdef __linux__
 #include <linux/limits.h>
 #include <cstdlib>
-#endif // !_WIN32
+#endif // __linux__
 
 #include "include_inliner.hpp"
 

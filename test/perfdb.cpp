@@ -1039,7 +1039,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(!exitCode)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);
@@ -1127,7 +1127,7 @@ public:
                     command += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-#ifdef _WIN32 
+#ifdef _WIN32
                 STARTUPINFO info;
                 PROCESS_INFORMATION processInfo;
 
@@ -1168,7 +1168,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(!exitCode)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);

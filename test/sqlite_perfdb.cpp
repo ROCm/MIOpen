@@ -899,7 +899,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(!exitCode)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);
@@ -1022,7 +1022,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(!exitCode)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);

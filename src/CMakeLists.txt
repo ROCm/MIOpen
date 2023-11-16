@@ -717,7 +717,7 @@ endfunction()
 
 if(WIN32)
     target_internal_library(MIOpen Boost::any Boost::container Boost::date_time Boost::hof
-	    Boost::interprocess Boost::range Boost::thread Boost::variant)
+        Boost::interprocess Boost::range Boost::thread Boost::variant)
 endif()
 
 target_include_directories(MIOpen PUBLIC
