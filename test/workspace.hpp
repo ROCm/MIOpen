@@ -42,7 +42,7 @@ class Workspace
         {
             assert(num_bytes > 0);
             auto s = hipMalloc(&buf_, num_bytes);
-            if(s != hipSuccess || !buf_)
+            if(s != hipSuccess || buf_ == nullptr)
             {
                 std::abort();
             }
@@ -64,7 +64,7 @@ class Workspace
         GPUBuffer(const GPUBuffer&) = delete;
         GPUBuffer& operator=(const GPUBuffer&) = delete;
 
-        GPUBuffer(GPUBuffer&& that) : buf_(std::move(that.buf_))
+        GPUBuffer(GPUBuffer&& that) : buf_(that.buf_)
         {
             that.buf_ = nullptr; // take over ownership
         }
@@ -99,17 +99,6 @@ public:
     // passed to capture the size. Must call AdjustToSize() after calling such a method
     size_t* SizePtr() { return &sz_; }
 
-#if 0
-  auto ptr() const { return data_.get(); }
-  auto ptr() { return data_.get(); }
-  void AdjustToSize() {
-    if (sz_ == 0) {
-      data_.reset();
-    } else {
-      data_ = handle_.Create(sz_);
-    }
-  }
-#else
     auto ptr() const { return gpu_buf_.ptr(); }
 
     auto ptr() { return gpu_buf_.ptr(); }
@@ -125,7 +114,6 @@ public:
             gpu_buf_ = GPUBuffer();
         }
     }
-#endif
 
     template <typename V>
     void Write(const V& vec)

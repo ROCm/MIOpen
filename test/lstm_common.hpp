@@ -1092,7 +1092,10 @@ verify_backward_data_lstm<T>::cpu() const
         reserveSpaceSize = (reserveSpaceSize + sizeof(T) - 1) / sizeof(T);
     }
 
-    std::vector<T> reserveSpace(RSVcpu.begin(), RSVcpu.begin() + reserveSpaceSize);
+    if (reserveSpaceSize != RSVcpu.size()) {
+      std::abort();
+    }
+    std::vector<T> reserveSpace(RSVcpu);
 
     std::vector<T> converted_dinput;
     std::vector<T> converted_output;
@@ -1298,6 +1301,7 @@ verify_backward_data_lstm<T>::gpu() const
                           rspace.ptr(),
                           rspace.size());
 
+    assert(RSVgpu.size() * sizeof(T) == rspace.size());
     RSVgpu = rspace.Read<std::vector<T>>();
     // TODO: remove workSpace
     auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
