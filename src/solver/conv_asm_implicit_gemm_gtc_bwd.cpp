@@ -35,6 +35,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static inline const std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicBwdTunablesList(const ProblemDescription& problem)
@@ -986,10 +989,13 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16())
@@ -1006,9 +1012,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
@@ -1052,10 +1056,12 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx,
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, cfg);
+    result.invoker_factory =
+        miopen::conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

@@ -29,7 +29,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/convolution.hpp>
-#include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
 #include <miopen/bfloat16.hpp>
@@ -37,7 +36,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <type_traits>
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>

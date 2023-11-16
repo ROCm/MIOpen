@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/activ.hpp>
 #include <miopen/allocator.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/object.hpp>
@@ -47,14 +48,20 @@ struct Handle;
 struct Solution;
 struct FindOptions;
 
+namespace activ {
+struct ProblemDescription;
+} // namespace activ
+
 namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor, ActivationDescriptor>;
 
-struct Problem : miopenProblem
+struct Problem
 {
+    friend struct FusedProblem;
+
     Problem() = default;
 
     const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name) const
@@ -82,9 +89,38 @@ struct Problem : miopenProblem
     FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const;
 
     conv::ProblemDescription AsConvolution() const;
+    activ::ProblemDescription AsActivation() const;
+
+    [[nodiscard]] miopenTensorArgumentId_t GetInputId() const;
+    [[nodiscard]] miopenTensorArgumentId_t GetOutputId() const;
+
+    [[nodiscard]] const TensorDescriptor& GetInput() const
+    {
+        return tensor_descriptors.at(GetInputId());
+    }
+
+    [[nodiscard]] const TensorDescriptor& GetOutput() const
+    {
+        return tensor_descriptors.at(GetOutputId());
+    }
+
+    [[nodiscard]] bool HasInput() const
+    {
+        return tensor_descriptors.find(GetInputId()) != tensor_descriptors.end();
+    }
+
+    [[nodiscard]] bool HasOutput() const
+    {
+        return tensor_descriptors.find(GetOutputId()) != tensor_descriptors.end();
+    }
+
+    void CalculateOutput();
 
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
+
+    const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name,
+                                                const TensorDescriptor& default_value) const;
 
     Problem MakeTransposed() const;
 
@@ -112,6 +148,31 @@ private:
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
+    void LogDriverCommand(const ActivationDescriptor& descriptor) const;
+};
+
+struct FusedProblem
+{
+    std::vector<Problem> problems;
+
+    void LogDriverCommand() const
+    {
+        // Not implemented, but silently
+    }
+
+    std::vector<Solution> FindSolutions(Handle& /*handle*/,
+                                        const FindOptions& /*options*/,
+                                        std::size_t /*max_solutions*/) const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+
+    void PropagateDescriptors();
+};
+
+struct ProblemContainer : miopenProblem
+{
+    boost::variant<Problem, FusedProblem> item;
 };
 
 } // namespace miopen
@@ -123,4 +184,18 @@ inline std::ostream& operator<<(std::ostream& stream, const miopen::Problem& pro
     return stream;
 }
 
-MIOPEN_DEFINE_OBJECT(miopenProblem, miopen::Problem);
+inline std::ostream& operator<<(std::ostream& stream, const miopen::FusedProblem& problem)
+{
+    // Todo: sane printing
+    stream << &problem;
+    return stream;
+}
+
+inline std::ostream& operator<<(std::ostream& stream, const miopen::ProblemContainer& problem)
+{
+    // Todo: sane printing
+    stream << &problem;
+    return stream;
+}
+
+MIOPEN_DEFINE_OBJECT(miopenProblem, miopen::ProblemContainer);
