@@ -64,12 +64,12 @@ class Workspace
         GPUBuffer(const GPUBuffer&) = delete;
         GPUBuffer& operator=(const GPUBuffer&) = delete;
 
-        GPUBuffer(GPUBuffer&& that) : buf_(that.buf_)
+        GPUBuffer(GPUBuffer&& that) noexcept : buf_(that.buf_)
         {
             that.buf_ = nullptr; // take over ownership
         }
 
-        GPUBuffer& operator=(GPUBuffer&& that)
+        GPUBuffer& operator=(GPUBuffer&& that) noexcept
         {
             std::swap(this->buf_, that.buf_);
             return *this;
