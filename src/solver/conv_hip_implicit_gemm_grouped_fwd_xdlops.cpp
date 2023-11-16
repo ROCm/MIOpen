@@ -208,7 +208,7 @@ std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs(void)
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs()
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
