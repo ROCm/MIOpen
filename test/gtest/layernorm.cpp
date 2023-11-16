@@ -36,7 +36,7 @@ std::string GetFloatArg()
     {
         return "";
     }
-    return tmp.front();
+    return tmp;
 }
 
 struct LayerNormTestFloat : LayerNormTest<float>
