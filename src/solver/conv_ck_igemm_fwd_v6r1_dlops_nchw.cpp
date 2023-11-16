@@ -99,7 +99,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream()))
         return false;
     if(!problem.IsLayoutDefault())
         return false;

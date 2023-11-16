@@ -236,7 +236,7 @@ bool Layernorm4DCKForward::IsApplicable(
         return false;
     if(!problem.IsLargeSize())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+    if(!ck_utility::is_ck_whitelist(context.GetStream()))
         return false;
 
     switch(problem.GetXDesc().GetType())

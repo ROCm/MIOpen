@@ -45,26 +45,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
 namespace miopen {
 namespace solver {
 namespace ck_utility {
-
-// Disclaimer: Currently CK is only supported in MI100, MI200 and MI300.
-//             Please use is_ck_whitelist instead of this function.
-static inline bool is_ck_supported_hardware(const Handle& handle)
-{
-    return (StartsWith(handle.GetDeviceName(), "gfx803") && handle.GetMaxComputeUnits() == 64) ||
-           StartsWith(handle.GetDeviceName(), "gfx900") ||
-           StartsWith(handle.GetDeviceName(), "gfx906") ||
-           StartsWith(handle.GetDeviceName(), "gfx908") ||
-           StartsWith(handle.GetDeviceName(), "gfx90a") ||
-           StartsWith(handle.GetDeviceName(), "gfx940") ||
-           StartsWith(handle.GetDeviceName(), "gfx941") ||
-           StartsWith(handle.GetDeviceName(), "gfx942") ||
-           StartsWith(handle.GetDeviceName(), "gfx1030") ||
-           StartsWith(handle.GetDeviceName(), "gfx1031") ||
-           StartsWith(handle.GetDeviceName(), "gfx1100") ||
-           StartsWith(handle.GetDeviceName(), "gfx1101") ||
-           StartsWith(handle.GetDeviceName(), "gfx1102");
-}
-
+    
 // MI100 : gfx908
 // MI200 : gfx90a
 // MI300 : gfx940, gfx941, gfx942
