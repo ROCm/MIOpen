@@ -90,10 +90,9 @@ int RunLSTMDriver(std::string cmd)
     boost::split(ptrs, cmd, boost::is_any_of(" \t"), boost::token_compress_on);
     ptrs.insert(ptrs.begin(), "test_lstm");
     std::vector<const char*> char_ptrs;
-    for(const auto& elem : ptrs)
-    {
-        char_ptrs.push_back(elem.c_str());
-    }
+    std::transform(ptrs.begin(), ptrs.end(), std::back_inserter(char_ptrs), [](const auto& str) {
+        return str.c_str();
+    });
 
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
