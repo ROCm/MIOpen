@@ -98,21 +98,19 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped || checks_ran)
+        if(test_skipped)
             return;
         ValidateResult();
     }
 
     void ValidateResult()
     {
-        checks_ran = true;
         CalculateCPUValuesIfNeeded();
         cfsb::ThresholdChecks();
     }
 
 private:
     bool cpu_values_calculated = false;
-    bool checks_ran            = false;
 
     [[nodiscard]] miopen::Problem MakeConvProblem() const
     {
