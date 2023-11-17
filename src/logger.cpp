@@ -151,26 +151,18 @@ bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 
 const char* LoggingLevelToCString(const LoggingLevel level)
 {
-    // Intentionally straightforward.
-    // The most frequently used come first.
-    if(level == LoggingLevel::Error)
-        return "Error";
-    else if(level == LoggingLevel::Warning)
-        return "Warning";
-    else if(level == LoggingLevel::Info)
-        return "Info";
-    else if(level == LoggingLevel::Info2)
-        return "Info2";
-    else if(level == LoggingLevel::Trace)
-        return "Trace";
-    else if(level == LoggingLevel::Default)
-        return "Default";
-    else if(level == LoggingLevel::Quiet)
-        return "Quiet";
-    else if(level == LoggingLevel::Fatal)
-        return "Fatal";
-    else
-        return "<Unknown>";
+    switch(level)
+    {
+    case LoggingLevel::Default: return "Default";
+    case LoggingLevel::Quiet: return "Quiet";
+    case LoggingLevel::Fatal: return "Fatal";
+    case LoggingLevel::Error: return "Error";
+    case LoggingLevel::Warning: return "Warning";
+    case LoggingLevel::Info: return "Info";
+    case LoggingLevel::Info2: return "Info2";
+    case LoggingLevel::Trace: return "Trace";
+    default: return "<Unknown>";
+    }
 }
 bool IsLoggingCmd()
 {

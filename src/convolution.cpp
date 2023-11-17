@@ -503,19 +503,23 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
     {
         if(value < -1 || value > 1)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attempt to set invalid value of "
                          "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
                              std::to_string(value));
+        }
         gfx90aFp16alt.value = value;
     }
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
     {
         if(value < 0 || value > 1)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attemp to set invalid value for "
                          "MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC: " +
                              std::to_string(value));
+        }
         deterministic.value = value;
     }
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
@@ -523,10 +527,12 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
         const auto rounding_mode = static_cast<miopenF8RoundingMode_t>(value);
         if(rounding_mode != miopenF8RoundingModeStochastic &&
            rounding_mode != miopenF8RoundingModeStandard)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attempt to set invalid value for "
                          "MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE" +
                              std::to_string(value));
+        }
         fp8rounding_mode.rounding_mode = rounding_mode;
     }
     else

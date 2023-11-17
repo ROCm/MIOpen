@@ -209,9 +209,13 @@ private:
     static constexpr bool ValidateValues()
     {
         for(auto i = 0; i < ValuesCount() - 1; ++i)
+        {
             for(auto j = i + 1; j < ValuesCount(); ++j)
+            {
                 if(data[i] == data[j])
                     return false;
+            }
+        }
 
         return true;
     }

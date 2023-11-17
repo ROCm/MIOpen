@@ -231,9 +231,11 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     }
 
     if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
+    {
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
+    }
 
     ShrinkToFind10Results(results);
 
@@ -287,10 +289,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+    {
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
         // To fix them check the test
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
+    }
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
@@ -670,9 +674,11 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     }
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
+    {
         MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
                              << " ms, ws: " << s.workspace_size
                              << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+    }
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
     interim.resize(std::min(maxSolutionCount, interim.size()));
 
@@ -873,10 +879,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+    {
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
         // To fix them check the test
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
+    }
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
@@ -986,11 +994,15 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
+    {
         return sol.GetWorkspaceSize(ctx, problem);
+    }
     else
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      "The supplied solution id: " + solver_id.ToString() +
                          " is not applicable to the current problem");
+    }
 }
 
 void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
@@ -1076,10 +1088,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
+    {
         // Changes to this message lead to failures in test_conv_for_implicit_gemm
         // To fix them check the test
         // Two similar messages are in other convolution find methods
         MIOPEN_THROW("No suitable algorithm was found to execute the required convolution");
+    }
 
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
@@ -1184,11 +1198,15 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
     auto ctx = ExecutionContext{};
     ctx.SetStream(&handle);
     if(sol.IsApplicable(ctx, problem))
+    {
         return sol.GetWorkspaceSize(ctx, problem);
+    }
     else
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      "The supplied solution id: " + solver_id.ToString() +
                          " is not applicable to the current problem");
+    }
 }
 
 void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,

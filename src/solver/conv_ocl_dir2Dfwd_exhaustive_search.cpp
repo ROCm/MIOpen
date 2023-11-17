@@ -219,11 +219,17 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ExecutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx) const
 {
     if(problem.IsFp16())
+    {
         return SearchImpl<half_float::half>(ctx, problem, invoke_ctx);
+    }
     else if(problem.IsFp32())
+    {
         return SearchImpl<float>(ctx, problem, invoke_ctx);
+    }
     else if(problem.IsBfp16())
+    {
         return SearchImpl<bfloat16>(ctx, problem, invoke_ctx);
+    }
     else
     {
         MIOPEN_THROW("Unsupported float_size");

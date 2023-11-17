@@ -238,12 +238,14 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
         }
             ss << " -M " << bn_mode; // clang-format on
     if(print_for_bn_driver)
+    {
         BnDriverInfo(ss,
                      dir,
                      resultRunningMean,
                      resultRunningVariance,
                      resultSaveMean,
                      resultSaveInvVariance);
+    }
     return ss.str();
 }
 
