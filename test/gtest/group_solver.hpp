@@ -80,7 +80,11 @@ struct ConvTestCase
     }
 
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() { return {k, C, y, x}; }
+    std::vector<size_t> GetWeights()
+    {
+        EXPECT_EQUAL(C % G, 0);
+        return {k, C / G, y, x};
+    }
 
     miopen::ConvolutionDescriptor GetConv()
     {
@@ -130,15 +134,13 @@ protected:
         test_skipped                               = false;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
 
-        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
-        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
+        input   = tensor<T>{tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         SetTensorLayout(input.desc);
         SetTensorLayout(weights.desc);
-
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        auto gen_value = [](auto...) {
+            return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
+        };
         input.generate(gen_value);
         weights.generate(gen_value);
 
@@ -146,7 +148,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
 
@@ -164,7 +166,7 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        ref_out     = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
         ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";

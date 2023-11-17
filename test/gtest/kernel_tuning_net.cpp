@@ -12,14 +12,14 @@ struct KernelTuningNetTestCase : AIModelTestCase
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 {
-    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{512, 192, 56, 56, 288, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNCHW},
              true,
              "1,16,1,64,2,2,1,4"},
 
-            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1},
+            {{{1, 4, 2, 2, 4, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -29,7 +29,7 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UFloatTestCases()
 
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UHalfTestCases()
 {
-    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{256, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -44,12 +44,10 @@ protected:
     void SetUp() override
     {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-        auto test_case = GetParam();
-        tensor<G> input_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetInput());
-        tensor<G> weights_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
-        auto conv_desc                       = test_case.conv.GetConv();
+        auto test_case           = GetParam();
+        tensor<G> input_tensor   = tensor<G>(test_case.layout, test_case.conv.GetInput());
+        tensor<G> weights_tensor = tensor<G>(test_case.layout, test_case.conv.GetWeights());
+        auto conv_desc           = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
 
@@ -71,7 +69,7 @@ protected:
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     bool expected_valid;
     std::string expected;
 };
@@ -85,7 +83,7 @@ struct KernelTuningNetTestHalf : KernelTuningNetTest<half_float::half>
 };
 
 template <typename T>
-void TestParameterPredictionModel(miopen::ProblemDescription problem,
+void TestParameterPredictionModel(miopen::conv::ProblemDescription problem,
                                   bool expected_valid,
                                   std::string expected)
 {
@@ -93,9 +91,8 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
     auto&& handle = get_handle();
     if(handle.GetDeviceName() != "gfx908")
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     T perf_config;
     bool valid = false;
     perf_config.RunParmeterPredictionModel(ctx, problem, valid);
@@ -119,13 +116,13 @@ void TestParameterPredictionModel(miopen::ProblemDescription problem,
 
 TEST_P(KernelTuningNetTestFloat, ConvAsm1x1UParameterPredictionModelFloat)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 
 TEST_P(KernelTuningNetTestHalf, ConvAsm1x1UParameterPredictionModelHalf)
 {
-    TestParameterPredictionModel<miopen::solver::PerformanceConfigConvAsm1x1U>(
+    TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
         problem, expected_valid, expected);
 }
 

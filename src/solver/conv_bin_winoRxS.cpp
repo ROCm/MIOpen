@@ -72,7 +72,7 @@ static inline int FloorDiv(const int x, const int y)
 }
 
 static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
-                                         const miopen::ProblemDescription& problem,
+                                         const miopen::conv::ProblemDescription& problem,
                                          const int R,
                                          const int S,
                                          const int R_stride,
@@ -140,7 +140,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     {
         return false;
     }
-    const bool is_dilated_stride_2 = (problem.direction.IsBackwardData() && S_stride != 1);
+    const bool is_dilated_stride_2 = (problem.IsDirectionBackwardData() && S_stride != 1);
     if(fp16)
     {
         if(is_dilated_stride_2)
@@ -177,7 +177,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
             return false;
     }
     // Padding for bwd data shall not be negative.
-    if(problem.direction.IsBackwardData() || problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardData() || problem.IsDirectionBackwardWrW())
     {
         if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
@@ -186,9 +186,7 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     }
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     // clang-format off
     // Check implementation limits.
@@ -214,6 +212,9 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
                                       const ProblemDescription& problem) const
@@ -222,9 +223,13 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
+    if(problem.IsTensorsCasted())
+        return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
         return false;
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
@@ -255,7 +260,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     }
     else
     {
-        if(problem.direction.IsBackwardWrW())
+        if(problem.IsDirectionBackwardWrW())
         {
             if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
@@ -278,21 +283,21 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
         return false;
     // clang-format on
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.GetInHeight(),
-                                     problem.GetInWidth(),
+                                     problem.GetInHeight_(),
+                                     problem.GetInWidth_(),
                                      problem.GetDilationH(),
                                      problem.GetDilationW(),
-                                     problem.GetBatchSize(),  // N
-                                     problem.GetInChannels(), // K
-                                     problem.GetOutHeight(),
-                                     problem.GetOutWidth(),
-                                     problem.GetWeightsHeight(),
-                                     problem.GetWeightsWidth(),
-                                     problem.GetOutChannels(), // C
+                                     problem.GetBatchSize_(),  // N
+                                     problem.GetInChannels_(), // K
+                                     problem.GetOutHeight_(),
+                                     problem.GetOutWidth_(),
+                                     problem.GetWeightsHeight_(),
+                                     problem.GetWeightsWidth_(),
+                                     problem.GetOutChannels_(), // C
                                      fp16,
                                      2);
     }
@@ -300,17 +305,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     {
         return IsShaderContraintsMet(ctx,
                                      problem,
-                                     problem.GetWeightsHeight(), // RxS
-                                     problem.GetWeightsWidth(),
+                                     problem.GetWeightsHeight_(), // RxS
+                                     problem.GetWeightsWidth_(),
                                      problem.GetKernelStrideH(),
                                      problem.GetKernelStrideW(),
-                                     problem.GetInChannels(),  // C
-                                     problem.GetOutChannels(), // K
-                                     problem.GetInHeight(),    // HxW
-                                     problem.GetInWidth(),
-                                     problem.GetOutHeight(), // OHxOW
-                                     problem.GetOutWidth(),
-                                     problem.GetBatchSize(), // N
+                                     problem.GetInChannels_(),  // C
+                                     problem.GetOutChannels_(), // K
+                                     problem.GetInHeight_(),    // HxW
+                                     problem.GetInWidth_(),
+                                     problem.GetOutHeight_(), // OHxOW
+                                     problem.GetOutWidth_(),
+                                     problem.GetBatchSize_(), // N
                                      fp16,
                                      3);
     }
@@ -348,7 +353,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
         if(problem.GetKernelStrideW() == 2)
         {
-            if(problem.direction.IsForward())
+            if(problem.IsDirectionForward())
                 kernel.kernel_file += "2_dec";
             else
                 kernel.kernel_file += "2_dil";
@@ -358,7 +363,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
             kernel.kernel_file += "1";
         }
     }
-    else if(problem.direction.IsBackwardWrW())
+    else if(problem.IsDirectionBackwardWrW())
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
         kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
@@ -369,7 +374,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
         if(problem.GetKernelStrideW() == 2)
         {
-            if(problem.direction.IsForward())
+            if(problem.IsDirectionForward())
                 kernel.kernel_file += "_stride_2_dec";
             else
                 kernel.kernel_file += "_stride_2_dil";
@@ -379,7 +384,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
     result.construction_params.push_back(kernel);
 
-    if(problem.direction.IsBackwardWrW())
+    if(problem.IsDirectionBackwardWrW())
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
@@ -402,8 +407,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors          = invoke_params.tensors;
+                decltype(auto) invoke_params =
+                    primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                const auto& tensors = invoke_params.tensors;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                         << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R << " S=" << S
@@ -442,7 +448,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     }
     else
     {
-        const auto is_forward     = problem.direction.IsForward();
+        const auto is_forward     = problem.IsDirectionForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;
@@ -471,7 +477,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
                                     << " out_H=" << out_H << " out_W=" << out_W);
 
                 decltype(auto) k       = handle.Run(kernels[0]);
-                decltype(auto) fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+                decltype(auto) fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                 const auto& tensors    = fwd_ctx.tensors;
 
                 k(N,
@@ -499,5 +505,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

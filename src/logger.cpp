@@ -60,6 +60,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
 /// See LoggingLevel in the header.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
+/// Enable logging of function calls to ROCTX api.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ROCTX)
+
 namespace debug {
 
 bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
@@ -123,6 +126,11 @@ bool IsLoggingFunctionCalls()
     return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}) && !IsLoggingDebugQuiet();
 }
 
+bool IsLoggingToRoctx()
+{
+    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ROCTX{}) && !IsLoggingDebugQuiet();
+}
+
 bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 {
     auto enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
@@ -143,26 +151,18 @@ bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 
 const char* LoggingLevelToCString(const LoggingLevel level)
 {
-    // Intentionally straightforward.
-    // The most frequently used come first.
-    if(level == LoggingLevel::Error)
-        return "Error";
-    else if(level == LoggingLevel::Warning)
-        return "Warning";
-    else if(level == LoggingLevel::Info)
-        return "Info";
-    else if(level == LoggingLevel::Info2)
-        return "Info2";
-    else if(level == LoggingLevel::Trace)
-        return "Trace";
-    else if(level == LoggingLevel::Default)
-        return "Default";
-    else if(level == LoggingLevel::Quiet)
-        return "Quiet";
-    else if(level == LoggingLevel::Fatal)
-        return "Fatal";
-    else
-        return "<Unknown>";
+    switch(level)
+    {
+    case LoggingLevel::Default: return "Default";
+    case LoggingLevel::Quiet: return "Quiet";
+    case LoggingLevel::Fatal: return "Fatal";
+    case LoggingLevel::Error: return "Error";
+    case LoggingLevel::Warning: return "Warning";
+    case LoggingLevel::Info: return "Info";
+    case LoggingLevel::Info2: return "Info2";
+    case LoggingLevel::Trace: return "Trace";
+    default: return "<Unknown>";
+    }
 }
 bool IsLoggingCmd()
 {

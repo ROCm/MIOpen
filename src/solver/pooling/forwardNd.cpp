@@ -106,11 +106,24 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
 bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 5 && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW" &&
-           problem.GetYDesc().GetLayout("NCDHW") == "NCDHW" &&
-           sizeof_private_memory(problem) <=
-               TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
+
+    return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
+           && problem.GetXDesc().GetSize() == 5                                               //
+           && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
+           && (problem.GetXDesc().GetType() == miopenFloat                                    //
+               || problem.GetXDesc().GetType() == miopenHalf)                                 //
+           && (problem.GetPooling().GetMode() == miopenPoolingMax                             //
+               || problem.GetPooling().GetMode() == miopenPoolingAverage                      //
+               || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive)            //
+           && sizeof_private_memory(problem) <= TargetProperties::GetMaxWaveScratchSize()     //
+                                                    / context.GetStream().GetWavefrontWidth() //
+           /// \todo This solver does not support workspace index mask mode yet.
+           &&
+           !(problem.GetPooling().GetMode() == miopenPoolingMax                                 //
+             && problem.GetPooling().GetWorkspaceIndexMode() == miopenPoolingWorkspaceIndexMask //
+             && problem.SaveIndex() == true);
 }
 
 ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
@@ -152,7 +165,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
 
         auto build_params = KernelBuildParameters{
             {"MLO_POOLING_OP_ID", static_cast<long long>(pooling_method)},
-            {"MAX_ACTIV_WORKITEM", static_cast<uint>(max_activ_workitem)},
+            {"MAX_ACTIV_WORKITEM", static_cast<unsigned>(max_activ_workitem)},
             {"MLO_POOLING_GROUP_SZ0", static_cast<long long>(lcl_work)},
             {"MLO_POOLING_GROUP_SZ1", 1},
             {"MLO_POOLING_GROUP_SZ2", 1},
@@ -209,26 +222,26 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
             kernel(params.x,
                    params.y,
                    params.workspace,
-                   static_cast<uint>(params.pooling.pads[0]),
-                   static_cast<uint>(params.pooling.pads[1]),
-                   static_cast<uint>(params.pooling.pads[2]),
-                   static_cast<uint>(batch_),
-                   static_cast<uint>(chal_),
-                   static_cast<uint>(params.xDesc.GetLengths()[2]),
-                   static_cast<uint>(params.xDesc.GetLengths()[3]),
-                   static_cast<uint>(params.xDesc.GetLengths()[4]),
-                   static_cast<uint>(top_d_),
-                   static_cast<uint>(top_h_),
-                   static_cast<uint>(top_w_),
-                   static_cast<uint>(params.xDesc.GetStrides()[0]),
-                   static_cast<uint>(params.xDesc.GetStrides()[1]),
-                   static_cast<uint>(params.xDesc.GetStrides()[2]),
-                   static_cast<uint>(params.xDesc.GetStrides()[3]),
-                   static_cast<uint>(params.yDesc.GetStrides()[0]),
-                   static_cast<uint>(params.yDesc.GetStrides()[1]),
-                   static_cast<uint>(params.yDesc.GetStrides()[2]),
-                   static_cast<uint>(params.yDesc.GetStrides()[3]),
-                   static_cast<uint>(total_work_));
+                   static_cast<unsigned>(params.pooling.pads[0]),
+                   static_cast<unsigned>(params.pooling.pads[1]),
+                   static_cast<unsigned>(params.pooling.pads[2]),
+                   static_cast<unsigned>(batch_),
+                   static_cast<unsigned>(chal_),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[2]),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[3]),
+                   static_cast<unsigned>(params.xDesc.GetLengths()[4]),
+                   static_cast<unsigned>(top_d_),
+                   static_cast<unsigned>(top_h_),
+                   static_cast<unsigned>(top_w_),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[0]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[1]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[2]),
+                   static_cast<unsigned>(params.xDesc.GetStrides()[3]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[0]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[1]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[2]),
+                   static_cast<unsigned>(params.yDesc.GetStrides()[3]),
+                   static_cast<unsigned>(total_work_));
         };
     };
 

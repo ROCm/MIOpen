@@ -32,11 +32,7 @@
 #include <miopen/tensor_extra.hpp>
 #include <vector>
 
-#ifdef __MINGW32__
-#include <mingw.thread.h>
-#else
 #include <thread>
-#endif
 
 struct handle_fixture
 {
@@ -198,11 +194,11 @@ struct conv_forward : output_tensor_fixture
 
         for(size_t i = 0; i < sz_in; i++)
         {
-            in[i] = GET_RAND() * (1.0 / RAND_MAX);
+            in[i] = prng::gen_canonical<float>();
         }
         for(size_t i = 0; i < sz_wei; i++)
         {
-            wei[i] = static_cast<double>(GET_RAND() * (1.0 / RAND_MAX) - 0.5) * 0.001;
+            wei[i] = prng::gen_A_to_B(-0.5f, 0.5f) * 0.001f;
         }
 
 #if MIOPEN_BACKEND_OPENCL

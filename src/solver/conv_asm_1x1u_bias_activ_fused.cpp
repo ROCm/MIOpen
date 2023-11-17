@@ -38,7 +38,11 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include "half.hpp"
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#include <half/half.hpp>
+#else
+#include <half.hpp>
+#endif
 
 using half_float::half;
 
@@ -46,13 +50,12 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
-
 namespace fusion {
 
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx,
                                                           const FusionDescription& problem)
 {
-    auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     auto conv_ctx     = ctx.GetConvContext(conv_problem);
     PerformanceConfigConvAsm1x1U::HeuristicInit(conv_ctx, conv_problem);
 }
@@ -60,13 +63,13 @@ void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& c
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription& problem)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionDescription& problem) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
-        problem.GetConvProblem(0, conv::Direction::Forward));
+        problem.GetConvProblem(0, miopen::conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -100,9 +103,9 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
-    ConvAsm1x1U base_sol{};
+    conv::ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(conv_ctx, conv_problem, config);
 
@@ -138,7 +141,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = conv_problem.conv_problem.GetOutDataType();
+    const auto out_data_type = conv_problem.GetOutDataType();
     sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -153,11 +156,15 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
+                {
                     return dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(
                                *invoke_ctx.op_args.params[1])
                         .bdata;
+                }
                 else
+                {
                     return nullptr;
+                }
             }();
 
             if(activ_idx == -1) // skip the activation args
@@ -235,21 +242,21 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
             return false;
     }
 
-    ConvAsm1x1U sol{};
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    conv::ConvAsm1x1U sol{};
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
 
     if(conv_problem.GetPadH() != conv_problem.GetPadW())
         return false;
     if(conv_problem.GetPadH() != 0)
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
+    if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() != 1)
+    if(conv_problem.GetKernelStrideH() != 1)
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != conv_problem.conv_problem.GetDilationW())
+    if(conv_problem.GetDilationH() != conv_problem.GetDilationW())
         return false;
-    if(conv_problem.conv_problem.GetDilationH() != 1)
+    if(conv_problem.GetDilationH() != 1)
         return false;
 
     // Check if the conovlution part is applicable

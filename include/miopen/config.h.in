@@ -74,6 +74,8 @@
 //     remain in the future)  perform final conversion (and rounding) of FP32
 //     to BF16 results. This affects the main functionality of the library.
 #cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
+#cmakedefine01 MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#cmakedefine01 MIOPEN_FP8_CLIPPING
 
 // clang-format off
 #cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
@@ -153,6 +155,6 @@
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 17
+#define MIOPEN_GOLDEN_DB_VERSION 19
 
 #endif // GUARD_CONFIG_H_IN

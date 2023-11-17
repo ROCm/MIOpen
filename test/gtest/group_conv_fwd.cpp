@@ -56,10 +56,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
     const auto problem = miopen::conv::ProblemDescription{
         inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ConvolutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
 
     if(!solv.IsApplicable(ctx, problem))
     {
@@ -81,15 +80,15 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvFwdSolverTestFloat, CKGroupConvFwd)
 {
-    SolverFwd<miopen::solver::ConvHipImplicitGemmGroupFwdXdlops>(input.desc,
-                                                                 in_dev.get(),
-                                                                 weights.desc,
-                                                                 wei_dev.get(),
-                                                                 output.desc,
-                                                                 out_dev.get(),
-                                                                 conv_desc,
-                                                                 conv_config,
-                                                                 test_skipped);
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops>(input.desc,
+                                                                       in_dev.get(),
+                                                                       weights.desc,
+                                                                       wei_dev.get(),
+                                                                       output.desc,
+                                                                       out_dev.get(),
+                                                                       conv_desc,
+                                                                       conv_config,
+                                                                       test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,

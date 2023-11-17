@@ -59,6 +59,10 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)
@@ -80,26 +84,25 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE()                                                              \
-    const auto                                                                               \
-        wino_xform_h =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(),                                                  \
-        wino_xform_w =                                                                       \
-            solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize();
+#define DEFINE_GETXFORMHWSIZE()                                                             \
+    const auto wino_xform_h =                                                               \
+                   ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(),                                          \
+               wino_xform_w =                                                               \
+                   ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize();
 
-#define DEFINE_SHADER_ALIASES(problem)                             \
-    const auto group_cnt = (problem).GetGroupCount();              \
-    const auto N         = (problem).GetBatchSize();               \
-    const int K          = (problem).GetOutChannels() / group_cnt; \
-    const int C          = (problem).GetInChannels() / group_cnt;  \
-    const auto R         = (problem).GetWeightsHeight();           \
-    const auto S         = (problem).GetWeightsWidth();            \
-    const auto H         = (problem).GetInHeight();                \
-    const auto W         = (problem).GetInWidth();                 \
-    const auto out_H     = (problem).GetOutHeight();               \
-    const auto out_W     = (problem).GetOutWidth();
+#define DEFINE_SHADER_ALIASES(problem)                              \
+    const auto group_cnt = (problem).GetGroupCount();               \
+    const int N          = (problem).GetBatchSize_();               \
+    const int K          = (problem).GetOutChannels_() / group_cnt; \
+    const int C          = (problem).GetInChannels_() / group_cnt;  \
+    const int R          = (problem).GetWeightsHeight_();           \
+    const int S          = (problem).GetWeightsWidth_();            \
+    const int H          = (problem).GetInHeight_();                \
+    const int W          = (problem).GetInWidth_();                 \
+    const int out_H      = (problem).GetOutHeight_();               \
+    const int out_W      = (problem).GetOutWidth_();
 
 #if MIOPEN_BACKEND_HIP
 #define GENERATE_MAIN_OPTIONS(options)                                         \
@@ -154,7 +157,7 @@ GetWinoBuffer(const ProblemDescription& problem,
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 static bool IsApplicableGEMM(const ProblemDescription& problem)
 {
-#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
+#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -177,7 +180,7 @@ static bool IsApplicableGEMM(const ProblemDescription& problem)
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDescription& problem)
 {
 #if MIOPEN_BACKEND_HIP
     if(!ctx.use_asm_kernels)
@@ -186,7 +189,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
+    if(!(problem.IsDirectionForward() || problem.IsDirectionBackwardData()))
         return false;
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
@@ -229,9 +232,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
     }
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     {
         unsigned int const waves_in_group = 512 / wave_size;
@@ -265,7 +266,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
                      group_cnt,
                      GetTypeSize(problem.GetOutDataType())),
             // cppcheck-suppress unreadVariable
-            wei_buff(GetGroupConvLayout(problem.direction.IsForward()
+            wei_buff(GetGroupConvLayout(problem.IsDirectionForward()
                                             ? (MemLayout_t::NCHW)
                                             : GetSwappedNCLayout(MemLayout_t::NCHW),
                                         false),
@@ -294,8 +295,8 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 
     // clang-format off
     bool ok = (
-        (problem.GetWeightsWidth() == WinoFilterW
-            && problem.GetWeightsHeight() == WinoFilterH)
+        (problem.GetWeightsWidth_() == WinoFilterW
+            && problem.GetWeightsHeight_() == WinoFilterH)
         && (problem.GetKernelStrideW() == 1)
         && problem.GetKernelStrideH() == problem.GetKernelStrideW()
         && problem.GetDilationW() == 1
@@ -319,15 +320,18 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
+    if(problem.HasNonPackedTensors())
+        return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
+
+    if(problem.IsTensorsCasted())
+        return false;
 
     if(!IsApplicableGEMM<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(problem))
         return false;
@@ -336,27 +340,37 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3{}))
             return false;
+    }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3{}))
             return false;
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3{}))
             return false;
+    }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3{}))
             return false;
+    }
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem);
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ConvolutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -375,14 +389,14 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
+static InvokerFactory MakeWinogradInvokerFactory(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  InvokerFactory xdlops_factory = InvokerFactory(),
                                                  bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-    const int pad_W = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+    const int pad_H = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+    const int pad_W = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
     const int n_groups = ctx.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(problem)
     DEFINE_GETXFORMHWSIZE()
@@ -402,7 +416,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                  group_cnt,
                  GetTypeSize(problem.GetOutDataType())),
         // cppcheck-suppress unreadVariable
-        weights_buff(GetGroupConvLayout(problem.direction.IsForward()
+        weights_buff(GetGroupConvLayout(problem.IsDirectionForward()
                                             ? (MemLayout_t::NCHW)
                                             : GetSwappedNCLayout(MemLayout_t::NCHW),
                                         false),
@@ -441,7 +455,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
     }
     else
     {
-#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
+#if MIOPEN_USE_ROCBLAS
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
@@ -457,7 +471,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         // clang-format off
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
-            strideC,alpha,beta,transform_data_type, problem.conv_problem.GetConv().attribute.deterministic };
+            strideC,alpha,beta,transform_data_type, problem.GetConv().attribute.deterministic };
 // clang-format on
 #else
         (void)wino_xform_w;
@@ -466,9 +480,10 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                Data_t workSpace     = data_ctx.workSpace;
+#if MIOPEN_USE_ROCBLAS
+                const auto& data_ctx =
+                    primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+                Data_t workSpace = data_ctx.workSpace;
                 CallGemmStridedBatched(
                     handle,
                     wino_gemm_desc,
@@ -498,7 +513,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
         auto gemm_conv_invoker = gemm_conv_factory(conv_kernels);
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
             const auto tensors   = data_ctx.tensors;
             Data_t workSpace     = data_ctx.workSpace;
             auto workSpaceSize   = data_ctx.workSpaceSize;
@@ -519,7 +534,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
                     // xdlops_conv use tensors.in, tensors.w, tensors.out
                     ConvDataTensors xdlops_tensor = ConvDataTensors(ConvFwdTensors{
                         zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-                    const auto invoke_params      = conv::DataInvokeParams{
+                    const auto invoke_params      = miopen::conv::DataInvokeParams{
                         xdlops_tensor, workSpace, workSpaceSize, data_ctx.gfx90aFp16alt};
 
                     gemm_conv_invoker(handle, invoke_params);
@@ -637,7 +652,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
     result.workspace_sz = GetWorkspaceSize(ctx, problem);
@@ -660,7 +675,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 
     std::ostringstream options_filter;
     GENERATE_MAIN_OPTIONS(options_filter)
-    GenerateClangDefsym(options_filter, "xform_mirror", problem.direction.IsBackwardData());
+    GenerateClangDefsym(options_filter, "xform_mirror", problem.IsDirectionBackwardData());
     GenerateClangDefsym(options_filter, "in_type", (problem.IsFp32() ? 1 : 2));
     GenerateClangDefsym(options_filter, "out_type", (transform_data_type == miopenFloat ? 1 : 2));
 
@@ -721,15 +736,15 @@ template struct ConvMPBidirectWinograd<4, 3>;
 template struct ConvMPBidirectWinograd<5, 3>;
 template struct ConvMPBidirectWinograd<6, 3>;
 
-// ConvolutionContext and ProblemDescription transformation
+// ExecutionContext and ProblemDescription transformation
 // for winograd buffers calculation using xdlops_convolution
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
-    GetTransformedConvContext(const ConvolutionContext& ctx,
+ExecutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
+    GetTransformedConvContext(const ExecutionContext& ctx,
                               const ProblemDescription& transformed_problem) const
 {
-    auto transformed_ctx = ConvolutionContext{static_cast<const ExecutionContext&>(ctx)};
-    transformed_problem.conv_problem.SetupFloats(transformed_ctx);
+    auto transformed_ctx = ctx;
+    transformed_problem.SetupFloats(transformed_ctx);
 
     return transformed_ctx;
 }
@@ -783,17 +798,17 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     // trans_output_pads = {0, 0},  group_count = gem_batch_count
     ConvolutionDescriptor conv_desc({0, 0}, {1, 1}, {1, 1}, {0, 0}, batch_count);
 
-    auto dir = conv::Direction::Forward;
+    auto dir = miopen::conv::Direction::Forward;
 
-    conv::ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
+    ProblemDescription transformed_problem(in, wei, out, conv_desc, dir, 0);
 
     return transformed_problem;
 }
 
 // must be same as invoke_params in Invoker
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
-static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescription& problem,
-                                                          const AnyInvokeParams& invoke_ctx)
+static miopen::conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescription& problem,
+                                                                  const AnyInvokeParams& invoke_ctx)
 {
 #if MIOPEN_BACKEND_HIP
     const miopenDataType_t transform_data_type =
@@ -811,7 +826,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
     const WinoOffsets transform_offset(wino_in.buff_info.total_byte_size,
                                        wino_out.buff_info.total_byte_size);
 
-    const auto& data_ctx = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto& data_ctx = invoke_ctx.CastTo<miopen::conv::DataInvokeParams>();
 
     auto workSpace = data_ctx.workSpace;
 
@@ -832,7 +847,7 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
     const auto zeroDesc           = TensorDescriptor();
     ConvDataTensors xdlops_tensor = ConvDataTensors(
         ConvFwdTensors{zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-    return conv::DataInvokeParams{
+    return miopen::conv::DataInvokeParams{
         xdlops_tensor, gemm_workSpace, gemm_workSpaceSize, data_ctx.gfx90aFp16alt};
 #else
     std::ignore = problem;
@@ -843,27 +858,37 @@ static conv::DataInvokeParams GetTransformedInvokeContext(const ProblemDescripti
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3{}))
             return false;
+    }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3{}))
             return false;
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3{}))
             return false;
+    }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
+    {
         if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3{}))
             return false;
+    }
 
     const auto xdlops_problem = GetTransformedProblem(problem);
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
@@ -875,7 +900,7 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
@@ -915,7 +940,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const AnyInvokeParams& invoke_ctx) const
 {
@@ -935,5 +960,6 @@ template struct ConvMPBidirectWinograd_xdlops<4, 3>;
 template struct ConvMPBidirectWinograd_xdlops<5, 3>;
 template struct ConvMPBidirectWinograd_xdlops<6, 3>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

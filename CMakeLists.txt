@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required( VERSION 3.15 )
 
 if (POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
@@ -37,23 +37,36 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
+get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
 # This has to be initialized before the project() command appears
-# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
-if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
-    set( CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." )
+# Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
+if(MIOPEN_GENERATOR_IS_MULTI_CONFIG)
+    if (NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING
+            "Available build types (configurations) on multi-config generators")
+    endif()
+else()
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE Release CACHE STRING
+            "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel.")
+    endif()
 endif()
 
 # Default installation path
-if(WIN32)
-    set(CMAKE_INSTALL_PREFIX "/opt/rocm/x86_64-w64-mingw32" CACHE PATH "")
-else()
+if(NOT WIN32)
     set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 endif()
 
 project ( MIOpen C CXX )
 
-enable_testing()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(CTest)
+
+find_package(Threads REQUIRED)
 find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
@@ -64,11 +77,18 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+# Build library with Beta APIs
+add_definitions("-DMIOPEN_BETA_API=1")
+
 set(MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK On CACHE BOOL "Enable AI-based fallback for Immediate Mode")
 set(MIOPEN_ENABLE_AI_KERNEL_TUNING On CACHE BOOL "Enable AI heuristic for kernel tuning")
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
 set(MIOPEN_ENABLE_SQLITE_KERN_CACHE On CACHE BOOL "")
+
+# By default build shared libraries
+option(BUILD_SHARED_LIBS "Create shared libraries" ON)
+
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen now depends on SQLite as well
     find_package(PkgConfig)
@@ -92,7 +112,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.20.0)
+rocm_setup_version(VERSION 3.00.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -103,11 +123,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     endif()
 endif()
 
-
-############################################################
-# require C++14
-add_compile_options(-std=c++17)
-
 ############################################################
 # OPTION - MIOpen Backend
 # - OpenCL
@@ -117,12 +132,6 @@ if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
-endif()
-
-if(WIN32 AND CMAKE_CROSSCOMPILING)
-    set(WINE_CMD "wine")
-else()
-    set(WINE_CMD)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
@@ -145,11 +154,10 @@ option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
-    option(BUILD_SHARED_LIBS "Build as a shared library" Off)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as a shared library" FORCE)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." Off)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" Off)
 else()
-    option(BUILD_SHARED_LIBS "Build as a shared library" ON)
     option(MIOPEN_USE_HIP_KERNELS "Use HIP kernels." On)
     option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver" On)
 endif()
@@ -173,7 +181,6 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
@@ -185,9 +192,6 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
-
-    # MIOpenTensile does not support opencl backend yet.
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     # TODO (priority_low) Use to build HIP and ASM kernels.
     if(MIOPEN_USE_COMGR)
@@ -253,10 +257,14 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
+# WORKAROUND_SWDEV_413293
+if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+    string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
+endif()
+
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}">)
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -267,9 +275,6 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         set(MIOPEN_MODE_NOGPU 1)
     endif()
     set(MIOPEN_BACKEND_HIP 1)
-    set(MIOPEN_USE_MIOPENGEMM OFF CACHE BOOL "")
-    # miopentensile default off
-    set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
     find_program(HIP_OC_COMPILER clang
         PATH_SUFFIXES bin
@@ -370,31 +375,6 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
 )
 message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
-# miopentensile
-if(MIOPEN_USE_MIOPENTENSILE)
-    find_package(miopentensile)
-    message(STATUS "Build with miopentensile")
-else()
-    message(STATUS "Build without miopentensile")
-endif()
-
-# miopengemm
-if(MIOPEN_USE_MIOPENGEMM)
-    find_package(miopengemm PATHS /opt/rocm)
-    if(NOT miopengemm_FOUND)
-        set(MIOPEN_USE_MIOPENGEMM 0)
-    endif()
-endif()
-
-if(MIOPEN_USE_MIOPENGEMM)
-    message(STATUS "Build with miopengemm")
-else()
-    if(MIOPEN_BACKEND_OPENCL)
-        message(FATAL_ERROR "MIOpen OpenCL backend requires MIOpenGEMM")
-    endif()
-    message(STATUS "Build without miopengemm")
-endif()
-
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
@@ -413,13 +393,13 @@ set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
-find_path(HALF_INCLUDE_DIR half.hpp)
+find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 # FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" ON)
+option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
@@ -440,10 +420,6 @@ endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
 set(MIOPEN_PACKAGE_REQS "hip-rocclr")
-
-if(MIOPEN_USE_MIOPENGEMM)
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
-endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
@@ -470,7 +446,7 @@ endif()
 function(unpack_db db_bzip2_file)
     set(KERNELS_DIR "${CMAKE_SOURCE_DIR}/src/kernels")
     STRING(REPLACE ".bz2" "" db_file "${db_bzip2_file}")
-    find_program(UNZIPPER lbunzip2 bunzip2)
+    find_program(UNZIPPER NAMES lbunzip2 bunzip2)
     if(EXISTS "${db_file}")
         message(STATUS "WARNING: ${db_file} already exists and will be overwritten")
     endif()
@@ -568,147 +544,19 @@ if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     set(MIOPEN_TIDY_ERRORS ALL)
-
 endif()
 
 include(ClangTidy)
 enable_clang_tidy(
     CHECKS
-        *
-        -abseil-*
-        -altera-*
-        -android-cloexec-fopen
-        # This check is useless for us. Many objects (like tensors or problem descriptions)
-        # naturally have mutiple parameters of the same type.
-        -bugprone-easily-swappable-parameters
-        -bugprone-exception-escape
-        -bugprone-macro-parentheses
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cert-dcl37-c
-        -cert-dcl51-cpp
-        -cert-env33-c
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
-        -cert-msc32-c
-        -cert-msc50-cpp
-        -cert-msc51-cpp
-        -clang-analyzer-alpha.core.CastToStruct
-        -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-extern-c-compat
-        -clang-diagnostic-unused-command-line-argument
-        -cppcoreguidelines-avoid-c-arrays
-        -cppcoreguidelines-avoid-magic-numbers
-        -cppcoreguidelines-explicit-virtual-functions
-        -cppcoreguidelines-init-variables
-        -cppcoreguidelines-macro-usage
-        -cppcoreguidelines-narrowing-conversions
-        -cppcoreguidelines-non-private-member-variables-in-classes
-        -cppcoreguidelines-prefer-member-initializer
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay
-        -cppcoreguidelines-pro-bounds-constant-array-index
-        -cppcoreguidelines-pro-bounds-pointer-arithmetic
-        -cppcoreguidelines-pro-type-member-init
-        -cppcoreguidelines-pro-type-reinterpret-cast
-        -cppcoreguidelines-pro-type-union-access
-        -cppcoreguidelines-pro-type-vararg
-        -cppcoreguidelines-special-member-functions
-        -fuchsia-*
-        -google-explicit-constructor
-        -google-readability-braces-around-statements
-        -google-readability-todo
-        -google-runtime-int
-        -google-runtime-references
-        -hicpp-avoid-c-arrays
-        -hicpp-braces-around-statements
-        -hicpp-explicit-conversions
-        -hicpp-named-parameter
-        -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
-        -hicpp-signed-bitwise
-        -hicpp-special-member-functions
-        -hicpp-uppercase-literal-suffix
-        -hicpp-use-auto
-        -hicpp-use-equals-default
-        -hicpp-use-override
-        -hicpp-vararg
-        -llvm-else-after-return
-        -llvm-header-guard
-        -llvm-include-order
-        -llvmlibc-callee-namespace
-        -llvmlibc-implementation-in-namespace
-        -llvmlibc-restrict-system-libc-headers
-        -llvm-qualified-auto
-        # This one is extremely slow, and probably has lots of FPs.
-        -misc-confusable-identifiers
-        -misc-misplaced-const
-        -misc-non-private-member-variables-in-classes
-        -misc-no-recursion
-        -modernize-avoid-bind
-        -modernize-avoid-c-arrays
-        -modernize-pass-by-value
-        -modernize-use-auto
-        -modernize-use-default-member-init
-        -modernize-use-equals-default
-        -modernize-use-trailing-return-type
-        -modernize-use-transparent-functors
-        -modernize-use-nodiscard
-        -modernize-concat-nested-namespaces
-        -modernize-unary-static-assert
-        -performance-unnecessary-value-param
-        -readability-braces-around-statements
-        -readability-convert-member-functions-to-static
-        -readability-else-after-return
-        # TODO We are not ready to use it, but very useful.
-        -readability-function-cognitive-complexity
-        # We dont think this is a useful check. Disabled on migraphx.
-        -readability-identifier-length
-        -readability-isolate-declaration
-        -readability-magic-numbers
-        -readability-named-parameter
-        -readability-qualified-auto
-        -readability-redundant-string-init
-        # There are many FPs with this, let's disable it (ditto in MIGraphX)
-        -readability-suspicious-call-argument
-        -readability-uppercase-literal-suffix
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.1 update
-        ###################################################################
-        -cert-err33-c
-        -google-readability-casting
-        -hicpp-use-emplace
-        -modernize-use-emplace
-        -performance-unnecessary-copy-initialization
-        -readability-container-data-pointer
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.3 &&
-        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ###################################################################
-        -bugprone-use-after-move
-        -hicpp-invalid-access-moved
-        -modernize-use-nodiscard
-        -modernize-unary-static-assert
-        -modernize-macro-to-enum
-        -modernize-concat-nested-namespaces
-        -readability-redundant-declaration
-        -readability-simplify-boolean-expr
-        -hicpp-deprecated-headers
-        -hicpp-member-init
-        -performance-no-automatic-move
-        -clang-analyzer-cplusplus.NewDeleteLeaks
-        -modernize-deprecated-headers
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.4.2
-        ###################################################################
-        -misc-const-correctness
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
         "\.hpp$"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
-
 )
+
 include(CppCheck)
 enable_cppcheck(
     CHECKS
@@ -789,7 +637,6 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     DEFINE
         CPPCHECK=1
-        MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
 
@@ -803,9 +650,13 @@ add_subdirectory(src)
 if(MIOPEN_BUILD_DRIVER)
     add_subdirectory(driver)
 endif()
-add_subdirectory(test)
-add_subdirectory(speedtests)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+    add_subdirectory(speedtests)
+endif()
+
 add_subdirectory(utils)
 if(MIOPEN_ENABLE_FIN)
-add_subdirectory(fin)
+    add_subdirectory(fin)
 endif()

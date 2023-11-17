@@ -62,13 +62,14 @@ namespace {
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
 // https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
-inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
+inline bool IsWinogradV21Preferred(const std::string& asic,
+                                   const miopen::conv::ProblemDescription& problem)
 {
     return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
            !(IS3X2 && problem.GetKernelStrideW() == 2);
 }
 
-inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+inline bool IsShaderConstraintsMetV21(const miopen::conv::ProblemDescription& problem,
                                       const int R,
                                       const int S,
                                       const int C,
@@ -112,7 +113,7 @@ inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
     // clang-format on
 }
 
-inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+inline bool IsShaderConstraintsMetV30(const miopen::conv::ProblemDescription& problem,
                                       const int R,
                                       const int S,
                                       const int C,
@@ -177,19 +178,22 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
         return false;
     // clang-format on
 
-    const auto group_count = conv_problem.conv_problem.GetGroupCount();
+    if(conv_problem.IsTensorsCasted())
+        return false;
+
+    const auto group_count = conv_problem.GetGroupCount();
     if(group_count != 1)
         return false;
 
-    const auto W  = conv_problem.conv_problem.GetInWidth();
-    const auto H  = conv_problem.conv_problem.GetInHeight();
-    const auto C  = conv_problem.conv_problem.GetInChannels();
-    const auto N  = conv_problem.conv_problem.GetInBatchSize();
-    const auto K  = conv_problem.conv_problem.GetOutChannels();
-    const auto R  = conv_problem.conv_problem.GetWeightsHeight();
-    const auto S  = conv_problem.conv_problem.GetWeightsWidth();
-    const auto OH = conv_problem.conv_problem.GetOutHeight();
-    const auto OW = conv_problem.conv_problem.GetOutWidth();
+    const auto W  = conv_problem.GetInWidth_();
+    const auto H  = conv_problem.GetInHeight_();
+    const auto C  = conv_problem.GetInChannels_();
+    const auto N  = conv_problem.GetInBatchSize_();
+    const auto K  = conv_problem.GetOutChannels_();
+    const auto R  = conv_problem.GetWeightsHeight_();
+    const auto S  = conv_problem.GetWeightsWidth_();
+    const auto OH = conv_problem.GetOutHeight_();
+    const auto OW = conv_problem.GetOutWidth_();
 
     return IsWinogradV21Preferred<2, 3>(name, conv_problem)
                ? IsShaderConstraintsMetV21(conv_problem, R, S, C, K, H, W, OH, OW, N)
@@ -228,7 +232,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_3_1";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
     const auto kernel_postfix =
@@ -251,8 +255,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.conv_problem.GetWeightsHeight();
+    const auto x = conv_problem.GetWeightsWidth_();
+    const auto y = conv_problem.GetWeightsHeight_();
 
     if(x == 3 && y == 3)
         result.weight = 100;
@@ -265,21 +269,53 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     int N, C, H, W, K, unused, out_H, out_W, R, S, pad_H, pad_W;
     GetCompiledInParameters(
         context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-    const int zero = 0;
-    int flags      = [&]() {
-        constexpr int L_F_BIAS       = 1 << 7;
-        constexpr int L_F_LEAKY_RELU = 1 << 8;
-        int flag                     = 0;
+
+    // todo: move into lambda when activation_mode will be fully supported
+    constexpr int F_USE_ACTIVATION_MODE = 1 << 14;
+
+    int flags = [&]() {
+        constexpr int F_BIAS       = 1 << 7;
+        constexpr int F_LEAKY_RELU = 1 << 8;
+
+        // todo: use F_USE_ACTIVATION_MODE
+        int flag = 0;
 
         if(bias_idx != -1)
-            flag |= L_F_BIAS;
-        if(activ_idx != -1)
-            flag |= L_F_LEAKY_RELU;
+            flag |= F_BIAS;
+        if(activ_idx != -1) // unused in v30_3_1, has been kept for compatibility with v21
+            flag |= F_LEAKY_RELU;
 
         return flag;
     }();
 
-    const miopenActivationMode_t activ_mode = [&]() {
+    constexpr uint8_t IDENTITY    = 0;
+    constexpr uint8_t LEAKY_RELU  = 1;
+    constexpr uint8_t SIGMOID     = 2;
+    constexpr uint8_t SCALED_TANH = 3;
+
+    uint8_t activation_mode_v30_3_1 = [&op_map = desc.op_map, activ_idx]() {
+        if(activ_idx != -1)
+        {
+            const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*op_map[activ_idx]);
+            switch(activ_op.activMode)
+            {
+            case miopenActivationLOGISTIC: return SIGMOID;
+            case miopenActivationTANH: return SCALED_TANH;
+            case miopenActivationLEAKYRELU: return LEAKY_RELU;
+            case miopenActivationPASTHRU:
+            case miopenActivationRELU:
+            case miopenActivationSOFTRELU:
+            case miopenActivationABS:
+            case miopenActivationPOWER:
+            case miopenActivationCLIPPEDRELU:
+            case miopenActivationELU:
+            default: return IDENTITY;
+            };
+        }
+        return IDENTITY;
+    }();
+
+    const miopenActivationMode_t activation_mode_compat = [&]() {
         if(activ_idx != -1)
         {
             const auto& activ_op =
@@ -315,13 +351,26 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                 {
                     const auto& activ_args = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
                         *invoke_ctx.op_args.params[activ_idx]);
-                    if(activ_mode == miopenActivationLEAKYRELU)
-                        return (static_cast<float>(activ_args.activAlpha));
+                    if(activation_mode_compat == miopenActivationLEAKYRELU)
+                        return static_cast<float>(activ_args.activAlpha);
                 }
                 return static_cast<float>(0.0);
             }();
 
-            auto zero_u64 = static_cast<uint64_t>(0);
+            float activ_beta = [&]() {
+                if(((flags & F_USE_ACTIVATION_MODE) != 0) &&
+                   (activation_mode_v30_3_1 == SCALED_TANH))
+                {
+                    const auto& activ_args = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
+                        *invoke_ctx.op_args.params[activ_idx]);
+                    return static_cast<float>(activ_args.activBeta);
+                }
+                return static_cast<float>(0.0);
+            }();
+
+            auto zero_u64  = static_cast<uint64_t>(0);
+            const int zero = 0;
+
             launch_kernel(N,
                           C,
                           H,
@@ -341,8 +390,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                           out_H,
                           out_W,
                           bias_ptr,
-                          activ_alpha, // leaky relu alpha
-                          zero,        // reserved2", Other, zero_int),
+                          activ_alpha, // leaky relu \ scaled tanh alpha
+                          activ_beta,  // scaled tanh beta, always 0 for compatibility
                           zero_u64,    // d_offset", Other, zero_uint64),
                           zero_u64,    // f_offset", Other, zero_uint64),
                           zero_u64,    // o_offset", Other, zero_uint64),
@@ -363,7 +412,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
                           zero,        // d_stride_g", Other, zero_int),
                           zero,        // f_stride_g", Other, zero_int),
                           zero         // o_stride_g", Other, zero_int),
-            );
+            );                         // todo: turn on activation_mode
         };
     };
     return result;

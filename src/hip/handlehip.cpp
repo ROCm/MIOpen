@@ -61,6 +61,10 @@
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
     (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
 
+/// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
+/// Brute-force W/A: return fixed values.
+#define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (ROCM_FEATURE_DEPRECATED_VEGA_NAVI2X)
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
@@ -72,10 +76,26 @@ void toCallHipInit() __attribute__((constructor(1000)));
 void toCallHipInit() { hipInit(0); }
 #endif
 
+hipError_t hip_mem_get_info_wrapper(std::size_t* const free, std::size_t* const total)
+{
+#if WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X
+    const auto status = hipMemGetInfo(free, total);
+    if(status == hipSuccess)
+        return status;
+    MIOPEN_LOG_W("hipMemGetInfo error, status: " << status);
+    assert(free != nullptr && total != nullptr);
+    *free  = 16ULL * 1024 * 1024 * 1024; // 16 GiB
+    *total = *free;
+    return hipSuccess;
+#else
+    return hipMemGetInfo(free, total);
+#endif
+}
+
 std::size_t GetAvailableMemory()
 {
     size_t free, total;
-    auto status = hipMemGetInfo(&free, &total);
+    auto status = hip_mem_get_info_wrapper(&free, &total);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
     return free;
@@ -104,7 +124,7 @@ void* default_allocator(void*, size_t sz)
     MIOPEN_THROW_HIP_STATUS(status_host, "hipHostMalloc " + std::to_string(sz));
 }
 
-inline std::string to_string(void* const ptr)
+[[maybe_unused]] inline std::string to_string(void* const ptr)
 {
     std::ostringstream oss;
     oss << ptr;
@@ -119,8 +139,10 @@ void default_deallocator(void*, void* mem)
         MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
     status = hipFree(mem);
     if(status != hipSuccess)
+    {
         MIOPEN_THROW_HIP_STATUS(status,
                                 "hipFree " + std::to_string(size) + " at " + to_string(mem));
+    }
     else
         MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
 }
@@ -240,7 +262,7 @@ struct HandleImpl
             rhandle_pool.push_back(std::move(r_ptr));
         }
 #else
-        void add_stream(StreamPtr& s_ptr) { stream_pool.push_back(s_ptr); }
+        void add_stream(StreamPtr s_ptr) { stream_pool.push_back(s_ptr); }
 #endif
         //  stream_pool used as cache for parallel streams created by MIOpen.
         StreamPtrPool stream_pool;
@@ -287,7 +309,7 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     this->impl->device      = set_default_device();
     this->impl->root_stream = impl->create_stream();
 #else
-    this->impl->device = get_device_id();
+    this->impl->device      = get_device_id();
     this->impl->root_stream = HandleImpl::reference_stream(nullptr);
 #endif
     auto root_stream = this->impl->root_stream.get();
@@ -333,6 +355,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     int last_stream_id = this->impl->ms_resourse_ptr->stream_pool.size();
 
     if(last_stream_id < cnt)
+    {
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
@@ -340,9 +363,10 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
 #else
-            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream));
+            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
         }
+    }
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const
@@ -482,17 +506,35 @@ Program Handle::LoadProgram(const std::string& program_name,
                             const std::string& kernel_src) const
 {
     this->impl->set_ctx();
+    std::string arch_name = this->GetTargetProperties().Name();
+
+    std::string orig_params = params; // make a copy for target ID fallback
 
     if(!miopen::EndsWith(program_name, ".mlir"))
-    {
-        params += " -mcpu=" + this->GetTargetProperties().Name();
-    }
+        params = params + " -mcpu=" + this->GetTargetProperties().Name();
 
     auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
                                     this->GetMaxComputeUnits(),
                                     program_name,
                                     params,
                                     is_kernel_str);
+    if(hsaco.empty())
+    {
+        const auto arch_target_id = miopen::SplitDelim(arch_name, ':');
+        if(arch_target_id.size() > 1)
+        {
+            // The target name has target ID in there, fall back on the generic code object
+            const auto base_arch = arch_target_id.at(0);
+            hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
+                                       this->GetMaxComputeUnits(),
+                                       program_name,
+                                       orig_params + " -mcpu=" + base_arch,
+                                       is_kernel_str);
+        }
+    }
+
+    // Still unable to find the object, build it with the available compiler possibly a target ID
+    // specific code object
     if(hsaco.empty())
     {
         CompileTimer ct;
@@ -638,7 +680,7 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     if(m_MaxMemoryAllocSizeCached == 0)
     {
         size_t free, total;
-        auto status = hipMemGetInfo(&free, &total);
+        auto status = hip_mem_get_info_wrapper(&free, &total);
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status, "Failed getting available memory");
         m_MaxMemoryAllocSizeCached = floor(total * 0.85);

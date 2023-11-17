@@ -77,7 +77,18 @@ auto FindSolutionImpl(rank<1>,
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
             PerformanceConfig config{};
-            if(db.Load(problem, s.SolverDbId(), config))
+            // The passes in string needs to have priority over the entry in the database
+            if(!perf_cfg.empty())
+            {
+                config.Deserialize(perf_cfg);
+                if(s.IsValidPerformanceConfig(context, problem, config))
+                {
+                    return s.GetSolution(context, problem, config);
+                }
+                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(db.Load(problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -98,16 +109,6 @@ auto FindSolutionImpl(rank<1>,
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
-            else if(!perf_cfg.empty())
-            {
-                config.Deserialize(perf_cfg);
-                if(s.IsValidPerformanceConfig(context, problem, config))
-                {
-                    return s.GetSolution(context, problem, config);
-                }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
-                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
-            }
             else
             {
                 MIOPEN_LOG_I("Perf Db: record not found for: " << s.SolverDbId());
@@ -126,6 +127,7 @@ auto FindSolutionImpl(rank<1>,
             catch(const miopen::Exception& ex)
             {
                 MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
+                return ConvSolution(miopenStatusInternalError);
             }
         }
     }
@@ -251,7 +253,9 @@ struct SolverContainer
                 // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
                 //    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     auto s      = solver.GetSolution(ctx, problem);
@@ -292,13 +296,19 @@ struct SolverContainer
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 else if(!solver.MayNeedWorkspace())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
+                }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     ++count;
@@ -360,8 +370,7 @@ struct SolverContainer
             return;
         }
 
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
+        auto ctx        = ExecutionContext{&handle};
         const auto slns = SearchForSolutions(ctx, problem, 1);
 
         if(slns.empty())

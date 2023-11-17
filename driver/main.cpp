@@ -36,12 +36,14 @@
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
+#include "rnn_seq_driver.hpp"
 #include "ctc_driver.hpp"
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
+#include "layernorm_driver.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -79,6 +81,14 @@ int main(int argc, char* argv[])
     else if(base_arg == "convint8")
     {
         drv = new ConvDriver<int8_t, int32_t>();
+    }
+    else if(base_arg == "convfp8")
+    {
+        drv = new ConvDriver<float8, float>();
+    }
+    else if(base_arg == "convbfp8")
+    {
+        drv = new ConvDriver<bfloat8, float>();
     }
     else if(base_arg == "CBAInfer")
     {
@@ -139,6 +149,14 @@ int main(int argc, char* argv[])
     {
         drv = new BatchNormDriver<float16, double, float>();
     }
+    else if(base_arg == "rnn_seq")
+    {
+        drv = new RNNSeqDriver<float, double>();
+    }
+    else if(base_arg == "rnn_seqfp16")
+    {
+        drv = new RNNSeqDriver<float16, double>();
+    }
     else if(base_arg == "rnn")
     {
         drv = new RNNDriver<float, double>();
@@ -178,6 +196,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "reducefp64")
     {
         drv = new ReduceDriver<double, double>();
+    }
+    else if(base_arg == "layernorm")
+    {
+        drv = new LayerNormDriver<float, float>();
+    }
+    else if(base_arg == "layernormfp16")
+    {
+        drv = new LayerNormDriver<float16, float>();
+    }
+    else if(base_arg == "layernormbfp16")
+    {
+        drv = new LayerNormDriver<bfloat16, float>();
     }
     else
     {

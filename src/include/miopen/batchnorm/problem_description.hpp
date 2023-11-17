@@ -84,6 +84,8 @@ struct ProblemDescription : ProblemDescriptionBase
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
+        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
     }
 
     // Backward
@@ -174,7 +176,7 @@ struct ProblemDescription : ProblemDescriptionBase
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
-    NetworkConfig MakeNetworkConfig() const;
+    NetworkConfig MakeNetworkConfig() const override;
 
 private:
     Direction direction;

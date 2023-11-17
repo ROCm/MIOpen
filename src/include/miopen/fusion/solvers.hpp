@@ -124,7 +124,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     }
 };
 
-struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
+struct PerformanceConfigConvBiasActivAsm1x1U : conv::PerformanceConfigConvAsm1x1U
 {
     PerformanceConfigConvBiasActivAsm1x1U(const bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
     PerformanceConfigConvBiasActivAsm1x1U()
@@ -152,9 +152,10 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
-    PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext& context,
-                                                 const FusionDescription& problem,
-                                                 const AnyInvokeParams& invoke_ctx) const override;
+    PerformanceConfigConvBiasActivAsm1x1U
+    Search(const FusionContext& context,
+           const FusionDescription& problem,
+           const AnyInvokeParams& invoke_params) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
@@ -216,9 +217,9 @@ struct PerformanceConfigConvCKIgemmFwdBiasActivFused
 
 private:
     template <typename DataType>
-    void Init(const ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType>
-    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvCKIgemmFwdBiasActivFused final
@@ -249,7 +250,7 @@ struct ConvCKIgemmFwdBiasActivFused final
 
 private:
     template <typename DataType>
-    bool CheckCKApplicability(const ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvBinWinogradRxSFused final : FusionSolverBase

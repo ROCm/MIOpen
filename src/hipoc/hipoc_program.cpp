@@ -292,13 +292,19 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
                 comgr::BuildHip(filename, src, params, target, binary);
         }
         else if(miopen::EndsWith(filename, ".s"))
+        {
             comgr::BuildAsm(filename, src, params, target, binary);
+        }
 #if MIOPEN_USE_MLIR
         else if(miopen::EndsWith(filename, ".mlir"))
+        {
             MiirGenBin(params, binary);
+        }
 #endif
         else
+        {
             comgr::BuildOcl(filename, src, params, target, binary);
+        }
     }
     if(binary.empty())
         MIOPEN_THROW("Code object build failed. Source: " + filename);
@@ -321,23 +327,20 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
         return GetKernelSrc(program);
     }();
 
+#if MIOPEN_BUILD_DEV
     if(miopen::EndsWith(filename, ".cpp"))
     {
-#if MIOPEN_BUILD_DEV
         params += " -Werror" + HipKernelWarningsString();
-#else
-        params += " -Wno-everything";
-#endif
     }
     else if(miopen::EndsWith(filename, ".cl"))
     {
-#if MIOPEN_BUILD_DEV
         params +=
             " -Werror" + (is_kernel_str ? MiopengemmWarningsString() : OclKernelWarningsString());
+    }
 #else
+    if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
         params += " -Wno-everything";
 #endif
-    }
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
     BuildCodeObjectInMemory(params, src, filename);

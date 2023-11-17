@@ -65,9 +65,15 @@ public:
 
 namespace miopen {
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
+namespace debug {
+
+/// Inform the library that some warm-up (e.g. the one implemented in the driver)
+/// is in progress. The library can use this, for example, to disable some
+/// workarounds that would affect warm-up otherwise.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool IsWarmupOngoing; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
 
 struct ExecutionContext
 {
@@ -90,20 +96,19 @@ struct ExecutionContext
     // performance config.
     bool disable_perfdb_access      = false;
     bool use_dynamic_solutions_only = false;
+    bool is_for_generic_search      = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
 
-    ExecutionContext(Handle* stream_) : stream(stream_) {}
+    ExecutionContext() { DetectRocm(); }
+    ExecutionContext(Handle* stream_) : stream(stream_) { DetectRocm(); }
 
-    ExecutionContext()                        = default;
     virtual ~ExecutionContext()               = default;
     ExecutionContext(const ExecutionContext&) = default;
     ExecutionContext(ExecutionContext&&)      = default;
     ExecutionContext& operator=(const ExecutionContext&) = default;
     ExecutionContext& operator=(ExecutionContext&&) = default;
-
-    ExecutionContext& DetectRocm();
 
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const
@@ -220,10 +225,14 @@ struct ExecutionContext
                             try
                             {
                                 if(pos != std::string::npos)
+                                {
                                     cur_count = std::stoi(fname.substr(pos + 1));
+                                }
                                 else
+                                {
                                     cur_count =
                                         std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                                }
                             }
                             catch(const std::exception& e)
                             {
@@ -281,6 +290,12 @@ struct ExecutionContext
 
 private:
     Handle* stream = nullptr;
+
+    void DetectRocm();
+};
+
+struct [[deprecated]] ConvolutionContext : ExecutionContext
+{
 };
 
 bool IsHipKernelsEnabled();

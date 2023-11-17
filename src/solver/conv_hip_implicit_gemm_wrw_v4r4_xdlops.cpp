@@ -39,6 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops()
     : PerformanceImplicitGemmWrwV4R4Xdlops::PerformanceImplicitGemmWrwV4R4Xdlops(
@@ -122,7 +125,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue(const ProblemDescription
     return true;
 }
 
-void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem)
 {
     PerformanceImplicitGemmWrwV4R4Xdlops tmp;
@@ -271,7 +274,7 @@ std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateBlockSize()
 }
 
 std::tuple<int, bool>
-PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext& ctx,
+PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
     int GridSize = 0;
@@ -305,7 +308,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext
 
 std::tuple<int, int, int, int, int, bool>
 PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmSizeAndGemmKBlock(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     int gemm_g       = -1;
     int gemm_m       = -1;
@@ -622,7 +625,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValidValue() const
 
 // Used by HeuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
-bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
     if(!IsValidValue())
@@ -689,7 +692,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
 // Return false if a performance config is known to be sub-optimal, comparing to other performance
 // config inside tuning range
 bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
 
     if(use_spare_set)
@@ -842,7 +845,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem) const
 {
     return IsReallyValid(ctx, problem) && IsFastToBeUsedForTuning(ctx, problem);
@@ -850,7 +853,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ConvolutionContext& ctx
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
@@ -858,7 +861,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops config;
     config.HeuristicInit(ctx, problem);
@@ -867,7 +870,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaul
 }
 
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
@@ -981,11 +984,11 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
 
     result.construction_params.push_back(construction_parameters);
 
-    const auto& conv       = problem.conv_problem.GetConv();
+    const auto& conv       = problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             auto kernel               = handle.Run(kernels[0]);
             float elapsed             = 0;
@@ -1036,7 +1039,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     return result;
 }
 
-bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
@@ -1045,7 +1048,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -1057,26 +1060,29 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(!IsXdlopsSupport(ctx))
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     if(!problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(problem))
         return false;
 
-    if(!problem.IsLayoutDefault())
-    {
+    if(problem.IsTensorsCasted())
         return false;
-    }
+
+    if(!problem.IsLayoutDefault())
+        return false;
 
     // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
     // performance config, the problem is probably not applicable
@@ -1098,7 +1104,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ExecutionContext& ctx,
                                          const ProblemDescription& problem,
                                          const AnyInvokeParams& invoke_ctx) const
 {
@@ -1107,11 +1113,13 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 std::size_t
-ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext&,
+ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ExecutionContext&,
                                                    const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto k = ProblemInterpreter::GetOutputChannelK(problem);
@@ -1122,5 +1130,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext&,
         return miopen::GetTypeSize(miopenFloat) * k * c * y * x;
     }
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

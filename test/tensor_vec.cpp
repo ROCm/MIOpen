@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -133,8 +132,10 @@ void tensor_vec_backward(
                         int in_offset =
                             c_i * in_nhw + n_hi_i * in_hw + h_i * in_w + w_i * vec_size + n_lo_i;
                         if(n_i < n_dst)
+                        {
                             dst.data[out_offset] = T(alpha * float(src.data[in_offset]) +
                                                      beta * float(dst.data[out_offset]));
+                        }
                     }
                     else
                     {
@@ -144,8 +145,10 @@ void tensor_vec_backward(
                         int in_offset =
                             n_i * in_chw + c_hi_i * in_hw + h_i * in_w + w_i * vec_size + c_lo_i;
                         if(c_i < c_dst)
+                        {
                             dst.data[out_offset] = T(alpha * float(src.data[in_offset]) +
                                                      beta * float(dst.data[out_offset]));
+                        }
                     }
                 }
             }
@@ -341,19 +344,23 @@ struct tensor_vec_driver : test_driver
         }
 
         if(trans)
+        {
             dst_lens[0] = (dst_lens[0] % vec_size != 0)
                               ? dst_lens[0] + (vec_size - dst_lens[0] % vec_size)
                               : dst_lens[0];
+        }
         else
+        {
             dst_lens[1] = (dst_lens[1] % vec_size != 0)
                               ? dst_lens[1] + (vec_size - dst_lens[1] % vec_size)
                               : dst_lens[1];
+        }
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
-                                  : miopen_type<T>{} == miopenInt8 ? 127
-                                                                   : 17;
-        src                     = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
-        dst                     = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
+        uint64_t max_value = miopen_type<T>{} == miopenHalf   ? 5
+                             : miopen_type<T>{} == miopenInt8 ? 127
+                                                              : 17;
+        src                = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
+        dst                = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
 
         if(forw)
             verify_equals(verify_tensor_vec_forward<T>{src, dst, trans, alpha, beta});

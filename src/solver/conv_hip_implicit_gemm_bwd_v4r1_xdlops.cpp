@@ -41,6 +41,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 std::tuple<int, bool>
 PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGridSize(const ProblemDescription& problem) const
@@ -414,7 +417,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(
 }
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(use_spare_set)
         return true;
@@ -511,7 +514,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext& ctx,
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem) const
 {
 
@@ -604,7 +607,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ProblemDescrip
     return true;
 }
 
-void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ExecutionContext& ctx,
                                                              const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
@@ -807,7 +810,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ProblemDescription
     return std::make_tuple(g, gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
 #if WORKAROUND_ISSUE_1206
@@ -828,17 +831,21 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!problem.Is2d())
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
+        return false;
+    if(problem.IsTensorsCasted())
         return false;
     if(!IsApplicableXdlops(ctx, problem))
         return false;
@@ -846,8 +853,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;
@@ -867,13 +873,13 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
@@ -882,7 +888,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ExecutionContext& ctx,
                                              const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
@@ -890,7 +896,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
+    const ExecutionContext& ctx,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
@@ -1061,9 +1067,10 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
         }
     }
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

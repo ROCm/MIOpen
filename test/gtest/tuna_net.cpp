@@ -10,7 +10,7 @@ struct TunaNetTestCase : AIModelTestCase
 
 std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 {
-    return {{{{5, 256, 267, 300, 64, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{5, 256, 267, 300, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -19,7 +19,7 @@ std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 {
-    return {{{{16, 256, 20, 84, 512, 5, 5, 1, 1, 1, 1, 1, 1},
+    return {{{{16, 256, 20, 84, 512, 5, 5, 1, 1, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -28,7 +28,7 @@ std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
 {
-    return {{{{32, 1024, 15, 15, 512, 1, 1, 0, 0, 1, 1, 1, 1},
+    return {{{{32, 1024, 15, 15, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
@@ -42,12 +42,10 @@ protected:
     void SetUp() override
     {
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-        auto test_case = GetParam();
-        tensor<G> input_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetInput());
-        tensor<G> weights_tensor =
-            tensor<G>(test_case.data_type, test_case.layout, test_case.conv.GetWeights());
-        auto conv_desc                       = test_case.conv.GetConv();
+        auto test_case           = GetParam();
+        tensor<G> input_tensor   = tensor<G>(test_case.layout, test_case.conv.GetInput());
+        tensor<G> weights_tensor = tensor<G>(test_case.layout, test_case.conv.GetWeights());
+        auto conv_desc           = test_case.conv.GetConv();
         miopen::TensorDescriptor output_desc = conv_desc.GetForwardOutputTensor(
             input_tensor.desc, weights_tensor.desc, test_case.data_type);
 
@@ -68,7 +66,7 @@ protected:
         GTEST_SKIP();
 #endif
     }
-    miopen::ProblemDescription problem;
+    miopen::conv::ProblemDescription problem;
     std::size_t expected_solver;
 };
 
@@ -84,16 +82,16 @@ struct TunaNetTestBF16 : TunaNetTest<bfloat16>
 {
 };
 
-void TestSolverPredictionModel(miopen::ProblemDescription& problem, std::size_t expected_solver)
+void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
+                               std::size_t expected_solver)
 {
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     auto&& handle      = get_handle();
     std::string device = handle.GetDeviceName();
     if(device != "gfx908")
         GTEST_SKIP();
-    miopen::ConvolutionContext ctx;
+    miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
-    ctx.DetectRocm();
     std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
     std::size_t solver =
         std::distance(solvers.begin(), std::max_element(solvers.begin(), solvers.end()));

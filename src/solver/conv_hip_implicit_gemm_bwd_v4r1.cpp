@@ -36,6 +36,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmBwdDataV4R1::PerformanceImplicitGemmBwdDataV4R1(int BlockSize_,
                                                                        int GemmMPerBlock_,
@@ -523,7 +526,7 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValid(const ProblemDescription& probl
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext& ctx,
+void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ExecutionContext& ctx,
                                                        const ProblemDescription& problem)
 {
     std::ignore = ctx;
@@ -724,7 +727,7 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ProblemDescription& prob
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
+bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_229277_227616_229195
@@ -736,13 +739,13 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
-    if(problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.GetConv().attribute.deterministic)
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -754,13 +757,17 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
+    if(problem.HasNonPackedTensors())
+        return false;
+
+    if(problem.IsTensorsCasted())
+        return false;
+
     if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
     if(!IsIndexRangeLargeEnough(problem))
         return false;
@@ -784,14 +791,14 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmBwdDataV4R1
-ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                             const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(
-    const ConvolutionContext&,
+    const ExecutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
@@ -800,7 +807,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV4R1
-ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV4R1::Search(const ExecutionContext& ctx,
                                        const ProblemDescription& problem,
                                        const AnyInvokeParams& invoke_ctx) const
 {
@@ -808,7 +815,7 @@ ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution
-ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ExecutionContext& ctx,
                                             const ProblemDescription& problem,
                                             const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
@@ -968,9 +975,10 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
         }
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

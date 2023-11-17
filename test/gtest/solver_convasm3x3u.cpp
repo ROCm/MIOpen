@@ -23,69 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "solver.hpp"
+#include "solver_fwd.hpp"
 
 struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
 {
 };
 
-template <typename Solver>
-void SolverFwd(const miopen::TensorDescriptor& inputDesc,
-               ConstData_t input,
-               const miopen::TensorDescriptor& wDesc,
-               ConstData_t weight,
-               const miopen::TensorDescriptor& outputDesc,
-               Data_t output,
-               const miopen::ConvolutionDescriptor& convDesc,
-               const ConvTestCase& conv_config,
-               bool& test_skipped)
-{
-    auto&& handle = get_handle();
-
-    Solver solv{};
-
-    const auto tensors =
-        miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
-
-    const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
-    auto ctx = miopen::ConvolutionContext{};
-
-    ctx.SetStream(&handle);
-    ctx.DetectRocm();
-
-    if(!solv.IsApplicable(ctx, problem))
-    {
-        test_skipped = true;
-        GTEST_SKIP() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
-                     << conv_config;
-    }
-    const auto invoke_params = miopen::conv::DataInvokeParams{
-        tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
-
-    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
-    ASSERT_TRUE(sol.Succeeded());
-    ASSERT_TRUE(sol.invoker_factory);
-    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, invoke_params);
-    handle.Finish();
-}
-
 TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 {
-    SolverFwd<miopen::solver::ConvAsm3x3U>(input.desc,
-                                           in_dev.get(),
-                                           weights.desc,
-                                           wei_dev.get(),
-                                           output.desc,
-                                           out_dev.get(),
-                                           conv_desc,
-                                           conv_config,
-                                           test_skipped);
+    miopen::solver::conv::ConvAsm3x3U solv{};
+    SolverFwd(solv);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                                          testing::ValuesIn(ConvTestConfigs())));
+                                          testing::ValuesIn(ConvTestConfigs()),
+                                          testing::Values(miopenTensorNCHW)));

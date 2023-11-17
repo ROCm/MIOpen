@@ -26,7 +26,11 @@
 #ifndef GUARD_CPU_REDUCE_UTIL_HPP
 #define GUARD_CPU_REDUCE_UTIL_HPP
 
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
+#include <half/half.hpp>
+#else
 #include <half.hpp>
+#endif
 #include <limits>
 #include <cmath>
 #include <cassert>
@@ -154,7 +158,9 @@ ReduceOpFn2(miopenReduceTensorOp_t op_)
                 changed = true;
             }
             else
+            {
                 changed = false;
+            }
         });
 
     case MIOPEN_REDUCE_TENSOR_MAX:
@@ -166,7 +172,9 @@ ReduceOpFn2(miopenReduceTensorOp_t op_)
                 changed = true;
             }
             else
+            {
                 changed = false;
+            }
         });
 
     case MIOPEN_REDUCE_TENSOR_ADD:
@@ -211,7 +219,9 @@ static inline void binop_with_nan_check(miopenNanPropagation_t nanOpt,
     using std::isnan;
 
     if(nanOpt == MIOPEN_NOT_PROPAGATE_NAN)
+    {
         opReduce(accuVal, currVal);
+    }
     else
     {
         if(isnan(currVal))
@@ -284,6 +294,7 @@ get_all_indexes(const std::vector<T>& dimLengths, int dim, std::vector<std::vect
         {
             // go through all the current indexes
             for(const auto& index : indexes)
+            {
                 for(T i = 0; i < dimLengths[dim]; i++)
                 {
                     auto index_new = index;
@@ -291,6 +302,7 @@ get_all_indexes(const std::vector<T>& dimLengths, int dim, std::vector<std::vect
 
                     updated_indexes.push_back(index_new);
                 };
+            }
         };
 
         // update to the indexes (output)
