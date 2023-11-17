@@ -344,6 +344,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ProblemDescription& problem)
             if(needs_output_cast)
                 CastTensor(handle,
                            &lowp_quant,
+                           true,
                            outConvDesc,
                            tensors.out,
                            tensors.outDesc,

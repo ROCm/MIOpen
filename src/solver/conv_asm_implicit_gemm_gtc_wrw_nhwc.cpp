@@ -1307,6 +1307,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            cast_desc,
                            cast_buf.get(),
                            tensors.dwDesc,
