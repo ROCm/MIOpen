@@ -68,10 +68,11 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
-    auto reduce_size  = xdims[dim];
-    auto output_numel = std::accumulate(ydims.begin(), ydims.end(), 1L, std::multiplies<int64_t>());
+    auto reduce_size = xdims[dim];
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    auto reqd_work_item_cnt = 256 * (256 * 120) * 4;
+    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
     // Now it is set for mi250.
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
@@ -165,7 +166,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
                 auto reduce_size = xdims[dim];
                 auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1L, std::multiplies<int64_t>());
+                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
                 auto inner_size = 1ULL;
                 for(int32_t i = dim + 1; i < xdims.size(); i++)
@@ -173,7 +174,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                     inner_size *= xdims[i];
                 }
 
-                auto reqd_work_item_cnt = 256 * (256 * 120) * 4;
+                auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
 
                 auto parallelism_size = 1ULL;
                 while(parallelism_size * output_numel < reqd_work_item_cnt &&
@@ -181,6 +182,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 {
                     parallelism_size *= 2ULL;
                 }
+                printf("parallelism_size: %d\n", parallelism_size);
+
+                auto elapsed = 0.f;
 
                 parallel_kernel(params.x,
                                 params.workspace,
@@ -190,6 +194,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                                 inner_size,
                                 static_cast<bool>(params.nanPropagation));
 
+                if(handle_.IsProfilingEnabled())
+                    elapsed = handle_.GetKernelTime();
+
                 kernel(params.workspace,
                        params.y,
                        output_numel,
@@ -197,6 +204,13 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                        inner_size,
                        dim,
                        static_cast<bool>(params.nanPropagation));
+
+                if(handle_.IsProfilingEnabled())
+                {
+                    elapsed += handle_.GetKernelTime();
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                };
             };
         };
     }
@@ -213,9 +227,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
                 auto reduce_size = xdims[dim];
                 auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1L, std::multiplies<int64_t>());
+                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-                int64_t inner_size = 1;
+                size_t inner_size = 1;
                 for(int32_t i = dim + 1; i < xdims.size(); i++)
                 {
                     inner_size *= xdims[i];
@@ -240,11 +254,11 @@ std::size_t SumForward::GetWorkspaceSize(const ExecutionContext&,
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();
 
-    auto reduce_size  = xdims[problem.GetDim()];
-    auto output_numel = std::accumulate(
-        ydims.begin(), ydims.end(), static_cast<size_t>(1), std::multiplies<size_t>());
+    auto reduce_size = xdims[problem.GetDim()];
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    auto reqd_work_item_cnt = 256 * (256 * 120) * 4;
+    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
     // Now it is set for mi250.
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);

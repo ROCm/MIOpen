@@ -49,10 +49,6 @@ static void LogCmdSum(const miopenTensorDescriptor_t xDesc,
         {
             ss << "sumbf16";
         }
-        else if(dtype == miopenDouble)
-        {
-            ss << "sumfp64";
-        }
 
         int32_t size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);

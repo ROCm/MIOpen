@@ -47,7 +47,7 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
                                                     bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= output_numel)
+    if(gid >= parallelism_size * output_numel)
         return;
 
     uint64_t n = inner_size * parallelism_size;

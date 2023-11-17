@@ -43,11 +43,11 @@ std::size_t GetSumWorkspaceSize(Handle& handle,
     auto xdims  = xDesc.GetLengths();
     auto ydims  = yDesc.GetLengths();
 
-    auto reduce_size  = xdims[dim];
-    auto output_numel = std::accumulate(
-        ydims.begin(), ydims.end(), static_cast<size_t>(1), std::multiplies<size_t>());
+    auto reduce_size = xdims[dim];
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    auto reqd_work_item_cnt = 256 * (256 * 120) * 4;
+    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
     // Now it is set for mi250.
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
