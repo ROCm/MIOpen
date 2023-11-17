@@ -50,6 +50,7 @@ std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o)
 
 std::ostream& operator<<(std::ostream& stream, const boost::any& a)
 {
+    // NOLINTBEGIN(*-braces-around-statements)
     if(a.type() == typeid(std::string))
         stream << boost::any_cast<std::string>(a);
     else if(a.type() == typeid(int))
@@ -68,6 +69,7 @@ std::ostream& operator<<(std::ostream& stream, const boost::any& a)
         stream << boost::any_cast<miopenDataType_t>(a);
     else
         stream << "Unsupported any type: " << a.type().name();
+    // NOLINTEND(*-braces-around-statements)
     return stream;
 }
 } // namespace miopen

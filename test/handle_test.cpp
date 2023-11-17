@@ -50,6 +50,7 @@ enum kernel_type_t
 std::string Write2s(kernel_type_t kern_type)
 {
     if(kern_type == miopenHIPKernelType)
+    {
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
 #if WORKAROUND_SWDEV_257056_PCH_MISSING_MACROS
@@ -76,10 +77,15 @@ std::string Write2s(kernel_type_t kern_type)
                "    data[num] *= 2;\n"
                "}\n"
                "}\n";
+    }
     else if(kern_type == miopenOpenCLKernelType)
+    {
         return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
+    }
     else
+    {
         MIOPEN_THROW("Unsupported kernel type");
+    }
 }
 
 void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
@@ -87,6 +93,7 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
     if(kern_type == miopenOpenCLKernelType)
+    {
         h.AddKernel("NoAlgo",
                     "",
                     "test_ocl.cl",
@@ -96,7 +103,9 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
                     "",
                     0,
                     Write2s(miopenOpenCLKernelType))(data_dev.get());
+    }
     else if(kern_type == miopenHIPKernelType)
+    {
         h.AddKernel("NoAlgo",
                     "",
                     "test_hip.cpp",
@@ -106,8 +115,11 @@ void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
                     "",
                     0,
                     Write2s(miopenHIPKernelType))(data_dev.get());
+    }
     else
+    {
         MIOPEN_THROW("Unsupported kernel type");
+    }
     std::fill(data_in.begin(), data_in.end(), 2);
 
     auto data_out = h.Read<int>(data_dev, n);
@@ -129,8 +141,11 @@ void test_multithreads(kernel_type_t kern_type, const bool with_stream = false)
 std::string WriteError(kernel_type_t kern_type)
 {
     if(kern_type == miopenOpenCLKernelType)
+    {
         return "__kernel void write(__global int* data) { data[i] = 0; }\n";
+    }
     else if(kern_type == miopenHIPKernelType)
+    {
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
                "#endif\n"
@@ -139,8 +154,11 @@ std::string WriteError(kernel_type_t kern_type)
                "    data[num] *= 2;\n"
                "}\n"
                "}\n";
+    }
     else
+    {
         MIOPEN_THROW("Unsupported kernel type");
+    }
 }
 
 void test_errors(kernel_type_t kern_type)
@@ -211,8 +229,11 @@ void test_errors(kernel_type_t kern_type)
 std::string WriteNop(kernel_type_t kern_type)
 {
     if(kern_type == miopenOpenCLKernelType)
+    {
         return "__kernel void write(__global int* data) {}\n";
+    }
     else if(kern_type == miopenHIPKernelType)
+    {
         return "#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS\n"
                "#include <hip/hip_runtime.h>\n"
                "#endif\n"
@@ -220,8 +241,11 @@ std::string WriteNop(kernel_type_t kern_type)
                "__global__ void write(int* data) {\n"
                "}\n"
                "}\n";
+    }
     else
+    {
         MIOPEN_THROW("Unsupported kernel type");
+    }
 }
 
 void test_warnings(kernel_type_t kern_type)
@@ -229,6 +253,7 @@ void test_warnings(kernel_type_t kern_type)
     auto&& h = get_handle();
 #if MIOPEN_BUILD_DEV
     if(kern_type == miopenOpenCLKernelType)
+    {
         EXPECT(throws([&] {
             h.AddKernel("NoAlgo",
                         "",
@@ -241,7 +266,9 @@ void test_warnings(kernel_type_t kern_type)
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
+    }
     else if(kern_type == miopenHIPKernelType)
+    {
         EXPECT(throws([&] {
             h.AddKernel("NoAlgo",
                         "",
@@ -254,6 +281,7 @@ void test_warnings(kernel_type_t kern_type)
                         WriteNop(kern_type));
             MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));
+    }
 #else
     (void)kern_type;
     (void)h; // To silence warnings.

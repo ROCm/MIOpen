@@ -264,9 +264,13 @@ struct hip_f8
     {
         if((rhs.is_zero() && this->is_zero()) ||
            (fabs(rhs - *this) < std::numeric_limits<hip_f8<T>>::epsilon()))
+        {
             return true;
+        }
         else if(rhs.is_nan() || rhs.is_inf() || this->is_nan() || this->is_inf())
+        {
             return false;
+        }
 
         return false;
     }
