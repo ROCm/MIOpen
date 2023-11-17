@@ -132,9 +132,11 @@ public:
     bool operator!=(ComputedIterator const& other) const
     {
         if(p == other.p)
+        {
             if(p == nullptr // Ends are always equal.
                || v == other.v)
                 return false;
+        }
         return true;
     }
     bool operator==(ComputedIterator const& other) const { return !(*this != other); }
@@ -453,7 +455,9 @@ auto GenericSearch(const Solver s,
             {
                 threads_remaining--;
                 if(threads_remaining == 0)
+                {
                     break;
+                }
                 else
                 {
                     continue;

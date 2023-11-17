@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/layernorm.hpp>
-#ifdef MIOPEN_BETA_API
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -134,4 +133,3 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                  normalized_dim);
     });
 }
-#endif

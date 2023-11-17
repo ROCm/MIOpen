@@ -285,7 +285,9 @@ struct SolverContainer
                 // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
                 //    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     auto s      = solver.GetSolution(ctx, problem);
@@ -326,13 +328,19 @@ struct SolverContainer
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 else if(!solver.MayNeedWorkspace())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
+                }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(ctx, problem))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     ++count;

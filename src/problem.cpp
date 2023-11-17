@@ -191,8 +191,10 @@ Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
 {
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
+    {
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Problem is missing " + name_str + " tensor descriptor.");
+    }
     return found->second;
 }
 
@@ -281,8 +283,10 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
+    {
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
+    }
 
     // These are not swapped for now to preserve argument order in calls
     const auto& x_desc =
