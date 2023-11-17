@@ -156,11 +156,15 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
+                {
                     return dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(
                                *invoke_ctx.op_args.params[1])
                         .bdata;
+                }
                 else
+                {
                     return nullptr;
+                }
             }();
 
             if(activ_idx == -1) // skip the activation args

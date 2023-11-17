@@ -371,8 +371,10 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
         // GemmKPack is src vector read dimension, bounded by GemmKPack
         SrcDataPerRead_GemmKPack = gcd(SrcDataPerRead_GemmKPack, GemmKPack);
         if(gemm_k_extra != 0)
+        {
             SrcDataPerRead_GemmKPack =
                 gcd(SrcDataPerRead_GemmKPack, gemm_k_after_padding - gemm_k_extra);
+        }
 
         // calculate threadwise copy size
         auto data_per_thread_copy =

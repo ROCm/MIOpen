@@ -230,18 +230,24 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
     const Handle& handle, const SeqTensorDescriptor& tensor_desc, ConstData_t src, Data_t dst)
 {
     if(!tensor_desc.IsSequenceLengthsSorted())
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, only sorted tensors supported.");
+    }
 
     if(!tensor_desc.IsZeroBytePadding())
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, tensors with byte padding not supported.");
+    }
 
     miopenRNNBaseLayout_t data_layout_t = RNNDescriptor::getBaseLayoutFromDataTensor(tensor_desc);
 
     if(data_layout_t == miopenRNNDataUnknownLayout)
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, only Base Layouts supported.");
+    }
 
     bool is_seq_major = data_layout_t == miopenRNNDataSeqMajorNotPadded ||
                         data_layout_t == miopenRNNDataSeqMajorPadded;
@@ -347,19 +353,25 @@ void RNNTensorBaseLayoutConverter::ChangePaddedTensorGPUDataLayout(
     Data_t dst)
 {
     if(!src_padded_desc.IsPaddedSeqLayout() || !dst_padded_desc.IsPaddedSeqLayout())
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, only padded tensors supported.");
+    }
 
     const auto data_type = src_padded_desc.GetType();
 
     if(dst_padded_desc.GetType() != data_type)
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, Dst data type should match src data type.");
+    }
 
     const std::vector<size_t> copy_size = src_padded_desc.GetLengths();
     if(dst_padded_desc.GetLengths() != copy_size)
+    {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, Dst desc size should match Src desc size.");
+    }
 
     const std::vector<size_t> src_stride = src_padded_desc.GetPaddedStrides();
     const std::vector<size_t> dst_stride = dst_padded_desc.GetPaddedStrides();
@@ -413,6 +425,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
             handle, src_tensor_desc, src, SeqMajorPadded_desc, SeqMajorPadded_ptr);
 
         if(dst_layout != miopenRNNDataSeqMajorPadded)
+        {
             ConvertInputTensorGPUData(
                 handle,
                 SeqMajorPadded_desc,
@@ -422,6 +435,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                 static_cast<void*>(reinterpret_cast<char*>(workspace) +
                                    SeqMajorPadded_desc.GetTensorMaxByteSpace()),
                 reverse);
+        }
     }
     else if(src_layout == miopenRNNDataSeqMajorPadded)
     {
@@ -515,6 +529,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
         }
 
         if(dst_layout == miopenRNNDataBatchMajorPadded)
+        {
             ConvertInputTensorGPUData(
                 handle,
                 reordered_padded_tensor_desc,
@@ -524,6 +539,7 @@ void RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
                 static_cast<void*>(reinterpret_cast<char*>(workspace) +
                                    reordered_padded_tensor_desc.GetTensorMaxByteSpace()),
                 reverse);
+        }
     }
     else
         MIOPEN_THROW(miopenStatusInternalError, "Unsupported layout.");

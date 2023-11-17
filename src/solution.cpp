@@ -53,10 +53,12 @@ void Solution::Run(Handle& handle,
                    std::size_t workspace_size)
 {
     if(workspace_size < workspace_required)
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      GetSolver().ToString() + " requires at least " +
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
+    }
 
     const auto run = boost::hof::match(
         [&](const ConvolutionDescriptor& op_desc) {
@@ -97,8 +99,10 @@ void Solution::RunImpl(Handle& handle,
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
         if(found == inputs.end())
+        {
             MIOPEN_THROW(miopenStatusInvalidValue,
                          "Problem is missing " + name_str + " tensor descriptor.");
+        }
         auto ret = found->second;
         if(!ret.descriptor.has_value())
             ret.descriptor = GetProblem().GetTensorDescriptorChecked(name, name_str);
@@ -242,12 +246,16 @@ void from_json(const nlohmann::json& json, Solution& solution)
         constexpr const auto check_header = Solution::SerializationMetadata::Current();
 
         if(header.validation_number != check_header.validation_number)
+        {
             MIOPEN_THROW(miopenStatusInvalidValue,
                          "Invalid buffer has been passed to the solution deserialization.");
+        }
         if(header.version != check_header.version)
+        {
             MIOPEN_THROW(
                 miopenStatusVersionMismatch,
                 "Data from wrong version has been passed to the solution deserialization.");
+        }
     }
 
     json.at("time").get_to(solution.time);

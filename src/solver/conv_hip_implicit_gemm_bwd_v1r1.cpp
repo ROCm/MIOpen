@@ -614,7 +614,9 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ExecutionContext&,
                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         // In case of fp16/bfp16, because there is no atomic add ISA,
@@ -663,8 +665,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
+    {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
             return false;
+    }
 #endif
 
     const auto k = ProblemInterpreter::GetOutputChannelK(problem);

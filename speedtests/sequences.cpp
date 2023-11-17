@@ -371,8 +371,10 @@ private:
         const auto start = std::chrono::steady_clock::now();
 
         for(auto i = 0; i < iterations; i++)
+        {
             for(auto j = 0; j < 128 * 1024 * 1024; j++)
                 rule_getter().Next(td);
+        }
 
         const auto time = std::chrono::duration_cast<std::chrono::microseconds>(
                               std::chrono::steady_clock::now() - start)

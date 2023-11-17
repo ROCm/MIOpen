@@ -779,6 +779,7 @@ struct na_fusion_driver : test_driver
     {
         amode = transform_mode(amode);
 
+        // NOLINTBEGIN(*-braces-around-statements)
         if(amode == "PASSTHRU")
             activ_mode = miopenActivationPASTHRU;
         else if(amode == "LOGISTIC")
@@ -799,6 +800,7 @@ struct na_fusion_driver : test_driver
             activ_mode = miopenActivationLEAKYRELU;
         else if(amode == "ELU")
             activ_mode = miopenActivationELU;
+        // NOLINTEND(*-braces-around-statements)
 
         std::size_t input_n, input_c, input_h, input_w;
         std::tie(input_n, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());

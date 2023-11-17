@@ -677,8 +677,10 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
 std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
 {
     if(conv_fwd_algo)
+    {
         return miopen::ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(*conv_fwd_algo), miopen::conv::Direction::Forward);
+    }
     MIOPEN_THROW(miopenStatusBadParm,
                  "GetAlgorithmName was called, but Algorithm has not been set");
 }

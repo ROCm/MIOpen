@@ -202,10 +202,12 @@ struct verify_reduce_with_indices
         std::vector<int> toReduceDims;
 
         for(int i = 0; i < inLengths.size(); i++)
+        {
             if(inLengths[i] == outLengths[i])
                 invariantDims.push_back(i);
             else
                 toReduceDims.push_back(i);
+        }
 
         invariantLengths.resize(invariantDims.size());
         for(int i = 0; i < invariantDims.size(); i++)
@@ -246,7 +248,7 @@ struct verify_reduce_with_indices
 
                 int currIndex = get_flatten_offset(inLengths, src_index);
                 binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-            };
+            }
 
             // scale the accumulated value
             if(!float_equal_one(alpha))
@@ -256,7 +258,7 @@ struct verify_reduce_with_indices
             if(!float_equal_zero(beta))
             {
                 accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
-            };
+            }
 
             // store the reduced value to dst location
             res.data[0]         = convert_type<T>(accuVal);
@@ -317,8 +319,10 @@ struct verify_reduce_with_indices
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
+                {
                     accuVal += convert_type<compType>(output.data[dst_offset]) *
                                convert_type<compType>(beta);
+                }
 
                 // store the reduced value to dst location
                 res.data[dst_offset]         = convert_type<T>(accuVal);
@@ -495,10 +499,12 @@ struct verify_reduce_no_indices
         std::vector<int> toReduceDims;
 
         for(int i = 0; i < inLengths.size(); i++)
+        {
             if(inLengths[i] == outLengths[i])
                 invariantDims.push_back(i);
             else
                 toReduceDims.push_back(i);
+        }
 
         invariantLengths.resize(invariantDims.size());
         for(int i = 0; i < invariantDims.size(); i++)
@@ -604,8 +610,10 @@ struct verify_reduce_no_indices
 
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
+                {
                     accuVal += convert_type<compType>(output.data[dst_offset]) *
                                convert_type<compType>(beta);
+                }
 
                 // store the reduced value to dst location
                 res.data[dst_offset] = convert_type<T>(accuVal);
@@ -715,13 +723,17 @@ struct reduce_driver : test_driver
     std::vector<std::vector<std::size_t>> get_tensor_lengths()
     {
         if(std::is_same<T, half_float::half>::value)
+        {
             return {
                 {4, 3, 60, 50},
             };
+        }
         else
+        {
             return {
                 {64, 3, 280, 81},
             };
+        }
     }
 
     std::vector<std::vector<int>> get_toreduce_dims()
@@ -758,9 +770,13 @@ struct reduce_driver : test_driver
         {
             if(reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
                reduceOp == MIOPEN_REDUCE_TENSOR_AMAX)
+            {
                 compTypeVal = static_cast<int>(miopenHalf); // let compType be same as the data type
+            }
             else
+            {
                 compTypeVal = static_cast<int>(miopenFloat);
+            }
         }
 
         miopen::ReduceTensorDescriptor reduceDesc(
@@ -797,15 +813,21 @@ struct reduce_driver : test_driver
         uint64_t max_value;
 
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+        {
             max_value = miopen_type<T>{} == miopenHalf   ? 41
                         : miopen_type<T>{} == miopenInt8 ? 127
                                                          : 111;
+        }
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
+        {
             max_value = 3;
+        }
         else
+        {
             max_value = miopen_type<T>{} == miopenHalf   ? 13
                         : miopen_type<T>{} == miopenInt8 ? 127
                                                          : 999;
+        }
 
         // default data gneration (used by MIN/MAX)
         auto gen_value = [&](auto... is) {
@@ -856,7 +878,9 @@ struct reduce_driver : test_driver
         if(reduceOp == MIOPEN_REDUCE_TENSOR_ADD || reduceOp == MIOPEN_REDUCE_TENSOR_AVG)
             this->tolerance = 80 * 10;
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
+        {
             this->tolerance = 80 * 300;
+        }
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         {
             if(toReduceDims.size() == 4)

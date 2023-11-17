@@ -51,7 +51,9 @@ inline bool IsEnvvarValueDisabled(const char* name)
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
     if(value_env_p == nullptr)
+    {
         return false;
+    }
     else
     {
         std::string value_env_str = value_env_p;
@@ -76,7 +78,9 @@ inline bool IsEnvvarValueEnabled(const char* name)
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     const auto value_env_p = std::getenv(name);
     if(value_env_p == nullptr)
+    {
         return false;
+    }
     else
     {
         std::string value_env_str = value_env_p;
