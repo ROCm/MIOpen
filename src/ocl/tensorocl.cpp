@@ -1950,6 +1950,7 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
+                const bool clamping,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,
@@ -2052,11 +2053,13 @@ void CastTensor(const Handle& handle,
                                       parms);
         }
 
+        const int clamping_arg = clamping ? 1 : 0;
         switch(srcDim_flat)
         {
         case 1: {
             kernel(src,
                    miopen_alpha,
+                   clamping_arg,
                    srcOffset,
                    static_cast<int>(srcDesc_flat.GetStrides()[0]),
                    static_cast<int>(srcDesc_flat.GetLengths()[0]),
