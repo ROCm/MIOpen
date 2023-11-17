@@ -1117,7 +1117,9 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ExecutionContext&,
                                                    const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto k = ProblemInterpreter::GetOutputChannelK(problem);

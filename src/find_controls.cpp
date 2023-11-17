@@ -74,15 +74,25 @@ FindEnforceAction GetFindEnforceActionImpl()
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NONE")
+    {
         return FindEnforceAction::None;
+    }
     else if(str == "DB_UPDATE")
+    {
         return FindEnforceAction::DbUpdate;
+    }
     else if(str == "SEARCH")
+    {
         return FindEnforceAction::Search;
+    }
     else if(str == "SEARCH_DB_UPDATE")
+    {
         return FindEnforceAction::SearchDbUpdate;
+    }
     else if(str == "DB_CLEAN")
+    {
         return FindEnforceAction::DbClean;
+    }
     else
     { // Nop. Fall down & try numerics.
     }
@@ -120,10 +130,14 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
                 numeric_id = solver::Id{solver::Id{numeric_id}.ToString()}.Value();
             }
             if(numeric_id != 0)
+            {
                 MIOPEN_LOG_NQI(numeric_id);
+            }
             else
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER: " + kinder);
+            }
             const auto id = solver::Id{numeric_id};
             if(id.IsValid())
             {
@@ -186,13 +200,21 @@ FindMode::Values GetFindModeValueImpl2()
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NORMAL")
+    {
         return FindMode::Values::Normal;
+    }
     else if(str == "FAST")
+    {
         return FindMode::Values::Fast;
+    }
     else if(str == "HYBRID")
+    {
         return FindMode::Values::Hybrid;
+    }
     else if(str == "DYNAMIC_HYBRID")
+    {
         return FindMode::Values::DynamicHybrid;
+    }
     else
     { // Nop. Fall down & try numerics.
     }
