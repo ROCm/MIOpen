@@ -106,7 +106,9 @@ public:
         auto stmt = SQLite::Statement{sql, del_query};
         auto rc   = stmt.Step(sql);
         if(rc == SQLITE_DONE)
+        {
             return true;
+        }
         else
         {
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
@@ -142,9 +144,13 @@ public:
             return decompressed_blob;
         }
         else if(rc == SQLITE_DONE)
+        {
             return boost::none;
+        }
         else
+        {
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
+        }
         return boost::none;
     }
 
