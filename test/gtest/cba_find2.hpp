@@ -94,19 +94,6 @@ protected:
         fused_problem.PropagateDescriptors();
         ASSERT_NO_THROW(invoke_params = MakeInvokeParams());
 
-        /*
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, cfsb::input.desc);
-        auto convOp =
-            std::make_shared<miopen::ConvForwardOpDescriptor>(cfsb::conv_desc, cfsb::weights.desc);
-        auto biasOp  = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
-        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
-        EXPECT_EQ(fusePlanDesc.AddOp(convOp), miopenStatusSuccess);
-        convOp->SetArgs(params, &alpha, &beta, cfsb::wei_dev.get());
-        EXPECT_EQ(fusePlanDesc.AddOp(biasOp), miopenStatusSuccess);
-        biasOp->SetArgs(params, &alpha, &beta, bias_dev.get());
-        EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
-        activOp->SetArgs(params, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-         */
     }
 
     void TearDown() override

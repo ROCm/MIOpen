@@ -72,7 +72,7 @@ void RunSolver(miopen::FusedProblem& problem,
     auto& handle = get_handle();
     Solver solv{};
     const auto plan           = problem.AsFusionPlan();
-    const auto fusion_problem = miopen::FusionDescription{&plan};
+    const auto fusion_desc = miopen::FusionDescription{&plan};
     auto fusion_ctx           = miopen::FusionContext{handle};
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
