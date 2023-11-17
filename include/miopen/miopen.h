@@ -1730,6 +1730,14 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * The scaling parameter alpha (float) and shift parameter beta (float) are only supported for
  * alpha = 1 and beta = 0.
  *
+ * The forward convolution is designed to accommodate both packed and non-packed tensor strides for
+ * multiple data types and dimensions across various platforms. This flexibility ensures optimal
+ * performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1874,6 +1882,14 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * determine the required memory needed for the workspace and the best convolutional
  * algorithm.
  *
+ * The backward data convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
+ *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
  *
@@ -1997,6 +2013,14 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm.
+ *
+ * The backward weights convolution is designed to accommodate both packed and non-packed tensor
+ * strides for multiple data types and dimensions across various platforms. This flexibility ensures
+ * optimal performance in handling diverse computational scenarios. To configure tensor parameters,
+ * including strides, users can utilize the APIs miopenSetTensorDescriptor() and
+ * miopenGetTensorDescriptor(). These APIs empower developers to seamlessly set and retrieve tensor
+ * information, facilitating a more intuitive and efficient workflow. The tensor strides are
+ * non-packed by default.
  *
  * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
  * this.
