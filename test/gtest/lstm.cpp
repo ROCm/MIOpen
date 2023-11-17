@@ -26,6 +26,7 @@
 
 #include "lstm_common.hpp"
 #include "get_handle.hpp"
+#include <miopen/env.hpp>
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
