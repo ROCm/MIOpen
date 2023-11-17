@@ -30,6 +30,14 @@
 
 #include "float_types.h"
 
+#if MIOPEN_USE_BFP16 == 1
+#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
+#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
+#define CVT_INTEGRAL2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define CVT_FP32_2FLOAT(x) (CVT_ACCUM2FLOAT(x))
+#define CVT_FP32_2ACCUM(x) (x)
+#endif
+
 extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
                                                     FLOAT* __restrict__ y,
                                                     uint64_t output_numel,
@@ -38,8 +46,9 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
                                                     uint64_t inner_size,
                                                     bool nanPropagation)
 {
-    const uint64_t gid = blockIdx.x;
-    const uint64_t lid = threadIdx.x;
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if(gid >= output_numel)
+        return;
 
     uint64_t n = inner_size * parallelism_size;
 
@@ -50,19 +59,19 @@ extern "C" __global__ void SumParallelFwdContiguous(const FLOAT* __restrict__ x,
 
     uint64_t parallel_id = slice_local_id / inner_size;
 
-    FLOAT sum = static_cast<FLOAT>(0);
+    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
-        FLOAT val = x[input_idx];
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
         if(nanPropagation && isnan(val))
         {
-            val = static_cast<FLOAT>(0);
+            val = static_cast<FLOAT_ACCUM>(0);
         }
         sum += val;
         input_idx += inner_size * parallelism_size;
     }
 
-    y[gid] = sum;
+    y[gid] = CVT_ACCUM2FLOAT(sum);
 }
 
 extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
@@ -73,22 +82,23 @@ extern "C" __global__ void SumFwdContiguous(const FLOAT* __restrict__ x,
                                             int32_t dim,
                                             bool nanPropagation)
 {
-    const uint64_t gid = blockIdx.x;
-    const uint64_t lid = threadIdx.x;
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if(gid >= output_numel)
+        return;
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 
-    FLOAT sum = static_cast<FLOAT>(0);
+    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(0);
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
-        FLOAT val = x[input_idx];
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
         if(nanPropagation && isnan(val))
         {
-            val = static_cast<FLOAT>(0);
+            val = static_cast<FLOAT_ACCUM>(0);
         }
         sum += val;
         input_idx += inner_size;
     }
 
-    y[gid] = sum;
+    y[gid] = CVT_ACCUM2FLOAT(sum);
 }

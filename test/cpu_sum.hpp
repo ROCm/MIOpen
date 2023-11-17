@@ -42,24 +42,27 @@ void cpu_sum_forward(tensor<T> input,
         std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
     auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < xdims.size(); i++)
+    for(int32_t i = dim + 1; i < input_dims.size(); i++)
     {
-        inner_size *= xdims[i];
+        inner_size *= input_dims[i];
     }
 
     par_ford(output_numel)([&](size_t o) {
-        T sum = 0.0f;
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+        T sum            = 0.0f;
 
         ford(reduce_size)([&](size_t i) {
-            T tmp = input[(o / inner_size) * inner_size * reduce_size + o % inner_size];
-            if(nanPropagation && isnan(val))
+            std::ignore = i;
+            T val       = input[input_idx];
+            if(nanPropagation && std::isnan(val))
             {
                 val = 0.0f;
             }
-            sum += tmp;
+            sum += val;
+            input_idx += inner_size;
         });
 
-        ref_output[o] = sum
-    })
+        ref_output[o] = sum;
+    });
 }
 #endif

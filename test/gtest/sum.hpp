@@ -81,11 +81,11 @@ struct SumTestCase
 };
 
 std::vector<SumTestCase> SumTestConfigs()
-{ // n c d h w dim eps nanPropagation
+{ // n c d h w dim nanPropagation
     // clang-format off
     return {
-        { 256,  0,    0,   4, 8732, ,0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
-        { 256,  0,    0,   4, 8732, ,0 , MIOPEN_SUM_PROPAGATE_NAN}
+        { 256,  0,    0,   4, 8732, 0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
+        { 256,  0,    0,   4, 8732, 0 , MIOPEN_SUM_PROPAGATE_NAN}
       };
     // clang-format on
 }
@@ -124,7 +124,7 @@ protected:
         {
             if(i != dim)
             {
-                out_dims.push_back(in_dims[i];)
+                out_dims.push_back(in_dims[i]);
             }
         }
 
@@ -140,15 +140,17 @@ protected:
         std::vector<size_t> workspace_dims;
         ws_sizeInBytes = miopen::GetSumWorkspaceSize(handle, input.desc, output.desc, dim);
         workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
+        if(ws_sizeInBytes != 0)
+        {
+            workspace = tensor<T>{workspace_dims};
+            std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
+            workspace_dev = handle.Write(workspace.data);
+        }
 
-        workspace = tensor<T>{workspace_dims};
-        std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
-
-        input_dev     = handle.Write(input.data);
-        output_dev    = handle.Write(output.data);
-        workspace_dev = handle.Write(workspace.data);
+        input_dev  = handle.Write(input.data);
+        output_dev = handle.Write(output.data);
     }
-    void TearDown() override
+    void RunTest()
     {
         auto&& handle = get_handle();
 
@@ -168,7 +170,10 @@ protected:
         EXPECT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
+    }
 
+    void Verify()
+    {
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 

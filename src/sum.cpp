@@ -52,6 +52,7 @@ std::size_t GetSumWorkspaceSize(Handle& handle,
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
     bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+
     if(!is_num_work_item_enough && is_parallelism_enough)
     {
         size_t parallelism_size = 1;

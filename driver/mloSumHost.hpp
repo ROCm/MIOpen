@@ -55,16 +55,18 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
 
     for(size_t o = 0; o < output_numel; o++)
     {
+        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+
         Tcheck sum = 0.0f;
         for(size_t i = 0; i < reduce_size; i++)
         {
-            Tcheck val = static_cast<Tcheck>(
-                input[(o / inner_size) * inner_size * reduce_size + o % inner_size]);
+            Tcheck val = static_cast<Tcheck>(input[input_idx]);
             if(nanPropagation && isnan(val))
             {
                 val = 0.0f;
             }
             sum += val;
+            input_idx += inner_size;
         }
         outputhost[o] = sum;
     }

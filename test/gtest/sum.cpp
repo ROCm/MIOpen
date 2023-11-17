@@ -41,7 +41,12 @@ struct SumTestFloat : SumTest<float>
 
 TEST_P(SumTestFloat, SumTestFw)
 {
-    if(!(miopen::IsEnabled("MIOPEN_TEST_ALL") && (GetFloatArg() == "--float")))
+    if(miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
     {
         GTEST_SKIP();
     }

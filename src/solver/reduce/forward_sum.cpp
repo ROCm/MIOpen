@@ -65,7 +65,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
     auto dtype = problem.GetXDesc().GetType();
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetXDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
     auto reduce_size  = xdims[dim];
@@ -76,6 +76,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
     bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+
     if(!is_num_work_item_enough && is_parallelism_enough)
     {
         size_t parallelism_size = 1;
@@ -86,7 +87,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
         }
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = parallelism_size * output_numel * xlocalsize;
+        size_t xgridsize  = AlignUp(parallelism_size * output_numel, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -119,7 +120,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
     {
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = output_numel * xlocalsize;
+        size_t xgridsize  = AlignUp(output_numel, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
