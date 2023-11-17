@@ -5,6 +5,7 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
+#include <miopen/search_options.hpp>
 
 #include <boost/optional.hpp>
 
@@ -58,7 +59,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);
     std::vector<struct PerfField>
-    Find(Handle& handle, const std::function<fusion::FusionInvokeParams()>& invoke_params) const;
+    Find(Handle& handle,
+         const std::function<fusion::FusionInvokeParams()>& invoke_params,
+         const std::optional<FindOptions>& options = std::nullopt) const;
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd);
 
     miopenStatus_t

@@ -93,7 +93,6 @@ protected:
 
         fused_problem.PropagateDescriptors();
         ASSERT_NO_THROW(invoke_params = MakeInvokeParams());
-
     }
 
     void TearDown() override

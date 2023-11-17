@@ -751,13 +751,19 @@ protected:
         return true;
     }
 
-    std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
-                                               const FusionDescription& problem,
-                                               const AnyInvokeParams& invoke_ctx,
-                                               const FusionFindParameters&) const override
+    std::vector<solver::ConvSolution>
+    FindImpl(const ExecutionContext& ctx,
+             const FusionDescription& problem,
+             const AnyInvokeParams& invoke_ctx,
+             const FusionFindParameters&,
+             const std::optional<FindOptions>& options) const override
     {
-        return solvers.SearchForAllSolutions(
-            dynamic_cast<const FusionContext&>(ctx), problem, miopen::GetDb(ctx), invoke_ctx);
+        return solvers.SearchForAllSolutions(dynamic_cast<const FusionContext&>(ctx),
+                                             problem,
+                                             miopen::GetDb(ctx),
+                                             invoke_ctx,
+                                             std::numeric_limits<std::size_t>::max(),
+                                             options);
     }
 
 private:
@@ -785,7 +791,8 @@ static const std::vector<std::unique_ptr<ISolversFinder>>& GetFusionSolverFinder
 static std::vector<PerfField>
 FindFusion(const ExecutionContext& ctx,
            const FusionDescription& fusion_problem,
-           const std::function<fusion::FusionInvokeParams()>& invoke_params)
+           const std::function<fusion::FusionInvokeParams()>& invoke_params,
+           const std::optional<FindOptions>& options = std::nullopt)
 {
     return UserFindDbRecord::TryLoad(
         ctx.GetStream(),
@@ -800,7 +807,8 @@ FindFusion(const ExecutionContext& ctx,
                      fusion_ctx,
                      fusion_problem,
                      FusionFindParameters{},
-                     GetFusionSolverFinders());
+                     GetFusionSolverFinders(),
+                     options);
         },
         "fusion");
 }
@@ -847,9 +855,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
 std::vector<struct PerfField>
 FusionPlanDescriptor::Find(Handle& handle,
-                           const std::function<fusion::FusionInvokeParams()>& invoke_params) const
+                           const std::function<fusion::FusionInvokeParams()>& invoke_params,
+                           const std::optional<FindOptions>& options) const
 {
-    return FindFusion(&handle, this, invoke_params);
+    return FindFusion(&handle, this, invoke_params, options);
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,

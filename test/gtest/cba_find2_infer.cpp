@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <miopen/generic_search.hpp>
 #include <miopen/miopen.h>
 #include <miopen/search_options.hpp>
 #include <miopen/solver_id.hpp>
@@ -36,7 +37,6 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "cba_find2.hpp"
-#include "miopen/search_options.hpp"
 
 struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
 {
@@ -50,19 +50,6 @@ struct ConvBiasActivFind2InferTestHalf : ConvBiasActivInferFind2Test<half_float:
 {
 };
 
-void setEnvironmentVariable(const std::string& name, const std::string& value)
-{
-    int ret = 0;
-
-#ifdef _WIN32
-    std::string env_var(name + "=" + value);
-    ret = _putenv(env_var.c_str());
-#else
-    ret = setenv(name.c_str(), value.c_str(), 1);
-#endif
-    EXPECT_EQ(ret, 0);
-}
-
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusedProblem& problem,
                const miopen::AnyInvokeParams& invoke_ctx,
@@ -71,16 +58,16 @@ void RunSolver(miopen::FusedProblem& problem,
 {
     auto& handle = get_handle();
     Solver solv{};
-    const auto plan           = problem.AsFusionPlan();
+    const auto plan        = problem.AsFusionPlan();
     const auto fusion_desc = miopen::FusionDescription{&plan};
-    auto fusion_ctx           = miopen::FusionContext{handle};
-    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
+    auto fusion_ctx        = miopen::FusionContext{handle};
+    if(!solv.IsApplicable(fusion_ctx, fusion_desc))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
-    auto sol = solv.GetSolution(fusion_ctx, fusion_problem);
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_desc));
+    auto sol = solv.GetSolution(fusion_ctx, fusion_desc);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
@@ -96,17 +83,17 @@ void RunTunableSolver(miopen::FusedProblem& problem,
 {
     auto& handle = get_handle();
     Solver solv{};
-    const auto plan           = problem.AsFusionPlan();
-    const auto fusion_problem = miopen::FusionDescription{&plan};
-    auto fusion_ctx           = miopen::FusionContext{handle};
-    if(!solv.IsApplicable(fusion_ctx, fusion_problem))
+    const auto plan        = problem.AsFusionPlan();
+    const auto fusion_desc = miopen::FusionDescription{&plan};
+    auto fusion_ctx        = miopen::FusionContext{handle};
+    if(!solv.IsApplicable(fusion_ctx, fusion_desc))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_desc));
     auto sol = solv.GetSolution(
-        fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
+        fusion_ctx, fusion_desc, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_desc));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
@@ -144,11 +131,13 @@ TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
 #if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testFind)
 {
-    setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
-    setEnvironmentVariable("MIOPEN_DEBUG_TUNING_ITERATIONS_MAX", "5");
-    std::vector<miopen::Solution> solutions;
+    miopen::solver::debug::TuningIterationScopedLimiter tuning_limit{5};
 
-    ASSERT_NO_THROW(solutions = fused_problem.FindSolutions(get_handle(), {}, 10));
+    std::vector<miopen::Solution> solutions;
+    auto options         = miopen::FindOptions{};
+    options.find_enforce = miopen::FindEnforce{miopen::FindEnforceAction::SearchDbUpdate};
+
+    ASSERT_NO_THROW(solutions = fused_problem.FindSolutions(get_handle(), options, 10));
 
     auto tensors = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{
         {miopenTensorConvolutionX, in_dev.get()},

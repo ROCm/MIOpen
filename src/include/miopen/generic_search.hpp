@@ -52,6 +52,17 @@
 namespace miopen {
 namespace solver {
 
+namespace debug {
+struct TuningIterationScopedLimiter
+{
+    TuningIterationScopedLimiter(std::size_t new_limit);
+    ~TuningIterationScopedLimiter();
+
+private:
+    std::optional<std::size_t> old_limit;
+};
+} // namespace debug
+
 /// This STL-like container together with corresponding iterator provide access
 /// to a set of all available performance configs for the given problem config.
 ///

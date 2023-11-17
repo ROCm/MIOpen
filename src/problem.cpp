@@ -617,7 +617,7 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
             return MakeInvokeParams(buffer_allocator, params);
         };
 
-        return AsFusionPlan().Find(handle, make_invoke_params);
+        return AsFusionPlan().Find(handle, make_invoke_params, options);
     }();
 
     auto ret = std::vector<Solution>{};
