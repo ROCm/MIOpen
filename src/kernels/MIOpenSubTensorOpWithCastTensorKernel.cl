@@ -142,6 +142,7 @@ __kernel void SubTensorOpWithCastTensor1d(const global _FLOAT_SRC* __restrict sr
 
 __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict src,
                                           const float alpha,
+                                          const int clamping,
                                           const int srcOffset,
                                           const int srcStride0,
                                           const int srcStride1,
@@ -171,8 +172,9 @@ __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict sr
 #if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
             temp_src *= alpha;
             *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+            (void)clamping;
 #else
-            bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
+            bool over_flow = (clamping != 0) && (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
             *(dst + dindex + dstOffset) =
                 (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
 #endif
@@ -182,6 +184,7 @@ __kernel void SubTensorOpWithCastTensor2d(const global _FLOAT_SRC* __restrict sr
 
 __kernel void SubTensorOpWithCastTensor3d(const global _FLOAT_SRC* __restrict src,
                                           const float alpha,
+                                          const int clamping,
                                           const int srcOffset,
                                           const int srcStride0,
                                           const int srcStride1,
@@ -221,8 +224,9 @@ __kernel void SubTensorOpWithCastTensor3d(const global _FLOAT_SRC* __restrict sr
 #if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
                 temp_src *= alpha;
                 *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+                (void)clamping;
 #else
-                bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
+                bool over_flow = (clamping != 0) && (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                 *(dst + dindex + dstOffset) =
                     (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
 #endif
@@ -233,6 +237,7 @@ __kernel void SubTensorOpWithCastTensor3d(const global _FLOAT_SRC* __restrict sr
 
 __kernel void SubTensorOpWithCastTensor4d(const global _FLOAT_SRC* __restrict src,
                                           const float alpha,
+                                          const int clamping,
                                           const int srcOffset,
                                           const int srcStride0,
                                           const int srcStride1,
@@ -283,8 +288,10 @@ __kernel void SubTensorOpWithCastTensor4d(const global _FLOAT_SRC* __restrict sr
 #if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
                     temp_src *= alpha;
                     *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+                    (void)clamping;
 #else
-                    bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
+                    bool over_flow =
+                        (clamping != 0) && (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                     *(dst + dindex + dstOffset) =
                         (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
 #endif
@@ -296,6 +303,7 @@ __kernel void SubTensorOpWithCastTensor4d(const global _FLOAT_SRC* __restrict sr
 
 __kernel void SubTensorOpWithCastTensor5d(const global _FLOAT_SRC* __restrict src,
                                           const float alpha,
+                                          const int clamping,
                                           const int srcOffset,
                                           const int srcStride0,
                                           const int srcStride1,
@@ -356,8 +364,10 @@ __kernel void SubTensorOpWithCastTensor5d(const global _FLOAT_SRC* __restrict sr
 #if MIOPEN_SRC_TYPE == 3 && MIOPEN_DST_TYPE == 4
                         temp_src *= alpha;
                         *(dst + dindex + dstOffset) = float_to_bfloat16(temp_src);
+                        (void)clamping;
 #else
-                        bool over_flow = (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
+                        bool over_flow =
+                            (clamping != 0) && (alpha * ((float)temp_src)) >= ((float)MAX_VAL);
                         *(dst + dindex + dstOffset) =
                             (_FLOAT_DST)(over_flow ? MAX_VAL : alpha * ((float)temp_src));
 #endif
