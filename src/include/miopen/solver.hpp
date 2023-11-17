@@ -4820,7 +4820,8 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmGroupBwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4829,7 +4830,8 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4894,7 +4896,8 @@ struct ConvHipImplicitGemmGroupWrwXdlops final
     }
 
     PerformanceConfigHipImplicitGemmGroupWrwXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
@@ -4903,7 +4906,8 @@ struct ConvHipImplicitGemmGroupWrwXdlops final
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
