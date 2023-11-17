@@ -227,15 +227,14 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx, st
     new_heuristic_indexes.reserve(heuristic_indexes.size());
     if(idx >= 5)
         idx += 2; // skip MPerXDL and NPerXDL as they are constant
-    std::copy_if(
-        heuristic_indexes.begin(),
-        heuristic_indexes.end(),
-        std::back_inserter(new_heuristic_indexes),
-        [&](int heuristic_index) { return heuristic_kernels[heuristic_index][idx] == value; });
-    if(new_heuristic_indexes.empty())
-        return false;
-    heuristic_indexes = new_heuristic_indexes;
-    return true;
+    auto eraseBegin = std::remove_if(
+        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
+            return heuristic_kernels[heuristic_index][idx] != value;
+        });
+
+    heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
+
+    return !heuristic_indexes.empty();
 }
 
 static std::vector<float> GetFeatures(const ProblemDescription& problem, std::size_t num_cu)
