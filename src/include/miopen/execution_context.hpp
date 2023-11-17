@@ -65,9 +65,15 @@ public:
 
 namespace miopen {
 
-namespace conv {
-struct ProblemDescription;
-} // namespace conv
+namespace debug {
+
+/// Inform the library that some warm-up (e.g. the one implemented in the driver)
+/// is in progress. The library can use this, for example, to disable some
+/// workarounds that would affect warm-up otherwise.
+/// WARNING: This switch is not intended for use in multi-threaded applications.
+extern bool IsWarmupOngoing; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
 
 struct ExecutionContext
 {
@@ -219,10 +225,14 @@ struct ExecutionContext
                             try
                             {
                                 if(pos != std::string::npos)
+                                {
                                     cur_count = std::stoi(fname.substr(pos + 1));
+                                }
                                 else
+                                {
                                     cur_count =
                                         std::stoi(fname.substr(db_id.length()), nullptr, 16);
+                                }
                             }
                             catch(const std::exception& e)
                             {

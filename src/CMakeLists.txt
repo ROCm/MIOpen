@@ -26,7 +26,7 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-include (GenerateExportHeader)
+include(ExportHeader)
 if(MIOPEN_ENABLE_SQLITE)
     add_subdirectory(sqlite)
 endif()
@@ -42,7 +42,7 @@ option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
-set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
+set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
     Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
@@ -52,28 +52,24 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
-
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 #Copy header to Build Dir for generating backward compatibility
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
+    message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+endif()
 
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
-
 
 function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
-        if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
-        else()
-            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
-        endif()
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
@@ -103,6 +99,7 @@ set( MIOpen_Source
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
     conv/problem_description.cpp
+        conv/solver_finders.cpp
     conv_algo_name.cpp
     convolution.cpp
     convolution_api.cpp
@@ -119,22 +116,23 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
+    fusion/problem_description.cpp
     generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    layernorm_api.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
-    layernorm_api.cpp
     lrn_api.cpp
+    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
-    problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
@@ -146,7 +144,6 @@ set( MIOpen_Source
     rnn/Solutions/rnn_transformer.cpp
     softmax_api.cpp
     solution.cpp
-    conv/solver_finders.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -240,6 +237,9 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
+    solver/norm/forward_layernorm.cpp
+    solver/norm/forward_layernorm2d_ck.cpp
+    solver/norm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -251,7 +251,7 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     seq_tensor.cpp
-    )
+)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
@@ -530,7 +530,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_DEVELOPMENT_KERNELS}")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
     endif()
@@ -539,6 +539,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         kernel_cache.cpp
+        layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -559,7 +560,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
-        layer_norm.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
@@ -628,7 +628,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     OUTPUT ${KERNEL_SRC_HPP_PATH}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                    COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
                     COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
@@ -652,7 +652,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNELS}" "${MIOPEN_DEVELOPMENT_KERNELS_DEPS}" "" " (dev kernels)")
     endif()
-    
+
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (dev includes)")
     endif()
@@ -694,23 +694,13 @@ endif()
 
 function(target_internal_library TARGET)
     target_link_libraries(${TARGET} PRIVATE ${ARGN})
-    set(PASS_ARGS debug optimized)
-    set(DEPS)
-    foreach(DEP ${ARGN})
-        if(DEP IN_LIST PASS_ARGS)
-            list(APPEND DEPS ${DEP})
-        else()
-            list(APPEND DEPS $<BUILD_INTERFACE:${DEP}>)
-        endif()
-    endforeach()
-    target_link_libraries(${TARGET} INTERFACE ${DEPS})
+    target_link_libraries(${TARGET} INTERFACE $<BUILD_INTERFACE:${ARGN}>)
 endfunction()
 
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
-set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
@@ -719,10 +709,8 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
-generate_export_header(MIOpen
-    EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
-)
+target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
+miopen_generate_export_header(MIOpen)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
         find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
@@ -751,7 +739,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
             file(GLOB MODEL_FILES kernels/*.model)
             if( NOT ENABLE_ASAN_PACKAGING )
               install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
-            endif() 
+            endif ()
             foreach(MODEL_FILE ${MODEL_FILES})
                 get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
                 configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
@@ -804,13 +792,6 @@ endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 
-if(WIN32 AND NOT MSVC)
-    if(BUILD_DEV)
-        target_link_libraries(MIOpen PUBLIC -Wl,-export-all-symbols -Wl,-exclude-symbols=_Unwind_Resume)
-    endif()
-    target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
-endif()
-
 target_internal_library(MIOpen
     Boost::filesystem
 )
@@ -851,7 +832,7 @@ endif()
 if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
     if(LIBRT)
-        MESSAGE(STATUS "Librt: " ${LIBRT})
+        message(STATUS "Librt: " ${LIBRT})
         target_internal_library(MIOpen ${LIBRT})
     endif()
 endif()
@@ -917,7 +898,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
     file(GLOB PERF_DB_FILES kernels/*.db)
+    file(GLOB KERN_DB_FILES kernels/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
+    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES

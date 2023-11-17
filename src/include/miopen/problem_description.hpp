@@ -28,13 +28,8 @@
 #define GUARD_PROBLEM_DESCRIPTION_HPP_
 
 #include <miopen/conv/problem_description.hpp>
-#include <miopen/names.hpp>
 #include <miopen/tensor.hpp>
-#if MIOPEN_ENABLE_SQLITE
-#include <miopen/sqlite_db.hpp>
-#endif
 
-#include <cassert>
 #include <cstdint>
 #include <string>
 
@@ -62,32 +57,16 @@ SetDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor, con
     return tensor.GetElementSpace();
 }
 
-struct ConvolutionDescriptor;
-
-// Todo: change all uses in convolution to conv::ProblemDescription and remove this
+#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
 struct ProblemDescription : conv::ProblemDescription
 {
-    struct Direction
-    {
-    public:
-        bool IsForward() const { return v == conv::Direction::Forward; }
-        bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
-        bool IsBackwardWrW() const { return v == conv::Direction::BackwardWeights; }
-
-        std::string GetStr() const { return IsForward() ? "F" : IsBackwardData() ? "B" : "W"; }
-
-        Direction() = default;
-        Direction(conv::Direction value) : v(value) {}
-
-    private:
-        conv::Direction v = conv::Direction::Forward;
-    } direction;
-
     ProblemDescription() = default;
 
-    ProblemDescription(conv::ProblemDescription desc);
+    ProblemDescription(conv::ProblemDescription desc) : conv::ProblemDescription(std::move(desc))
+    {
+        conv_problem.p = this;
+    }
 
-#if FIN_OLD_PROBLEM_DESCRIPTION_COMPAT
     struct
     {
         void SetupFloats(ExecutionContext& ctx) const { p->SetupFloats(ctx); }
@@ -96,8 +75,8 @@ struct ProblemDescription : conv::ProblemDescription
         const conv::ProblemDescription* p = nullptr;
         friend struct ProblemDescription;
     } conv_problem;
-#endif
 };
+#endif
 
 // For mlo_construct_base
 // TODO remove this
@@ -141,7 +120,7 @@ struct ProblemDescriptionCompatTemporary
     int GetOutWidth() const { return out_width; }
     // int GetOutDepth() const { return out_depth; }
     int GetBatchSize() const { return batch_sz; }
-    // int GetBias() const { return bias; }
+    int GetBias() const { return bias; }
     // std::string GetInLayout() const { return in_layout; }
     // std::string GetOutLayout() const { return out_layout; }
     miopenDataType_t GetInDataType() const { return in_data_type; }
@@ -156,9 +135,9 @@ struct ProblemDescriptionCompatTemporary
     int GetOutChannelStride() const { return out_channel_stride; }
     int GetOutBatchStride() const { return out_batch_stride; }
 
-    ProblemDescriptionCompatTemporary(miopen::conv::Direction dir) : direction(dir) {}
+    ProblemDescriptionCompatTemporary(conv::Direction dir) : direction(dir) {}
 
-    ProblemDescription::Direction direction;
+    bool IsDirectionForward() const { return direction == conv::Direction::Forward; }
 
     /*
      * set top tensor
@@ -269,6 +248,9 @@ struct ProblemDescriptionCompatTemporary
         batch_sz = batch;
         n_inputs = channels;
     }
+
+private:
+    conv::Direction direction;
 };
 
 struct UnifiedDescriptionConv2d
@@ -297,28 +279,28 @@ struct UnifiedDescriptionConv2d
     // strd := U/V             -u/v convolution stride (output stride) kernel_stride
     // idil := input dilation  (n/a except transposed convolutions)    ?
 
-    UnifiedDescriptionConv2d(const ProblemDescription& problem)
+    UnifiedDescriptionConv2d(const conv::ProblemDescription& problem)
     {
         if(!problem.Is2d())
             MIOPEN_THROW(miopenStatusInternalError, "UnifiedDescriptionConv2d supports only 2D");
 
         const auto n_inputs_per_group  = problem.GetInChannels_() / problem.GetGroupCount();
         const auto n_outputs_per_group = problem.GetOutChannels_() / problem.GetGroupCount();
-        if(!problem.direction.IsBackwardWrW())
+        if(!problem.IsDirectionBackwardWrW())
         {
             R     = problem.GetWeightsHeight_();
             S     = problem.GetWeightsWidth_();
-            U     = problem.direction.IsForward() ? problem.GetKernelStrideH() : 1;
-            V     = problem.direction.IsForward() ? problem.GetKernelStrideW() : 1;
+            U     = problem.IsDirectionForward() ? problem.GetKernelStrideH() : 1;
+            V     = problem.IsDirectionForward() ? problem.GetKernelStrideW() : 1;
             C     = n_inputs_per_group;      // Bwd: C and K is reversed in ProblemDescription.
             K     = n_outputs_per_group;     // Ditto.
             out_h = problem.GetOutHeight_(); // Bwd: height/width is reversed in ProblemDescription.
             out_w = problem.GetOutWidth_();  // Ditto.
             N     = problem.GetBatchSize_();
-            pad_h = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-            pad_w = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
-            input_stride_h  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideH();
-            input_stride_w  = problem.direction.IsForward() ? 1 : problem.GetKernelStrideW();
+            pad_h = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+            pad_w = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+            input_stride_h  = problem.IsDirectionForward() ? 1 : problem.GetKernelStrideH();
+            input_stride_w  = problem.IsDirectionForward() ? 1 : problem.GetKernelStrideW();
             filter_stride_h = problem.GetDilationH();
             filter_stride_w = problem.GetDilationW();
         }

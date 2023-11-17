@@ -41,6 +41,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 inline static bool Is_1_to_8(const int& v)
 {
@@ -424,6 +427,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
     n_waves                                = 1;
     read_size                              = 6;
     const auto n_output_channels_per_group = problem.GetInChannels_() / problem.GetGroupCount();
+    // NOLINTBEGIN(*-braces-around-statements)
     if(n_output_channels_per_group % 4 == 0)
         n_out_channels_per_tile = 4;
     else if(n_output_channels_per_group % 3 == 0)
@@ -432,6 +436,7 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
         n_out_channels_per_tile = 2;
     else
         n_out_channels_per_tile = 1;
+    // NOLINTEND(*-braces-around-statements)
     n_out_channels_tiles = 1;
     n_out_rows_in_lcl    = problem.GetWeightsHeight_();
 }
@@ -457,17 +462,14 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
-
     if(problem.IsTensorsCasted())
         return false;
 
@@ -626,8 +628,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     std::string UT_READ_TYPE =
         (utility_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((utility_read_unit));
 
-    if(!problem.direction.IsBackwardWrW())
-        MIOPEN_THROW("!problem.direction.IsBackwardWrW()");
+    if(!problem.IsDirectionBackwardWrW())
+        MIOPEN_THROW("!problem.IsDirectionBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
@@ -740,7 +742,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
-    result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
+    result.invoker_factory = miopen::conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;
 }
@@ -769,5 +771,6 @@ template struct ConvOclBwdWrW2<4>;
 template struct ConvOclBwdWrW2<8>;
 template struct ConvOclBwdWrW2<16>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

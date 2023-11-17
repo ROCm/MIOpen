@@ -42,6 +42,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm()
     : PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::
@@ -1051,7 +1054,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
     const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             auto kernel               = handle.Run(kernels[0]);
             float elapsed             = 0;
@@ -1126,10 +1129,13 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     if(!problem.Is2d())
+        return false;
+
+    if(problem.HasNonPackedTensors())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -1142,9 +1148,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!problem.IsLayoutDefault())
-    {
         return false;
-    }
 
 // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
 #if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
@@ -1200,7 +1204,9 @@ std::size_t ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(
     const ExecutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto k = ProblemInterpreter::GetOutputChannelK(problem);
@@ -1211,5 +1217,7 @@ std::size_t ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(
         return miopen::GetTypeSize(miopenFloat) * k * c * y * x;
     }
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

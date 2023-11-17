@@ -32,7 +32,7 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
-#include <miopen/hip_float8.hpp>
+#include <hip_float8.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/rank.hpp>
 
@@ -50,21 +50,20 @@ struct ConvFwdSolverTest
     {
         auto&& handle = get_handle();
 
-        const auto tensors = miopen::ConvFwdTensors{this->input.desc,
+        const auto tensors                 = miopen::ConvFwdTensors{this->input.desc,
                                                     this->in_dev.get(),
                                                     this->weights.desc,
                                                     this->wei_dev.get(),
                                                     this->output.desc,
                                                     this->out_dev.get()};
-        const auto problem = miopen::ProblemDescription(
-            miopen::conv::ProblemDescription{this->input.desc,
-                                             this->weights.desc,
-                                             this->output.desc,
-                                             this->conv_desc,
-                                             miopen::conv::Direction::Forward});
+        const auto problem                 = miopen::conv::ProblemDescription(this->input.desc,
+                                                              this->weights.desc,
+                                                              this->output.desc,
+                                                              this->conv_desc,
+                                                              miopen::conv::Direction::Forward);
         const miopen::ExecutionContext ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
-            problem.conv_problem.SetupFloats(tmp);
+            problem.SetupFloats(tmp);
             return tmp;
         }();
 

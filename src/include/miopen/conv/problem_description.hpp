@@ -140,9 +140,10 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription() = default;
 
-    ProblemDescription(const TensorDescriptor& in_,
+    /// \todo Get rid of the swapping of x and y.
+    ProblemDescription(const TensorDescriptor& in_, // x for Forward, y for Backward*
                        const TensorDescriptor& weights_,
-                       const TensorDescriptor& out_,
+                       const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
                        int bias_ = 0)
@@ -287,6 +288,9 @@ struct ProblemDescription : ProblemDescriptionBase
     const ConvolutionDescriptor& GetConv() const { return conv; }
 
     Direction GetDirection() const { return direction; }
+    bool IsDirectionForward() const { return direction == conv::Direction::Forward; }
+    bool IsDirectionBackwardData() const { return direction == conv::Direction::BackwardData; }
+    bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
 
     int GetBias() const { return bias; }
@@ -367,16 +371,30 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsNCHWc_NCHWc() const;
     bool IsNCHWc_CHWNc() const;
 
+    bool HasNonPackedTensors() const
+    {
+        return !(in.IsPacked() && weights.IsPacked() && out.IsPacked());
+    }
+
+    bool HasMixedDataTypes() const
+    {
+        return !(GetInDataType() == GetWeightsDataType() &&
+                 GetWeightsDataType() == GetOutDataType());
+    }
+
     void HeuristicUpdateLayouts();
 
-    void BuildConfKey(std::string& conf_key) const;
+    void MakeNetworkConfig(std::string& conf_key) const;
 
-    NetworkConfig BuildConfKey() const
+    NetworkConfig MakeNetworkConfig() const override
     {
         std::string ret;
-        BuildConfKey(ret);
+        MakeNetworkConfig(ret);
         return NetworkConfig{ret};
     }
+
+    // Todo: remove after fixing fin
+    [[deprecated]] NetworkConfig BuildConfKey() const { return MakeNetworkConfig(); }
 
     void Serialize(std::ostream& stream) const;
 

@@ -38,7 +38,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5004000000ULL)
 #include <amd_comgr/amd_comgr.h>
 #else
 #include <amd_comgr.h>
@@ -641,8 +641,10 @@ public:
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+        {
             MIOPEN_LOG_I(name << ' ' << size
                               << " bytes,  ptr = " << static_cast<const void*>(content));
+        }
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);

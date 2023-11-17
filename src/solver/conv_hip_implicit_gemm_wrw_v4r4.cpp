@@ -34,6 +34,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmV4R4WrW::PerformanceImplicitGemmV4R4WrW(int BlockSize_,
                                                                int GemmMPerBlock_,
@@ -586,17 +589,18 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
         return false;
     if(!problem.IsFp32())
         return false;
-
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)
@@ -779,7 +783,7 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ExecutionContext& ctx,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            const auto& invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors       = invoke_params.tensors;
             handle.Run(kernels[0])(tensors.x, tensors.dy, tensors.dw);
         };
@@ -788,5 +792,6 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

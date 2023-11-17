@@ -39,6 +39,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
@@ -160,6 +163,7 @@ struct CKArgs
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
+
 } // namespace
 
 template <typename DataType>
@@ -198,7 +202,6 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -240,7 +243,6 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -288,15 +290,15 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(problem.GetInDataType() != problem.GetWeightsDataType() ||
-       problem.GetWeightsDataType() != problem.GetOutDataType() ||
-       problem.GetInDataType() != problem.GetOutDataType())
+    if(problem.HasMixedDataTypes())
         return false;
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d())
         return false;
@@ -311,7 +313,6 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenFloat8:
     case miopenBFloat8:
@@ -330,16 +331,16 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>, CKArgs, conv::DataInvokeParams>(
-            problem, config.kernel_id);
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<ck::half_t>,
+                                  CKArgs,
+                                  miopen::conv::DataInvokeParams>(problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt8:
-        return InitInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, conv::DataInvokeParams>(
+        return MakeInvokerFactory<DeviceOpGFwdPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
             problem, config.kernel_id);
     case miopenInt32:
-    case miopenInt8x4: // Support discontinued.
     case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
@@ -352,5 +353,6 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     return {};
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

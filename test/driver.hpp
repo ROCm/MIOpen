@@ -37,7 +37,7 @@
 
 #include <functional>
 #include <deque>
-#if HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL
+#if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
 #include <half.hpp>
@@ -274,7 +274,6 @@ struct test_driver
         {
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
-        case miopenInt8x4: ss << "--UNSUPPORED_TYPE "; break;
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
@@ -303,7 +302,6 @@ struct test_driver
         {
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
-        case miopenInt8x4: ret.emplace_back("--UNSUPPORTED_TYPE"); break;
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
@@ -502,7 +500,9 @@ struct test_driver
                     return dims;
             }
             else
+            {
                 return {single};
+            }
         }};
     }
 
@@ -550,10 +550,14 @@ struct test_driver
                     return subvec;
                 }
                 else
+                {
                     return dims;
+                }
             }
             else
+            {
                 return {dims.front()};
+            }
         }};
     }
 
@@ -672,13 +676,17 @@ struct test_driver
 
                 auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
                 if(cpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": "
                               << out_cpu[cpu_nan_idx] << std::endl;
+                }
 
                 auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
                 if(gpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": "
                               << out_gpu[gpu_nan_idx] << std::endl;
+                }
             }
             else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
             {
@@ -713,10 +721,12 @@ struct test_driver
                 [&](auto i) {
                     // cppcheck-suppress knownConditionTrueFalse
                     if(continue_)
+                    {
                         continue_ = this->compare_and_report(
                             std::get<i>(out_cpu), std::get<i>(out_gpu), compare, report, [&](int) {
                                 return fail(i);
                             });
+                    }
                 },
                 is...);
             return continue_;
@@ -959,10 +969,12 @@ void run_data(Iterator start, Iterator last, Action a)
         run_data(std::next(start), last, a);
     }
     else
+    {
         for(auto&& src : sources)
         {
             src([=] { run_data(std::next(start), last, a); });
         }
+    }
 }
 
 struct keyword_set
@@ -1336,7 +1348,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         std::cout << "*****************************************************************************"
                      "*******************************************"
                   << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This should function "
+        std::cout << "***** WARNING: test_drive was called more than once. This function "
                      "should only be called once."
                   << std::endl;
         std::cout << "***** This may abort in the future. Please update the test driver. "

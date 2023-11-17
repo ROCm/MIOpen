@@ -18,13 +18,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/5.7/ubuntu/focal/amdgpu-install_5.7.50700-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/5.7.1/ubuntu/focal/amdgpu-install_5.7.50701-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_5.7.50700-1_all.deb
+    ./amdgpu-install_5.7.50701-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=5.7;\
+RUN export ROCM_APT_VER=5.7.1;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu focal main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER focal main > /etc/apt/sources.list.d/rocm.list'
@@ -41,6 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     doxygen \
     gdb \
     git \
+    git-lfs \
     lbzip2 \
     lcov \
     libncurses5-dev \
@@ -89,8 +90,9 @@ ARG CCACHE_DIR="/tmp"
 RUN env
 # RUN cget -p $PREFIX install https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
 ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
-RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz -O /tmp/ccache.tar.gz && \
-    tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
+RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache
+ADD https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz /tmp/ccache.tar.gz
+RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
     cd /tmp/ccache-${CCACHE_COMMIT}/build && \
     cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 

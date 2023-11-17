@@ -27,8 +27,7 @@
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
-#include <miopen/handle.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #include <cassert>
 
@@ -38,7 +37,7 @@ namespace miopen {
  * arguments.
  */
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -56,7 +55,7 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -73,7 +72,7 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
 }
 
 inline void GetCompiledInParameters(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+                                    const conv::ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -91,8 +90,8 @@ inline void GetCompiledInParameters(const ExecutionContext& ctx,
     assert(filter_size_H && filter_size_W && pad_H && pad_W);
     *filter_size_H = problem.GetWeightsHeight_();
     *filter_size_W = problem.GetWeightsWidth_();
-    *pad_H         = problem.direction.IsForward() ? problem.GetPadH() : problem.GetBackwardPadH();
-    *pad_W         = problem.direction.IsForward() ? problem.GetPadW() : problem.GetBackwardPadW();
+    *pad_H         = problem.IsDirectionForward() ? problem.GetPadH() : problem.GetBackwardPadH();
+    *pad_W         = problem.IsDirectionForward() ? problem.GetPadW() : problem.GetBackwardPadW();
 }
 
 } // namespace miopen

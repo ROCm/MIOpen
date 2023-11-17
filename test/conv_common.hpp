@@ -133,10 +133,9 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    const auto conv_problem = miopen::conv::ProblemDescription{
+    const auto problem = miopen::conv::ProblemDescription{
         xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
-    const auto problem = miopen::ProblemDescription{conv_problem};
-    auto ctx           = miopen::ExecutionContext{};
+    auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -163,13 +162,21 @@ StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
     if(tensor_vect == 0)
     {
         if(layout_str == "NCHW")
+        {
             return miopenTensorNCHW;
+        }
         else if(layout_str == "NHWC")
+        {
             return miopenTensorNHWC;
+        }
         else if(layout_str == "NDHWC")
+        {
             return miopenTensorNDHWC;
+        }
         else if(layout_str == "NCDHW")
+        {
             return miopenTensorNCDHW;
+        }
         else
         {
             MIOPEN_THROW("Non-vectorized tensor only support layout NCHW, NHWC, NCDHW and NDHWC");
@@ -301,8 +308,10 @@ protected:
             if(preallocate)
             {
                 for(auto i = 0; i < 3; ++i)
+                {
                     miopenSetFindOptionPreallocatedTensor(
                         options.get(), arguments[i].id, arguments[i].buffer);
+                }
             }
 
             EXPECT_EQUAL(
@@ -571,7 +580,9 @@ struct verify_forward_conv : conv_base<T, Tout>
             bool is_vect_c = weights.desc.GetVectorLength() > 1;
             rout.par_for_each([&](auto... is) {
                 if(is_int8 && !is_vect_c)
+                {
                     rout(is...) = Tout(double(rout(is...)) + double(this->bias));
+                }
                 else if(is_vect_c)
                 {
                     for(std::size_t i = 0; i < weights.desc.GetVectorLength(); i++)
@@ -680,8 +691,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const std::size_t ws_size = filter.GetBackwardSolutionWorkspaceSize(
                         handle, input.desc, weights.desc, rout.desc, selected.solution_id);
                     if(ws_size != selected.workspace_size)
+                    {
                         std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
                                   << " != " << ws_size << std::endl;
+                    }
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
@@ -747,8 +760,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const std::size_t ws_size = filter.GetForwardSolutionWorkspaceSize(
                         handle, weights.desc, input.desc, rout.desc, selected.solution_id);
                     if(ws_size != selected.workspace_size)
+                    {
                         std::cout << "WARNING: workspace size mismatch: " << selected.workspace_size
                                   << " != " << ws_size << std::endl;
+                    }
                 }
                 resize_workspace(handle, selected.workspace_size, ws, ws_dev);
 
@@ -2033,7 +2048,6 @@ struct conv_driver : test_driver
 
     void run()
     {
-
         if(!input_dims.empty())
             filter.spatialDim = get_spatial_dim();
         else
@@ -2052,8 +2066,7 @@ struct conv_driver : test_driver
 
         if(!input_dims.empty())
         {
-            input =
-                tensor<T>{type, input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
+            input = tensor<T>{input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
@@ -2062,8 +2075,7 @@ struct conv_driver : test_driver
         {
             ///\todo This means input_dims ranged in NCHW way, shall we determine the tensor
             /// dimension via layout string?
-            input = tensor<T>{type,
-                              input_layout_t,
+            input = tensor<T>{input_layout_t,
                               batch_size,
                               input_channels,
                               spatial_dim_elements.at(0),
@@ -2084,7 +2096,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
@@ -2093,7 +2105,7 @@ struct conv_driver : test_driver
             }
             else
             {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                weights = tensor<T>{weight_layout_t, weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
@@ -2104,8 +2116,7 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "NCHW")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     output_channels,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
@@ -2114,8 +2125,7 @@ struct conv_driver : test_driver
             }
             else if(fil_layout == "CHWN")
             {
-                weights = tensor<T>{type,
-                                    weight_layout_t,
+                weights = tensor<T>{weight_layout_t,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
                                     filter_dims.at(1),

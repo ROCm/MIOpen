@@ -38,6 +38,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1(int BlockSize_,
                                                                        int GemmMPerBlock_,
@@ -611,7 +614,9 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ExecutionContext&,
                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         // In case of fp16/bfp16, because there is no atomic add ISA,
@@ -638,11 +643,13 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
+    if(problem.HasNonPackedTensors())
+        return false;
     if(!problem.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))
         return false;
@@ -658,8 +665,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 #if WORKAROUND_ISSUE_309
     if(problem.IsBfp16())
+    {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
             return false;
+    }
 #endif
 
     const auto k = ProblemInterpreter::GetOutputChannelK(problem);
@@ -867,10 +876,11 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ExecutionContext& ctx,
             std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(problem);
+    result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
