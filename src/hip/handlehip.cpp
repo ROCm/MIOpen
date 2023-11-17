@@ -355,6 +355,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     int last_stream_id = this->impl->ms_resourse_ptr->stream_pool.size();
 
     if(last_stream_id < cnt)
+    {
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
@@ -365,6 +366,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
         }
+    }
 }
 
 miopenAcceleratorQueue_t Handle::GetStream() const

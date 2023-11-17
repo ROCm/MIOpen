@@ -68,7 +68,9 @@ std::string GetSystemDbPath()
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p.empty())
 #if MIOPEN_BUILD_DEV
+    {
         return "${MIOPEN_SYSTEM_DB_PATH}";
+    }
 #else
     {
         // Get the module path and construct the db path
@@ -77,7 +79,9 @@ std::string GetSystemDbPath()
     }
 #endif
     else
+    {
         return p;
+    }
 }
 
 namespace {

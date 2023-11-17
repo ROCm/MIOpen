@@ -795,10 +795,12 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     if(!IsWarned)
     {
         if(ctx.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
+        {
             MIOPEN_LOG_WE(SolverDbId()
                           << ": GPU has " << ctx.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << MAX_CU_LIMIT
                           << "and thus may show sub-optimal performance.");
+        }
         IsWarned = true;
     }
 

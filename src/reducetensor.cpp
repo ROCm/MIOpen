@@ -95,22 +95,32 @@ struct ReductionKernelConfigurator
         {
             if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
+            {
                 return (1);
+            }
             else
+            {
                 return ((toReduceLength + blockSize_ - 1) /
                         blockSize_); // let multiple blocks to do this only reduction
+            }
         }
         else
         {
             if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
+            {
                 return ((invariantLength + blockSize_ - 1) / blockSize_);
+            }
             else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
+            {
                 return ((invariantLength + numWarpsPerBlock - 1) / numWarpsPerBlock);
+            }
             else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
+            {
                 return (invariantLength);
+            }
             else
             { // let multiple blocks to do each reduction
                 std::size_t expBlocksPerReduction =
@@ -134,23 +144,35 @@ struct ReductionKernelConfigurator
         {
             if(toReduceLength <=
                GredBlockWiseUpperReductionLen) // let one block to do this only reduction
+            {
                 return (Reduce_BlockWise);
+            }
             else // let multiple blocks to do this only reduction
+            {
                 return (Reduce_MultiBlock);
+            }
         }
         else
         {
             if(toReduceLength <=
                GredDirectThreadWiseUpperReductionLen) // let one thread to do each reduction
+            {
                 return (Reduce_DirectThreadWise);
+            }
             else if(toReduceLength <=
                     GredDirectWarpWiseUpperReductionLen) // let one warp to do each reduction
+            {
                 return (Reduce_DirectWarpWise);
+            }
             else if(toReduceLength <=
                     GredBlockWiseUpperReductionLen) // let one block to do each reduction
+            {
                 return (Reduce_BlockWise);
+            }
             else
+            {
                 return (Reduce_MultiBlock); // let multiple blocks to do each reduction
+            }
         };
     };
 
@@ -513,8 +535,10 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
     for(int i = 0; i < inDescLengths.size(); i++)
     {
         if(outDescLengths[i] != 1 && outDescLengths[i] != inDescLengths[i])
+        {
             MIOPEN_THROW("The length of the output tensor dimension should either be 1 or be equal "
                          "to the length of the corresponding dimension of the input tensor.");
+        }
     };
 
     auto invariantLength = outDesc.GetElementSize();
@@ -567,8 +591,10 @@ std::size_t ReduceTensorDescriptor::GetIndicesSize(const TensorDescriptor& inDes
     for(int i = 0; i < inDescLengths.size(); i++)
     {
         if(outDescLengths[i] != 1 && outDescLengths[i] != inDescLengths[i])
+        {
             MIOPEN_THROW("The length of the output tensor dimension should either be 1 or be equal "
                          "to the length of the corresponding dimension of the input tensor.");
+        }
     };
 
     auto reduceIndicesOpt = this->reduceTensorIndices_;
@@ -632,8 +658,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     for(int i = 0; i < inDescLengths.size(); i++)
     {
         if(outDescLengths[i] != 1 && outDescLengths[i] != inDescLengths[i])
+        {
             MIOPEN_THROW("The length of the output tensor dimension should either be 1 or be equal "
                          "to the length of the corresponding dimension of the input tensor.");
+        }
     };
 
     std::size_t ws_sizeInBytes      = this->GetWorkspaceSize(handle, aDesc, cDesc);
@@ -679,8 +707,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     };
 
     if(toReduceDims.empty())
+    {
         MIOPEN_THROW("Invalid TensorDescriptor, at least one dimension of the input tensor should "
                      "be reduced.");
+    }
 
     const bool reduceAllDims = invariantDims.empty();
 
@@ -808,19 +838,25 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 #if WORKAROUND_MIOPEN_ISSUE_557
         if(StartsWith(handle.GetDeviceName(), "gfx10") ||
            StartsWith(handle.GetDeviceName(), "gfx11"))
+        {
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+        }
         else
         {
             if(srcDataType == miopenDouble)
+            {
                 // TODO: support from composable kernel utility for using AMD Buffer Addressing for
                 // double
                 param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+            }
         };
 #else
         if(srcDataType == miopenDouble)
+        {
             // TODO: support from composable kernel utility for using AMD Buffer Addressing for
             // double
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
+        }
 #endif
 
         Data_t ws_buf1_global = workspace;
@@ -996,6 +1032,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                        std::to_string(static_cast<int>(use_padding.second));
 
         if(!reduceAllDims)
+        {
             handle.AddKernel(
                 algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
                 gridSize,
@@ -1019,7 +1056,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_outStrides[4],
                 p_outStrides[5],
                 workspace);
+        }
         else
+        {
             handle.AddKernel(
                 algo_name, network_config_1, program_name1, kernel_name1, vld, vgd1, param1)(
                 gridSize,
@@ -1037,6 +1076,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                 p_inStrides[4],
                 p_inStrides[5],
                 workspace);
+        }
 
         if(handle.IsProfilingEnabled())
             time_reduce += handle.GetKernelTime();
@@ -1091,6 +1131,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                                            std::to_string(static_cast<int>(use_padding2.second));
 
             if(!reduceAllDims)
+            {
                 handle.AddKernel(
                     algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
                     gridSize_2,
@@ -1108,10 +1149,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                     p_outStrides[4],
                     p_outStrides[5],
                     workspace);
+            }
             else
+            {
                 handle.AddKernel(
                     algo_name, network_config_2, program_name2, kernel_name2, vld, vgd1, param2)(
                     gridSize_2, blkGroupSize, workspace);
+            }
 
             if(handle.IsProfilingEnabled())
                 time_reduce += handle.GetKernelTime();

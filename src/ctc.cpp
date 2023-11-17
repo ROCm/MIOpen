@@ -83,8 +83,10 @@ size_t CTCLossDescriptor::GetCTCLossWorkspaceSize(Handle& handle,
                 MIOPEN_THROW(miopenStatusBadParm, "Wrong label id at batch");
             }
             if(j > 0)
+            {
                 if(labels[labels_offset[i] + j] == labels[labels_offset[i] + j - 1])
                     repeat[i]++;
+            }
         }
 
         if(labelLengths[i] + repeat[i] > inputLengths[i])
