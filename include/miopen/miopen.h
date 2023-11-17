@@ -64,6 +64,7 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
+ * @defgroup sum
  *
  */
 
@@ -5510,6 +5511,64 @@ MIOPEN_EXPORT miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopen
 
 /** @} */
 // CLOSEOUT find2 DOXYGEN GROUP
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup sum
+ * @enum miopenSumNanPropagation_t
+ * Nan numbers propagation modes for sum
+ */
+typedef enum
+{
+    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
+} miopenSumNanPropagation_t;
+
+// Sum APIs
+/** @addtogroup sum
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param dim                      Dimensions to sum. (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t xDesc,
+                                                       const int32_t dim,
+                                                       const miopenTensorDescriptor_t yDesc,
+                                                       size_t* sizeInBytes);
+
+/*! @brief Execute a sum forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param nanPropagation Nan number propagation mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param dim            Dimensions to sum. (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
+                                              miopenSumNanPropagation_t nanPropagation,
+                                              void* workspace,
+                                              size_t workspaceSizeInBytes,
+                                              const miopenTensorDescriptor_t xDesc,
+                                              const void* x,
+                                              const int32_t dim,
+                                              const miopenTensorDescriptor_t yDesc,
+                                              void* y);
+
+/** @} */
+// CLOSEOUT SUM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }

@@ -23,32 +23,43 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_LAYERNORM_HPP_
-#define MIOPEN_LAYERNORM_HPP_
+#ifndef GUARD_CPU_SUM_HPP
+#define GUARD_CPU_SUM_HPP
 
-#include <miopen/common.hpp>
+#include "tensor_holder.hpp"
 
-namespace miopen {
+template <class T>
+void cpu_sum_forward(tensor<T> input,
+                     tensor<T>& ref_output,
+                     int32_t dim,
+                     miopenSumNanPropagation_t nanPropagation)
+{
+    auto input_dims  = input.desc.GetLengths();
+    auto output_dims = ref_output.desc.GetLengths();
 
-struct Handle;
-struct TensorDescriptor;
+    auto reduce_size = input_dims[dim];
+    auto output_numel =
+        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenLayerNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+    auto inner_size = 1ULL;
+    for(int32_t i = dim + 1; i < xdims.size(); i++)
+    {
+        inner_size *= xdims[i];
+    }
 
-} // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+    par_ford(output_numel)([&](size_t o) {
+        T sum = 0.0f;
+
+        ford(reduce_size)([&](size_t i) {
+            T tmp = input[(o / inner_size) * inner_size * reduce_size + o % inner_size];
+            if(nanPropagation && isnan(val))
+            {
+                val = 0.0f;
+            }
+            sum += tmp;
+        });
+
+        ref_output[o] = sum
+    })
+}
+#endif

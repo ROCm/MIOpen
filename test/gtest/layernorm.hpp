@@ -277,7 +277,7 @@ protected:
         error = miopen::rms_range(ref_mean, mean);
         EXPECT_TRUE(miopen::range_distance(ref_mean) == miopen::range_distance(mean));
         EXPECT_TRUE(error < threshold * 20)
-            << "Error mean beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+            << "Error mean beyond tolerance Error:" << error << ",  Thresholdx20: " << threshold;
 
         error = miopen::rms_range(ref_rstd, rstd);
         EXPECT_TRUE(miopen::range_distance(ref_rstd) == miopen::range_distance(rstd));
