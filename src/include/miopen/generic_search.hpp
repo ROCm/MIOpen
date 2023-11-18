@@ -53,6 +53,8 @@ namespace miopen {
 namespace solver {
 
 namespace debug {
+// This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
+// constructing it inside a worker thread.
 struct TuningIterationScopedLimiter
 {
     TuningIterationScopedLimiter(std::size_t new_limit);
