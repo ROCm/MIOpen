@@ -29,7 +29,7 @@
 #include <miopen/layernorm.hpp>
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/normalization.hpp>
+#include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
