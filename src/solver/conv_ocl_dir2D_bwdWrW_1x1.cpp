@@ -38,6 +38,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
@@ -45,8 +48,10 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_266868
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
+    {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
             return false;
+    }
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
@@ -56,7 +61,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -456,9 +461,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
         {
             result.invoker_factory = [ws_sz](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                    const auto ss_kernel      = handle.Run(kernels[0]);
-                    const auto main_kernel    = handle.Run(kernels[1]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+                    const auto ss_kernel   = handle.Run(kernels[0]);
+                    const auto main_kernel = handle.Run(kernels[1]);
+                    const auto& invoke_params =
+                        primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
 
                     if(invoke_params.workSpaceSize < ws_sz)
                         MIOPEN_THROW("Not enough workspace for ConvOclBwdWrW1x1");
@@ -487,10 +493,11 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
         {
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-                    const auto k              = handle.Run(kernels[0]);
-                    const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                    const auto& tensors       = invoke_params.tensors;
-                    const auto padding_val    = 0.f;
+                    const auto k = handle.Run(kernels[0]);
+                    const auto& invoke_params =
+                        primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                    const auto& tensors    = invoke_params.tensors;
+                    const auto padding_val = 0.f;
 
                     visit_float(tensors.dyDesc.GetType(), [&](auto as_float) {
                         k(tensors.dy, tensors.x, tensors.dw, as_float(padding_val));
@@ -501,5 +508,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
     }
     return result;
 }
+
+} // namespace conv
 } // namespace solver
 } // namespace miopen

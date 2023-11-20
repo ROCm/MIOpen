@@ -30,7 +30,7 @@
 #include <miopen/config.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
 
@@ -41,6 +41,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+
+namespace conv {
+namespace {
 
 class DirectSolverFinder : public SolversFinderMixin<ProblemDescription, ConvFindParameters>
 {
@@ -178,6 +181,8 @@ protected:
     }
 };
 
+} // namespace
+
 const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 {
     static const auto finders = []() {
@@ -193,14 +198,16 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
     return finders;
 }
 
+} // namespace conv
+
 /// Register invoker only for the best solution within algorithm.
 /// Add all solutions to the find-db record.
-void EvaluateInvokers(Handle& handle,
-                      const std::vector<solver::ConvSolution>& solutions,
-                      const AlgorithmName& algorithm_name,
-                      const NetworkConfig& network_config,
-                      const AnyInvokeParams& invoke_ctx,
-                      DbRecord& record)
+static void EvaluateInvokers(Handle& handle,
+                             const std::vector<solver::ConvSolution>& solutions,
+                             const AlgorithmName& algorithm_name,
+                             const NetworkConfig& network_config,
+                             const AnyInvokeParams& invoke_ctx,
+                             DbRecord& record)
 {
     const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
     if(arch != nullptr && strlen(arch) > 0)
@@ -305,9 +312,13 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
     const auto network_config = problem.MakeNetworkConfig();
 
     for(const auto& ss : solutions)
+    {
         if(!ss.second.empty())
             EvaluateInvokers(handle, ss.second, ss.first, network_config, invoke_ctx, record);
+    }
 }
+
+namespace conv {
 
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
 {
@@ -328,4 +339,5 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     } // clang-format on
 }
 
+} // namespace conv
 } // namespace miopen

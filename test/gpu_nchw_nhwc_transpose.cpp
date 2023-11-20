@@ -90,6 +90,56 @@ void cpu_nhwc2nchw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t 
     }
 }
 
+template <typename T>
+void cpu_ncdhw2ndhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+{
+    for(uint64_t i_n = 0; i_n < N; i_n++)
+    {
+        for(uint64_t i_d = 0; i_d < D; i_d++)
+        {
+            for(uint64_t i_h = 0; i_h < H; i_h++)
+            {
+                for(uint64_t i_w = 0; i_w < W; i_w++)
+                {
+                    for(uint64_t i_c = 0; i_c < C; i_c++)
+                    {
+                        uint64_t idx_ndhwc =
+                            i_n * D * H * W * C + i_d * H * W * C + i_h * W * C + i_w * C + i_c;
+                        uint64_t idx_ncdhw =
+                            i_n * C * D * H * W + i_c * D * H * W + i_d * H * W + i_h * W + i_w;
+                        dst[idx_ndhwc] = src[idx_ncdhw];
+                    }
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void cpu_ndhwc2ncdhw(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
+{
+    for(uint64_t i_n = 0; i_n < N; i_n++)
+    {
+        for(uint64_t i_c = 0; i_c < C; i_c++)
+        {
+            for(uint64_t i_d = 0; i_d < D; i_d++)
+            {
+                for(uint64_t i_h = 0; i_h < H; i_h++)
+                {
+                    for(uint64_t i_w = 0; i_w < W; i_w++)
+                    {
+                        uint64_t idx_ndhwc =
+                            i_n * D * H * W * C + i_d * H * W * C + i_h * W * C + i_w * C + i_c;
+                        uint64_t idx_ncdhw =
+                            i_n * C * D * H * W + i_c * D * H * W + i_d * H * W + i_h * W + i_w;
+                        dst[idx_ncdhw] = src[idx_ndhwc];
+                    }
+                }
+            }
+        }
+    }
+}
+
 template <typename T, typename TRANSPOSE_SOL>
 struct cpu_transpose
 {
@@ -140,18 +190,14 @@ enum tensor_layout_t
 
 std::string tensor_layout_to_string(tensor_layout_t layout)
 {
-    std::string layout_string("N/A");
-    if(layout == miopen_tensor_layout_nchw)
-        layout_string = "NCHW";
-    else if(layout == miopen_tensor_layout_ncdhw)
-        layout_string = "NCDHW";
-    else if(layout == miopen_tensor_layout_nhwc)
-        layout_string = "NHWC";
-    else if(layout == miopen_tensor_layout_ndhwc)
-        layout_string = "NDHWC";
-    else
-        MIOPEN_THROW("Unsupported tensor layout");
-    return layout_string;
+    switch(layout)
+    {
+    case miopen_tensor_layout_nchw: return "NCHW";
+    case miopen_tensor_layout_ncdhw: return "NCDHW";
+    case miopen_tensor_layout_nhwc: return "NHWC";
+    case miopen_tensor_layout_ndhwc: return "NDHWC";
+    default: MIOPEN_THROW("Unsupported tensor layout");
+    }
 }
 
 template <typename T>
@@ -239,7 +285,7 @@ struct transpose_base
 
     static std::vector<uint32_t> get_channel_size() { return {3, 8, 14}; }
 
-    static std::vector<uint32_t> get_batch_size() { return {1, 2}; }
+    static std::vector<uint32_t> get_batch_size() { return {1, 2, 4}; }
 
     template <typename F>
     void iterate_transpose(F f)
@@ -260,6 +306,34 @@ struct transpose_base
                     for(uint32_t n : batch_list)
                     {
                         f(n, c, h, w);
+                    }
+                }
+            }
+        }
+    }
+
+    template <typename F>
+    void iterate_transpose_3d(F f)
+    {
+        std::vector<uint32_t> channel_list = get_channel_size();
+        std::vector<uint32_t> image_list   = get_image_size();
+        std::vector<uint32_t> batch_list   = get_batch_size();
+        channel_list.push_back(prng::gen_off_range(29, 13));
+        image_list.push_back(prng::gen_off_range(15, 13));
+        batch_list.push_back(prng::gen_off_range(3, 4));
+
+        for(uint32_t c : channel_list)
+        {
+            for(uint32_t d : image_list)
+            {
+                for(uint32_t h : image_list)
+                {
+                    for(uint32_t w : image_list)
+                    {
+                        for(uint32_t n : batch_list)
+                        {
+                            f(n, c, d, h, w);
+                        }
                     }
                 }
             }
@@ -414,6 +488,106 @@ struct transpose_test : transpose_base
     }
 };
 
+template <typename T>
+struct transpose_3d_test : public transpose_base
+{
+
+    void run()
+    {
+        auto run_transpose = [this](uint32_t n, uint32_t c, uint32_t d, uint32_t h, uint32_t w) {
+            std::vector<int> tensor_len({static_cast<int>(n),
+                                         static_cast<int>(c),
+                                         static_cast<int>(d),
+                                         static_cast<int>(h),
+                                         static_cast<int>(w)});
+
+            std::vector<int> tensor_strides;
+
+            std::string layout_default = miopen::tensor_layout_get_default(5);
+            std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_ncdhw);
+
+            miopen::tensor_layout_to_strides(
+                tensor_len, layout_default, layout_string, tensor_strides);
+
+            tensor<T> t_src(tensor_len, tensor_strides);
+            tensor<T> t_gpu_2d(tensor_len, tensor_strides);
+            tensor<T> t_dst_ref(tensor_len, tensor_strides);
+            tensor<T> t_cpu_2d(tensor_len, tensor_strides);
+
+            rand_tensor_integer(t_src);
+
+            auto tensor_sz = t_src.data.size();
+            void* src_dev;
+            void* dst_dev;
+            EXPECT(hipMalloc(&src_dev, sizeof(T) * tensor_sz) == hipSuccess);
+            EXPECT(hipMalloc(&dst_dev, sizeof(T) * tensor_sz) == hipSuccess);
+            EXPECT(hipMemcpy(
+                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
+                   hipSuccess);
+
+            const auto invoke_param = transpose_invoke_param{
+                DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
+
+            miopen::ExecutionContext ctx;
+            ctx.SetStream(&miopen::deref(this->handle));
+            // ctx.SetupFloats();
+
+            using TRANSPOSE_SOL = miopen::TransposeSolutionDefault2Nhwc;
+            TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, d * h, w);
+
+            std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
+
+            boost::optional<miopen::InvokerFactory> invoker_factory(
+                [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                    return [=](const miopen::Handle& handle,
+                               const miopen::AnyInvokeParams& primitive_param) mutable {
+                        decltype(auto) invoke_params =
+                            primitive_param.CastTo<transpose_invoke_param>();
+
+                        const auto k = handle.Run(kernels[0]);
+
+                        opArgs[0] = OpKernelArg(invoke_params.dst);
+                        opArgs[1] = OpKernelArg(invoke_params.src);
+
+                        k(opArgs);
+                    };
+                });
+
+            std::vector<miopen::solver::KernelInfo> construction_params{
+                transpose_sol.GetKernelInfo()};
+
+            const auto invoker =
+                miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
+
+            // run gpu
+            invoker(miopen::deref(this->handle), invoke_param);
+
+            EXPECT(hipMemcpy(t_gpu_2d.data.data(),
+                             dst_dev,
+                             sizeof(T) * tensor_sz,
+                             hipMemcpyDeviceToHost) == hipSuccess);
+
+            cpu_nchw2nhwc(t_cpu_2d.data.data(), t_src.data.data(), n, c, d * h, w);
+
+            cpu_ncdhw2ndhwc(t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
+
+            bool valid_result = verify_tensor(t_dst_ref, t_cpu_2d);
+            EXPECT(valid_result == true);
+
+            valid_result = verify_tensor(t_dst_ref, t_gpu_2d);
+
+            std::cout << "["
+                      << ", b" << (sizeof(T) * 8) << " ] "
+                      << "n:" << n << ", c:" << c << ", h:" << h << ", w:" << w
+                      << ", valid:" << valid_result << std::endl;
+
+            EXPECT(valid_result == true);
+        };
+
+        iterate_transpose_3d(run_transpose);
+    };
+};
+
 int main()
 {
     run_test<transpose_test<float, miopen::TransposeSolutionDefault2Nhwc>>();
@@ -423,4 +597,6 @@ int main()
     run_test<transpose_test<float, miopen::TransposeSolutionNhwc2Default>>();
     run_test<transpose_test<uint16_t, miopen::TransposeSolutionNhwc2Default>>();
     run_test<transpose_test<uint8_t, miopen::TransposeSolutionNhwc2Default>>();
+
+    run_test<transpose_3d_test<float>>();
 }
