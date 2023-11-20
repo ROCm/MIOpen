@@ -122,10 +122,11 @@ TEST_P(Conv3dBf16, Bf16Test)
     }
 };
 
-std::vector<TestCase> GetTestCases(const std::string& precision){
+std::vector<TestCase> GetTestCases(const std::string& precision)
+{
 
-const std::vector<TestCase> test_cases = {
-    // clang-format off
+    const std::vector<TestCase> test_cases = {
+        // clang-format off
     // test_conv3d_extra
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1" },
