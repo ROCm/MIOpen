@@ -236,7 +236,7 @@ protected:
         mean_dev   = handle.Write(mean.data);
         rstd_dev   = handle.Write(rstd.data);
     }
-    void TearDown() override
+    void RunTest()
     {
         auto&& handle = get_handle();
 
@@ -266,7 +266,10 @@ protected:
         output.data = handle.Read<T>(output_dev, output.data.size());
         mean.data   = handle.Read<T>(mean_dev, mean.data.size());
         rstd.data   = handle.Read<T>(rstd_dev, rstd.data.size());
+    }
 
+    void Verify()
+    {
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 
