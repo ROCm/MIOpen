@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/layernorm.hpp>
