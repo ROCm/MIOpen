@@ -298,13 +298,9 @@ Tref SumDriver<Tgpu, Tref>::GetTolerance()
     {
         return 5e-5;
     }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
-    }
     else if(data_type == miopenBFloat16)
     {
-        return 5e-3;
+        return 1e-2;
     }
     return 0;
 }

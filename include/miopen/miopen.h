@@ -5537,7 +5537,7 @@ typedef enum
  * @param dim                      Dimensions to sum. (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
- * @return           miopenStatus_t
+ * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
                                                        const miopenTensorDescriptor_t xDesc,
