@@ -261,19 +261,6 @@ struct RNNDescriptor : miopenRNNDescriptor
                             Data_t reserveSpace,
                             size_t reserveSpaceSize) const;
 
-    void RNNForwardTrainingGRU(Handle& handle,
-                               std::vector<int>& seq_array,
-                               const TensorDescriptor& xDesc,
-                               ConstData_t x,
-                               const TensorDescriptor& hxDesc,
-                               ConstData_t hx,
-                               const TensorDescriptor& wDesc,
-                               ConstData_t w,
-                               const TensorDescriptor& yDesc,
-                               Data_t y,
-                               Data_t hy,
-                               Data_t reserveSpace) const;
-
     void RNNForwardTrainingTanhRelu(Handle& handle,
                                     std::vector<int>& seq_array,
                                     const TensorDescriptor& xDesc,
