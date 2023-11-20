@@ -66,9 +66,8 @@ const char* ToCString(const FindEnforceAction mode)
     return "<Unknown>";
 }
 
-FindEnforceAction GetFindEnforceActionImpl()
+FindEnforceAction GetFindEnforceActionImpl(std::string str)
 {
-    auto str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
     if(str.empty())
         return FindEnforceAction::Default_;
     for(auto& c : str)
@@ -105,14 +104,21 @@ FindEnforceAction GetFindEnforceActionImpl()
 
 FindEnforceAction GetFindEnforceAction()
 {
-    const FindEnforceAction val = GetFindEnforceActionImpl();
+    static FindEnforceAction val = FindEnforceAction::Default_;
+    static std::string prev_env_str;
+    const auto& str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
+    if(prev_env_str != str)
+    {
+        val = GetFindEnforceActionImpl(str);
+        prev_env_str = str;
+    }
+
     return val;
 }
 
-boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
+boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl(const std::string& slv_str)
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
-    const auto& slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
     std::vector<solver::Id> res;
     if(!slv_str.empty())
     {
@@ -167,8 +173,16 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
 {
-    const auto once = GetEnvFindOnlySolverImpl();
-    return once;
+    static boost::optional<std::vector<solver::Id>> val = boost::none;
+    static std::string prev_env_str;
+    const auto& slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    if(prev_env_str != slv_str)
+    {
+        val = GetEnvFindOnlySolverImpl(slv_str);
+        prev_env_str = slv_str;
+    }
+
+    return val;
 }
 
 namespace {
@@ -192,9 +206,8 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
     return os << ToCString(v) << "(" << static_cast<int>(v) << ')';
 }
 
-FindMode::Values GetFindModeValueImpl2()
+FindMode::Values GetFindModeValueImpl2(std::string str)
 {
-    auto str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
     if(str.empty())
         return FindMode::Values::Default_;
     for(auto& c : str)
@@ -225,16 +238,24 @@ FindMode::Values GetFindModeValueImpl2()
     return FindMode::Values::Default_;
 }
 
-FindMode::Values GetFindModeValueImpl()
+FindMode::Values GetFindModeValueImpl(const std::string& env_str)
 {
-    auto rv = GetFindModeValueImpl2();
+    auto rv = GetFindModeValueImpl2(env_str);
     MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
     return rv;
 }
 
 FindMode::Values GetFindModeValue()
 {
-    const FindMode::Values val = GetFindModeValueImpl();
+    static FindMode::Values val = FindMode::Values::Default_;
+    static std::string prev_env_str;
+    const auto& str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
+    if(prev_env_str != str)
+    {
+        val = GetFindModeValueImpl(str);
+        prev_env_str = slv_str;
+    }
+
     return val;
 }
 
