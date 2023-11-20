@@ -40,6 +40,15 @@ namespace solver {
 
 namespace reduce {
 
+bool IsNotLastDim(const miopen::reduce::ProblemDescription& problem)
+{
+    if((problem.GetDim() == problem.GetXDesc().GetLengths().size() - 1))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "SumForward: Reduce last dim not supported.");
+    }
+    return true;
+}
+
 bool SumForward::IsApplicable(const ExecutionContext&,
                               const miopen::reduce::ProblemDescription& problem) const
 {
@@ -51,7 +60,7 @@ bool SumForward::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(!problem.IsNotLastDim())
+    if(!IsNotLastDim(problem))
         return false;
     return true;
 }

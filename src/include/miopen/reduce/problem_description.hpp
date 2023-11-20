@@ -102,8 +102,6 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsNotLastDim() const { return !(dim == xDesc.GetLengths().size() - 1); }
-
     NetworkConfig MakeNetworkConfig() const override;
 
 private:

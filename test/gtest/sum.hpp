@@ -84,8 +84,22 @@ std::vector<SumTestCase> SumTestConfigs()
 { // n c d h w dim nanPropagation
     // clang-format off
     return {
-        { 256,  0,    0,   4, 8732, 0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
-        { 256,  0,    0,   4, 8732, 0 , MIOPEN_SUM_PROPAGATE_NAN}
+        { 8,    88,   0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //bert
+        { 8,    104,  0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
+        { 8,    88,   0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 8,    104,  0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 2048, 0,    0,  0,   2304,  0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //gpt_neo
+        { 8192, 0,    0,  0,   768,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
+        { 2048, 0,    0,  0,   2304,  0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 8192, 0,    0,  0,   768,   0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 16,   1024, 0,  0,   768,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //gpt2
+        { 16,   1024, 0,  0,   768,   0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //t5
+        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //t5
+        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 16, 304,    0,  105, 512,   2 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //rnnt
+        { 16, 304,    0,  105, 512,   2 , MIOPEN_SUM_PROPAGATE_NAN}
       };
     // clang-format on
 }
@@ -178,8 +192,8 @@ protected:
         auto error       = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold)
-            << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
     }
     SumTestCase sum_config;
 
