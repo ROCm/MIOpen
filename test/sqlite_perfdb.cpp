@@ -767,10 +767,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -804,10 +806,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -853,8 +857,10 @@ public:
                                std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
 
                 if(thread_logs_root())
+                {
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
@@ -974,8 +980,10 @@ public:
                                p;
 
                 if(thread_logs_root())
+                {
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
@@ -1277,10 +1285,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
@@ -1315,10 +1325,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         std::cout << "Waiting for test threads..." << std::endl;

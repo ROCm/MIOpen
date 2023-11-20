@@ -941,10 +941,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -992,8 +994,10 @@ public:
                                ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
+                {
                     command +=
                         std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
@@ -1120,8 +1124,10 @@ public:
                                ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
+                {
                     command +=
                         std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
@@ -1440,10 +1446,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1481,10 +1489,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1530,10 +1540,14 @@ struct PerfDbDriver : test_driver
         if(mt_child_id >= 0)
         {
             if(mt_child_db_class == ArgsHelper::db_class::db)
+            {
                 DbMultiProcessTest<PlainTextDb>::WorkItem(
                     mt_child_id, mt_child_db_path, test_write);
+            }
             else if(mt_child_db_class == ArgsHelper::db_class::ramdb)
+            {
                 DbMultiProcessTest<RamDb>::WorkItem(mt_child_id, mt_child_db_path, test_write);
+            }
             return;
         }
 

@@ -66,9 +66,11 @@ std::string GetSystemDbPath()
     auto p = GetStringEnv(MIOPEN_SYSTEM_DB_PATH{});
     if(p == nullptr)
 #if (MIOPEN_BUILD_DEV != 0) || defined(_WIN32)
+    {
         // Here, by default, MIOPEN_SYSTEM_DB_PATH is an empty path on Windows.
         // MIOpen.dll will be searching for System DB files in local directory.
         return "${MIOPEN_SYSTEM_DB_PATH}";
+    }
 #else
     {
         // Get the module path and construct the db path
@@ -77,7 +79,9 @@ std::string GetSystemDbPath()
     }
 #endif
     else
+    {
         return p;
+    }
 }
 
 namespace {
