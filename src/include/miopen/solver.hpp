@@ -4991,6 +4991,8 @@ private:
     bool CheckCKApplicability(const ProblemDescription&) const;
 };
 
+} // namespace conv
+
 // Use struct as a syntactic sugar to make the intent as clear as possible.
 struct ThisSolverIsDeprecatedStatic
 {
