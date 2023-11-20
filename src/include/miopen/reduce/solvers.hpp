@@ -49,6 +49,7 @@ struct SumForward final : ReduceSolver
                              const miopen::reduce::ProblemDescription& problem) const override;
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
                                  const miopen::reduce::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 } // namespace reduce

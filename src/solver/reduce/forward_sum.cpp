@@ -72,7 +72,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
+    // At least 4 WGs per one CU
+    auto reqd_work_item_cnt =
+        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
     // Now it is set for mi250.
     // TODO: parameterize this for different GPUs
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
@@ -174,7 +176,9 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                     inner_size *= xdims[i];
                 }
 
-                auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
+                // At least 4 WGs per one CU
+                auto reqd_work_item_cnt =
+                    static_cast<size_t>(256 * handle_.GetMaxComputeUnits() * 4);
 
                 auto parallelism_size = 1ULL;
                 while(parallelism_size * output_numel < reqd_work_item_cnt &&
@@ -182,7 +186,6 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
                 {
                     parallelism_size *= 2ULL;
                 }
-                printf("parallelism_size: %d\n", parallelism_size);
 
                 auto elapsed = 0.f;
 
@@ -248,7 +251,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t SumForward::GetWorkspaceSize(const ExecutionContext&,
+std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
                                          const miopen::reduce::ProblemDescription& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
@@ -258,9 +261,9 @@ std::size_t SumForward::GetWorkspaceSize(const ExecutionContext&,
     auto output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
-    // Now it is set for mi250.
-    // TODO: parameterize this for different GPUs
+    // At least 4 WGs per one CU
+    auto reqd_work_item_cnt =
+        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
     bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
     if(!is_num_work_item_enough && is_parallelism_enough)

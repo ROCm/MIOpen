@@ -39,33 +39,16 @@ std::size_t GetSumWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& yDesc,
                                 int32_t dim)
 {
-    std::ignore = handle;
-    auto xdims  = xDesc.GetLengths();
-    auto ydims  = yDesc.GetLengths();
+    auto ctx = ExecutionContext{&handle};
+    const auto problem =
+        reduce::ProblemDescription{MIOPEN_SUM_NOT_PROPAGATE_NAN, xDesc, yDesc, dim};
 
-    auto reduce_size = xdims[dim];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    const auto algo    = AlgorithmName{"SumForward"};
+    const auto solvers = solver::SolverContainer<solver::reduce::SumForward>{};
 
-    auto reqd_work_item_cnt = static_cast<size_t>(256 * 120 * 4);
-    // Now it is set for mi250.
-    // TODO: parameterize this for different GPUs
-    bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
-    bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
-    if(!is_num_work_item_enough && is_parallelism_enough)
-    {
-        size_t parallelism_size = 1;
-        while(parallelism_size * output_numel < reqd_work_item_cnt &&
-              parallelism_size < reduce_size)
-        {
-            parallelism_size *= 2;
-        }
-
-        return parallelism_size * output_numel * get_data_size(xDesc.GetType());
-    }
-
-    return 0;
+    return pair_size_vector.front().second;
 }
 
 miopenStatus_t SumForward(Handle& handle,
