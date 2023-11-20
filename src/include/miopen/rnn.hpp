@@ -274,19 +274,6 @@ struct RNNDescriptor : miopenRNNDescriptor
                                Data_t hy,
                                Data_t reserveSpace) const;
 
-    void RNNForwardTrainingTanhRelu(Handle& handle,
-                                    std::vector<int>& seq_array,
-                                    const TensorDescriptor& xDesc,
-                                    ConstData_t x,
-                                    const TensorDescriptor& hxDesc,
-                                    ConstData_t hx,
-                                    const TensorDescriptor& wDesc,
-                                    ConstData_t w,
-                                    const TensorDescriptor& yDesc,
-                                    Data_t y,
-                                    Data_t hy,
-                                    Data_t reserveSpace) const;
-
     void RNNForwardInference(Handle& handle,
                              int seqLen,
                              c_array_view<const miopenTensorDescriptor_t> xDesc,
@@ -487,21 +474,6 @@ private:
                                    size_t workSpaceSize,
                                    ConstData_t reserveSpace,
                                    size_t reserveSpaceSize) const;
-
-    void RNNBackwardDataPackedTensorsRelu(Handle& handle,
-                                          int seqLen,
-                                          c_array_view<const miopenTensorDescriptor_t> dyDesc,
-                                          ConstData_t dy,
-                                          ConstData_t dhy,
-                                          ConstData_t w,
-                                          c_array_view<const miopenTensorDescriptor_t> dxDesc,
-                                          Data_t dx,
-                                          const TensorDescriptor& dhxDesc,
-                                          Data_t dhx,
-                                          Data_t workSpace,
-                                          size_t workSpaceSize,
-                                          Data_t reserveSpace,
-                                          size_t reserveSpaceSize) const;
 
     void RNNForwardTrainingPackedTensors(Handle& handle,
                                          int seqLen,
