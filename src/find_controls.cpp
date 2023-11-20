@@ -109,7 +109,7 @@ FindEnforceAction GetFindEnforceAction()
     const auto& str = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
     if(prev_env_str != str)
     {
-        val = GetFindEnforceActionImpl(str);
+        val          = GetFindEnforceActionImpl(str);
         prev_env_str = str;
     }
 
@@ -178,7 +178,7 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
     const auto& slv_str = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
     if(prev_env_str != slv_str)
     {
-        val = GetEnvFindOnlySolverImpl(slv_str);
+        val          = GetEnvFindOnlySolverImpl(slv_str);
         prev_env_str = slv_str;
     }
 
@@ -252,7 +252,7 @@ FindMode::Values GetFindModeValue()
     const auto& str = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
     if(prev_env_str != str)
     {
-        val = GetFindModeValueImpl(str);
+        val          = GetFindModeValueImpl(str);
         prev_env_str = slv_str;
     }
 
