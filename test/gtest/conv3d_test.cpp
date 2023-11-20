@@ -58,7 +58,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv3d : public testing::TestWithParam<std::vector<TestCase>>
+class Conv3dBf16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -114,7 +114,7 @@ TEST_P(Conv3dBf16, Bf16Test)
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
-        Run2dDriver(miopenBFloat16);
+        Run3dDriver(miopenBFloat16);
     }
     else
     {
@@ -122,17 +122,16 @@ TEST_P(Conv3dBf16, Bf16Test)
     }
 };
 
-std::vector<TestCase> GetTestCases(const std::string& precision)
-
-    const std::string v = " --verbose";
+std::vector<TestCase> GetTestCases(const std::string& precision){
 
 const std::vector<TestCase> test_cases = {
     // clang-format off
+    // test_conv3d_extra
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2" },
-    //extra reduced set
+    //test_conv3d_extra reduced set
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1" },
     {precision + "--input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1" },
@@ -145,6 +144,7 @@ const std::vector<TestCase> test_cases = {
 
     };
     return test_cases;
+    };
 
 INSTANTIATE_TEST_SUITE_P(Conv3dBf16Test,
                          Conv3dBf16,
