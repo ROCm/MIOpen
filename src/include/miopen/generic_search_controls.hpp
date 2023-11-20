@@ -26,7 +26,9 @@
 
 #pragma once
 #include <miopen/env.hpp>
+#include <miopen/config.h>
 #include <chrono>
+#include <limits>
 
 namespace miopen {
 namespace solver {

@@ -105,7 +105,7 @@ FindEnforceAction GetFindEnforceActionImpl()
 
 FindEnforceAction GetFindEnforceAction()
 {
-    static const FindEnforceAction val = GetFindEnforceActionImpl();
+    const FindEnforceAction val = GetFindEnforceActionImpl();
     return val;
 }
 
@@ -167,7 +167,7 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
 {
-    static const auto once = GetEnvFindOnlySolverImpl();
+    const auto once = GetEnvFindOnlySolverImpl();
     return once;
 }
 
@@ -234,7 +234,7 @@ FindMode::Values GetFindModeValueImpl()
 
 FindMode::Values GetFindModeValue()
 {
-    static const FindMode::Values val = GetFindModeValueImpl();
+    const FindMode::Values val = GetFindModeValueImpl();
     return val;
 }
 

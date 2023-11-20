@@ -28,7 +28,6 @@
 #include <miopen/generic_search_controls.hpp>
 
 #include <cstddef>
-#include <limits>
 #include <chrono>
 
 namespace miopen {
