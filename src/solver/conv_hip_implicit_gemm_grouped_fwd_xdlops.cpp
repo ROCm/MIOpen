@@ -34,7 +34,6 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
-#include <nlohmann/json_fwd.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
@@ -193,7 +192,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
-std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
+static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
 {
     std::vector<std::string> tokens;
     std::string token;

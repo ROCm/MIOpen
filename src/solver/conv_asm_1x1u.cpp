@@ -39,7 +39,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
-#include <nlohmann/json_fwd.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)

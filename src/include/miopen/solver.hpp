@@ -4501,17 +4501,19 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
                            const miopen::conv::ProblemDescription& problem) const;
 
 private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
-    template <typename DataType>
-    void Init(const miopen::conv::ProblemDescription&);
-    template <typename DataType>
-    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
     template <typename DataType>
     void RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
     bool ModelApplyToken(int idx, std::string value);
+#endif
+    template <typename DataType>
+    void Init(const miopen::conv::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmGroupFwdXdlops final
