@@ -91,11 +91,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_DUMP{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
     {
         params += " -gline-tables-only";
         params += " -save-temps";

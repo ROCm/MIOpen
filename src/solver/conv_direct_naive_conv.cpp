@@ -34,6 +34,8 @@
 #include <miopen/datatype.hpp>
 #include <ostream>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
+
 namespace miopen {
 
 namespace debug {
@@ -118,8 +120,6 @@ bool IsOutputInt32(const ProblemDescription& problem)
     return problem.GetInDataType() == miopenInt8 && problem.GetWeightsDataType() == miopenInt8 &&
            problem.GetOutDataType() == miopenInt32;
 }
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS);
 
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {

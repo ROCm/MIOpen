@@ -181,7 +181,7 @@ bool IsNetworkedFilesystem(const boost::filesystem::path& path_)
 namespace {
 std::string GetHomeDir()
 {
-    const auto p = GetStringEnv(HOME{});
+    const auto p = GetStringEnv(ENV(HOME));
     if(!(p.empty() || p == std::string("/")))
     {
         return p;

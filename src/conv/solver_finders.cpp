@@ -32,8 +32,6 @@
 #include <miopen/perf_field.hpp>
 #include <miopen/conv/problem_description.hpp>
 
-namespace miopen {
-
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
@@ -41,6 +39,8 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
+
+namespace miopen {
 
 namespace conv {
 namespace {
@@ -58,7 +58,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -85,7 +85,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -114,7 +114,7 @@ protected:
     {
         return !parameters.use_winograd_only &&
                problem.GetDirection() != conv::Direction::BackwardWeights &&
-               !IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
+               !IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -139,7 +139,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -164,7 +164,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& /*parameters*/) const override
     {
-        return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
+        return !IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -209,7 +209,7 @@ static void EvaluateInvokers(Handle& handle,
                              const AnyInvokeParams& invoke_ctx,
                              DbRecord& record)
 {
-    const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
     if(!arch.empty())
         return;
 
@@ -325,15 +325,15 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     switch(algo)
     { // clang-format off
     case miopenConvolutionAlgoGEMM:
-        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
+        return !MIOPEN_USE_GEMM || miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
     case miopenConvolutionAlgoDirect:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
     case miopenConvolutionAlgoFFT:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{});
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
     case miopenConvolutionAlgoWinograd:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
     case miopenConvolutionAlgoImplicitGEMM:
-        return miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on

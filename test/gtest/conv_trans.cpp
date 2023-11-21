@@ -97,7 +97,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 TEST_P(ConfigWithFloat, FloatTest)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(MIOPEN_TEST_ALL{}))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
         Run2dDriver(miopenFloat);
     }

@@ -26,10 +26,9 @@
 
 #pragma once
 #include <miopen/env.hpp>
+#include <miopen/config.h>
 #include <chrono>
-
-namespace miopen {
-namespace solver {
+#include <limits>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
                        uint64_t,
@@ -46,6 +45,3 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL,
                        std::thread::hardware_concurrency() / 2)
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
-
-} // namespace solver
-} // namespace miopen

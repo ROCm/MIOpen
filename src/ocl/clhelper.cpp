@@ -211,7 +211,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
