@@ -44,10 +44,10 @@
 #include <fstream>
 #include <iostream>
 
-namespace miopen {
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DISABLE_CACHE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_CUSTOM_CACHE_DIR)
+
+namespace miopen {
 
 static boost::filesystem::path ComputeSysCachePath()
 {

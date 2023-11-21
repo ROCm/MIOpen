@@ -35,6 +35,7 @@
 #include <miopen/find_db.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/generic_search_controls.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/solver.hpp>
@@ -58,7 +59,6 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DUMP_TENSOR_PATH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
