@@ -565,7 +565,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
-	sum.cpp
+        sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
