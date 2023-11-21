@@ -49,7 +49,42 @@ bool IsNotLastDim(const miopen::reduce::ProblemDescription& problem)
     return true;
 }
 
-bool SumForward::IsApplicable(const ExecutionContext&,
+bool IsImprovementOverROCm(const ExecutionContext& context,
+                           const miopen::reduce::ProblemDescription& problem)
+{
+    auto xdims = problem.GetXDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
+    auto dim   = problem.GetDim();
+
+    auto reduce_size = xdims[dim];
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+
+    // At least 4 WGs per one CU
+    auto reqd_work_item_cnt =
+        static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
+
+    bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
+    bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+
+    if(!is_num_work_item_enough && is_parallelism_enough)
+    {
+        // It's large enough to parallelization, but calling the kernel twice is overhead.
+        // For cases smaller than this, ROCm pytorch performed better.
+        bool is_improvement_ROCm = (output_numel * reduce_size < reqd_work_item_cnt * 64);
+        // But the reduce size is small, MIOpen HIP performs better.
+        bool is_reduce_large = (reduce_size > 64);
+
+        if(is_improvement_ROCm && is_reduce_large)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "SumForward: Performance cannot be guaranteed.");
+        }
+    }
+
+    return true;
+}
+
+bool SumForward::IsApplicable(const ExecutionContext& context,
                               const miopen::reduce::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
@@ -61,6 +96,8 @@ bool SumForward::IsApplicable(const ExecutionContext&,
     if(!problem.IsAllPacked())
         return false;
     if(!IsNotLastDim(problem))
+        return false;
+    if(!IsImprovementOverROCm(context, problem))
         return false;
     return true;
 }
@@ -84,8 +121,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     // At least 4 WGs per one CU
     auto reqd_work_item_cnt =
         static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
-    // Now it is set for mi250.
-    // TODO: parameterize this for different GPUs
+
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
     bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
 
@@ -93,7 +129,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
     {
         size_t parallelism_size = 1;
         while(parallelism_size * output_numel < reqd_work_item_cnt &&
-              parallelism_size < reduce_size)
+              parallelism_size < std::sqrt(reduce_size))
         {
             parallelism_size *= 2;
         }
@@ -191,7 +227,7 @@ ConvSolution SumForward::GetSolution(const ExecutionContext& context,
 
                 auto parallelism_size = 1ULL;
                 while(parallelism_size * output_numel < reqd_work_item_cnt &&
-                      parallelism_size < reduce_size)
+                      parallelism_size < std::sqrt(reduce_size))
                 {
                     parallelism_size *= 2ULL;
                 }
@@ -275,11 +311,12 @@ std::size_t SumForward::GetWorkspaceSize(const ExecutionContext& context,
         static_cast<size_t>(256 * context.GetStream().GetMaxComputeUnits() * 4);
     bool is_num_work_item_enough = (output_numel > reqd_work_item_cnt);
     bool is_parallelism_enough   = (output_numel * reduce_size > reqd_work_item_cnt);
+
     if(!is_num_work_item_enough && is_parallelism_enough)
     {
         size_t parallelism_size = 1;
         while(parallelism_size * output_numel < reqd_work_item_cnt &&
-              parallelism_size < reduce_size)
+              parallelism_size < std::sqrt(reduce_size))
         {
             parallelism_size *= 2;
         }

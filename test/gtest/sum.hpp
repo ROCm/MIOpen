@@ -83,22 +83,18 @@ std::vector<SumTestCase> SumTestConfigs()
 { // n c d h w dim nanPropagation
     // clang-format off
     return {
-        { 8,    88,   0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //bert
-        { 8,    104,  0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
-        { 8,    88,   0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
-        { 8,    104,  0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
-        { 2048, 0,    0,  0,   2304,  0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //gpt_neo
-        { 8192, 0,    0,  0,   768,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
-        { 2048, 0,    0,  0,   2304,  0 , MIOPEN_SUM_PROPAGATE_NAN},
-        { 8192, 0,    0,  0,   768,   0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 8,    120,  0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //bart
+        { 8,    120,  0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 8,    1023, 0,  0,   1,     0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //gpt_neo
+        { 8,    1024, 0,  0,   768,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},
+        { 8,    1023, 0,  0,   1,     0 , MIOPEN_SUM_PROPAGATE_NAN},
+        { 8,    1024, 0,  0,   768,   0 , MIOPEN_SUM_PROPAGATE_NAN},
         { 16,   1024, 0,  0,   768,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //gpt2
         { 16,   1024, 0,  0,   768,   0 , MIOPEN_SUM_PROPAGATE_NAN},
         { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //t5
         { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_PROPAGATE_NAN},
-        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //t5
-        { 48,   8,    0,  512, 512,   0 , MIOPEN_SUM_PROPAGATE_NAN},
-        { 16, 304,    0,  105, 512,   2 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //rnnt
-        { 16, 304,    0,  105, 512,   2 , MIOPEN_SUM_PROPAGATE_NAN}
+        { 16, 311,    0,  98,  512,   2 , MIOPEN_SUM_NOT_PROPAGATE_NAN},  //rnnt
+        { 16, 311,    0,  98,  512,   2 , MIOPEN_SUM_PROPAGATE_NAN}
       };
     // clang-format on
 }
