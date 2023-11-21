@@ -114,7 +114,7 @@ int RunLSTMDriver(std::string cmd)
 
 TEST_P(LSTMTest, test_lstm_deepbench_rnn)
 {
-    if(miopen::IsEnabled(MIOPEN_TEST_DEEPBENCH{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)))
     {
         // clang-format off
         RunLSTMDriver("--verbose --batch-size 16 --seq-len 25 --vector-len 512 --hidden-size 512 --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill");
@@ -149,7 +149,7 @@ TEST_P(LSTMTest, test_lstm_deepbench_rnn)
 
 TEST_P(LSTMTest, test_lstm_extra)
 {
-    if(miopen::IsEnabled(MIOPEN_TEST_ALL{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
         // clang-format off
         RunLSTMDriver("--verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 --hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx");
