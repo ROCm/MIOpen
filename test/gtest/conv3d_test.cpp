@@ -58,7 +58,7 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv3dBf16 : public testing::TestWithParam<std::vector<TestCase>>
+class Conv3dFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -67,19 +67,19 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<TestCase> params;
     switch(prec)
     {
-        // TODO: flot instead of float16
-    case miopenBFloat16: params = Conv3dBf16::GetParam(); break;
-    case miopenFloat:
+    case miopenFloat: params = Conv3dFloat::GetParam(); break;
+    case miopenBFloat16:
     case miopenHalf:
     case miopenInt8:
     case miopenInt32:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
-        FAIL() << "These data types are not supported by the 3D convolution test";
-        break;
+        FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, "
+                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "data type not supported by conv_igemm_dynamic test";
 
-    default: params = Conv3dBf16::GetParam(); break;
+    default: params = Conv3dFloat::GetParam(); break;
     }
 
     for(const auto& test_value : params)
@@ -109,12 +109,12 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-TEST_P(Conv3dBf16, Bf16Test)
+TEST_P(Conv3dFloat, FloatTest)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
-        Run3dDriver(miopenBFloat16);
+        Run3dDriver(miopenFloat);
     }
     else
     {
@@ -142,11 +142,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1" },
     {precision + "--input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1" }
 
-
     };
     return test_cases;
     };
 
-INSTANTIATE_TEST_SUITE_P(Conv3dBf16Test,
-                         Conv3dBf16,
-                         testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Conv3dFloatTest,
+                         Conv3dFloat,
+                         testing::Values(GetTestCases("--float")));
