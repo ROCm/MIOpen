@@ -175,15 +175,15 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
 {
-    SolverFwd<miopen::solver::ConvHipImplicitGemmF16F8F16FwdXdlops>(input.desc,
-                                                                    in_dev.get(),
-                                                                    weights.desc,
-                                                                    wei_dev.get(),
-                                                                    output.desc,
-                                                                    out_dev.get(),
-                                                                    conv_desc,
-                                                                    conv_config,
-                                                                    test_skipped);
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>(input.desc,
+                                                                          in_dev.get(),
+                                                                          weights.desc,
+                                                                          wei_dev.get(),
+                                                                          output.desc,
+                                                                          out_dev.get(),
+                                                                          conv_desc,
+                                                                          conv_config,
+                                                                          test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,

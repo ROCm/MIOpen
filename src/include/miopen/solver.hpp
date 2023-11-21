@@ -4789,21 +4789,21 @@ struct PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
         : PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const ProblemDescription&);
-    bool SetNextValue(const ProblemDescription&);
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription&) const;
+    bool IsValid(const miopen::conv::ProblemDescription&) const;
     bool operator==(const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops& other) const;
 
 private:
     template <typename DataType, typename ComputeType>
-    void Init(const ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType, typename ComputeType>
-    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmF16F8F16FwdXdlops final
@@ -4815,30 +4815,32 @@ struct ConvHipImplicitGemmF16F8F16FwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
-        const ProblemDescription&,
+        const miopen::conv::ProblemDescription&,
         const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops&) const override;
     PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops
     Search(const ExecutionContext&,
-           const ProblemDescription&,
+           const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
-                const ProblemDescription&,
+                const miopen::conv::ProblemDescription&,
                 const PerformanceConfigHipImplicitGemmF16F8F16FwdXdlops&) const override;
     /// \ref igemm_get_wti_magic_number
-    float GetWti(const ExecutionContext&, const ProblemDescription&) const override
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.02f;
     };
 
 private:
     template <typename DataType, typename ComputeType>
-    bool CheckCKApplicability(const ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
@@ -4859,14 +4861,14 @@ struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
         : PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const ProblemDescription&);
-    bool SetNextValue(const ProblemDescription&);
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription&) const;
+    bool IsValid(const miopen::conv::ProblemDescription&) const;
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
     {
@@ -4876,9 +4878,9 @@ struct PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
 
 private:
     template <typename DataType, typename OutComputeType, typename WeiComputeType>
-    void Init(const ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType, typename OutComputeType, typename WeiComputeType>
-    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmF16F8F16BwdXdlops final
@@ -4890,30 +4892,32 @@ struct ConvHipImplicitGemmF16F8F16BwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
-        const ProblemDescription&,
+        const miopen::conv::ProblemDescription&,
         const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops&) const override;
     PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops
     Search(const ExecutionContext&,
-           const ProblemDescription&,
+           const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
-                const ProblemDescription&,
+                const miopen::conv::ProblemDescription&,
                 const PerformanceConfigHipImplicitGemmF16F8F16BwdXdlops&) const override;
     /// \ref igemm_get_wti_magic_number
-    float GetWti(const ExecutionContext&, const ProblemDescription&) const override
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.02f;
     };
 
 private:
     template <typename DataType, typename OutComputeType, typename WeiComputeType>
-    bool CheckCKApplicability(const ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
 struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
@@ -4934,14 +4938,14 @@ struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
         : PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops(0, "")
     {
     }
-    void HeuristicInit(const ProblemDescription&);
-    bool SetNextValue(const ProblemDescription&);
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ExecutionContext&, const ProblemDescription& problem) const
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
     {
         return IsValid(problem);
     }
-    bool IsValid(const ProblemDescription&) const;
+    bool IsValid(const miopen::conv::ProblemDescription&) const;
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
     {
@@ -4951,9 +4955,9 @@ struct PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
 
 private:
     template <typename DataType, typename OutComputeType, typename InComputeType>
-    void Init(const ProblemDescription&);
+    void Init(const miopen::conv::ProblemDescription&);
     template <typename DataType, typename OutComputeType, typename InComputeType>
-    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvHipImplicitGemmF16F8F16WrwXdlops final
@@ -4965,30 +4969,32 @@ struct ConvHipImplicitGemmF16F8F16WrwXdlops final
     }
 
     PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
-    GetDefaultPerformanceConfig(const ExecutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ExecutionContext&,
-        const ProblemDescription&,
+        const miopen::conv::ProblemDescription&,
         const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops&) const override;
     PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops
     Search(const ExecutionContext&,
-           const ProblemDescription&,
+           const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution
     GetSolution(const ExecutionContext&,
-                const ProblemDescription&,
+                const miopen::conv::ProblemDescription&,
                 const PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops&) const override;
     /// \ref igemm_get_wti_magic_number
-    float GetWti(const ExecutionContext&, const ProblemDescription&) const override
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
         return 0.02f;
     };
 
 private:
     template <typename DataType, typename OutComputeType, typename InComputeType>
-    bool CheckCKApplicability(const ProblemDescription&) const;
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
 } // namespace conv

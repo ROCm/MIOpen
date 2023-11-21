@@ -40,6 +40,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType, typename OutComputeType, typename InComputeType>
@@ -299,7 +302,7 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
         return false;
     if(problem.HasMixedDataTypes())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.IsTensorsCasted())
         return false;
@@ -342,7 +345,7 @@ ConvSolution ConvHipImplicitGemmF16F8F16WrwXdlops::GetSolution(
         if(x_cast_type == miopenFloat8 && y_cast_type == miopenBFloat8)
             return MakeInvokerFactory<DeviceOpF8WrwPtrs<ck::half_t, ck::bf8_t, ck::f8_t>,
                                       CKArgs,
-                                      conv::WrWInvokeParams>(problem, config.kernel_id);
+                                      miopen::conv::WrWInvokeParams>(problem, config.kernel_id);
         else
             return {};
     }
@@ -352,5 +355,6 @@ ConvSolution ConvHipImplicitGemmF16F8F16WrwXdlops::GetSolution(
     return {};
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
