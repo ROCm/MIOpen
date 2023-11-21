@@ -107,9 +107,7 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -140,9 +138,7 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -173,9 +169,7 @@ private:
         const auto ctx     = ExecutionContext{&handle};
         const auto problem = conv::ProblemDescription{
             y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
-        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         auto filterCall = [&]() {
             int ret_algo_count;

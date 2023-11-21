@@ -1437,8 +1437,7 @@ struct verify_forward_infer_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        Workspace wspace{};
-        wspace.resize(workSpaceSize);
+        Workspace wspace{workSpaceSize};
 
         auto input_dev = handle.Write(input);
 
@@ -1707,15 +1706,13 @@ struct verify_forward_train_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        Workspace wspace{};
-        wspace.resize(workSpaceSize);
+        Workspace wspace{workSpaceSize};
 
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
         reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
 
-        Workspace rspace{};
-        rspace.resize(reserveSpaceSize);
+        Workspace rspace{reserveSpaceSize};
 
         auto input_dev = handle.Write(input);
 
@@ -2001,8 +1998,7 @@ struct verify_backward_data_rnn
                               miopen::deref(rnnDesc).dataType);
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        Workspace wspace{};
-        wspace.resize(workSpaceSize);
+        Workspace wspace{workSpaceSize};
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         auto yin_dev  = handle.Write(yin);

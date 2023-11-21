@@ -29,6 +29,12 @@
 
 #include "get_handle.hpp"
 
+#define HIP_CHECK(exp)                                                                 \
+    if((exp) != hipSuccess)                                                            \
+    {                                                                                  \
+        MIOPEN_LOG_E(#exp "failed at line: " << __LINE__ << " in file: " << __FILE__); \
+    }
+
 class Workspace
 {
 
@@ -38,49 +44,69 @@ class Workspace
     public:
         GPUBuffer() = default;
 
-        explicit GPUBuffer(size_t num_bytes)
+        explicit GPUBuffer(size_t num_bytes) : sz_(num_bytes)
         {
-            assert(num_bytes > 0);
-            auto s = hipMalloc(&buf_, num_bytes);
-            if(s != hipSuccess || buf_ == nullptr)
+            if(num_bytes > 0)
             {
-                std::abort();
+                HIP_CHECK(hipMalloc(&buf_, num_bytes));
+                assert(buf_ != nullptr);
+            }
+            else
+            {
+                buf_ = nullptr;
             }
         }
 
-        ~GPUBuffer()
-        {
-            auto s = hipFree(buf_);
-            buf_   = nullptr;
-            if(s != hipSuccess)
-            {
-                std::abort();
-            }
-        }
+        ~GPUBuffer() { FreeBuf(); }
 
         void* ptr() { return buf_; }
         void* ptr() const { return buf_; }
 
+        auto size() const { return sz_; }
+
         GPUBuffer(const GPUBuffer&) = delete;
         GPUBuffer& operator=(const GPUBuffer&) = delete;
 
-        GPUBuffer(GPUBuffer&& that) noexcept : buf_(that.buf_)
+        GPUBuffer(GPUBuffer&& that) noexcept : buf_(that.buf_), sz_(that.sz_)
         {
             that.buf_ = nullptr; // take over ownership
+            that.sz_  = 0;
         }
 
         GPUBuffer& operator=(GPUBuffer&& that) noexcept
         {
+            FreeBuf();
             std::swap(this->buf_, that.buf_);
+            std::swap(this->sz_, that.sz_);
             return *this;
         }
 
     private:
+        void FreeBuf()
+        {
+            HIP_CHECK(hipFree(buf_));
+            buf_ = nullptr;
+            sz_  = 0;
+        }
+
         void* buf_ = nullptr;
+        size_t sz_ = 0;
     };
 
+    // for use in miopen .*GetWorkSpaceSize() methods where a pointer to size_t is
+    // passed to capture the size. Must call AdjustToSize() after calling such a method
+    size_t* SizePtr() { return &sz_; }
+
+    void AdjustToSize()
+    {
+        if(sz_ != gpu_buf_.size())
+        {
+            gpu_buf_ = GPUBuffer(sz_);
+        }
+    }
+
 public:
-    Workspace() = default;
+    explicit Workspace(size_t sz = 0) : sz_(sz) { AdjustToSize(); }
 
     Workspace(const Workspace&) = delete;
     Workspace& operator=(const Workspace&) = delete;
@@ -95,36 +121,16 @@ public:
         AdjustToSize();
     }
 
-    // for use in miopen .*GetWorkSpaceSize() methods where a pointer to size_t is
-    // passed to capture the size. Must call AdjustToSize() after calling such a method
-    size_t* SizePtr() { return &sz_; }
-
     auto ptr() const { return gpu_buf_.ptr(); }
 
     auto ptr() { return gpu_buf_.ptr(); }
-
-    void AdjustToSize()
-    {
-        if(sz_ != 0)
-        {
-            gpu_buf_ = GPUBuffer(sz_);
-        }
-        else
-        {
-            gpu_buf_ = GPUBuffer();
-        }
-    }
 
     template <typename V>
     void Write(const V& vec)
     {
         using T = typename V::value_type;
         resize(vec.size() * sizeof(T));
-        auto s = hipMemcpy(this->ptr(), &vec[0], size(), hipMemcpyHostToDevice);
-        if(s != hipSuccess)
-        {
-            abort();
-        }
+        HIP_CHECK(hipMemcpy(this->ptr(), &vec[0], size(), hipMemcpyHostToDevice));
     }
 
     template <typename V>
@@ -133,13 +139,10 @@ public:
         using T = typename V::value_type;
         if(vec.size() * sizeof(T) != size())
         {
+            MIOPEN_LOG_E("vector of wrong size passed");
             std::abort();
         }
-        auto s = hipMemcpy(&vec[0], ptr(), size(), hipMemcpyDeviceToHost);
-        if(s != hipSuccess)
-        {
-            abort();
-        }
+        HIP_CHECK(hipMemcpy(&vec[0], ptr(), size(), hipMemcpyDeviceToHost));
     }
 
     template <typename V>

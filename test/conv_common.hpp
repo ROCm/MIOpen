@@ -331,8 +331,7 @@ protected:
             EXPECT_EQUAL(miopenStatusSuccess,
                          miopenGetSolutionWorkspaceSize(solution, &workspace_size));
 
-            Workspace wspace{};
-            wspace.resize(workspace_size);
+            Workspace wspace{workspace_size};
 
             EXPECT_EQUAL(
                 miopenStatusSuccess,
@@ -1729,8 +1728,7 @@ struct verify_forward_conv_int8 : conv_base<T>
                                     wei_vpad_dev.get());
         }
 
-        Workspace wspace{};
-        wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
+        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
 
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;

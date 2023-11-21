@@ -398,8 +398,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             EXPECT(reorder_sol != nullptr);
             size_t workspace_size = reorder_sol->IsSkippable() ? sizeof(T) * tensor_sz
                                                                : reorder_sol->GetOutputTensorSize();
-            Workspace wspace{};
-            wspace.resize(workspace_size);
+            Workspace wspace{workspace_size};
 
             auto src_dev = handle.Write(t_src.data);
 

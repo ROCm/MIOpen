@@ -652,8 +652,7 @@ struct verify_ctcloss
                                                                    inputLengths.data(),
                                                                    miopenCTCLossAlgo_t(0));
 
-        Workspace wspace{};
-        wspace.resize(workSpaceSize);
+        Workspace wspace{workSpaceSize};
 
         auto losses_gpu = losses;
         auto grads_gpu  = grads;

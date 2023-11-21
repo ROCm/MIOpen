@@ -174,8 +174,7 @@ struct conv_forward : output_tensor_fixture
         STATUS(miopenConvolutionForwardGetWorkSpaceSize(
             handle, convFilter, inputTensor, convDesc, outputTensor, &sz_fwd_workspace));
 
-        Workspace wspace{};
-        wspace.resize(sz_fwd_workspace);
+        Workspace wspace{sz_fwd_workspace};
 
         std::vector<float> in(sz_in);
         std::vector<float> wei(sz_wei);

@@ -552,8 +552,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
         size_t workspace_size = 0;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
 
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{workspace_size};
 
         auto input_dev = handle.Write(input);
 
@@ -918,15 +917,13 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
 
         size_t workspace_size = 0;
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workspace_size);
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{workspace_size};
 
         size_t reserveSpaceSize = 0;
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
         reserveSpaceSize = (reserveSpaceSize + (sizeof(T) - 1)) & ~(sizeof(T) - 1);
-        Workspace rspace{};
-        rspace.resize(reserveSpaceSize);
+        Workspace rspace{reserveSpaceSize};
 
         auto weights_dev = handle.Write(weights);
 

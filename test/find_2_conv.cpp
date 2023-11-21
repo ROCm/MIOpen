@@ -211,8 +211,7 @@ private:
                 }
 
                 const auto workspace_size = std::min(workspace_limit, workspace_max);
-                Workspace wspace{};
-                wspace.resize(workspace_size);
+                Workspace wspace{workspace_size};
 
                 EXPECT_EQUAL(
                     miopenSetFindOptionPreallocatedWorkspace(options, wspace.ptr(), wspace.size()),
@@ -316,8 +315,7 @@ private:
         EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
                      miopenStatusSuccess);
 
-        Workspace wspace{};
-        wspace.resize(workspace_size);
+        Workspace wspace{workspace_size};
 
         const auto checked_run_solution = [&](miopenTensorDescriptor_t* descriptors_) {
             auto arguments = std::make_unique<miopenTensorArgument_t[]>(num_arguments);
