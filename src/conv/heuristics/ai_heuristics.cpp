@@ -494,10 +494,6 @@ private:
 
 std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solver)
 {
-    static const std::string prevArch{arch};
-
-    if(prevArch != arch)
-        MIOPEN_THROW("Cannot use AI tuning models for multiple gpu architectures");
     static std::map<std::string, std::shared_ptr<Model>> models;
     auto it = models.find(solver);
     if(it == models.end())
