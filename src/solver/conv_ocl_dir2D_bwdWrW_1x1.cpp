@@ -49,11 +49,11 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
     {
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+        if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
             return false;
     }
 #endif
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;

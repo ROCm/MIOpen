@@ -15,7 +15,7 @@ using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
@@ -93,7 +93,7 @@ TEST_P(ConfigWithHalf, HalfTest)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) && miopen::IsEnabled(MIOPEN_TEST_ALL{}) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
        GetFloatArg() == "--half")
     {
         Run2dDriver(miopenHalf);
@@ -115,7 +115,7 @@ TEST_P(ConfigWithInt8, Int8Test)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a")) &&
-       miopen::IsEnabled(MIOPEN_TEST_MLIR{}) && miopen::IsEnabled(MIOPEN_TEST_ALL{}) &&
+       miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR)) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
        GetFloatArg() == "--int8")
     {
         Run2dDriver(miopenInt8);

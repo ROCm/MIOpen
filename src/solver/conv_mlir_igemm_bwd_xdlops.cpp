@@ -45,7 +45,7 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

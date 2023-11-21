@@ -222,7 +222,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     {
         MIOPEN_THROW("");
     }
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)

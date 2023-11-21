@@ -546,7 +546,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
 
     int blockSize;
 
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
     {
         const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
         blockSize                                = tunable->BlockSize;
@@ -571,7 +571,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
                             64 + sizeof(int);
 
     // dynamic reduction use one additional page for storing tensor descriptors
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
         wsSizeInBytes += 4096;
 
     return (wsSizeInBytes);
@@ -638,7 +638,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
 
     const int blockSize =
-        !miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}) ? tunable->BlockSize : 256;
+        !miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)) ? tunable->BlockSize : 256;
     detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     const bool need_indices =
@@ -721,7 +721,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                          ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                          : *reinterpret_cast<const float*>(beta);
 
-    if(miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
     { // use static reduction
         std::vector<std::size_t> invariantLengths;
         std::vector<std::size_t> invariantStrides;

@@ -73,7 +73,7 @@ namespace {
 
 int DetectCodeObjectOptionSyntax()
 {
-    auto syntax = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION{});
+    auto syntax = miopen::Value(ENV(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION));
     if(syntax > 4)
     {
         MIOPEN_LOG_E("Bad MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION, using default");
@@ -94,7 +94,7 @@ int DetectCodeObjectOptionSyntax()
 
 int DetectCodeObjectVersion()
 {
-    auto co_version = miopen::Value(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION{});
+    auto co_version = miopen::Value(ENV(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION));
     // Very basic syntax check:
     if(co_version == 1 || co_version > 4)
     {
@@ -190,7 +190,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name, const std::string& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
     if(!arch.empty())
         return;
     module = CreateModuleInMem(blob);
@@ -210,7 +210,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
     }
     else
     {
-        const auto& arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+        const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
         if(arch.empty())
         {
             module = CreateModule(hsaco_file);
@@ -251,7 +251,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     else
     {
         params += " " + GetCodeObjectVersionOption();
-        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
@@ -285,7 +285,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_USE_HIPRTC
-            if(!miopen::IsDisabled(MIOPEN_DEBUG_USE_HIPRTC{}))
+            if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_USE_HIPRTC)))
                 hiprtc::BuildHip(filename, src, params, target, binary);
             else
 #endif // MIOPEN_USE_HIPRTC

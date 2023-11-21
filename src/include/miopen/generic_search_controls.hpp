@@ -30,9 +30,6 @@
 #include <chrono>
 #include <limits>
 
-namespace miopen {
-namespace solver {
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
                        uint64_t,
                        std::numeric_limits<std::size_t>::max())
@@ -48,6 +45,3 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_COMPILE_PARALLEL_LEVEL,
                        std::thread::hardware_concurrency() / 2)
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
-
-} // namespace solver
-} // namespace miopen

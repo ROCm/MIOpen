@@ -37,8 +37,6 @@
 #include <sys/syscall.h> /* For SYS_xxx definitions */
 #endif
 
-namespace miopen {
-
 /// Enable logging of the most important function calls.
 /// Name of envvar in a bit inadequate due to historical reasons.
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING)
@@ -63,14 +61,16 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
 /// Enable logging of function calls to ROCTX api.
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_ROCTX)
 
+/// Disable logging quieting.
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE)
+
+namespace miopen {
+
 namespace debug {
 
 bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
-
-/// Disable logging quieting.
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE)
 
 namespace {
 
@@ -118,22 +118,22 @@ inline float GetTimeDiff()
 
 bool IsLoggingDebugQuiet()
 {
-    return debug::LoggingQuiet && !miopen::IsEnabled(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE{});
+    return debug::LoggingQuiet && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE));
 }
 
 bool IsLoggingFunctionCalls()
 {
-    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}) && !IsLoggingDebugQuiet();
+    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING)) && !IsLoggingDebugQuiet();
 }
 
 bool IsLoggingToRoctx()
 {
-    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ROCTX{}) && !IsLoggingDebugQuiet();
+    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_ROCTX)) && !IsLoggingDebugQuiet();
 }
 
 bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 {
-    auto enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
+    auto enabled_level = miopen::Value(ENV(MIOPEN_LOG_LEVEL));
     if(IsLoggingDebugQuiet() && !disableQuieting)
     {
         // Disable all levels higher than fatal.
@@ -166,13 +166,13 @@ const char* LoggingLevelToCString(const LoggingLevel level)
 }
 bool IsLoggingCmd()
 {
-    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}) && !IsLoggingDebugQuiet();
+    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_CMD)) && !IsLoggingDebugQuiet();
 }
 
 std::string LoggingPrefix()
 {
     std::stringstream ss;
-    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_MPMT{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_MPMT)))
     {
         ss << GetProcessAndThreadId() << ' ';
     }
@@ -182,7 +182,7 @@ std::string LoggingPrefix()
 #elif MIOPEN_BACKEND_HIP
     ss << "(HIP)";
 #endif
-    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME{}))
+    if(miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)))
     {
         ss << std::fixed << std::setprecision(3) << std::setw(8) << GetTimeDiff();
     }

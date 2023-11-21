@@ -128,22 +128,30 @@ public:
 
 // static inside function hides the variable and provides
 // thread-safety/locking
+// declare in global namespace
 #define MIOPEN_DECLARE_ENV_VAR(name, type, default_val)                    \
+    namespace miopen::env {                                                \
     struct name                                                            \
     {                                                                      \
+        static_assert(std::is_same_v<name, ::miopen::env::name>,           \
+                      "must be in miopen::env and must be unique");        \
         using value_type = type;                                           \
         static miopen::internal::EnvVar<type>& Ref()                       \
         {                                                                  \
             static miopen::internal::EnvVar<type> var{#name, default_val}; \
             return var;                                                    \
         }                                                                  \
-    };
+    };                                                                     \
+    }
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name) MIOPEN_DECLARE_ENV_VAR(name, bool, false)
 
 #define MIOPEN_DECLARE_ENV_VAR_UINT64(name) MIOPEN_DECLARE_ENV_VAR(name, uint64_t, 0)
 
 #define MIOPEN_DECLARE_ENV_VAR_STR(name) MIOPEN_DECLARE_ENV_VAR(name, std::string, "")
+
+#define ENV(name) \
+    miopen::env::name {}
 
 /// \todo the following functions should be renamed to either include the word Env
 /// or put inside a namespace 'env'. Right now we have a function named Value()
