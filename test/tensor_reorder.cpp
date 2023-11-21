@@ -140,24 +140,21 @@ enum tensor_layout_t
 
 std::string tensor_layout_to_string(tensor_layout_t layout)
 {
-    std::string layout_string("N/A");
-    if(layout == miopen_tensor_layout_nchw)
-        layout_string = "NCHW";
-    else if(layout == miopen_tensor_layout_ncdhw)
-        layout_string = "NCDHW";
-    else if(layout == miopen_tensor_layout_nhwc)
-        layout_string = "NHWC";
-    else if(layout == miopen_tensor_layout_ndhwc)
-        layout_string = "NDHWC";
-    else
-        MIOPEN_THROW("Unsupported tensor layout");
-    return layout_string;
+    switch(layout)
+    {
+    case miopen_tensor_layout_nchw: return "NCHW";
+    case miopen_tensor_layout_ncdhw: return "NCDHW";
+    case miopen_tensor_layout_nhwc: return "NHWC";
+    case miopen_tensor_layout_ndhwc: return "NDHWC";
+    default: MIOPEN_THROW("Unsupported tensor layout");
+    }
 }
 
 std::string
 supported_reorder_to_string(uint32_t order_0, uint32_t order_1, uint32_t order_2, uint32_t order_3)
 {
     std::string layout_string("N/A");
+    // NOLINTBEGIN(*-braces-around-statements)
     if((order_0 == 0) && (order_1 == 1) && (order_2 == 3) && (order_3 == 2))
         layout_string = "r0132";
     else if((order_0 == 0) && (order_1 == 2) && (order_2 == 1) && (order_3 == 3))
@@ -206,6 +203,7 @@ supported_reorder_to_string(uint32_t order_0, uint32_t order_1, uint32_t order_2
         layout_string = "r3210";
     else
         MIOPEN_THROW("Unsupported reorder layout");
+    // NOLINTEND(*-braces-around-statements)
     return layout_string;
 }
 

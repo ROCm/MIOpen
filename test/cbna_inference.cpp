@@ -217,6 +217,7 @@ struct verify_forward_conv_bias_batchnorm_activ
     void fail(float = 0) const
     {
         if(bias_mode)
+        {
             if(doactive)
             {
                 std::cerr << "Conv+Bias+BatchNorm+Activation Inference:" << std::endl;
@@ -225,6 +226,7 @@ struct verify_forward_conv_bias_batchnorm_activ
             {
                 std::cerr << "Conv+Bias+BatchNorm Inference:" << std::endl;
             }
+        }
         else
         {
             if(doactive)
@@ -448,6 +450,7 @@ struct cbna_fusion_driver : test_driver
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
+            {
                 if(tactiv)
                 {
                     std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
@@ -457,6 +460,7 @@ struct cbna_fusion_driver : test_driver
                 {
                     std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
                 }
+            }
             else
             {
                 if(tactiv)

@@ -641,8 +641,10 @@ public:
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+        {
             MIOPEN_LOG_I(name << ' ' << size
                               << " bytes,  ptr = " << static_cast<const void*>(content));
+        }
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);

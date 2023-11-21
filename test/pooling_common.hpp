@@ -106,15 +106,15 @@ struct pooling_operators
             return (m);
         }
         else
+        {
             return x + y;
+        }
     }
 
     double final(double x, double y)
     {
         if(filter.GetMode() == miopenPoolingMax)
-        {
             return (x);
-        }
         else
             return x / y;
     }
@@ -704,6 +704,7 @@ struct pooling_driver : test_driver
         }
 
         for(int i = 0; i < spt_dim; i++)
+        {
             if(lens[i] > (input_desc.GetLengths()[i + 2] + static_cast<uint64_t>(2) * pads[i]))
             {
                 show_command();
@@ -712,6 +713,7 @@ struct pooling_driver : test_driver
                           << std::endl;
                 return;
             }
+        }
 
         if(full_set)
         {
