@@ -1,3 +1,192 @@
+# Some checks are suppressed:
+#
+# This check is useless for us. Many objects (like tensors or problem descriptions)
+# have mutiple parameters of the same type
+#   -bugprone-easily-swappable-parameters
+#
+# Too many narrowing conversions in our code
+#   -bugprone-narrowing-conversions
+#
+# We shouldn't be using rand()
+#   -cert-msc30-c
+#
+# We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
+#   -hicpp-signed-bitwise
+#
+# This one is extremely slow, and probably has lots of FPs
+#   -misc-confusable-identifiers
+#
+# TODO We are not ready to use it, but very useful
+#   -readability-function-cognitive-complexity
+#
+# We dont think this is a useful check. Disabled on migraphx
+#   -readability-identifier-length
+#
+# There are many FPs with this, let's disable it (ditto in MIGraphX)
+#   -readability-suspicious-call-argument
+#
+# TODO Code Quality WORKAROUND ROCm 5.1 update
+#   -cert-err33-c
+#   -google-readability-casting
+#   -hicpp-use-emplace
+#   -modernize-use-emplace
+#   -performance-unnecessary-copy-initialization
+#   -readability-container-data-pointer
+#
+# TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+#   -bugprone-use-after-move
+#   -clang-analyzer-cplusplus.NewDeleteLeaks
+#   -hicpp-deprecated-headers
+#   -hicpp-invalid-access-moved
+#   -hicpp-member-init
+#   -modernize-concat-nested-namespaces
+#   -modernize-deprecated-headers
+#   -modernize-macro-to-enum
+#   -modernize-unary-static-assert
+#   -modernize-use-nodiscard
+#   -performance-no-automatic-move
+#   -readability-redundant-declaration
+#   -readability-simplify-boolean-expr
+#
+# TODO Code Quality WORKAROUND ROCm 5.4.2
+#   -misc-const-correctness
+#
+# TODO Code Quality WORKAROUND ROCm 5.6
+#   -cppcoreguidelines-avoid-const-or-ref-data-members
+#   -cppcoreguidelines-avoid-do-while
+#   -misc-use-anonymous-namespace
+#
+# TODO Code Quality WORKAROUND ROCm 5.7
+#   -bugprone-lambda-function-name
+#   -cppcoreguidelines-avoid-capture-default-when-capturing-this
+#   -cppcoreguidelines-rvalue-reference-param-not-moved
+#   -llvmlibc-inline-function-decl
+#   -readability-avoid-unconditional-preprocessor-if
+#
+Checks: >-
+  *,
+  -abseil-*,
+  -altera-*,
+  -android-cloexec-fopen,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-lambda-function-name,
+  -bugprone-macro-parentheses,
+  -bugprone-narrowing-conversions,
+  -bugprone-use-after-move,
+  -cert-env33-c,
+  -cert-err33-c,
+  -cert-msc30-c,
+  -cert-msc32-c,
+  -cert-msc50-cpp,
+  -cert-msc51-cpp,
+  -clang-analyzer-alpha.core.CastToStruct,
+  -clang-analyzer-cplusplus.NewDeleteLeaks,
+  -clang-analyzer-optin.performance.Padding,
+  -clang-diagnostic-extern-c-compat,
+  -clang-diagnostic-unused-command-line-argument,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-capture-default-when-capturing-this,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-explicit-virtual-functions,
+  -cppcoreguidelines-init-variables,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-narrowing-conversions,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-prefer-member-initializer,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-member-init,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-rvalue-reference-param-not-moved,
+  -cppcoreguidelines-special-member-functions,
+  -fuchsia-*,
+  -google-explicit-constructor,
+  -google-readability-casting,
+  -google-readability-todo,
+  -google-runtime-int,
+  -google-runtime-references,
+  -hicpp-avoid-c-arrays,
+  -hicpp-deprecated-headers,
+  -hicpp-explicit-conversions,
+  -hicpp-invalid-access-moved,
+  -hicpp-member-init,
+  -hicpp-named-parameter,
+  -hicpp-no-array-decay,
+  -hicpp-signed-bitwise,
+  -hicpp-special-member-functions,
+  -hicpp-uppercase-literal-suffix,
+  -hicpp-use-auto,
+  -hicpp-use-emplace,
+  -hicpp-use-equals-default,
+  -hicpp-use-override,
+  -hicpp-vararg,
+  -llvm-else-after-return,
+  -llvm-header-guard,
+  -llvm-include-order,
+  -llvmlibc-callee-namespace,
+  -llvmlibc-implementation-in-namespace,
+  -llvmlibc-inline-function-decl,
+  -llvmlibc-restrict-system-libc-headers,
+  -llvm-qualified-auto,
+  -misc-confusable-identifiers,
+  -misc-const-correctness,
+  -misc-misplaced-const,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-use-anonymous-namespace,
+  -modernize-avoid-bind,
+  -modernize-avoid-c-arrays,
+  -modernize-deprecated-headers,
+  -modernize-macro-to-enum,
+  -modernize-pass-by-value,
+  -modernize-use-auto,
+  -modernize-use-default-member-init,
+  -modernize-use-emplace,
+  -modernize-use-equals-default,
+  -modernize-use-trailing-return-type,
+  -modernize-use-transparent-functors,
+  -modernize-use-nodiscard,
+  -modernize-concat-nested-namespaces,
+  -modernize-unary-static-assert,
+  -performance-no-automatic-move,
+  -performance-unnecessary-copy-initialization,
+  -performance-unnecessary-value-param,
+  -readability-avoid-unconditional-preprocessor-if,
+  -readability-container-data-pointer,
+  -readability-convert-member-functions-to-static,
+  -readability-else-after-return,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-isolate-declaration,
+  -readability-magic-numbers,
+  -readability-named-parameter,
+  -readability-qualified-auto,
+  -readability-redundant-declaration,
+  -readability-redundant-string-init,
+  -readability-simplify-boolean-expr,
+  -readability-suspicious-call-argument,
+  -readability-uppercase-literal-suffix,
+
 CheckOptions:
-  - key: bugprone-reserved-identifier.AllowedIdentifiers
-    value: '__HIP_PLATFORM_HCC__;__HIP_ROCclr__'
+  - key: google-readability-braces-around-statements.ShortStatementLines
+    value: '6'
+  - key: hicpp-braces-around-statements.ShortStatementLines
+    value: '6'
+  - key: readability-braces-around-statements.ShortStatementLines
+# TODO:
+# Current value is 6. Even 4 is too much, but clang-tidy counts all lines after if(...) and with 2
+# it generates warning even for trivial if-else statement:
+#     if(...)
+#         do_this();
+#     else
+#         do_that();
+# This also applies to aliases:
+#     google-readability-braces-around-statements and
+#     hicpp-braces-around-statements
+    value: '6'
