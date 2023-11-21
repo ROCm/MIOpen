@@ -580,4 +580,3 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
         }
     }
 }
-
