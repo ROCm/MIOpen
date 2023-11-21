@@ -24,10 +24,14 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+
+#define WORKAROUND_MLOPEN_ISSUE_1681 1 // In private repo.
+#define WORKAROUND_ISSUE_2522 (HIP_PACKAGE_VERSION_FLAT >= 5003000000ULL)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
@@ -82,10 +86,21 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
             return false;
     }
 
-    { // Workaround for issue 1681
+#if WORKAROUND_MLOPEN_ISSUE_1681
+    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
+    {
         if(problem.IsFp32() && problem.GetInChannels_() > 3)
             return false;
     }
+#endif
+
+#if WORKAROUND_ISSUE_2522
+    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
+    {
+        if((problem.IsFp16() || problem.IsBfp16()) && problem.GetKernelStrideW() == 2)
+            return false;
+    }
+#endif
 
     return problem.IsDirectionForward()
         && problem.GetKernelStrideW() == problem.GetKernelStrideH()
