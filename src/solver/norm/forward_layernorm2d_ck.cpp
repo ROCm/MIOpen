@@ -29,7 +29,7 @@
 #include <miopen/layernorm.hpp>
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/normalization.hpp>
+#include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)
 
@@ -48,7 +48,7 @@ template <typename XDataType,
           typename BetaDataType,
           typename YDataType,
           typename SaveMeanInvStdDataType>
-using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
+using DeviceOp = ck::tensor_operation::device::DeviceNormalizationFwd<
     XDataType,
     GammaDataType,
     BetaDataType,
