@@ -48,7 +48,7 @@ template <typename XDataType,
           typename BetaDataType,
           typename YDataType,
           typename SaveMeanInvStdDataType>
-using DeviceOp = ck::tensor_operation::device::DeviceNormalization<
+using DeviceOp = ck::tensor_operation::device::DeviceNormalizationFwd<
     XDataType,
     GammaDataType,
     BetaDataType,
