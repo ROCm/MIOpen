@@ -117,6 +117,7 @@ struct verify_tensor_cast
 
         miopen::CastTensor(handle,
                            &alpha,
+                           true,
                            srcDesc,
                            srcSuper_dev.get(),
                            dstDesc,
