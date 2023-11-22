@@ -52,6 +52,16 @@ struct SumForward final : ReduceSolver
     bool MayNeedWorkspace() const override { return true; }
 };
 
+struct ArgmaxForward final : ReduceSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescription& problem) const override;
+};
+
 } // namespace reduce
 
 } // namespace solver

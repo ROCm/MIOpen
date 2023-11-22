@@ -49,6 +49,11 @@ struct ProblemDescription : ProblemDescriptionBase
     {
     }
 
+    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_, int32_t dim_)
+        : xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
+    {
+    }
+
     miopenSumNanPropagation_t GetNanPropagation_() const { return nanPropagation; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
