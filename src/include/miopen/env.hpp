@@ -102,6 +102,8 @@ public:
 
     bool IsUnset() const { return is_unset; }
 
+    void Unset() const { is_unset = true; }
+
     void UpdateValue(const T& val)
     {
         is_unset = false;
@@ -128,20 +130,20 @@ public:
 
 // static inside function hides the variable and provides
 // thread-safety/locking
-// declare in global namespace
-#define MIOPEN_DECLARE_ENV_VAR(name, type, default_val)                    \
-    namespace miopen::env {                                                \
-    struct name                                                            \
-    {                                                                      \
-        static_assert(std::is_same_v<name, ::miopen::env::name>,           \
-                      "must be in miopen::env and must be unique");        \
-        using value_type = type;                                           \
-        static miopen::internal::EnvVar<type>& Ref()                       \
-        {                                                                  \
-            static miopen::internal::EnvVar<type> var{#name, default_val}; \
-            return var;                                                    \
-        }                                                                  \
-    };                                                                     \
+// Used in global namespace
+#define MIOPEN_DECLARE_ENV_VAR(name, type, default_val)                            \
+    namespace miopen::env {                                                        \
+    struct name                                                                    \
+    {                                                                              \
+        static_assert(std::is_same_v<name, ::miopen::env::name>,                   \
+                      "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
+        using value_type = type;                                                   \
+        static miopen::internal::EnvVar<type>& Ref()                               \
+        {                                                                          \
+            static miopen::internal::EnvVar<type> var{#name, default_val};         \
+            return var;                                                            \
+        }                                                                          \
+    };                                                                             \
     }
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name) MIOPEN_DECLARE_ENV_VAR(name, bool, false)
@@ -189,6 +191,12 @@ template <class EnvVar>
 inline bool IsUnset(EnvVar)
 {
     return EnvVar::Ref().IsUnset();
+}
+
+template <class EnvVar>
+void Unset(EnvVar)
+{
+    EnvVar::Ref().Unset();
 }
 
 /// updates the cached value of an environment variable
