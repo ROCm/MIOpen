@@ -62,13 +62,14 @@ namespace {
 // v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
 // https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
-inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
+inline bool IsWinogradV21Preferred(const std::string& asic,
+                                   const miopen::conv::ProblemDescription& problem)
 {
     return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
            !(IS3X2 && problem.GetKernelStrideW() == 2);
 }
 
-inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+inline bool IsShaderConstraintsMetV21(const miopen::conv::ProblemDescription& problem,
                                       const int R,
                                       const int S,
                                       const int C,
@@ -112,7 +113,7 @@ inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
     // clang-format on
 }
 
-inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+inline bool IsShaderConstraintsMetV30(const miopen::conv::ProblemDescription& problem,
                                       const int R,
                                       const int S,
                                       const int C,

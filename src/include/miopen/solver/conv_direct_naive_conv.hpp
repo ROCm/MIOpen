@@ -26,7 +26,7 @@
 #pragma once
 
 #include <miopen/execution_context.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include "miopen/../../kernels/stride_array.hpp"
 
 #include <array>
@@ -36,29 +36,30 @@
 #include <vector>
 
 namespace miopen {
-
 namespace solver {
+namespace conv {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const ProblemDescription&);
-std::string ConvDirectNaiveConvKernelName(const ProblemDescription&);
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&,
+                                         const miopen::conv::ProblemDescription&);
+std::string ConvDirectNaiveConvKernelName(const miopen::conv::ProblemDescription&);
 std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem);
+                                          const miopen::conv::ProblemDescription& problem);
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
-                                             const ProblemDescription& problem);
+                                             const miopen::conv::ProblemDescription& problem);
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
-                                                 const ProblemDescription&);
+                                                 const miopen::conv::ProblemDescription&);
 
-bool IsInputFp32(const ProblemDescription&);
-bool IsInputFp16(const ProblemDescription&);
-bool IsInputBfp16(const ProblemDescription&);
-bool IsInputInt8(const ProblemDescription&);
-bool IsAccFp64(const ProblemDescription&);
-bool IsAccInt32(const ProblemDescription&);
-bool IsOutputFp32(const ProblemDescription&);
-bool IsOutputFp16(const ProblemDescription&);
-bool IsOutputBfp16(const ProblemDescription&);
-bool IsOutputInt8(const ProblemDescription&);
-bool IsOutputInt32(const ProblemDescription&);
+bool IsInputFp32(const miopen::conv::ProblemDescription&);
+bool IsInputFp16(const miopen::conv::ProblemDescription&);
+bool IsInputBfp16(const miopen::conv::ProblemDescription&);
+bool IsInputInt8(const miopen::conv::ProblemDescription&);
+bool IsAccFp64(const miopen::conv::ProblemDescription&);
+bool IsAccInt32(const miopen::conv::ProblemDescription&);
+bool IsOutputFp32(const miopen::conv::ProblemDescription&);
+bool IsOutputFp16(const miopen::conv::ProblemDescription&);
+bool IsOutputBfp16(const miopen::conv::ProblemDescription&);
+bool IsOutputInt8(const miopen::conv::ProblemDescription&);
+bool IsOutputInt32(const miopen::conv::ProblemDescription&);
 
 namespace conv_internal {
 
@@ -71,7 +72,7 @@ void DebugPrintTensorStrides(const TensorDescriptor& inDesc,
  * its strides to NGCHW, and for NHWC, we want to convert its strides to NHWGC.
  * Same applies for the 3D case.
  */
-int GetGroupStrideIndex(const ProblemDescription& problem);
+int GetGroupStrideIndex(const miopen::conv::ProblemDescription& problem);
 
 /**
  * split the strides for C dimension in a tensor descriptor into (G, C_per_group).
@@ -145,7 +146,9 @@ auto MakeStrideArray(V vec)
     }
     return ret;
 }
+
 } // end namespace conv_internal
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

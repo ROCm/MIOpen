@@ -76,7 +76,7 @@ std::size_t GetMaxWorkSpaceSize(const std::vector<std::pair<std::string, std::si
 }
 
 std::size_t GetWorkSpaceSizeGEMM(const miopen::ExecutionContext& ctx,
-                                 const miopen::ProblemDescription& problem)
+                                 const conv::ProblemDescription& problem)
 {
 #if MIOPEN_USE_GEMM
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}) ||
@@ -92,7 +92,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ExecutionContext& ctx,
-                                         const miopen::ProblemDescription& problem)
+                                         const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return 0;
@@ -100,7 +100,7 @@ std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeDirect(const miopen::ExecutionContext& ctx,
-                                   const miopen::ProblemDescription& problem)
+                                   const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
@@ -108,7 +108,7 @@ std::size_t GetWorkSpaceSizeDirect(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeFFT(const miopen::ExecutionContext& ctx,
-                                const miopen::ProblemDescription& problem)
+                                const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return 0;
@@ -116,7 +116,7 @@ std::size_t GetWorkSpaceSizeFFT(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeWinograd(const miopen::ExecutionContext& ctx,
-                                     const miopen::ProblemDescription& problem)
+                                     const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
@@ -124,7 +124,7 @@ std::size_t GetWorkSpaceSizeWinograd(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ExecutionContext& ctx,
-                                      const miopen::ProblemDescription& problem)
+                                      const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
@@ -132,7 +132,7 @@ std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ExecutionContext& ctx,
-                                        const miopen::ProblemDescription& problem)
+                                        const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
@@ -140,7 +140,7 @@ std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ExecutionContext& ctx,
 }
 
 std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ExecutionContext& ctx,
-                                            const miopen::ProblemDescription& problem)
+                                            const conv::ProblemDescription& problem)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return 0;
@@ -382,8 +382,8 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 /// for some related host-side optimizations.
 ///
 /// These optimizations are kind of cutting corners, but advantages are quite high.
-bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ExecutionContext& ctx,
-                                                          const ProblemDescription& problem) const
+bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
+    const miopen::ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return false;
@@ -397,7 +397,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::Executio
     if(!(problem.GetOutChannels_() >= 16 && problem.GetOutChannels_() % 2 == 0))
         return false;
 
-    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
+    return solver::conv::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
 }
 
 std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
@@ -503,19 +503,23 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
     {
         if(value < -1 || value > 1)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attempt to set invalid value of "
                          "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
                              std::to_string(value));
+        }
         gfx90aFp16alt.value = value;
     }
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
     {
         if(value < 0 || value > 1)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attemp to set invalid value for "
                          "MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC: " +
                              std::to_string(value));
+        }
         deterministic.value = value;
     }
     else if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)
@@ -523,10 +527,12 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
         const auto rounding_mode = static_cast<miopenF8RoundingMode_t>(value);
         if(rounding_mode != miopenF8RoundingModeStochastic &&
            rounding_mode != miopenF8RoundingModeStandard)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "[Set conv attribute] Error: Attempt to set invalid value for "
                          "MIOPEN_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE" +
                              std::to_string(value));
+        }
         fp8rounding_mode.rounding_mode = rounding_mode;
     }
     else

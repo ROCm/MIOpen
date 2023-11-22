@@ -172,8 +172,10 @@ Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
 {
     const auto found = tensor_descriptors.find(name);
     if(found == tensor_descriptors.end())
+    {
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Problem is missing " + name_str + " tensor descriptor.");
+    }
     return found->second;
 }
 
@@ -271,8 +273,10 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
+    {
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
+    }
 
     // These are not swapped for now to preserve argument order in calls
     const auto& x_desc =
@@ -386,9 +390,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto legacy_problem = ProblemDescription{conv_problem};
-    const auto netcfg         = conv_problem.MakeNetworkConfig();
-    auto conv_ctx             = ExecutionContext{&handle};
+    const auto netcfg = conv_problem.MakeNetworkConfig();
+    auto conv_ctx     = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
     decltype(auto) db = GetDb(conv_ctx);
@@ -403,7 +406,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetPerfConfig(
-            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, legacy_problem, db));
+            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_problem, db));
         solution.SetProblem(*this);
         MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
                                         << solution.GetWorkspaceSize() << ", "
@@ -495,6 +498,60 @@ void from_json(const nlohmann::json& json, Problem& problem)
 
     VisitType<detail::OperatorDescriptorDeserializer, OperatorDescriptor>(
         primitive, &operator_json, &problem.operator_descriptor);
+}
+
+void Problem::CalculateOutput()
+{
+    if(!HasInput())
+        return;
+
+    boost::apply_visitor(boost::hof::match(
+                             [&](const ConvolutionDescriptor& conv) {
+                                 const auto& in = GetInput();
+                                 conv.GetForwardOutputTensor(
+                                     in,
+                                     GetTensorDescriptorChecked(miopenTensorConvolutionW,
+                                                                "miopenTensorConvolutionW"),
+                                     in.GetType());
+                             },
+                             [&](const ActivationDescriptor&) {
+                                 RegisterTensorDescriptor(GetOutputId(), GetInput());
+                             }),
+                         operator_descriptor);
+}
+
+miopenTensorArgumentId_t Problem::GetInputId() const
+{
+    return boost::apply_visitor(
+        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
+                          [](const ActivationDescriptor&) { return miopenTensorActivationX; }),
+        operator_descriptor);
+}
+
+miopenTensorArgumentId_t Problem::GetOutputId() const
+{
+    return boost::apply_visitor(
+        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
+                          [](const ActivationDescriptor&) { return miopenTensorActivationY; }),
+        operator_descriptor);
+}
+
+void FusedProblem::PropagateDescriptors()
+{
+    for(auto i = 0; i < problems.size(); ++i)
+    {
+        auto& cur = problems[i];
+
+        if(i > 0 && !cur.HasInput())
+        {
+            auto& prev = problems[i - 1];
+            if(prev.HasOutput())
+                cur.RegisterTensorDescriptor(cur.GetInputId(), prev.GetOutput());
+        }
+
+        if(cur.HasInput() && !cur.HasOutput())
+            cur.CalculateOutput();
+    }
 }
 
 } // namespace miopen

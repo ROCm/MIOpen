@@ -44,6 +44,10 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4)
@@ -58,14 +62,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(problem)                                                            \
-    const auto                                                                                    \
-        wino_xform_h =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 0),                                             \
-        wino_xform_w =                                                                            \
-            solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 1);
+#define DEFINE_GETXFORMHWSIZE(problem)                                                           \
+    const auto wino_xform_h =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 0),                                     \
+               wino_xform_w =                                                                    \
+                   ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
+                       GetSolverWinoXformHWSize(problem, 1);
 
 #define DEFINE_SHADER_ALIASES(problem)               \
     const int C     = (problem).GetBatchSize_();     \
@@ -380,61 +383,89 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
     if(wino_data_tile == 3 && wino_filter_tile == 2)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2{}) ||
            problem.GetKernelStrideH() == 1)
+        {
             return false;
+        }
+    }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3{}) ||
            problem.GetKernelStrideH() == 1)
+        {
             return false;
+        }
+    }
 
     const std::string name = ctx.GetStream().GetDeviceName();
 #if WORKAROUND_SWDEV_234193
     if(problem.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
+        {
             if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
+        {
             if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
+        {
             if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
                 return false;
+        }
     }
     else
 #endif
     {
         if(wino_data_tile == 3 && wino_filter_tile == 4)
+        {
             if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4{}))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 5)
+        {
             if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5{}))
                 return false;
+        }
         if(wino_data_tile == 3 && wino_filter_tile == 6)
+        {
             if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6{}))
                 return false;
+        }
     }
 
     if(wino_data_tile == 7 && wino_filter_tile == 2)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2{}))
             return false;
+    }
     if(wino_data_tile == 7 && wino_filter_tile == 3)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3{}))
             return false;
+    }
     if(wino_data_tile == 5 && wino_filter_tile == 4)
+    {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4{}))
             return false;
+    }
     if(!ctx.use_asm_kernels)
         return false;
     if(!ctx.rmv.IsV2orV3())
         return false;
     if(!problem.Is2d())
         return false;
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
     if(problem.HasNonPackedTensors())
         return false;
@@ -623,7 +654,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            decltype(auto) invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
+            decltype(auto) invoke_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors          = invoke_params.tensors;
             float total_time             = 0;
 
@@ -779,5 +810,6 @@ template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 template struct ConvWinograd3x3MultipassWrW<5, 3>;
 template struct ConvWinograd3x3MultipassWrW<5, 4>;
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

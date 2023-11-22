@@ -182,10 +182,14 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
             });
         });
         if(vector_len > 1)
+        {
             out(out_k_id % vector_len, out_n_id, out_k_id / vector_len, out_spatial_id_pack...) =
                 static_cast<Tout>(acc);
+        }
         else
+        {
             out(out_n_id, out_k_id, out_spatial_id_pack...) = static_cast<Tout>(acc);
+        }
     });
 }
 
