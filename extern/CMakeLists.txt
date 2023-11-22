@@ -156,6 +156,7 @@ set(HALF_INCLUDE_DIR ${CMAKE_BINARY_DIR}/_deps/half-src/include PARENT_SCOPE)
 if(BUILD_TESTING)
     set(gtest_force_shared_crt ON CACHE INTERNAL "")
     set(BUILD_GMOCK OFF CACHE INTERNAL "")
+    set(INSTALL_GTEST OFF CACHE INTERNAL "")
 
     FetchContent_Declare(
             GTest
