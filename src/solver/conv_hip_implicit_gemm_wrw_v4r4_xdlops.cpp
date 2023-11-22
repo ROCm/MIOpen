@@ -1010,6 +1010,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
                 }
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            workspaceDesc,
                            workSpace,
                            tensors.dwDesc,
