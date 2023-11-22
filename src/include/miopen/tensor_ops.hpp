@@ -200,6 +200,7 @@ void CopyTensor(const Handle& handle,
 
 void CastTensor(const Handle& handle,
                 const void* alpha,
+                bool clamping, // Set to false for Bwd and WrW convolutions.
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& dstDesc,

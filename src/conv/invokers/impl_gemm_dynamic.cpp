@@ -696,6 +696,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             {
                 CastTensor(handle,
                            &lowp_quant,
+                           problem.IsDirectionForward(),
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
@@ -1013,6 +1014,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             {
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
