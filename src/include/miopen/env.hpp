@@ -102,7 +102,7 @@ public:
 
     bool IsUnset() const { return is_unset; }
 
-    void Unset() const { is_unset = true; }
+    void Unset() { is_unset = true; }
 
     void UpdateValue(const T& val)
     {
