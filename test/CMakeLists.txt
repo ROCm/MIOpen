@@ -1867,7 +1867,7 @@ add_custom_test(smoke_solver_ConvOcl_Fwd11x11 GFX103X_ENABLED HALF_ENABLED BF16_
 
 add_custom_test(smoke_solver_ConvOcl_FwdGen GFX103X_ENABLED HALF_ENABLED BF16_ENABLED
     ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwdGen
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 1 1 15 15 --weights 1 1 5 5 --pads_strides_dilations 0 0 3 3 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 1 1 6 6 --weights 1 1 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvOcl_BwdWrW53 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED
