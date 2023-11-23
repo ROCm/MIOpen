@@ -311,14 +311,14 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
 
 #if MIOPEN_USE_ROCTRACER
 #define MIOPEN_LOG_ROCTX_DEFINE_OBJECT miopen::LogScopeRoctx logtx;
-#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)                                                \
-        if(miopen::IsLoggingToRoctx())                                                  \
-        {                                                                               \
-            std::ostringstream miopen_log_func_ss;                                      \
-            miopen_log_func_ss << "s_api = " << __FUNCTION__ << " | ";                  \
-            MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__)            \
-            logtx.logRange(miopen_log_func_ss.str());                                   \
-        }
+#define MIOPEN_LOG_ROCTX_DO_LOGGING(...)                                 \
+    if(miopen::IsLoggingToRoctx())                                       \
+    {                                                                    \
+        std::ostringstream miopen_log_func_ss;                           \
+        miopen_log_func_ss << "s_api = " << __FUNCTION__ << " | ";       \
+        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH_ROCTX, __VA_ARGS__) \
+        logtx.logRange(miopen_log_func_ss.str());                        \
+    }
 #else
 #define MIOPEN_LOG_ROCTX_DEFINE_OBJECT
 #define MIOPEN_LOG_ROCTX_DO_LOGGING(...)

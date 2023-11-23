@@ -126,10 +126,7 @@ bool IsLoggingFunctionCalls()
     return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}) && !IsLoggingDebugQuiet();
 }
 
-bool IsLoggingToRoctx()
-{
-    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ROCTX{});
-}
+bool IsLoggingToRoctx() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_ROCTX{}); }
 
 bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 {
