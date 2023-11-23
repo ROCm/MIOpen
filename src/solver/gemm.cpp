@@ -490,7 +490,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                CastTensor(handle, &lowp_quant, true, ygemmDesc, y, yDesc, y, 0, 0);
                 if(handle.IsProfilingEnabled())
                     time_gemm += handle.GetKernelTime();
             }
@@ -704,7 +704,8 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
             if(conv_params.type != InvokeType::Run)
                 time *= in_n;
 
-            CastTensor(handle, &lowp_quant, ygemmDesc, y, conv_params.tensors.outDesc, y, 0, 0);
+            CastTensor(
+                handle, &lowp_quant, true, ygemmDesc, y, conv_params.tensors.outDesc, y, 0, 0);
 
             if(handle.IsProfilingEnabled())
             {
@@ -1217,7 +1218,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
             {
                 TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
 
-                CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
+                CastTensor(handle, &conv.lowp_quant, true, ygemmDesc, y, yDesc, y, 0, 0);
 
                 if(handle.IsProfilingEnabled())
                     time_gemm += handle.GetKernelTime();
