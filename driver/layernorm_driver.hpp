@@ -139,7 +139,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    dim = inflags.GetValueInt("nomalized_dim");
+    dim = inflags.GetValueInt("normalized_dim");
 
     std::vector<int> inner_len;
     if(dim == in_len.size())
