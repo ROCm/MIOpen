@@ -189,18 +189,14 @@ enum tensor_layout_t
 
 std::string tensor_layout_to_string(tensor_layout_t layout)
 {
-    std::string layout_string("N/A");
-    if(layout == miopen_tensor_layout_nchw)
-        layout_string = "NCHW";
-    else if(layout == miopen_tensor_layout_ncdhw)
-        layout_string = "NCDHW";
-    else if(layout == miopen_tensor_layout_nhwc)
-        layout_string = "NHWC";
-    else if(layout == miopen_tensor_layout_ndhwc)
-        layout_string = "NDHWC";
-    else
-        MIOPEN_THROW("Unsupported tensor layout");
-    return layout_string;
+    switch(layout)
+    {
+    case miopen_tensor_layout_nchw: return "NCHW";
+    case miopen_tensor_layout_ncdhw: return "NCDHW";
+    case miopen_tensor_layout_nhwc: return "NHWC";
+    case miopen_tensor_layout_ndhwc: return "NDHWC";
+    default: MIOPEN_THROW("Unsupported tensor layout");
+    }
 }
 
 template <typename T>

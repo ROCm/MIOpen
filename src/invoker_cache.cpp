@@ -67,8 +67,10 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     }
     const auto invoker = item_invokers.find(found_1_0_id->second);
     if(invoker == item_invokers.end())
+    {
         MIOPEN_THROW("No invoker with solver_id of " + found_1_0_id->second +
                      " was registered for " + network_config);
+    }
     return invoker->second;
 }
 
@@ -103,7 +105,9 @@ void InvokerCache::Register(const Key& key, const Invoker& invoker)
 {
     auto it = invokers.find(key.first);
     if(it != invokers.end())
+    {
         it->second.invokers.insert({key.second, invoker});
+    }
     else
     {
         auto& item = invokers.insert({key.first, Item{}}).first->second;
@@ -125,8 +129,10 @@ void InvokerCache::SetAsFound1_0(const std::string& network_config,
         const auto& item_invokers = item->second.invokers;
         const auto invoker        = item_invokers.find(solver_id);
         if(invoker == item_invokers.end())
+        {
             MIOPEN_THROW("No invoker with solver_id of " + solver_id + " was registered for " +
                          network_config);
+        }
     }
 
     item->second.found_1_0[algorithm] = solver_id;

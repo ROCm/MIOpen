@@ -1010,6 +1010,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
                 }
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            workspaceDesc,
                            workSpace,
                            tensors.dwDesc,
@@ -1117,7 +1118,9 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ExecutionContext&,
                                                    const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
+    {
         return 0;
+    }
     else
     {
         const auto k = ProblemInterpreter::GetOutputChannelK(problem);

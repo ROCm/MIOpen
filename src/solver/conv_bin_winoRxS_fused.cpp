@@ -201,11 +201,17 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
     const int zero = 0;
     int flags      = [&]() {
         if(bias_idx != -1 && activ_idx != -1)
+        {
             return (1 << 7) + (1 << 8);
+        }
         else if(bias_idx != -1)
+        {
             return (1 << 7);
+        }
         else
+        {
             return zero;
+        }
     }();
     const miopenActivationMode_t activ_mode = [&]() {
         if(activ_idx != -1)
