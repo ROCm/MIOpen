@@ -342,14 +342,17 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ProblemDescription& problem)
             handle.Run(kernels[0])(args);
 #endif
             if(needs_output_cast)
+            {
                 CastTensor(handle,
                            &lowp_quant,
+                           true,
                            outConvDesc,
                            tensors.out,
                            tensors.outDesc,
                            tensors.out,
                            0,
                            0);
+            }
         };
     };
 }
@@ -433,9 +436,11 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ProblemDescription& problem, size
                 const auto workspaceSize = wrw_invoke_params.workSpaceSize;
 
                 if((workspace == nullptr) || (workspaceSize < workspace_req))
+                {
                     MIOPEN_THROW("Not enough workspace for MLIR WRW (" +
                                  std::to_string(workspaceSize) + " provided, " +
                                  std::to_string(workspace_req) + " required)");
+                }
 
                 TensorDescriptor workspaceDesc(
                     miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
