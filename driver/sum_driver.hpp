@@ -187,11 +187,12 @@ template <typename Tgpu, typename Tref>
 int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Sum (Default=1)", "int");
-    inflags.AddInputFlag("InputDimLengths",
-                         'D',
-                         "256,4,8732",
-                         "The dimensional lengths of the input tensor(Default=256,4,8732)",
-                         "string");
+    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
+    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
+    inflags.AddInputFlag("in_w", 'W', "8732", "Input Width (Default=32)", "int");
+
     inflags.AddInputFlag(
         "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag("NanPropagation",
@@ -212,31 +213,33 @@ int SumDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> SumDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
-    std::string lengthsStr = inflags.GetValueStr("InputDimLengths");
+    int in_n = inflags.GetValueInt("batchsize");
+    int in_c = inflags.GetValueInt("in_channels");
+    int in_w = inflags.GetValueInt("in_w");
+    int in_h = inflags.GetValueInt("in_h");
+    int in_d = inflags.GetValueInt("in_d");
 
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
+    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
     {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_c, in_h, in_w});
+    }
+    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_c, in_w});
+    }
+    else if((in_n != 0) && (in_w != 0))
+    {
+        return std::vector<int>({in_n, in_w});
+    }
+    else
+    {
+        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
+        return std::vector<int>({0});
+    }
 }
 
 template <typename Tgpu, typename Tref>
