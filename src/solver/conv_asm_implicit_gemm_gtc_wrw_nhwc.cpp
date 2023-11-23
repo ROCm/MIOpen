@@ -42,6 +42,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static inline std::size_t GetTypeSize(const std::string& s)
 {
@@ -315,11 +318,13 @@ GetWrwXdlopsNHWCConfigLargestTileFp32()
 {
     return {"wrw", "nhwc", miopenFloat,  0, 0, 256, 128,  16, 32, 32,  2, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 1, 1,16}, {  1, 16,  1, 16}, { 1, 1, 1, 8}, {  1, 16,  1, 16}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
 GetWrwXdlopsNHWCConfigLargestTileFp16()
 {
     return {"wrw", "nhwc", miopenHalf,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}};
 }
+
 static inline PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
 GetWrwXdlopsNHWCConfigLargestTileBf16()
 {
@@ -755,12 +760,18 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
 
     if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
+    {
         return false;
+    }
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    {
         if(problem.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 &&
            vector_store != 1)
+        {
             return false;
+        }
+    }
 
     const int k           = problem.GetInChannels_();
     const int c           = problem.GetOutChannels_();
@@ -830,6 +841,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsValidPerformanceConfig(
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
+
 PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
 ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ExecutionContext& ctx,
                                                    const ProblemDescription& problem,
@@ -860,7 +872,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsBackwardWrW())
+    if(!problem.IsDirectionBackwardWrW())
         return false;
 
     if(!problem.Is2d())
@@ -910,7 +922,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 }
 
 static std::vector<OpKernelArg>
-ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& problem,
+ComputeDynamicIGemmWrwKernelArgsNHWC(const ProblemDescription& problem,
                                      const int gemm_k_global_splits,
                                      const int gemm_k_per_wg,
                                      const int splits_4G)
@@ -1000,10 +1012,12 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     }
 
     if(!problem.IsFp32())
+    {
         size_tensor_cast =
             miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                              // kernel is FP32, when using FP32 atomic
             * (k / group) * c * y * x;
+    }
 
     MultiBufferWorkspaceTraits wt(
         {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
@@ -1225,7 +1239,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto ker      = handle.Run(
                     kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
@@ -1235,9 +1249,11 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 float zero                = 0.f;
 
                 if(workSpace == nullptr || workSpaceSize < required_workspace_size)
+                {
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC with fp16 and atomic "
                                  "add.");
+                }
                 auto trans_input_buf =
                     trans_input_size == 0
                         ? null_buf
@@ -1293,6 +1309,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            cast_desc,
                            cast_buf.get(),
                            tensors.dwDesc,
@@ -1327,7 +1344,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
-                    primitive_parameters.CastTo<conv::WrWInvokeParams>();
+                    primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
                 const auto ker      = handle.Run(
                     kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
@@ -1418,5 +1435,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen
