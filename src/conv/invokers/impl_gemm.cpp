@@ -102,6 +102,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ProblemDescription& problem)
 
                         CastTensor(handle,
                                    &lowp_quant,
+                                   false,
                                    workspaceDesc,
                                    workSpace,
                                    tensors.outDesc,
