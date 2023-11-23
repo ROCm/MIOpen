@@ -64,6 +64,8 @@
 #define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
     (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
+#define WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+
 using ExecutionContext       = miopen::ExecutionContext;
 using ConvProblemDescription = miopen::conv::ProblemDescription;
 using Direction              = miopen::conv::Direction;
@@ -816,6 +818,9 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 if(api == ConvApi::Find_1_0)
                 {
+#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+#endif
                     const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     std::vector<char> workspace(workspace_size);
                     auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -888,6 +893,9 @@ struct verify_forward_conv : conv_base<T, Tout>
             {
                 if(api == ConvApi::Find_1_0)
                 {
+#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+#endif
                     const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
                     std::vector<char> workspace(workspace_size);
                     auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -1262,7 +1270,10 @@ struct verify_backward_conv : conv_base<T>
             break;
         }
         case ConvApi::Find_1_0: {
-            const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
+#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+#endif
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1568,7 +1579,13 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_1_0: {
 
+#ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
+                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+            std::cout << ">>>>>> findMode = " << static_cast<int>(filter.findMode.Get()) << std::endl;
+#endif
+            std::cout << ">>>>>> findMode = " << static_cast<int>(filter.findMode.Get()) << std::endl;
             const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
+            std::cout << ">>>>> workspace_size: " << workspace_size << std::endl;
             std::vector<char> workspace(workspace_size);
             auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
