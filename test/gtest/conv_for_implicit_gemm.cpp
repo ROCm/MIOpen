@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-
 #include <tuple>
 
 #include <miopen/miopen.h>
@@ -33,7 +32,6 @@
 #include <miopen/env.hpp>
 #include "conv_2d.hpp"
 #include "get_handle.hpp"
-
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
@@ -45,7 +43,6 @@ static bool IsTestRunWith(const char* float_arg)
     const char* const p_envVar = miopen::GetStringEnv(MIOPEN_TEST_FLOAT_ARG{});
     return (p_envVar != nullptr && std::strcmp(p_envVar, float_arg) == 0);
 }
-
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 {
@@ -64,7 +61,6 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-
 class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
@@ -77,20 +73,16 @@ void Run2dDriver(miopenDataType_t prec)
 {
     std::vector<TestCase> params;
 
-    switch (prec)
+    switch(prec)
     {
-        case miopenHalf :
-            /* code */
-            params = ConfigWithHalf::GetParam();
-            break;
-        
-        case miopenBFloat16:
-            params = ConfigWithBF16::GetParam();
-            break;
+    case miopenHalf:
+        /* code */
+        params = ConfigWithHalf::GetParam();
+        break;
 
-        default:params = ConfigWithHalf::GetParam();
+    case miopenBFloat16: params = ConfigWithBF16::GetParam(); break;
 
-
+    default: params = ConfigWithHalf::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -107,11 +99,8 @@ void Run2dDriver(miopenDataType_t prec)
         test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
-
     }
-
 }
-
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
@@ -122,12 +111,11 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-
 TEST_P(ConfigWithBF16, BF16Test)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") 
-    && miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
+       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--bf16"))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -140,8 +128,8 @@ TEST_P(ConfigWithBF16, BF16Test)
 TEST_P(ConfigWithHalf, HalfTest)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") 
-    && miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnvvarValueEnabled("MIOPEN_TEST_ALL") &&
+       miopen::IsEnvvarValueEnabled("IMPLICITGEMM_TESTING_ENV") && IsTestRunWith("--half"))
     {
         Run2dDriver(miopenHalf);
     }
@@ -160,10 +148,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_DEBUG_CONV_GEMM=0",
         "MIOPEN_DEBUG_CONV_DIRECT=0",
         "MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1",
-        "MIOPEN_DEBUG_CONV_FFT=0",};
+        "MIOPEN_DEBUG_CONV_FFT=0",
+    };
 
-
-    std::string flags           = " --verbose";
+    std::string flags = " --verbose";
 
     std::string psd0 = " --pads_strides_dilations 0 0 2 2 1 1";
     std::string psd1 = " --pads_strides_dilations 0 0 1 1 1 1";
@@ -171,9 +159,9 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     std::string psd3 = " --pads_strides_dilations 0 0 1 1 2 2";
     std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1";
     std::string psd5 = " --pads_strides_dilations 2 2 2 2 1 1";
-    
 
-    std::string grep = "| grep -v \"No suitable algorithm was found to execute the required convolution\"" ;
+    std::string grep =
+        "| grep -v \"No suitable algorithm was found to execute the required convolution\"";
 
     const std::vector<TestCase> test_cases = {
 
