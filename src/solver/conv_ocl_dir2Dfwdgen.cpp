@@ -30,8 +30,9 @@
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
-#define WORKAROUND_MLOPEN_ISSUE_1681 1 // In private repo.
-#define WORKAROUND_ISSUE_2522 (HIP_PACKAGE_VERSION_FLAT >= 5003000000ULL)
+#define WORKAROUND_MLOPEN_ISSUE_1681 0 // In private repo.
+#define WORKAROUND_ISSUE_2522 0        //(HIP_PACKAGE_VERSION_FLAT >= 5003000000ULL)
+#define WORKAROUND_MLOPEN_ISSUE_LEGACY_CONV_DIRECT_OCL_FWDGEN 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
@@ -65,6 +66,8 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
     if(problem.GetGroupCount() > 1)
         return false;
 
+#if WORKAROUND_MLOPEN_ISSUE_LEGACY_CONV_DIRECT_OCL_FWDGEN
+    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
     { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
         const auto& p        = problem;                                       // alias
         const bool supported =                                                //
@@ -86,6 +89,7 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
         if(!supported)
             return false;
     }
+#endif
 
 #if WORKAROUND_MLOPEN_ISSUE_1681
     if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
