@@ -220,11 +220,15 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
             const std::vector<size_t> input_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc);
             if(hx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, hx, tmp_layout_hx);
+            }
             if(cx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, cx, tmp_layout_cx);
+            }
 
             auto workSpace_shift_size =
                 dataTypeSize *
@@ -258,11 +262,15 @@ void RNNDescriptor::RNNTransformerForward(Handle& handle,
             const std::vector<size_t> output_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc, true);
             if(hy != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, output_reorder_index, tmp_layout_hy, hy);
+            }
             if(cy != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, cDesc, 1, output_reorder_index, tmp_layout_cy, cy);
+            }
         }
 
         RNNTensorBaseLayoutConverter::ReverseConvertInputTensorGPUData(
@@ -368,17 +376,25 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
             const std::vector<size_t> input_reorder_index =
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc);
             if(hx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, hx, tmp_layout_hx);
+            }
             if(dhy != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, dhy, tmp_layout_dhy);
+            }
             if(cx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, cx, tmp_layout_cx);
+            }
             if(dcy != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, dcy, tmp_layout_dcy);
+            }
 
             auto workSpace_shift_size =
                 dataTypeSize * RNNLayoutTransformTotalTmpSpace(
@@ -414,11 +430,15 @@ void RNNDescriptor::RNNTransformerBackwardData(Handle& handle,
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc, true);
 
             if(dhx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, output_reorder_index, tmp_layout_dhx, dhx);
+            }
             if(dcx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, cDesc, 1, output_reorder_index, tmp_layout_dcx, dcx);
+            }
         }
 
         RNNTensorBaseLayoutConverter::ReverseConvertInputTensorGPUData(
@@ -499,8 +519,10 @@ void RNNDescriptor::RNNTransformerBackwardWeights(Handle& handle,
                 RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(xDesc);
 
             if(hx != nullptr)
+            {
                 RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(
                     handle, hDesc, 1, input_reorder_index, hx, tmp_layout_hx);
+            }
 
             auto workSpace_shift_size =
                 dataTypeSize * RNNLayoutTransformTotalTmpSpace(
