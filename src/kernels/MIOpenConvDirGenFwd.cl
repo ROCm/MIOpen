@@ -165,8 +165,11 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
-            lcl_wei[i] =
-                weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+            const uint weights_idx =
+                wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i;
+            if(weights_idx >= MLO_FLTR_SZ0 * MLO_FLTR_SZ1 * MLO_N_OUT_CHNLS * MLO_N_IN_CHNLS)
+                continue;
+            lcl_wei[i] = weights[weights_idx];
         }
 
         readDataTile(lcl_img,
@@ -408,8 +411,11 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
-            lcl_wei[i] =
-                weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+            const uint weights_idx =
+                wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i;
+            if(weights_idx >= MLO_FLTR_SZ0 * MLO_FLTR_SZ1 * MLO_N_OUT_CHNLS * MLO_N_IN_CHNLS)
+                continue;
+            lcl_wei[i] = weights[weights_idx];
         }
 
         readDataTile(&lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1],
