@@ -39,7 +39,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 
 #define WRW_MAX_GEMM_K_SPLITS 10
-#define WORKAROUND_ISSUE_2496 1
 
 namespace miopen {
 namespace solver {
@@ -761,12 +760,18 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
 
     if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
+    {
         return false;
+    }
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+    {
         if(problem.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 &&
            vector_store != 1)
+        {
             return false;
+        }
+    }
 
     const int k           = problem.GetInChannels_();
     const int c           = problem.GetOutChannels_();
@@ -856,13 +861,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 
 #if WORKAROUND_ISSUE_1979
     if(problem.GetGroupCount() > 1)
-        return false;
-#endif
-
-#if WORKAROUND_ISSUE_2496
-    if(problem.GetInChannels_() == 3 && problem.GetOutChannels_() == 1 &&
-       problem.GetInHeight_() == 3 && problem.GetInWidth_() == 3 &&
-       problem.GetWeightsHeight_() == 1 && problem.GetWeightsWidth_() == 1)
         return false;
 #endif
 
@@ -1014,10 +1012,12 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(
     }
 
     if(!problem.IsFp32())
+    {
         size_tensor_cast =
             miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                              // kernel is FP32, when using FP32 atomic
             * (k / group) * c * y * x;
+    }
 
     MultiBufferWorkspaceTraits wt(
         {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
@@ -1249,9 +1249,11 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 float zero                = 0.f;
 
                 if(workSpace == nullptr || workSpaceSize < required_workspace_size)
+                {
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC with fp16 and atomic "
                                  "add.");
+                }
                 auto trans_input_buf =
                     trans_input_size == 0
                         ? null_buf
@@ -1307,6 +1309,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 CastTensor(handle,
                            &lowp_quant,
+                           false,
                            cast_desc,
                            cast_buf.get(),
                            tensors.dwDesc,

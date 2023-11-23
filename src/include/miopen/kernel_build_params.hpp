@@ -142,6 +142,11 @@ struct GcnAsm
 {
     static std::string Generate(const std::vector<KernelBuildParameter>& options);
 };
+
+struct HIP
+{
+    static std::string Generate(const std::vector<KernelBuildParameter>& options);
+};
 } // namespace kbp
 
 } // namespace miopen
