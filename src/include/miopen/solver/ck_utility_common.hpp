@@ -95,6 +95,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     // GPU target
     static const std::string device_name = handle.GetDeviceName();
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(StartsWith(device_name, "gfx803"))
         compiler_flag << " -DCK_AMD_GPU_GFX803";
     else if(StartsWith(device_name, "gfx900"))
@@ -121,6 +122,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX1101";
     else if(StartsWith(device_name, "gfx1102"))
         compiler_flag << " -DCK_AMD_GPU_GFX1102";
+    // NOLINTEND(*-braces-around-statements)
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
@@ -138,10 +140,12 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     return compiler_flag.str();
 }
 
-static inline auto get_ck_convolution_problem_descriptor(const ProblemDescription& problem)
+static inline auto
+get_ck_convolution_problem_descriptor(const miopen::conv::ProblemDescription& problem)
 {
     ck::DataTypeEnum_t ck_datatype;
 
+    // NOLINTBEGIN(*-braces-around-statements)
     if(problem.IsFp32())
         ck_datatype = ck::DataTypeEnum_t::Float;
     else if(problem.IsFp16())
@@ -150,6 +154,7 @@ static inline auto get_ck_convolution_problem_descriptor(const ProblemDescriptio
         ck_datatype = ck::DataTypeEnum_t::BFloat16;
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;
+    // NOLINTEND(*-braces-around-statements)
 
     return ck::driver::ConvolutionProblemDescriptor{
         ProblemInterpreter::GetBatchN(problem),

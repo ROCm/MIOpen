@@ -37,11 +37,11 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
-get_property(_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.
-if(_GENERATOR_IS_MULTI_CONFIG)
+if(MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     if (NOT CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING
             "Available build types (configurations) on multi-config generators")
@@ -262,11 +262,8 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
-# WORKAROUND_SWDEV_413293 - do not include on Windows, error message unknown command line option
+# WORKAROUND_SWDEV_413293 - do not use on Windows. Compiler error message: unknown command line option
 if(NOT WIN32 AND MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5.7.23302)
-    # No assumption that HIP kernels are launched with uniform block size for backward compatibility
-    # SWDEV-413293 and https://reviews.llvm.org/D155213 effective HIP_FLAT_VERSION 500723302
-    add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:WORKAROUND_SWDEV_413293>)
     string(APPEND HIP_COMPILER_FLAGS " -fno-offload-uniform-block ")
 endif()
 
@@ -276,7 +273,7 @@ endif()
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
-add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS="${HIP_COMPILER_FLAGS}">)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}>)
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -416,10 +413,17 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
+if(WIN32)
+    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
+else()
+    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
+endif()
+
+file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
+
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
-    set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
     set(MIOPEN_SYSTEM_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "${KERNELS_BINARY_DIR}" CACHE PATH "Default path of user db files")
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}" CACHE PATH "Filename suffix for the user find-db files")
@@ -460,17 +464,9 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
 
-if(NOT BUILD_DEV)
-    if(WIN32)
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/bin)
-    else()
-        set(KERNELS_BINARY_DIR ${PROJECT_BINARY_DIR}/share/miopen/db)
-    endif()
-endif()
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
 find_program(UNZIPPER lbzcat bzcat REQUIRED)
-file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
@@ -550,147 +546,6 @@ endif()
 include(ClangTidy)
 enable_clang_tidy(
     CHECKS
-        *
-        -abseil-*
-        -altera-*
-        -android-cloexec-fopen
-        # This check is useless for us. Many objects (like tensors or problem descriptions)
-        # naturally have mutiple parameters of the same type.
-        -bugprone-easily-swappable-parameters
-        -bugprone-exception-escape
-        -bugprone-macro-parentheses
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cert-dcl37-c
-        -cert-dcl51-cpp
-        -cert-env33-c
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
-        -cert-msc32-c
-        -cert-msc50-cpp
-        -cert-msc51-cpp
-        -clang-analyzer-alpha.core.CastToStruct
-        -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-extern-c-compat
-        -clang-diagnostic-unused-command-line-argument
-        -cppcoreguidelines-avoid-c-arrays
-        -cppcoreguidelines-avoid-magic-numbers
-        -cppcoreguidelines-explicit-virtual-functions
-        -cppcoreguidelines-init-variables
-        -cppcoreguidelines-macro-usage
-        -cppcoreguidelines-narrowing-conversions
-        -cppcoreguidelines-non-private-member-variables-in-classes
-        -cppcoreguidelines-prefer-member-initializer
-        -cppcoreguidelines-pro-bounds-array-to-pointer-decay
-        -cppcoreguidelines-pro-bounds-constant-array-index
-        -cppcoreguidelines-pro-bounds-pointer-arithmetic
-        -cppcoreguidelines-pro-type-member-init
-        -cppcoreguidelines-pro-type-reinterpret-cast
-        -cppcoreguidelines-pro-type-union-access
-        -cppcoreguidelines-pro-type-vararg
-        -cppcoreguidelines-special-member-functions
-        -fuchsia-*
-        -google-explicit-constructor
-        -google-readability-braces-around-statements
-        -google-readability-todo
-        -google-runtime-int
-        -google-runtime-references
-        -hicpp-avoid-c-arrays
-        -hicpp-braces-around-statements
-        -hicpp-explicit-conversions
-        -hicpp-named-parameter
-        -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
-        -hicpp-signed-bitwise
-        -hicpp-special-member-functions
-        -hicpp-uppercase-literal-suffix
-        -hicpp-use-auto
-        -hicpp-use-equals-default
-        -hicpp-use-override
-        -hicpp-vararg
-        -llvm-else-after-return
-        -llvm-header-guard
-        -llvm-include-order
-        -llvmlibc-callee-namespace
-        -llvmlibc-implementation-in-namespace
-        -llvmlibc-restrict-system-libc-headers
-        -llvm-qualified-auto
-        # This one is extremely slow, and probably has lots of FPs.
-        -misc-confusable-identifiers
-        -misc-misplaced-const
-        -misc-non-private-member-variables-in-classes
-        -misc-no-recursion
-        -modernize-avoid-bind
-        -modernize-avoid-c-arrays
-        -modernize-pass-by-value
-        -modernize-use-auto
-        -modernize-use-default-member-init
-        -modernize-use-equals-default
-        -modernize-use-trailing-return-type
-        -modernize-use-transparent-functors
-        -modernize-use-nodiscard
-        -modernize-concat-nested-namespaces
-        -modernize-unary-static-assert
-        -performance-unnecessary-value-param
-        -readability-braces-around-statements
-        -readability-convert-member-functions-to-static
-        -readability-else-after-return
-        # TODO We are not ready to use it, but very useful.
-        -readability-function-cognitive-complexity
-        # We dont think this is a useful check. Disabled on migraphx.
-        -readability-identifier-length
-        -readability-isolate-declaration
-        -readability-magic-numbers
-        -readability-named-parameter
-        -readability-qualified-auto
-        -readability-redundant-string-init
-        # There are many FPs with this, let's disable it (ditto in MIGraphX)
-        -readability-suspicious-call-argument
-        -readability-uppercase-literal-suffix
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.1 update
-        ###################################################################
-        -cert-err33-c
-        -google-readability-casting
-        -hicpp-use-emplace
-        -modernize-use-emplace
-        -performance-unnecessary-copy-initialization
-        -readability-container-data-pointer
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.3 &&
-        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ###################################################################
-        -bugprone-use-after-move
-        -hicpp-invalid-access-moved
-        -modernize-use-nodiscard
-        -modernize-unary-static-assert
-        -modernize-macro-to-enum
-        -modernize-concat-nested-namespaces
-        -readability-redundant-declaration
-        -readability-simplify-boolean-expr
-        -hicpp-deprecated-headers
-        -hicpp-member-init
-        -performance-no-automatic-move
-        -clang-analyzer-cplusplus.NewDeleteLeaks
-        -modernize-deprecated-headers
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.4.2
-        ###################################################################
-        -misc-const-correctness
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.6
-        ###################################################################
-        -cppcoreguidelines-avoid-const-or-ref-data-members
-        -cppcoreguidelines-avoid-do-while
-        -misc-use-anonymous-namespace
-        ###################################################################
-        # TODO Code Quality WORKAROUND ROCm 5.7
-        ###################################################################
-        -llvmlibc-inline-function-decl
-        -cppcoreguidelines-avoid-capture-default-when-capturing-this
-        -cppcoreguidelines-rvalue-reference-param-not-moved
-        -readability-avoid-unconditional-preprocessor-if
-        -bugprone-lambda-function-name
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -698,6 +553,7 @@ enable_clang_tidy(
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
 )
+
 include(CppCheck)
 enable_cppcheck(
     CHECKS

@@ -37,6 +37,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 static const inline std::vector<TunableImplicitGemmGTCDynamic_t>&
 GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
@@ -1322,9 +1325,8 @@ GetImplicitGemmGtcDynamicFwdXdlopsTunablesList()
 }
 
 // This is a helper function for selecting better performing config
-bool mayHaveBiggerN1bClusterSize(int gemm_m,
-                                 int gemm_n,
-                                 const TunableImplicitGemmGTCDynamic_t& tunable)
+static bool
+mayHaveBiggerN1bClusterSize(int gemm_m, int gemm_n, const TunableImplicitGemmGTCDynamic_t& tunable)
 {
     float n_times_m = static_cast<float>(gemm_n) / static_cast<float>(gemm_m);
 
@@ -1512,7 +1514,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!problem.direction.IsForward())
+    if(!problem.IsDirectionForward())
         return false;
 
     if(!problem.Is2d())
@@ -1539,8 +1541,10 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
 #if WORKAROUND_SWDEV_306318
     if((problem.GetWeightsHeight_() == 1) && (problem.GetWeightsWidth_() == 1) &&
        (problem.GetInChannels_() % 8 != 0))
+    {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
             return false;
+    }
 #endif
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -1590,11 +1594,12 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(problem,
-                                                                                        cfg);
+        miopen::conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(
+            problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

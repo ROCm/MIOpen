@@ -93,8 +93,6 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ALL ALL)
     endif()
 
-    message(STATUS "Clang tidy checks: ${CLANG_TIDY_CHECKS}")
-
     if (${PARSE_ANALYZE_TEMPORARY_DTORS})
         set(CLANG_TIDY_ANALYZE_TEMPORARY_DTORS "-analyze-temporary-dtors")
     endif()
@@ -149,9 +147,8 @@ function(clang_tidy_check TARGET)
             string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)
             set(tidy_target tidy-target-${TARGET}-${tidy_file})
             add_custom_target(${tidy_target}
-                # for some targets clang-tidy not able to get information from .clang-tidy
                 DEPENDS ${SOURCE}
-                COMMAND ${CLANG_TIDY_COMMAND} "-config=\{CheckOptions: \[\{key: bugprone-reserved-identifier.AllowedIdentifiers,value: __HIP_PLATFORM_HCC__\; __HIP_ROCclr__\}\]\}" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
+                COMMAND ${CLANG_TIDY_COMMAND} "-config-file=${PROJECT_SOURCE_DIR}/.clang-tidy" ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
             )

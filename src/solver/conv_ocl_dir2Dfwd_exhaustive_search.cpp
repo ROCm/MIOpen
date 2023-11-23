@@ -49,6 +49,9 @@
 
 namespace miopen {
 namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
 
 /*
  * select default configuration if a known configuration has not been found.
@@ -87,7 +90,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     {
 
         // version
-        if(problem.GetInDataType() == miopenFloat && problem.direction.IsForward() &&
+        if(problem.GetInDataType() == miopenFloat && problem.IsDirectionForward() &&
            problem.GetInChannels_() % 16 == 0 && problem.GetOutChannels_() % 16 == 0)
         {
             result.n_in_data_tiles = 128;
@@ -107,7 +110,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
 
             if(problem.GetPadW() > 0 || problem.GetKernelStrideW() > 1)
             {
-                if(problem.direction.IsForward())
+                if(problem.IsDirectionForward())
                 {
                     result.out_pix_tile0 = (problem.GetOutWidth_() & 1) != 0 ? 1 : 2;
                 }
@@ -216,11 +219,17 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ExecutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx) const
 {
     if(problem.IsFp16())
+    {
         return SearchImpl<half_float::half>(ctx, problem, invoke_ctx);
+    }
     else if(problem.IsFp32())
+    {
         return SearchImpl<float>(ctx, problem, invoke_ctx);
+    }
     else if(problem.IsBfp16())
+    {
         return SearchImpl<bfloat16>(ctx, problem, invoke_ctx);
+    }
     else
     {
         MIOPEN_THROW("Unsupported float_size");
@@ -250,7 +259,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
     candidate.n_stacks        = 1;
 
     auto& profile_h           = ctx.GetStream();
-    const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto& invoke_params = invoke_ctx.CastTo<miopen::conv::DataInvokeParams>();
     const auto bot_ocl_ptr    = invoke_params.tensors.in;
     const auto top_ocl_ptr    = invoke_params.tensors.out;
     const auto wei_ocl_ptr    = invoke_params.tensors.w;
@@ -312,7 +321,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(problem.GetInDataType() == miopenFloat && problem.direction.IsForward() &&
+        if(problem.GetInDataType() == miopenFloat && problem.IsDirectionForward() &&
            problem.GetInChannels_() % 16 == 0 && problem.GetOutChannels_() % 16 == 0)
         {
 
@@ -348,7 +357,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
             }
             else
             {
-                if(problem.direction.IsForward())
+                if(problem.IsDirectionForward())
                 {
                     out_pix_tl_cnt = (problem.GetOutWidth_() & 1) != 0 ? 1 : 2;
                 }
@@ -664,5 +673,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ExecutionContext& ctx,
     return result;
 }
 
+} // namespace conv
 } // namespace solver
 } // namespace miopen

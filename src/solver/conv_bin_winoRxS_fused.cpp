@@ -145,7 +145,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
 ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
                                                   const FusionDescription& problem) const
 {
-    const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto conv_ctx     = context.GetConvContext(conv_problem);
     ConvSolution result;
     KernelInfo kernel;
@@ -201,11 +201,17 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
     const int zero = 0;
     int flags      = [&]() {
         if(bias_idx != -1 && activ_idx != -1)
+        {
             return (1 << 7) + (1 << 8);
+        }
         else if(bias_idx != -1)
+        {
             return (1 << 7);
+        }
         else
+        {
             return zero;
+        }
     }();
     const miopenActivationMode_t activ_mode = [&]() {
         if(activ_idx != -1)

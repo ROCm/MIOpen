@@ -941,10 +941,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -992,8 +994,10 @@ public:
                                ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
+                {
                     command +=
                         std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
@@ -1039,7 +1043,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(exitCode != 0)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);
@@ -1120,14 +1124,16 @@ public:
                                ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
+                {
                     command +=
                         std::string(" --") + ArgsHelper::logs_path_arg + " " + *thread_logs_root();
+                }
 
                 if(full_set())
                     command += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", command);
-#ifdef _WIN32 
+#ifdef _WIN32
                 STARTUPINFO info;
                 PROCESS_INFORMATION processInfo;
 
@@ -1168,7 +1174,7 @@ public:
             CloseHandle(child.hProcess);
             CloseHandle(child.hThread);
 
-            if(exitCode != 0)
+            if(exitCode == 0)
                 MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
             auto exit_code = static_cast<int>(status);
@@ -1440,10 +1446,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1481,10 +1489,12 @@ public:
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            {
                 threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
+            }
         }
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Waiting for test threads...");
@@ -1530,10 +1540,14 @@ struct PerfDbDriver : test_driver
         if(mt_child_id >= 0)
         {
             if(mt_child_db_class == ArgsHelper::db_class::db)
+            {
                 DbMultiProcessTest<PlainTextDb>::WorkItem(
                     mt_child_id, mt_child_db_path, test_write);
+            }
             else if(mt_child_db_class == ArgsHelper::db_class::ramdb)
+            {
                 DbMultiProcessTest<RamDb>::WorkItem(mt_child_id, mt_child_db_path, test_write);
+            }
             return;
         }
 

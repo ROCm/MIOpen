@@ -36,14 +36,10 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
-#if defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT < 5007000000ULL)
-#define ROCBLAS_BETA_FEATURES_API 0
-#else
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#endif
 #if !defined(_WIN32) && (HIP_PACKAGE_VERSION_FLAT >= 5006000000ULL)
 #include <half/half.hpp>
 #else
@@ -54,7 +50,11 @@
 #else
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
+#ifdef _WIN32
+#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#else
 #define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#endif
 #endif
 #include <miopen/perf_field.hpp>
 #endif
@@ -95,15 +95,25 @@ FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp
 static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescriptor& desc)
 {
     if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenFloat8)
+    {
         return rocblas_compute_type_f8_f8_f32;
+    }
     else if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenBFloat8)
+    {
         return rocblas_compute_type_f8_bf8_f32;
+    }
     else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenFloat8)
+    {
         return rocblas_compute_type_bf8_f8_f32;
+    }
     else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenBFloat8)
+    {
         return rocblas_compute_type_bf8_bf8_f32;
+    }
     else
+    {
         return rocblas_compute_type_f32;
+    }
 }
 #endif
 
@@ -497,9 +507,13 @@ miopenStatus_t CallGemm(const Handle& handle,
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
                     gemm_desc.b_cast_type == miopenFloat8))
+                {
                     return true;
+                }
                 else
+                {
                     return false;
+                }
             }();
             // ex3 API only works on the gfx94x ASIC;
             if(needs_ex3)
@@ -510,8 +524,10 @@ miopenStatus_t CallGemm(const Handle& handle,
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
+                {
                     MIOPEN_THROW(miopenStatusBadParm,
                                  "8-bit floating types are only supported on gfx94x");
+                }
             }
             else
             {
@@ -623,8 +639,10 @@ miopenStatus_t CallGemm(const Handle& handle,
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "8-bit floating types are only supported on gfx94x");
+            }
         };
         break;
 
@@ -750,9 +768,13 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
                     gemm_desc.b_cast_type == miopenFloat8))
+                {
                     return true;
+                }
                 else
+                {
                     return false;
+                }
             }();
             // ex3 API only works on the gfx94x ASIC;
             if(needs_ex3)
@@ -763,8 +785,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
+                {
                     MIOPEN_THROW(miopenStatusBadParm,
                                  "8-bit floating types are only supported on gfx94x");
+                }
             }
             else
             {
@@ -889,8 +913,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "8-bit floating types are only supported on gfx94x");
+            }
 
             break;
         }
@@ -1018,9 +1044,13 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     gemm_desc.a_cast_type == miopenBFloat8) ||
                    (gemm_desc.b_cast_type == miopenBFloat8 ||
                     gemm_desc.b_cast_type == miopenFloat8))
+                {
                     return true;
+                }
                 else
+                {
                     return false;
+                }
             }();
             // ex3 API only works on the gfx94x ASIC;
             if(needs_ex3)
@@ -1031,8 +1061,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
+                {
                     MIOPEN_THROW(miopenStatusBadParm,
                                  "8-bit floating types are only supported on gfx94x");
+                }
             }
             else
             {
@@ -1154,8 +1186,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "8-bit floating types are only supported on gfx94x");
+            }
 
             break;
         }

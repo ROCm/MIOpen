@@ -29,12 +29,12 @@
 #include <sstream>
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 #endif
 #ifdef __linux__
 #include <linux/limits.h>
 #include <cstdlib>
-#endif // !_WIN32
+#endif // __linux__
 
 #include "include_inliner.hpp"
 
@@ -164,8 +164,10 @@ void IncludeInliner::ProcessCore(std::istream& input,
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if(!include_file.good())
+            {
                 throw IncludeCantBeOpenedException(include_file_path,
                                                    GetIncludeStackTrace(current_line));
+            }
 
             ProcessCore(include_file,
                         output,

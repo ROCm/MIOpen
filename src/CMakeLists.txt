@@ -58,7 +58,7 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINAR
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-if(NOT _GENERATOR_IS_MULTI_CONFIG)
+if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 endif()
 
@@ -109,7 +109,7 @@ set( MIOpen_Source
     find_controls.cpp
     find_db.cpp
     fusion.cpp
-        fusion/problem_description.cpp
+    fusion/problem_description.cpp
     generic_search.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
@@ -117,11 +117,11 @@ set( MIOpen_Source
     load_file.cpp
     lock_file.cpp
     logger.cpp
+    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
     pooling/problem_description.cpp
-    problem_description.cpp
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
@@ -216,6 +216,7 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
+    solver/norm/forward_layernorm.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -249,6 +250,8 @@ if(MIOPEN_USE_COMPOSABLEKERNEL)
         solver/batchnorm/forward_training_ck.cpp
         solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
         solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+        solver/norm/forward_layernorm2d_ck.cpp
+        solver/norm/forward_layernorm4d_ck.cpp
     )
 endif()
 
@@ -524,6 +527,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         kernel_cache.cpp
+        layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -544,7 +548,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
-        layer_norm.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
@@ -714,7 +717,7 @@ endfunction()
 
 if(WIN32)
     target_internal_library(MIOpen Boost::any Boost::container Boost::date_time Boost::hof
-	    Boost::interprocess Boost::range Boost::thread Boost::variant)
+        Boost::interprocess Boost::range Boost::thread Boost::variant)
 endif()
 
 target_include_directories(MIOpen PUBLIC
@@ -933,7 +936,9 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
 else()
     file(GLOB FIND_DB_FILES kernels/*.fdb.txt)
     file(GLOB PERF_DB_FILES kernels/*.db)
+    file(GLOB KERN_DB_FILES kernels/*.kdb)
     list(APPEND FIND_DB_FILES ${PERF_DB_FILES})
+    list(APPEND FIND_DB_FILES ${KERN_DB_FILES})
     if(NOT MIOPEN_DISABLE_SYSDB)
         if( NOT ENABLE_ASAN_PACKAGING )
           install(FILES

@@ -29,7 +29,7 @@
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
-#include <miopen/problem_description.hpp>
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/exp_backoff.hpp>
 
 #if MIOPEN_EMBED_DB
@@ -252,7 +252,9 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
         {
             ++tries;
             if(tries < 10)
+            {
                 std::this_thread::yield();
+            }
             else
             {
                 auto slot = *exp_bo;
@@ -447,10 +449,10 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
     // Check fields for the tables
     if(!dbInvalid)
     {
-        if(!CheckTableColumns(ProblemDescription::table_name(), prob_desc.FieldNames()))
+        if(!CheckTableColumns(conv::ProblemDescription::table_name(), prob_desc.FieldNames()))
         {
             std::ostringstream ss;
-            ss << "Invalid fields in table: " << ProblemDescription::table_name()
+            ss << "Invalid fields in table: " << conv::ProblemDescription::table_name()
                << " disabling access to " << filename;
             MIOPEN_LOG_W(ss.str());
             dbInvalid = true;
