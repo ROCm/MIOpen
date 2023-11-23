@@ -24,15 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/config.h>
 #include <miopen/solver.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
-
-#define WORKAROUND_MLOPEN_ISSUE_1681 0 // In private repo.
-#define WORKAROUND_ISSUE_2522 0        //(HIP_PACKAGE_VERSION_FLAT >= 5003000000ULL)
-#define WORKAROUND_MLOPEN_ISSUE_LEGACY_CONV_DIRECT_OCL_FWDGEN 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
@@ -65,47 +60,6 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.GetGroupCount() > 1)
         return false;
-
-#if WORKAROUND_MLOPEN_ISSUE_LEGACY_CONV_DIRECT_OCL_FWDGEN
-    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
-    { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
-        const auto& p        = problem;                                       // alias
-        const bool supported =                                                //
-            ((p.GetWeightsHeight_() == p.GetWeightsWidth_())                  //
-             && ((p.GetWeightsHeight_() == 3                                  //
-                  && p.GetKernelStrideH() <= 2                                //
-                  && p.GetKernelStrideW() <= 2)                               //
-                 || p.GetWeightsHeight_() == 5                                //
-                 || p.GetWeightsHeight_() == 7                                //
-                 || p.GetWeightsHeight_() == 9                                //
-                 || p.GetWeightsHeight_() == 11))                             //
-            || (p.GetWeightsHeight_() == 5                                    //
-                && (p.GetWeightsWidth_() == 10 || p.GetWeightsWidth_() == 20) //
-                && p.GetKernelStrideH() == 2                                  //
-                && p.GetKernelStrideW() == 2                                  //
-                && p.GetPadH() == 0                                           //
-                && p.GetPadW() == 0);
-
-        if(!supported)
-            return false;
-    }
-#endif
-
-#if WORKAROUND_MLOPEN_ISSUE_1681
-    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
-    {
-        if(problem.IsFp32() && problem.GetInChannels_() > 3)
-            return false;
-    }
-#endif
-
-#if WORKAROUND_ISSUE_2522
-    if(!IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN{}))
-    {
-        if((problem.IsFp16() || problem.IsBfp16()) && problem.GetKernelStrideW() == 2)
-            return false;
-    }
-#endif
 
     return problem.IsDirectionForward()                                                   //
            && problem.GetKernelStrideW() == problem.GetKernelStrideH()                    //
