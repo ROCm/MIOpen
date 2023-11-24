@@ -65,8 +65,6 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     int in_vec_size  = xDesc.GetLengths()[1];
     int out_vec_size = yDesc.GetLengths()[1];
 
-    GruWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2);
-
     ActivationDescriptor sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
     ActivationDescriptor tanhDesc = {miopenActivationTANH, 1, 1, 1};
 
@@ -84,9 +82,10 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
 
     bacc_per_time[seq_len] = total_batch_size;
 
-    GRUOffsets RBuff(hidden_size, nLayers, total_batch_size);
-
     int bi = dirMode != 0u ? 2 : 1;
+
+    GRUOffsets RBuff(hidden_size, nLayers, total_batch_size, bi);
+    GruWeightOffsets WeiBuf(in_vec_size, hidden_size, nLayers, biasMode * 2, bi);
 
     auto get_HxBuff_offset = [&bi, hidden_size, max_batch](int layer_id, int reverse = 0) {
         return (static_cast<size_t>(hidden_size) * max_batch) * (bi * layer_id + reverse);
@@ -102,10 +101,12 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                 &wDesc,
                                 reserveSpace,
                                 x,
-                                w](int layer_id, float beta_t = 1) {
+                                w, 
+                                bi](int layer_id, float beta_t = 1) {
+        std::cout << "call_gru_input_gemm layer_id " << layer_id << "\n";
         // n = Rx,Zx,Cx
-        const int m = RBuff.batches_per_layer, n = WeiBuf.weight_stride,
-                  k = layer_id > 0 ? hidden_size : in_vec_size;
+        const int m = RBuff.batches_per_layer, n = WeiBuf.weight_stride * bi,
+                  k = layer_id > 0 ? RBuff.gemm_write_size() : in_vec_size;
 
         const int lda = layer_id > 0 ? RBuff.gemm_write_stride() : in_vec_size, ldb = k,
                   ldc = RBuff.gemm_write_stride();
@@ -216,8 +217,8 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                    reserveSpace,
                    desc,
                    reserveSpace,
-                   RBuff.layer_offset(layer_id) + RBuff.c_offset(),
-                   RBuff.layer_offset(layer_id) + RBuff.hidden_offset());
+                   RBuff.c_offset(layer_id, rnn_direction::Forward),
+                   RBuff.hidden_offset(layer_id, rnn_direction::Forward));
 
         OpTensor(handle,
                  miopenTensorOpAdd,
@@ -230,13 +231,44 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                  &beta_t,
                  desc,
                  reserveSpace,
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset(),
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset(),
-                 RBuff.layer_offset(layer_id) + RBuff.c_offset());
+                 //RBuff.layer_offset(layer_id) + RBuff.c_offset(),
+                 RBuff.c_offset(layer_id, rnn_direction::Forward),
+                 //RBuff.layer_offset(layer_id) + RBuff.c_offset(),
+                 RBuff.c_offset(layer_id, rnn_direction::Forward),
+                 //RBuff.layer_offset(layer_id) + RBuff.c_offset());
+                 RBuff.c_offset(layer_id, rnn_direction::Forward));
+
+        std::cout << "dirMode == " << dirMode << "\n";
+        if (dirMode == 0u)
+            return;
+
+        CopyTensor(handle,
+                   desc,
+                   reserveSpace,
+                   desc,
+                   reserveSpace,
+                   RBuff.c_offset(layer_id, rnn_direction::Backward),
+                   RBuff.hidden_offset(layer_id, rnn_direction::Backward));
+
+        OpTensor(handle,
+                 miopenTensorOpAdd,
+                 &alpha0,
+                 desc,
+                 reserveSpace,
+                 &alpha1,
+                 desc,
+                 reserveSpace,
+                 &beta_t,
+                 desc,
+                 reserveSpace,
+                 RBuff.c_offset(layer_id, rnn_direction::Backward),
+                 RBuff.c_offset(layer_id, rnn_direction::Backward),
+                 RBuff.c_offset(layer_id, rnn_direction::Backward));
     };
 
     auto call_gru_bias_add = [&RBuff, &WeiBuf, &handle, &wDesc, reserveSpace, w](int layer_id,
                                                                                  float beta_t = 0) {
+        std::cout << "call_gru_bias_add " << "\n";                                                                           
         float alpha0 = 1;
         float alpha1 = 1;
 
@@ -281,6 +313,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                  hx,
                                  w,
                                  hidden_size](int layer, int cur_time) {
+        std::cout << "call_gru_hidden_gemm " << "\n";
         if(cur_time == 0 && hx == nullptr)
             return;
 
@@ -342,6 +375,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     auto call_gru_activate_rz =
         [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, &sigDesc, hidden_size](
             int layer_id, int time_id) {
+            std::cout << "call_gru_activate_rz " << "\n";
             float alpha = 1, beta = 0;
 
             const std::vector<size_t> tensor_size{
@@ -377,6 +411,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     auto call_gru_compute_c =
         [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, hidden_size](
             int layer_id, int time_id) {
+            std::cout << "call_gru_compute_c " << "\n";
             auto с_offset =
                 RBuff.gemm_write_offset(layer_id, bacc_per_time[time_id]) + RBuff.c_offset();
             auto hidden_offset =
@@ -435,6 +470,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     auto call_gru_activate_c_gate =
         [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, &tanhDesc, hidden_size](
             int layer_id, int time_id) {
+            std::cout << "call_gru_activate_c_gate " << "\n";
             float alpha = 1, beta = 0;
 
             const std::vector<size_t> tensor_size{
@@ -471,6 +507,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
     auto call_gru_compute_hidden =
         [&RBuff, &bacc_per_time, &batches, &handle, &wDesc, reserveSpace, hidden_size, hx](
             int layer_id, int time_id) {
+            std::cout << "call_gru_compute_hidden " << "\n";
             const std::vector<size_t> tensor_size{
                 1, static_cast<size_t>(batches.at(time_id)), static_cast<size_t>(hidden_size)};
 
@@ -600,6 +637,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                    max_batch,
                                    hidden_size,
                                    seq_len](int layer_id) {
+        std::cout << "call_gru_update_output " << "\n";
         if(hy == nullptr)
             return;
 
@@ -648,6 +686,7 @@ void RNNDescriptor::RNNForwardTrainingGRU(Handle& handle,
                                          call_gru_compute_c,
                                          call_gru_activate_c_gate,
                                          call_gru_compute_hidden](int layer_id, int time_id) {
+        std::cout << "call_gru_hidden_state_update " << "\n";
         call_gru_activate_rz(layer_id, time_id);
         call_gru_compute_c(layer_id, time_id);
         call_gru_activate_c_gate(layer_id, time_id);
@@ -3198,7 +3237,9 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
         return;
     }
 
-    if((rnnMode == miopenGRU) && !use_dropout && nLayers > 0 && dirMode == miopenRNNunidirection &&
+    if((rnnMode == miopenGRU) && !use_dropout && 
+       //nLayers > 0 && 
+       //dirMode == miopenRNNunidirection &&
        inputMode != miopenRNNskip && !(miopen::IsDisabled(MIOPEN_RNNFWD_exp{})))
     {
         RNNForwardTrainingGRU(
