@@ -44,6 +44,7 @@
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 #include "layernorm_driver.hpp"
+#include "cat_driver.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -208,6 +209,18 @@ int main(int argc, char* argv[])
     else if(base_arg == "layernormbfp16")
     {
         drv = new LayerNormDriver<bfloat16, float>();
+    }
+    else if(base_arg == "cat")
+    {
+        drv = new CatDriver<float, float>();
+    }
+    else if(base_arg == "catfp16")
+    {
+        drv = new CatDriver<float16, float>();
+    }
+    else if(base_arg == "catbfp16")
+    {
+        drv = new CatDriver<bfloat16, float>();
     }
     else
     {
