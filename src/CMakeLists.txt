@@ -90,6 +90,7 @@ set( MIOpen_Source
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
+    cat_api.cpp
     check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
@@ -536,6 +537,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        cat.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
