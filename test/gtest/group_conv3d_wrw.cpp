@@ -31,6 +31,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "group_conv3d_wrw.hpp"
+#include "../workspace.hpp"
 
 struct ConvWrwSolverTest3D : ConvWrwSolverTest<float>
 {
@@ -68,11 +69,11 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemm3DGroupWrwXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    auto [workspace_gpu, workspace_sz] =
-        AllocateConvTransposeWorkspace(handle, solv.GetWorkspaceSize(ctx, problem));
+
+    Workspace wspace{solv.GetWorkspaceSize(ctx, problem)};
 
     const auto invoke_params =
-        miopen::conv::WrWInvokeParams{tensors, workspace_gpu.get(), workspace_sz, false};
+        miopen::conv::WrWInvokeParams{tensors, wspace.ptr(), wspace.size(), false};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));

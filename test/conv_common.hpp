@@ -2595,15 +2595,3 @@ struct conv_bias_driver : test_driver
         verify(verify_backwards_bias<T>{output, bias});
     }
 };
-
-/// \todo move to a utility class --amberhassaan
-inline std::pair<miopen::Allocator::ManageDataPtr, size_t>
-AllocateConvTransposeWorkspace(miopen::Handle& handle, size_t sz)
-{
-    if(sz == 0ull)
-    {
-        return {nullptr, sz};
-    }
-    std::vector<std::uint8_t> w_cpu(sz);
-    return {handle.Write(w_cpu), w_cpu.size()};
-}
