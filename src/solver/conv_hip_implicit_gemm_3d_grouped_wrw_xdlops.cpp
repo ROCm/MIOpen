@@ -368,12 +368,17 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryWrwNCHW<3, DeviceOpGWrwPtrs<T>, CKArgs, miopen::conv::WrWInvokeParams>(
+            return InitInvokerFactoryWrwNCHW<3,
+                                             DeviceOpGWrwPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>, CKArgs, miopen::conv::WrWInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 

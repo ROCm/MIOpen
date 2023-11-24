@@ -818,7 +818,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 if(api == ConvApi::Find_1_0)
                 {
 #ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+                    filter.findMode.Set(miopen::FindMode::Values::Normal);
 #endif
                     wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
@@ -889,7 +889,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                 if(api == ConvApi::Find_1_0)
                 {
 #ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+                    filter.findMode.Set(miopen::FindMode::Values::Normal);
 #endif
                     wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
@@ -1252,7 +1252,7 @@ struct verify_backward_conv : conv_base<T>
         }
         case ConvApi::Find_1_0: {
 #ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                      filter.findMode.Set(miopen::FindMode::Values::Normal);
+            filter.findMode.Set(miopen::FindMode::Values::Normal);
 #endif
             wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 
@@ -1550,8 +1550,7 @@ struct verify_backward_weights_conv : conv_base<T>
         case ConvApi::Find_1_0: {
 
 #ifdef WORKAROUND_MIOPEN_GITHUB_ISSUE_2500
-                      filter.findMode.Set(miopen::FindMode::Values::Normal);
-            std::cout << ">>>>>> findMode = " << static_cast<int>(filter.findMode.Get()) << std::endl;
+            filter.findMode.Set(miopen::FindMode::Values::Normal);
 #endif
             wspace.resize(filter.GetWorkSpaceSize(ctx, problem));
 

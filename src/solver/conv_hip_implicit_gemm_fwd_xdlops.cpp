@@ -340,12 +340,17 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2, DeviceOpFwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            return InitInvokerFactoryFwdNCHW<2,
+                                             DeviceOpFwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpFwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpFwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 

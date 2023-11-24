@@ -343,12 +343,17 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
             /// silliness of "in tensor is out and out is in" in backward pass,
             /// InitInvokerFactoryFwdNCHW works correct while Bwd call causes wrong
             /// output -- amberhassaan
-            return InitInvokerFactoryFwdNCHW<2, DeviceOpBwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            return InitInvokerFactoryFwdNCHW<2,
+                                             DeviceOpBwdPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 

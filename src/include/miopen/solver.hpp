@@ -4399,7 +4399,8 @@ struct ConvHipImplicitGemmFwdXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -4472,7 +4473,8 @@ struct ConvHipImplicitGemmBwdXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -4546,7 +4548,8 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -4621,7 +4624,8 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -4701,7 +4705,8 @@ struct ConvHipImplicitGemm3DGroupWrwXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
@@ -4781,7 +4786,8 @@ struct ConvHipImplicitGemm3DGroupBwdXdlops final
         return 0.02f;
     };
 
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
 private:
