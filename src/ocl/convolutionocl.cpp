@@ -134,8 +134,8 @@ static inline void ValidateGroupCount(const TensorDescriptor& x,
 static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize)
 {
 
-    bool x = (workSpace != nullptr);
-    bool y = (workSpaceSize != 0);
+    [[maybe_unused]] bool x = (workSpace != nullptr);
+    [[maybe_unused]] bool y = (workSpaceSize != 0);
 
     assert(((x && y) || (!x && !y)) && "workspace pointer and size don't match. Either both should "
                                        "be zero or both should be non-zero");
