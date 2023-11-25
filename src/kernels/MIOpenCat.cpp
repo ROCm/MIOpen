@@ -37,11 +37,11 @@
 //#define FLOAT hip_bfloat16
 //#endif
 
-void cat_copy_buf(const FLOAT* __restrict__ input,
-                  FLOAT* __restrict__ output,
-                  const uint64_t input_dim_size,
-                  const uint64_t stride,
-                  uint64_t* output_offset)
+__device__ void cat_copy_buf(const FLOAT* __restrict__ input,
+                             FLOAT* __restrict__ output,
+                             const uint64_t input_dim_size,
+                             const uint64_t stride,
+                             uint64_t* output_offset)
 {
     if(!input)
         return;
@@ -81,7 +81,7 @@ extern "C" __global__ void Cat8FwdPacked(const FLOAT* __restrict__ input1,
                                          const uint64_t stride,
                                          const uint64_t output_dim_size)
 {
-    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
@@ -112,7 +112,7 @@ extern "C" __global__ void Cat4FwdPacked(const FLOAT* __restrict__ input1,
                                          const uint64_t stride,
                                          const uint64_t output_dim_size)
 {
-    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
     if(gid >= outer_size)
         return;
@@ -135,9 +135,9 @@ extern "C" __global__ void Cat2FwdPacked(const FLOAT* __restrict__ input1,
                                          const uint64_t stride,
                                          const uint64_t output_dim_size)
 {
-    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if(gid1 >= outer_size)
+    if(gid >= outer_size)
         return;
 
     uint64_t output_offset = gid * output_dim_size * stride; // outer offset

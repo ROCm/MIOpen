@@ -58,7 +58,8 @@ struct CatTestCase
 std::vector<CatTestCase> CatTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{1, {{2, 32, 128, 128, 128},{2, 32, 128, 128, 128}}},
+    return {{1, {{2, 32, 128},{2, 32, 128}}},
+            {1, {{2, 32, 128, 128, 128},{2, 32, 128, 128, 128}}},
             {1, {{16, 256, 32, 32}, {16, 256, 32, 32}, {16, 256, 32, 32}, {16, 256, 32, 32}}},
             {1, {{12277440, 1}, {12277440, 1}, {12277440, 1}, {12277440, 1}}},
             {2, {{3990480,1,1},{3990480,1,1},{3990480,1,1},{3990480,1,1}}},
@@ -70,7 +71,7 @@ std::vector<CatTestCase> CatTestConfigs()
             {0, {{2,1024,768},{2,1024,768},{2,1024,768}}},
             {0, {{9600,384},{128,384}}},
             {0, {{192},{64}}},
-          {0, {{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024}}}};
+            {0, {{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024}}}};
     // clang-format on
 }
 
@@ -84,7 +85,7 @@ inline int32_t SetTensorLayout(miopen::TensorDescriptor& desc)
 }
 
 template <typename T = float>
-struct CatSolverTest : public ::testing::TestWithParam<CatTestCase>
+struct CatTest : public ::testing::TestWithParam<CatTestCase>
 {
 protected:
     void SetUp() override
@@ -101,7 +102,6 @@ protected:
         auto in_dims = cat_config.GetInputs();
         std::vector<size_t> out_dim{in_dims[0].begin(), in_dims[0].end()};
         out_dim[dim] = 0;
-
         for(auto in_dim : in_dims)
         {
             inputs.push_back(tensor<T>{in_dim}.generate(gen_value));
@@ -116,9 +116,11 @@ protected:
         ref_output = tensor<T>{out_dim};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        std::transform(inputs.begin(), inputs.end(), inputs_dev.begin(), [&](auto input) {
-            return handle.Write(input.data);
-        });
+        for(auto input : inputs)
+        {
+            inputs_dev.push_back(handle.Write(input.data));
+        }
+
         output_dev = handle.Write(output.data);
     }
     void TearDown() override
@@ -131,12 +133,16 @@ protected:
         cpu_cat_forward<T>(inputs, ref_output, dim);
         std::vector<miopen::TensorDescriptor> inputDescs;
         std::vector<ConstData_t> inputData;
-        std::transform(inputs_dev.begin(), inputs_dev.end(), inputData.begin(), [](auto& input) {
-            return input.get();
-        });
-        std::transform(inputs.begin(), inputs.end(), inputDescs.begin(), [](auto input) {
-            return input.desc;
-        });
+
+        for(auto& input_dev : inputs_dev)
+        {
+            inputData.push_back(input_dev.get());
+        }
+
+        for(auto& input : inputs)
+        {
+            inputDescs.push_back(input.desc);
+        }
 
         miopenStatus_t status =
             miopen::CatForward(handle, inputDescs, inputData, output.desc, output_dev.get(), dim);
@@ -151,9 +157,6 @@ protected:
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold * 1000) << "Error output beyond tolerance Error:" << error
                                               << ",  Thresholdx1000: " << threshold * 1000;
-
-        EXPECT_TRUE(error < threshold * 2000) << "Error rstd beyond tolerance Error:" << error
-                                              << ",  Thresholdx2000: " << threshold * 2000;
     }
     CatTestCase cat_config;
 
