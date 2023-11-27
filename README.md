@@ -1,13 +1,13 @@
 # MIOpen
 
 AMD's library for high performance machine learning primitives.
-Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCm/MIOpen).
-The latest released documentation can be read online [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
+Sources and binaries can be found at [MIOpen's GitHub site](https://github.com/ROCmSoftwarePlatform/MIOpen).
+The latest released documentation can be read online [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/index.html).
 
-MIOpen supports two programming models, or backends:
+MIOpen supports two programming models
 
-1. [HIP](https://github.com/ROCm/HIP)
-2. OpenCL (deprecated).
+1. [HIP](https://github.com/ROCm-Developer-Tools/HIP) (Primary Support).
+2. OpenCL.
 
 ## Documentation
 
@@ -33,10 +33,13 @@ python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   * HIP -
     * HIP and HCC libraries and header files.
   * OpenCL - OpenCL libraries and header files.
-* [ROCm cmake](https://github.com/ROCm/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
+* [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions.
+  * This is optional on the HIP backend, and required on the OpenCL backend.
+  * Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENGEMM=On`, which is enabled by default when OpenCL backend is chosen.
+* [ROCm cmake](https://github.com/RadeonOpenCompute/rocm-cmake) - provide cmake modules for common build tasks needed for the ROCM software stack.
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/)
-  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html)
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
   * Version 1.79 is recommended, older version may need patches to work on newer systems, e.g. boost1{69,70,72} w/glibc-2.34
 * [SQLite3](https://sqlite.org/index.html) - reading and writing performance database
 * lbzip2 - multi-threaded compress or decompress utility
@@ -97,6 +100,8 @@ An example cmake step can be:
 ```shell
 cmake -P install_deps.cmake --minimum --prefix /root/MIOpen/install_dir
 ```
+
+This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
 This prefix can used to specify the dependency path during the configuration phase using the `CMAKE_PREFIX_PATH`.
 
@@ -168,7 +173,7 @@ cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 
 Database paths can be explicitly customized by means of `MIOPEN_SYSTEM_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
 
-More information about the performance database can be found [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/perfdatabase.html).
+More information about the performance database can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html).
 
 ### Persistent Program Cache
 
@@ -178,7 +183,7 @@ Users can also disable the cache during runtime using the environmental variable
 
 #### For MIOpen version 2.3 and earlier
 
-If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/cache.html).
+If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., `rm -rf ~/.cache/miopen/<miopen-version-number>`. More information about the cache can be found [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html).
 
 #### For MIOpen version 2.4 and later
 
@@ -206,13 +211,13 @@ This will install the library to the `CMAKE_INSTALL_PREFIX` path that was set.
 
 ## Building the driver
 
-MIOpen provides an [application-driver](https://github.com/ROCm/MIOpen/tree/master/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library.
+MIOpen provides an [application-driver](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/master/driver) which can be used to execute any one particular layer in isolation and measure performance and verification of the library.
 
 The driver can be built using the `MIOpenDriver` target:
 
 ` cmake --build . --config Release --target MIOpenDriver ` **OR** ` make MIOpenDriver `
 
-Documentation on how to run the driver is [here](https://github.com/ROCm/MIOpen/blob/develop/driver/README.md).
+Documentation on how to run the driver is [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/driver.html).
 
 ## Running the tests
 
@@ -310,6 +315,24 @@ docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/
 ```
 
 Prebuilt docker images can be found on [ROCm's public docker hub here](https://hub.docker.com/r/rocm/miopen/tags).
+
+## Citing MIOpen
+
+MIOpen's paper is freely available and can be accessed on arXiv:  
+[MIOpen: An Open Source Library For Deep Learning Primitives](https://arxiv.org/abs/1910.00078)
+
+### Citation BibTeX
+
+```bibtex
+@misc{jeh2019miopen,
+    title={MIOpen: An Open Source Library For Deep Learning Primitives},
+    author={Jehandad Khan and Paul Fultz and Artem Tamazov and Daniel Lowell and Chao Liu and Michael Melesse and Murali Nandhimandalam and Kamil Nasyrov and Ilya Perminov and Tejash Shah and Vasilii Filippov and Jing Zhang and Jing Zhou and Bragadeesh Natarajan and Mayank Daga},
+    year={2019},
+    eprint={1910.00078},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+```
 
 ## Porting from cuDNN to MIOpen
 

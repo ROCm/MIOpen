@@ -113,9 +113,7 @@ pygments==2.17.2
     #   mpire
     #   pydata-sphinx-theme
     #   sphinx
-pyjson5==1.6.6
-    # via doxysphinx
-pyjwt[crypto]==2.8.0
+pyjwt[crypto]==2.6.0
     # via pygithub
 pynacl==1.5.0
     # via pygithub
@@ -133,7 +131,7 @@ requests==2.31.0
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core[api_reference]==0.37.0
+rocm-docs-core==0.29.0
     # via -r requirements.in
 six==1.16.0
     # via pybtex
