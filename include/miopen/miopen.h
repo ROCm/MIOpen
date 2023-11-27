@@ -633,7 +633,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 
 /*! @brief Set shape of 4D tensor
  *
- * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
+ * Interface for setting 4-D packed tensor shape.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -648,7 +648,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 
 /*! @brief Set shape of ND tensor with specific layout
  *
- * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * Interface for setting N-D packed tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
@@ -664,7 +664,10 @@ miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
- * Interface for setting 4-D tensor shape and stride.
+ * Interface for setting 4-D tensor shape and stride. It allows to create the non-packed tensor.
+ * A non-packed tensor refers to the tensor where the elements are not compressed or packed in any
+ * specific way. Each element in the tensor is stored individually, and there is no special
+ * compression applied to the storage.
  *
  * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
@@ -718,8 +721,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
 
 /*! @brief Set shape of N-dimensional tensor
  *
- * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
- * layout.
+ * Interface for setting non-packed tensor shape.
  * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
