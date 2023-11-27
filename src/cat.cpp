@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/cat.hpp>
-#ifdef MIOPEN_BETA_API
 #include <algorithm>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -35,12 +34,7 @@
 
 namespace miopen {
 
-inline size_t DivCeil(size_t dividend, size_t divisor)
-{
-    return (dividend + divisor - 1) / divisor;
-}
-
-inline size_t AlignUp(size_t num, size_t align) { return DivCeil(num, align) * align; }
+inline size_t AlignUp(size_t num, size_t align) { return (num + align - 1) / align * align; }
 
 miopenStatus_t CatForward(const Handle& handle,
                           const std::vector<TensorDescriptor>& inputDescs,
@@ -185,7 +179,6 @@ miopenStatus_t CatForward(const Handle& handle,
         " -DMIOPEN_USE_FP64=" + std::to_string(static_cast<int32_t>(dtype == miopenDouble)) +
         " -DMIOPEN_USE_BFP16=" + std::to_string(static_cast<int32_t>(dtype == miopenBFloat16));
 
-    parms += " -DMIOPEN_BETA_API=1";
     parms += " -DLOCAL_SIZE=" + std::to_string(LOCAL_SIZE);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
@@ -314,4 +307,3 @@ miopenStatus_t CatForward(const Handle& handle,
 }
 
 } // namespace miopen
-#endif

@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define MIOPEN_BETA_API 1
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #include <gtest/gtest.h>
 #include <miopen/cat.hpp>
 
@@ -41,12 +41,16 @@ struct CatTestCase
     std::vector<std::vector<int>> inputs;
     friend std::ostream& operator<<(std::ostream& os, const CatTestCase& tc)
     {
-        for(auto input : tc.inputs)
+        os << " inputs:";
+        for(int i = 0; i < tc.inputs.size(); i++)
         {
-            os << " input:" << input[0];
-            for(int i = 1; i < input.size(); i++)
+            auto input = tc.inputs[i];
+            if(i != 0)
+                os << ",";
+            os << input[0];
+            for(int j = 1; j < input.size(); j++)
             {
-                os << "," << input[i];
+                os << "x" << input[j];
             }
         }
         return os << " dim:" << tc.dim;
@@ -58,20 +62,20 @@ struct CatTestCase
 std::vector<CatTestCase> CatTestConfigs()
 { // dim, dims
     // clang-format off
-    return {{1, {{2, 32, 128},{2, 32, 128}}},
-            {1, {{2, 32, 128, 128, 128},{2, 32, 128, 128, 128}}},
+    return {{0, {{192},{64}}},
+            {0, {{9600,384},{128,384}}},
+            {0, {{2,1024,768},{2,1024,768},{2,1024,768}}},
+            {0, {{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024}}},
+            {1, {{2, 32, 128},{2, 32, 128}}},
+            {1, {{2,192,80,80},{2,192,80,80}}},
             {1, {{16, 256, 32, 32}, {16, 256, 32, 32}, {16, 256, 32, 32}, {16, 256, 32, 32}}},
             {1, {{12277440, 1}, {12277440, 1}, {12277440, 1}, {12277440, 1}}},
-            {2, {{3990480,1,1},{3990480,1,1},{3990480,1,1},{3990480,1,1}}},
             {1, {{64,1056,7,7},{64,48,7,7},{64,48,7,7},{64,48,7,7},{64,48,7,7},{64,48,7,7},{64,48,7,7},{64,48,7,7}}},
             {1, {{4,136800,91},{4,34200,91},{4,8550,91},{4,2223,91},{4,630,91}}},
             {1, {{6,182400,4},{6,45600,4},{6,11400,4},{6,2850,4},{6,741,4}}},
-            {2, {{256,81,5776},{256,81,2166},{256,81,600},{256,81,150},{256,81,36},{256,81,4}}},
-            {1, {{2,192,80,80},{2,192,80,80}}},
-            {0, {{2,1024,768},{2,1024,768},{2,1024,768}}},
-            {0, {{9600,384},{128,384}}},
-            {0, {{192},{64}}},
-            {0, {{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024},{8,1024}}}};
+            {1, {{2, 32, 128, 128, 128},{2, 32, 128, 128, 128}}},
+            {2, {{3990480,1,1},{3990480,1,1},{3990480,1,1},{3990480,1,1}}},
+            {2, {{256,81,5776},{256,81,2166},{256,81,600},{256,81,150},{256,81,36},{256,81,4}}}};
     // clang-format on
 }
 
@@ -91,7 +95,6 @@ protected:
     void SetUp() override
     {
         auto&& handle = get_handle();
-        test_skipped  = false;
         cat_config    = GetParam();
         std::mt19937 gen(0);
         std::uniform_real_distribution<> d{-3, 3};
@@ -116,33 +119,29 @@ protected:
         ref_output = tensor<T>{out_dim};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        for(auto input : inputs)
-        {
-            inputs_dev.push_back(handle.Write(input.data));
-        }
+        std::transform(inputs.begin(),
+                       inputs.end(),
+                       std::back_inserter(inputs_dev),
+                       [&](auto& input) { return handle.Write(input.data); });
 
         output_dev = handle.Write(output.data);
     }
     void TearDown() override
     {
-        if(test_skipped)
-            return;
-
         auto&& handle = get_handle();
 
         cpu_cat_forward<T>(inputs, ref_output, dim);
         std::vector<miopen::TensorDescriptor> inputDescs;
         std::vector<ConstData_t> inputData;
 
-        for(auto& input_dev : inputs_dev)
-        {
-            inputData.push_back(input_dev.get());
-        }
-
-        for(auto& input : inputs)
-        {
-            inputDescs.push_back(input.desc);
-        }
+        std::transform(inputs.begin(),
+                       inputs.end(),
+                       std::back_inserter(inputDescs),
+                       [](auto& input) { return input.desc; });
+        std::transform(inputs_dev.begin(),
+                       inputs_dev.end(),
+                       std::back_inserter(inputData),
+                       [](auto& input_dev) { return input_dev.get(); });
 
         miopenStatus_t status =
             miopen::CatForward(handle, inputDescs, inputData, output.desc, output_dev.get(), dim);
@@ -168,7 +167,4 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
 
     size_t dim;
-
-    bool test_skipped = false;
 };
-#endif

@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include "cat.hpp"
-#ifdef MIOPEN_BETA_API
 
 struct CatTestFloat : CatTest<float>
 {
@@ -33,4 +32,3 @@ struct CatTestFloat : CatTest<float>
 TEST_P(CatTestFloat, CatTestFw){};
 
 INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
-#endif

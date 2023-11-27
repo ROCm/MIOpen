@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef MIOPEN_CAT_HPP_
 #define MIOPEN_CAT_HPP_
 
@@ -44,4 +43,3 @@ miopenStatus_t CatForward(const Handle& handle,
 
 } // namespace miopen
 #endif // _MIOPEN_CAT_HPP_
-#endif

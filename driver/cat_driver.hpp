@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/miopen.h>
-#ifdef MIOPEN_BETA_API
 #ifndef GUARD_MIOPEN_CAT_DRIVER_HPP
 #define GUARD_MIOPEN_CAT_DRIVER_HPP
 
@@ -179,7 +178,6 @@ std::vector<std::vector<int>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCm
 template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    // MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
     for(auto& inputDesc : inputDescs)
@@ -311,5 +309,4 @@ int CatDriver<Tgpu, Tref>::VerifyBackward()
     return miopenStatusSuccess;
 }
 
-#endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP
-#endif
+#endif // GUARD_MIOPEN_CAT_DRIVER_HPP

@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
-
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -145,5 +143,3 @@ extern "C" __global__ void Cat2FwdPacked(const FLOAT* __restrict__ input1,
     cat_copy_buf(input1, output, input1_dim_size, stride, &output_offset);
     cat_copy_buf(input2, output, input2_dim_size, stride, &output_offset);
 }
-
-#endif

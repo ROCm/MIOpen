@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
 #ifndef MLO_CATHOST_H_
 #define MLO_CATHOST_H_
 
@@ -74,5 +73,4 @@ int32_t mloCatForwardRunHost(std::vector<miopenTensorDescriptor_t> inputDescs,
     return ret;
 }
 
-#endif
 #endif

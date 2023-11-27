@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include <miopen/cat.hpp>
-#ifdef MIOPEN_BETA_API
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -83,14 +82,14 @@ extern "C" miopenStatus_t miopenCatForward(miopenHandle_t handle,
     std::vector<ConstData_t> inputsCast;
     std::vector<miopen::TensorDescriptor> inputDescsCast;
     return miopen::try_([&] {
-        for(auto& inputDesc : inputDescs)
-        {
-            inputDescsCast.push_back(miopen::deref(inputDesc));
-        }
-        for(auto& input : inputs)
-        {
-            inputsCast.push_back(DataCast(input));
-        }
+        std::transform(inputDescs.begin(),
+                       inputDescs.end(),
+                       std::back_inserter(inputDescsCast),
+                       [](const auto& inputDesc) { return miopen::deref(inputDesc); });
+        std::transform(inputs.begin(),
+                       inputs.end(),
+                       std::back_inserter(inputsCast),
+                       [](const void* input) { return DataCast(input); });
         miopen::CatForward(miopen::deref(handle),
                            inputDescsCast,
                            inputsCast,
@@ -99,4 +98,3 @@ extern "C" miopenStatus_t miopenCatForward(miopenHandle_t handle,
                            dim);
     });
 }
-#endif
