@@ -61,41 +61,15 @@ bool ConvOclDirectFwdGen::IsApplicable(const ExecutionContext& ctx,
     if(problem.GetGroupCount() > 1)
         return false;
 
-    // clang-format off
-    { // Factored out from ConvolutionDescriptor::IsDirectSupported(), which is now dissmissed.
-        const auto& p = problem; // alias
-        const bool supported =
-            ((p.GetWeightsHeight_() == p.GetWeightsWidth_())
-              && ((p.GetWeightsHeight_() == 3 && p.GetKernelStrideH() <= 2 && p.GetKernelStrideW() <= 2)
-                || p.GetWeightsHeight_() == 5
-                || p.GetWeightsHeight_() == 7
-                || p.GetWeightsHeight_() == 9
-                || p.GetWeightsHeight_() == 11))
-          || (p.GetWeightsHeight_() == 5
-              && (p.GetWeightsWidth_() == 10 || p.GetWeightsWidth_() == 20)
-              && p.GetKernelStrideH() == 2
-              && p.GetKernelStrideW() == 2
-              && p.GetPadH() == 0
-              && p.GetPadW() == 0);
-
-        if(!supported)
-            return false;
-    }
-
-    { // Workaround for issue 1681
-        if(problem.IsFp32() && problem.GetInChannels_() > 3)
-            return false;
-    }
-
-    return problem.IsDirectionForward()
-        && problem.GetKernelStrideW() == problem.GetKernelStrideH()
-        && problem.GetPadW() == problem.GetPadH()
-        && problem.GetDilationW() == 1
-        && problem.GetDilationH() == 1
-        && (problem.GetWeightsWidth_() > 11
-            || problem.GetWeightsHeight_() > 11
-            || (!(problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1)
-                && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1))); // clang-format on
+    return problem.IsDirectionForward()                                                   //
+           && problem.GetKernelStrideW() == problem.GetKernelStrideH()                    //
+           && problem.GetPadW() == problem.GetPadH()                                      //
+           && problem.GetDilationW() == 1                                                 //
+           && problem.GetDilationH() == 1                                                 //
+           && (problem.GetWeightsWidth_() > 11                                            //
+               || problem.GetWeightsHeight_() > 11                                        //
+               || (!(problem.GetWeightsWidth_() == 1 && problem.GetWeightsHeight_() == 1) //
+                   && (problem.GetKernelStrideW() > 1 || problem.GetKernelStrideH() > 1)));
 }
 
 ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
