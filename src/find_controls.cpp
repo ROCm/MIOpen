@@ -30,6 +30,7 @@
 #include <miopen/miopen_internal.h>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/stringutils.hpp>
 
@@ -168,6 +169,8 @@ std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver()
 {
+    if(miopen::debug::IsWarmupOngoing)
+        return boost::none;
     static const auto once = GetEnvFindOnlySolverImpl();
     return once;
 }
