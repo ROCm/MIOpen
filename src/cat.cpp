@@ -51,12 +51,12 @@ miopenStatus_t CatForward(const Handle& handle,
 {
     if(inputs.size() > 8)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor."); // message
+        MIOPEN_THROW(miopenStatusBadParm, "Exceeded the number of input tensors.");
     }
 
     if(inputs.size() != inputDescs.size())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor."); // message
+        MIOPEN_THROW(miopenStatusBadParm, "The number of input tensors does not match.");
     }
 
     if(output == nullptr)

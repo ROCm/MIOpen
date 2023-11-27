@@ -117,14 +117,13 @@ int CatDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto in_lens = GetInputTensorLengthsFromCmdLine();
-
-    dim = static_cast<int>(inflags.GetValueDouble("dim"));
-
+    miopenTensorDescriptor_t inputDesc;
     size_t output_dim_size = 0;
+    auto in_lens           = GetInputTensorLengthsFromCmdLine();
+    dim                    = static_cast<int>(inflags.GetValueDouble("dim"));
+
     for(auto in_len : in_lens)
     {
-        miopenTensorDescriptor_t inputDesc;
         miopenCreateTensorDescriptor(&inputDesc);
         SetTensorNd(inputDesc, in_len, data_type);
         inputDescs.push_back(inputDesc);
@@ -143,14 +142,14 @@ int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Cat (Default=1)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddTensorFlag("input1", '1', "100x1x32");
-    inflags.AddTensorFlag("input2", '2', "100x2x32");
-    inflags.AddTensorFlag("input3", '3', "100x3x32");
-    inflags.AddTensorFlag("input4", '4', "100x4x32");
-    inflags.AddTensorFlag("input5", '5', "100x5x32");
-    inflags.AddTensorFlag("input6", '6', "100x6x32");
-    inflags.AddTensorFlag("input7", '7', "100x7x32");
-    inflags.AddTensorFlag("input8", '8', "100x8x32");
+    inflags.AddTensorFlag("input1", '1', "100x1x32", "input tensor descriptor");
+    inflags.AddTensorFlag("input2", '2', "100x2x32", "input tensor descriptor");
+    inflags.AddTensorFlag("input3", '3', "", "input tensor descriptor");
+    inflags.AddTensorFlag("input4", '4', "", "input tensor descriptor");
+    inflags.AddTensorFlag("input5", '5', "", "input tensor descriptor");
+    inflags.AddTensorFlag("input6", '6', "", "input tensor descriptor");
+    inflags.AddTensorFlag("input7", '7', "", "input tensor descriptor");
+    inflags.AddTensorFlag("input8", '8', "", "input tensor descriptor");
     inflags.AddInputFlag("dim", 'd', "1", "Dim (Default=1)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -165,11 +164,14 @@ int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<std::vector<int>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
+    const int max_input_count = 8;
     std::vector<std::vector<int>> ret;
-    for(int i = 1; i < 8; i++)
+    std::string name = "input";
+    for(int i = 1; i < max_input_count; i++)
     {
-        auto tensor = inflags.GetValueTensor(std::to_string(i));
-        ret.push_back(tensor.lengths);
+        auto tensor = inflags.GetValueTensor(name + std::to_string(i));
+        if(!tensor.lengths.empty())
+            ret.push_back(tensor.lengths);
     }
     return ret;
 }
