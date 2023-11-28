@@ -25,10 +25,24 @@
  *******************************************************************************/
 #include "cat.hpp"
 
+std::string GetFloatArg()
+{
+    static const auto tmp = miopen::GetEnv("MIOPEN_TEST_FLOAT_ARG");
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp.front();
+}
+
 struct CatTestFloat : CatTest<float>
 {
 };
 
-TEST_P(CatTestFloat, CatTestFw){};
+TEST_P(CatTestFloat, CatTestFw)
+{
+    RunTest();
+    Verify();
+};
 
 INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));

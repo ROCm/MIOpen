@@ -126,7 +126,8 @@ protected:
 
         output_dev = handle.Write(output.data);
     }
-    void TearDown() override
+
+    void RunTest()
     {
         auto&& handle = get_handle();
 
@@ -149,7 +150,10 @@ protected:
         EXPECT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
+    }
 
+    void Verify()
+    {
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 

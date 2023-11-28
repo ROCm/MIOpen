@@ -41,10 +41,10 @@
 #include "dropout_driver.hpp"
 #include "tensorop_driver.hpp"
 #include "reduce_driver.hpp"
+#include "cat_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
 #include "layernorm_driver.hpp"
-#include "cat_driver.hpp"
 
 int main(int argc, char* argv[])
 {

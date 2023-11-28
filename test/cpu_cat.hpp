@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifdef MIOPEN_BETA_API
 #ifndef GUARD_CPU_CAT_HPP
 #define GUARD_CPU_CAT_HPP
 
@@ -64,5 +63,4 @@ void cpu_cat_forward(std::vector<tensor<T>> inputs, tensor<T>& ref_output, int32
         output_start_offset += copy_size;
     });
 }
-#endif
 #endif
