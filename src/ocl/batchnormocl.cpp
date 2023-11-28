@@ -133,11 +133,11 @@ void BatchNormForwardTraining(Handle& handle,
 
     const auto solvers = solver::SolverContainer<
 #if MIOPEN_USE_COMPOSABLEKERNEL
-                                                 solver::batchnorm::BnCKFwdTraining,
+        solver::batchnorm::BnCKFwdTraining,
 #endif
-                                                 solver::batchnorm::BnFwdTrainingSpatialSingle,
-                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
+        solver::batchnorm::BnFwdTrainingSpatialSingle,
+        solver::batchnorm::BnFwdTrainingSpatialMultiple,
+        solver::batchnorm::BnFwdTrainingPerActivation>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -228,7 +228,8 @@ void BatchNormForwardInference(Handle& handle,
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
         const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference
 #if MIOPEN_USE_COMPOSABLEKERNEL
-                                                     , solver::batchnorm::BnCKFwdInference
+                                                     ,
+                                                     solver::batchnorm::BnCKFwdInference
 #endif
                                                      >{};
 
@@ -354,11 +355,11 @@ void BatchNormBackward(Handle& handle,
 
     const auto solvers = solver::SolverContainer<
 #if MIOPEN_USE_COMPOSABLEKERNEL
-                                                 solver::batchnorm::BnCKBwdBackward,
+        solver::batchnorm::BnCKBwdBackward,
 #endif
-                                                 solver::batchnorm::BnBwdTrainingSpatialSingle,
-                                                 solver::batchnorm::BnBwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnBwdTrainingPerActivation>{};
+        solver::batchnorm::BnBwdTrainingSpatialSingle,
+        solver::batchnorm::BnBwdTrainingSpatialMultiple,
+        solver::batchnorm::BnBwdTrainingPerActivation>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

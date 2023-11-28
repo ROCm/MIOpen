@@ -608,13 +608,13 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-#if MIOPEN_USE_COMPOSABLEKERNEL					   
+#if MIOPEN_USE_COMPOSABLEKERNEL
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
-#endif	
+#endif
     Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
