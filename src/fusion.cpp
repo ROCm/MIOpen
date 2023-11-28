@@ -711,7 +711,10 @@ static auto GetFusedWinogradSolvers()
 
 static auto GetAllFusionSolvers()
 {
-    return GetFusedNonConvSolvers() + GetFusedDirectSolvers() + GetFusedIGemmSolvers() +
+    return GetFusedNonConvSolvers() + GetFusedDirectSolvers() +
+#if MIOPEN_USE_COMPOSABLEKERNEL
+           GetFusedIGemmSolvers() +
+#endif
            GetFusedWinogradSolvers();
 }
 
