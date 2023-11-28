@@ -35,10 +35,10 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t CatForward(const Handle& handle,
-                          const std::vector<TensorDescriptor>& inputDescs,
-                          std::vector<ConstData_t> inputs,
-                          const TensorDescriptor& outputDesc,
-                          Data_t output,
+                          const std::vector<TensorDescriptor>& xDescs,
+                          std::vector<ConstData_t> xs,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
                           int32_t dim);
 
 } // namespace miopen

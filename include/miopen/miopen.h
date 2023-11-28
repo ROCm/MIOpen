@@ -2542,20 +2542,19 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
  * This API only implements the LAYERNORM_MODE_CHANNEL in LAYERNORM_ACCURATE path.
  *
  * @param handle         MIOpen handle (input)
- * @param inputDescs     Tensor descriptor of input tensor (input)
- * @param inputs         Source data tensor  (input)
- * @param outputDesc     Tensor descriptor of output tensor (input)
- * @param output         Data tensor y (output)
- * @param dim            Dimensions in the input array (input)
+ * @param xDescs         Tensor descriptor of input tensor x (input)
+ * @param xs             Source data tensor x (input)
+ * @param yDesc          Tensor descriptor of output tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param dim            Concatenation dimension (input)
  * @return               miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenCatForward(miopenHandle_t handle,
-                 const std::vector<miopenTensorDescriptor_t>& inputDescs,
-                 const std::vector<void*>& inputs,
-                 const miopenTensorDescriptor_t& outputDesc,
-                 void* output,
-                 const int32_t dim);
+MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
+                                              const std::vector<miopenTensorDescriptor_t>& xDescs,
+                                              const std::vector<void*>& xs,
+                                              const miopenTensorDescriptor_t& yDesc,
+                                              void* y,
+                                              const int32_t dim);
 
 /** @} */
 // CLOSEOUT CAT DOXYGEN GROUP

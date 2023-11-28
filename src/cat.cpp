@@ -37,28 +37,28 @@ namespace miopen {
 inline size_t AlignUp(size_t num, size_t align) { return (num + align - 1) / align * align; }
 
 miopenStatus_t CatForward(const Handle& handle,
-                          const std::vector<TensorDescriptor>& inputDescs,
-                          std::vector<ConstData_t> inputs,
-                          const TensorDescriptor& outputDesc,
-                          Data_t output,
+                          const std::vector<TensorDescriptor>& xDescs,
+                          std::vector<ConstData_t> xs,
+                          const TensorDescriptor& yDesc,
+                          Data_t y,
                           int32_t dim)
 {
-    if(inputs.size() > 8)
+    if(xs.size() > 8)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Exceeded the number of input tensors.");
     }
 
-    if(inputs.size() != inputDescs.size())
+    if(xs.size() != xDescs.size())
     {
         MIOPEN_THROW(miopenStatusBadParm, "The number of input tensors does not match.");
     }
 
-    if(output == nullptr)
+    if(y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
 
-    for(auto input : inputs)
+    for(auto input : xs)
     {
         if(input == nullptr)
         {
@@ -66,53 +66,53 @@ miopenStatus_t CatForward(const Handle& handle,
         }
     }
 
-    const auto dtype   = outputDesc.GetType();
-    auto dims          = outputDesc.GetLengths();
-    dims[dim]          = 0;
-    bool is_all_packed = outputDesc.IsPacked();
-    auto it1           = inputDescs.begin();
-    auto it2           = inputs.begin();
-    std::vector<size_t> input_dim_sizes;
-    size_t input_dim_size_max = 0;
+    const auto dtype   = yDesc.GetType();
+    auto ydims         = yDesc.GetLengths();
+    ydims[dim]         = 0;
+    bool is_all_packed = yDesc.IsPacked();
+    auto it1           = xDescs.begin();
+    auto it2           = xs.begin();
+    std::vector<size_t> x_dim_sizes;
+    size_t x_dim_size_max = 0;
 
-    while(it1 != inputDescs.end())
+    while(it1 != xDescs.end())
     {
-        auto& in_dims = it1->GetLengths();
+        auto& xdims = it1->GetLengths();
 
         if(it1->GetType() != dtype)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
         }
 
-        if(dims.size() != in_dims.size())
+        if(ydims.size() != xdims.size())
         {
             MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
         }
 
-        for(int i = 0; i < dims.size(); i++)
+        for(int i = 0; i < ydims.size(); i++)
         {
-            if((i != dim) && (dims[i] != in_dims[i]))
+            if((i != dim) && (ydims[i] != xdims[i]))
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
             }
         }
 
-        if(in_dims[dim] == 0)
+        if(xdims[dim] == 0)
         {
-            it2 = inputs.erase(it2);
+            it2 = xs.erase(it2);
         }
         else
         {
-            input_dim_size_max = std::max(input_dim_size_max, in_dims[dim]);
-            input_dim_sizes.push_back(in_dims[dim]);
-            dims[dim] += in_dims[dim];
+            x_dim_size_max = std::max(x_dim_size_max, xdims[dim]);
+            x_dim_sizes.push_back(xdims[dim]);
+            ydims[dim] += xdims[dim];
             is_all_packed &= it1->IsPacked();
             it2++;
         }
         it1++;
     }
 
-    if(dims[dim] != outputDesc.GetLengths()[dim])
+    if(ydims[dim] != yDesc.GetLengths()[dim])
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
@@ -122,7 +122,7 @@ miopenStatus_t CatForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "All tensor is not packed.");
     }
 
-    if(outputDesc.GetElementSize() == 0)
+    if(yDesc.GetElementSize() == 0)
     {
         return miopenStatusSuccess;
     }
@@ -131,13 +131,13 @@ miopenStatus_t CatForward(const Handle& handle,
 
     for(int i = 0; i < dim; i++)
     {
-        outer_size *= dims[i];
+        outer_size *= ydims[i];
     }
 
-    auto ninputs         = inputs.size();
-    auto stride          = outputDesc.GetStrides()[dim];
-    auto output_dim_size = dims[dim];
-    int32_t fusion_size  = 2;
+    auto ninputs        = xs.size();
+    auto stride         = yDesc.GetStrides()[dim];
+    auto y_dim_size     = ydims[dim];
+    int32_t fusion_size = 2;
 
     while(fusion_size < ninputs)
     {
@@ -146,24 +146,20 @@ miopenStatus_t CatForward(const Handle& handle,
 
     for(int i = ninputs; i < fusion_size; i++)
     {
-        input_dim_sizes.push_back(0);
+        x_dim_sizes.push_back(0);
     }
 
-    // 120 for mi120, 104 for mi210,
     auto numCu = handle.GetMaxComputeUnits();
 
     std::vector<size_t> vld{1, 1, 1};
     std::vector<size_t> vgd{1, 1, 1};
 
-    // don't need thread more than input dim size max
-    vld[0] = std::min(static_cast<int>(input_dim_size_max * stride), LOCAL_SIZE);
+    vld[0] = std::min(static_cast<int>(x_dim_size_max * stride), LOCAL_SIZE);
     vld[1] = std::max(static_cast<int>(LOCAL_SIZE / vld[0]), 1);
 
-    vgd[1] = AlignUp(outer_size, vld[1]); // outer_size
-    // set workgroup num as number of compute unit * 8
-    // 8 is hueristic number
+    vgd[1] = AlignUp(outer_size, vld[1]);
     vgd[0] = std::max(static_cast<int>(numCu * 8 / (vgd[1] / vld[1])), 1) * vld[0];
-    vgd[0] = std::min(vgd[0], AlignUp(input_dim_size_max * stride, vld[0]));
+    vgd[0] = std::min(vgd[0], AlignUp(x_dim_size_max * stride, vld[0]));
 
     std::string algo_name      = "CatForward";
     std::string network_config = "cat" + std::to_string(static_cast<int32_t>(fusion_size)) +
@@ -172,7 +168,6 @@ miopenStatus_t CatForward(const Handle& handle,
                                  std::to_string(vld[0]) + "," + std::to_string(vld[1]) + "dim" +
                                  std::to_string(dim) + "outer_size" + std::to_string(outer_size);
 
-    // compile parameters
     std::string parms =
         " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int32_t>(dtype == miopenHalf)) +
         " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int32_t>(dtype == miopenFloat)) +
@@ -187,53 +182,53 @@ miopenStatus_t CatForward(const Handle& handle,
         switch(fusion_size)
         {
         case 2:
-            kernels.front()(inputs[0],
-                            inputs[1],
-                            output,
-                            input_dim_sizes[0],
-                            input_dim_sizes[1],
+            kernels.front()(xs[0],
+                            xs[1],
+                            y,
+                            x_dim_sizes[0],
+                            x_dim_sizes[1],
                             dim,
                             outer_size,
                             stride,
-                            output_dim_size);
+                            y_dim_size);
             break;
         case 4:
-            kernels.front()(inputs[0],
-                            inputs[1],
-                            inputs[2],
-                            inputs[3],
-                            output,
-                            input_dim_sizes[0],
-                            input_dim_sizes[1],
-                            input_dim_sizes[2],
-                            input_dim_sizes[3],
+            kernels.front()(xs[0],
+                            xs[1],
+                            xs[2],
+                            xs[3],
+                            y,
+                            x_dim_sizes[0],
+                            x_dim_sizes[1],
+                            x_dim_sizes[2],
+                            x_dim_sizes[3],
                             dim,
                             outer_size,
                             stride,
-                            output_dim_size);
+                            y_dim_size);
             break;
         case 8:
-            kernels.front()(inputs[0],
-                            inputs[1],
-                            inputs[2],
-                            inputs[3],
-                            inputs[4],
-                            inputs[5],
-                            inputs[6],
-                            inputs[7],
-                            output,
-                            input_dim_sizes[0],
-                            input_dim_sizes[1],
-                            input_dim_sizes[2],
-                            input_dim_sizes[3],
-                            input_dim_sizes[4],
-                            input_dim_sizes[5],
-                            input_dim_sizes[6],
-                            input_dim_sizes[7],
+            kernels.front()(xs[0],
+                            xs[1],
+                            xs[2],
+                            xs[3],
+                            xs[4],
+                            xs[5],
+                            xs[6],
+                            xs[7],
+                            y,
+                            x_dim_sizes[0],
+                            x_dim_sizes[1],
+                            x_dim_sizes[2],
+                            x_dim_sizes[3],
+                            x_dim_sizes[4],
+                            x_dim_sizes[5],
+                            x_dim_sizes[6],
+                            x_dim_sizes[7],
                             dim,
                             outer_size,
                             stride,
-                            output_dim_size);
+                            y_dim_size);
             break;
         default: break;
         }
@@ -247,57 +242,57 @@ miopenStatus_t CatForward(const Handle& handle,
         case 2:
             kernel_name = "Cat2FwdPacked";
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                inputs[0],
-                inputs[1],
-                output,
-                input_dim_sizes[0],
-                input_dim_sizes[1],
+                xs[0],
+                xs[1],
+                y,
+                x_dim_sizes[0],
+                x_dim_sizes[1],
                 dim,
                 outer_size,
                 stride,
-                output_dim_size);
+                y_dim_size);
             break;
         case 4:
             kernel_name = "Cat4FwdPacked";
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                inputs[0],
-                inputs[1],
-                inputs[2],
-                inputs[3],
-                output,
-                input_dim_sizes[0],
-                input_dim_sizes[1],
-                input_dim_sizes[2],
-                input_dim_sizes[3],
+                xs[0],
+                xs[1],
+                xs[2],
+                xs[3],
+                y,
+                x_dim_sizes[0],
+                x_dim_sizes[1],
+                x_dim_sizes[2],
+                x_dim_sizes[3],
                 dim,
                 outer_size,
                 stride,
-                output_dim_size);
+                y_dim_size);
             break;
         case 8:
             kernel_name = "Cat8FwdPacked";
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                inputs[0],
-                inputs[1],
-                inputs[2],
-                inputs[3],
-                inputs[4],
-                inputs[5],
-                inputs[6],
-                inputs[7],
-                output,
-                input_dim_sizes[0],
-                input_dim_sizes[1],
-                input_dim_sizes[2],
-                input_dim_sizes[3],
-                input_dim_sizes[4],
-                input_dim_sizes[5],
-                input_dim_sizes[6],
-                input_dim_sizes[7],
+                xs[0],
+                xs[1],
+                xs[2],
+                xs[3],
+                xs[4],
+                xs[5],
+                xs[6],
+                xs[7],
+                y,
+                x_dim_sizes[0],
+                x_dim_sizes[1],
+                x_dim_sizes[2],
+                x_dim_sizes[3],
+                x_dim_sizes[4],
+                x_dim_sizes[5],
+                x_dim_sizes[6],
+                x_dim_sizes[7],
                 dim,
                 outer_size,
                 stride,
-                output_dim_size);
+                y_dim_size);
             break;
         default: break;
         }

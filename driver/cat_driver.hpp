@@ -119,7 +119,7 @@ int CatDriver<Tgpu, Tref>::GetandSetData()
     miopenTensorDescriptor_t inputDesc;
     size_t output_dim_size = 0;
     auto in_lens           = GetInputTensorLengthsFromCmdLine();
-    dim                    = static_cast<int>(inflags.GetValueDouble("dim"));
+    dim                    = inflags.GetValueDouble("dim");
 
     for(auto in_len : in_lens)
     {
@@ -272,10 +272,6 @@ Tref CatDriver<Tgpu, Tref>::GetTolerance()
     else if(data_type == miopenFloat)
     {
         return 5e-5;
-    }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
     }
     else if(data_type == miopenBFloat16)
     {

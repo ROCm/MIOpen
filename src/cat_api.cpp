@@ -29,14 +29,14 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> inputDescs, bool is_fwd)
+static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> xDescs, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
-        for(auto inputDesc : inputDescs)
+        for(auto xDesc : xDescs)
         {
             std::stringstream ss;
-            auto dtype = miopen::deref(inputDesc).GetType();
+            auto dtype = miopen::deref(xDesc).GetType();
             if(dtype == miopenHalf)
             {
                 ss << "catfp16";
@@ -55,7 +55,7 @@ static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> inputDescs, bo
             }
 
             std::string batch_sz;
-            auto dims = miopen::deref(inputDesc).GetLengths();
+            auto dims = miopen::deref(xDesc).GetLengths();
             for(auto dim : dims)
             {
                 batch_sz += std::to_string(dim);
@@ -71,30 +71,25 @@ static void LogCmdCat(const std::vector<miopenTensorDescriptor_t> inputDescs, bo
 }
 
 extern "C" miopenStatus_t miopenCatForward(miopenHandle_t handle,
-                                           const std::vector<miopenTensorDescriptor_t>& inputDescs,
-                                           const std::vector<void*>& inputs,
-                                           const miopenTensorDescriptor_t& outputDesc,
-                                           void* output,
+                                           const std::vector<miopenTensorDescriptor_t>& xDescs,
+                                           const std::vector<void*>& xs,
+                                           const miopenTensorDescriptor_t& yDesc,
+                                           void* y,
                                            const int32_t dim)
 {
-    MIOPEN_LOG_FUNCTION(handle, inputDescs, inputs, outputDesc, output, dim);
-    LogCmdCat(inputDescs, true);
-    std::vector<ConstData_t> inputsCast;
-    std::vector<miopen::TensorDescriptor> inputDescsCast;
+    MIOPEN_LOG_FUNCTION(handle, xDescs, xs, yDesc, y, dim);
+    LogCmdCat(xDescs, true);
     return miopen::try_([&] {
-        std::transform(inputDescs.begin(),
-                       inputDescs.end(),
-                       std::back_inserter(inputDescsCast),
-                       [](const auto& inputDesc) { return miopen::deref(inputDesc); });
-        std::transform(inputs.begin(),
-                       inputs.end(),
-                       std::back_inserter(inputsCast),
-                       [](const void* input) { return DataCast(input); });
-        miopen::CatForward(miopen::deref(handle),
-                           inputDescsCast,
-                           inputsCast,
-                           miopen::deref(outputDesc),
-                           DataCast(output),
-                           dim);
+        std::vector<ConstData_t> xCast;
+        std::vector<miopen::TensorDescriptor> xDescsCast;
+        std::transform(xDescs.begin(),
+                       xDescs.end(),
+                       std::back_inserter(xDescsCast),
+                       [](const auto& xDesc) { return miopen::deref(xDesc); });
+        std::transform(xs.begin(), xs.end(), std::back_inserter(xCast), [](const void* x) {
+            return DataCast(x);
+        });
+        miopen::CatForward(
+            miopen::deref(handle), xDescsCast, xCast, miopen::deref(yDesc), DataCast(y), dim);
     });
 }
