@@ -64,8 +64,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               const ConvFindParameters&) const override
+                                               const ConvFindParameters&,
+                                               const std::optional<FindOptions>&) const override
     {
+        /// \todo: actually use FindOptions
         return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllDirectSolutions(ctx, problem, invoke_ctx)
                    : FindAllBwdWrW2DSolutions(ctx, problem, invoke_ctx);
@@ -91,8 +93,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               const ConvFindParameters&) const override
+                                               const ConvFindParameters&,
+                                               const std::optional<FindOptions>&) const override
     {
+        /// \todo: actually use FindOptions
         return problem.GetDirection() != conv::Direction::BackwardWeights
                    ? FindAllImplicitGemmSolutions(ctx, problem, invoke_ctx)
                    : FindImplicitGemmWrWAllSolutions(ctx, problem, invoke_ctx);
@@ -120,8 +124,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               const ConvFindParameters&) const override
+                                               const ConvFindParameters&,
+                                               const std::optional<FindOptions>&) const override
     {
+        /// \todo: actually use FindOptions
         return FindAllFFTSolutions(ctx, problem, invoke_ctx);
     }
 };
@@ -145,8 +151,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               const ConvFindParameters&) const override
+                                               const ConvFindParameters&,
+                                               const std::optional<FindOptions>&) const override
     {
+        /// \todo: actually use FindOptions
         return FindAllGemmSolutions(ctx, problem, invoke_ctx);
     }
 };
@@ -170,8 +178,10 @@ protected:
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
                                                const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx,
-                                               const ConvFindParameters& parameters) const override
+                                               const ConvFindParameters& parameters,
+                                               const std::optional<FindOptions>&) const override
     {
+        /// \todo: actually use FindOptions
         auto ctx_copy = ctx;
         if(parameters.use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
@@ -283,7 +293,8 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
               const ExecutionContext& ctx,
               const ProblemDescriptionBase& problem,
               const PrimitiveFindParameters& parameters,
-              const std::vector<std::unique_ptr<ISolversFinder>>& finders)
+              const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+              const std::optional<FindOptions>& options)
 {
     auto& handle = ctx.GetStream();
 
@@ -292,7 +303,7 @@ void FindCore(const AnyInvokeParams& invoke_ctx,
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
             return std::make_pair(f->GetAlgorithmName(problem),
-                                  f->Find(ctx, problem, invoke_ctx, parameters));
+                                  f->Find(ctx, problem, invoke_ctx, parameters, options));
         });
 
     // Precompile
