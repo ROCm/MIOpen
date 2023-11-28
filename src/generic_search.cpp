@@ -33,9 +33,27 @@
 
 namespace miopen {
 namespace solver {
+namespace debug {
+
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+static std::optional<std::size_t> tuning_iterations_limit;
+
+TuningIterationScopedLimiter::TuningIterationScopedLimiter(std::size_t new_limit)
+    : old_limit(tuning_iterations_limit)
+{
+    tuning_iterations_limit = new_limit;
+}
+
+TuningIterationScopedLimiter::~TuningIterationScopedLimiter()
+{
+    tuning_iterations_limit = old_limit;
+}
+} // namespace debug
 
 std::size_t GetTuningIterationsMax()
 {
+    if(debug::tuning_iterations_limit)
+        return *debug::tuning_iterations_limit;
     return Value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX{}, std::numeric_limits<std::size_t>::max());
 }
 

@@ -28,6 +28,8 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/common.hpp>
+#include <miopen/find_controls.hpp>
 #include <miopen/object.hpp>
 
 #include <limits>
@@ -49,6 +51,7 @@ struct FindOptions : miopenFindOptions
     std::size_t workspace_limit            = std::numeric_limits<std::size_t>::max();
     std::unordered_map<miopenTensorArgumentId_t, Data_t> preallocated_tensors;
     std::optional<Workspace> preallocated_workspace;
+    std::optional<FindEnforce> find_enforce;
 };
 
 } // namespace miopen
