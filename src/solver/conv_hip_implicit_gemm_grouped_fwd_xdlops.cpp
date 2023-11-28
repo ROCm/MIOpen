@@ -172,9 +172,10 @@ template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(
     const ProblemDescription& problem) // should be parameterized with execution context
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
-    index         = 0;
-    kernel_id     = valid_kernels[index];
+    if(valid_kernels.empty())
+        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+    index     = 0;
+    kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
@@ -192,6 +193,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
 {
     std::vector<std::string> tokens;
@@ -262,7 +264,7 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, std::si
 }
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
     const ExecutionContext& ctx, const ProblemDescription& problem)
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
@@ -278,13 +280,11 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
         MIOPEN_LOG_I("Params set by AI: " << ToString());
+        return true;
     }
-    else
-    {
-        index     = 0;
-        kernel_id = valid_kernels[index];
-    }
+    return false;
 }
+#endif
 
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
@@ -307,27 +307,31 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
         if(problem.GetInDataType() == miopenFloat)
-            RunParameterPredictionModel<float>(ctx, problem);
-        else
-            RunParameterPredictionModel<ck::half_t>(ctx, problem);
-    }
-    else
-    {
-        switch(problem.GetInDataType())
         {
-        case miopenHalf: Init<ck::half_t>(problem); break;
-        case miopenFloat: Init<float>(problem); break;
-        case miopenInt8: Init<int8_t>(problem); break;
-        case miopenInt32:
-        case miopenBFloat16:
-        case miopenFloat8:
-        case miopenBFloat8:
-        case miopenDouble: break;
+            if(RunParameterPredictionModel<float>(ctx, problem))
+                return;
         }
+        else
+        {
+            if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
+                return;
+        }
+    }
+#endif
+    switch(problem.GetInDataType())
+    {
+    case miopenHalf: Init<ck::half_t>(problem); break;
+    case miopenFloat: Init<float>(problem); break;
+    case miopenInt8: Init<int8_t>(problem); break;
+    case miopenInt32:
+    case miopenBFloat16:
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenDouble: break;
     }
 #endif
 }

@@ -395,9 +395,8 @@ private:
     {
         return IsValidValueImpl(sequence_length);
     }
-    void RunParmeterPredictionModel(const ExecutionContext&,
-                                    const miopen::conv::ProblemDescription&,
-                                    bool& valid);
+    bool RunParameterPredictionModel(const ExecutionContext&,
+                                     const miopen::conv::ProblemDescription&);
     bool ModelApplyToken(int index, std::string value, const miopen::conv::ProblemDescription&);
 #endif
     bool IsValidImpl(const miopen::conv::ProblemDescription& problem, int sequence_length) const;
@@ -4509,7 +4508,7 @@ private:
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
-    void RunParameterPredictionModel(const ExecutionContext& ctx,
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
     bool ModelApplyToken(int idx, std::string value);

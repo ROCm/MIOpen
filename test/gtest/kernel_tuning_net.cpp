@@ -83,7 +83,6 @@ void TestParameterPredictionModel(miopen::conv::ProblemDescription problem, std:
         << "\nPredicted parameters: " << perf_config.ToString();
 #else
     std::ignore = problem;
-    std::ignore = expected_valid;
     std::ignore = expected;
     GTEST_SKIP();
 #endif

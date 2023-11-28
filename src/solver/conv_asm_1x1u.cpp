@@ -367,6 +367,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidImpl(const ProblemDescription& problem
     return true;
 }
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
 bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
                                                    std::string value,
                                                    const ProblemDescription& problem)
@@ -388,22 +389,6 @@ bool PerformanceConfigConvAsm1x1U::ModelApplyToken(int index,
     return this->IsPartiallyValid(problem, index + 1);
 }
 
-bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
-                                                     const ProblemDescription& problem) const
-{
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
-        return false;
-    if(ctx.GetStream().GetDeviceName() != "gfx908")
-        return false;
-    if(problem.GetKernelStrideH() != 1)
-        return false;
-    return true;
-#else
-    return false;
-#endif
-}
-
 static std::vector<float> TransformFeatures(const ProblemDescription& problem, std::size_t n)
 {
     assert(n == 8); // n = 6 (numerical conv params) * 1 + 1 (nominal conv params) * 2(amount of
@@ -422,9 +407,8 @@ static std::vector<float> TransformFeatures(const ProblemDescription& problem, s
     return features;
 }
 
-void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionContext& ctx,
-                                                              const ProblemDescription& problem,
-                                                              bool& valid)
+bool PerformanceConfigConvAsm1x1U::RunParameterPredictionModel(const ExecutionContext& ctx,
+                                                               const ProblemDescription& problem)
 {
     static const std::size_t n      = 8;
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
@@ -435,9 +419,11 @@ void PerformanceConfigConvAsm1x1U::RunParmeterPredictionModel(const ExecutionCon
        }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
-        valid = true;
+        return true;
     }
+    return false;
 }
+#endif
 
 void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& problem)
 {
@@ -485,19 +471,31 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
     }
 }
 
+bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR{}))
+        return false;
+    if(ctx.GetStream().GetDeviceName() != "gfx908")
+        return false;
+    if(problem.GetKernelStrideH() != 1)
+        return false;
+    return true;
+}
+
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem)
 {
     if(problem.GetInDataType() == miopenDouble)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
-
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(IsModelApplicable(ctx, problem))
     {
-        bool valid = false;
-        RunParmeterPredictionModel(ctx, problem, valid);
-        if(valid)
+
+        if(RunParameterPredictionModel(ctx, problem))
             return;
     }
+#endif
     StaticHeuristic(problem);
     MIOPEN_LOG_I(ToString());
 }
