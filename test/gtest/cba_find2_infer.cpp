@@ -122,11 +122,13 @@ TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSf2x3g1Find2Fused)
         fused_problem, invoke_params, conv_config, test_skipped);
 }
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
 {
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
+#endif
 
 #if MIOPEN_BACKEND_HIP
 TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testFind)

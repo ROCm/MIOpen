@@ -696,10 +696,12 @@ static auto GetFusedDirectSolvers()
                                    solver::fusion::ConvOclDirectFwdFused>{};
 }
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 static auto GetFusedIGemmSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvCKIgemmFwdBiasActivFused>{};
 }
+#endif
 
 static auto GetFusedWinogradSolvers()
 {
@@ -709,7 +711,10 @@ static auto GetFusedWinogradSolvers()
 
 static auto GetAllFusionSolvers()
 {
-    return GetFusedNonConvSolvers() + GetFusedDirectSolvers() + GetFusedIGemmSolvers() +
+    return GetFusedNonConvSolvers() + GetFusedDirectSolvers() +
+#if MIOPEN_USE_COMPOSABLEKERNEL
+           GetFusedIGemmSolvers() +
+#endif
            GetFusedWinogradSolvers();
 }
 
@@ -783,7 +788,9 @@ static const std::vector<std::unique_ptr<ISolversFinder>>& GetFusionSolverFinder
         auto tmp = std::vector<std::unique_ptr<ISolversFinder>>{};
         add(tmp, GetFusedNonConvSolvers(), "fusion");
         add(tmp, GetFusedDirectSolvers(), "miopenConvolutionFwdAlgoDirect");
+#if MIOPEN_USE_COMPOSABLEKERNEL
         add(tmp, GetFusedIGemmSolvers(), "miopenConvolutionFwdAlgoImplicitGEMM");
+#endif
         add(tmp, GetFusedWinogradSolvers(), "miopenConvolutionFwdAlgoWinograd");
         return tmp;
     }();

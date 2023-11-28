@@ -2844,6 +2844,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
            const AnyInvokeParams& invoke_ctx) const override;
 };
 
+#if MIOPEN_USE_COMPOSABLEKERNEL
 struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
     : PerfConfigBase<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
@@ -2899,6 +2900,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
 };
+#endif
 
 struct ConvDirectNaiveConvFwd final : ConvSolver
 {

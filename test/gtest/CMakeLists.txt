@@ -12,10 +12,6 @@ set(SOURCES
     platform.cpp
     )
 
-if(MIOPEN_BACKEND_OPENCL)
-  set(SKIP_TESTS dumpTensorTest)
-endif()
-
 function(add_gtest TEST_NAME)
   if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
     message("Adding Test: " ${TEST_NAME})
@@ -43,6 +39,11 @@ file(GLOB TESTS *.cpp)
 foreach(SOURCE ${SOURCES})
     list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
 endforeach()
+
+if(NOT MIOPEN_USE_COMPOSABLEKERNEL)
+  # Remove tests when CK is disabled
+  list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/bad_fusion_plan.cpp)
+endif()
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
