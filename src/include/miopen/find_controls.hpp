@@ -72,6 +72,7 @@ private:
 
 public:
     FindEnforce();
+    explicit FindEnforce(FindEnforceAction action_) : action(action_) {}
 
     template <class Context>
     bool IsDbClean(const Context& context) const
