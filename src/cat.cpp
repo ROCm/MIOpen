@@ -31,6 +31,7 @@
 #include <miopen/tensor.hpp>
 
 #define LOCAL_SIZE 256
+#define MAX_TENSOR_X_COUNT 8
 
 namespace miopen {
 
@@ -43,14 +44,14 @@ miopenStatus_t CatForward(const Handle& handle,
                           Data_t y,
                           int32_t dim)
 {
-    if(xs.size() > 8)
+    if(xs.size() > MAX_TENSOR_X_COUNT)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Exceeded the number of input tensors.");
+        MIOPEN_THROW(miopenStatusBadParm, "Exceeded the number of tensors.");
     }
 
     if(xs.size() != xDescs.size())
     {
-        MIOPEN_THROW(miopenStatusBadParm, "The number of input tensors does not match.");
+        MIOPEN_THROW(miopenStatusBadParm, "The number of tensors does not match.");
     }
 
     if(y == nullptr)
@@ -58,9 +59,9 @@ miopenStatus_t CatForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
 
-    for(auto input : xs)
+    for(auto x : xs)
     {
-        if(input == nullptr)
+        if(x == nullptr)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
         }
@@ -70,16 +71,14 @@ miopenStatus_t CatForward(const Handle& handle,
     auto ydims         = yDesc.GetLengths();
     ydims[dim]         = 0;
     bool is_all_packed = yDesc.IsPacked();
-    auto it1           = xDescs.begin();
-    auto it2           = xs.begin();
     std::vector<size_t> x_dim_sizes;
     size_t x_dim_size_max = 0;
 
-    while(it1 != xDescs.end())
+    for(auto& xDesc : xDescs)
     {
-        auto& xdims = it1->GetLengths();
+        auto& xdims = xDesc.GetLengths();
 
-        if(it1->GetType() != dtype)
+        if(xDesc.GetType() != dtype)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
         }
@@ -97,19 +96,10 @@ miopenStatus_t CatForward(const Handle& handle,
             }
         }
 
-        if(xdims[dim] == 0)
-        {
-            it2 = xs.erase(it2);
-        }
-        else
-        {
-            x_dim_size_max = std::max(x_dim_size_max, xdims[dim]);
-            x_dim_sizes.push_back(xdims[dim]);
-            ydims[dim] += xdims[dim];
-            is_all_packed &= it1->IsPacked();
-            it2++;
-        }
-        it1++;
+        x_dim_size_max = std::max(x_dim_size_max, xdims[dim]);
+        x_dim_sizes.push_back(xdims[dim]);
+        ydims[dim] += xdims[dim];
+        is_all_packed &= xDesc.IsPacked();
     }
 
     if(ydims[dim] != yDesc.GetLengths()[dim])
