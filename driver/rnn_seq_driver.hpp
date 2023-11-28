@@ -569,7 +569,7 @@ std::vector<int> RNNSeqDriver<Tgpu, Tref>::GetSeqLengthsFromCmdLine()
                   << std::distance(data_seq_lens.begin(), seq_it)
                   << " is shmaller than time batch_size == "
                   << batch_size
-                  <<", padding the rest of data with "
+                  << ", padding the rest of data with "
                   << padding_val << "\n";
 
         for(; seq_it != data_seq_lens.end(); seq_it++)

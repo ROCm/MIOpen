@@ -159,10 +159,10 @@ if(BUILD_TESTING)
     set(INSTALL_GTEST OFF CACHE INTERNAL "")
 
     FetchContent_Declare(
-            GTest
-            GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571
-            SYSTEM
+        GTest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571
+        SYSTEM
     )
 
     set(__build_shared_libs ${BUILD_SHARED_LIBS})

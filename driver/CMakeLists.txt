@@ -27,6 +27,7 @@
 add_executable(MIOpenDriver main.cpp InputFlags.cpp)
 target_include_directories(MIOpenDriver PRIVATE ../src/kernels)
 target_link_libraries(MIOpenDriver MIOpen MIOpenCore ${BZIP2_LIBRARIES} Threads::Threads)
+
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
 target_link_libraries(MIOpenDriver $<BUILD_INTERFACE:miopen_data> )
 endif()

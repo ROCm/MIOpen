@@ -31,6 +31,9 @@
 #include <boost/filesystem.hpp>
 
 #include <string>
+#ifdef _WIN32
+#include <optional>
+#endif
 
 #ifdef __linux__
 #include <errno.h>
@@ -196,20 +199,75 @@ boost::filesystem::path ExpandUser(const std::string& path)
 
 #else
 
-MIOPEN_DECLARE_ENV_VAR(TEMP)
+namespace {
+std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
+{
+    std::size_t required_size;
+    getenv_s(&required_size, nullptr, 0, name.data());
+    if(required_size == 0)
+    {
+        return std::nullopt;
+    }
+    std::string result;
+    result.reserve(required_size);
+    getenv_s(&required_size, result.data(), required_size, name.data());
+    return {result};
+}
+
+std::optional<std::pair<std::string::size_type, std::string>>
+ReplaceVariable(const std::string& path, std::string_view name, std::size_t offset = 0)
+{
+    std::vector<std::string> variables{
+        "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
+    for(auto& variable : variables)
+    {
+        auto pos{path.find(variable, offset)};
+        if(pos != std::string::npos)
+        {
+            auto result{path};
+            auto value{GetEnvironmentVariable(name)};
+            if(value)
+            {
+                result.replace(pos, variable.length(), *value);
+            }
+            else
+            {
+                // TODO: log warning message that the name used does not correspond
+                //       to an environment variable.
+                result.replace(
+                    pos, variable.length(), boost::filesystem::temp_directory_path().string());
+            }
+            return {{pos, result}};
+        }
+    }
+    return std::nullopt;
+}
+} // namespace
 
 boost::filesystem::path ExpandUser(const std::string& path)
 {
-    const char* home_dir = GetStringEnv(HOME{});
-    if(home_dir == nullptr)
+    auto result{ReplaceVariable(path, "USERPROFILE")};
+    if(not result)
     {
-        home_dir = GetStringEnv(TEMP{});
-        if(home_dir == nullptr)
+        result = ReplaceVariable(path, "HOME");
+        if(not result)
         {
-            MIOPEN_THROW(miopenStatusInternalError);
+            result = ReplaceVariable(path, "HOMEDRIVE");
+            if(result)
+            {
+                auto& [offset, dir] = *result;
+                result              = ReplaceVariable(dir, "HOMEPATH", offset);
+
+                // TODO: if (not result): log warning message that
+                //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
+            }
         }
     }
-    return {ReplaceString(path, "$HOME", home_dir)};
+    if(result)
+    {
+        return {std::get<1>(*result)};
+    }
+    return {path};
 }
 
 bool IsNetworkedFilesystem(const boost::filesystem::path&) { return false; }
