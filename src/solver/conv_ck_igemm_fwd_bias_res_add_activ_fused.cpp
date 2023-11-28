@@ -64,41 +64,153 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
+
+using CK_OutLayout = ck::tensor_layout::convolution::NDHWGK;
+
+// InDataType also applies to weights
+// OutDataType also applies to added z & bias tensors
+template <typename InDataType, typename OutDataType = InDataType>
+using DeviceOp = 
+  ck::tensor_operation::device::DeviceGroupedConvFwdMultipleD<
+    3,
+    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GKZYXC,
+    ck::Tuple<CK_OutLayout, CK_OutLayout>,
+    CK_OutLayout,
+    InDataType, // in data type
+    InDataType, // wei data type
+    ck::Tuple<OutDataType, OutDataType>, // z & bias tensors data type
+    InDataType, // out data type
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::ScaleAddScaleAddRelu>;
+
+
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 namespace {
 
 struct CKArgs
 {
-    CKArgs(const miopen::conv::ProblemDescription& problem)
+    CKArgs(const ProblemDescription& problem)
     {
-        N        = ProblemInterpreter::GetBatchN(problem);
-        K        = ProblemInterpreter::GetOutputChannelK(problem);
-        C        = ProblemInterpreter::GetInputChannelC(problem);
-        input    = {ProblemInterpreter::GetInputHeightHi(problem),
-                 ProblemInterpreter::GetInputWidthWi(problem)};
-        output   = {ProblemInterpreter::GetOutputHeightHo(problem),
-                  ProblemInterpreter::GetOutputWidthWo(problem)};
-        filter   = {ProblemInterpreter::GetFilterHeightY(problem),
-                  ProblemInterpreter::GetFilterWidthX(problem)};
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        G  = ProblemInterpreter::GetGroupCountG(problem);
+        N  = ProblemInterpreter::GetBatchN(problem);
+        K1 = ProblemInterpreter::GetOutputChannelK(problem);
+        C1 = ProblemInterpreter::GetInputChannelC(problem);
+        C  = C1 / G; // Number of input Channel per group
+        K  = K1 / G; // Number of output Channel per group
+        Hi = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y  = ProblemInterpreter::GetFilterHeightY(problem);
+        X  = ProblemInterpreter::GetFilterWidthX(problem);
+        Di = ProblemInterpreter::GetInputDepthDi(problem);
+        Do = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
+
+        // miopen filter_stride to CK filter_stride
+        auto miopen_in_strides  = problem.GetIn().GetStrides();
+        auto miopen_out_strides = problem.GetOut().GetStrides();
+        auto miopen_wei_strides = problem.GetWeights().GetStrides();
+        miopen_in_strides.insert(miopen_in_strides.begin(), C);
+        miopen_out_strides.insert(miopen_out_strides.begin(), K);
+        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
+        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
+        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
+        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+
+        filter_stride  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
+        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
+                    ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
+
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
+    CKArgs& operator=(const CKArgs&) = default;
+
+    template <typename OpPtr>
+    auto MakeArgPtr(const OpPtr& op_ptr, ConstData_t in, ConstData_t w, Data_t out,
+        ConstData_t z, ConstData_t bias) const
+    {
+
+        using ScaleAddScaleAddRelu = ck::tensor_operation::element_wise::ScaleAddScaleAddRelu;
+        return op_ptr->MakeArgumentPointer(in,
+                                             w,
+                                             {z, bias},
+                                             out,
+                                             in_lens,
+                                             in_strides,
+                                             wei_lens,
+                                             wei_strides,
+                                             {out_lens, out_lens},
+                                             {out_strides, out_strides},
+                                             out_lens,
+                                             out_strides,
+                                             filter_stride,
+                                             filter_dilation,
+                                             lPadding,
+                                             rPadding,
+                                             {}, // PassThrough
+                                             {}, // PassThrough
+                                             ScaleAddScaleAddRelu{alpha1, alpha2});
+    }
+
+#if 0
+    template <typename OpPtr>
+    auto MakeArgPtr(const OpPtr& op_ptr, const ConvDataTensors& tensors) const
+    {
+        return MakeArgPtr(op_ptr, tensors.in, tensors.w, tensors.out);
+    }
+#endif
+
+    template <typename OpPtr>
+    bool IsSupportedBy(const OpPtr& op_ptr) const
+    {
+        auto arg_ptr = MakeArgPtr(op_ptr, nullptr, nullptr, nullptr);
+        return op_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    int G;
     int N;
     int K;
     int C;
-    std::vector<int> input;
-    std::vector<int> output;
-    std::vector<int> filter;
-    std::vector<int> strides;
-    std::vector<int> dilation;
-    std::vector<int> lPadding;
-    std::vector<int> rPadding;
+    int C1;
+    int K1;
+    int Hi;
+    int Wi;
+    int Di;
+    int Ho;
+    int Wo;
+    int Do;
+    int Y;
+    int X;
+    int Z;
+    float alpha1 = 1.0f;
+    float alpha2 = 1.0f;
+    std::array<ck::index_t, 6> input;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> output;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> weight;
+    std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 3> filter_stride;
+    std::array<ck::index_t, 3> filter_dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 
 } // namespace
@@ -124,8 +236,8 @@ void PerfConfigConvCKIgemmFwdBiasResAddActivFused::Init(
                                                     args.input,
                                                     args.filter,
                                                     args.output,
-                                                    args.strides,
-                                                    args.dilation,
+                                                    args.filter_stride,
+                                                    args.filter_dilation,
                                                     args.lPadding,
                                                     args.rPadding,
                                                     {},
@@ -173,8 +285,8 @@ bool PerfConfigConvCKIgemmFwdBiasResAddActivFused::CheckIsSupportCKArgs(
                                                           args.input,
                                                           args.filter,
                                                           args.output,
-                                                          args.strides,
-                                                          args.dilation,
+                                                          args.filter_stride,
+                                                          args.filter_dilation,
                                                           args.lPadding,
                                                           args.rPadding,
                                                           {},
@@ -204,8 +316,8 @@ bool ConvCKIgemmFwdBiasResAddActivFused::CheckCKApplicability(
                                                     args.input,
                                                     args.filter,
                                                     args.output,
-                                                    args.strides,
-                                                    args.dilation,
+                                                    args.filter_stride,
+                                                    args.filter_dilation,
                                                     args.lPadding,
                                                     args.rPadding,
                                                     {},
@@ -261,8 +373,8 @@ void RunCKSolution(const Handle& handle,
         args.input,
         args.filter,
         args.output,
-        args.strides,
-        args.dilation,
+        args.filter_stride,
+        args.filter_dilation,
         args.lPadding,
         args.rPadding,
         {},
