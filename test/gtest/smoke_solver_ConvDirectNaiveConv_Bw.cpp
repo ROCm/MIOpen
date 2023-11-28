@@ -103,7 +103,8 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx103") || miopen::StartsWith(devName, "gfx110"))
+       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       miopen::StartsWith(devName, "gfx110"))
         return true;
     else
         return false;
