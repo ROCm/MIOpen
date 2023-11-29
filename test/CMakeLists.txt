@@ -29,9 +29,9 @@ cmake_policy(SET CMP0057 NEW)
 set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
 
 if( NOT ENABLE_ASAN_PACKAGING )
-install(FILES  test_perf.py
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(FILES  test_perf.py
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+      DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 set(MODEL_FILES)
@@ -41,9 +41,9 @@ foreach (src ${model_src})
 endforeach()
 
 if( NOT ENABLE_ASAN_PACKAGING )
-install(FILES
-    ${MODEL_FILES}
- DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+  install(FILES
+      ${MODEL_FILES}
+   DESTINATION ${DATA_INSTALL_DIR}/perf_models)
 endif()
  foreach(MODEL_FILE ${MODEL_FILES})
     get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
@@ -245,14 +245,14 @@ elseif(MIOPEN_TEST_BFLOAT16)
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
-  endif()
+endif()
 
-  if(${CODECOV_TEST})
+if(${CODECOV_TEST})
     list(APPEND SKIP_TESTS
         test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
         test_pooling2d_wide)
-      # replaced by smaller tests with suffix _codecov
-  endif()
+    # replaced by smaller tests with suffix _codecov
+endif()
 
 if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
@@ -613,8 +613,8 @@ function(add_custom_test NAME)
     # For example, MIOPEN_DEBUG_FIND_ONLY_SOLVER results in non-optimal records in user-find-db.
     # Another example is tuning tests. These use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time,
     # but the side effect of such savings is sub-optimal tuning values in user-perf-db.
-    # 
-    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in 
+    #
+    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in
     # the non-default directory. This preserves the state of the actual user databases
     # and prevents performance degradation after the tests complete.
     #
