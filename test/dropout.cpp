@@ -311,8 +311,10 @@ struct dropout_driver : test_driver
         if(mask)
         {
             for(size_t i = 0; i < in.desc.GetElementSize(); i++)
+            {
                 reserveSpace[i] =
                     static_cast<unsigned char>(prng::gen_canonical<float>() > dropout_rate);
+            }
         }
 
         DropoutDesc.dropout          = dropout_rate;

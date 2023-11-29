@@ -124,9 +124,11 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                  int bidirect_mode) const
         {
             if(bidirect_mode == 0)
+            {
                 return matrix_lin_layer_size(input_vector_sz, hidden_vec_sz, gates) +
                        static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
                            hidden_vec_sz * static_cast<size_t>(layers_cnt - 1) * gates;
+            }
 
             MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
         }
@@ -171,19 +173,27 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         size_t get_matrix_x_off(int layer_id) const
         {
             if(layer_id > 0)
+            {
                 return matrix_normal_start_off +
                        static_cast<size_t>(layer_id - 1) * get_matrix_layer_size(layer_id);
+            }
             else
+            {
                 return 0;
+            }
         };
 
         size_t get_matrix_h_off(int layer_id) const
         {
             if(layer_id > 0)
+            {
                 return get_matrix_x_off(layer_id) +
                        static_cast<size_t>(h_vec * x_in_vec * gates_cnt);
+            }
             else
+            {
                 return get_matrix_x_off(layer_id) + static_cast<size_t>(h_vec * in_vec) * gates_cnt;
+            }
         };
 
         int bias_vector_size() const { return h_vec; }
@@ -431,8 +441,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
                                        : RBuff.ht_offset(layer, bacc_per_time[cur_time - 1]);
 
         if(cur_time == 0)
+        {
             if(hx == nullptr)
                 return;
+        }
 
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
                                                                    false,
@@ -717,8 +729,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         const int chunk_time = std::min(time_chunk_sz, seq_len - chunk_id * time_chunk_sz);
 
         if(layer_id > 0 && layer_stream_id[layer_id - 1] != stream_id)
+        {
             hipStreamWaitEvent(
                 stream_pull[stream_id], layer_chunk_end_event[layer_id - 1][chunk_id].get(), 0);
+        }
 
         if(!(layer_id == 0 && chunk_id == 1))
         {
@@ -757,8 +771,10 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         handle.SetStreamFromPool(extra_stream_id);
 
         if(biasMode != 0u)
+        {
             for(int layer_id = 1; layer_id < nLayers; layer_id++)
                 call_bias_add(layer_id);
+        }
 
         call_inx_next_chunk_preload(first_layer_id);
 
@@ -780,9 +796,11 @@ void RNNDescriptor::RNNForwardTraining_MS(Handle& handle,
         {
             auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
             if(chunk_id > 0)
+            {
                 hipStreamWaitEvent(stream_pull[main_stream_id],
                                    layer_chunk_end_event[layer_id][chunk_id - 1].get(),
                                    0);
+            }
 
             layer_stream_id[layer_id] = main_stream_id;
         }

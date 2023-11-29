@@ -252,7 +252,9 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
         {
             ++tries;
             if(tries < 10)
+            {
                 std::this_thread::yield();
+            }
             else
             {
                 auto slot = *exp_bo;

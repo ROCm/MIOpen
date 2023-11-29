@@ -204,14 +204,20 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
     SetDimOrder(layout_in);
 
     if(padding_in.empty())
+    {
         padds = std::vector<std::size_t>(dims, 0);
+    }
     else
     {
         if(padding_in.size() != dims)
+        {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Lengths and padding number dimensions must be equal");
+        }
         else
+        {
             padds = padding_in;
+        }
     }
 
     SetSequenceLen(seq_len, use_seq_len);
@@ -372,8 +378,10 @@ void SeqTensorDescriptor::SetSequenceLen(const std::vector<std::size_t>& seq_len
 {
     auto seq_cnt = lens[0];
     if(seq_lens.empty() || seq_cnt != seq_lens.size())
+    {
         MIOPEN_THROW(miopenStatusBadParm,
                      "Size of sequence_len and first dimension size must be equal");
+    }
 
     sequence_len = seq_lens;
 
@@ -485,12 +493,14 @@ std::string SeqTensorDescriptor::ToString() const
                   " }";
 
         if(!this->sequence_len.empty())
+        {
             result += ", sequence_len[" +
                       std::accumulate(std::next(this->sequence_len.begin()),
                                       this->sequence_len.end(),
                                       std::to_string(sequence_len[0]),
                                       coma_fold) +
                       " ]";
+        }
 
         if(this->packed)
             result += ", packed";

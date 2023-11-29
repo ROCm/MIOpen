@@ -500,7 +500,9 @@ struct test_driver
                     return dims;
             }
             else
+            {
                 return {single};
+            }
         }};
     }
 
@@ -548,10 +550,14 @@ struct test_driver
                     return subvec;
                 }
                 else
+                {
                     return dims;
+                }
             }
             else
+            {
                 return {dims.front()};
+            }
         }};
     }
 
@@ -670,13 +676,17 @@ struct test_driver
 
                 auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
                 if(cpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in cpu at " << cpu_nan_idx << ": "
                               << out_cpu[cpu_nan_idx] << std::endl;
+                }
 
                 auto gpu_nan_idx = find_idx(out_gpu, miopen::not_finite);
                 if(gpu_nan_idx >= 0)
+                {
                     std::cout << "Non finite number found in gpu at " << gpu_nan_idx << ": "
                               << out_gpu[gpu_nan_idx] << std::endl;
+                }
             }
             else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu) and
                     (miopen::range_distance(out_cpu) != 0))
@@ -712,10 +722,12 @@ struct test_driver
                 [&](auto i) {
                     // cppcheck-suppress knownConditionTrueFalse
                     if(continue_)
+                    {
                         continue_ = this->compare_and_report(
                             std::get<i>(out_cpu), std::get<i>(out_gpu), compare, report, [&](int) {
                                 return fail(i);
                             });
+                    }
                 },
                 is...);
             return continue_;
@@ -958,10 +970,12 @@ void run_data(Iterator start, Iterator last, Action a)
         run_data(std::next(start), last, a);
     }
     else
+    {
         for(auto&& src : sources)
         {
             src([=] { run_data(std::next(start), last, a); });
         }
+    }
 }
 
 struct keyword_set
