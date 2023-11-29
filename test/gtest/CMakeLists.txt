@@ -9,6 +9,10 @@ set(SOURCES
     platform.cpp
     )
 
+if(MIOPEN_BACKEND_OPENCL)
+  set(SKIP_TESTS dumpTensorTest)
+endif()
+
 function(add_gtest TEST_NAME)
   if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
     message("Adding Test: " ${TEST_NAME})
@@ -24,7 +28,7 @@ function(add_gtest TEST_NAME)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
       target_include_directories(test_${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
     endif()
-    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen MIOpenCore hip::host nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
+    target_link_libraries(test_${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
     if(rocBLAS_FOUND)
       target_link_libraries(test_${TEST_NAME} PRIVATE roc::rocblas)
     endif()
@@ -35,6 +39,10 @@ function(add_gtest TEST_NAME)
       # Enable CMake to discover the test binary
       gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")
     endif()
+    if(WIN32)
+      # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+      target_compile_options(test_${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+    endif()
   endif()
 endfunction()
 
@@ -43,11 +51,6 @@ file(GLOB TESTS *.cpp)
 foreach(SOURCE ${SOURCES})
     list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
 endforeach()
-
-if(NOT MIOPEN_USE_COMPOSABLEKERNEL)
-  # Remove tests when CK is disabled
-  list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/bad_fusion_plan.cpp)
-endif()
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)

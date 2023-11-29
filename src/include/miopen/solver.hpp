@@ -55,7 +55,7 @@ namespace debug {
 /// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
 /// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
 /// Currently used during driver using naive kernel as gpu reference.
-extern bool
+MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
@@ -2844,8 +2844,6 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
            const AnyInvokeParams& invoke_ctx) const override;
 };
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-
 struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
     : PerfConfigBase<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
@@ -2901,8 +2899,6 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
 };
-
-#endif
 
 struct ConvDirectNaiveConvFwd final : ConvSolver
 {

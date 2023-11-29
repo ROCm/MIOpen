@@ -528,10 +528,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(
         registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdTrainingSpatialSingle{}.SolverDbId());
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
     RegisterWithSolver(
         registry, ++id, conv::ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
-#endif
 
     Register(registry,
              ++id,
@@ -582,13 +580,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Fusion, fusion::BnFwdInferActivationFused{}.SolverDbId());
     Register(registry, ++id, Primitive::Fusion, fusion::BnFwdTrgActivationFused{}.SolverDbId());
     Register(registry, ++id, Primitive::Fusion, fusion::BnBwdTrgActivationFused{}.SolverDbId());
-#if MIOPEN_USE_COMPOSABLEKERNEL
     Register(registry,
              ++id,
              Primitive::Fusion,
              fusion::ConvCKIgemmFwdBiasActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
-#endif
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNaive{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
@@ -608,13 +604,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-#if MIOPEN_USE_COMPOSABLEKERNEL					   
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm2DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, norm::Layernorm4DCKForward{}.SolverDbId());
-#endif	
     Register(registry, ++id, Primitive::Normalization, norm::LayernormForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!

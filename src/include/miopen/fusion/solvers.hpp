@@ -185,8 +185,6 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-
 struct PerformanceConfigConvCKIgemmFwdBiasActivFused
     : PerfConfigBase<PerformanceConfigConvCKIgemmFwdBiasActivFused>
 {
@@ -254,8 +252,6 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
-
-#endif
 
 struct ConvBinWinogradRxSFused final : FusionSolverBase
 {

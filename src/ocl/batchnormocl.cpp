@@ -131,10 +131,7 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<
-#if MIOPEN_USE_COMPOSABLEKERNEL
-                                                 solver::batchnorm::BnCKFwdTraining,
-#endif
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdTraining,
                                                  solver::batchnorm::BnFwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
@@ -226,11 +223,8 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference
-#if MIOPEN_USE_COMPOSABLEKERNEL
-                                                     , solver::batchnorm::BnCKFwdInference
-#endif
-                                                     >{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
+                                                     solver::batchnorm::BnCKFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -352,10 +346,7 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<
-#if MIOPEN_USE_COMPOSABLEKERNEL
-                                                 solver::batchnorm::BnCKBwdBackward,
-#endif
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKBwdBackward,
                                                  solver::batchnorm::BnBwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};

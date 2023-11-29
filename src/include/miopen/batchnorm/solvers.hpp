@@ -132,8 +132,6 @@ struct BnFwdInference final : BatchnormSolver
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-
 struct BnCKFwdInference final : BatchnormSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKFwdInference>(); }
@@ -163,8 +161,6 @@ struct BnCKFwdTraining final : BatchnormSolver
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
-
-#endif
 
 } // namespace batchnorm
 

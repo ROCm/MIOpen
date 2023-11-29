@@ -17,7 +17,7 @@ function(add_speedtest_executable TEST_NAME)
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS NATIVE_COMMAND ${MIOPEN_TEST_FLAGS})
     target_link_libraries(${TEST_NAME} MIOpen nlohmann_json::nlohmann_json)
     target_include_directories(${TEST_NAME} PRIVATE ../test ../src/kernels)
-endfunction()
+endfunction(add_speedtest_executable)
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)

@@ -37,6 +37,7 @@
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
 #include <miopen/config.h>
+#include <miopen/export.h>
 
 #ifndef _WIN32
 #include <roctracer/roctx.h>
@@ -212,16 +213,16 @@ namespace debug {
 /// by MIOPEN_LOG_NQ* macros (that ignore this switch).
 ///
 /// WARNING: This switch is not intended for use in multi-threaded applications.
-extern bool LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern bool LoggingQuiet; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 
-const char* LoggingLevelToCString(LoggingLevel level);
-std::string LoggingPrefix();
+MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
+MIOPEN_EXPORT std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-bool IsLogging(LoggingLevel level, bool disableQuieting = false);
+MIOPEN_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 bool IsLoggingToRoctx();
@@ -334,6 +335,7 @@ LogParam(std::ostream& os, std::string name, const std::vector<T>& vec, bool ind
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
+MIOPEN_EXPORT
 std::string LoggingParseFunction(const char* func, const char* pretty_func);
 
 #define MIOPEN_GET_FN_NAME() \

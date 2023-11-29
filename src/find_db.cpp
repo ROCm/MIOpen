@@ -40,7 +40,7 @@ namespace miopen {
 
 namespace debug {
 
-bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 /// \todo Remove when #1723 is resolved.
 boost::optional<std::string>& testing_find_db_path_override()

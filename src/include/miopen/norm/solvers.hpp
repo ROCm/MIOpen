@@ -50,8 +50,6 @@ struct LayernormForward final : NormalizationSolver
                              const miopen::norm::ProblemDescription& problem) const override;
 };
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-
 struct Layernorm2DCKForward final : NormalizationSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<Layernorm2DCKForward>(); }
@@ -71,8 +69,6 @@ struct Layernorm4DCKForward final : NormalizationSolver
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::norm::ProblemDescription& problem) const override;
 };
-
-#endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 } // namespace norm
 

@@ -133,6 +133,7 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    CallGemmType_t call_gemm_type,
                                    GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
+MIOPEN_EXPORT
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -143,6 +144,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                         int c_offset,
                         GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
+MIOPEN_EXPORT
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,

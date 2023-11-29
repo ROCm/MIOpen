@@ -35,9 +35,9 @@
 namespace miopen {
 namespace debug {
 
-extern bool
+MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-extern bool LoggingQuiet;        // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern bool LoggingQuiet;        // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 } // namespace miopen

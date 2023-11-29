@@ -144,7 +144,7 @@ if(MIOPEN_ENABLE_SQLITE)
         target_include_directories(PkgConfig::SQLITE3 INTERFACE ${BINARY_DIR})
 
         # For compatibility
-        set(SQLITE3_STATIC_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/include PARENT_SCOPE)
+        set(SQLITE3_STATIC_INCLUDE_DIRS ${BINARY_DIR} PARENT_SCOPE)
         set(SQLITE3_STATIC_LDFLAGS PkgConfig::SQLITE3 PARENT_SCOPE)
     endif()
 endif()

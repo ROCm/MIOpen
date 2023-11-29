@@ -65,7 +65,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_ROCTX)
 
 namespace debug {
 
-bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT bool LoggingQuiet = false; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
 } // namespace debug
 

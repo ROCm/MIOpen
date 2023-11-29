@@ -359,28 +359,15 @@ function(add_test_executable TEST_NAME)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} miopen_data)
+
     endif()
-    target_link_libraries(${TEST_NAME} nlohmann_json::nlohmann_json ${BZIP2_LIBRARIES})
-    target_include_directories(${TEST_NAME} SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+    target_link_libraries(${TEST_NAME} MIOpen nlohmann_json::nlohmann_json)
     target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
-    target_include_directories(${TEST_NAME} SYSTEM PRIVATE $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
-    if(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-        target_link_libraries(${TEST_NAME} hip::device hip::host)
-    endif()
-    if(rocMLIR_FOUND)
-        target_link_libraries(${TEST_NAME} rocMLIR::rockCompiler)
-    endif()
-    target_compile_options(${TEST_NAME} PRIVATE
-            -ftemplate-backtrace-limit=0
-            -Wno-microsoft-template-shadow
-            -Wno-unused-variable
-            -Wno-missing-field-initializers)
-    if(WIN32 AND (CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+" OR CMAKE_C_COMPILER MATCHES ".*clang"))
+    if(WIN32)
         # Refer to https://en.cppreference.com/w/cpp/language/types for details.
-        target_compile_options(${TEST_NAME} PRIVATE -U__LP64__)
+        target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
     endif()
-    target_link_libraries(${TEST_NAME} MIOpen MIOpenCore)
-endfunction()
+endfunction(add_test_executable)
 
 set(MIOPEN_TEST_SANITIZERS)
 foreach(SANTIZER address thread)
