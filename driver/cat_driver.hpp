@@ -140,7 +140,6 @@ template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Cat (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddTensorFlag("input1", '1', "100x1x32", "input tensor descriptor");
     inflags.AddTensorFlag("input2", '2', "100x2x32", "input tensor descriptor");
     inflags.AddTensorFlag("input3", '3', "", "input tensor descriptor");
@@ -290,6 +289,7 @@ int CatDriver<Tgpu, Tref>::VerifyForward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward Cat FAILED: " << error << std::endl;
+        return EC_VerifyFwd;
     }
     else
     {

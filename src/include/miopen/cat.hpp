@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef MIOPEN_CAT_HPP_
 #define MIOPEN_CAT_HPP_
 
