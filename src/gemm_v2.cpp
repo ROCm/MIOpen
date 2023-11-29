@@ -49,7 +49,7 @@
 #include <rocblas.h>
 #else
 #include <rocblas/rocblas.h>
-#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_GEMM_EX3 0 // ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
 #endif
 #include <miopen/perf_field.hpp>
 #endif
@@ -114,11 +114,13 @@ static inline rocblas_datatype rocBlasComputeType(const miopen::GemmDescriptor& 
 
 auto rocBlasDataType(miopenDataType_t data_type)
 {
+    #if USE_ROCBLAS_GEMM_EX3
     if(data_type == miopenFloat8)
         return rocblas_datatype::rocblas_datatype_f8_r;
-    else if(data_type == miopenBFloat8)
+    if(data_type == miopenBFloat8)
         return rocblas_datatype::rocblas_datatype_bf8_r;
-    else if(data_type == miopenHalf)
+    #endif
+    if(data_type == miopenHalf)
         return rocblas_datatype::rocblas_datatype_f16_r;
     MIOPEN_THROW(miopenStatusInternalError, "Invalid data type passed");
 }
