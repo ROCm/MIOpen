@@ -43,9 +43,7 @@
 #include "reduce_driver.hpp"
 #include <miopen/config.h>
 #include <miopen/stringutils.hpp>
-#ifdef MIOPEN_BETA_API
 #include "layernorm_driver.hpp"
-#endif
 
 int main(int argc, char* argv[])
 {
@@ -199,7 +197,6 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<double, double>();
     }
-#ifdef MIOPEN_BETA_API
     else if(base_arg == "layernorm")
     {
         drv = new LayerNormDriver<float, float>();
@@ -212,7 +209,6 @@ int main(int argc, char* argv[])
     {
         drv = new LayerNormDriver<bfloat16, float>();
     }
-#endif
     else
     {
         printf("Incorrect BaseArg\n");

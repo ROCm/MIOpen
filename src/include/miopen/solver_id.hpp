@@ -52,6 +52,7 @@ enum class Primitive
     Bias,
     Fusion,
     Pooling,
+    Normalization
 };
 
 struct Id

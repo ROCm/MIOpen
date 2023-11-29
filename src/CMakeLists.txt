@@ -58,7 +58,9 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINAR
 endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
-message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
+    message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
+endif()
 
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
@@ -114,17 +116,18 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
-        fusion/problem_description.cpp
+    fusion/problem_description.cpp
     generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    layernorm_api.cpp
     load_file.cpp
     lock_file.cpp
     logger.cpp
-    layernorm_api.cpp
     lrn_api.cpp
+    norm/problem_description.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -232,6 +235,9 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_common.cpp
     solver/gemm_wrw.cpp
+    solver/norm/forward_layernorm.cpp
+    solver/norm/forward_layernorm2d_ck.cpp
+    solver/norm/forward_layernorm4d_ck.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -531,6 +537,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         kernel_cache.cpp
+        layer_norm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -551,7 +558,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
-        layer_norm.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
