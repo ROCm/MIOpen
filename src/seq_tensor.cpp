@@ -433,7 +433,7 @@ std::vector<size_t> SeqTensorDescriptor::GetBatchesPerSequence() const
         auto block_begin = sequence_len.rbegin();
 
         while(block_begin != sequence_len.rend() && *block_begin == 0)
-            block_begin++;
+            ++block_begin;
 
         if(block_begin != sequence_len.rend())
         {

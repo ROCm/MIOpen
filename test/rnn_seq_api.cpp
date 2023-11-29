@@ -161,9 +161,12 @@ struct lstm_MS_solver : rnn_seq_driver<T>
 
     void run()
     {
+        // WA skip this test
         if(this->nohx && this->biasMode == 1)
             return;
 
+        // Optimization of test coverage.
+        // Non-float types are not used in this code-path and must be tested using another subtest.
         if(this->type == miopenFloat)
             rnn_seq_driver<T>::run();
     }
